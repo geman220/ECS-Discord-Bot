@@ -13,25 +13,25 @@
 <div class="row">
     <!-- Header Actions -->
     <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <h5 class="mb-0"><i class="ti ti-database me-2"></i>Redis Connection Statistics</h5>
                 <div class="d-flex flex-wrap gap-2">
-                    <button id="refresh-btn" class="btn btn-primary btn-sm">
+                    <button id="redis-mgmt-refresh-btn" class="c-btn c-btn--primary c-btn--sm">
                         <i class="ti ti-refresh me-1"></i>Refresh
                     </button>
-                    <button id="cleanup-btn" class="btn btn-warning btn-sm">
+                    <button id="cleanup-btn" class="c-btn c-btn--warning c-btn--sm">
                         <i class="ti ti-trash me-1"></i>Cleanup
                     </button>
-                    <button id="test-btn" class="btn btn-info btn-sm">
+                    <button id="test-btn" class="c-btn c-btn--info c-btn--sm">
                         <i class="ti ti-plug me-1"></i>Test Connection
                     </button>
-                    <a href="{{ url_for('admin_panel.redis_draft_cache_stats') }}" class="btn btn-success btn-sm">
+                    <a href="{{ url_for('admin_panel.redis_draft_cache_stats') }}" class="c-btn c-btn--success c-btn--sm">
                         <i class="ti ti-chart-bar me-1"></i>Draft Cache
                     </a>
                 </div>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="auto-refresh" checked>
                     <label class="form-check-label" for="auto-refresh">Auto-refresh every 5 seconds</label>
@@ -43,11 +43,11 @@
 
     <!-- Connection Health Status -->
     <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
+        <div class="c-card h-100">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-heart me-2"></i>Connection Health</h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div id="health-status" class="text-center py-3">
                     {% if connection_health.overall %}
                     <span class="status-indicator active me-2"></span>
@@ -78,13 +78,13 @@
 
     <!-- Pool Statistics -->
     <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
+        <div class="c-card h-100">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-chart-dots me-2"></i>Max Connections</h5>
             </div>
-            <div class="card-body d-flex align-items-center justify-content-center">
+            <div class="c-card__body d-flex align-items-center justify-content-center">
                 <div class="text-center">
-                    <h2 class="mb-0" id="max-connections">{{ stats.pool_stats.max_connections|default(0) }}</h2>
+                    <h2 class="mb-0" id="redis-mgmt-max-connections">{{ stats.pool_stats.max_connections|default(0) }}</h2>
                     <small class="text-muted">Maximum pool size</small>
                 </div>
             </div>
@@ -93,20 +93,17 @@
 
     <!-- Utilization -->
     <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
+        <div class="c-card h-100">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-percentage me-2"></i>Pool Utilization</h5>
             </div>
-            <div class="card-body d-flex align-items-center justify-content-center">
+            <div class="c-card__body d-flex align-items-center justify-content-center">
                 <div class="text-center">
                     <h2 class="mb-0" id="utilization">{{ stats.pool_stats.utilization_percent|default(0) }}%</h2>
-                    <div class="progress mt-2" style="width: 150px; height: 8px;">
-                        <div class="progress-bar
-                            {% if stats.pool_stats.utilization_percent|default(0) > 90 %}bg-danger
-                            {% elif stats.pool_stats.utilization_percent|default(0) > 75 %}bg-warning
-                            {% else %}bg-success{% endif %}"
+                    <div class="progress mt-2 u-w-250 u-progress-sm">
+                        <div class="progress-bar {% if stats.pool_stats.utilization_percent|default(0) > 90 %}bg-danger {% elif stats.pool_stats.utilization_percent|default(0) > 75 %}bg-warning {% else %}bg-success{% endif %}"
                             id="utilization-bar"
-                            style="width: {{ stats.pool_stats.utilization_percent|default(0) }}%"></div>
+                            data-width="{{ stats.pool_stats.utilization_percent|default(0) }}"></div>
                     </div>
                 </div>
             </div>
@@ -115,16 +112,16 @@
 
     <!-- Connection Pool Details -->
     <div class="col-md-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
+        <div class="c-card h-100">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-pool me-2"></i>Connection Pool Statistics</h5>
             </div>
-            <div class="card-body">
-                <table class="table table-sm">
+            <div class="c-card__body">
+                <table class="c-table c-table--compact" data-table>
                     <tbody>
                         <tr>
                             <td>Pool Initialized</td>
-                            <td><span id="pool-initialized" class="badge {% if stats.connection_pool_initialized %}bg-success{% else %}bg-danger{% endif %}">
+                            <td><span id="pool-initialized" class="badge {% if stats.connection_pool_initialized %}bg-success{% else %}bg-danger{% endif %}" data-badge>
                                 {{ "Yes" if stats.connection_pool_initialized else "No" }}
                             </span></td>
                         </tr>
@@ -152,12 +149,12 @@
 
     <!-- Redis Server Metrics -->
     <div class="col-md-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
+        <div class="c-card h-100">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-server me-2"></i>Redis Server Metrics</h5>
             </div>
-            <div class="card-body">
-                <table class="table table-sm">
+            <div class="c-card__body">
+                <table class="c-table c-table--compact" data-table>
                     <tbody>
                         <tr>
                             <td>Connected Clients</td>
@@ -183,11 +180,11 @@
 
     <!-- Connection Test Results -->
     <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header">
+        <div class="c-card">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-test-pipe me-2"></i>Connection Test Results</h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div id="test-results">
                     <p class="text-muted mb-0"><i class="ti ti-info-circle me-2"></i>Click "Test Connection" to run connection tests</p>
                 </div>
@@ -197,29 +194,29 @@
 
     <!-- Quick Links -->
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
+        <div class="c-card">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-link me-2"></i>Related Tools</h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.health_dashboard') }}" class="btn btn-outline-primary w-100">
+                        <a href="{{ url_for('admin_panel.health_dashboard') }}" class="c-btn c-btn--outline-primary w-100">
                             <i class="ti ti-heartbeat me-2"></i>Health Dashboard
                         </a>
                     </div>
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.cache_management') }}" class="btn btn-outline-primary w-100">
+                        <a href="{{ url_for('admin_panel.cache_management') }}" class="c-btn c-btn--outline-primary w-100">
                             <i class="ti ti-database me-2"></i>Cache Management
                         </a>
                     </div>
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="btn btn-outline-primary w-100">
+                        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="c-btn c-btn--outline-primary w-100">
                             <i class="ti ti-activity me-2"></i>System Monitoring
                         </a>
                     </div>
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.redis_draft_cache_stats') }}" class="btn btn-outline-success w-100">
+                        <a href="{{ url_for('admin_panel.redis_draft_cache_stats') }}" class="c-btn c-btn--outline-success w-100">
                             <i class="ti ti-chart-bar me-2"></i>Draft Cache Stats
                         </a>
                     </div>
@@ -300,7 +297,7 @@ function testConnection() {
         .then(data => {
             const resultsDiv = document.getElementById('test-results');
             if (data.error) {
-                resultsDiv.innerHTML = `<div class="alert alert-danger mb-0">${data.error}</div>`;
+                resultsDiv.innerHTML = `<div class="alert alert-danger mb-0" data-alert>${data.error}</div>`;
             } else {
                 let html = '<div class="row">';
                 for (const [testName, result] of Object.entries(data.tests)) {
@@ -308,13 +305,13 @@ function testConnection() {
                     const iconClass = result.status === 'success' ? 'ti-check' : 'ti-x';
                     html += `
                         <div class="col-md-4 mb-3">
-                            <div class="card h-100">
-                                <div class="card-body">
+                            <div class="c-card h-100">
+                                <div class="c-card__body">
                                     <div class="d-flex align-items-center mb-2">
                                         <i class="ti ${iconClass} me-2 ${result.status === 'success' ? 'text-success' : 'text-danger'}"></i>
                                         <h6 class="mb-0 text-capitalize">${testName.replace(/_/g, ' ')}</h6>
                                     </div>
-                                    <span class="badge ${badgeClass}">${result.status}</span>
+                                    <span class="badge ${badgeClass}" data-badge>${result.status}</span>
                                     <p class="mt-2 mb-0 small text-muted">${result.message}</p>
                                 </div>
                             </div>
@@ -327,7 +324,7 @@ function testConnection() {
         })
         .catch(error => {
             document.getElementById('test-results').innerHTML =
-                `<div class="alert alert-danger mb-0">Error running tests: ${error}</div>`;
+                `<div class="alert alert-danger mb-0" data-alert>Error running tests: ${error}</div>`;
         })
         .finally(() => {
             testButton.innerHTML = originalText;

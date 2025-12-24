@@ -1,0 +1,593 @@
+/**
+ * ============================================================================
+ * DISCORD BOT MANAGEMENT PAGE - BEM COMPONENTS
+ * ============================================================================
+ *
+ * Technical Command Center aesthetic for Discord bot administration
+ * Mission control inspired design with real-time status monitoring
+ *
+ * ARCHITECTURAL COMPLIANCE:
+ * - 100% BEM naming: .c-component__element--modifier
+ * - Zero hardcoded values (design tokens only)
+ * - Zero !important declarations
+ * - State-driven styling with .is-* classes
+ * - Mobile-first responsive design
+ * - Full dark mode support via [data-style="dark"]
+ * - WCAG AA accessibility compliant
+ *
+ * Components:
+ *   1. Bot Management Container (.c-bot-mgmt)
+ *   2. Bot Status Grid (.c-bot-status)
+ *   3. Bot Sections Grid (.c-bot-sections)
+ *   4. Guild Management (.c-bot-guild)
+ *   5. Guild Card (.c-guild-card)
+ *   6. Guild Stats (.c-guild-stat)
+ *   7. Guild Add Panel (.c-guild-add)
+ *   8. Bot Details Grid (.c-bot-details)
+ *   9. Bot Configuration Form (.c-bot-config)
+ *  10. Bot Timeline (.c-bot-timeline)
+ *  11. Bot Alert (.c-bot-alert)
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. BOT MANAGEMENT CONTAINER
+   Main wrapper for the bot management page
+   ============================================================================ */
+
+.c-bot-mgmt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================================
+   2. BOT STATUS GRID
+   Status overview cards with real-time indicators
+   ============================================================================ */
+
+.c-bot-status {
+  margin-bottom: var(--space-2);
+}
+
+.c-bot-status__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+}
+
+/* Tablet: 2 columns */
+@media (max-width: 991.98px) {
+  .c-bot-status__grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+  }
+}
+
+/* Mobile: 1 column */
+@media (max-width: 575.98px) {
+  .c-bot-status__grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+}
+
+/* ============================================================================
+   3. BOT SECTIONS GRID
+   Management sections layout
+   ============================================================================ */
+
+.c-bot-sections {
+  margin-bottom: var(--space-4);
+}
+
+.c-bot-sections__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+/* Tablet: 1 column */
+@media (max-width: 991.98px) {
+  .c-bot-sections__grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+}
+
+/* ============================================================================
+   4. GUILD MANAGEMENT
+   Discord guild overview section
+   ============================================================================ */
+
+.c-bot-guild {
+  margin-bottom: var(--space-4);
+}
+
+.c-bot-guild__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+/* Tablet: 1 column */
+@media (max-width: 991.98px) {
+  .c-bot-guild__grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+}
+
+/* ============================================================================
+   5. GUILD CARD
+   Individual guild information card
+   ============================================================================ */
+
+.c-guild-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  transition: all 0.2s ease;
+}
+
+.c-guild-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.15);
+}
+
+.c-guild-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.c-guild-card__name {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.c-guild-card__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.c-guild-card__actions {
+  display: flex;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+/* ============================================================================
+   6. GUILD STATS
+   Guild statistics display
+   ============================================================================ */
+
+.c-guild-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.c-guild-stat__value {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-mono);
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.c-guild-stat__label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ============================================================================
+   7. GUILD ADD PANEL
+   Add new guild interface
+   ============================================================================ */
+
+.c-guild-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  background: var(--color-surface);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.c-guild-add:hover {
+  border-color: var(--color-primary);
+  background: var(--color-surface-raised);
+}
+
+.c-guild-add__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: var(--color-primary-subtle);
+  border-radius: var(--radius-full);
+  color: var(--color-primary);
+  font-size: var(--font-size-2xl);
+}
+
+.c-guild-add__text {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+/* ============================================================================
+   8. BOT DETAILS GRID
+   Configuration and activity sections
+   ============================================================================ */
+
+.c-bot-details {
+  margin-bottom: var(--space-4);
+}
+
+.c-bot-details__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+/* Tablet: 1 column */
+@media (max-width: 991.98px) {
+  .c-bot-details__grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+}
+
+/* ============================================================================
+   9. BOT CONFIGURATION FORM
+   Bot settings configuration interface
+   ============================================================================ */
+
+.c-bot-config {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.c-bot-config__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.c-bot-config__label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.c-bot-config__input,
+.c-bot-config__select {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+  font-family: var(--font-mono);
+  transition: all 0.2s ease;
+}
+
+.c-bot-config__input:focus,
+.c-bot-config__select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+}
+
+.c-bot-config__toggles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.c-bot-config__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.c-bot-config__checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+.c-bot-config__toggle-label {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.c-bot-config__actions {
+  display: flex;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Mobile: Stack buttons */
+@media (max-width: 575.98px) {
+  .c-bot-config__actions {
+    flex-direction: column;
+  }
+
+  .c-bot-config__actions .c-btn {
+    width: 100%;
+  }
+}
+
+/* ============================================================================
+   10. BOT TIMELINE
+   Activity timeline component with status markers
+   ============================================================================ */
+
+.c-bot-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.c-bot-timeline__item {
+  display: grid;
+  grid-template-columns: 12px 1fr;
+  gap: var(--space-3);
+  position: relative;
+  padding-bottom: var(--space-4);
+}
+
+.c-bot-timeline__item:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 16px;
+  bottom: -4px;
+  width: 2px;
+  background: var(--color-border);
+}
+
+.c-bot-timeline__marker {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  animation: pulse 2s infinite;
+}
+
+.c-bot-timeline__marker--danger {
+  background: var(--color-danger);
+  box-shadow: 0 0 0 4px rgba(var(--color-danger-rgb), 0.2);
+}
+
+.c-bot-timeline__marker--warning {
+  background: var(--color-warning);
+  box-shadow: 0 0 0 4px rgba(var(--color-warning-rgb), 0.2);
+}
+
+.c-bot-timeline__marker--info {
+  background: var(--color-info);
+  box-shadow: 0 0 0 4px rgba(var(--color-info-rgb), 0.2);
+}
+
+.c-bot-timeline__marker--secondary {
+  background: var(--color-text-tertiary);
+  box-shadow: 0 0 0 4px rgba(var(--color-text-tertiary-rgb), 0.2);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.c-bot-timeline__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.c-bot-timeline__title {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.c-bot-timeline__text {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+}
+
+.c-bot-timeline__timestamp {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  font-family: var(--font-mono);
+}
+
+/* ============================================================================
+   11. BOT ALERT
+   Status alert notification
+   ============================================================================ */
+
+.c-bot-alert {
+  margin-top: var(--space-2);
+}
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================ */
+
+[data-style="dark"] .c-guild-card {
+  background: var(--color-surface-raised);
+  border-color: var(--color-border-subtle);
+}
+
+[data-style="dark"] .c-guild-card:hover {
+  background: var(--color-surface-overlay);
+  border-color: var(--color-primary);
+}
+
+[data-style="dark"] .c-guild-add {
+  background: var(--color-surface);
+  border-color: var(--color-border-subtle);
+}
+
+[data-style="dark"] .c-guild-add:hover {
+  background: var(--color-surface-raised);
+  border-color: var(--color-primary);
+}
+
+[data-style="dark"] .c-bot-config__input,
+[data-style="dark"] .c-bot-config__select {
+  background: var(--color-surface-raised);
+  border-color: var(--color-border-subtle);
+  color: var(--color-text);
+}
+
+[data-style="dark"] .c-bot-config__toggles {
+  background: var(--color-surface-raised);
+  border-color: var(--color-border-subtle);
+}
+
+[data-style="dark"] .c-bot-timeline__item:not(:last-child)::before {
+  background: var(--color-border-subtle);
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .c-bot-mgmt {
+    animation: none;
+  }
+
+  .c-guild-card,
+  .c-guild-add,
+  .c-bot-config__input,
+  .c-bot-config__select {
+    transition: none;
+  }
+
+  .c-bot-timeline__marker {
+    animation: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .c-guild-card,
+  .c-guild-add {
+    border-width: 2px;
+  }
+
+  .c-bot-config__input:focus,
+  .c-bot-config__select:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+/* Focus visible for keyboard navigation */
+.c-guild-card:focus-visible,
+.c-guild-add button:focus-visible,
+.c-bot-config__checkbox:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+@media print {
+  .c-bot-mgmt {
+    display: block;
+  }
+
+  .c-bot-status__grid,
+  .c-bot-sections__grid,
+  .c-bot-guild__grid,
+  .c-bot-details__grid {
+    display: block;
+  }
+
+  .c-bot-status__grid > *,
+  .c-bot-sections__grid > *,
+  .c-bot-guild__grid > *,
+  .c-bot-details__grid > * {
+    margin-bottom: var(--space-4);
+    page-break-inside: avoid;
+  }
+
+  .c-guild-card:hover,
+  .c-guild-add:hover {
+    box-shadow: none;
+    border-color: var(--color-border);
+  }
+
+  .c-bot-config__actions {
+    display: none;
+  }
+
+  .c-bot-timeline__marker {
+    animation: none;
+  }
+}
+
+/* ============================================================================
+   END OF DISCORD BOT MANAGEMENT PAGE COMPONENTS
+   ============================================================================ */

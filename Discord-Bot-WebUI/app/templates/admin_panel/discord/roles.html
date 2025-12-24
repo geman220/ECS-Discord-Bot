@@ -13,8 +13,8 @@
 <div class="row">
     <!-- Stats -->
     <div class="col-md-6 mb-4">
-        <div class="card h-100 bg-info bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-info bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-refresh fs-1 text-info mb-2"></i>
                 <h2 class="mb-0">{{ players_needing_sync }}</h2>
                 <p class="text-muted mb-0">Players Needing Sync</p>
@@ -22,8 +22,8 @@
         </div>
     </div>
     <div class="col-md-6 mb-4">
-        <div class="card h-100 bg-warning bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-warning bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-alert-triangle fs-1 text-warning mb-2"></i>
                 <h2 class="mb-0">{{ players_needs_update }}</h2>
                 <p class="text-muted mb-0">Flagged for Update</p>
@@ -33,25 +33,25 @@
 
     <!-- Mass Sync Section -->
     <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header">
+        <div class="c-card">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-bolt me-2"></i>Mass Role Synchronization</h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <p class="text-muted">Synchronize Discord roles for all players who need updates. This process runs in the background and may take several minutes to complete.</p>
 
                 <div class="row">
                     <div class="col-md-6">
                         <h6>Sync All Players</h6>
                         <p class="small text-muted">Updates Discord roles for all players with Discord IDs.</p>
-                        <button id="mass-sync-btn" class="btn btn-primary">
+                        <button id="mass-sync-btn" class="c-btn c-btn--primary">
                             <i class="ti ti-bolt me-2"></i>Start Mass Sync
                         </button>
                     </div>
                     <div class="col-md-6">
                         <h6>Sync Flagged Players</h6>
                         <p class="small text-muted">Only sync players who are flagged as needing an update.</p>
-                        <button id="sync-flagged-btn" class="btn btn-outline-primary">
+                        <button id="sync-flagged-btn" class="c-btn c-btn--outline-primary">
                             <i class="ti ti-flag me-2"></i>Sync Flagged Only
                         </button>
                     </div>
@@ -60,8 +60,8 @@
                 <!-- Progress Section (hidden by default) -->
                 <div id="sync-progress" class="mt-4 d-none">
                     <h6>Sync Progress</h6>
-                    <div class="progress mb-2" style="height: 25px;">
-                        <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;">0%</div>
+                    <div class="progress mb-2" class="u-h-25">
+                        <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" data-width="0">0%</div>
                     </div>
                     <p id="sync-status" class="small text-muted">Starting sync...</p>
                 </div>
@@ -71,14 +71,14 @@
 
     <!-- Task Status Section -->
     <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="ti ti-list-check me-2"></i>Recent Sync Tasks</h5>
-                <button id="refresh-tasks-btn" class="btn btn-sm btn-outline-secondary">
+                <button id="refresh-tasks-btn" class="c-btn c-btn--sm c-btn--outline-secondary">
                     <i class="ti ti-refresh"></i>
                 </button>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div id="task-list">
                     <p class="text-muted text-center">No recent tasks</p>
                 </div>
@@ -88,11 +88,11 @@
 
     <!-- Information -->
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
+        <div class="c-card">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-info-circle me-2"></i>Role Sync Information</h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-6">
                         <h6>What gets synced?</h6>

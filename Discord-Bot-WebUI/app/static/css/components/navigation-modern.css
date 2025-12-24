@@ -1,0 +1,410 @@
+/**
+ * ============================================================================
+ * NAVIGATION MODERN - BEM COMPONENT
+ * ============================================================================
+ *
+ * Modern navigation components including tabs, pills, and inline navigation.
+ * Designed for sports dashboard with clean, athletic aesthetic.
+ *
+ * Design Direction: Athletic/Modern Sports Dashboard
+ * - Clean horizontal navigation with clear active states
+ * - Smooth transitions and hover effects
+ * - Accessible focus indicators
+ * - Mobile-responsive with touch-friendly targets
+ *
+ * Component Structure:
+ *   .c-nav-modern                       - Container
+ *   .c-nav-modern__list                 - Navigation list
+ *   .c-nav-modern__item                 - Navigation item
+ *   .c-nav-modern__link                 - Navigation link
+ *   .c-nav-modern__badge                - Badge/count indicator
+ *
+ * Variants:
+ *   .c-nav-modern--tabs                 - Tab-style navigation
+ *   .c-nav-modern--pills                - Pill-style navigation
+ *   .c-nav-modern--underline            - Underline-style navigation
+ *   .c-nav-modern--vertical             - Vertical navigation
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. BASE CONTAINER
+   ============================================================================ */
+
+.c-nav-modern {
+  position: relative;
+  width: 100%;
+}
+
+.c-nav-modern__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1, 4px);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.c-nav-modern__item {
+  position: relative;
+}
+
+/* ============================================================================
+   2. NAVIGATION LINK - BASE
+   ============================================================================ */
+
+.c-nav-modern__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  padding: var(--space-2, 8px) var(--space-4, 16px);
+  font-family: var(--font-body, 'Barlow', sans-serif);
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: var(--font-medium, 500);
+  color: var(--color-text-secondary, #64748b);
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    color var(--duration-fast, 150ms) ease,
+    background-color var(--duration-fast, 150ms) ease,
+    transform var(--duration-fast, 150ms) ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Icon styling */
+.c-nav-modern__link i {
+  font-size: 1.125rem;
+  opacity: 0.75;
+  transition: opacity var(--duration-fast, 150ms) ease;
+}
+
+/* Hover state */
+.c-nav-modern__link:hover {
+  color: var(--color-text-primary, #1e293b);
+  background: var(--color-bg-hover, rgba(0, 0, 0, 0.04));
+}
+
+.c-nav-modern__link:hover i {
+  opacity: 1;
+}
+
+/* Focus visible state */
+.c-nav-modern__link:focus-visible {
+  outline: 2px solid var(--color-primary, #2563EB);
+  outline-offset: 2px;
+}
+
+/* Active press state */
+.c-nav-modern__link:active {
+  transform: scale(0.98);
+}
+
+/* Active/Current state - supports both .is-active state class and --active BEM modifier */
+.c-nav-modern__link.is-active,
+.c-nav-modern__link--active,
+.c-nav-modern__link.active,
+.c-nav-modern__link[aria-selected="true"] {
+  color: var(--color-primary, #2563EB);
+  background: var(--color-primary-soft, rgba(59, 130, 246, 0.1));
+  font-weight: var(--font-semibold, 600);
+}
+
+.c-nav-modern__link.is-active i,
+.c-nav-modern__link--active i,
+.c-nav-modern__link.active i,
+.c-nav-modern__link[aria-selected="true"] i {
+  opacity: 1;
+}
+
+/* Disabled state */
+.c-nav-modern__link.is-disabled,
+.c-nav-modern__link:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+/* ============================================================================
+   3. BADGE
+   ============================================================================ */
+
+.c-nav-modern__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 var(--space-1, 4px);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: var(--font-semibold, 600);
+  color: #fff;
+  background: var(--color-primary, #2563EB);
+  border-radius: var(--radius-full, 9999px);
+  line-height: 1;
+}
+
+.c-nav-modern__badge--success {
+  background: var(--color-success, #10b981);
+}
+
+.c-nav-modern__badge--warning {
+  background: var(--color-warning, #f59e0b);
+}
+
+.c-nav-modern__badge--danger {
+  background: var(--color-danger, #ef4444);
+}
+
+/* ============================================================================
+   4. VARIANT: TABS
+   ============================================================================ */
+
+.c-nav-modern--tabs {
+  background: var(--color-bg-secondary, #f8fafc);
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--space-1, 4px);
+}
+
+.c-nav-modern--tabs .c-nav-modern__link {
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+}
+
+.c-nav-modern--tabs .c-nav-modern__link.is-active,
+.c-nav-modern--tabs .c-nav-modern__link--active,
+.c-nav-modern--tabs .c-nav-modern__link.active,
+.c-nav-modern--tabs .c-nav-modern__link[aria-selected="true"] {
+  background: var(--color-bg-primary, #fff);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* ============================================================================
+   5. VARIANT: PILLS
+   ============================================================================ */
+
+.c-nav-modern--pills .c-nav-modern__link {
+  border-radius: var(--radius-full, 9999px);
+  padding: var(--space-2, 8px) var(--space-5, 20px);
+}
+
+.c-nav-modern--pills .c-nav-modern__link.is-active,
+.c-nav-modern--pills .c-nav-modern__link--active,
+.c-nav-modern--pills .c-nav-modern__link.active,
+.c-nav-modern--pills .c-nav-modern__link[aria-selected="true"] {
+  color: #fff;
+  background: var(--color-primary, #2563EB);
+}
+
+.c-nav-modern--pills .c-nav-modern__link.is-active:hover,
+.c-nav-modern--pills .c-nav-modern__link--active:hover,
+.c-nav-modern--pills .c-nav-modern__link.active:hover,
+.c-nav-modern--pills .c-nav-modern__link[aria-selected="true"]:hover {
+  background: var(--color-primary-hover, #1D4ED8);
+}
+
+/* ============================================================================
+   6. VARIANT: UNDERLINE
+   ============================================================================ */
+
+.c-nav-modern--underline {
+  border-bottom: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.08));
+}
+
+.c-nav-modern--underline .c-nav-modern__list {
+  gap: 0;
+}
+
+.c-nav-modern--underline .c-nav-modern__link {
+  position: relative;
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  border-radius: 0;
+  margin-bottom: -1px;
+}
+
+.c-nav-modern--underline .c-nav-modern__link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: var(--space-4, 16px);
+  right: var(--space-4, 16px);
+  height: 2px;
+  background: var(--color-primary, #2563EB);
+  border-radius: 2px 2px 0 0;
+  transform: scaleX(0);
+  transition: transform var(--duration-fast, 150ms) ease;
+}
+
+.c-nav-modern--underline .c-nav-modern__link.is-active::after {
+  transform: scaleX(1);
+}
+
+.c-nav-modern--underline .c-nav-modern__link.is-active {
+  background: transparent;
+}
+
+/* ============================================================================
+   7. VARIANT: VERTICAL
+   ============================================================================ */
+
+.c-nav-modern--vertical .c-nav-modern__list {
+  flex-direction: column;
+  gap: var(--space-1, 4px);
+}
+
+.c-nav-modern--vertical .c-nav-modern__link {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+/* ============================================================================
+   8. TAB PANE CONTENT
+   ============================================================================ */
+
+.c-tab-pane-modern {
+  display: none;
+  padding: var(--space-4, 16px) 0;
+  animation: tab-pane-fade-in var(--duration-normal, 200ms) ease-out;
+}
+
+.c-tab-pane-modern.is-active,
+.c-tab-pane-modern.show,
+.c-tab-pane-modern.active,
+.c-tab-pane-modern--active {
+  display: block;
+}
+
+@keyframes tab-pane-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================================
+   9. RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .c-nav-modern__link {
+    padding: var(--space-2, 8px) var(--space-3, 12px);
+    font-size: var(--text-xs, 0.75rem);
+  }
+
+  .c-nav-modern__link i {
+    font-size: 1rem;
+  }
+
+  .c-nav-modern--tabs .c-nav-modern__link {
+    padding: var(--space-2, 8px) var(--space-3, 12px);
+  }
+
+  /* Scrollable navigation on mobile */
+  .c-nav-modern--scrollable .c-nav-modern__list {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .c-nav-modern--scrollable .c-nav-modern__list::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Icon-only on very small screens */
+  .c-nav-modern--compact-mobile .c-nav-modern__link span {
+    display: none;
+  }
+
+  .c-nav-modern--compact-mobile .c-nav-modern__link {
+    padding: var(--space-3, 12px);
+  }
+
+  .c-nav-modern--compact-mobile .c-nav-modern__link i {
+    font-size: 1.25rem;
+    opacity: 1;
+  }
+}
+
+/* ============================================================================
+   10. DARK MODE
+   ============================================================================ */
+
+[data-style="dark"] .c-nav-modern__link {
+  color: var(--color-text-secondary, #94a3b8);
+}
+
+[data-style="dark"] .c-nav-modern__link:hover {
+  color: var(--color-text-primary, #f1f5f9);
+  background: var(--color-bg-hover, rgba(255, 255, 255, 0.06));
+}
+
+[data-style="dark"] .c-nav-modern__link.is-active,
+[data-style="dark"] .c-nav-modern__link--active,
+[data-style="dark"] .c-nav-modern__link.active,
+[data-style="dark"] .c-nav-modern__link[aria-selected="true"] {
+  color: var(--color-primary-light, #60A5FA);
+  background: rgba(37, 99, 235, 0.15);
+}
+
+[data-style="dark"] .c-nav-modern--tabs {
+  background: var(--color-bg-secondary, #0f172a);
+}
+
+[data-style="dark"] .c-nav-modern--tabs .c-nav-modern__link.is-active,
+[data-style="dark"] .c-nav-modern--tabs .c-nav-modern__link--active,
+[data-style="dark"] .c-nav-modern--tabs .c-nav-modern__link.active,
+[data-style="dark"] .c-nav-modern--tabs .c-nav-modern__link[aria-selected="true"] {
+  background: var(--color-bg-primary, #1e293b);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.2),
+    0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+[data-style="dark"] .c-nav-modern--pills .c-nav-modern__link.is-active,
+[data-style="dark"] .c-nav-modern--pills .c-nav-modern__link--active,
+[data-style="dark"] .c-nav-modern--pills .c-nav-modern__link.active,
+[data-style="dark"] .c-nav-modern--pills .c-nav-modern__link[aria-selected="true"] {
+  color: #fff;
+  background: var(--color-primary, #2563EB);
+}
+
+[data-style="dark"] .c-nav-modern--underline {
+  border-bottom-color: var(--color-border-primary, rgba(255, 255, 255, 0.08));
+}
+
+/* ============================================================================
+   11. ACCESSIBILITY
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .c-nav-modern__link,
+  .c-nav-modern__link::after,
+  .c-tab-pane-modern {
+    animation: none;
+    transition: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .c-nav-modern__link.is-active {
+    outline: 2px solid currentColor;
+    outline-offset: -2px;
+  }
+
+  .c-nav-modern--underline .c-nav-modern__link::after {
+    height: 3px;
+  }
+}

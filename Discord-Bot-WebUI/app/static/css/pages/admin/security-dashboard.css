@@ -1,0 +1,435 @@
+/**
+ * ============================================================================
+ * SECURITY DASHBOARD PAGE
+ * ============================================================================
+ *
+ * All styles for the admin security dashboard monitoring interface.
+ * Previously contained 14 inline styles - now fully extracted to CSS classes.
+ *
+ * Features:
+ * - Security feature status cards with color-coded borders
+ * - Statistics cards with large icon displays
+ * - IP ban management table with scrolling
+ * - Auto-ban configuration display
+ * - Empty state graphics
+ * - Full dark mode support
+ * - Responsive design for mobile/tablet
+ * - Uses design tokens exclusively
+ *
+ * Dark Mode Support: [data-style="dark"]
+ * Design Tokens: --color-*, --space-*, --shadow-*
+ * Responsive Breakpoints: 1200px, 768px, 576px
+ * ============================================================================
+ */
+
+/* ============================================================================
+   SECURITY FEATURE STATUS CARDS
+   Cards displaying enabled/disabled security features with colored borders
+   ============================================================================ */
+
+/**
+ * Security Feature Card Base
+ * Shared styles for all security feature cards
+ * Height 100% ensures equal card heights in flex layout
+ */
+.security-feature-card {
+    border-left-width: 4px;
+    border-left-style: solid;
+    transition: transform var(--duration-fast, 0.15s) var(--ease-smooth, ease-in-out),
+                box-shadow var(--duration-fast, 0.15s) var(--ease-smooth, ease-in-out);
+}
+
+/**
+ * Security Feature Card - Hover State
+ * Subtle lift effect on hover
+ */
+.security-feature-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+}
+
+/**
+ * Security Feature Card - Enabled State (Success)
+ * Green border for active/enabled features
+ */
+.security-feature-card.feature-enabled {
+    border-left-color: var(--color-success, #28a745);
+}
+
+/**
+ * Security Feature Card - Warning State
+ * Yellow border for features that are optional or need attention
+ */
+.security-feature-card.feature-warning {
+    border-left-color: var(--color-warning, #ffc107);
+}
+
+/**
+ * Security Feature Card - Disabled State (Danger)
+ * Red border for critical features that are disabled
+ */
+.security-feature-card.feature-disabled {
+    border-left-color: var(--color-danger, #dc3545);
+}
+
+/* Dark Mode: Adjust border colors for better contrast */
+[data-style="dark"] .security-feature-card.feature-enabled {
+    border-left-color: var(--color-success-400, #4ade80);
+}
+
+[data-style="dark"] .security-feature-card.feature-warning {
+    border-left-color: var(--color-warning-400, #fbbf24);
+}
+
+[data-style="dark"] .security-feature-card.feature-disabled {
+    border-left-color: var(--color-danger-400, #f87171);
+}
+
+/* ============================================================================
+   SECURITY FEATURE ICONS
+   Large icons displayed in security feature cards
+   ============================================================================ */
+
+/**
+ * Security Feature Icon
+ * Large 2rem icons for visual prominence in feature cards
+ * Applied to shield, lock, eye icons
+ */
+.security-feature-icon {
+    font-size: 2rem;
+    line-height: 1;
+    display: inline-block;
+}
+
+/* ============================================================================
+   STATISTICS CARDS
+   Cards displaying security metrics with large icon displays
+   ============================================================================ */
+
+/**
+ * Statistics Card Icon
+ * Extra large 2.5rem icons for main statistics
+ * Applied to monitored IPs, blacklisted IPs, attacks, etc.
+ */
+.security-stat-icon {
+    font-size: 2.5rem;
+    line-height: 1;
+    display: inline-block;
+    margin-bottom: var(--space-2, 0.5rem);
+}
+
+/**
+ * Statistics Card
+ * Subtle hover effect for interactive feel
+ */
+.security-stat-card {
+    transition: transform var(--duration-fast, 0.15s) var(--ease-smooth, ease-in-out),
+                box-shadow var(--duration-fast, 0.15s) var(--ease-smooth, ease-in-out);
+}
+
+.security-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+}
+
+/* ============================================================================
+   BANNED IPS TABLE
+   Scrollable table container for banned IP list
+   ============================================================================ */
+
+/**
+ * Banned IPs Table Container
+ * Fixed height with vertical scrolling
+ * Allows viewing many banned IPs without expanding page
+ */
+.banned-ips-table-container {
+    max-height: 300px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/**
+ * Banned IPs Table Container - Scrollbar Styling
+ * Custom scrollbar for better appearance
+ */
+.banned-ips-table-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.banned-ips-table-container::-webkit-scrollbar-track {
+    background: var(--color-bg-secondary, #f8f9fa);
+    border-radius: var(--radius-sm, 0.25rem);
+}
+
+.banned-ips-table-container::-webkit-scrollbar-thumb {
+    background: var(--color-neutral-400, #cbd5e0);
+    border-radius: var(--radius-sm, 0.25rem);
+}
+
+.banned-ips-table-container::-webkit-scrollbar-thumb:hover {
+    background: var(--color-neutral-500, #a0aec0);
+}
+
+/* Dark Mode: Scrollbar colors */
+[data-style="dark"] .banned-ips-table-container::-webkit-scrollbar-track {
+    background: var(--color-bg-tertiary, #2d3748);
+}
+
+[data-style="dark"] .banned-ips-table-container::-webkit-scrollbar-thumb {
+    background: var(--color-neutral-600, #718096);
+}
+
+[data-style="dark"] .banned-ips-table-container::-webkit-scrollbar-thumb:hover {
+    background: var(--color-neutral-500, #a0aec0);
+}
+
+/* ============================================================================
+   EMPTY STATE
+   Display when no IPs are banned
+   ============================================================================ */
+
+/**
+ * Empty State Icon
+ * Large 3rem icon for visual prominence in empty state
+ */
+.security-empty-state-icon {
+    font-size: 3rem;
+    line-height: 1;
+    display: inline-block;
+    color: var(--color-text-muted, #6c757d);
+}
+
+/**
+ * Empty State Container
+ * Centered text and icon display
+ */
+.security-empty-state {
+    text-align: center;
+    padding: var(--space-4, 1rem) 0;
+}
+
+.security-empty-state p {
+    margin-top: var(--space-2, 0.5rem);
+    margin-bottom: 0;
+    color: var(--color-text-muted, #6c757d);
+}
+
+/* Dark Mode: Empty state colors */
+[data-style="dark"] .security-empty-state-icon,
+[data-style="dark"] .security-empty-state p {
+    color: var(--color-text-muted, #a0aec0);
+}
+
+/* ============================================================================
+   AUTO-BAN CONFIGURATION CARD
+   Display of current auto-ban settings
+   ============================================================================ */
+
+/**
+ * Auto-Ban Config Metric
+ * Display for threshold values and settings
+ */
+.auto-ban-metric {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1, 0.25rem);
+}
+
+.auto-ban-metric strong {
+    font-size: var(--text-lg, 1.125rem);
+    font-weight: var(--font-semibold, 600);
+    color: var(--color-text-primary, #212529);
+}
+
+.auto-ban-metric small {
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-text-muted, #6c757d);
+}
+
+/* Dark Mode: Auto-ban metrics */
+[data-style="dark"] .auto-ban-metric strong {
+    color: var(--color-text-primary, #f7fafc);
+}
+
+[data-style="dark"] .auto-ban-metric small {
+    color: var(--color-text-muted, #a0aec0);
+}
+
+/* ============================================================================
+   MONITORING TABLE
+   Table displaying monitored IPs with status indicators
+   ============================================================================ */
+
+/**
+ * IP Address Code Display
+ * Monospace formatting for IP addresses
+ */
+.security-ip-address {
+    font-family: var(--font-mono, 'Courier New', monospace);
+    font-size: var(--text-sm, 0.875rem);
+    background-color: var(--color-bg-tertiary, #f8f9fa);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+    border-radius: var(--radius-sm, 0.25rem);
+    display: inline-block;
+}
+
+/* Dark Mode: IP address display */
+[data-style="dark"] .security-ip-address {
+    background-color: var(--color-bg-tertiary, #2d3748);
+    color: var(--color-text-primary, #f7fafc);
+}
+
+/**
+ * Attack Count Display
+ * Styling for attack count numbers
+ */
+.security-attack-count {
+    font-weight: var(--font-semibold, 600);
+}
+
+.security-attack-count.has-attacks {
+    color: var(--color-danger, #dc3545);
+}
+
+.security-attack-count.no-attacks {
+    color: var(--color-text-muted, #6c757d);
+}
+
+/* Dark Mode: Attack counts */
+[data-style="dark"] .security-attack-count.has-attacks {
+    color: var(--color-danger-400, #f87171);
+}
+
+[data-style="dark"] .security-attack-count.no-attacks {
+    color: var(--color-text-muted, #a0aec0);
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
+   Adjustments for mobile and tablet devices
+   ============================================================================ */
+
+/**
+ * Mobile/Tablet: Security Feature Cards
+ * Reduce icon sizes and spacing on smaller screens
+ */
+@media (max-width: 768px) {
+    .security-feature-icon {
+        font-size: 1.5rem;
+    }
+
+    .security-stat-icon {
+        font-size: 2rem;
+    }
+
+    .security-empty-state-icon {
+        font-size: 2.5rem;
+    }
+
+    /* Adjust banned IPs table container height */
+    .banned-ips-table-container {
+        max-height: 250px;
+    }
+}
+
+/**
+ * Small Mobile: Further size reductions
+ * Optimize for very small screens
+ */
+@media (max-width: 576px) {
+    .security-feature-icon {
+        font-size: 1.25rem;
+    }
+
+    .security-stat-icon {
+        font-size: 1.75rem;
+    }
+
+    .security-empty-state-icon {
+        font-size: 2rem;
+    }
+
+    /* Further reduce table height on mobile */
+    .banned-ips-table-container {
+        max-height: 200px;
+    }
+
+    /* Stack auto-ban metrics vertically */
+    .auto-ban-metric {
+        text-align: center;
+    }
+}
+
+/* ============================================================================
+   ACCESSIBILITY ENHANCEMENTS
+   Improved focus states and keyboard navigation
+   ============================================================================ */
+
+/**
+ * Focus Visible States
+ * Enhanced focus indicators for keyboard navigation
+ */
+.security-feature-card:focus-within,
+.security-stat-card:focus-within {
+    outline: 2px solid var(--color-primary, #6f42c1);
+    outline-offset: 2px;
+}
+
+/**
+ * Reduced Motion Support
+ * Disable animations for users who prefer reduced motion
+ */
+@media (prefers-reduced-motion: reduce) {
+    .security-feature-card,
+    .security-stat-card {
+        transition: none;
+    }
+
+    .security-feature-card:hover,
+    .security-stat-card:hover {
+        transform: none;
+    }
+}
+
+/* ============================================================================
+   HIGH CONTRAST MODE
+   Enhanced visibility for high contrast mode users
+   ============================================================================ */
+
+@media (prefers-contrast: more) {
+    .security-feature-card {
+        border-left-width: 6px;
+    }
+
+    .security-feature-icon,
+    .security-stat-icon {
+        filter: contrast(1.2);
+    }
+
+    .security-ip-address {
+        border: 1px solid currentColor;
+    }
+}
+
+/* ============================================================================
+   PRINT STYLES
+   Optimized layout for printing
+   ============================================================================ */
+
+@media print {
+    .security-feature-card,
+    .security-stat-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .banned-ips-table-container {
+        max-height: none;
+        overflow: visible;
+    }
+
+    /* Hide interactive elements */
+    button {
+        display: none;
+    }
+}

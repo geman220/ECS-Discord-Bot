@@ -11,6 +11,9 @@
  * - Larger touch targets for player cards
  * - Mobile-optimized pitch view
  * - Quick draft mode for mobile
+ *
+ * REFACTORED: All inline style manipulations replaced with CSS classes
+ * See /app/static/css/utilities/draft-system-utils.css for utility classes
  */
 
 (function (window) {
@@ -33,10 +36,10 @@
     setupTapToSelect: function () {
       if (!this.isMobile()) return;
 
-      document.querySelectorAll('.player-card, .available-player').forEach(card => {
+      document.querySelectorAll('[data-component="player-card"], [data-component="player-item"]').forEach(card => {
         // Remove drag attributes on mobile
         card.removeAttribute('draggable');
-        card.style.cursor = 'pointer';
+        card.classList.add('cursor-pointer');
 
         // Add touch-friendly selection
         card.addEventListener('click', (e) => {
@@ -77,7 +80,7 @@
             if (window.Haptics) window.Haptics.longPress();
 
             // Find and click view profile button
-            const viewBtn = card.querySelector('[data-action="view-profile"], .view-profile, button[onclick*="profile"]');
+            const viewBtn = card.querySelector('[data-action="view-profile"]');
             if (viewBtn) {
               viewBtn.click();
             } else {
@@ -94,6 +97,7 @@
 
     /**
      * Show quick draft panel when player is selected
+     * REFACTORED: Replaced style.zIndex with z-index-1060 utility class
      */
     showQuickDraftPanel: function (card) {
       // Remove existing panel
@@ -102,23 +106,11 @@
 
       // Create quick draft panel
       const panel = document.createElement('div');
-      panel.className = 'mobile-quick-draft-panel';
-      panel.style.cssText = `
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: var(--bs-body-bg);
-        border-top: 2px solid var(--bs-primary);
-        box-shadow: 0 -4px 12px rgba(0,0,0,0.2);
-        padding: 16px;
-        z-index: 1060;
-        transform: translateY(100%);
-        transition: transform 0.3s ease;
-      `;
+      // REFACTORED: Added z-index-1060 class instead of inline style.zIndex
+      panel.className = 'mobile-quick-draft-panel position-fixed bottom-0 start-0 end-0 bg-body border-top border-primary border-2 p-3 translate-y-full transition-transform z-index-1060';
 
       // Get player info from card
-      const playerName = card.querySelector('.player-name, .card-title, h6')?.textContent || 'Player';
+      const playerName = card.querySelector('[data-component="player-name"], .fw-semibold, h6')?.textContent || 'Player';
       const playerId = card.dataset.playerId;
 
       panel.innerHTML = `
@@ -151,7 +143,7 @@
 
       // Animate in
       setTimeout(() => {
-        panel.style.transform = 'translateY(0)';
+        panel.classList.remove('translate-y-full');
       }, 10);
 
       if (window.Haptics) window.Haptics.light();
@@ -162,7 +154,7 @@
      */
     quickDraft: function (playerId, teamId) {
       // Find draft button and click it
-      const draftBtn = document.querySelector(`[data-player-id="${playerId}"] .draft-btn, button[onclick*="draft"][onclick*="${playerId}"]`);
+      const draftBtn = document.querySelector(`[data-player-id="${playerId}"] [data-action="draft-player"]`);
       if (draftBtn) {
         draftBtn.click();
 
@@ -191,6 +183,8 @@
 
     /**
      * Optimize pitch view for mobile
+     * REFACTORED: Replaced style.webkitOverflowScrolling with webkit-overflow-scrolling-touch class
+     * NOTE: Lines 217-218 and 228 kept dynamic for real-time pinch-to-zoom gesture tracking
      */
     optimizePitchView: function () {
       if (!this.isMobile()) return;
@@ -199,20 +193,17 @@
       if (!pitch) return;
 
       // Make pitch scrollable horizontally on mobile
-      pitch.style.overflowX = 'auto';
-      pitch.style.webkitOverflowScrolling = 'touch';
+      // REFACTORED: Added webkit-overflow-scrolling-touch class instead of inline style
+      pitch.classList.add('overflow-x-auto', 'webkit-overflow-scrolling-touch');
 
       // Increase player marker sizes on mobile
       pitch.querySelectorAll('.position-player, .player-marker').forEach(marker => {
-        marker.style.minWidth = '44px';
-        marker.style.minHeight = '44px';
-        marker.style.fontSize = '14px';
+        marker.classList.add('mobile-touch-target', 'fs-6');
       });
 
       // Make position zones larger on mobile
       pitch.querySelectorAll('.position-zone, .zone').forEach(zone => {
-        zone.style.minHeight = '60px';
-        zone.style.fontSize = '12px';
+        zone.classList.add('mobile-zone-enhanced', 'fs-7');
       });
 
       // Add pinch-to-zoom if Hammer.js is available
@@ -223,22 +214,25 @@
         let lastScale = 1;
 
         hammer.on('pinchstart', () => {
-          pitch.style.transition = 'none';
+          pitch.classList.remove('transition-transform');
         });
 
         hammer.on('pinchmove', (ev) => {
           const scale = Math.max(1, Math.min(lastScale * ev.scale, 3));
+          // KEEP DYNAMIC: Real-time pinch gesture tracking requires inline styles
+          // These cannot be replaced with classes as they change continuously during gesture
           pitch.style.transform = `scale(${scale})`;
           pitch.style.transformOrigin = 'center center';
         });
 
         hammer.on('pinchend', (ev) => {
-          pitch.style.transition = 'transform 0.3s ease';
+          pitch.classList.add('transition-transform');
           lastScale = Math.max(1, Math.min(lastScale * ev.scale, 3));
 
           // Reset after 5 seconds
           if (lastScale > 1.2) {
             setTimeout(() => {
+              // KEEP DYNAMIC: Resetting transform after zoom timeout
               pitch.style.transform = 'scale(1)';
               lastScale = 1;
             }, 5000);
@@ -298,11 +292,9 @@
     optimizeRemoveButtons: function () {
       if (!this.isMobile()) return;
 
-      document.querySelectorAll('.remove-player, button[onclick*="remove"]').forEach(btn => {
+      document.querySelectorAll('[data-action="remove-player"]').forEach(btn => {
         // Make buttons larger
-        btn.style.minWidth = '44px';
-        btn.style.minHeight = '44px';
-        btn.style.padding = '12px';
+        btn.classList.add('mobile-touch-target', 'p-3');
 
         // Add haptic feedback
         btn.addEventListener('click', () => {
@@ -344,37 +336,33 @@
 
     /**
      * Optimize search and filters for mobile
+     * REFACTORED: Replaced inline style.top and style.zIndex with sticky-filter-mobile class
      */
     optimizeFilters: function () {
       if (!this.isMobile()) return;
 
-      const searchInput = document.querySelector('input[type="search"], input[placeholder*="Search"]');
+      const searchInput = document.querySelector('[data-component="player-search"], input#playerSearch');
       if (searchInput) {
-        searchInput.style.fontSize = '16px'; // Prevent iOS zoom
-        searchInput.style.minHeight = '44px';
+        searchInput.classList.add('mobile-input-no-zoom', 'mobile-touch-target');
       }
 
-      const filterSelects = document.querySelectorAll('select.filter, select[name*="filter"]');
+      const filterSelects = document.querySelectorAll('[data-component="filter-select"], select[data-filter]');
       filterSelects.forEach(select => {
-        select.style.fontSize = '16px';
-        select.style.minHeight = '44px';
+        select.classList.add('mobile-input-no-zoom', 'mobile-touch-target');
       });
 
       // Make filter controls sticky on mobile
-      const filterContainer = document.querySelector('.filters, .search-filters, .draft-controls');
+      // REFACTORED: Replaced style.top and style.zIndex with sticky-filter-mobile utility class
+      const filterContainer = document.querySelector('[data-component="draft-controls"], [data-component="filters"]');
       if (filterContainer) {
-        filterContainer.style.position = 'sticky';
-        filterContainer.style.top = '60px'; // Below navbar
-        filterContainer.style.zIndex = '100';
-        filterContainer.style.background = 'var(--bs-body-bg)';
-        filterContainer.style.paddingBottom = '12px';
-        filterContainer.style.marginBottom = '12px';
-        filterContainer.style.borderBottom = '1px solid var(--bs-border-color)';
+        filterContainer.classList.add('sticky-filter-mobile', 'bg-body', 'pb-3', 'mb-3', 'border-bottom');
       }
     },
 
     /**
      * Add mobile-specific CSS
+     * NOTE: This method injects CSS for backwards compatibility and mobile-specific styling
+     * that doesn't fit into the main utility class system
      */
     addMobileDraftStyles: function () {
       if (document.getElementById('mobile-draft-styles')) return;
@@ -384,6 +372,25 @@
       style.textContent = `
         /* Mobile draft optimizations */
         @media (max-width: 767.98px) {
+          /* Utility classes for mobile interactions */
+          .cursor-pointer { cursor: pointer; }
+          .translate-y-full { transform: translateY(100%); }
+          .transition-transform { transition: transform 0.3s ease; }
+          .overflow-x-auto { overflow-x: auto; }
+
+          .mobile-touch-target {
+            min-width: 44px;
+            min-height: 44px;
+          }
+
+          .mobile-zone-enhanced {
+            min-height: 60px;
+          }
+
+          .mobile-input-no-zoom {
+            font-size: 16px; /* Prevent iOS zoom on focus */
+          }
+
           /* Selected player indicator */
           .mobile-selected {
             border: 3px solid var(--bs-primary) !important;
@@ -392,21 +399,21 @@
           }
 
           /* Player cards */
-          .player-card,
-          .available-player {
+          [data-component="player-card"],
+          [data-component="player-item"] {
             min-height: 80px;
             margin-bottom: 12px;
           }
 
-          .player-card img,
-          .available-player img {
+          [data-component="player-card"] img,
+          [data-component="player-item"] img {
             width: 60px;
             height: 60px;
           }
 
           /* Draft buttons */
-          .draft-btn,
-          button[onclick*="draft"] {
+          [data-action="draft-player"],
+          button[data-action*="draft"] {
             min-height: 48px;
             font-size: 16px;
             padding: 12px 20px;
@@ -437,6 +444,7 @@
           /* Quick draft panel animation */
           .mobile-quick-draft-panel {
             animation: slideUp 0.3s ease;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.2);
           }
 
           @keyframes slideUp {
@@ -445,28 +453,26 @@
           }
 
           /* Remove buttons */
-          .remove-player,
-          button[onclick*="remove"] {
+          [data-action="remove-player"],
+          button[data-action*="remove"] {
             min-width: 44px !important;
             min-height: 44px !important;
           }
 
           /* Filter controls */
-          .filters,
-          .search-filters,
-          .draft-controls {
+          [data-component="filters"],
+          [data-component="draft-controls"] {
             flex-wrap: wrap;
             gap: 8px;
           }
 
-          .filters > *,
-          .search-filters > *,
-          .draft-controls > * {
+          [data-component="filters"] > *,
+          [data-component="draft-controls"] > * {
             flex: 1 1 100%;
           }
 
           /* Hide drag handles on mobile */
-          .drag-handle,
+          [data-component="drag-handle"],
           [draggable="true"]::before {
             display: none;
           }
@@ -532,9 +538,9 @@
         mutations.forEach(mutation => {
           mutation.addedNodes.forEach(node => {
             if (node.nodeType === 1 &&
-                (node.classList?.contains('player-card') ||
-                 node.classList?.contains('available-player') ||
-                 node.querySelector?.('.player-card, .available-player'))) {
+                (node.getAttribute?.('data-component') === 'player-card' ||
+                 node.getAttribute?.('data-component') === 'player-item' ||
+                 node.querySelector?.('[data-component="player-card"], [data-component="player-item"]'))) {
               shouldUpdate = true;
             }
           });
@@ -561,12 +567,12 @@
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       // Only init if on draft page
-      if (document.querySelector('.player-card, .draft-container, [id*="draft"]')) {
+      if (document.querySelector('[data-component="player-card"], [data-component="draft-container"]')) {
         MobileDraft.init();
       }
     });
   } else {
-    if (document.querySelector('.player-card, .draft-container, [id*="draft"]')) {
+    if (document.querySelector('[data-component="player-card"], [data-component="draft-container"]')) {
       MobileDraft.init();
     }
   }

@@ -3,6 +3,7 @@
 {% block title %}Manage Sub Requests{% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <!-- Toastr CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
 {% endblock %}
@@ -17,13 +18,13 @@
     <!-- Stats Cards -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
+            <div class="c-card shadow-sm h-100">
+                <div class="c-card__body d-flex align-items-center">
                     <div class="avatar avatar-lg bg-primary-subtle rounded-3 me-3">
                         <i class="ti ti-soccer-field fs-3 text-primary"></i>
                     </div>
                     <div>
-                        <h5 class="card-title mb-0">Total Matches</h5>
+                        <h5 class="c-card__title mb-0">Total Matches</h5>
                         <h3 class="fw-bold mb-0">{{ upcoming_matches|length if upcoming_matches else 0 }}</h3>
                         <p class="text-muted mb-0 small">Upcoming matches</p>
                     </div>
@@ -32,13 +33,13 @@
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
+            <div class="c-card shadow-sm h-100">
+                <div class="c-card__body d-flex align-items-center">
                     <div class="avatar avatar-lg bg-warning-subtle rounded-3 me-3">
                         <i class="ti ti-hand-stop fs-3 text-warning"></i>
                     </div>
                     <div>
-                        <h5 class="card-title mb-0">Pending Requests</h5>
+                        <h5 class="c-card__title mb-0">Pending Requests</h5>
                         <h3 class="fw-bold mb-0">{{ sub_requests|selectattr('status', 'equalto', 'PENDING')|list|length }}</h3>
                         <p class="text-muted mb-0 small">Awaiting action</p>
                     </div>
@@ -47,13 +48,13 @@
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
+            <div class="c-card shadow-sm h-100">
+                <div class="c-card__body d-flex align-items-center">
                     <div class="avatar avatar-lg bg-info-subtle rounded-3 me-3">
                         <i class="ti ti-clock fs-3 text-info"></i>
                     </div>
                     <div>
-                        <h5 class="card-title mb-0">Approved Requests</h5>
+                        <h5 class="c-card__title mb-0">Approved Requests</h5>
                         <h3 class="fw-bold mb-0">{{ sub_requests|selectattr('status', 'equalto', 'APPROVED')|list|length }}</h3>
                         <p class="text-muted mb-0 small">Need assignment</p>
                     </div>
@@ -62,13 +63,13 @@
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
+            <div class="c-card shadow-sm h-100">
+                <div class="c-card__body d-flex align-items-center">
                     <div class="avatar avatar-lg bg-success-subtle rounded-3 me-3">
                         <i class="ti ti-check fs-3 text-success"></i>
                     </div>
                     <div>
-                        <h5 class="card-title mb-0">Fulfilled</h5>
+                        <h5 class="c-card__title mb-0">Fulfilled</h5>
                         <h3 class="fw-bold mb-0">{{ sub_requests|selectattr('status', 'equalto', 'FULFILLED')|list|length }}</h3>
                         <p class="text-muted mb-0 small">Completed requests</p>
                     </div>
@@ -80,23 +81,23 @@
     <!-- Filters -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header border-bottom">
+            <div class="c-card">
+                <div class="c-card__header border-bottom">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
+                        <h5 class="c-card__title mb-0">
                             <i class="ti ti-filter me-2"></i>Filter Matches
                         </h5>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="true">
+                        <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="true" data-collapse-toggle>
                             <i class="ti ti-chevron-down"></i>
                         </button>
                     </div>
                 </div>
                 <div class="collapse show" id="filterCollapse">
-                    <div class="card-body">
+                    <div class="c-card__body">
                         <form method="GET" class="row g-3">
                             <div class="col-md-4">
                                 <label for="week" class="form-label">Week</label>
-                                <select class="form-select" id="week" name="week">
+                                <select class="form-select" id="week" name="week" data-form-select>
                                     <option value="">All Weeks</option>
                                     {% for week_option in weeks %}
                                     <option value="{{ week_option }}" {% if current_week == week_option|string %}selected{% endif %}>Week {{ week_option }}</option>
@@ -105,17 +106,17 @@
                             </div>
                             <div class="col-md-4">
                                 <label for="show_requested" class="form-label">Show Matches</label>
-                                <select class="form-select" id="show_requested" name="show_requested">
+                                <select class="form-select" id="show_requested" name="show_requested" data-form-select>
                                     <option value="all" {% if show_requested == "all" %}selected{% endif %}>All Matches</option>
                                     <option value="requested" {% if show_requested == "requested" %}selected{% endif %}>With Sub Requests</option>
                                     <option value="not_requested" {% if show_requested == "not_requested" %}selected{% endif %}>Without Sub Requests</option>
                                 </select>
                             </div>
                             <div class="col-12 d-flex justify-content-end gap-2 mt-3 filter-buttons-stack">
-                                <a href="{{ url_for('admin.manage_sub_requests') }}" class="btn btn-outline-secondary">
+                                <a href="{{ url_for('admin.manage_sub_requests') }}" class="c-btn c-btn--outline-secondary">
                                     <i class="ti ti-refresh me-1"></i> Reset Filters
                                 </a>
-                                <button type="submit" class="btn btn-primary">
+                                <button type="submit" class="c-btn c-btn--primary">
                                     <i class="ti ti-filter me-1"></i> Apply Filters
                                 </button>
                             </div>
@@ -129,15 +130,15 @@
     <!-- Matches - Mobile Cards (Default) -->
     <div class="row">
         <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header border-bottom py-3">
+            <div class="c-card shadow-sm">
+                <div class="c-card__header border-bottom py-3">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
+                        <h5 class="c-card__title mb-0">
                             <i class="ti ti-list me-2"></i>Upcoming Matches
                         </h5>
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     {% if upcoming_matches %}
                         <!-- Mobile Card Layout (Primary) -->
                         <div class="mobile-cards">
@@ -287,17 +288,17 @@
 
                         <!-- Desktop Table (Hidden on Mobile) -->
                         <div class="desktop-table">
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead class="table-light">
+                            <div class="c-table-wrapper" data-table-responsive>
+                                <table class="c-table c-table--hoverable" data-table>
+                                    <thead class="c-table--light" scope="col">
                                         <tr>
-                                            <th>Date</th>
-                                            <th>Week</th>
-                                            <th>Home Team</th>
-                                            <th>Away Team</th>
-                                            <th>Home Status</th>
-                                            <th>Away Status</th>
-                                            <th class="text-end">Actions</th>
+                                            <th scope="col">Date</th>
+                                            <th scope="col">Week</th>
+                                            <th scope="col">Home Team</th>
+                                            <th scope="col">Away Team</th>
+                                            <th scope="col">Home Status</th>
+                                            <th scope="col">Away Status</th>
+                                            <th class="text-end" scope="col">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -315,68 +316,68 @@
                                                 {% if match.home_team_id in requested_teams_by_match[match.id] %}
                                                     {% set req = requested_teams_by_match[match.id][match.home_team_id] %}
                                                     {% if req.status == 'PENDING' %}
-                                                    <span class="badge status-pending">
+                                                    <span class="badge status-pending" data-badge>
                                                         <i class="ti ti-hand-stop me-1"></i>Sub Requested ({{ req.substitutes_needed }})
                                                         {% if req.assignments_count > 0 %}
                                                             <br><small>({{ req.assignments_count }} assigned)</small>
                                                         {% endif %}
                                                     </span>
                                                     {% elif req.status == 'APPROVED' %}
-                                                    <span class="badge status-approved">
+                                                    <span class="badge status-approved" data-badge>
                                                         <i class="ti ti-check me-1"></i>Approved ({{ req.substitutes_needed }})
                                                         {% if req.assignments_count > 0 %}
                                                             <br><small>({{ req.assignments_count }} assigned)</small>
                                                         {% endif %}
                                                     </span>
                                                     {% elif req.status == 'DECLINED' %}
-                                                    <span class="badge status-declined">
+                                                    <span class="badge status-declined" data-badge>
                                                         <i class="ti ti-x me-1"></i>Declined
                                                     </span>
                                                     {% elif req.status == 'FULFILLED' %}
-                                                    <span class="badge status-fulfilled">
+                                                    <span class="badge status-fulfilled" data-badge>
                                                         <i class="ti ti-user-check me-1"></i>Fulfilled ({{ req.assignments_count }}/{{ req.substitutes_needed }})
                                                     </span>
                                                     {% endif %}
                                                 {% else %}
-                                                    <span class="badge bg-label-secondary">No Request</span>
+                                                    <span class="badge bg-label-secondary" data-badge>No Request</span>
                                                 {% endif %}
                                             </td>
                                             <td>
                                                 {% if match.away_team_id in requested_teams_by_match[match.id] %}
                                                     {% set req = requested_teams_by_match[match.id][match.away_team_id] %}
                                                     {% if req.status == 'PENDING' %}
-                                                    <span class="badge status-pending">
+                                                    <span class="badge status-pending" data-badge>
                                                         <i class="ti ti-hand-stop me-1"></i>Sub Requested ({{ req.substitutes_needed }})
                                                         {% if req.assignments_count > 0 %}
                                                             <br><small>({{ req.assignments_count }} assigned)</small>
                                                         {% endif %}
                                                     </span>
                                                     {% elif req.status == 'APPROVED' %}
-                                                    <span class="badge status-approved">
+                                                    <span class="badge status-approved" data-badge>
                                                         <i class="ti ti-check me-1"></i>Approved ({{ req.substitutes_needed }})
                                                         {% if req.assignments_count > 0 %}
                                                             <br><small>({{ req.assignments_count }} assigned)</small>
                                                         {% endif %}
                                                     </span>
                                                     {% elif req.status == 'DECLINED' %}
-                                                    <span class="badge status-declined">
+                                                    <span class="badge status-declined" data-badge>
                                                         <i class="ti ti-x me-1"></i>Declined
                                                     </span>
                                                     {% elif req.status == 'FULFILLED' %}
-                                                    <span class="badge status-fulfilled">
+                                                    <span class="badge status-fulfilled" data-badge>
                                                         <i class="ti ti-user-check me-1"></i>Fulfilled ({{ req.assignments_count }}/{{ req.substitutes_needed }})
                                                     </span>
                                                     {% endif %}
                                                 {% else %}
-                                                    <span class="badge bg-label-secondary">No Request</span>
+                                                    <span class="badge bg-label-secondary" data-badge>No Request</span>
                                                 {% endif %}
                                             </td>
-                                            <td class="text-end position-relative" style="overflow: visible;">
+                                            <td class="text-end position-relative" class="u-overflow-visible">
                                                 <div class="dropdown">
-                                                    <button class="btn btn-sm btn-icon btn-text-secondary rounded-pill dropdown-toggle hide-arrow" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    <button class="c-btn c-btn--sm c-btn--icon-only btn-text-secondary rounded-pill dropdown-toggle hide-arrow" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle>
                                                         <i class="ti ti-dots-vertical"></i>
                                                     </button>
-                                                    <ul class="dropdown-menu dropdown-menu-end">
+                                                    <ul class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
                                                         <li>
                                                             <a class="dropdown-item" href="{{ url_for('admin.rsvp_status', match_id=match.id) }}">
                                                                 <i class="ti ti-users me-1"></i> View RSVP Status
@@ -429,19 +430,19 @@
     <!-- Pending Sub Requests -->
     <div class="row mt-4">
         <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header border-bottom py-3">
+            <div class="c-card shadow-sm">
+                <div class="c-card__header border-bottom py-3">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
+                        <h5 class="c-card__title mb-0">
                             <i class="ti ti-hand-stop me-2"></i>Pending Sub Requests
                         </h5>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#pendingRequestsCollapse" aria-expanded="true">
+                        <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary" data-bs-toggle="collapse" data-bs-target="#pendingRequestsCollapse" aria-expanded="true" data-collapse-toggle>
                             <i class="ti ti-chevron-down"></i>
                         </button>
                     </div>
                 </div>
                 <div class="collapse show" id="pendingRequestsCollapse">
-                    <div class="card-body">
+                    <div class="c-card__body">
                         {% set pending_requests = sub_requests|selectattr('status', 'equalto', 'PENDING')|list %}
 
                         {% if pending_requests %}
@@ -486,16 +487,16 @@
 
                             <!-- Desktop Table -->
                             <div class="desktop-table">
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead class="table-light">
+                                <div class="c-table-wrapper" data-table-responsive>
+                                    <table class="c-table c-table--hoverable" data-table>
+                                        <thead class="c-table--light" scope="col">
                                             <tr>
-                                                <th>Date</th>
-                                                <th>Match</th>
-                                                <th>Team</th>
-                                                <th>Substitutes Needed</th>
-                                                <th>Notes</th>
-                                                <th class="text-end">Actions</th>
+                                                <th scope="col">Date</th>
+                                                <th scope="col">Match</th>
+                                                <th scope="col">Team</th>
+                                                <th scope="col">Substitutes Needed</th>
+                                                <th scope="col">Notes</th>
+                                                <th class="text-end" scope="col">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -503,11 +504,11 @@
                                             <tr>
                                                 <td class="fw-semibold">{{ request.match.date.strftime('%m/%d/%Y') }}</td>
                                                 <td>{{ request.match.home_team.name }} vs {{ request.match.away_team.name }}</td>
-                                                <td><span class="badge bg-primary">{{ request.team.name }}</span></td>
+                                                <td><span class="badge bg-primary" data-badge>{{ request.team.name }}</span></td>
                                                 <td><span class="request-count">{{ request.substitutes_needed }}</span></td>
                                                 <td>
                                                     {% if request.notes %}
-                                                        <span class="d-inline-block text-truncate" style="max-width: 200px;" data-bs-toggle="tooltip" title="{{ request.notes }}">
+                                                        <span class="d-inline-block text-truncate" class="u-max-w-200" data-bs-toggle="tooltip" title="{{ request.notes }}">
                                                             {{ request.notes }}
                                                         </span>
                                                     {% else %}
@@ -516,10 +517,10 @@
                                                 </td>
                                                 <td class="text-end">
                                                     <div class="d-flex gap-2 justify-content-end">
-                                                        <a href="{{ url_for('teams.team_details', team_id=request.team_id) }}" class="btn btn-sm btn-outline-primary">
+                                                        <a href="{{ url_for('teams.team_details', team_id=request.team_id) }}" class="c-btn c-btn--sm c-btn--outline-primary">
                                                             <i class="ti ti-users"></i>
                                                         </a>
-                                                        <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#fulfillModal{{ request.id }}">
+                                                        <button type="button" class="c-btn c-btn--sm c-btn--success" data-bs-toggle="modal" data-bs-target="#fulfillModal{{ request.id }}">
                                                             <i class="ti ti-user-plus"></i> Assign
                                                         </button>
                                                     </div>
@@ -551,23 +552,23 @@
 <!-- Fulfill Modals -->
 {% for request in sub_requests %}
 {% if request.status == 'PENDING' or request.status == 'APPROVED' %}
-<div class="modal fade" id="fulfillModal{{ request.id }}" tabindex="-1" aria-labelledby="fulfillModalLabel{{ request.id }}" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title" id="fulfillModalLabel{{ request.id }}">
+<div class="modal c-modal fade" data-modal id="fulfillModal{{ request.id }}" tabindex="-1" aria-labelledby="fulfillModalLabel{{ request.id }}" aria-hidden="true">
+    <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header bg-success text-white" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="fulfillModalLabel{{ request.id }}">
                     <i class="ti ti-user-plus me-2"></i>Assign Substitute
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
             </div>
             <form action="{{ url_for('admin.update_sub_request', request_id=request.id) }}" method="POST">
-                <div class="modal-body">
+                <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="action" value="fulfill">
 
                     <div class="mb-3">
                         <label for="player_id{{ request.id }}" class="form-label fw-semibold">Select Substitute</label>
-                        <select class="form-select" id="player_id{{ request.id }}" name="player_id" required>
+                        <select class="form-select" id="player_id{{ request.id }}" name="player_id" required data-form-select>
                             <option value="" selected disabled>Choose a substitute player...</option>
                             {% if subs_by_match[request.match_id] and subs_by_match[request.match_id].subs %}
                                 {% for sub in subs_by_match[request.match_id].subs %}
@@ -581,7 +582,7 @@
                         </select>
                     </div>
 
-                    <div class="alert alert-info">
+                    <div class="alert alert-info" data-alert>
                         <div class="d-flex align-items-center">
                             <i class="ti ti-info-circle me-2 fs-3"></i>
                             <div>
@@ -594,11 +595,11 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>
                         <i class="ti ti-x me-1"></i>Cancel
                     </button>
-                    <button type="submit" class="btn btn-success">
+                    <button type="submit" class="c-btn c-btn--success">
                         <i class="ti ti-user-plus me-1"></i>Assign Substitute
                     </button>
                 </div>

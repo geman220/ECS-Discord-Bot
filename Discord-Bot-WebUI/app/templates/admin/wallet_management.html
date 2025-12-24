@@ -2,6 +2,7 @@
 {% block title %}Digital Wallets Dashboard{% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
     /* Dashboard Cards - Theme-aware styling */
     .stat-card {
@@ -47,11 +48,11 @@
                     <p class="text-muted mb-0">Manage Apple Wallet and Google Wallet passes for ECS Membership and Pub League</p>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
-                    <button class="btn btn-outline-secondary" onclick="location.reload()">
+                    <button class="c-btn c-btn--outline-secondary js-reload-page" data-action="reload-page">
                         <i class="ti ti-refresh me-1"></i>Refresh
                     </button>
                     {% if 'Global Admin' in user_roles %}
-                    <a href="{{ url_for('wallet_config.setup_wizard') }}" class="btn btn-primary">
+                    <a href="{{ url_for('wallet_config.setup_wizard') }}" class="c-btn c-btn--primary">
                         <i class="ti ti-settings me-1"></i>Setup & Config
                     </a>
                     {% endif %}
@@ -67,17 +68,17 @@
             <div class="setup-required-banner">
                 <div class="d-flex align-items-start">
                     <div class="me-3">
-                        <i class="ti ti-alert-triangle text-warning" style="font-size: 2.5rem;"></i>
+                        <i class="ti ti-alert-triangle text-warning" class="u-icon-2xl"></i>
                     </div>
                     <div class="flex-grow-1">
                         <h5 class="mb-2 text-dark">Setup Required</h5>
                         <p class="mb-3 text-dark">Before you can create digital wallet passes, you need to complete the initial setup. This includes uploading certificates, images, and configuring pass templates.</p>
                         <div class="d-flex flex-wrap gap-2">
                             {% if 'Global Admin' in user_roles %}
-                            <a href="{{ url_for('wallet_config.setup_wizard') }}" class="btn btn-warning">
+                            <a href="{{ url_for('wallet_config.setup_wizard') }}" class="c-btn c-btn--warning">
                                 <i class="ti ti-wand me-1"></i>Start Setup Wizard
                             </a>
-                            <a href="{{ url_for('wallet_config.help_page') }}" class="btn btn-outline-dark">
+                            <a href="{{ url_for('wallet_config.help_page') }}" class="c-btn c-btn--outline-dark">
                                 <i class="ti ti-help me-1"></i>View Setup Guide
                             </a>
                             {% else %}
@@ -106,7 +107,7 @@
     <!-- Success Status -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="alert alert-success d-flex align-items-center mb-0">
+            <div class="alert alert-success d-flex align-items-center mb-0" data-alert>
                 <i class="ti ti-circle-check me-2 fs-4"></i>
                 <div>
                     <strong>System Ready</strong> - Digital wallet passes can be created and managed.
@@ -119,8 +120,8 @@
     <!-- Statistics Cards -->
     <div class="row mb-4">
         <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
-            <div class="card stat-card h-100">
-                <div class="card-body">
+            <div class="c-card stat-card h-100">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="stat-icon bg-primary bg-opacity-10">
                             <i class="ti ti-users text-primary fs-4"></i>
@@ -137,8 +138,8 @@
             </div>
         </div>
         <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
-            <div class="card stat-card h-100">
-                <div class="card-body">
+            <div class="c-card stat-card h-100">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="stat-icon bg-info bg-opacity-10">
                             <i class="ti ti-user-check text-info fs-4"></i>
@@ -155,8 +156,8 @@
             </div>
         </div>
         <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
-            <div class="card stat-card h-100">
-                <div class="card-body">
+            <div class="c-card stat-card h-100">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="stat-icon bg-success bg-opacity-10">
                             <i class="ti ti-shield-check text-success fs-4"></i>
@@ -173,8 +174,8 @@
             </div>
         </div>
         <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
-            <div class="card stat-card h-100">
-                <div class="card-body">
+            <div class="c-card stat-card h-100">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="stat-icon bg-warning bg-opacity-10">
                             <i class="ti ti-user-x text-warning fs-4"></i>
@@ -199,9 +200,9 @@
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
             <a href="{{ url_for('wallet_admin.passes_list') }}" class="text-decoration-none">
-                <div class="card quick-action-btn h-100">
-                    <div class="card-body text-center py-4">
-                        <i class="ti ti-id text-primary mb-2" style="font-size: 2rem;"></i>
+                <div class="c-card quick-action-btn h-100">
+                    <div class="c-card__body text-center py-4">
+                        <i class="ti ti-id text-primary mb-2" class="u-icon-xl"></i>
                         <h6 class="mb-1">Manage Passes</h6>
                         <small class="text-muted">View and manage all issued passes</small>
                     </div>
@@ -211,9 +212,9 @@
         {% if 'Global Admin' in user_roles %}
         <div class="col-lg-3 col-md-6 mb-3">
             <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="text-decoration-none">
-                <div class="card quick-action-btn h-100 {% if not config_status.configured %}opacity-50{% endif %}">
-                    <div class="card-body text-center py-4">
-                        <i class="ti ti-plus text-success mb-2" style="font-size: 2rem;"></i>
+                <div class="c-card quick-action-btn h-100 {% if not config_status.configured %}opacity-50{% endif %}">
+                    <div class="c-card__body text-center py-4">
+                        <i class="ti ti-plus text-success mb-2" class="u-icon-xl"></i>
                         <h6 class="mb-1">Create Pass</h6>
                         <small class="text-muted">Manually create a new pass</small>
                     </div>
@@ -223,9 +224,9 @@
         {% endif %}
         <div class="col-lg-3 col-md-6 mb-3">
             <a href="{{ url_for('wallet_admin.scanner') }}" class="text-decoration-none">
-                <div class="card quick-action-btn h-100">
-                    <div class="card-body text-center py-4">
-                        <i class="ti ti-qrcode text-info mb-2" style="font-size: 2rem;"></i>
+                <div class="c-card quick-action-btn h-100">
+                    <div class="c-card__body text-center py-4">
+                        <i class="ti ti-qrcode text-info mb-2" class="u-icon-xl"></i>
                         <h6 class="mb-1">Scanner</h6>
                         <small class="text-muted">Scan and validate passes</small>
                     </div>
@@ -234,9 +235,9 @@
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
             <a href="{{ url_for('wallet_admin.checkins_list') }}" class="text-decoration-none">
-                <div class="card quick-action-btn h-100">
-                    <div class="card-body text-center py-4">
-                        <i class="ti ti-list-check text-warning mb-2" style="font-size: 2rem;"></i>
+                <div class="c-card quick-action-btn h-100">
+                    <div class="c-card__body text-center py-4">
+                        <i class="ti ti-list-check text-warning mb-2" class="u-icon-xl"></i>
                         <h6 class="mb-1">Check-ins</h6>
                         <small class="text-muted">View check-in history</small>
                     </div>
@@ -253,8 +254,8 @@
         </div>
         {% if pub_league_season %}
         <div class="col-md-6 mb-3">
-            <div class="card h-100">
-                <div class="card-body">
+            <div class="c-card h-100">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center mb-2">
                         <i class="ti ti-ball-football text-primary me-2 fs-4"></i>
                         <h6 class="mb-0">Pub League Season</h6>
@@ -262,7 +263,7 @@
                     <p class="mb-1">
                         <strong>{{ pub_league_season.name }}</strong>
                         {% if pub_league_season.is_current %}
-                        <span class="badge bg-label-success ms-2">Active</span>
+                        <span class="badge bg-label-success ms-2" data-badge>Active</span>
                         {% endif %}
                     </p>
                     <small class="text-muted">Used for Pub League pass validity</small>
@@ -272,8 +273,8 @@
         {% endif %}
         {% if ecs_fc_season %}
         <div class="col-md-6 mb-3">
-            <div class="card h-100">
-                <div class="card-body">
+            <div class="c-card h-100">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center mb-2">
                         <i class="ti ti-shield text-info me-2 fs-4"></i>
                         <h6 class="mb-0">ECS FC Season</h6>
@@ -281,7 +282,7 @@
                     <p class="mb-1">
                         <strong>{{ ecs_fc_season.name }}</strong>
                         {% if ecs_fc_season.is_current %}
-                        <span class="badge bg-label-info ms-2">Active</span>
+                        <span class="badge bg-label-info ms-2" data-badge>Active</span>
                         {% endif %}
                     </p>
                     <small class="text-muted">{{ ecs_fc_season.league_type }} membership tracking</small>
@@ -293,34 +294,34 @@
     {% endif %}
 
     <!-- Eligible Players Preview -->
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="c-card">
+        <div class="c-card__header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
                 <i class="ti ti-users me-2"></i>Eligible Players
-                <span class="badge bg-primary ms-2">{{ eligible_players|length }}</span>
+                <span class="badge bg-primary ms-2" data-badge>{{ eligible_players|length }}</span>
             </h5>
             <div class="d-flex gap-2">
                 {% if config_status.configured and eligible_players %}
-                <button class="btn btn-success btn-sm" onclick="bulkGeneratePasses()">
+                <button class="c-btn c-btn--success c-btn--sm" data-action="bulk-generate-passes" class="js-bulk-generate-passes">
                     <i class="ti ti-download me-1"></i>Bulk Generate
                 </button>
                 {% endif %}
-                <a href="{{ url_for('wallet_admin.wallet_players') }}" class="btn btn-outline-primary btn-sm">
+                <a href="{{ url_for('wallet_admin.wallet_players') }}" class="c-btn c-btn--outline-primary c-btn--sm">
                     <i class="ti ti-eye me-1"></i>View All
                 </a>
             </div>
         </div>
-        <div class="card-body">
+        <div class="c-card__body">
             {% if eligible_players %}
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead class="table-light">
+            <div class="c-table-wrapper" data-table-responsive>
+                <table class="c-table c-table--hoverable" data-table>
+                    <thead class="c-table--light" scope="col">
                         <tr>
-                            <th>Player</th>
-                            <th>Team</th>
-                            <th>League</th>
-                            <th>Contact</th>
-                            <th class="text-end">Actions</th>
+                            <th scope="col">Player</th>
+                            <th scope="col">Team</th>
+                            <th scope="col">League</th>
+                            <th scope="col">Contact</th>
+                            <th class="text-end" scope="col">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -341,7 +342,7 @@
                             </td>
                             <td>
                                 {% if player.primary_team %}
-                                <span class="badge bg-label-info">{{ player.primary_team.name }}</span>
+                                <span class="badge bg-label-info" data-badge>{{ player.primary_team.name }}</span>
                                 {% else %}
                                 <span class="text-muted">-</span>
                                 {% endif %}
@@ -364,12 +365,12 @@
                                 <div class="btn-group btn-group-sm">
                                     {% if config_status.configured %}
                                     <a href="{{ url_for('wallet.get_wallet_pass_by_player', player_id=player.id) }}"
-                                       class="btn btn-outline-success" title="Generate Pass">
+                                       class="c-btn c-btn--outline-success" title="Generate Pass">
                                         <i class="ti ti-download"></i>
                                     </a>
                                     {% endif %}
-                                    <button type="button" class="btn btn-outline-primary"
-                                            onclick="checkPlayerEligibility({{ player.id }})" title="Check Eligibility">
+                                    <button type="button" class="c-btn c-btn--outline-primary"
+                                            data-action="check-player-eligibility" data-id="{{ player.id }}" class="js-check-player-eligibility" title="Check Eligibility">
                                         <i class="ti ti-info-circle"></i>
                                     </button>
                                 </div>
@@ -381,17 +382,17 @@
             </div>
             {% if eligible_players|length > 10 %}
             <div class="text-center mt-3">
-                <a href="{{ url_for('wallet_admin.wallet_players', status='eligible') }}" class="btn btn-outline-primary">
+                <a href="{{ url_for('wallet_admin.wallet_players', status='eligible') }}" class="c-btn c-btn--outline-primary">
                     View All {{ eligible_players|length }} Eligible Players
                 </a>
             </div>
             {% endif %}
             {% else %}
             <div class="text-center py-5">
-                <i class="ti ti-user-x text-muted mb-3" style="font-size: 3rem;"></i>
+                <i class="ti ti-user-x text-muted mb-3" class="u-icon-3xl"></i>
                 <h6 class="text-muted">No Eligible Players Found</h6>
                 <p class="text-muted mb-3">Players need to be active and assigned to a team to be eligible for passes.</p>
-                <a href="{{ url_for('wallet_admin.wallet_players') }}" class="btn btn-outline-primary">
+                <a href="{{ url_for('wallet_admin.wallet_players') }}" class="c-btn c-btn--outline-primary">
                     View All Players
                 </a>
             </div>
@@ -401,18 +402,18 @@
 </div>
 
 <!-- Player Eligibility Modal -->
-<div class="modal fade" id="eligibilityModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
+<div class="modal c-modal fade" data-modal id="eligibilityModal" tabindex="-1" aria-labelledby="eligibilityModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="eligibilityModalLabel">
                     <i class="ti ti-info-circle me-2"></i>Player Eligibility
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body" id="eligibilityModalBody">
+            <div class="modal-body c-modal__body" data-modal-body id="eligibilityModalBody" data-modal-body aria-labelledby="eligibilityModalBodyLabel">
                 <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status">
+                    <div class="spinner-border text-primary" role="status" data-spinner>
                         <span class="visually-hidden">Loading...</span>
                     </div>
                     <p class="mt-2 text-muted">Checking eligibility...</p>
@@ -428,10 +429,9 @@
 <script>
 // Check player eligibility
 function checkPlayerEligibility(playerId) {
-    const modal = new bootstrap.Modal(document.getElementById('eligibilityModal'));
     const modalBody = document.getElementById('eligibilityModalBody');
 
-    modal.show();
+    ModalManager.show('eligibilityModal');
 
     fetch(`{{ url_for('wallet_admin.check_player_eligibility', player_id=0) }}`.replace('0', playerId))
         .then(response => response.json())
@@ -442,7 +442,7 @@ function checkPlayerEligibility(playerId) {
                     <small class="text-muted">Player ID: ${data.player_id}</small>
                 </div>
 
-                <div class="alert alert-${data.eligible ? 'success' : 'warning'} d-flex align-items-center">
+                <div class="alert alert-${data.eligible ? 'success' : 'warning'} d-flex align-items-center" data-alert>
                     <i class="ti ti-${data.eligible ? 'circle-check' : 'alert-triangle'} me-2 fs-4"></i>
                     <div>
                         <strong>${data.eligible ? 'Eligible' : 'Not Eligible'}</strong>
@@ -466,11 +466,11 @@ function checkPlayerEligibility(playerId) {
                     <div class="row g-2">
                         <div class="col-6">
                             <small class="text-muted d-block">Status</small>
-                            <span class="badge ${data.info.is_current_player ? 'bg-success' : 'bg-secondary'}">${data.info.is_current_player ? 'Active' : 'Inactive'}</span>
+                            <span class="badge ${data.info.is_current_player ? 'bg-success' : 'bg-secondary'}" data-badge>${data.info.is_current_player ? 'Active' : 'Inactive'}</span>
                         </div>
                         <div class="col-6">
                             <small class="text-muted d-block">User Account</small>
-                            <span class="badge ${data.info.has_user_account ? 'bg-success' : 'bg-secondary'}">${data.info.has_user_account ? 'Yes' : 'No'}</span>
+                            <span class="badge ${data.info.has_user_account ? 'bg-success' : 'bg-secondary'}" data-badge>${data.info.has_user_account ? 'Yes' : 'No'}</span>
                         </div>
                         <div class="col-6">
                             <small class="text-muted d-block">Primary Team</small>
@@ -487,7 +487,7 @@ function checkPlayerEligibility(playerId) {
             modalBody.innerHTML = html;
         })
         .catch(error => {
-            modalBody.innerHTML = '<div class="alert alert-danger"><i class="ti ti-alert-circle me-2"></i>Error checking eligibility. Please try again.</div>';
+            modalBody.innerHTML = '<div class="alert alert-danger" data-alert><i class="ti ti-alert-circle me-2"></i>Error checking eligibility. Please try again.</div>';
         });
 }
 

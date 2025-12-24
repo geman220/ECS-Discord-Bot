@@ -2,6 +2,7 @@
 {% block title %}Wallet Pass Locations{% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
     .location-card {
         transition: all 0.2s;
@@ -34,17 +35,17 @@
             <p class="text-muted mb-0">Manage venues that trigger pass notifications when members are nearby</p>
         </div>
         <div>
-            <a href="{{ url_for('wallet_admin.wallet_management') }}" class="btn btn-outline-secondary me-2">
+            <a href="{{ url_for('wallet_admin.wallet_management') }}" class="c-btn c-btn--outline-secondary me-2">
                 <i class="ti ti-arrow-left me-1"></i> Back
             </a>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLocationModal">
+            <button class="c-btn c-btn--primary" data-bs-toggle="modal" data-bs-target="#addLocationModal">
                 <i class="ti ti-plus me-1"></i> Add Location
             </button>
         </div>
     </div>
 
     <!-- Info Alert -->
-    <div class="alert alert-info mb-4">
+    <div class="alert alert-info mb-4" data-alert>
         <div class="d-flex">
             <i class="ti ti-info-circle me-2 fs-4"></i>
             <div>
@@ -57,8 +58,8 @@
     <!-- Location Count -->
     <div class="row mb-4">
         <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
+            <div class="c-card">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-lg bg-label-primary me-3">
                             <span class="avatar-initial"><i class="ti ti-map-pin"></i></span>
@@ -72,8 +73,8 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
+            <div class="c-card">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-lg bg-label-success me-3">
                             <span class="avatar-initial"><i class="ti ti-beer"></i></span>
@@ -87,8 +88,8 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
+            <div class="c-card">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-lg bg-label-warning me-3">
                             <span class="avatar-initial"><i class="ti ti-building-stadium"></i></span>
@@ -108,25 +109,25 @@
         {% if locations %}
             {% for location in locations %}
             <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card location-card h-100 {% if not location.is_active %}location-inactive{% endif %}">
-                    <div class="card-body">
+                <div class="c-card location-card h-100 {% if not location.is_active %}location-inactive{% endif %}">
+                    <div class="c-card__body">
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <div>
-                                <h5 class="card-title mb-1">{{ location.name }}</h5>
+                                <h5 class="c-card__title mb-1">{{ location.name }}</h5>
                                 <small class="text-muted">
                                     {% if location.city %}{{ location.city }}{% if location.state %}, {{ location.state }}{% endif %}{% endif %}
                                 </small>
                             </div>
                             <div>
                                 {% if location.is_active %}
-                                <span class="badge bg-success location-badge">Active</span>
+                                <span class="badge bg-success location-badge" data-badge>Active</span>
                                 {% else %}
-                                <span class="badge bg-secondary location-badge">Inactive</span>
+                                <span class="badge bg-secondary location-badge" data-badge>Inactive</span>
                                 {% endif %}
                             </div>
                         </div>
 
-                        <p class="card-text small mb-2">
+                        <p class="c-card__description small mb-2">
                             <i class="ti ti-message me-1"></i>
                             <em>"{{ location.relevant_text }}"</em>
                         </p>
@@ -139,26 +140,26 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 {% if location.applies_to == 'all' %}
-                                <span class="badge bg-label-primary">All Passes</span>
+                                <span class="badge bg-label-primary" data-badge>All Passes</span>
                                 {% elif location.applies_to == 'ecs_membership' %}
-                                <span class="badge bg-label-success">ECS Only</span>
+                                <span class="badge bg-label-success" data-badge>ECS Only</span>
                                 {% elif location.applies_to == 'pub_league' %}
-                                <span class="badge bg-label-info">Pub League Only</span>
+                                <span class="badge bg-label-info" data-badge>Pub League Only</span>
                                 {% endif %}
                             </div>
                             <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary" data-bs-toggle="modal"
+                                <button class="c-btn c-btn--outline-primary" data-bs-toggle="modal"
                                         data-bs-target="#editLocationModal{{ location.id }}">
                                     <i class="ti ti-edit"></i>
                                 </button>
                                 <form action="{{ url_for('wallet_config.toggle_location', location_id=location.id) }}"
                                       method="post" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-outline-{% if location.is_active %}warning{% else %}success{% endif %}">
+                                    <button type="submit" class="c-btn btn-outline-{% if location.is_active %}warning{% else %}success{% endif %}">
                                         <i class="ti ti-{% if location.is_active %}eye-off{% else %}eye{% endif %}"></i>
                                     </button>
                                 </form>
-                                <button class="btn btn-outline-danger delete-location-btn"
+                                <button class="c-btn c-btn--outline-danger delete-location-btn"
                                         data-location-id="{{ location.id }}"
                                         data-location-name="{{ location.name }}">
                                     <i class="ti ti-trash"></i>
@@ -170,53 +171,53 @@
             </div>
 
             <!-- Edit Modal for this location -->
-            <div class="modal fade" id="editLocationModal{{ location.id }}" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
+            <div class="modal c-modal fade" id="editLocationModal{{ location.id }}" tabindex="-1" data-modal aria-labelledby="editLocationModal{{ location.id }}Label">
+                <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+                    <div class="modal-content c-modal__content" data-modal-content>
                         <form action="{{ url_for('wallet_config.edit_location', location_id=location.id) }}" method="post">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Edit Location</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            <div class="modal-header c-modal__header" data-modal-header>
+                                <h5 class="modal-title c-modal__title" id="editLocationModal{{ location.id }}Label">Edit Location</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
                             </div>
-                            <div class="modal-body">
+                            <div class="modal-body c-modal__body" data-modal-body>
                                 <div class="mb-3">
                                     <label class="form-label">Name *</label>
-                                    <input type="text" class="form-control" name="name" value="{{ location.name }}" required>
+                                    <input type="text" class="form-control" name="name" value="{{ location.name }}" required data-form-control>
                                 </div>
                                 <div class="row mb-3">
                                     <div class="col-6">
                                         <label class="form-label">Latitude *</label>
-                                        <input type="number" step="0.0001" class="form-control" name="latitude" value="{{ location.latitude }}" required>
+                                        <input type="number" step="0.0001" class="form-control" name="latitude" value="{{ location.latitude }}" required data-form-control>
                                     </div>
                                     <div class="col-6">
                                         <label class="form-label">Longitude *</label>
-                                        <input type="number" step="0.0001" class="form-control" name="longitude" value="{{ location.longitude }}" required>
+                                        <input type="number" step="0.0001" class="form-control" name="longitude" value="{{ location.longitude }}" required data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Notification Text</label>
                                     <input type="text" class="form-control" name="relevant_text" value="{{ location.relevant_text }}"
-                                           placeholder="Text shown when user is near this location">
+                                           placeholder="Text shown when user is near this location" data-form-control>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Address</label>
-                                    <input type="text" class="form-control" name="address" value="{{ location.address or '' }}">
+                                    <input type="text" class="form-control" name="address" value="{{ location.address or '' }}" data-form-control>
                                 </div>
                                 <div class="row mb-3">
                                     <div class="col-6">
                                         <label class="form-label">City</label>
-                                        <input type="text" class="form-control" name="city" value="{{ location.city or '' }}">
+                                        <input type="text" class="form-control" name="city" value="{{ location.city or '' }}" data-form-control>
                                     </div>
                                     <div class="col-6">
                                         <label class="form-label">State</label>
-                                        <input type="text" class="form-control" name="state" value="{{ location.state or '' }}">
+                                        <input type="text" class="form-control" name="state" value="{{ location.state or '' }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="row mb-3">
                                     <div class="col-6">
                                         <label class="form-label">Applies To</label>
-                                        <select class="form-select" name="applies_to">
+                                        <select class="form-select" name="applies_to" data-form-select>
                                             <option value="all" {% if location.applies_to == 'all' %}selected{% endif %}>All Passes</option>
                                             <option value="ecs_membership" {% if location.applies_to == 'ecs_membership' %}selected{% endif %}>ECS Membership Only</option>
                                             <option value="pub_league" {% if location.applies_to == 'pub_league' %}selected{% endif %}>Pub League Only</option>
@@ -224,7 +225,7 @@
                                     </div>
                                     <div class="col-6">
                                         <label class="form-label">Location Type</label>
-                                        <select class="form-select" name="location_type">
+                                        <select class="form-select" name="location_type" data-form-select>
                                             <option value="partner_bar" {% if location.location_type == 'partner_bar' %}selected{% endif %}>Partner Bar</option>
                                             <option value="stadium" {% if location.location_type == 'stadium' %}selected{% endif %}>Stadium</option>
                                             <option value="other" {% if location.location_type == 'other' %}selected{% endif %}>Other</option>
@@ -237,9 +238,9 @@
                                     <label class="form-check-label" for="editActive{{ location.id }}">Active</label>
                                 </div>
                             </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            <div class="modal-footer c-modal__footer" data-modal-footer>
+                                <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                                <button type="submit" class="c-btn c-btn--primary">Save Changes</button>
                             </div>
                         </form>
                     </div>
@@ -248,12 +249,12 @@
             {% endfor %}
         {% else %}
             <div class="col-12">
-                <div class="card">
-                    <div class="card-body text-center py-5">
-                        <i class="ti ti-map-pin-off text-muted mb-3" style="font-size: 4rem;"></i>
+                <div class="c-card">
+                    <div class="c-card__body text-center py-5">
+                        <i class="ti ti-map-pin-off text-muted mb-3" class="u-icon-4xl"></i>
                         <h5>No Locations Configured</h5>
                         <p class="text-muted mb-3">Add partner bars and venues to enable location-based notifications.</p>
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLocationModal">
+                        <button class="c-btn c-btn--primary" data-bs-toggle="modal" data-bs-target="#addLocationModal">
                             <i class="ti ti-plus me-1"></i> Add First Location
                         </button>
                     </div>
@@ -264,57 +265,57 @@
 </div>
 
 <!-- Add Location Modal -->
-<div class="modal fade" id="addLocationModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
+<div class="modal c-modal fade" id="addLocationModal" tabindex="-1" data-modal aria-labelledby="addLocationModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
             <form action="{{ url_for('wallet_config.add_location') }}" method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="ti ti-map-pin-plus me-2"></i>Add Location</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="modal-header c-modal__header" data-modal-header>
+                    <h5 class="modal-title c-modal__title" id="addLocationModalLabel"><i class="ti ti-map-pin-plus me-2"></i>Add Location</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body c-modal__body" data-modal-body>
                     <div class="mb-3">
                         <label class="form-label">Name *</label>
-                        <input type="text" class="form-control" name="name" placeholder="e.g., Hellbent Brewing" required>
+                        <input type="text" class="form-control" name="name" placeholder="e.g., Hellbent Brewing" required data-form-control>
                     </div>
                     <div class="row mb-3">
                         <div class="col-6">
                             <label class="form-label">Latitude *</label>
-                            <input type="number" step="0.0001" class="form-control" name="latitude" placeholder="47.6205" required>
+                            <input type="number" step="0.0001" class="form-control" name="latitude" placeholder="47.6205" required data-form-control>
                         </div>
                         <div class="col-6">
                             <label class="form-label">Longitude *</label>
-                            <input type="number" step="0.0001" class="form-control" name="longitude" placeholder="-122.3493" required>
+                            <input type="number" step="0.0001" class="form-control" name="longitude" placeholder="-122.3493" required data-form-control>
                         </div>
                     </div>
-                    <div class="alert alert-light mb-3">
+                    <div class="alert alert-light mb-3" data-alert>
                         <small><i class="ti ti-bulb me-1"></i>Find coordinates on Google Maps: Right-click any location and click the coordinates to copy them.</small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Notification Text</label>
                         <input type="text" class="form-control" name="relevant_text"
-                               placeholder="Text shown when user is near (defaults to name)">
+                               placeholder="Text shown when user is near (defaults to name)" data-form-control>
                         <div class="form-text">This is the message users see when their phone detects they're near this location.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Address</label>
-                        <input type="text" class="form-control" name="address" placeholder="123 Main St">
+                        <input type="text" class="form-control" name="address" placeholder="123 Main St" data-form-control>
                     </div>
                     <div class="row mb-3">
                         <div class="col-6">
                             <label class="form-label">City</label>
-                            <input type="text" class="form-control" name="city" placeholder="Seattle">
+                            <input type="text" class="form-control" name="city" placeholder="Seattle" data-form-control>
                         </div>
                         <div class="col-6">
                             <label class="form-label">State</label>
-                            <input type="text" class="form-control" name="state" placeholder="WA">
+                            <input type="text" class="form-control" name="state" placeholder="WA" data-form-control>
                         </div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-6">
                             <label class="form-label">Applies To</label>
-                            <select class="form-select" name="applies_to">
+                            <select class="form-select" name="applies_to" data-form-select>
                                 <option value="all">All Passes</option>
                                 <option value="ecs_membership">ECS Membership Only</option>
                                 <option value="pub_league">Pub League Only</option>
@@ -322,7 +323,7 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label">Location Type</label>
-                            <select class="form-select" name="location_type">
+                            <select class="form-select" name="location_type" data-form-select>
                                 <option value="partner_bar">Partner Bar</option>
                                 <option value="stadium">Stadium</option>
                                 <option value="other">Other</option>
@@ -334,9 +335,9 @@
                         <label class="form-check-label" for="newActive">Active</label>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
+                <div class="modal-footer c-modal__footer" data-modal-footer>
+                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                    <button type="submit" class="c-btn c-btn--primary">
                         <i class="ti ti-plus me-1"></i> Add Location
                     </button>
                 </div>
@@ -346,7 +347,7 @@
 </div>
 
 <!-- Delete Form (hidden) -->
-<form id="deleteLocationForm" method="post" style="display: none;">
+<form id="deleteLocationForm" method="post" class="d-none">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 </form>
 {% endblock %}

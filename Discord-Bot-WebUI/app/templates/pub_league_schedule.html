@@ -8,7 +8,7 @@
 </div>
 
 <!-- Tabbed Interface for Leagues -->
-<ul class="nav nav-tabs" id="leagueTabs" role="tablist">
+<ul class="nav nav-tabs" id="leagueTabs" role="tablist" data-tabs>
     {% for league in leagues %}
     <li class="nav-item">
         <a class="nav-link {% if loop.first %}active{% endif %}" id="{{ league.name }}-tab" data-toggle="tab" href="#{{ league.name }}" role="tab" aria-controls="{{ league.name }}" aria-selected="true">{{ league.name }}</a>
@@ -18,7 +18,7 @@
 
 <div class="tab-content mt-4" id="leagueTabsContent">
     {% for league in leagues %}
-    <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="{{ league.name }}" role="tabpanel" aria-labelledby="{{ league.name }}-tab">
+    <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="{{ league.name }}" role="tabpanel" aria-labelledby="{{ league.name }}-tab" data-tab-pane>
 
         <!-- Match Add Form -->
         <div class="mb-4">
@@ -26,30 +26,30 @@
                 <input type="hidden" name="league_name" value="{{ league.name }}">
                 <div class="form-row align-items-center">
                     <div class="col-auto">
-                        <label for="teamA" class="sr-only">Team A</label>
-                        <input type="text" class="form-control mb-2" id="teamA" name="teamA" placeholder="Team A">
+                        <label for="teamA-{{ league.name|replace(' ', '-')|lower }}" class="sr-only">Team A</label>
+                        <input type="text" class="form-control mb-2" id="teamA-{{ league.name|replace(' ', '-')|lower }}" name="teamA" placeholder="Team A" data-form-control>
                     </div>
                     <div class="col-auto">
-                        <label for="teamB" class="sr-only">Team B</label>
-                        <input type="text" class="form-control mb-2" id="teamB" name="teamB" placeholder="Team B">
+                        <label for="teamB-{{ league.name|replace(' ', '-')|lower }}" class="sr-only">Team B</label>
+                        <input type="text" class="form-control mb-2" id="teamB-{{ league.name|replace(' ', '-')|lower }}" name="teamB" placeholder="Team B" data-form-control>
                     </div>
                     <div class="col-auto">
-                        <label for="time" class="sr-only">Time</label>
-                        <input type="text" class="form-control mb-2" id="time" name="time" placeholder="Time (e.g., 9:40 AM)">
+                        <label for="time-{{ league.name|replace(' ', '-')|lower }}" class="sr-only">Time</label>
+                        <input type="text" class="form-control mb-2" id="time-{{ league.name|replace(' ', '-')|lower }}" name="time" placeholder="Time (e.g., 9:40 AM)" data-form-control>
                     </div>
                     <div class="col-auto">
-                        <label for="date" class="sr-only">Date</label>
-                        <input type="date" class="form-control mb-2" id="date" name="date">
+                        <label for="date-{{ league.name|replace(' ', '-')|lower }}" class="sr-only">Date</label>
+                        <input type="date" class="form-control mb-2" id="date-{{ league.name|replace(' ', '-')|lower }}" name="date" data-form-control>
                     </div>
                     <div class="col-auto">
-                        <label for="location" class="sr-only">Location</label>
-                        <select class="form-control mb-2" id="location" name="location">
+                        <label for="location-{{ league.name|replace(' ', '-')|lower }}" class="sr-only">Location</label>
+                        <select class="form-control mb-2" id="location-{{ league.name|replace(' ', '-')|lower }}" name="location" data-form-select>
                             <option value="North">North</option>
                             <option value="South">South</option>
                         </select>
                     </div>
                     <div class="col-auto">
-                        <button type="submit" class="btn btn-primary mb-2">Add Match</button>
+                        <button type="submit" class="c-btn c-btn--primary mb-2">Add Match</button>
                     </div>
                 </div>
             </form>
@@ -79,51 +79,51 @@
 
         <!-- Team Management Cards (Existing Content) -->
         {% for team in league.teams %}
-        <div class="card mb-4">
-            <a href="#team{{ loop.index0 }}" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="false" aria-controls="team{{ loop.index0 }}">
+        <div class="c-card mb-4">
+            <a href="#team{{ loop.index0 }}" class="d-block c-card__header py-3" data-toggle="collapse" role="button" aria-expanded="false" aria-controls="team{{ loop.index0 }}">
                 <div class="d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-secondary">{{ team.name }}</h6>
-                    <button class="btn btn-sm btn-primary edit-button" onclick="toggleEdit('{{ team.name|replace(' ', '_') }}', event)">Edit</button>
+                    <button class="c-btn c-btn--sm c-btn--primary edit-button js-toggle-team-edit" data-action="toggle-team-edit" data-team-id="{{ team.name|replace(' ', '_') }}">Edit</button>
                 </div>
             </a>
             <div class="collapse" id="team{{ loop.index0 }}">
-                <div class="card-body">
+                <div class="c-card__body">
                     <form method="POST" action="{{ url_for('publeague.update_publeague_team_name', league_name=league.name, team_name=team.name) }}">
                         <div class="form-group">
                             <label for="team_name">Team Name</label>
-                            <input type="text" name="team_name" value="{{ team.name }}" class="form-control" id="input-{{ team.name|replace(' ', '_') }}-name" readonly>
+                            <input type="text" name="team_name" value="{{ team.name }}" class="form-control" id="input-{{ team.name|replace(' ', '_') }}-name" readonly data-form-control>
                         </div>
-                        <button type="submit" class="btn btn-primary btn-sm d-none" id="btn-{{ team.name|replace(' ', '_') }}-save">Save Name</button>
+                        <button type="submit" class="c-btn c-btn--primary c-btn--sm d-none" id="btn-{{ team.name|replace(' ', '_') }}-save">Save Name</button>
                     </form>
 
-                    <table class="table table-bordered mt-4">
-                        <thead class="thead-light">
+                    <table class="c-table c-table--bordered mt-4" data-table>
+                        <thead class="thead-light" scope="col">
                             <tr>
-                                <th>Week</th>
-                                <th>Date</th>
-                                <th>Time</th>
-                                <th>Opponent</th>
-                                <th>Location</th>
-                                <th>Actions</th>
+                                <th scope="col">Week</th>
+                                <th scope="col">Date</th>
+                                <th scope="col">Time</th>
+                                <th scope="col">Opponent</th>
+                                <th scope="col">Location</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for match in team.schedule %}
                             <tr>
                                 <td>{{ match.week }}</td>
-                                <td><input type="date" name="date" value="{{ match.date }}" class="form-control" id="input-{{ team.name|replace(' ', '_') }}-date-{{ loop.index0 }}" readonly></td>
-                                <td><input type="text" name="time" value="{{ match.time }}" class="form-control" id="input-{{ team.name|replace(' ', '_') }}-time-{{ loop.index0 }}" readonly></td>
-                                <td><input type="text" name="opponent" value="{{ match.opponent }}" class="form-control" id="input-{{ team.name|replace(' ', '_') }}-opponent-{{ loop.index0 }}" readonly></td>
-                                <td><input type="text" name="location" value="{{ match.location }}" class="form-control" id="input-{{ team.name|replace(' ', '_') }}-location-{{ loop.index0 }}" readonly></td>
+                                <td><input type="date" name="date" value="{{ match.date }}" class="form-control" id="input-{{ team.name|replace(' ', '_') }}-date-{{ loop.index0 }}" readonly data-form-control></td>
+                                <td><input type="text" name="time" value="{{ match.time }}" class="form-control" id="input-{{ team.name|replace(' ', '_') }}-time-{{ loop.index0 }}" readonly data-form-control></td>
+                                <td><input type="text" name="opponent" value="{{ match.opponent }}" class="form-control" id="input-{{ team.name|replace(' ', '_') }}-opponent-{{ loop.index0 }}" readonly data-form-control></td>
+                                <td><input type="text" name="location" value="{{ match.location }}" class="form-control" id="input-{{ team.name|replace(' ', '_') }}-location-{{ loop.index0 }}" readonly data-form-control></td>
                                 <td>
-                                    <button form="update-match-{{ league.name }}-{{ team.name|replace(' ', '_') }}-{{ match.week }}" class="btn btn-primary btn-sm d-none" id="btn-{{ team.name|replace(' ', '_') }}-save-match-{{ loop.index0 }}">Save</button>
-                                    <button form="remove-match-{{ league.name }}-{{ team.name|replace(' ', '_') }}-{{ match.week }}" class="btn btn-danger btn-sm">Remove Match</button>
+                                    <button form="update-match-{{ league.name }}-{{ team.name|replace(' ', '_') }}-{{ match.week }}" class="c-btn c-btn--primary c-btn--sm d-none" id="btn-{{ team.name|replace(' ', '_') }}-save-match-{{ loop.index0 }}">Save</button>
+                                    <button form="remove-match-{{ league.name }}-{{ team.name|replace(' ', '_') }}-{{ match.week }}" class="c-btn c-btn--danger c-btn--sm">Remove Match</button>
                                 </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
-                    <button form="add-match-{{ league.name }}-{{ team.name|replace(' ', '_') }}" class="btn btn-success btn-sm mt-3">Add Pub League Match</button>
+                    <button form="add-match-{{ league.name }}-{{ team.name|replace(' ', '_') }}" class="c-btn c-btn--success c-btn--sm mt-3">Add Pub League Match</button>
                 </div>
             </div>
         </div>
@@ -133,23 +133,31 @@
 </div>
 
 <script>
-    function toggleEdit(teamId, event) {
-        // Prevent the collapse action
-        event.stopPropagation();
-
-        let teamNameInput = document.getElementById(`input-${teamId}-name`);
-        teamNameInput.toggleAttribute('readonly');
-        let saveButton = document.getElementById(`btn-${teamId}-save`);
-        saveButton.classList.toggle('d-none');
-
-        document.querySelectorAll(`[id^="input-${teamId}-"]`).forEach(input => {
-            input.toggleAttribute('readonly');
-        });
-
-        document.querySelectorAll(`[id^="btn-${teamId}-save-match-"]`).forEach(btn => {
-            btn.classList.toggle('d-none');
-        });
+// Event delegation for team edit buttons
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.js-toggle-team-edit')) {
+        e.preventDefault();
+        e.stopPropagation();
+        const button = e.target.closest('.js-toggle-team-edit');
+        const teamId = button.dataset.teamId;
+        toggleEdit(teamId);
     }
+});
+
+function toggleEdit(teamId) {
+    let teamNameInput = document.getElementById(`input-${teamId}-name`);
+    teamNameInput.toggleAttribute('readonly');
+    let saveButton = document.getElementById(`btn-${teamId}-save`);
+    saveButton.classList.toggle('d-none');
+
+    document.querySelectorAll(`[id^="input-${teamId}-"]`).forEach(input => {
+        input.toggleAttribute('readonly');
+    });
+
+    document.querySelectorAll(`[id^="btn-${teamId}-save-match-"]`).forEach(btn => {
+        btn.classList.toggle('d-none');
+    });
+}
 </script>
 
 {% endblock %}

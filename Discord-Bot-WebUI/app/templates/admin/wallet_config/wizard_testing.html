@@ -45,7 +45,7 @@
 
 <h5><i class="ti ti-test-pipe me-2"></i>Step 4: Testing and Verification</h5>
 
-<div class="alert alert-info">
+<div class="alert alert-info" data-alert>
     <div class="d-flex">
         <div class="me-3">
             <i class="ti ti-info-circle fs-3"></i>
@@ -62,21 +62,21 @@
     <h6>Configuration Test Results</h6>
 
     {% if step_data.test_results %}
-        <div class="card shadow-sm mb-3">
-            <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="c-card shadow-sm mb-3">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
                 <h6 class="mb-0">Overall Status</h6>
                 <div>
                     {% if step_data.test_results.configuration.configured %}
-                        <span class="badge bg-label-success"><i class="ti ti-check me-1"></i>Configuration Complete</span>
+                        <span class="badge bg-label-success" data-badge><i class="ti ti-check me-1"></i>Configuration Complete</span>
                     {% else %}
-                        <span class="badge bg-label-warning"><i class="ti ti-alert-triangle me-1"></i>Issues Found</span>
+                        <span class="badge bg-label-warning" data-badge><i class="ti ti-alert-triangle me-1"></i>Issues Found</span>
                     {% endif %}
                 </div>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="mb-4">
                     {% if step_data.test_results.configuration.configured %}
-                        <div class="alert alert-success d-flex">
+                        <div class="alert alert-success d-flex" data-alert>
                             <i class="ti ti-circle-check me-3 fs-4"></i>
                             <div>
                                 <strong>Wallet pass system is properly configured!</strong>
@@ -84,7 +84,7 @@
                             </div>
                         </div>
                     {% else %}
-                        <div class="alert alert-warning d-flex">
+                        <div class="alert alert-warning d-flex" data-alert>
                             <i class="ti ti-alert-triangle me-3 fs-4"></i>
                             <div>
                                 <strong>Configuration issues detected</strong>
@@ -100,7 +100,7 @@
                     <div class="test-result {{ test.status }}">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <h6 class="mb-0">{{ test.name }}</h6>
-                            <span class="badge bg-label-{{ test.status == 'passed' and 'success' or test.status == 'skipped' and 'warning' or test.status == 'info' and 'info' or 'danger' }}">
+                            <span class="badge bg-label-{{ test.status == 'passed' and 'success' or test.status == 'skipped' and 'warning' or test.status == 'info' and 'info' or 'danger' }}" data-badge>
                                 <i class="ti ti-{{ test.status == 'passed' and 'check' or test.status == 'skipped' and 'clock' or test.status == 'info' and 'info-circle' or 'x' }} me-1"></i>
                                 {{ test.status|capitalize }}
                             </span>
@@ -122,12 +122,12 @@
             </div>
         </div>
     {% else %}
-        <div class="card mb-3">
-            <div class="card-body text-center py-5">
+        <div class="c-card mb-3">
+            <div class="c-card__body text-center py-5">
                 <i class="ti ti-flask fs-1 mb-3 text-primary"></i>
                 <h5>No Tests Run Yet</h5>
                 <p class="mb-3">Run the configuration test to validate your setup</p>
-                <a href="{{ url_for('wallet_config.test_config') }}" class="btn btn-primary">
+                <a href="{{ url_for('wallet_config.test_config') }}" class="c-btn c-btn--primary">
                     <i class="ti ti-test-pipe me-1"></i> Run Configuration Tests
                 </a>
             </div>
@@ -138,22 +138,22 @@
 <!-- Test Actions -->
 <div class="row mb-4">
     <div class="col-md-6 mb-3">
-        <div class="card shadow-sm h-100">
-            <div class="card-header">
+        <div class="c-card shadow-sm h-100">
+            <div class="c-card__header">
                 <h6 class="mb-0"><i class="ti ti-tools me-2"></i>Test Tools</h6>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <p class="mb-3">Use these tools to test your wallet pass configuration:</p>
 
-                <a href="{{ url_for('wallet_config.test_config') }}" class="btn btn-primary d-block mb-2">
+                <a href="{{ url_for('wallet_config.test_config') }}" class="c-btn c-btn--primary d-block mb-2">
                     <i class="ti ti-test-pipe me-1"></i> Run Configuration Tests
                 </a>
 
-                <a href="{{ url_for('wallet_config.diagnostics') }}" class="btn btn-info d-block">
+                <a href="{{ url_for('wallet_config.diagnostics') }}" class="c-btn c-btn--info d-block">
                     <i class="ti ti-stethoscope me-1"></i> Run Advanced Diagnostics
                 </a>
 
-                <div class="alert bg-body-tertiary border mt-3 mb-0">
+                <div class="alert bg-body-tertiary border mt-3 mb-0" data-alert>
                     <h6><i class="ti ti-info-circle me-1"></i> What These Tools Do</h6>
                     <ul class="small mb-0">
                         <li><strong>Configuration Tests:</strong> Validates your basic setup</li>
@@ -165,27 +165,27 @@
     </div>
 
     <div class="col-md-6 mb-3">
-        <div class="card shadow-sm h-100">
-            <div class="card-header">
+        <div class="c-card shadow-sm h-100">
+            <div class="c-card__header">
                 <h6 class="mb-0"><i class="ti ti-ticket me-2"></i>Sample Pass Generation</h6>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <p class="mb-3">Generate and test sample passes:</p>
 
-                <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="btn btn-success d-block mb-2">
+                <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="c-btn c-btn--success d-block mb-2">
                     <i class="ti ti-id me-1"></i> Create Sample ECS Pass
                 </a>
 
-                <a href="{{ url_for('wallet_admin.create_pub_league_pass') }}" class="btn btn-warning d-block mb-2">
+                <a href="{{ url_for('wallet_admin.create_pub_league_pass') }}" class="c-btn c-btn--warning d-block mb-2">
                     <i class="ti ti-ball-football me-1"></i> Create Sample Pub League Pass
                 </a>
 
                 {% if step_data.test_results and step_data.test_results.configuration.configured %}
-                    <div class="alert alert-success small mb-0">
+                    <div class="alert alert-success small mb-0" data-alert>
                         <i class="ti ti-circle-check me-1"></i> Your system is fully configured and ready for pass generation!
                     </div>
                 {% else %}
-                    <div class="alert alert-warning small mb-0">
+                    <div class="alert alert-warning small mb-0" data-alert>
                         <i class="ti ti-alert-triangle me-1"></i> Complete all configuration steps before generating real passes.
                     </div>
                 {% endif %}
@@ -195,20 +195,20 @@
 </div>
 
 <!-- Troubleshooting Guide -->
-<div class="card shadow-sm">
-    <div class="card-header">
+<div class="c-card shadow-sm">
+    <div class="c-card__header">
         <h6 class="mb-0"><i class="ti ti-help-circle me-2"></i>Troubleshooting Guide</h6>
     </div>
-    <div class="card-body">
-        <div class="accordion" id="troubleshootingAccordion">
-            <div class="accordion-item">
+    <div class="c-card__body">
+        <div class="accordion" id="troubleshootingAccordion" data-accordion>
+            <div class="accordion-item" data-accordion>
                 <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#certificateIssues">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#certificateIssues" data-collapse-toggle>
                         <i class="ti ti-certificate me-2"></i> Certificate Issues
                     </button>
                 </h2>
-                <div id="certificateIssues" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
-                    <div class="accordion-body">
+                <div id="certificateIssues" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion" data-accordion>
+                    <div class="accordion-body" data-accordion>
                         <h6>Common Certificate Problems</h6>
                         <ul class="small">
                             <li><strong>Wrong certificate format:</strong> Make sure you've uploaded the right format (.pem, .p12, etc.)</li>
@@ -227,14 +227,14 @@
                 </div>
             </div>
             
-            <div class="accordion-item">
+            <div class="accordion-item" data-accordion>
                 <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#assetIssues">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#assetIssues" data-collapse-toggle>
                         <i class="ti ti-photo me-2"></i> Asset Issues
                     </button>
                 </h2>
-                <div id="assetIssues" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
-                    <div class="accordion-body">
+                <div id="assetIssues" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion" data-accordion>
+                    <div class="accordion-body" data-accordion>
                         <h6>Common Asset Problems</h6>
                         <ul class="small">
                             <li><strong>Wrong image dimensions:</strong> Images must be exactly the right size</li>
@@ -253,14 +253,14 @@
                 </div>
             </div>
             
-            <div class="accordion-item">
+            <div class="accordion-item" data-accordion>
                 <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#templateIssues">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#templateIssues" data-collapse-toggle>
                         <i class="ti ti-file-text me-2"></i> Template Issues
                     </button>
                 </h2>
-                <div id="templateIssues" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
-                    <div class="accordion-body">
+                <div id="templateIssues" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion" data-accordion>
+                    <div class="accordion-body" data-accordion>
                         <h6>Common Template Problems</h6>
                         <ul class="small">
                             <li><strong>Invalid JSON:</strong> Template content must be valid JSON</li>
@@ -279,14 +279,14 @@
                 </div>
             </div>
             
-            <div class="accordion-item">
+            <div class="accordion-item" data-accordion>
                 <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#passIssues">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#passIssues" data-collapse-toggle>
                         <i class="ti ti-ticket me-2"></i> Pass Generation Issues
                     </button>
                 </h2>
-                <div id="passIssues" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
-                    <div class="accordion-body">
+                <div id="passIssues" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion" data-accordion>
+                    <div class="accordion-body" data-accordion>
                         <h6>Common Pass Generation Problems</h6>
                         <ul class="small">
                             <li><strong>Pass won't open in Wallet app:</strong> Usually a certificate or format issue</li>
@@ -308,7 +308,7 @@
     </div>
 </div>
 
-<div class="alert bg-body-tertiary border mt-4">
+<div class="alert bg-body-tertiary border mt-4" data-alert>
     <div class="d-flex">
         <div class="me-3">
             <i class="ti ti-circle-check text-success fs-4"></i>

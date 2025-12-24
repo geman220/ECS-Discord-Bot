@@ -1,0 +1,343 @@
+{% extends "admin_panel/base.html" %}
+
+{% block panel_description %}Season Details - {{ season.name }}{% endblock %}
+
+{% block custom_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/league-management.css') }}">
+{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.league_management_dashboard') }}">League Management</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.league_management_seasons') }}">Seasons</a></li>
+<li class="breadcrumb-item active">{{ season.name }}</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <!-- Season Overview Card -->
+    <div class="col-lg-4 mb-4">
+        <div class="c-card h-100">
+            <div class="c-card__header">
+                <h5 class="mb-0">
+                    <i class="ti ti-calendar me-2"></i>Season Overview
+                </h5>
+            </div>
+            <div class="c-card__body">
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 mb-3" style="width: 80px; height: 80px;">
+                        <i class="ti ti-tournament text-primary" style="font-size: 2rem;"></i>
+                    </div>
+                    <h4 class="mb-1">{{ season.name }}</h4>
+                    {% if season.is_current %}
+                    <span class="c-badge c-badge--success">Current Season</span>
+                    {% else %}
+                    <span class="c-badge c-badge--secondary">Inactive</span>
+                    {% endif %}
+                </div>
+
+                <div class="border-top pt-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">League Type:</span>
+                        <span class="c-badge c-badge--primary">{{ season.league_type }}</span>
+                    </div>
+                    {% if season.start_date %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Start Date:</span>
+                        <span>{{ season.start_date.strftime('%b %d, %Y') }}</span>
+                    </div>
+                    {% endif %}
+                    {% if season.end_date %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">End Date:</span>
+                        <span>{{ season.end_date.strftime('%b %d, %Y') }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Total Leagues:</span>
+                        <span class="fw-bold">{{ season.leagues|length }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="c-card__footer">
+                <div class="d-flex gap-2">
+                    <button class="c-btn c-btn--sm c-btn--outline-primary flex-fill js-edit-season"
+                            data-season-id="{{ season.id }}"
+                            data-season-name="{{ season.name }}">
+                        <i class="ti ti-edit me-1"></i>Edit
+                    </button>
+                    {% if not season.is_current %}
+                    <button class="c-btn c-btn--sm c-btn--outline-success flex-fill js-set-current"
+                            data-season-id="{{ season.id }}">
+                        <i class="ti ti-check me-1"></i>Set Current
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Card -->
+    <div class="col-lg-4 mb-4">
+        <div class="c-card h-100">
+            <div class="c-card__header">
+                <h5 class="mb-0">
+                    <i class="ti ti-chart-bar me-2"></i>Statistics
+                </h5>
+            </div>
+            <div class="c-card__body">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="text-center p-3 rounded bg-primary bg-opacity-10">
+                            <h3 class="mb-0 text-primary">{{ summary.total_teams if summary else season.leagues|sum(attribute='teams')|length }}</h3>
+                            <small class="text-muted">Total Teams</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center p-3 rounded bg-success bg-opacity-10">
+                            <h3 class="mb-0 text-success">{{ summary.total_matches if summary else 0 }}</h3>
+                            <small class="text-muted">Matches</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center p-3 rounded bg-info bg-opacity-10">
+                            <h3 class="mb-0 text-info">{{ summary.matches_played if summary else 0 }}</h3>
+                            <small class="text-muted">Played</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center p-3 rounded bg-warning bg-opacity-10">
+                            <h3 class="mb-0 text-warning">{{ summary.matches_remaining if summary else 0 }}</h3>
+                            <small class="text-muted">Remaining</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Card -->
+    <div class="col-lg-4 mb-4">
+        <div class="c-card h-100">
+            <div class="c-card__header">
+                <h5 class="mb-0">
+                    <i class="ti ti-bolt me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="c-card__body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('admin_panel.league_management_teams') }}?season_id={{ season.id }}"
+                       class="c-btn c-btn--outline-primary">
+                        <i class="ti ti-users-group me-2"></i>View Teams
+                    </a>
+                    <a href="{{ url_for('admin_panel.draft_history') }}?season={{ season.id }}"
+                       class="c-btn c-btn--outline-primary">
+                        <i class="ti ti-list-numbers me-2"></i>Draft History
+                    </a>
+                    <a href="{{ url_for('draft_predictions.admin_dashboard') }}?season_id={{ season.id }}"
+                       class="c-btn c-btn--outline-primary">
+                        <i class="ti ti-chart-dots me-2"></i>Draft Predictions
+                    </a>
+                    <a href="{{ url_for('auto_schedule.schedule_manager') }}"
+                       class="c-btn c-btn--outline-secondary">
+                        <i class="ti ti-calendar-event me-2"></i>Auto Schedule
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leagues Section -->
+<div class="row">
+    <div class="col-12">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="ti ti-trophy me-2"></i>Leagues ({{ season.leagues|length }})
+                </h5>
+            </div>
+            <div class="c-card__body">
+                {% if season.leagues %}
+                <div class="row g-4">
+                    {% for league in season.leagues %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="c-card border h-100">
+                            <div class="c-card__header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">{{ league.name }}</h6>
+                                <span class="c-badge c-badge--primary">{{ league.teams|length }} Teams</span>
+                            </div>
+                            <div class="c-card__body">
+                                {% if league.teams %}
+                                <div class="d-flex flex-wrap gap-1">
+                                    {% for team in league.teams[:5] %}
+                                    <span class="c-badge c-badge--outline-secondary c-badge--sm">{{ team.name }}</span>
+                                    {% endfor %}
+                                    {% if league.teams|length > 5 %}
+                                    <span class="c-badge c-badge--secondary c-badge--sm">+{{ league.teams|length - 5 }} more</span>
+                                    {% endif %}
+                                </div>
+                                {% else %}
+                                <p class="text-muted mb-0 small">No teams in this league yet</p>
+                                {% endif %}
+                            </div>
+                            <div class="c-card__footer">
+                                <a href="{{ url_for('admin_panel.league_management_teams') }}?league_id={{ league.id }}"
+                                   class="c-btn c-btn--sm c-btn--outline-primary w-100">
+                                    <i class="ti ti-eye me-1"></i>View Teams
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-trophy-off text-muted" style="font-size: 3rem;"></i>
+                    <p class="text-muted mt-2">No leagues in this season yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Season Modal -->
+<div class="modal c-modal fade" id="editSeasonModal" tabindex="-1" data-modal aria-labelledby="editSeasonModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="editSeasonModalLabel"><i class="ti ti-edit me-2"></i>Edit Season</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
+            </div>
+            <div class="modal-body c-modal__body" data-modal-body>
+                <form id="editSeasonForm">
+                    <input type="hidden" id="editSeasonId">
+                    <div class="mb-3">
+                        <label class="form-label">Season Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editSeasonName" required data-form-control>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="editSeasonStartDate" data-form-control>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="editSeasonEndDate" data-form-control>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--primary js-save-season" data-action="save-season">
+                    <i class="ti ti-check me-1"></i>Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Edit season button
+    document.querySelectorAll('.js-edit-season').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const seasonId = this.getAttribute('data-season-id');
+            const seasonName = this.getAttribute('data-season-name');
+
+            document.getElementById('editSeasonId').value = seasonId;
+            document.getElementById('editSeasonName').value = seasonName;
+
+            // Load full season data
+            fetch(`/admin-panel/league-management/seasons/api/${seasonId}/details`)
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        document.getElementById('editSeasonStartDate').value = result.season.start_date || '';
+                        document.getElementById('editSeasonEndDate').value = result.season.end_date || '';
+                    }
+                });
+
+            ModalManager.show('editSeasonModal');
+        });
+    });
+
+    // Save season
+    document.querySelectorAll('.js-save-season').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            saveSeasonChanges();
+        });
+    });
+
+    // Set current season
+    document.querySelectorAll('.js-set-current').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const seasonId = this.getAttribute('data-season-id');
+            setCurrentSeason(seasonId);
+        });
+    });
+});
+
+function saveSeasonChanges() {
+    const seasonId = document.getElementById('editSeasonId').value;
+    const name = document.getElementById('editSeasonName').value.trim();
+    const startDate = document.getElementById('editSeasonStartDate').value;
+    const endDate = document.getElementById('editSeasonEndDate').value;
+
+    if (!name) {
+        AdminPanel.showMobileToast('Please enter a season name', 'warning');
+        return;
+    }
+
+    fetch(`/admin-panel/league-management/seasons/api/${seasonId}/update`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            name: name,
+            start_date: startDate || null,
+            end_date: endDate || null
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            AdminPanel.showMobileToast(result.message, 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            AdminPanel.showMobileToast(result.message, 'danger');
+        }
+    })
+    .catch(error => {
+        AdminPanel.showMobileToast('Failed to update season', 'danger');
+    });
+}
+
+function setCurrentSeason(seasonId) {
+    AdminPanel.confirmAction('Set this season as the current season?', () => {
+        fetch(`/admin-panel/league-management/seasons/api/${seasonId}/set-current`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ perform_rollover: false })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                AdminPanel.showMobileToast(result.message, 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                AdminPanel.showMobileToast(result.message, 'danger');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Failed to set current season', 'danger');
+        });
+    });
+}
+</script>
+{% endblock %}

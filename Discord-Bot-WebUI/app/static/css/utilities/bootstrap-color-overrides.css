@@ -1,0 +1,1003 @@
+/**
+ * ============================================================================
+ * BOOTSTRAP COLOR UTILITY OVERRIDES
+ * ============================================================================
+ *
+ * Maps Bootstrap's color utility classes to our design token system.
+ * This ensures consistent colors across light/dark mode without changing templates.
+ *
+ * Instead of removing 576+ Bootstrap color class usages from templates,
+ * we override them to use our design tokens.
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   BACKGROUND COLOR UTILITIES
+   ============================================================================ */
+
+/* Primary */
+.bg-primary {
+  background-color: var(--color-primary) !important;
+}
+
+/* Secondary */
+.bg-secondary {
+  background-color: var(--color-secondary) !important;
+}
+
+/* Success */
+.bg-success {
+  background-color: var(--color-success) !important;
+}
+
+/* Warning */
+.bg-warning {
+  background-color: var(--color-warning) !important;
+}
+
+/* Danger */
+.bg-danger {
+  background-color: var(--color-danger) !important;
+}
+
+/* Info */
+.bg-info {
+  background-color: var(--color-info) !important;
+}
+
+/* Light */
+.bg-light {
+  background-color: var(--color-neutral-100) !important;
+}
+
+/* Dark */
+.bg-dark {
+  background-color: var(--color-neutral-900) !important;
+}
+
+/* White */
+.bg-white {
+  background-color: var(--color-neutral-0) !important;
+}
+
+/* Body */
+.bg-body {
+  background-color: var(--color-bg-primary) !important;
+}
+
+/* Body Secondary */
+.bg-body-secondary {
+  background-color: var(--color-bg-secondary) !important;
+}
+
+/* Body Tertiary */
+.bg-body-tertiary {
+  background-color: var(--color-bg-tertiary) !important;
+}
+
+/* Transparent */
+.bg-transparent {
+  background-color: transparent !important;
+}
+
+/* ============================================================================
+   SUBTLE BACKGROUND UTILITIES (Bootstrap 5.3+)
+   ============================================================================ */
+
+.bg-primary-subtle {
+  background-color: var(--color-primary-subtle) !important;
+}
+
+.bg-secondary-subtle {
+  background-color: var(--color-secondary-subtle) !important;
+}
+
+.bg-success-subtle {
+  background-color: var(--color-success-subtle) !important;
+}
+
+.bg-warning-subtle {
+  background-color: var(--color-warning-subtle) !important;
+}
+
+.bg-danger-subtle {
+  background-color: var(--color-danger-subtle) !important;
+}
+
+.bg-info-subtle {
+  background-color: var(--color-info-subtle) !important;
+}
+
+.bg-light-subtle {
+  background-color: var(--color-neutral-50) !important;
+}
+
+.bg-dark-subtle {
+  background-color: var(--color-neutral-800) !important;
+}
+
+/* ============================================================================
+   BACKGROUND OPACITY UTILITIES
+   Using RGBA with our color tokens
+   ============================================================================ */
+
+.bg-opacity-10 {
+  --bs-bg-opacity: 0.1;
+}
+
+.bg-opacity-25 {
+  --bs-bg-opacity: 0.25;
+}
+
+.bg-opacity-50 {
+  --bs-bg-opacity: 0.5;
+}
+
+.bg-opacity-75 {
+  --bs-bg-opacity: 0.75;
+}
+
+.bg-opacity-100 {
+  --bs-bg-opacity: 1;
+}
+
+/* Properly apply opacity to background colors */
+.bg-primary.bg-opacity-10 {
+  background-color: rgba(var(--color-primary-rgb), 0.1) !important;
+}
+
+.bg-primary.bg-opacity-25 {
+  background-color: rgba(var(--color-primary-rgb), 0.25) !important;
+}
+
+.bg-success.bg-opacity-10 {
+  background-color: rgba(var(--color-success-rgb), 0.1) !important;
+}
+
+.bg-success.bg-opacity-25 {
+  background-color: rgba(var(--color-success-rgb), 0.25) !important;
+}
+
+.bg-warning.bg-opacity-10 {
+  background-color: rgba(var(--color-warning-rgb), 0.1) !important;
+}
+
+.bg-warning.bg-opacity-25 {
+  background-color: rgba(var(--color-warning-rgb), 0.25) !important;
+}
+
+.bg-danger.bg-opacity-10 {
+  background-color: rgba(var(--color-danger-rgb), 0.1) !important;
+}
+
+.bg-danger.bg-opacity-25 {
+  background-color: rgba(var(--color-danger-rgb), 0.25) !important;
+}
+
+.bg-info.bg-opacity-10 {
+  background-color: rgba(var(--color-info-rgb), 0.1) !important;
+}
+
+.bg-info.bg-opacity-25 {
+  background-color: rgba(var(--color-info-rgb), 0.25) !important;
+}
+
+.bg-secondary.bg-opacity-10 {
+  background-color: rgba(var(--color-secondary-rgb), 0.1) !important;
+}
+
+.bg-secondary.bg-opacity-25 {
+  background-color: rgba(var(--color-secondary-rgb), 0.25) !important;
+}
+
+/* ============================================================================
+   TEXT COLOR UTILITIES
+   ============================================================================ */
+
+/* Primary */
+.text-primary {
+  color: var(--color-primary) !important;
+}
+
+/* Secondary */
+.text-secondary {
+  color: var(--color-text-secondary) !important;
+}
+
+/* Success */
+.text-success {
+  color: var(--color-success) !important;
+}
+
+/* Warning */
+.text-warning {
+  color: var(--color-warning) !important;
+}
+
+/* Danger */
+.text-danger {
+  color: var(--color-danger) !important;
+}
+
+/* Info */
+.text-info {
+  color: var(--color-info) !important;
+}
+
+/* Light */
+.text-light {
+  color: var(--color-neutral-100) !important;
+}
+
+/* Dark */
+.text-dark {
+  color: var(--color-neutral-900) !important;
+}
+
+/* White */
+.text-white {
+  color: var(--color-white) !important;
+}
+
+/* Muted */
+.text-muted {
+  color: var(--color-text-muted) !important;
+}
+
+/* Body */
+.text-body {
+  color: var(--color-text-primary) !important;
+}
+
+/* Body Secondary */
+.text-body-secondary {
+  color: var(--color-text-secondary) !important;
+}
+
+/* Body Tertiary */
+.text-body-tertiary {
+  color: var(--color-text-muted) !important;
+}
+
+/* Black/White with opacity support */
+.text-black {
+  color: #000000 !important;
+}
+
+.text-black-50 {
+  color: rgba(0, 0, 0, 0.5) !important;
+}
+
+.text-white-50 {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* ============================================================================
+   TEXT EMPHASIS UTILITIES (Bootstrap 5.3+)
+   ============================================================================ */
+
+.text-primary-emphasis {
+  color: var(--color-primary-700) !important;
+}
+
+.text-secondary-emphasis {
+  color: var(--color-secondary-700) !important;
+}
+
+.text-success-emphasis {
+  color: var(--color-success-700) !important;
+}
+
+.text-warning-emphasis {
+  color: var(--color-warning-700) !important;
+}
+
+.text-danger-emphasis {
+  color: var(--color-danger-700) !important;
+}
+
+.text-info-emphasis {
+  color: var(--color-info-700) !important;
+}
+
+.text-light-emphasis {
+  color: var(--color-neutral-600) !important;
+}
+
+.text-dark-emphasis {
+  color: var(--color-neutral-800) !important;
+}
+
+/* ============================================================================
+   BORDER COLOR UTILITIES
+   ============================================================================ */
+
+.border-primary {
+  border-color: var(--color-primary) !important;
+}
+
+.border-secondary {
+  border-color: var(--color-secondary) !important;
+}
+
+.border-success {
+  border-color: var(--color-success) !important;
+}
+
+.border-warning {
+  border-color: var(--color-warning) !important;
+}
+
+.border-danger {
+  border-color: var(--color-danger) !important;
+}
+
+.border-info {
+  border-color: var(--color-info) !important;
+}
+
+.border-light {
+  border-color: var(--color-neutral-200) !important;
+}
+
+.border-dark {
+  border-color: var(--color-neutral-800) !important;
+}
+
+.border-white {
+  border-color: var(--color-white) !important;
+}
+
+/* ============================================================================
+   BORDER SUBTLE UTILITIES (Bootstrap 5.3+)
+   ============================================================================ */
+
+.border-primary-subtle {
+  border-color: var(--color-primary-200) !important;
+}
+
+.border-secondary-subtle {
+  border-color: var(--color-secondary-200) !important;
+}
+
+.border-success-subtle {
+  border-color: var(--color-success-200) !important;
+}
+
+.border-warning-subtle {
+  border-color: var(--color-warning-200) !important;
+}
+
+.border-danger-subtle {
+  border-color: var(--color-danger-200) !important;
+}
+
+.border-info-subtle {
+  border-color: var(--color-info-200) !important;
+}
+
+/* ============================================================================
+   LINK COLORS
+   ============================================================================ */
+
+.link-primary {
+  color: var(--color-primary) !important;
+}
+
+.link-primary:hover,
+.link-primary:focus {
+  color: var(--color-primary-700) !important;
+}
+
+.link-secondary {
+  color: var(--color-secondary) !important;
+}
+
+.link-secondary:hover,
+.link-secondary:focus {
+  color: var(--color-secondary-700) !important;
+}
+
+.link-success {
+  color: var(--color-success) !important;
+}
+
+.link-success:hover,
+.link-success:focus {
+  color: var(--color-success-700) !important;
+}
+
+.link-warning {
+  color: var(--color-warning) !important;
+}
+
+.link-warning:hover,
+.link-warning:focus {
+  color: var(--color-warning-700) !important;
+}
+
+.link-danger {
+  color: var(--color-danger) !important;
+}
+
+.link-danger:hover,
+.link-danger:focus {
+  color: var(--color-danger-700) !important;
+}
+
+.link-info {
+  color: var(--color-info) !important;
+}
+
+.link-info:hover,
+.link-info:focus {
+  color: var(--color-info-700) !important;
+}
+
+.link-light {
+  color: var(--color-neutral-200) !important;
+}
+
+.link-light:hover,
+.link-light:focus {
+  color: var(--color-neutral-400) !important;
+}
+
+.link-dark {
+  color: var(--color-neutral-800) !important;
+}
+
+.link-dark:hover,
+.link-dark:focus {
+  color: var(--color-neutral-900) !important;
+}
+
+/* ============================================================================
+   DARK MODE OVERRIDES
+   Ensure colors work correctly in dark mode
+   ============================================================================ */
+
+[data-style="dark"] {
+  /* Background utilities in dark mode */
+  .bg-light {
+    background-color: var(--color-neutral-800) !important;
+  }
+
+  .bg-dark {
+    background-color: var(--color-neutral-100) !important;
+  }
+
+  .bg-white {
+    background-color: var(--color-neutral-0) !important;
+  }
+
+  .bg-body {
+    background-color: var(--color-bg-primary) !important;
+  }
+
+  .bg-body-secondary {
+    background-color: var(--color-bg-secondary) !important;
+  }
+
+  .bg-body-tertiary {
+    background-color: var(--color-bg-tertiary) !important;
+  }
+
+  /* Subtle backgrounds use alpha in dark mode */
+  .bg-light-subtle {
+    background-color: var(--color-neutral-100) !important;
+  }
+
+  .bg-dark-subtle {
+    background-color: var(--color-neutral-200) !important;
+  }
+
+  /* Text utilities in dark mode */
+  .text-light {
+    color: var(--color-neutral-200) !important;
+  }
+
+  .text-dark {
+    color: var(--color-neutral-100) !important;
+  }
+
+  .text-body {
+    color: var(--color-text-primary) !important;
+  }
+
+  .text-body-secondary {
+    color: var(--color-text-secondary) !important;
+  }
+
+  .text-body-tertiary {
+    color: var(--color-text-muted) !important;
+  }
+
+  .text-muted {
+    color: var(--color-text-muted) !important;
+  }
+
+  /* Border utilities in dark mode */
+  .border-light {
+    border-color: var(--color-neutral-700) !important;
+  }
+
+  .border-dark {
+    border-color: var(--color-neutral-200) !important;
+  }
+
+  /* Text emphasis in dark mode - use lighter shades */
+  .text-primary-emphasis {
+    color: var(--color-primary-400) !important;
+  }
+
+  .text-secondary-emphasis {
+    color: var(--color-secondary-400) !important;
+  }
+
+  .text-success-emphasis {
+    color: var(--color-success-400) !important;
+  }
+
+  .text-warning-emphasis {
+    color: var(--color-warning-400) !important;
+  }
+
+  .text-danger-emphasis {
+    color: var(--color-danger-400) !important;
+  }
+
+  .text-info-emphasis {
+    color: var(--color-info-400) !important;
+  }
+
+  /* Border subtle in dark mode */
+  .border-primary-subtle {
+    border-color: var(--color-primary-800) !important;
+  }
+
+  .border-secondary-subtle {
+    border-color: var(--color-secondary-800) !important;
+  }
+
+  .border-success-subtle {
+    border-color: var(--color-success-800) !important;
+  }
+
+  .border-warning-subtle {
+    border-color: var(--color-warning-800) !important;
+  }
+
+  .border-danger-subtle {
+    border-color: var(--color-danger-800) !important;
+  }
+
+  .border-info-subtle {
+    border-color: var(--color-info-800) !important;
+  }
+}
+
+/* ============================================================================
+   ALERT COLOR VARIANTS
+   Bootstrap alerts using design tokens
+   ============================================================================ */
+
+.alert-primary {
+  background-color: var(--color-primary-subtle) !important;
+  border-color: var(--color-primary-200) !important;
+  color: var(--color-primary-800) !important;
+}
+
+.alert-secondary {
+  background-color: var(--color-secondary-subtle) !important;
+  border-color: var(--color-secondary-200) !important;
+  color: var(--color-secondary-800) !important;
+}
+
+.alert-success {
+  background-color: var(--color-success-subtle) !important;
+  border-color: var(--color-success-200) !important;
+  color: var(--color-success-800) !important;
+}
+
+.alert-warning {
+  background-color: var(--color-warning-subtle) !important;
+  border-color: var(--color-warning-200) !important;
+  color: var(--color-warning-800) !important;
+}
+
+.alert-danger {
+  background-color: var(--color-danger-subtle) !important;
+  border-color: var(--color-danger-200) !important;
+  color: var(--color-danger-800) !important;
+}
+
+.alert-info {
+  background-color: var(--color-info-subtle) !important;
+  border-color: var(--color-info-200) !important;
+  color: var(--color-info-800) !important;
+}
+
+.alert-light {
+  background-color: var(--color-neutral-50) !important;
+  border-color: var(--color-neutral-200) !important;
+  color: var(--color-neutral-800) !important;
+}
+
+.alert-dark {
+  background-color: var(--color-neutral-800) !important;
+  border-color: var(--color-neutral-700) !important;
+  color: var(--color-neutral-100) !important;
+}
+
+/* Dark mode alert adjustments */
+[data-style="dark"] {
+  .alert-primary {
+    background-color: var(--color-primary-subtle) !important;
+    border-color: var(--color-primary-700) !important;
+    color: var(--color-primary-300) !important;
+  }
+
+  .alert-secondary {
+    background-color: var(--color-secondary-subtle) !important;
+    border-color: var(--color-secondary-700) !important;
+    color: var(--color-secondary-300) !important;
+  }
+
+  .alert-success {
+    background-color: var(--color-success-subtle) !important;
+    border-color: var(--color-success-700) !important;
+    color: var(--color-success-300) !important;
+  }
+
+  .alert-warning {
+    background-color: var(--color-warning-subtle) !important;
+    border-color: var(--color-warning-700) !important;
+    color: var(--color-warning-300) !important;
+  }
+
+  .alert-danger {
+    background-color: var(--color-danger-subtle) !important;
+    border-color: var(--color-danger-700) !important;
+    color: var(--color-danger-300) !important;
+  }
+
+  .alert-info {
+    background-color: var(--color-info-subtle) !important;
+    border-color: var(--color-info-700) !important;
+    color: var(--color-info-300) !important;
+  }
+
+  .alert-light {
+    background-color: var(--color-neutral-800) !important;
+    border-color: var(--color-neutral-700) !important;
+    color: var(--color-neutral-200) !important;
+  }
+
+  .alert-dark {
+    background-color: var(--color-neutral-100) !important;
+    border-color: var(--color-neutral-200) !important;
+    color: var(--color-neutral-800) !important;
+  }
+}
+
+/* ============================================================================
+   TABLE VARIANTS
+   Bootstrap table row colors using design tokens
+   ============================================================================ */
+
+.table-primary {
+  --bs-table-bg: var(--color-primary-subtle);
+  --bs-table-color: var(--color-primary-800);
+  --bs-table-border-color: var(--color-primary-200);
+}
+
+.table-secondary {
+  --bs-table-bg: var(--color-secondary-subtle);
+  --bs-table-color: var(--color-secondary-800);
+  --bs-table-border-color: var(--color-secondary-200);
+}
+
+.table-success {
+  --bs-table-bg: var(--color-success-subtle);
+  --bs-table-color: var(--color-success-800);
+  --bs-table-border-color: var(--color-success-200);
+}
+
+.table-warning {
+  --bs-table-bg: var(--color-warning-subtle);
+  --bs-table-color: var(--color-warning-800);
+  --bs-table-border-color: var(--color-warning-200);
+}
+
+.table-danger {
+  --bs-table-bg: var(--color-danger-subtle);
+  --bs-table-color: var(--color-danger-800);
+  --bs-table-border-color: var(--color-danger-200);
+}
+
+.table-info {
+  --bs-table-bg: var(--color-info-subtle);
+  --bs-table-color: var(--color-info-800);
+  --bs-table-border-color: var(--color-info-200);
+}
+
+.table-light {
+  --bs-table-bg: var(--color-neutral-50);
+  --bs-table-color: var(--color-neutral-800);
+  --bs-table-border-color: var(--color-neutral-200);
+}
+
+.table-dark {
+  --bs-table-bg: var(--color-neutral-800);
+  --bs-table-color: var(--color-neutral-100);
+  --bs-table-border-color: var(--color-neutral-700);
+}
+
+/* ============================================================================
+   BADGE COLOR VARIANTS
+   Bootstrap badges using design tokens
+   ============================================================================ */
+
+.badge.bg-primary,
+.badge.text-bg-primary {
+  background-color: var(--color-primary) !important;
+  color: var(--color-text-on-primary) !important;
+}
+
+.badge.bg-secondary,
+.badge.text-bg-secondary {
+  background-color: var(--color-secondary) !important;
+  color: var(--color-text-on-secondary) !important;
+}
+
+.badge.bg-success,
+.badge.text-bg-success {
+  background-color: var(--color-success) !important;
+  color: var(--color-text-on-success) !important;
+}
+
+.badge.bg-warning,
+.badge.text-bg-warning {
+  background-color: var(--color-warning) !important;
+  color: var(--color-text-on-warning) !important;
+}
+
+.badge.bg-danger,
+.badge.text-bg-danger {
+  background-color: var(--color-danger) !important;
+  color: var(--color-text-on-danger) !important;
+}
+
+.badge.bg-info,
+.badge.text-bg-info {
+  background-color: var(--color-info) !important;
+  color: var(--color-text-on-info) !important;
+}
+
+.badge.bg-light,
+.badge.text-bg-light {
+  background-color: var(--color-neutral-100) !important;
+  color: var(--color-neutral-800) !important;
+}
+
+.badge.bg-dark,
+.badge.text-bg-dark {
+  background-color: var(--color-neutral-800) !important;
+  color: var(--color-neutral-100) !important;
+}
+
+/* ============================================================================
+   LIST GROUP VARIANTS
+   Bootstrap list-group items using design tokens
+   ============================================================================ */
+
+.list-group-item-primary {
+  background-color: var(--color-primary-subtle) !important;
+  color: var(--color-primary-800) !important;
+}
+
+.list-group-item-secondary {
+  background-color: var(--color-secondary-subtle) !important;
+  color: var(--color-secondary-800) !important;
+}
+
+.list-group-item-success {
+  background-color: var(--color-success-subtle) !important;
+  color: var(--color-success-800) !important;
+}
+
+.list-group-item-warning {
+  background-color: var(--color-warning-subtle) !important;
+  color: var(--color-warning-800) !important;
+}
+
+.list-group-item-danger {
+  background-color: var(--color-danger-subtle) !important;
+  color: var(--color-danger-800) !important;
+}
+
+.list-group-item-info {
+  background-color: var(--color-info-subtle) !important;
+  color: var(--color-info-800) !important;
+}
+
+.list-group-item-light {
+  background-color: var(--color-neutral-50) !important;
+  color: var(--color-neutral-800) !important;
+}
+
+.list-group-item-dark {
+  background-color: var(--color-neutral-800) !important;
+  color: var(--color-neutral-100) !important;
+}
+
+/* Dark mode list group adjustments */
+[data-style="dark"] {
+  .list-group-item-primary {
+    color: var(--color-primary-300) !important;
+  }
+
+  .list-group-item-secondary {
+    color: var(--color-secondary-300) !important;
+  }
+
+  .list-group-item-success {
+    color: var(--color-success-300) !important;
+  }
+
+  .list-group-item-warning {
+    color: var(--color-warning-300) !important;
+  }
+
+  .list-group-item-danger {
+    color: var(--color-danger-300) !important;
+  }
+
+  .list-group-item-info {
+    color: var(--color-info-300) !important;
+  }
+
+  .list-group-item-light {
+    background-color: var(--color-neutral-700) !important;
+    color: var(--color-neutral-200) !important;
+  }
+
+  .list-group-item-dark {
+    background-color: var(--color-neutral-200) !important;
+    color: var(--color-neutral-800) !important;
+  }
+}
+
+/* ============================================================================
+   BUTTON VARIANTS (for btn-* classes that use Bootstrap colors)
+   These complement our c-btn BEM buttons
+   ============================================================================ */
+
+.btn-primary {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-text-on-primary) !important;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-700) !important;
+  border-color: var(--color-primary-700) !important;
+}
+
+.btn-secondary {
+  background-color: var(--color-secondary) !important;
+  border-color: var(--color-secondary) !important;
+  color: var(--color-text-on-secondary) !important;
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-secondary-700) !important;
+  border-color: var(--color-secondary-700) !important;
+}
+
+.btn-success {
+  background-color: var(--color-success) !important;
+  border-color: var(--color-success) !important;
+  color: var(--color-text-on-success) !important;
+}
+
+.btn-success:hover {
+  background-color: var(--color-success-700) !important;
+  border-color: var(--color-success-700) !important;
+}
+
+.btn-warning {
+  background-color: var(--color-warning) !important;
+  border-color: var(--color-warning) !important;
+  color: var(--color-text-on-warning) !important;
+}
+
+.btn-warning:hover {
+  background-color: var(--color-warning-700) !important;
+  border-color: var(--color-warning-700) !important;
+}
+
+.btn-danger {
+  background-color: var(--color-danger) !important;
+  border-color: var(--color-danger) !important;
+  color: var(--color-text-on-danger) !important;
+}
+
+.btn-danger:hover {
+  background-color: var(--color-danger-700) !important;
+  border-color: var(--color-danger-700) !important;
+}
+
+.btn-info {
+  background-color: var(--color-info) !important;
+  border-color: var(--color-info) !important;
+  color: var(--color-text-on-info) !important;
+}
+
+.btn-info:hover {
+  background-color: var(--color-info-700) !important;
+  border-color: var(--color-info-700) !important;
+}
+
+/* Outline button variants */
+.btn-outline-primary {
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--color-primary) !important;
+  color: var(--color-text-on-primary) !important;
+}
+
+.btn-outline-secondary {
+  border-color: var(--color-secondary) !important;
+  color: var(--color-secondary) !important;
+}
+
+.btn-outline-secondary:hover {
+  background-color: var(--color-secondary) !important;
+  color: var(--color-text-on-secondary) !important;
+}
+
+.btn-outline-success {
+  border-color: var(--color-success) !important;
+  color: var(--color-success) !important;
+}
+
+.btn-outline-success:hover {
+  background-color: var(--color-success) !important;
+  color: var(--color-text-on-success) !important;
+}
+
+.btn-outline-warning {
+  border-color: var(--color-warning) !important;
+  color: var(--color-warning) !important;
+}
+
+.btn-outline-warning:hover {
+  background-color: var(--color-warning) !important;
+  color: var(--color-text-on-warning) !important;
+}
+
+.btn-outline-danger {
+  border-color: var(--color-danger) !important;
+  color: var(--color-danger) !important;
+}
+
+.btn-outline-danger:hover {
+  background-color: var(--color-danger) !important;
+  color: var(--color-text-on-danger) !important;
+}
+
+.btn-outline-info {
+  border-color: var(--color-info) !important;
+  color: var(--color-info) !important;
+}
+
+.btn-outline-info:hover {
+  background-color: var(--color-info) !important;
+  color: var(--color-text-on-info) !important;
+}

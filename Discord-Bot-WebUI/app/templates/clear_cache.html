@@ -1,28 +1,32 @@
 {% extends "base_unauthenticated.html" %}
 {% block title %}Update Mobile Experience{% endblock %}
 
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/utilities.css') }}">
+{% endblock %}
+
 {% block main_content %}
-<div class="container-xxl">
-  <div class="authentication-wrapper authentication-basic container-p-y">
-    <div class="authentication-inner">
-      <div class="card">
-        <div class="card-body">
-          <div class="app-brand justify-content-center">
-            <a href="/" class="app-brand-link gap-2">
-              <span class="app-brand-logo">
+<div class="c-cache-manager" data-component="cache-manager">
+  <div class="c-cache-manager__wrapper">
+    <div class="c-cache-manager__inner">
+      <div class="c-cache-manager__card">
+        <div class="c-cache-manager__body">
+          <div class="c-cache-manager__brand">
+            <a href="/" class="c-cache-manager__brand-link">
+              <span class="c-cache-manager__brand-logo">
                 <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS Logo" height="60">
               </span>
             </a>
           </div>
-          <h4 class="mb-2 text-center">Updating App</h4>
-          <p class="mb-4 text-center">We've made improvements to our mobile experience</p>
+          <h4 class="c-cache-manager__title">Updating App</h4>
+          <p class="c-cache-manager__subtitle">We've made improvements to our mobile experience</p>
 
-          <div class="text-center">
-            <div class="spinner-border text-primary mb-3" role="status">
+          <div class="c-cache-manager__status">
+            <div class="c-cache-manager__spinner" role="status" data-spinner>
               <span class="visually-hidden">Loading...</span>
             </div>
-            <p class="mb-4">Clearing cache and reloading...</p>
-            <small class="text-muted">This page will automatically redirect you in a moment</small>
+            <p class="c-cache-manager__message">Clearing cache and reloading...</p>
+            <small class="c-cache-manager__note">This page will automatically redirect you in a moment</small>
           </div>
         </div>
       </div>
@@ -30,67 +34,5 @@
   </div>
 </div>
 
-<script>
-  // Force clear cache for specific resources
-  function clearCache() {
-    // Key files that need to be refreshed
-    const filesToClear = [
-      '/static/css/ecs-core.css',
-      '/static/css/ecs-components.css',
-      '/static/css/ecs-utilities.css'
-    ];
-    
-    // Create a new cache version
-    const cacheVersion = new Date().getTime();
-    
-    // Force reload each file with cache busting
-    const fetchPromises = filesToClear.map(file => {
-      return fetch(file + '?v=' + cacheVersion, { 
-        cache: 'reload',
-        mode: 'no-cors'
-      });
-    });
-    
-    // Try to clear the cache using the Cache API if available
-    if ('caches' in window) {
-      caches.keys().then(cacheNames => {
-        return Promise.all(
-          cacheNames.map(cacheName => {
-            return caches.delete(cacheName);
-          })
-        );
-      });
-    }
-    
-    // Wait for all fetches to complete, then redirect
-    Promise.all(fetchPromises)
-      .then(() => {
-        // Clear service worker if present
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.getRegistrations().then(registrations => {
-            for (let registration of registrations) {
-              registration.unregister();
-            }
-          });
-        }
-        
-        // Clear localStorage items related to cached content
-        localStorage.removeItem('cache_version');
-        
-        // Add a small delay before redirecting
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 2000);
-      })
-      .catch(() => {
-        // If fetching fails, redirect anyway
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 2000);
-      });
-  }
-  
-  // Run on page load
-  document.addEventListener('DOMContentLoaded', clearCache);
-</script>
+<script src="{{ url_for('static', filename='custom_js/clear-cache.js') }}"></script>
 {% endblock %}

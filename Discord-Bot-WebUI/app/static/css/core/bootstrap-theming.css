@@ -1,0 +1,2082 @@
+/**
+ * Bootstrap Theming
+ * =================
+ * Themes Bootstrap classes (btn, form-control, nav-tabs, etc.)
+ * with our design token system (ECS Deep Blue #2563EB as primary).
+ *
+ * LOAD ORDER: After tokens, before components
+ *
+ * This file applies our design system to Bootstrap utility classes
+ * that are still used in templates during the migration to BEM components.
+ * It also provides global focus styles for accessibility.
+ */
+
+/* ============================================
+   GLOBAL FOCUS STYLES
+   Elegant focus indicators for accessibility
+   ============================================ */
+
+/* Remove ugly browser default outline, add subtle glow */
+*:focus {
+  outline: none;
+}
+
+/* Accessible focus-visible styles (keyboard navigation only) */
+*:focus-visible {
+  outline: 2px solid var(--ecs-primary, #2563EB);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Links get a subtle underline + glow instead of box */
+a:focus-visible,
+[role="link"]:focus-visible {
+  outline: none;
+  text-decoration: underline;
+  text-decoration-color: var(--ecs-primary, #2563EB);
+  text-underline-offset: 3px;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+  border-radius: 2px;
+}
+
+/* Buttons and interactive elements get ring glow */
+button:focus-visible,
+[role="button"]:focus-visible,
+[type="button"]:focus-visible,
+[type="submit"]:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid var(--ecs-primary, #2563EB);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+}
+
+/* Tab-style navigation items */
+[role="tab"]:focus-visible,
+.nav-link:focus-visible,
+.c-settings-tabs__trigger:focus-visible {
+  outline: 2px solid var(--ecs-primary, #2563EB);
+  outline-offset: -2px;
+  border-radius: 6px;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+/* Form inputs get inner glow */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+.form-control:focus-visible,
+.form-select:focus-visible {
+  outline: none;
+  border-color: var(--ecs-primary, #2563EB);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Cards and clickable containers */
+.card:focus-visible,
+[data-action]:focus-visible {
+  outline: 2px solid var(--ecs-primary, #2563EB);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+/* Dark mode focus styles */
+[data-style="dark"] *:focus-visible {
+  outline-color: var(--ecs-primary-light, #60A5FA);
+}
+
+[data-style="dark"] a:focus-visible,
+[data-style="dark"] [role="link"]:focus-visible {
+  text-decoration-color: var(--ecs-primary-light, #60A5FA);
+  box-shadow: 0 2px 8px rgba(96, 165, 250, 0.3);
+}
+
+[data-style="dark"] button:focus-visible,
+[data-style="dark"] .btn:focus-visible,
+[data-style="dark"] [role="tab"]:focus-visible {
+  outline-color: var(--ecs-primary-light, #60A5FA);
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.15);
+}
+
+/* Skip link for accessibility */
+.skip-link:focus {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 9999;
+  padding: 0.75rem 1.5rem;
+  background: var(--ecs-primary, #2563EB);
+  color: white;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* ============================================
+   1. ROOT CSS VARIABLE OVERRIDES
+   Map Bootstrap variables to ECS theme variables
+   ============================================ */
+
+:root {
+  /* Primary color - redirect Bootstrap to ECS */
+  --bs-primary: var(--ecs-primary);
+  --bs-primary-rgb: var(--ecs-primary-rgb);
+  --bs-purple: var(--ecs-primary);
+
+  /* Link colors */
+  --bs-link-color: var(--ecs-primary);
+  --bs-link-color-rgb: var(--ecs-primary-rgb);
+  --bs-link-hover-color: var(--ecs-primary-dark);
+
+  /* Semantic colors */
+  --bs-success: var(--ecs-success);
+  --bs-success-rgb: var(--ecs-success-rgb);
+  --bs-warning: var(--ecs-warning);
+  --bs-warning-rgb: var(--ecs-warning-rgb);
+  --bs-danger: var(--ecs-danger);
+  --bs-danger-rgb: var(--ecs-danger-rgb);
+  --bs-info: var(--ecs-info);
+  --bs-info-rgb: var(--ecs-info-rgb);
+
+  /* Secondary */
+  --bs-secondary: var(--ecs-secondary);
+  --bs-secondary-rgb: var(--ecs-secondary-rgb);
+
+  /* CRITICAL: Heading and text colors - override foundation.css #444050 */
+  /* Updated for maximum readability - WCAG AAA compliant */
+  --bs-heading-color: var(--ecs-text-heading, #18181B);
+  --bs-body-color: var(--ecs-text-body, #3F3F46);
+  --bs-card-title-color: var(--ecs-text-heading, #18181B);
+  --bs-card-cap-color: var(--ecs-text-heading, #18181B);
+
+  /* Component-specific Bootstrap variables */
+  --bs-dropdown-link-active-color: var(--ecs-primary);
+  --bs-nav-tabs-link-active-color: var(--ecs-primary);
+  --bs-nav-tabs-link-active-border-color: var(--ecs-primary);
+  --bs-pagination-active-bg: var(--ecs-primary);
+  --bs-pagination-active-border-color: var(--ecs-primary);
+  --bs-progress-bar-bg: var(--ecs-primary);
+
+  /* ============================================
+     MISSING BOOTSTRAP VARIABLES
+     These are used in foundation.css but never defined.
+     We define them here to prevent undefined variable errors.
+     Will be removed when we replace foundation.css entirely.
+     ============================================ */
+
+  /* Gray scale - used for subtle backgrounds and text emphasis */
+  --bs-gray-100: #F4F4F5;
+  --bs-gray-200: #E4E4E7;
+  --bs-gray-300: #D4D4D8;
+  --bs-gray-400: #A1A1AA;
+  --bs-gray-500: #71717A;
+  --bs-gray-600: #52525B;
+  --bs-gray-700: #3F3F46;
+  --bs-gray-800: #27272A;
+  --bs-gray-900: #18181B;
+
+  /* Gray semantic variants */
+  --bs-gray-bg-subtle: var(--bs-gray-100);
+  --bs-gray-border-subtle: var(--bs-gray-200);
+  --bs-gray-text-emphasis: var(--bs-gray-700);
+
+  /* Button state colors - foundation.css references these for .btn styling */
+  --bs-btn-hover-bg: transparent;
+  --bs-btn-active-bg: transparent;
+  --bs-btn-disabled-bg: var(--bs-gray-200);
+
+  /* Typography - used in body reset */
+  --bs-body-text-align: left;
+
+  /* Breadcrumb */
+  --bs-breadcrumb-font-size: 0.875rem;
+}
+
+/* Dark mode overrides for Bootstrap variables */
+[data-style="dark"] {
+  /* Invert gray scale for dark mode - Using Slate palette for modern look */
+  --bs-gray-100: #334155;  /* Slate-800 - elevated surfaces */
+  --bs-gray-200: #475569;  /* Slate-700 - borders */
+  --bs-gray-300: #64748B;  /* Slate-600 - secondary borders */
+  --bs-gray-400: #94A3B8;  /* Slate-400 - muted text */
+  --bs-gray-500: #CBD5E1;  /* Slate-300 - secondary text */
+  --bs-gray-600: #E2E8F0;  /* Slate-200 - primary text */
+  --bs-gray-700: #F1F5F9;  /* Slate-100 - emphasized text */
+  --bs-gray-800: #F8FAFC;  /* Slate-50 - bright text */
+  --bs-gray-900: #FFFFFF;  /* White - headings */
+
+  /* Gray semantic variants - dark mode */
+  --bs-gray-bg-subtle: var(--bs-gray-100);
+  --bs-gray-border-subtle: var(--bs-gray-200);
+  --bs-gray-text-emphasis: var(--bs-gray-700);
+
+  /* Button state colors - dark mode */
+  --bs-btn-disabled-bg: var(--bs-gray-200);
+}
+
+/* ============================================
+   2. FORM CONTROLS
+   Override hardcoded focus/checked states
+   ============================================ */
+
+/* Form input focus - foundation.css line 2534 */
+.form-control:focus {
+  border-color: var(--ecs-primary);
+  box-shadow: 0 2px 6px 0 rgba(var(--ecs-primary-rgb), 0.3);
+}
+
+.form-select:focus {
+  border-color: var(--ecs-primary);
+  box-shadow: 0 2px 6px 0 rgba(var(--ecs-primary-rgb), 0.3);
+}
+
+/* Checkboxes - foundation.css lines 2767-2779 */
+.form-check-input:checked {
+  background-color: var(--ecs-primary);
+  border-color: var(--ecs-primary);
+}
+
+.form-check-input[type=checkbox]:indeterminate {
+  background-color: var(--ecs-primary);
+  border-color: var(--ecs-primary);
+}
+
+.form-check-input:focus {
+  border-color: var(--ecs-primary);
+  box-shadow: 0 0 0 0.2rem rgba(var(--ecs-primary-rgb), 0.25);
+}
+
+/* Form switches */
+.form-switch .form-check-input:checked {
+  background-color: var(--ecs-primary);
+  border-color: var(--ecs-primary);
+}
+
+/* ============================================
+   CUSTOM TOGGLE SWITCHES - Prevent validation
+   classes from showing native checkbox checkmark
+   ============================================ */
+
+/*
+ * IMPORTANT: There are TWO toggle patterns in the codebase:
+ *
+ * 1. HIDDEN INPUT pattern (c-toggle-switch, c-toggle):
+ *    - Input is visually hidden (opacity: 0, clip: rect)
+ *    - Label's ::before/::after create the visual toggle
+ *    - These DON'T need much CSS override since input is hidden
+ *
+ * 2. VISIBLE INPUT pattern (c-notification-switch):
+ *    - Input IS the toggle track (has width/height/background)
+ *    - Input's ::before creates the toggle circle
+ *    - These NEED their styling preserved
+ *
+ * Only apply appearance:none to hidden input toggles.
+ * The visible input toggles already handle validation states in their own CSS.
+ */
+
+/* Hidden input toggles - safe to strip all styling since input is invisible */
+.c-toggle__input,
+.c-toggle__input.is-valid,
+.c-toggle__input.is-invalid,
+.c-toggle-switch__input,
+.c-toggle-switch__input.is-valid,
+.c-toggle-switch__input.is-invalid {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-image: none !important;
+  border: none !important;
+}
+
+/* NOTE: c-notification-switch__input is handled in notification-components.css
+   It uses a visible styled input pattern and should NOT have styles stripped here */
+
+/* Bootstrap form-switch toggle - prevent validation checkmark overlay */
+.form-switch .form-check-input,
+.form-switch .form-check-input.is-valid,
+.form-switch .form-check-input.is-invalid,
+.form-switch .form-check-input:valid,
+.form-switch .form-check-input:invalid {
+  background-image: none !important;
+}
+
+/* Restore the toggle circle for form-switch (Bootstrap uses background-image for this) */
+.form-switch .form-check-input {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgba%28255,255,255,0.75%29'/%3e%3c/svg%3e") !important;
+  background-position: left center !important;
+  background-size: contain !important;
+}
+
+.form-switch .form-check-input:checked {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e") !important;
+  background-position: right center !important;
+}
+
+/* ============================================
+   SELECT/DROPDOWN - Prevent validation checkmark
+   from appearing alongside dropdown arrow
+   ============================================ */
+
+/* Remove Bootstrap's validation checkmark from selects - keep only the dropdown arrow */
+select.form-select.is-valid,
+select.form-select.is-invalid,
+select.form-select:valid,
+select.form-select:invalid,
+select.form-control.is-valid,
+select.form-control.is-invalid,
+select.form-control:valid,
+select.form-control:invalid,
+.c-settings-field__select.is-valid,
+.c-settings-field__select.is-invalid,
+.c-settings-field__select:valid,
+.c-settings-field__select:invalid,
+select[class*="field__select"].is-valid,
+select[class*="field__select"].is-invalid {
+  /* Use only the dropdown arrow, no validation icon */
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.75rem center !important;
+  background-size: 16px 12px !important;
+  padding-right: 2.25rem !important;
+}
+
+/* Dark mode dropdown arrow */
+[data-style="dark"] select.form-select.is-valid,
+[data-style="dark"] select.form-select.is-invalid,
+[data-style="dark"] select.form-select:valid,
+[data-style="dark"] select.form-select:invalid,
+[data-style="dark"] select.form-control.is-valid,
+[data-style="dark"] select.form-control.is-invalid,
+[data-style="dark"] .c-settings-field__select.is-valid,
+[data-style="dark"] .c-settings-field__select.is-invalid,
+[data-style="dark"] select[class*="field__select"].is-valid,
+[data-style="dark"] select[class*="field__select"].is-invalid {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23adb5bd' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+}
+
+/* ============================================
+   3. RANGE SLIDERS
+   Override thumb and track colors
+   ============================================ */
+
+/* Webkit (Chrome, Safari) */
+.form-range::-webkit-slider-thumb {
+  background-color: var(--ecs-primary);
+}
+
+.form-range::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 0 8px rgba(var(--ecs-primary-rgb), 0.16);
+}
+
+.form-range::-webkit-slider-thumb:active,
+.form-range::-webkit-slider-thumb:focus {
+  background-color: var(--ecs-primary);
+  border-color: var(--ecs-primary);
+  box-shadow: 0 0 0 13px rgba(var(--ecs-primary-rgb), 0.16);
+}
+
+.form-range::-webkit-slider-runnable-track {
+  background-color: var(--ecs-primary);
+}
+
+/* Firefox */
+.form-range::-moz-range-thumb {
+  background-color: var(--ecs-primary);
+}
+
+.form-range::-moz-range-thumb:hover {
+  box-shadow: 0 0 0 8px rgba(var(--ecs-primary-rgb), 0.16);
+}
+
+.form-range::-moz-range-thumb:active,
+.form-range::-moz-range-thumb:focus {
+  background-color: var(--ecs-primary);
+  border-color: var(--ecs-primary);
+  box-shadow: 0 0 0 13px rgba(var(--ecs-primary-rgb), 0.16);
+}
+
+.form-range::-moz-range-track {
+  background-color: var(--ecs-primary);
+}
+
+/* ============================================
+   4. BUTTONS
+   Override primary button colors
+   ============================================ */
+
+.btn-primary {
+  background-color: var(--ecs-primary);
+  border-color: var(--ecs-primary);
+}
+
+.btn-primary:hover {
+  background-color: var(--ecs-primary-dark);
+  border-color: var(--ecs-primary-dark);
+}
+
+.btn-primary:focus {
+  background-color: var(--ecs-primary-dark);
+  border-color: var(--ecs-primary-dark);
+  box-shadow: 0 0 0 0.2rem rgba(var(--ecs-primary-rgb), 0.5);
+}
+
+.btn-primary:active,
+.btn-primary.active {
+  background-color: var(--ecs-primary-dark);
+  border-color: var(--ecs-primary-dark);
+}
+
+.btn-outline-primary {
+  color: var(--ecs-primary);
+  border-color: var(--ecs-primary);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--ecs-primary);
+  border-color: var(--ecs-primary);
+  color: #fff;
+}
+
+.btn-outline-primary:focus {
+  box-shadow: 0 0 0 0.2rem rgba(var(--ecs-primary-rgb), 0.5);
+}
+
+/* ============================================
+   5. NAVIGATION
+   Override active/hover states
+   ============================================ */
+
+/* Nav tabs - Override scoped CSS variables in foundation.css line 3726-3735 */
+.nav-tabs {
+  --bs-nav-tabs-link-active-color: var(--ecs-primary);
+  --bs-nav-tabs-link-active-border-color: var(--ecs-primary);
+}
+
+.nav-tabs .nav-link.active {
+  color: var(--ecs-primary);
+  border-bottom-color: var(--ecs-primary);
+}
+
+.nav-tabs .nav-link:hover {
+  color: var(--ecs-primary);
+}
+
+/* Widget nav tabs - foundation.css line 9300 */
+.nav-tabs.widget-nav-tabs .nav-link.active {
+  border-color: var(--ecs-primary);
+}
+
+.nav-tabs.widget-nav-tabs .nav-link.active .badge {
+  background-color: rgba(var(--ecs-primary-rgb), 0.16) !important;
+  color: var(--ecs-primary) !important;
+}
+
+/* Nav alignment hover states - foundation.css lines 9475, 9523, 9566, 9589 */
+/* These MUST use !important to override foundation.css !important declarations */
+.nav-align-top .nav-tabs .nav-link:not(.active):hover {
+  color: var(--ecs-primary) !important;
+  border-bottom: 2px solid rgba(var(--ecs-primary-rgb), 0.3) !important;
+}
+
+.nav-align-right .nav-tabs .nav-link:not(.active):hover {
+  color: var(--ecs-primary) !important;
+  border-left: 2px solid rgba(var(--ecs-primary-rgb), 0.3) !important;
+}
+
+.nav-align-bottom .nav-tabs .nav-link:not(.active):hover {
+  color: var(--ecs-primary) !important;
+  border-top: 2px solid rgba(var(--ecs-primary-rgb), 0.3) !important;
+}
+
+.nav-align-left .nav-tabs .nav-link:not(.active):hover {
+  color: var(--ecs-primary) !important;
+  border-right: 2px solid rgba(var(--ecs-primary-rgb), 0.3) !important;
+}
+
+/* Text paper hover - foundation.css line 7336 */
+.text-paper[href]:hover,
+.text-paper[href]:focus {
+  color: var(--ecs-primary) !important;
+}
+
+/* Border primary utility - foundation.css line 13194 */
+.border-primary {
+  border-color: var(--ecs-primary) !important;
+}
+
+/* Nav pills - Override active and hover states */
+.nav-pills .nav-link.active {
+  background-color: var(--ecs-primary) !important;
+  color: #fff !important;
+}
+
+/* Nav pills hover - foundation.css line 9334 */
+.nav-pills .nav-item .nav-link:not(.active):hover,
+.nav-pills .nav-link:not(.active):hover {
+  background-color: rgba(var(--ecs-primary-rgb), 0.1) !important;
+}
+
+/* Pagination - Override scoped CSS variables in .pagination - foundation.css lines 4609-4610 */
+.pagination {
+  --bs-pagination-active-bg: var(--ecs-primary);
+  --bs-pagination-active-border-color: var(--ecs-primary);
+}
+
+.page-item.active .page-link {
+  background-color: var(--ecs-primary);
+  border-color: var(--ecs-primary);
+}
+
+.page-link:hover {
+  color: var(--ecs-primary);
+}
+
+.page-link:focus {
+  box-shadow: 0 0 0 0.2rem rgba(var(--ecs-primary-rgb), 0.25);
+}
+
+/* ============================================
+   6. DROPDOWNS
+   Override active item colors
+   ============================================ */
+
+/* Override scoped CSS variables in .dropdown-menu - foundation.css lines 3300-3315 */
+.dropdown-menu {
+  --bs-dropdown-link-active-color: var(--ecs-primary);
+  --bs-dropdown-link-active-bg: rgba(var(--ecs-primary-rgb), 0.1);
+}
+
+/* Override scoped CSS variables in .navbar-nav .dropdown-menu - foundation.css line 3577 */
+.navbar-nav .dropdown-menu {
+  --bs-dropdown-link-active-color: var(--ecs-primary);
+  --bs-dropdown-link-active-bg: rgba(var(--ecs-primary-rgb), 0.1);
+}
+
+.dropdown-item.active,
+.dropdown-item:active {
+  background-color: var(--ecs-primary);
+}
+
+.dropdown-item:hover {
+  color: var(--ecs-primary);
+}
+
+/* ============================================
+   7. PROGRESS BARS
+   ============================================ */
+
+/* Override scoped CSS variables in .progress - foundation.css line 4823 */
+.progress,
+.progress-stacked {
+  --bs-progress-bar-bg: var(--ecs-primary);
+}
+
+.progress-bar {
+  background-color: var(--ecs-primary);
+}
+
+/* ============================================
+   8. TEXT & BACKGROUND UTILITIES
+   ============================================ */
+
+.text-primary {
+  color: var(--ecs-primary) !important;
+}
+
+.bg-primary {
+  background-color: var(--ecs-primary) !important;
+}
+
+.border-primary {
+  border-color: var(--ecs-primary) !important;
+}
+
+.link-primary {
+  color: var(--ecs-primary);
+}
+
+.link-primary:hover {
+  color: var(--ecs-primary-dark);
+}
+
+/* ============================================
+   9. BADGES & LABELS
+   ============================================ */
+
+.badge.bg-primary {
+  background-color: var(--ecs-primary) !important;
+}
+
+.bg-label-primary {
+  background-color: rgba(var(--ecs-primary-rgb), 0.16) !important;
+  color: var(--ecs-primary) !important;
+}
+
+/* ============================================
+   10. ALERTS
+   ============================================ */
+
+.alert-primary {
+  background-color: rgba(var(--ecs-primary-rgb), 0.1);
+  border-color: rgba(var(--ecs-primary-rgb), 0.2);
+  color: var(--ecs-primary-dark);
+}
+
+.alert-primary .alert-link {
+  color: var(--ecs-primary-dark);
+}
+
+/* ============================================
+   11. LIST GROUPS
+   ============================================ */
+
+/* Override scoped CSS variables in .list-group - foundation.css line 4888 */
+.list-group {
+  --bs-list-group-active-bg: rgba(var(--ecs-primary-rgb), 0.1);
+}
+
+.list-group-item.active {
+  background-color: var(--ecs-primary);
+  border-color: var(--ecs-primary);
+}
+
+.list-group-item-primary {
+  background-color: rgba(var(--ecs-primary-rgb), 0.1);
+  color: var(--ecs-primary-dark);
+}
+
+/* ============================================
+   12. ACCORDION
+   ============================================ */
+
+.accordion-button:not(.collapsed) {
+  color: var(--ecs-primary);
+  background-color: rgba(var(--ecs-primary-rgb), 0.1);
+}
+
+.accordion-button:focus {
+  border-color: var(--ecs-primary);
+  box-shadow: 0 0 0 0.2rem rgba(var(--ecs-primary-rgb), 0.25);
+}
+
+/* ============================================
+   13. SPINNERS
+   ============================================ */
+
+.spinner-border.text-primary {
+  color: var(--ecs-primary) !important;
+}
+
+.spinner-grow.text-primary {
+  color: var(--ecs-primary) !important;
+}
+
+/* ============================================
+   14. BREADCRUMBS
+   ============================================ */
+
+.breadcrumb-item.active {
+  color: var(--ecs-primary);
+}
+
+.breadcrumb-item a {
+  color: var(--ecs-primary);
+}
+
+.breadcrumb-item a:hover {
+  color: var(--ecs-primary-dark);
+}
+
+/* ============================================
+   15. CARDS (accent borders)
+   ============================================ */
+
+.card-border-primary {
+  border-color: var(--ecs-primary);
+}
+
+.card-border-shadow-primary {
+  box-shadow: 0 0.25rem 1rem rgba(var(--ecs-primary-rgb), 0.2);
+}
+
+/* ============================================
+   16. TABLES
+   ============================================ */
+
+/* Override table scoped variables - foundation.css line 2257 */
+.table {
+  --bs-table-active-bg: rgba(var(--ecs-primary-rgb), 0.08);
+}
+
+/* Override all table-primary purple-derived colors - foundation.css lines 2325-2333 */
+.table-primary {
+  --bs-table-bg: rgba(var(--ecs-primary-rgb), 0.1);
+  --bs-table-border-color: rgba(var(--ecs-primary-rgb), 0.2);
+  --bs-table-striped-bg: rgba(var(--ecs-primary-rgb), 0.15);
+  --bs-table-hover-bg: rgba(var(--ecs-primary-rgb), 0.15);
+}
+
+/* ============================================
+   17. MODALS
+   ============================================ */
+
+.modal-header.bg-primary {
+  background-color: var(--ecs-primary) !important;
+}
+
+/* ============================================
+   18. MISC SNEAT-SPECIFIC OVERRIDES
+   ============================================ */
+
+/* Sneat's custom primary label styling */
+.bg-gradient-primary {
+  background-image: linear-gradient(45deg, var(--ecs-primary), var(--ecs-primary-light)) !important;
+}
+
+/* Avatar ring colors */
+.avatar-status.avatar-online {
+  background-color: var(--ecs-success);
+}
+
+/* Focus ring for accessibility */
+.focus-ring-primary {
+  --bs-focus-ring-color: rgba(var(--ecs-primary-rgb), 0.25);
+}
+
+/* ============================================
+   19. CUSTOM OPTIONS (Sneat components)
+   ============================================ */
+
+/* Custom option icons - foundation.css line 25910 */
+.custom-option-icon.checked i,
+.custom-option-icon.checked svg {
+  color: var(--ecs-primary);
+}
+
+/* Custom option image check - foundation.css line 25982 */
+.custom-option-image.custom-option-image-check:hover .form-check-input:checked {
+  border-color: var(--ecs-primary);
+}
+
+/* Custom option border - foundation.css line 26561 */
+.custom-option.checked {
+  border-color: var(--ecs-primary);
+}
+
+/* ============================================
+   20. SVG STROKES
+   ============================================ */
+
+/* SVG stroke colors - foundation.css line 11854 */
+.apexcharts-pie-label,
+.apexcharts-datalabels,
+.apexcharts-datalabel,
+.apexcharts-datalabel-label,
+.apexcharts-datalabel-value {
+  stroke: var(--ecs-primary);
+}
+
+/* Chart annotations */
+.apexcharts-point-annotations circle,
+.apexcharts-point-annotations path {
+  stroke: var(--ecs-primary);
+}
+
+/* ============================================
+   21. DARK MODE LAYOUT BACKGROUNDS
+   Fix foundation.css lines 30763-30768 which use
+   undefined variables --ecs-bg-dark and --ecs-text-dark
+   ============================================ */
+
+/* Override foundation.css dark mode layout backgrounds (slate palette) */
+html[data-style="dark"] .layout-container,
+html[data-style="dark"] .layout-page,
+html[data-style="dark"] .layout-wrapper,
+html[data-style="dark"] .content-wrapper {
+  background-color: var(--ecs-dark-bg-body, #0F172A) !important;
+  color: var(--ecs-dark-text-muted, #CBD5E1) !important;
+}
+
+/* Ensure containers also get dark background */
+html[data-style="dark"] .container-xxl,
+html[data-style="dark"] .container-xl,
+html[data-style="dark"] .container-fluid {
+  background-color: transparent !important;
+}
+
+/* Fix any remaining light backgrounds in dark mode (slate palette) */
+html[data-style="dark"] .bg-body {
+  background-color: var(--ecs-dark-bg-body, #0F172A) !important;
+}
+
+/* ============================================
+   22. STICKY FOOTER LAYOUT FIX
+   Ensure footer stays at bottom of viewport
+   when content is shorter than viewport height
+
+   Using CSS Grid on body for reliable sticky footer
+   ============================================ */
+
+/* Body uses grid to ensure footer at bottom */
+body {
+  display: grid !important;
+  grid-template-rows: 1fr auto !important;
+  min-height: 100vh !important;
+}
+
+/* Layout wrapper fills the first row */
+.layout-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 100vh !important;
+}
+
+/* Layout container - horizontal layout for sidebar + content */
+.layout-container {
+  display: flex !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important; /* Override foundation.css */
+}
+
+/* Layout page (content column) - uses grid for sticky footer within content area */
+.layout-page {
+  display: grid !important;
+  grid-template-rows: auto 1fr auto !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  width: 100% !important;
+}
+
+/* Navbar in first row */
+.layout-navbar {
+  grid-row: 1 !important;
+}
+
+/* Content wrapper fills middle, grows to push footer */
+.content-wrapper {
+  grid-row: 2 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+}
+
+/* Main content grows */
+main {
+  flex: 1 1 auto !important;
+}
+
+/* Footer fixed to bottom of layout-page grid */
+.content-footer,
+.layout-page > footer {
+  grid-row: 3 !important;
+  margin-top: auto !important;
+  flex-shrink: 0 !important;
+}
+
+/* ============================================
+   22b. TABLER ICONS FIX
+   Ensure icons display correctly
+   ============================================ */
+
+/* Ensure tabler icons have proper display and font */
+.ti {
+  font-family: "tabler-icons" !important;
+  font-style: normal !important;
+  font-weight: normal !important;
+  font-variant: normal !important;
+  text-transform: none !important;
+  line-height: 1 !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+  -webkit-font-smoothing: antialiased !important;
+  speak: never !important;
+}
+
+/* Ensure ::before pseudo-element shows */
+.ti::before,
+.ti:before {
+  display: inline-block !important;
+  font-family: "tabler-icons" !important;
+}
+
+/* Common icon fixes in buttons */
+.btn .ti,
+.c-btn .ti,
+button .ti {
+  vertical-align: middle !important;
+  display: inline-block !important;
+  line-height: inherit !important;
+}
+
+/* Icon visibility in dark mode */
+[data-style="dark"] .ti {
+  color: inherit !important;
+}
+
+/* ============================================
+   23. TAB CONTENT BACKGROUNDS
+   Fix foundation.css line 9612 which sets
+   background: #fff for tab-content elements
+   ============================================ */
+
+/* Nav tabs background - foundation.css line 9224 (slate palette) */
+html[data-style="dark"] .nav .nav-tabs,
+html[data-style="dark"] .nav-tabs {
+  background-color: var(--ecs-dark-bg-card, #1E293B) !important;
+}
+
+/* Tab content backgrounds - transparent to inherit page/card background
+   This prevents visible strips between page bg (#0F172A) and card bg (#1E293B)
+   Cards inside tab-content have their own backgrounds */
+html[data-style="dark"] .nav-align-top > .tab-content,
+html[data-style="dark"] .nav-align-right > .tab-content,
+html[data-style="dark"] .nav-align-bottom > .tab-content,
+html[data-style="dark"] .nav-align-left > .tab-content,
+html[data-style="dark"] .tab-content {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* ECS tab content class */
+html[data-style="dark"] .ecs-tab-content {
+  background: var(--ecs-dark-bg-card, #1E293B) !important;
+  background-color: var(--ecs-dark-bg-card, #1E293B) !important;
+}
+
+/* Tab panes inside dark mode */
+html[data-style="dark"] .tab-pane {
+  background-color: transparent !important;
+}
+
+/* ============================================
+   23. CARD BACKGROUNDS IN DARK MODE
+   Ensure all cards use proper dark backgrounds
+   ============================================ */
+
+html[data-style="dark"] .card {
+  background-color: var(--ecs-dark-bg-card, #1E293B) !important;
+  border-color: var(--ecs-dark-border, #475569) !important;
+}
+
+html[data-style="dark"] .card-body {
+  /* Inherits from card background - don't set transparent */
+  background-color: inherit !important;
+}
+
+html[data-style="dark"] .card-header {
+  /* Slightly darker than card body for contrast */
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  border-color: #475569 !important;
+}
+
+html[data-style="dark"] .card-header.bg-light {
+  /* Override Bootstrap .bg-light to not be light in dark mode */
+  background-color: #1E293B !important;
+  background: #1E293B !important;
+}
+
+html[data-style="dark"] .card-footer {
+  /* Slightly darker than card body for contrast */
+  background-color: rgba(0, 0, 0, 0.15) !important;
+  border-color: #475569 !important;
+}
+
+/* Nested cards */
+html[data-style="dark"] .card .card {
+  background-color: var(--ecs-dark-bg-elevated, #334155) !important;
+}
+
+/* ============================================
+   24. MODAL BACKGROUNDS IN DARK MODE
+   Using semantic tokens that resolve correctly in [data-style="dark"]
+   ============================================ */
+
+html[data-style="dark"] .modal-content {
+  /* Use semantic tokens: --color-bg-elevated = #334155 in dark mode (Slate-800) */
+  background-color: var(--color-bg-elevated, #334155) !important;
+  background: var(--color-bg-elevated, #334155) !important;
+  border-color: var(--color-border-primary, #475569) !important;
+  color: var(--color-text-primary, #F8FAFC) !important;
+}
+
+html[data-style="dark"] .modal-header {
+  /* Inherit from modal-content */
+  background-color: var(--color-bg-elevated, #334155) !important;
+  background: var(--color-bg-elevated, #334155) !important;
+  border-color: var(--color-border-primary, #475569) !important;
+}
+
+html[data-style="dark"] .modal-body {
+  /* Match modal-content background */
+  background-color: var(--color-bg-elevated, #334155) !important;
+  background: var(--color-bg-elevated, #334155) !important;
+  color: var(--color-text-secondary, #CBD5E1) !important;
+}
+
+html[data-style="dark"] .modal-footer {
+  /* Slightly darker: --color-bg-secondary = #1E293B in dark mode (Slate-900) */
+  background-color: var(--color-bg-secondary, #1E293B) !important;
+  background: var(--color-bg-secondary, #1E293B) !important;
+  border-color: var(--color-border-primary, #475569) !important;
+}
+
+/* Cards INSIDE modals need solid backgrounds */
+html[data-style="dark"] .modal .card {
+  background-color: var(--color-bg-secondary, #1E293B) !important;
+  background: var(--color-bg-secondary, #1E293B) !important;
+  border-color: var(--color-border-primary, #475569) !important;
+}
+
+html[data-style="dark"] .modal .card-header {
+  /* Use --color-bg-primary for darkest surface (Slate-950) */
+  background-color: var(--color-bg-primary, #0F172A) !important;
+  background: var(--color-bg-primary, #0F172A) !important;
+  border-color: var(--color-border-primary, #475569) !important;
+  color: var(--color-text-primary, #F8FAFC) !important;
+}
+
+html[data-style="dark"] .modal .card-header.bg-light {
+  /* Override Bootstrap .bg-light inside modals */
+  background-color: var(--color-bg-primary, #0F172A) !important;
+  background: var(--color-bg-primary, #0F172A) !important;
+}
+
+html[data-style="dark"] .modal .card-body {
+  /* Use --color-bg-secondary for card bodies (Slate-900) */
+  background-color: var(--color-bg-secondary, #1E293B) !important;
+  background: var(--color-bg-secondary, #1E293B) !important;
+}
+
+/* Form elements inside modals */
+html[data-style="dark"] .modal .form-control,
+html[data-style="dark"] .modal .form-select {
+  background-color: var(--color-bg-primary, #0F172A) !important;
+  border-color: var(--color-border-input, #475569) !important;
+  color: var(--color-text-primary, #F8FAFC) !important;
+}
+
+html[data-style="dark"] .modal .input-group-text {
+  background-color: var(--color-bg-elevated, #334155) !important;
+  border-color: var(--color-border-input, #475569) !important;
+  color: var(--color-text-muted, #94A3B8) !important;
+}
+
+html[data-style="dark"] .modal .form-label {
+  color: var(--color-text-secondary, #CBD5E1) !important;
+}
+
+/* ============================================
+   25. DROPDOWN MENUS IN DARK MODE
+   Using semantic tokens that resolve correctly in [data-style="dark"]
+   ============================================ */
+
+html[data-style="dark"] .dropdown-menu {
+  /* Use semantic tokens: --color-bg-elevated = #334155 in dark mode (Slate-800) */
+  background-color: var(--color-bg-elevated, #334155) !important;
+  background: var(--color-bg-elevated, #334155) !important;
+  border-color: var(--color-border-primary, #475569) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 10px 15px -3px rgba(0, 0, 0, 0.4) !important;
+}
+
+html[data-style="dark"] .dropdown-item {
+  /* Use semantic token for text */
+  color: var(--color-text-primary, #F8FAFC) !important;
+}
+
+html[data-style="dark"] .dropdown-item:hover,
+html[data-style="dark"] .dropdown-item:focus {
+  /* Use semantic token for hover state */
+  background-color: var(--color-hover-bg, rgba(255, 255, 255, 0.06)) !important;
+  color: var(--color-text-primary, #F8FAFC) !important;
+}
+
+html[data-style="dark"] .dropdown-divider {
+  border-color: var(--color-border-secondary, #475569) !important;
+}
+
+/* ============================================
+   26. LIST GROUPS IN DARK MODE
+   Comprehensive list-group styling for dark mode
+   ============================================ */
+
+html[data-style="dark"] .list-group-item,
+[data-style="dark"] .list-group-item {
+  background-color: var(--ecs-dark-bg-card, #1E293B) !important;
+  border-color: var(--ecs-dark-border, #475569) !important;
+  color: var(--ecs-dark-text-muted, #94A3B8) !important;
+}
+
+html[data-style="dark"] .list-group-item:hover,
+[data-style="dark"] .list-group-item:hover {
+  background-color: var(--ecs-dark-bg-elevated, #334155) !important;
+}
+
+/* List group action items (clickable) */
+html[data-style="dark"] .list-group-item-action,
+[data-style="dark"] .list-group-item-action {
+  color: var(--ecs-dark-text-primary, #FAFAFA) !important;
+  background-color: transparent !important;
+}
+
+html[data-style="dark"] .list-group-item-action:hover,
+html[data-style="dark"] .list-group-item-action:focus,
+[data-style="dark"] .list-group-item-action:hover,
+[data-style="dark"] .list-group-item-action:focus {
+  color: var(--ecs-dark-text-primary, #FAFAFA) !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* List group action item text and icons */
+html[data-style="dark"] .list-group-item-action *,
+[data-style="dark"] .list-group-item-action * {
+  color: inherit !important;
+}
+
+/* Active list group items (slate palette) */
+html[data-style="dark"] .list-group-item.active,
+[data-style="dark"] .list-group-item.active {
+  background-color: var(--ecs-primary) !important;
+  border-color: var(--ecs-primary) !important;
+  color: var(--ecs-dark-bg-body, #0F172A) !important;
+}
+
+/* List group flush variant (slate palette) */
+html[data-style="dark"] .list-group-flush .list-group-item,
+[data-style="dark"] .list-group-flush .list-group-item {
+  background-color: transparent !important;
+  border-color: var(--ecs-dark-border, #475569) !important;
+}
+
+/* List group badges maintain their colors */
+html[data-style="dark"] .list-group-item .badge,
+[data-style="dark"] .list-group-item .badge {
+  color: inherit;
+}
+
+/* ============================================
+   27. CARD TEXT CONTENT IN DARK MODE
+   Ensure paragraphs, descriptions, and text-muted
+   are readable in dark mode
+   ============================================ */
+
+html[data-style="dark"] .card-body p,
+html[data-style="dark"] .card-body .card-text,
+[data-style="dark"] .card-body p,
+[data-style="dark"] .card-body .card-text {
+  color: var(--ecs-dark-text-muted, #A1A1AA) !important;
+}
+
+html[data-style="dark"] .text-muted,
+[data-style="dark"] .text-muted {
+  color: var(--ecs-dark-text-muted, #A1A1AA) !important;
+}
+
+/* Card titles and headings in dark mode */
+html[data-style="dark"] .card-title,
+html[data-style="dark"] .card-header h5,
+html[data-style="dark"] .card-header h6,
+[data-style="dark"] .card-title,
+[data-style="dark"] .card-header h5,
+[data-style="dark"] .card-header h6 {
+  color: var(--ecs-dark-text-primary, #FAFAFA) !important;
+}
+
+/* Text center content (empty states, placeholders) */
+html[data-style="dark"] .text-center h6,
+html[data-style="dark"] .text-center p,
+html[data-style="dark"] .text-center small,
+[data-style="dark"] .text-center h6,
+[data-style="dark"] .text-center p,
+[data-style="dark"] .text-center small {
+  color: var(--ecs-dark-text-muted, #A1A1AA) !important;
+}
+
+/* Large icons in empty states */
+html[data-style="dark"] .text-center i[style*="font-size"],
+[data-style="dark"] .text-center i[style*="font-size"] {
+  color: var(--ecs-dark-text-muted, #A1A1AA) !important;
+}
+
+/* ============================================
+   28. ICON COLORS IN DARK MODE
+   Ensure all icons are visible in dark mode
+   ============================================ */
+
+html[data-style="dark"] .card i:not([class*="text-"]),
+[data-style="dark"] .card i:not([class*="text-"]) {
+  color: var(--ecs-dark-text-muted, #A1A1AA) !important;
+}
+
+/* Icons with text-* classes should keep their semantic colors */
+html[data-style="dark"] .card i.text-primary,
+[data-style="dark"] .card i.text-primary {
+  color: var(--ecs-primary) !important;
+}
+
+html[data-style="dark"] .card i.text-success,
+[data-style="dark"] .card i.text-success {
+  color: var(--ecs-success) !important;
+}
+
+html[data-style="dark"] .card i.text-warning,
+[data-style="dark"] .card i.text-warning {
+  color: var(--ecs-warning) !important;
+}
+
+html[data-style="dark"] .card i.text-danger,
+[data-style="dark"] .card i.text-danger {
+  color: var(--ecs-danger) !important;
+}
+
+html[data-style="dark"] .card i.text-info,
+[data-style="dark"] .card i.text-info {
+  color: var(--ecs-info) !important;
+}
+
+/* ============================================
+   29. FORM INPUTS IN DARK MODE
+   Make borders VISIBLE with lighter color
+   ============================================ */
+
+html[data-style="dark"] .form-control,
+html[data-style="dark"] .form-select,
+[data-style="dark"] .form-control,
+[data-style="dark"] .form-select {
+  background-color: var(--ecs-dark-bg-elevated, #1e293b) !important;
+  border: 1px solid #64748b !important; /* Visible light slate border */
+  color: var(--ecs-dark-text-primary, #F8FAFC) !important;
+}
+
+html[data-style="dark"] .form-control::placeholder,
+[data-style="dark"] .form-control::placeholder {
+  color: #94a3b8 !important;
+}
+
+html[data-style="dark"] .form-control:focus,
+html[data-style="dark"] .form-select:focus,
+[data-style="dark"] .form-control:focus,
+[data-style="dark"] .form-select:focus {
+  border-color: #3b82f6 !important; /* Primary blue */
+  background-color: var(--ecs-dark-bg-elevated, #1e293b) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25) !important;
+}
+
+/* Also fix textarea */
+html[data-style="dark"] textarea.form-control,
+[data-style="dark"] textarea.form-control {
+  background-color: var(--ecs-dark-bg-elevated, #1e293b) !important;
+  border: 1px solid #64748b !important;
+  color: #F8FAFC !important;
+}
+
+/* ============================================
+   28. TABLE BACKGROUNDS IN DARK MODE
+   ============================================ */
+
+html[data-style="dark"] .table {
+  --bs-table-bg: var(--ecs-dark-bg-card, #1E293B);
+  --bs-table-color: var(--ecs-dark-text-muted, #94A3B8);
+  --bs-table-border-color: var(--ecs-dark-border, #475569);
+}
+
+html[data-style="dark"] .table > thead {
+  background-color: var(--ecs-dark-bg-elevated, #334155) !important;
+}
+
+html[data-style="dark"] .table > tbody > tr:hover {
+  --bs-table-hover-bg: var(--ecs-dark-bg-elevated, #334155);
+}
+
+html[data-style="dark"] .table-striped > tbody > tr:nth-of-type(odd) {
+  --bs-table-striped-bg: rgba(255, 255, 255, 0.03);
+}
+
+/* ============================================
+   29. CRITICAL: Override Foundation.css Theme Variables
+   Foundation.css lines 30504-30578 define OLD colors that
+   may have purple tints. Override with neutral ECS colors.
+   ============================================ */
+
+/* Light mode - ensure neutral colors */
+/* These use var() references to admin-configurable colors where possible */
+:root,
+html,
+html[data-style="light"] {
+  /* CRITICAL: Override foundation.css inverted neutral scale (line 30534)
+     Foundation.css sets --ecs-neutral-90: #f1f3f4 (light gray - WRONG!)
+     We need #18181B (dark) for readable text in light mode */
+  --ecs-neutral-90: #18181B;
+  --ecs-neutral-80: #27272A;
+  --ecs-neutral-70: #3F3F46;
+  --ecs-neutral-60: #52525B;
+  --ecs-neutral-50: #71717A;
+  --ecs-neutral-40: #A1A1AA;
+  --ecs-neutral-30: #D4D4D8;
+  --ecs-neutral-20: #E4E4E7;
+  --ecs-neutral-10: #F4F4F5;
+  --ecs-neutral-5: #FAFAFA;
+  --ecs-neutral-0: #FFFFFF;
+
+  /* Map foundation.css variables to admin-configurable colors */
+  /* Admin configures: --ecs-bg-body, --ecs-bg-card, --ecs-bg-input */
+  /* Foundation.css uses: --ecs-bg-primary, --ecs-bg-secondary, --ecs-bg-tertiary */
+  --ecs-bg-primary: var(--ecs-bg-card, #FFFFFF);
+  --ecs-bg-secondary: var(--ecs-bg-body, #FAFAFA);
+  --ecs-bg-tertiary: #F4F4F5;
+  --ecs-bg-navbar: var(--ecs-bg-card, #FFFFFF);
+  --ecs-bg-sidebar: #18181B;
+  --ecs-bg-content: var(--ecs-bg-card, #FFFFFF);
+
+  /* Map foundation.css text variables to admin-configurable colors */
+  /* Admin configures: --ecs-text-heading, --ecs-text-body, --ecs-text-muted */
+  /* Foundation.css uses: --ecs-text-primary, --ecs-text-secondary */
+  --ecs-text-primary: var(--ecs-text-heading, #18181B);
+  --ecs-text-secondary: var(--ecs-text-body, #52525B);
+
+  /* Map border variables */
+  /* Admin configures: --ecs-border, --ecs-border-input */
+  --ecs-border-primary: var(--ecs-border, #E4E4E7);
+  --ecs-border-secondary: var(--ecs-border, #E4E4E7);
+
+  /* Map form variables */
+  --ecs-form-bg: var(--ecs-bg-input, #FFFFFF);
+  --ecs-form-border: var(--ecs-border-input, #D4D4D8);
+  --ecs-form-text: var(--ecs-text-heading, #18181B);
+  --ecs-form-placeholder: var(--ecs-text-muted, #A1A1AA);
+
+  /* Legacy background variable */
+  --ecs-background: var(--ecs-bg-body, #FAFAFA);
+  --ecs-card-bg: var(--ecs-bg-card, #FFFFFF);
+
+  /* CRITICAL: These are used by foundation.css lines 30743-30744 */
+  /* Foundation.css uses var(--ecs-bg-light) but never defines it */
+  --ecs-bg-light: var(--ecs-bg-card, #FFFFFF);
+  --ecs-text-light: var(--ecs-text-heading, #18181B);
+
+  /* Base bg/text variables used by components */
+  --ecs-bg: var(--ecs-bg-card, #FFFFFF);
+  --ecs-text: var(--ecs-text-heading, #18181B);
+}
+
+/* Dark mode - modern slate palette for professional look */
+/* These use var() references to admin-configurable colors where possible */
+html[data-style="dark"] {
+  /* Map foundation.css variables to admin-configurable colors */
+  /* Admin configures: --ecs-bg-body, --ecs-bg-card, --ecs-bg-input, --ecs-bg-sidebar */
+  --ecs-bg-primary: var(--ecs-bg-body, #0F172A);
+  --ecs-bg-secondary: var(--ecs-bg-card, #1E293B);
+  --ecs-bg-tertiary: var(--ecs-bg-input, #334155);
+  --ecs-bg-navbar: var(--ecs-bg-card, #1E293B);
+  --ecs-bg-sidebar: var(--ecs-bg-sidebar, #0F172A);
+  --ecs-bg-content: var(--ecs-bg-card, #1E293B);
+
+  /* Map foundation.css text variables to admin-configurable colors */
+  /* Admin configures: --ecs-text-heading, --ecs-text-body, --ecs-text-muted */
+  --ecs-text-primary: var(--ecs-text-heading, #FFFFFF);
+  --ecs-text-secondary: var(--ecs-text-body, #CBD5E1);
+
+  /* Map border variables */
+  /* Admin configures: --ecs-border, --ecs-border-input */
+  --ecs-border-primary: var(--ecs-border, #475569);
+  --ecs-border-secondary: var(--ecs-border, #475569);
+
+  /* Map form variables */
+  --ecs-form-bg: var(--ecs-bg-input, #334155);
+  --ecs-form-border: var(--ecs-border-input, #475569);
+  --ecs-form-text: var(--ecs-text-heading, #FFFFFF);
+  --ecs-form-placeholder: var(--ecs-text-muted, #94A3B8);
+
+  /* Legacy background variable */
+  --ecs-background: var(--ecs-bg-body, #0F172A);
+
+  /* Override neutral scale for dark mode (slate-based inverted scale)
+     In dark mode, high numbers = light colors for readable text */
+  --ecs-neutral-0: #0F172A;
+  --ecs-neutral-5: #1E293B;
+  --ecs-neutral-10: #334155;
+  --ecs-neutral-20: #475569;
+  --ecs-neutral-30: #64748B;
+  --ecs-neutral-40: #94A3B8;
+  --ecs-neutral-50: #CBD5E1;
+  --ecs-neutral-60: #E2E8F0;
+  --ecs-neutral-70: #F1F5F9;
+  --ecs-neutral-80: #F8FAFC;
+  --ecs-neutral-90: #FFFFFF;
+
+  /* Card background variable used by mobile.css */
+  --ecs-card-bg: var(--ecs-bg-card, #1E293B);
+
+  /* CRITICAL: These are used by foundation.css lines 30751-30752 */
+  --ecs-bg-dark: var(--ecs-bg-body, #0F172A);
+  --ecs-text-dark: var(--ecs-text-heading, #FFFFFF);
+
+  /* Base bg/text variables used by components */
+  --ecs-bg: var(--ecs-bg-card, #1E293B);
+  --ecs-text: var(--ecs-text-heading, #FFFFFF);
+
+  /* Dark mode specific variables for fallback (slate palette) */
+  --ecs-dark-bg-body: var(--ecs-bg-body, #0F172A);
+  --ecs-dark-bg-card: var(--ecs-bg-card, #1E293B);
+  --ecs-dark-bg-elevated: var(--ecs-bg-input, #334155);
+  --ecs-dark-border: var(--ecs-border, #475569);
+  --ecs-dark-text-primary: var(--ecs-text-heading, #FFFFFF);
+  --ecs-dark-text-muted: var(--ecs-text-body, #CBD5E1);
+}
+
+/* ============================================
+   30. SHARED ADMIN PANEL COMPONENTS
+   Common components used across admin templates
+   ============================================ */
+
+/* Card icon - used in stat cards */
+.card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Status indicator dots */
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-indicator.active {
+  background-color: var(--ecs-success, #22C55E);
+  box-shadow: 0 0 0 2px rgba(var(--ecs-success-rgb, 34, 197, 94), 0.2);
+}
+
+.status-indicator.inactive {
+  background-color: var(--ecs-danger, #EF4444);
+  box-shadow: 0 0 0 2px rgba(var(--ecs-danger-rgb, 239, 68, 68), 0.2);
+}
+
+/* Timeline component */
+.timeline {
+  position: relative;
+  padding-left: 30px;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--bs-border-color, var(--ecs-border, #E4E4E7));
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -24px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid var(--bs-body-bg, var(--ecs-bg-card, #FFFFFF));
+}
+
+.timeline-content {
+  background: var(--bs-light, var(--ecs-bg-body, #FAFAFA));
+  padding: 15px;
+  border-radius: 8px;
+}
+
+html[data-style="dark"] .timeline-content,
+[data-style="dark"] .timeline-content {
+  background: var(--ecs-dark-bg-elevated, #334155);
+}
+
+.timeline-title {
+  font-size: 0.9rem;
+  margin-bottom: 5px;
+}
+
+.timeline-text {
+  font-size: 0.85rem;
+  color: var(--bs-text-muted, var(--ecs-text-muted, #71717A));
+  margin-bottom: 5px;
+}
+
+/* Form switch large variant */
+.form-switch-lg .form-check-input {
+  width: 3rem;
+  height: 1.5rem;
+}
+
+.form-switch-lg .form-check-input:focus {
+  border-color: rgba(var(--ecs-primary-rgb), 0.25);
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem rgba(var(--ecs-primary-rgb), 0.25);
+}
+
+/* Toggle status label */
+.toggle-status {
+  font-weight: 500;
+  margin-left: 0.5rem;
+}
+
+/* Card row hover effect */
+.card-body .row:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+  border-radius: 0.375rem;
+}
+
+html[data-style="dark"] .card-body .row:hover,
+[data-style="dark"] .card-body .row:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Setting toggle disabled state */
+.setting-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   31. INDEX/DASHBOARD PAGE STYLES
+   Match badge, tabs, RSVP controls, mobile optimizations
+   ============================================ */
+
+/* Match badge styling */
+.match-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: var(--ecs-neutral-0, #ffffff);
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+/* Icon sizing utilities */
+.icon-2xl {
+  font-size: 2rem;
+}
+
+.image-150 {
+  height: 150px;
+}
+
+.image-150-mb {
+  height: 150px;
+  margin-bottom: 1rem;
+}
+
+/* Card hover effect */
+.shadow-sm {
+  transition: all 0.2s ease;
+}
+
+.shadow-sm:hover {
+  box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45) !important;
+}
+
+/* Tabs styling */
+.nav-pills .nav-link {
+  font-size: 0.875rem;
+  padding: 0.4rem 0.8rem;
+  white-space: nowrap;
+  margin: 0 2px;
+}
+
+/* Small tabs for mobile */
+.small-tabs {
+  margin-bottom: 0.5rem;
+}
+
+.small-tabs .nav-link {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.8rem;
+}
+
+/* Scrollable tabs on small screens */
+.overflow-auto::-webkit-scrollbar {
+  height: 4px;
+}
+
+.overflow-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+/* RSVP controls */
+.rsvp-controls .btn-group label {
+  padding: 0.25rem 0.5rem;
+}
+
+/* Carousel indicators position */
+.carousel-indicators {
+  bottom: -5px;
+}
+
+/* Prevent buttons from growing too large when clicked */
+.btn {
+  transition: none !important;
+  transform: none !important;
+}
+
+.btn:active,
+.btn.active,
+.btn:focus {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Mobile adaptations */
+@media (max-width: 767.98px) {
+  .card-header .card-title {
+    font-size: 1rem;
+  }
+
+  .action-buttons .btn {
+    padding: 0.25rem 0.5rem;
+  }
+
+  /* Touch-friendly controls - fixed to prevent growing */
+  .btn-group > .btn {
+    padding: 0.4rem 0.6rem;
+    min-height: 44px;
+    max-height: 44px;
+  }
+
+  /* Adjust spacing on mobile */
+  .mb-md-0 {
+    margin-bottom: 0.5rem !important;
+  }
+
+  /* Fix for iOS devices */
+  .nav-pills {
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 1rem;
+    scrollbar-width: none;
+    position: relative;
+    z-index: 1;
+  }
+
+  .nav-pills::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Remove fade-out gradient that causes white fade */
+  .nav-pills:after {
+    display: none;
+  }
+
+  /* Better match-item layout for mobile */
+  .list-group-item {
+    padding: 0.75rem 0.5rem !important;
+  }
+
+  .list-group-item .d-flex {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+
+  .list-group-item .d-flex > div:first-child {
+    margin-bottom: 0.5rem;
+    width: 100%;
+  }
+
+  .list-group-item .d-flex > div:last-child {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* RSVP controls on mobile - bigger touch targets */
+  .rsvp-controls {
+    width: 65%;
+  }
+
+  .rsvp-controls .btn-group {
+    width: 100%;
+  }
+
+  .rsvp-controls .btn-group label {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2rem;
+    min-height: 44px;
+  }
+
+  /* Button enhancements for mobile */
+  .btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-sm {
+    min-height: 38px;
+  }
+
+  /* Improved welcome header for mobile */
+  .welcome-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .welcome-content {
+    text-align: center;
+  }
+
+  .team-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  /* Improved tab styling on mobile */
+  .nav-link {
+    padding: 0.75rem 1rem;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 2px;
+    border-radius: 0.25rem;
+  }
+}
+
+/* Fix for iOS 100vh issue */
+:root {
+  --vh: 1vh;
+}
+
+.full-height {
+  height: calc(var(--vh, 1vh) * 100);
+}
+
+/* iOS Specific Styles */
+@supports (-webkit-touch-callout: none) {
+  input[type="radio"],
+  input[type="checkbox"] {
+    -webkit-appearance: none;
+  }
+
+  .btn {
+    -webkit-appearance: none;
+  }
+
+  /* Prevent unwanted zoom on input focus */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Active state for tabs */
+.nav-pills .nav-link.active {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+/* ============================================
+   32. STANDINGS PAGE STYLES
+   Table headers, team avatars, popover, empty states
+   ============================================ */
+
+/* Table header styling */
+.table thead th {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Table column widths */
+.col-rank {
+  width: 5%;
+}
+
+.col-team {
+  width: 25%;
+}
+
+/* Team styling */
+.team-name {
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--bs-body-color);
+}
+
+.team-name:hover {
+  color: var(--bs-primary);
+}
+
+/* Avatar styling */
+.avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.team-initial {
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+/* Popover styling */
+.team-stats-popover {
+  padding: 0.5rem;
+  font-size: 0.85rem;
+}
+
+/* Empty State Styling */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--bs-secondary);
+}
+
+.empty-state-icon {
+  font-size: 2.5rem;
+  color: var(--bs-secondary);
+}
+
+.empty-state-message {
+  font-size: 0.875rem;
+}
+
+/* Table hover effect */
+.table-hover tbody tr:hover {
+  background-color: rgba(var(--bs-primary-rgb), 0.05);
+}
+
+/* Season selector */
+.season-selector {
+  min-width: 150px;
+  border-radius: 0.375rem;
+}
+
+/* ============================================
+   33. TEAMS OVERVIEW PAGE STYLES
+   Team cards, avatars, empty states, responsive styling
+   ============================================ */
+
+/* Team Card Styling */
+.team-card {
+  transition: all 0.2s ease;
+  border: none;
+  box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.12);
+}
+
+.team-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0.5rem 1.5rem rgba(161, 172, 184, 0.2);
+}
+
+/* Avatar sizing - medium */
+.avatar.avatar-md {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+
+/* Responsive Styling for Nav Pills and Team Meta */
+@media (max-width: 767.98px) {
+  .nav-pills {
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .nav-pills .nav-link {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.875rem;
+  }
+
+  .team-meta {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .team-meta > div {
+    width: 100%;
+  }
+}
+
+/* ============================================
+   34. PLAYER PROFILE PAGE STYLES
+   Match filter, image container utilities
+   ============================================ */
+
+/* Match filter dropdown width */
+.match-filter {
+  width: 250px;
+}
+
+/* ============================================
+   35. CRITICAL LIGHT MODE TEXT CONTRAST FIXES
+   Maximum specificity overrides for headings,
+   card titles, and text colors
+   ============================================ */
+
+/* Override card-level CSS variables set by foundation.css .card selector */
+.card {
+  --bs-card-title-color: var(--ecs-text-heading, #18181B);
+  --bs-card-cap-color: var(--ecs-text-heading, #18181B);
+  --bs-card-color: var(--ecs-text-body, #52525B);
+}
+
+html:not([data-style="dark"]) .card {
+  --bs-card-title-color: var(--ecs-text-heading, #18181B);
+  --bs-card-cap-color: var(--ecs-text-heading, #18181B);
+  --bs-card-color: var(--ecs-neutral-60, #52525B);
+}
+
+html[data-style="dark"] .card {
+  --bs-card-title-color: var(--ecs-dark-text-primary, #FAFAFA);
+  --bs-card-cap-color: var(--ecs-dark-text-primary, #FAFAFA);
+  --bs-card-color: var(--ecs-dark-text-muted, #A1A1AA);
+}
+
+/* Force heading colors in light mode - override foundation.css #444050 */
+html:not([data-style="dark"]) h1,
+html:not([data-style="dark"]) h2,
+html:not([data-style="dark"]) h3,
+html:not([data-style="dark"]) h4,
+html:not([data-style="dark"]) h5,
+html:not([data-style="dark"]) h6,
+html:not([data-style="dark"]) .h1,
+html:not([data-style="dark"]) .h2,
+html:not([data-style="dark"]) .h3,
+html:not([data-style="dark"]) .h4,
+html:not([data-style="dark"]) .h5,
+html:not([data-style="dark"]) .h6 {
+  color: var(--ecs-text-heading, #18181B) !important;
+}
+
+/* Card titles - maximum specificity */
+html:not([data-style="dark"]) .card-title,
+html:not([data-style="dark"]) .card .card-title,
+html:not([data-style="dark"]) .card-header .card-title,
+html:not([data-style="dark"]) .ecs-card-title,
+html:not([data-style="dark"]) .card .ecs-card-title {
+  color: var(--ecs-text-heading, #18181B) !important;
+}
+
+/* Table headers */
+html:not([data-style="dark"]) .table thead th,
+html:not([data-style="dark"]) .table-light th,
+html:not([data-style="dark"]) thead.table-light th {
+  color: var(--ecs-neutral-70, #3F3F46) !important;
+}
+
+/* Table body text */
+html:not([data-style="dark"]) .table tbody td {
+  color: var(--ecs-neutral-60, #52525B) !important;
+}
+
+html:not([data-style="dark"]) .table tbody td.fw-bold,
+html:not([data-style="dark"]) .table tbody .fw-bold {
+  color: var(--ecs-text-heading, #18181B) !important;
+}
+
+/* Primary colored icons and text */
+html:not([data-style="dark"]) .text-primary,
+html:not([data-style="dark"]) .text-primary i,
+html:not([data-style="dark"]) i.text-primary,
+html:not([data-style="dark"]) .ti.text-primary {
+  color: var(--ecs-primary, #2563EB) !important;
+}
+
+/* Card body text */
+html:not([data-style="dark"]) .card-body {
+  color: var(--ecs-neutral-60, #52525B) !important;
+}
+
+html:not([data-style="dark"]) .card-body p,
+html:not([data-style="dark"]) .card-body span:not(.badge):not(.text-white) {
+  color: var(--ecs-neutral-60, #52525B) !important;
+}
+
+/* Links in tables and cards */
+html:not([data-style="dark"]) .team-name,
+html:not([data-style="dark"]) a.team-name {
+  color: var(--ecs-primary, #2563EB) !important;
+}
+
+/* Match team names */
+html:not([data-style="dark"]) .match-teams h6,
+html:not([data-style="dark"]) .match-details h6 {
+  color: var(--ecs-text-heading, #18181B) !important;
+}
+
+/* Match time */
+html:not([data-style="dark"]) .match-time {
+  color: var(--ecs-neutral-60, #52525B) !important;
+}
+
+/* Nav pills inactive state */
+html:not([data-style="dark"]) .nav-pills .nav-link:not(.active),
+html:not([data-style="dark"]) .ecs-nav-pills .ecs-nav-link:not(.active):not(.ecs-active) {
+  color: var(--ecs-neutral-60, #52525B) !important;
+}
+
+/* Muted text - readable but still muted */
+html:not([data-style="dark"]) .text-muted {
+  color: var(--ecs-neutral-50, #71717A) !important;
+}
+
+/* Popovers with solid backgrounds */
+html:not([data-style="dark"]) .popover {
+  background-color: var(--ecs-neutral-0, #ffffff) !important;
+  border-color: var(--ecs-neutral-20, #E4E4E7) !important;
+}
+
+html:not([data-style="dark"]) .popover-header {
+  background-color: var(--ecs-neutral-5, #FAFAFA) !important;
+  color: var(--ecs-text-heading, #18181B) !important;
+  border-bottom-color: var(--ecs-neutral-20, #E4E4E7) !important;
+}
+
+html:not([data-style="dark"]) .popover-body {
+  background-color: var(--ecs-neutral-0, #ffffff) !important;
+  color: var(--ecs-neutral-60, #52525B) !important;
+}
+
+html:not([data-style="dark"]) .popover-body strong {
+  color: var(--ecs-text-heading, #18181B) !important;
+}
+
+/* Semantic text colors */
+html:not([data-style="dark"]) .text-success {
+  color: var(--ecs-success, #10B981) !important;
+}
+
+html:not([data-style="dark"]) .text-danger {
+  color: var(--ecs-danger, #EF4444) !important;
+}
+
+html:not([data-style="dark"]) .text-warning {
+  color: var(--ecs-warning, #F59E0B) !important;
+}
+
+html:not([data-style="dark"]) .text-info {
+  color: var(--ecs-info, #3B82F6) !important;
+}

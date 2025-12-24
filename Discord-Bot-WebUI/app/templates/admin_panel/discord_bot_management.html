@@ -7,366 +7,458 @@
 {% endblock %}
 
 {% block panel_content %}
-<!-- Bot Status Cards -->
-<div class="row mb-4">
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-{% if stats.bot_status == 'online' %}success{% else %}danger{% endif %} text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.bot_status.title() }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Bot Status</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-brand-discord" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
+<div class="c-bot-mgmt" data-component="bot-management">
+    <!-- Bot Status Cards -->
+    <div class="c-bot-status" data-component="status-overview">
+        <div class="c-bot-status__grid">
+            <div class="c-stat-card c-stat-card--{% if stats.bot_status == 'online' %}success{% else %}danger{% endif %}"
+                 data-stat-card
+                 data-stat-type="bot-status">
+                <div class="c-stat-card__content">
+                    <div class="c-stat-card__value">{{ stats.bot_status.title() }}</div>
+                    <div class="c-stat-card__label">Bot Status</div>
+                </div>
+                <div class="c-stat-card__icon">
+                    <i class="ti ti-brand-discord"></i>
                 </div>
             </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.guilds_connected or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Connected Guilds</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-server" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.commands_today or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Commands Today</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-command" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.uptime or '0%' }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Uptime</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-clock" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Bot Management Actions -->
-<div class="row mb-4">
-    <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-settings me-2"></i>Bot Control
-                </h5>
-            </div>
-            <div class="card-body">
-                <p>Control bot operations and manage its status</p>
-                <div class="list-group list-group-flush">
-                    <button class="list-group-item list-group-item-action" onclick="restartBot()">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="ti ti-refresh me-2 text-warning"></i>Restart Bot
-                            </div>
-                            <i class="ti ti-chevron-right"></i>
-                        </div>
-                    </button>
-                    <button class="list-group-item list-group-item-action" onclick="checkBotHealth()">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="ti ti-heart me-2 text-success"></i>Health Check
-                            </div>
-                            <span class="status-indicator {% if stats.bot_status == 'online' %}active{% else %}inactive{% endif %}"></span>
-                        </div>
-                    </button>
-                    <button class="list-group-item list-group-item-action" onclick="viewBotLogs()">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="ti ti-file-text me-2"></i>View Bot Logs
-                            </div>
-                            <i class="ti ti-chevron-right"></i>
-                        </div>
-                    </button>
-                    <button class="list-group-item list-group-item-action" onclick="syncCommands()">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="ti ti-refresh me-2 text-info"></i>Sync Commands
-                            </div>
-                            <i class="ti ti-chevron-right"></i>
-                        </div>
-                    </button>
+            <div class="c-stat-card c-stat-card--info" data-stat-card data-stat-type="guilds">
+                <div class="c-stat-card__content">
+                    <div class="c-stat-card__value">{{ stats.guilds_connected or 0 }}</div>
+                    <div class="c-stat-card__label">Connected Guilds</div>
+                </div>
+                <div class="c-stat-card__icon">
+                    <i class="ti ti-server"></i>
                 </div>
             </div>
-        </div>
-    </div>
-    
-    <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-command me-2"></i>Command Management
-                </h5>
-            </div>
-            <div class="card-body">
-                <p>Manage bot commands and their permissions</p>
-                <div class="list-group list-group-flush">
-                    <a href="#" class="list-group-item list-group-item-action" onclick="viewCommands()">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="ti ti-list me-2"></i>View All Commands
-                            </div>
-                            <span class="badge bg-primary">{{ stats.total_commands or 0 }}</span>
-                        </div>
-                    </a>
-                    <a href="#" class="list-group-item list-group-item-action" onclick="commandPermissions()">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="ti ti-shield me-2"></i>Command Permissions
-                            </div>
-                            <i class="ti ti-chevron-right"></i>
-                        </div>
-                    </a>
-                    <a href="#" class="list-group-item list-group-item-action" onclick="commandUsage()">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="ti ti-chart-bar me-2"></i>Usage Statistics
-                            </div>
-                            <i class="ti ti-chevron-right"></i>
-                        </div>
-                    </a>
-                    <a href="#" class="list-group-item list-group-item-action" onclick="customCommands()">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="ti ti-edit me-2"></i>Custom Commands
-                            </div>
-                            <i class="ti ti-chevron-right"></i>
-                        </div>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Guild Management -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-server me-2"></i>Connected Guilds
-                </h5>
+            <div class="c-stat-card c-stat-card--primary" data-stat-card data-stat-type="commands">
+                <div class="c-stat-card__content">
+                    <div class="c-stat-card__value">{{ stats.commands_today or 0 }}</div>
+                    <div class="c-stat-card__label">Commands Today</div>
+                </div>
+                <div class="c-stat-card__icon">
+                    <i class="ti ti-command"></i>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="card border">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="card-title mb-0">{{ guild_info.name or 'ECS FC Discord' }}</h6>
-                                    <span class="badge bg-{% if stats.bot_status == 'online' %}success{% else %}danger{% endif %}">
-                                        {{ stats.bot_status.title() }}
-                                    </span>
+
+            <div class="c-stat-card c-stat-card--warning" data-stat-card data-stat-type="uptime">
+                <div class="c-stat-card__content">
+                    <div class="c-stat-card__value">{{ stats.uptime or '0%' }}</div>
+                    <div class="c-stat-card__label">Uptime</div>
+                </div>
+                <div class="c-stat-card__icon">
+                    <i class="ti ti-clock"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bot Management Sections -->
+    <div class="c-bot-sections" data-component="management-sections">
+        <div class="c-bot-sections__grid">
+            <!-- Bot Control -->
+            <div class="c-card" data-card data-section="control">
+                <div class="c-card__header">
+                    <div class="c-card__title">
+                        <i class="ti ti-settings c-card__title-icon c-card__title-icon--warning"></i>
+                        <span>Bot Control</span>
+                    </div>
+                    <div class="c-status-indicator {% if stats.bot_status == 'online' %}c-status-indicator--active{% else %}c-status-indicator--inactive{% endif %}"
+                         data-status-indicator></div>
+                </div>
+                <div class="c-card__body">
+                    <p class="c-card__description">Control bot operations and manage its status</p>
+                    <nav class="c-link-list" aria-label="Bot control options">
+                        <button class="c-link-list__item"
+                                type="button"
+                                data-action="restart-bot"
+                                aria-label="Restart Discord bot">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-refresh"></i>
                                 </div>
-                                <div class="row text-center">
-                                    <div class="col-4">
-                                        <div class="h5 mb-1">{{ guild_info.member_count or stats.member_count or 0 }}</div>
-                                        <div class="small text-muted">Members</div>
-                                    </div>
-                                    <div class="col-4">
-                                        <div class="h5 mb-1">{{ guild_info.channel_count or 45 }}</div>
-                                        <div class="small text-muted">Channels</div>
-                                    </div>
-                                    <div class="col-4">
-                                        <div class="h5 mb-1">{{ guild_info.role_count or 25 }}</div>
-                                        <div class="small text-muted">Roles</div>
-                                    </div>
-                                </div>
-                                <div class="mt-3">
-                                    <button class="btn btn-sm btn-outline-primary me-2" onclick="manageGuild('main')">
-                                        <i class="ti ti-settings me-1"></i>Manage
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-info" onclick="guildStats('main')">
-                                        <i class="ti ti-chart-dots me-1"></i>Stats
-                                    </button>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Restart Bot</div>
                                 </div>
                             </div>
-                        </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </button>
+
+                        <button class="c-link-list__item"
+                                type="button"
+                                data-action="check-bot-health"
+                                aria-label="Check bot health status">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-heart"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Health Check</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <span class="c-status-indicator {% if stats.bot_status == 'online' %}c-status-indicator--active{% else %}c-status-indicator--inactive{% endif %}"></span>
+                            </div>
+                        </button>
+
+                        <button class="c-link-list__item"
+                                type="button"
+                                data-action="view-bot-logs"
+                                aria-label="View bot logs">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-file-text"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">View Bot Logs</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </button>
+
+                        <button class="c-link-list__item"
+                                type="button"
+                                data-action="sync-commands"
+                                aria-label="Sync bot commands with Discord">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-refresh"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Sync Commands</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </button>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Command Management -->
+            <div class="c-card" data-card data-section="commands">
+                <div class="c-card__header">
+                    <div class="c-card__title">
+                        <i class="ti ti-command c-card__title-icon c-card__title-icon--primary"></i>
+                        <span>Command Management</span>
                     </div>
-                    <div class="col-md-6">
-                        <div class="text-center text-muted mt-4">
-                            <i class="ti ti-plus d-block mb-2" style="font-size: 3rem;"></i>
-                            <p>Connect to additional Discord servers</p>
-                            <button class="btn btn-outline-primary" onclick="addGuild()">
-                                <i class="ti ti-plus me-1"></i>Add Guild
+                </div>
+                <div class="c-card__body">
+                    <p class="c-card__description">Manage bot commands and their permissions</p>
+                    <nav class="c-link-list" aria-label="Command management options">
+                        <button class="c-link-list__item"
+                                type="button"
+                                data-action="view-commands"
+                                aria-label="View all bot commands">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-list"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">View All Commands</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <span class="c-badge c-badge--primary" data-badge>{{ stats.total_commands or 0 }}</span>
+                            </div>
+                        </button>
+
+                        <button class="c-link-list__item"
+                                type="button"
+                                data-action="command-permissions"
+                                aria-label="Manage command permissions">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-shield"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Command Permissions</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </button>
+
+                        <button class="c-link-list__item"
+                                type="button"
+                                data-action="command-usage"
+                                aria-label="View command usage statistics">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-chart-bar"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Usage Statistics</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </button>
+
+                        <button class="c-link-list__item"
+                                type="button"
+                                data-action="custom-commands"
+                                aria-label="Manage custom commands">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-edit"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Custom Commands</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </button>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Guild Management -->
+    <div class="c-bot-guild" data-component="guild-management">
+        <div class="c-card" data-card>
+            <div class="c-card__header">
+                <div class="c-card__title">
+                    <i class="ti ti-server c-card__title-icon c-card__title-icon--info"></i>
+                    <span>Connected Guilds</span>
+                </div>
+            </div>
+            <div class="c-card__body">
+                <div class="c-bot-guild__grid">
+                    <div class="c-guild-card" data-guild-card>
+                        <div class="c-guild-card__header">
+                            <h6 class="c-guild-card__name">{{ guild_info.name or 'ECS FC Discord' }}</h6>
+                            <span class="c-badge c-badge--{% if stats.bot_status == 'online' %}success{% else %}danger{% endif %}"
+                                  data-badge>
+                                {{ stats.bot_status.title() }}
+                            </span>
+                        </div>
+                        <div class="c-guild-card__stats">
+                            <div class="c-guild-stat" data-guild-stat>
+                                <div class="c-guild-stat__value">{{ guild_info.member_count or stats.member_count or 0 }}</div>
+                                <div class="c-guild-stat__label">Members</div>
+                            </div>
+                            <div class="c-guild-stat" data-guild-stat>
+                                <div class="c-guild-stat__value">{{ guild_info.channel_count or 45 }}</div>
+                                <div class="c-guild-stat__label">Channels</div>
+                            </div>
+                            <div class="c-guild-stat" data-guild-stat>
+                                <div class="c-guild-stat__value">{{ guild_info.role_count or 25 }}</div>
+                                <div class="c-guild-stat__label">Roles</div>
+                            </div>
+                        </div>
+                        <div class="c-guild-card__actions">
+                            <button class="c-btn c-btn--sm c-btn--outline-primary"
+                                    type="button"
+                                    data-action="manage-guild"
+                                    data-guild="main"
+                                    aria-label="Manage guild settings">
+                                <i class="ti ti-settings"></i>
+                                <span>Manage</span>
+                            </button>
+                            <button class="c-btn c-btn--sm c-btn--outline-info"
+                                    type="button"
+                                    data-action="guild-stats"
+                                    data-guild="main"
+                                    aria-label="View guild statistics">
+                                <i class="ti ti-chart-dots"></i>
+                                <span>Stats</span>
                             </button>
                         </div>
                     </div>
+
+                    <div class="c-guild-add" data-guild-add>
+                        <div class="c-guild-add__icon">
+                            <i class="ti ti-plus"></i>
+                        </div>
+                        <p class="c-guild-add__text">Connect to additional Discord servers</p>
+                        <button class="c-btn c-btn--outline-primary"
+                                type="button"
+                                data-action="add-guild"
+                                aria-label="Add new guild">
+                            <i class="ti ti-plus"></i>
+                            <span>Add Guild</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Bot Configuration -->
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-tool me-2"></i>Bot Configuration
-                </h5>
-            </div>
-            <div class="card-body">
-                <form>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Bot Prefix</label>
-                                <input type="text" class="form-control" value="!" id="botPrefix">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Default Role</label>
-                                <select class="form-select" id="defaultRole">
-                                    <option value="">None</option>
-                                    <option value="member">Member</option>
-                                    <option value="player">Player</option>
-                                </select>
-                            </div>
-                        </div>
+    <!-- Bot Configuration & Recent Activity -->
+    <div class="c-bot-details" data-component="bot-details">
+        <div class="c-bot-details__grid">
+            <!-- Bot Configuration -->
+            <div class="c-card" data-card data-section="config">
+                <div class="c-card__header">
+                    <div class="c-card__title">
+                        <i class="ti ti-tool c-card__title-icon c-card__title-icon--success"></i>
+                        <span>Bot Configuration</span>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Activity Type</label>
-                                <select class="form-select" id="activityType">
-                                    <option value="playing">Playing</option>
-                                    <option value="listening">Listening to</option>
-                                    <option value="watching">Watching</option>
-                                </select>
-                            </div>
+                </div>
+                <div class="c-card__body">
+                    <form class="c-bot-config" data-config-form>
+                        <div class="c-bot-config__group">
+                            <label class="c-bot-config__label" for="botPrefix">Bot Prefix</label>
+                            <input type="text"
+                                   class="c-bot-config__input"
+                                   value="!"
+                                   id="botPrefix"
+                                   data-config-input="prefix"
+                                   aria-label="Bot command prefix">
                         </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Activity Text</label>
-                                <input type="text" class="form-control" value="ECS FC League" id="activityText">
-                            </div>
+
+                        <div class="c-bot-config__group">
+                            <label class="c-bot-config__label" for="defaultRole">Default Role</label>
+                            <select class="c-bot-config__select"
+                                    id="defaultRole"
+                                    data-config-select="role"
+                                    aria-label="Default member role">
+                                <option value="">None</option>
+                                <option value="member">Member</option>
+                                <option value="player">Player</option>
+                            </select>
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-12">
-                            <div class="form-check form-switch mb-3">
-                                <input class="form-check-input" type="checkbox" id="autoModeration" checked>
-                                <label class="form-check-label" for="autoModeration">
+
+                        <div class="c-bot-config__group">
+                            <label class="c-bot-config__label" for="activityType">Activity Type</label>
+                            <select class="c-bot-config__select"
+                                    id="activityType"
+                                    data-config-select="activity"
+                                    aria-label="Bot activity type">
+                                <option value="playing">Playing</option>
+                                <option value="listening">Listening to</option>
+                                <option value="watching">Watching</option>
+                            </select>
+                        </div>
+
+                        <div class="c-bot-config__group">
+                            <label class="c-bot-config__label" for="activityText">Activity Text</label>
+                            <input type="text"
+                                   class="c-bot-config__input"
+                                   value="ECS FC League"
+                                   id="activityText"
+                                   data-config-input="activity-text"
+                                   aria-label="Bot activity text">
+                        </div>
+
+                        <div class="c-bot-config__toggles">
+                            <div class="c-bot-config__toggle" data-config-toggle>
+                                <input class="c-bot-config__checkbox"
+                                       type="checkbox"
+                                       id="autoModeration"
+                                       checked
+                                       aria-label="Enable auto moderation">
+                                <label class="c-bot-config__toggle-label" for="autoModeration">
                                     Enable Auto Moderation
                                 </label>
                             </div>
-                            <div class="form-check form-switch mb-3">
-                                <input class="form-check-input" type="checkbox" id="commandLogging" checked>
-                                <label class="form-check-label" for="commandLogging">
+
+                            <div class="c-bot-config__toggle" data-config-toggle>
+                                <input class="c-bot-config__checkbox"
+                                       type="checkbox"
+                                       id="commandLogging"
+                                       checked
+                                       aria-label="Enable command logging">
+                                <label class="c-bot-config__toggle-label" for="commandLogging">
                                     Log All Commands
                                 </label>
                             </div>
-                            <div class="form-check form-switch mb-3">
-                                <input class="form-check-input" type="checkbox" id="welcomeMessages" checked>
-                                <label class="form-check-label" for="welcomeMessages">
+
+                            <div class="c-bot-config__toggle" data-config-toggle>
+                                <input class="c-bot-config__checkbox"
+                                       type="checkbox"
+                                       id="welcomeMessages"
+                                       checked
+                                       aria-label="Enable welcome messages">
+                                <label class="c-bot-config__toggle-label" for="welcomeMessages">
                                     Send Welcome Messages
                                 </label>
                             </div>
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-12">
-                            <button type="button" class="btn btn-primary" onclick="saveBotConfig()">
-                                <i class="ti ti-device-floppy me-1"></i>Save Configuration
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary ms-2" onclick="resetBotConfig()">
-                                <i class="ti ti-refresh me-1"></i>Reset to Defaults
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-activity me-2"></i>Recent Activity
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="timeline">
-                    {% if recent_logs %}
-                        {% for log in recent_logs[-5:] %}
-                        <div class="timeline-item">
-                            <div class="timeline-marker 
-                                {% if log.level == 'ERROR' %}bg-danger
-                                {% elif log.level == 'WARNING' %}bg-warning
-                                {% elif log.level == 'INFO' %}bg-info
-                                {% else %}bg-secondary
-                                {% endif %}"></div>
-                            <div class="timeline-content">
-                                <h6 class="timeline-title">{{ log.message | truncate(50) }}</h6>
-                                <p class="timeline-text">{{ log.level }} - {{ log.message }}</p>
-                                <small class="text-muted">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') if log.timestamp else 'Unknown time' }}</small>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="timeline-item">
-                            <div class="timeline-marker bg-secondary"></div>
-                            <div class="timeline-content">
-                                <h6 class="timeline-title">No Recent Activity</h6>
-                                <p class="timeline-text">Bot API not connected or no recent logs available</p>
-                                <small class="text-muted">Check bot connection</small>
-                            </div>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Bot Status Alert -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="alert alert-{% if stats.bot_status == 'online' %}success{% else %}danger{% endif %}">
-            <div class="d-flex align-items-center">
-                <i class="ti ti-{% if stats.bot_status == 'online' %}check-circle{% else %}alert-circle{% endif %} me-2"></i>
-                <div>
-                    <strong>Bot Status:</strong> 
-                    {% if stats.bot_status == 'online' %}
-                        Discord bot is online and responding to commands normally.
-                    {% else %}
-                        Discord bot appears to be offline. Please check the bot configuration and network connectivity.
-                    {% endif %}
+                        <div class="c-bot-config__actions">
+                            <button type="button"
+                                    class="c-btn c-btn--primary"
+                                    data-action="save-bot-config"
+                                    aria-label="Save bot configuration">
+                                <i class="ti ti-device-floppy"></i>
+                                <span>Save Configuration</span>
+                            </button>
+                            <button type="button"
+                                    class="c-btn c-btn--outline-secondary"
+                                    data-action="reset-bot-config"
+                                    aria-label="Reset to default configuration">
+                                <i class="ti ti-refresh"></i>
+                                <span>Reset to Defaults</span>
+                            </button>
+                        </div>
+                    </form>
                 </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="c-card" data-card data-section="activity">
+                <div class="c-card__header">
+                    <div class="c-card__title">
+                        <i class="ti ti-activity c-card__title-icon c-card__title-icon--danger"></i>
+                        <span>Recent Activity</span>
+                    </div>
+                </div>
+                <div class="c-card__body">
+                    <div class="c-bot-timeline" data-timeline>
+                        {% if recent_logs %}
+                            {% for log in recent_logs[-5:] %}
+                            <div class="c-bot-timeline__item" data-timeline-item>
+                                <div class="c-bot-timeline__marker c-bot-timeline__marker--{% if log.level == 'ERROR' %}danger{% elif log.level == 'WARNING' %}warning{% elif log.level == 'INFO' %}info{% else %}secondary{% endif %}"
+                                     data-timeline-marker></div>
+                                <div class="c-bot-timeline__content">
+                                    <h6 class="c-bot-timeline__title">{{ log.message | truncate(50) }}</h6>
+                                    <p class="c-bot-timeline__text">{{ log.level }} - {{ log.message }}</p>
+                                    <small class="c-bot-timeline__timestamp">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') if log.timestamp else 'Unknown time' }}</small>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="c-empty-state" data-component="empty-state">
+                                <div class="c-empty-state__icon c-empty-state__icon--secondary">
+                                    <i class="ti ti-activity"></i>
+                                </div>
+                                <h6 class="c-empty-state__title">No Recent Activity</h6>
+                                <p class="c-empty-state__description">Bot API not connected or no recent logs available</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bot Status Alert -->
+    <div class="c-bot-alert" data-component="status-alert">
+        <div class="c-alert c-alert--{% if stats.bot_status == 'online' %}success{% else %}danger{% endif %}">
+            <div class="c-alert__icon">
+                <i class="ti ti-{% if stats.bot_status == 'online' %}check-circle{% else %}alert-circle{% endif %}"></i>
+            </div>
+            <div class="c-alert__content">
+                <strong>Bot Status:</strong>
+                {% if stats.bot_status == 'online' %}
+                    Discord bot is online and responding to commands normally.
+                {% else %}
+                    Discord bot appears to be offline. Please check the bot configuration and network connectivity.
+                {% endif %}
             </div>
         </div>
     </div>
@@ -375,842 +467,10 @@
 
 {% block custom_css %}
 {{ super() }}
-{# Timeline, status-indicator, and card-icon styles are in foundation-overrides.css #}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin-panel/discord-bot-management.css') }}">
 {% endblock %}
 
 {% block custom_js %}
-<script>
-function restartBot() {
-    Swal.fire({
-        title: 'Restart Discord Bot?',
-        text: 'This will temporarily disconnect the bot from Discord while it restarts.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Restart Bot'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire({
-                title: 'Restarting Bot...',
-                text: 'Please wait while the bot restarts',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                    
-                    // Call bot restart API
-                    fetch('http://localhost:5001/api/bot/restart', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire('Restarted!', 'Discord bot restart has been initiated.', 'success');
-                        } else {
-                            Swal.fire('Error!', `Failed to restart bot: ${data.message || 'Unknown error'}`, 'error');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error restarting bot:', error);
-                        Swal.fire('Error!', 'Failed to connect to bot API.', 'error');
-                    });
-                }
-            });
-        }
-    });
-}
-
-function checkBotHealth() {
-    Swal.fire({
-        title: 'Running Health Check...',
-        text: 'Checking bot connectivity and status',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-            
-            // Call bot health check API
-            fetch('http://localhost:5001/api/bot/health-detailed')
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'online') {
-                    const healthInfo = `
-                        <div class="text-start">
-                            <p><strong>Status:</strong> ${data.status}</p>
-                            <p><strong>Username:</strong> ${data.username || 'Unknown'}</p>
-                            <p><strong>Guild Count:</strong> ${data.guild_count || 0}</p>
-                            <p><strong>Latency:</strong> ${data.latency || 'N/A'}ms</p>
-                            ${data.memory_usage_mb ? `<p><strong>Memory Usage:</strong> ${data.memory_usage_mb}MB</p>` : ''}
-                        </div>
-                    `;
-                    Swal.fire({
-                        title: 'Bot Health Check',
-                        html: healthInfo,
-                        icon: 'success',
-                        confirmButtonText: 'Close'
-                    });
-                } else {
-                    Swal.fire('Bot Offline', `Bot status: ${data.status}. ${data.details || ''}`, 'warning');
-                }
-            })
-            .catch(error => {
-                console.error('Error checking bot health:', error);
-                Swal.fire('Connection Error', 'Failed to connect to bot API.', 'error');
-            });
-        }
-    });
-}
-
-function viewBotLogs() {
-    // Build logs HTML from real data
-    let logsHtml = '';
-    const logs = {{ recent_logs | tojson | safe }};
-    
-    if (logs && logs.length > 0) {
-        logs.forEach(log => {
-            const timestamp = new Date(log.timestamp).toLocaleString();
-            logsHtml += `[${timestamp}] ${log.level}: ${log.message}\n`;
-        });
-    } else {
-        logsHtml = 'No recent logs available. Bot may not be connected to the API.';
-    }
-    
-    Swal.fire({
-        title: 'Discord Bot Logs',
-        html: `
-            <div class="text-start" style="max-height: 400px; overflow-y: auto;">
-                <pre class="bg-dark text-light p-3 rounded" style="font-size: 12px;">${logsHtml}</pre>
-            </div>
-        `,
-        width: '600px',
-        showCancelButton: true,
-        confirmButtonText: 'Refresh Logs',
-        cancelButtonText: 'Close'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            location.reload(); // Refresh page to get new logs
-        }
-    });
-}
-
-function syncCommands() {
-    Swal.fire({
-        title: 'Sync Commands?',
-        text: 'This will synchronize all slash commands with Discord.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Sync Commands'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire({
-                title: 'Syncing Commands...',
-                text: 'Please wait while commands are synchronized',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-
-                    // Call bot sync commands API
-                    fetch('http://localhost:5001/api/bot/sync-commands', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire('Synced!', `${data.commands_synced || 'All'} commands have been synchronized with Discord.`, 'success');
-                        } else {
-                            Swal.fire('Error!', `Failed to sync commands: ${data.message || 'Unknown error'}`, 'error');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error syncing commands:', error);
-                        Swal.fire('Error!', 'Failed to connect to bot API.', 'error');
-                    });
-                }
-            });
-        }
-    });
-}
-
-function viewCommands() {
-    const commands = {{ commands | tojson | safe }};  // Pass commands from backend
-    let commandsHtml = '';
-    
-    // Group commands by category
-    const categories = {};
-    commands.forEach(cmd => {
-        if (!categories[cmd.category]) {
-            categories[cmd.category] = [];
-        }
-        categories[cmd.category].push(cmd);
-    });
-    
-    // Build HTML for each category
-    Object.keys(categories).forEach(category => {
-        commandsHtml += `
-            <div class="mb-4">
-                <h6 class="mb-2 text-primary">${category} Commands</h6>
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Command</th>
-                                <th>Description</th>
-                                <th>Permission</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-        `;
-        
-        categories[category].forEach(cmd => {
-            const permissionColor = cmd.permission_level === 'Public' ? 'success' : 
-                                   cmd.permission_level.includes('Admin') ? 'danger' : 'warning';
-            commandsHtml += `
-                <tr>
-                    <td><code>/${cmd.name}</code></td>
-                    <td>${cmd.description}</td>
-                    <td><span class="badge bg-${permissionColor}">${cmd.permission_level}</span></td>
-                </tr>
-            `;
-        });
-        
-        commandsHtml += `
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-    });
-    
-    Swal.fire({
-        title: 'Discord Bot Commands',
-        html: `
-            <div class="text-start" style="max-height: 500px; overflow-y: auto;">
-                ${commandsHtml}
-            </div>
-        `,
-        width: '800px',
-        confirmButtonText: 'Close'
-    });
-}
-
-function commandPermissions() {
-    const commands = {{ commands | tojson | safe }};
-
-    // Build permission management HTML
-    let permissionsHtml = `
-        <div class="text-start" style="max-height: 500px; overflow-y: auto;">
-            <table class="table table-sm table-hover">
-                <thead class="table-light">
-                    <tr>
-                        <th>Command</th>
-                        <th>Current Permission</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-    `;
-
-    commands.forEach(cmd => {
-        const permissionColor = cmd.permission_level === 'Public' ? 'success' :
-                               cmd.permission_level.includes('Admin') ? 'danger' : 'warning';
-        permissionsHtml += `
-            <tr>
-                <td><code>/${cmd.name}</code></td>
-                <td><span class="badge bg-${permissionColor}">${cmd.permission_level}</span></td>
-                <td>
-                    <select class="form-select form-select-sm permission-select" data-command="${cmd.name}" style="width: 150px;">
-                        <option value="Public" ${cmd.permission_level === 'Public' ? 'selected' : ''}>Public</option>
-                        <option value="Member" ${cmd.permission_level === 'Member' ? 'selected' : ''}>Member</option>
-                        <option value="Captain" ${cmd.permission_level === 'Captain' ? 'selected' : ''}>Captain</option>
-                        <option value="Coach" ${cmd.permission_level === 'Coach' ? 'selected' : ''}>Coach</option>
-                        <option value="Admin" ${cmd.permission_level === 'Admin' ? 'selected' : ''}>Admin</option>
-                        <option value="Global Admin" ${cmd.permission_level === 'Global Admin' ? 'selected' : ''}>Global Admin</option>
-                    </select>
-                </td>
-            </tr>
-        `;
-    });
-
-    permissionsHtml += `
-                </tbody>
-            </table>
-        </div>
-    `;
-
-    Swal.fire({
-        title: 'Command Permissions',
-        html: permissionsHtml,
-        width: '700px',
-        showCancelButton: true,
-        confirmButtonText: 'Save Changes',
-        cancelButtonText: 'Cancel',
-        preConfirm: () => {
-            const permissions = {};
-            document.querySelectorAll('.permission-select').forEach(select => {
-                permissions[select.dataset.command] = select.value;
-            });
-            return permissions;
-        }
-    }).then((result) => {
-        if (result.isConfirmed && result.value) {
-            // Save permission changes to bot API
-            Swal.fire({
-                title: 'Saving Permissions...',
-                text: 'Please wait',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-
-                    fetch('http://localhost:5001/api/bot/command-permissions', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ permissions: result.value })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire('Saved!', 'Command permissions have been updated.', 'success')
-                            .then(() => location.reload());
-                        } else {
-                            Swal.fire('Error!', `Failed to save permissions: ${data.message || 'Unknown error'}`, 'error');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error saving permissions:', error);
-                        Swal.fire('Error!', 'Failed to connect to bot API.', 'error');
-                    });
-                }
-            });
-        }
-    });
-}
-
-function commandUsage() {
-    const commandUsage = {{ command_usage | tojson | safe }};
-    
-    Swal.fire({
-        title: 'Command Usage Statistics',
-        html: `
-            <div class="text-start">
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <div class="card bg-primary text-white">
-                            <div class="card-body text-center">
-                                <h4>${commandUsage.commands_today}</h4>
-                                <small>Commands Today</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card bg-info text-white">
-                            <div class="card-body text-center">
-                                <h4>${commandUsage.commands_this_week}</h4>
-                                <small>Commands This Week</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Most Used Command</h6>
-                        <p><code>/${commandUsage.most_used_command}</code> - Membership verification</p>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Average Response Time</h6>
-                        <p>${commandUsage.avg_response_time}</p>
-                    </div>
-                </div>
-                <div class="mt-3">
-                    <h6>Popular Commands</h6>
-                    <div class="progress mb-2">
-                        <div class="progress-bar" style="width: 35%">verify (35%)</div>
-                    </div>
-                    <div class="progress mb-2">
-                        <div class="progress-bar bg-info" style="width: 25%">nextmatch (25%)</div>
-                    </div>
-                    <div class="progress mb-2">
-                        <div class="progress-bar bg-warning" style="width: 20%">record (20%)</div>
-                    </div>
-                    <div class="progress mb-2">
-                        <div class="progress-bar bg-success" style="width: 15%">lookup (15%)</div>
-                    </div>
-                    <div class="progress">
-                        <div class="progress-bar bg-secondary" style="width: 5%">others (5%)</div>
-                    </div>
-                </div>
-            </div>
-        `,
-        width: '600px',
-        confirmButtonText: 'Close'
-    });
-}
-
-function customCommands() {
-    // Fetch existing custom commands
-    fetch('http://localhost:5001/api/bot/custom-commands')
-    .then(response => response.json())
-    .then(data => {
-        const customCmds = data.commands || [];
-
-        let customHtml = `
-            <div class="text-start">
-                <div class="mb-3">
-                    <button class="btn btn-sm btn-success" onclick="addCustomCommand()">
-                        <i class="ti ti-plus me-1"></i>Add New Command
-                    </button>
-                </div>
-        `;
-
-        if (customCmds.length > 0) {
-            customHtml += `
-                <table class="table table-sm table-hover">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Trigger</th>
-                            <th>Response</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-
-            customCmds.forEach((cmd, index) => {
-                customHtml += `
-                    <tr>
-                        <td><code>${cmd.trigger}</code></td>
-                        <td>${cmd.response.substring(0, 50)}${cmd.response.length > 50 ? '...' : ''}</td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary me-1" onclick="editCustomCommand(${index})">
-                                <i class="ti ti-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteCustomCommand('${cmd.trigger}')">
-                                <i class="ti ti-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            customHtml += `
-                    </tbody>
-                </table>
-            `;
-        } else {
-            customHtml += `<p class="text-muted text-center py-3">No custom commands configured</p>`;
-        }
-
-        customHtml += `</div>`;
-
-        Swal.fire({
-            title: 'Custom Commands',
-            html: customHtml,
-            width: '700px',
-            showConfirmButton: false,
-            showCloseButton: true
-        });
-    })
-    .catch(error => {
-        console.error('Error loading custom commands:', error);
-        Swal.fire('Error!', 'Failed to load custom commands from bot API.', 'error');
-    });
-}
-
-function addCustomCommand() {
-    Swal.fire({
-        title: 'Add Custom Command',
-        html: `
-            <div class="text-start">
-                <div class="mb-3">
-                    <label class="form-label">Trigger</label>
-                    <input type="text" class="form-control" id="customTrigger" placeholder="!hello">
-                    <small class="text-muted">The text that triggers this command</small>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Response</label>
-                    <textarea class="form-control" id="customResponse" rows="3" placeholder="Hello! Welcome to ECS FC"></textarea>
-                    <small class="text-muted">The bot's response when triggered</small>
-                </div>
-            </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Add Command',
-        preConfirm: () => {
-            const trigger = document.getElementById('customTrigger').value.trim();
-            const response = document.getElementById('customResponse').value.trim();
-
-            if (!trigger || !response) {
-                Swal.showValidationMessage('Both trigger and response are required');
-                return false;
-            }
-
-            return { trigger, response };
-        }
-    }).then((result) => {
-        if (result.isConfirmed && result.value) {
-            fetch('http://localhost:5001/api/bot/custom-commands', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(result.value)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Added!', 'Custom command has been created.', 'success')
-                    .then(() => customCommands()); // Refresh list
-                } else {
-                    Swal.fire('Error!', `Failed to add command: ${data.message || 'Unknown error'}`, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error adding custom command:', error);
-                Swal.fire('Error!', 'Failed to connect to bot API.', 'error');
-            });
-        }
-    });
-}
-
-function deleteCustomCommand(trigger) {
-    Swal.fire({
-        title: 'Delete Command?',
-        text: `Are you sure you want to delete the command "${trigger}"?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-        confirmButtonText: 'Delete'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch(`http://localhost:5001/api/bot/custom-commands/${encodeURIComponent(trigger)}`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Deleted!', 'Custom command has been removed.', 'success')
-                    .then(() => customCommands()); // Refresh list
-                } else {
-                    Swal.fire('Error!', `Failed to delete command: ${data.message || 'Unknown error'}`, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error deleting custom command:', error);
-                Swal.fire('Error!', 'Failed to connect to bot API.', 'error');
-            });
-        }
-    });
-}
-
-function manageGuild(guildId) {
-    const guildInfo = {{ guild_info | tojson | safe }};
-
-    Swal.fire({
-        title: `Manage ${guildInfo.name || 'Guild'}`,
-        html: `
-            <div class="text-start">
-                <h6 class="mb-3">Guild Settings</h6>
-
-                <div class="mb-3">
-                    <label class="form-label">Welcome Channel</label>
-                    <select class="form-select" id="welcomeChannel">
-                        <option value="">Select a channel</option>
-                        <option value="general">general</option>
-                        <option value="welcome">welcome</option>
-                        <option value="new-members">new-members</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Log Channel</label>
-                    <select class="form-select" id="logChannel">
-                        <option value="">Select a channel</option>
-                        <option value="bot-logs">bot-logs</option>
-                        <option value="admin-logs">admin-logs</option>
-                        <option value="audit-log">audit-log</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Match Results Channel</label>
-                    <select class="form-select" id="resultsChannel">
-                        <option value="">Select a channel</option>
-                        <option value="match-results">match-results</option>
-                        <option value="scores">scores</option>
-                        <option value="results">results</option>
-                    </select>
-                </div>
-
-                <h6 class="mb-3 mt-4">Guild Features</h6>
-
-                <div class="form-check form-switch mb-2">
-                    <input class="form-check-input" type="checkbox" id="guildWelcome" checked>
-                    <label class="form-check-label" for="guildWelcome">Send Welcome Messages</label>
-                </div>
-
-                <div class="form-check form-switch mb-2">
-                    <input class="form-check-input" type="checkbox" id="guildAutoRole" checked>
-                    <label class="form-check-label" for="guildAutoRole">Auto-assign Roles</label>
-                </div>
-
-                <div class="form-check form-switch mb-2">
-                    <input class="form-check-input" type="checkbox" id="guildMatchAlerts">
-                    <label class="form-check-label" for="guildMatchAlerts">Match Alert Notifications</label>
-                </div>
-            </div>
-        `,
-        width: '500px',
-        showCancelButton: true,
-        confirmButtonText: 'Save Settings',
-        preConfirm: () => {
-            return {
-                welcome_channel: document.getElementById('welcomeChannel').value,
-                log_channel: document.getElementById('logChannel').value,
-                results_channel: document.getElementById('resultsChannel').value,
-                welcome_enabled: document.getElementById('guildWelcome').checked,
-                auto_role_enabled: document.getElementById('guildAutoRole').checked,
-                match_alerts_enabled: document.getElementById('guildMatchAlerts').checked
-            };
-        }
-    }).then((result) => {
-        if (result.isConfirmed && result.value) {
-            fetch(`http://localhost:5001/api/bot/guild/${guildId}/settings`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(result.value)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Saved!', 'Guild settings have been updated.', 'success');
-                } else {
-                    Swal.fire('Error!', `Failed to save settings: ${data.message || 'Unknown error'}`, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error saving guild settings:', error);
-                Swal.fire('Error!', 'Failed to connect to bot API.', 'error');
-            });
-        }
-    });
-}
-
-function guildStats(guildId) {
-    const guildInfo = {{ guild_info | tojson | safe }};
-    const memberCount = guildInfo.member_count || {{ stats.member_count or 0 }};
-    const channelCount = guildInfo.channel_count || 45;
-    const roleCount = guildInfo.role_count || 25;
-    const newMembersToday = guildInfo.new_members_today || 0;
-    const commandsToday = {{ stats.commands_today or 0 }};
-    
-    // Build role distribution HTML
-    let roleDistributionHtml = '';
-    if (guildInfo.role_distribution && Object.keys(guildInfo.role_distribution).length > 0) {
-        const colors = ['', 'bg-info', 'bg-warning', 'bg-success', 'bg-secondary'];
-        let colorIndex = 0;
-        
-        for (const [roleName, roleData] of Object.entries(guildInfo.role_distribution)) {
-            const percentage = roleData.percentage || 0;
-            const count = roleData.count || 0;
-            const colorClass = colors[colorIndex % colors.length];
-            
-            roleDistributionHtml += `
-                <div class="progress mb-2">
-                    <div class="progress-bar ${colorClass}" style="width: ${percentage}%">
-                        ${roleName} (${percentage}% - ${count} members)
-                    </div>
-                </div>
-            `;
-            colorIndex++;
-        }
-    } else {
-        roleDistributionHtml = '<p class="text-muted">No role distribution data available</p>';
-    }
-    
-    Swal.fire({
-        title: '${guildInfo.name || "ECS FC Discord"} Guild Statistics',
-        html: `
-            <div class="text-start">
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <div class="card bg-primary text-white">
-                            <div class="card-body text-center">
-                                <h4>${memberCount}</h4>
-                                <small>Total Members</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-success text-white">
-                            <div class="card-body text-center">
-                                <h4>${channelCount}</h4>
-                                <small>Channels</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-info text-white">
-                            <div class="card-body text-center">
-                                <h4>${roleCount}</h4>
-                                <small>Roles</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-3">
-                    <h6>Role Distribution</h6>
-                    ${roleDistributionHtml}
-                </div>
-                <div class="mt-3">
-                    <h6>Recent Activity</h6>
-                    <ul class="list-unstyled">
-                        <li><i class="ti ti-user-plus text-success"></i> ${newMembersToday} new members joined today</li>
-                        <li><i class="ti ti-message text-info"></i> Activity tracking enabled</li>
-                        <li><i class="ti ti-command text-primary"></i> ${commandsToday} commands executed today</li>
-                    </ul>
-                </div>
-            </div>
-        `,
-        width: '700px',
-        confirmButtonText: 'Close'
-    });
-}
-
-function addGuild() {
-    // Generate bot invite URL
-    const botClientId = '{{ config.DISCORD_BOT_CLIENT_ID | default("YOUR_BOT_CLIENT_ID", true) }}';
-    const permissions = '8'; // Administrator permission
-    const inviteUrl = `https://discord.com/api/oauth2/authorize?client_id=${botClientId}&permissions=${permissions}&scope=bot%20applications.commands`;
-
-    Swal.fire({
-        title: 'Add Bot to Server',
-        html: `
-            <div class="text-start">
-                <p>To add the ECS FC Discord bot to another server, you need administrator permissions on that server.</p>
-
-                <div class="alert alert-info">
-                    <i class="ti ti-info-circle me-2"></i>
-                    Click the button below to authorize the bot for a new server.
-                </div>
-
-                <div class="text-center mt-4">
-                    <a href="${inviteUrl}" target="_blank" class="btn btn-primary btn-lg">
-                        <i class="ti ti-brand-discord me-2"></i>Invite Bot to Server
-                    </a>
-                </div>
-
-                <div class="mt-4">
-                    <h6>Required Permissions:</h6>
-                    <ul class="small">
-                        <li>Manage Roles</li>
-                        <li>Send Messages</li>
-                        <li>Read Message History</li>
-                        <li>Manage Channels</li>
-                        <li>Use Application Commands</li>
-                    </ul>
-                </div>
-
-                <div class="alert alert-warning mt-3">
-                    <i class="ti ti-alert-triangle me-2"></i>
-                    After adding the bot, you'll need to configure it in the new server's settings.
-                </div>
-            </div>
-        `,
-        width: '550px',
-        showConfirmButton: false,
-        showCloseButton: true
-    });
-}
-
-function saveBotConfig() {
-    const config = {
-        prefix: document.getElementById('botPrefix').value,
-        default_role: document.getElementById('defaultRole').value,
-        activity_type: document.getElementById('activityType').value,
-        activity_text: document.getElementById('activityText').value,
-        auto_moderation: document.getElementById('autoModeration').checked,
-        command_logging: document.getElementById('commandLogging').checked,
-        welcome_messages: document.getElementById('welcomeMessages').checked
-    };
-    
-    // Show loading
-    Swal.fire({
-        title: 'Saving Configuration...',
-        text: 'Please wait while the configuration is being saved',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-    
-    // Send configuration to bot API
-    fetch('http://localhost:5001/api/bot/config', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(config)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            Swal.fire('Saved!', 'Bot configuration has been updated successfully.', 'success');
-        } else {
-            Swal.fire('Error!', `Failed to save configuration: ${data.error || 'Unknown error'}`, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error saving bot config:', error);
-        Swal.fire('Error!', 'Failed to connect to bot API. Please check if the bot is running.', 'error');
-    });
-}
-
-function resetBotConfig() {
-    document.getElementById('botPrefix').value = '!';
-    document.getElementById('defaultRole').value = '';
-    document.getElementById('activityType').value = 'playing';
-    document.getElementById('activityText').value = 'ECS FC League';
-    document.getElementById('autoModeration').checked = true;
-    document.getElementById('commandLogging').checked = true;
-    document.getElementById('welcomeMessages').checked = true;
-    
-    Swal.fire('Reset!', 'Configuration has been reset to defaults.', 'info');
-}
-
-function loadBotConfig() {
-    // Load current bot configuration from API
-    fetch('http://localhost:5001/api/bot/config')
-    .then(response => response.json())
-    .then(data => {
-        if (data.success && data.config) {
-            const config = data.config;
-            document.getElementById('botPrefix').value = config.prefix || '!';
-            document.getElementById('defaultRole').value = config.default_role || '';
-            document.getElementById('activityType').value = config.activity_type || 'playing';
-            document.getElementById('activityText').value = config.activity_text || 'ECS FC League';
-            document.getElementById('autoModeration').checked = config.auto_moderation !== false;
-            document.getElementById('commandLogging').checked = config.command_logging !== false;
-            document.getElementById('welcomeMessages').checked = config.welcome_messages !== false;
-        }
-    })
-    .catch(error => {
-        console.log('Could not load bot configuration:', error);
-        // Use default values if API is not accessible
-    });
-}
-
-// Load configuration when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    loadBotConfig();
-});
-</script>
+{{ super() }}
+<script src="{{ url_for('static', filename='js/admin-panel-discord-bot.js') }}"></script>
 {% endblock %}

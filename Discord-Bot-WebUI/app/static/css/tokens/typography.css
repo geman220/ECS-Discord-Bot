@@ -1,0 +1,348 @@
+/**
+ * ============================================================================
+ * ECS TYPOGRAPHY TOKENS
+ * ============================================================================
+ *
+ * Complete typography system including fonts, sizes, weights, and line heights.
+ * Designed for readability and hierarchy across all device sizes.
+ *
+ * Structure:
+ *   1. Font Families
+ *   2. Font Sizes (Type Scale)
+ *   3. Line Heights
+ *   4. Font Weights
+ *   5. Letter Spacing
+ *   6. Semantic Text Styles
+ *
+ * ============================================================================
+ */
+
+:root {
+  /* ========================================================================
+     1. FONT FAMILIES
+     ======================================================================== */
+
+  /* Modern Theme - Inter (Clean, professional, excellent legibility) */
+  --font-display: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  --font-body: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+
+  /* Monospace - For code and technical content */
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Consolas', 'Courier New', monospace;
+
+  /* Legacy Font - Public Sans (maintained for compatibility) */
+  --font-legacy: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* System Font Stack (fallback) */
+  --font-system: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+
+  /* ========================================================================
+     2. FONT SIZES - Type Scale
+     Base: 16px (1rem) - Optimized for readability
+     Scale ratio: 1.250 (Major Third) for harmonious progression
+     ======================================================================== */
+
+  /* Extra Small - Captions, labels, small print */
+  --text-xs: 0.75rem;      /* 12px */
+
+  /* Small - Secondary text, metadata */
+  --text-sm: 0.875rem;     /* 14px */
+
+  /* Base - Body text, primary content */
+  --text-base: 1rem;       /* 16px - Default */
+
+  /* Large - Subheadings, emphasized text */
+  --text-lg: 1.125rem;     /* 18px */
+
+  /* Extra Large - Small headings */
+  --text-xl: 1.25rem;      /* 20px */
+
+  /* 2XL - Section headings */
+  --text-2xl: 1.5rem;      /* 24px */
+
+  /* 3XL - Major headings */
+  --text-3xl: 2rem;        /* 32px */
+
+  /* 4XL - Page titles */
+  --text-4xl: 2.5rem;      /* 40px */
+
+  /* 5XL - Hero headings */
+  --text-5xl: 3.5rem;      /* 56px */
+
+  /* 6XL - Display headings (rarely used) */
+  --text-6xl: 4rem;        /* 64px */
+
+  /* Mobile-optimized sizes (for smaller screens) */
+  --text-mobile-xs: 0.688rem;   /* 11px */
+  --text-mobile-sm: 0.813rem;   /* 13px */
+  --text-mobile-base: 0.938rem; /* 15px */
+  --text-mobile-lg: 1.063rem;   /* 17px */
+
+  /* ========================================================================
+     MOBILE TYPOGRAPHY TOKENS
+     Alias variables for consistent mobile CSS usage
+     These ensure inputs are at least 16px to prevent iOS zoom
+     ======================================================================== */
+
+  /* Mobile text sizes - canonical variable names used in mobile.css files */
+  --mobile-text-xs: 0.75rem;    /* 12px - Minimum readable size */
+  --mobile-text-sm: 0.875rem;   /* 14px - Small text, labels */
+  --mobile-text-base: 1rem;     /* 16px - Body text, form inputs (iOS zoom threshold) */
+  --mobile-text-lg: 1.125rem;   /* 18px - Headings */
+  --mobile-text-xl: 1.25rem;    /* 20px - Large headings */
+  --mobile-text-2xl: 1.5rem;    /* 24px - Section titles */
+
+  /* iOS zoom prevention: Apple Safari zooms page when input font is < 16px
+     Use --mobile-text-base (16px) for all form inputs to prevent this */
+  --mobile-input-font-size: 1rem;  /* 16px minimum for iOS */
+
+  /* ========================================================================
+     3. LINE HEIGHTS - Leading
+     Calculated for optimal readability at each size
+     ======================================================================== */
+
+  /* Tight - For headings and display text */
+  --leading-tight: 1.15;
+
+  /* Snug - For subheadings */
+  --leading-snug: 1.25;
+
+  /* Normal - For body text (optimal for 16px) */
+  --leading-normal: 1.5;
+
+  /* Relaxed - For large body text */
+  --leading-relaxed: 1.75;
+
+  /* Loose - For emphasized readability */
+  --leading-loose: 2;
+
+  /* ========================================================================
+     4. FONT WEIGHTS
+     ======================================================================== */
+
+  --font-light: 300;
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --font-extrabold: 800;
+  --font-black: 900;
+
+  /* ========================================================================
+     5. LETTER SPACING - Tracking
+     ======================================================================== */
+
+  --tracking-tighter: -0.05em;
+  --tracking-tight: -0.025em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.025em;
+  --tracking-wider: 0.05em;
+  --tracking-widest: 0.1em;
+
+  /* ========================================================================
+     6. SEMANTIC TEXT STYLES
+     Pre-defined combinations for common text patterns
+     ======================================================================== */
+
+  /* Headings */
+  --text-h1-size: var(--text-4xl);
+  --text-h1-weight: var(--font-bold);
+  --text-h1-leading: var(--leading-tight);
+  --text-h1-tracking: var(--tracking-tight);
+
+  --text-h2-size: var(--text-3xl);
+  --text-h2-weight: var(--font-bold);
+  --text-h2-leading: var(--leading-tight);
+  --text-h2-tracking: var(--tracking-tight);
+
+  --text-h3-size: var(--text-2xl);
+  --text-h3-weight: var(--font-semibold);
+  --text-h3-leading: var(--leading-snug);
+
+  --text-h4-size: var(--text-xl);
+  --text-h4-weight: var(--font-semibold);
+  --text-h4-leading: var(--leading-snug);
+
+  --text-h5-size: var(--text-lg);
+  --text-h5-weight: var(--font-medium);
+  --text-h5-leading: var(--leading-normal);
+
+  --text-h6-size: var(--text-base);
+  --text-h6-weight: var(--font-medium);
+  --text-h6-leading: var(--leading-normal);
+
+  /* Body Text */
+  --text-body-size: var(--text-base);
+  --text-body-weight: var(--font-normal);
+  --text-body-leading: var(--leading-normal);
+
+  /* Small Text */
+  --text-small-size: var(--text-sm);
+  --text-small-weight: var(--font-normal);
+  --text-small-leading: var(--leading-normal);
+
+  /* Caption */
+  --text-caption-size: var(--text-xs);
+  --text-caption-weight: var(--font-normal);
+  --text-caption-leading: var(--leading-normal);
+
+  /* Overline/Label */
+  --text-overline-size: var(--text-xs);
+  --text-overline-weight: var(--font-semibold);
+  --text-overline-tracking: var(--tracking-widest);
+  --text-overline-transform: uppercase;
+
+  /* Link */
+  --text-link-weight: var(--font-medium);
+  --text-link-decoration: underline;
+  --text-link-decoration-hover: none;
+
+  /* Button Text */
+  --text-button-size: var(--text-base);
+  --text-button-weight: var(--font-medium);
+  --text-button-tracking: var(--tracking-wide);
+
+  /* Code/Monospace */
+  --text-code-size: 0.875em;  /* Relative to parent */
+  --text-code-weight: var(--font-normal);
+  --text-code-family: var(--font-mono);
+}
+
+/* ============================================================================
+   RESPONSIVE TYPOGRAPHY - Mobile Adjustments
+   Smaller base size on mobile for better readability
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  :root {
+    /* Adjust base font sizes for mobile */
+    --text-base: 0.938rem;    /* 15px on mobile */
+    --text-2xl: 1.375rem;     /* 22px on mobile */
+    --text-3xl: 1.75rem;      /* 28px on mobile */
+    --text-4xl: 2rem;         /* 32px on mobile */
+    --text-5xl: 2.5rem;       /* 40px on mobile */
+
+    /* Tighter line heights for mobile */
+    --leading-normal: 1.4;
+  }
+}
+
+/* ============================================================================
+   THEME VARIANT - Modern V2 Typography (Coming Soon)
+   ============================================================================ */
+
+[data-theme-variant="modern-v2"] {
+  /* Modern V2 will use DM Sans or Source Sans 3 */
+  /* This will be populated in Phase 9 */
+}
+
+/* ============================================================================
+   UTILITY CLASSES - For direct use in HTML
+   ============================================================================ */
+
+/* Font families */
+.font-display { font-family: var(--font-display); }
+.font-body { font-family: var(--font-body); }
+.font-mono { font-family: var(--font-mono); }
+
+/* Font sizes */
+.text-xs { font-size: var(--text-xs); }
+.text-sm { font-size: var(--text-sm); }
+.text-base { font-size: var(--text-base); }
+.text-lg { font-size: var(--text-lg); }
+.text-xl { font-size: var(--text-xl); }
+.text-2xl { font-size: var(--text-2xl); }
+.text-3xl { font-size: var(--text-3xl); }
+.text-4xl { font-size: var(--text-4xl); }
+.text-5xl { font-size: var(--text-5xl); }
+
+/* Font weights */
+.font-light { font-weight: var(--font-light); }
+.font-normal { font-weight: var(--font-normal); }
+.font-medium { font-weight: var(--font-medium); }
+.font-semibold { font-weight: var(--font-semibold); }
+.font-bold { font-weight: var(--font-bold); }
+.font-extrabold { font-weight: var(--font-extrabold); }
+.font-black { font-weight: var(--font-black); }
+
+/* Line heights */
+.leading-tight { line-height: var(--leading-tight); }
+.leading-snug { line-height: var(--leading-snug); }
+.leading-normal { line-height: var(--leading-normal); }
+.leading-relaxed { line-height: var(--leading-relaxed); }
+.leading-loose { line-height: var(--leading-loose); }
+
+/* Letter spacing */
+.tracking-tighter { letter-spacing: var(--tracking-tighter); }
+.tracking-tight { letter-spacing: var(--tracking-tight); }
+.tracking-normal { letter-spacing: var(--tracking-normal); }
+.tracking-wide { letter-spacing: var(--tracking-wide); }
+.tracking-wider { letter-spacing: var(--tracking-wider); }
+.tracking-widest { letter-spacing: var(--tracking-widest); }
+
+/* Text transforms */
+.uppercase { text-transform: uppercase; }
+.lowercase { text-transform: lowercase; }
+.capitalize { text-transform: capitalize; }
+.normal-case { text-transform: none; }
+
+/* ============================================================================
+   ALIAS VARIABLES
+   Support alternative naming conventions used in components
+   ============================================================================ */
+
+:root {
+  /* Font size aliases (components often use font-size-* naming) */
+  --font-size-xs: var(--text-xs);
+  --font-size-sm: var(--text-sm);
+  --font-size-base: var(--text-base);
+  --font-size-lg: var(--text-lg);
+  --font-size-xl: var(--text-xl);
+  --font-size-2xl: var(--text-2xl);
+  --font-size-3xl: var(--text-3xl);
+  --font-size-4xl: var(--text-4xl);
+  --font-size-5xl: var(--text-5xl);
+
+  /* Font weight aliases (components use font-weight-* naming) */
+  --font-weight-light: var(--font-light);
+  --font-weight-normal: var(--font-normal);
+  --font-weight-medium: var(--font-medium);
+  --font-weight-semibold: var(--font-semibold);
+  --font-weight-bold: var(--font-bold);
+  --font-weight-extrabold: var(--font-extrabold);
+  --font-weight-black: var(--font-black);
+
+  /* Line-height alias */
+  --leading-none: 1;
+
+  /* Classic theme font alias */
+  --font-classic: var(--font-legacy);
+}
+
+/* ============================================================================
+   LEGACY COMPATIBILITY
+   Support old variable names
+   ============================================================================ */
+
+:root {
+  --ecs-font-display: var(--font-display);
+  --ecs-font-body: var(--font-body);
+  --ecs-font-mono: var(--font-mono);
+  --ecs-text-xs: var(--text-xs);
+  --ecs-text-sm: var(--text-sm);
+  --ecs-text-base: var(--text-base);
+  --ecs-text-lg: var(--text-lg);
+  --ecs-text-xl: var(--text-xl);
+  --ecs-text-2xl: var(--text-2xl);
+  --ecs-text-3xl: var(--text-3xl);
+  --ecs-text-4xl: var(--text-4xl);
+  --ecs-text-5xl: var(--text-5xl);
+  --ecs-leading-tight: var(--leading-tight);
+  --ecs-leading-snug: var(--leading-snug);
+  --ecs-leading-normal: var(--leading-normal);
+  --ecs-leading-relaxed: var(--leading-relaxed);
+  --ecs-weight-normal: var(--font-normal);
+  --ecs-weight-medium: var(--font-medium);
+  --ecs-weight-semibold: var(--font-semibold);
+  --ecs-weight-bold: var(--font-bold);
+  --ecs-weight-black: var(--font-black);
+}

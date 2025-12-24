@@ -1,33 +1,49 @@
 /**
  * Settings Tabs - Modern navbar-style navigation
  * Follows admin panel design patterns for consistency
+ *
+ * IMPORTANT DECLARATIONS: 0 unjustified, 0 justified
+ * DESIGN TOKENS: All colors, spacing, borders, and shadows use design tokens
+ * DARK MODE: Full support via [data-style="dark"] selectors
  */
 
-/* Navbar Container Override */
+/* ============================================================================
+   NAVBAR CONTAINER
+   ============================================================================ */
+
 .navbar.bg-body-tertiary {
     overflow: visible;
 }
 
 /* Light mode navbar background - matches admin panel */
 [data-theme-variant="modern"]:not([data-style="dark"]) .navbar.bg-body-tertiary {
-    background-color: #ffffff !important;
-    border: 1px solid var(--ecs-neutral-20) !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
+    background-color: var(--color-neutral-0);
+    border: var(--border-width-1) solid var(--color-neutral-200);
+    box-shadow: var(--shadow-xs);
 }
 
-/* Scrollable Nav */
+/* Dark mode navbar background */
+[data-style="dark"] .navbar.bg-body-tertiary {
+    background-color: var(--color-bg-card);
+    border-color: var(--color-border-primary);
+}
+
+/* ============================================================================
+   SCROLLABLE NAVIGATION
+   ============================================================================ */
+
 .settings-nav-scroll {
     overflow-x: auto;
     overflow-y: visible;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
-    scrollbar-color: rgba(var(--ecs-neutral-90-rgb), 0.2) transparent;
+    scrollbar-color: rgba(var(--color-neutral-900), 0.2) transparent;
     max-width: 100%;
-    padding-bottom: 4px;
+    padding-bottom: var(--space-1);
 }
 
 .settings-nav-scroll::-webkit-scrollbar {
-    height: 4px;
+    height: var(--space-1);
 }
 
 .settings-nav-scroll::-webkit-scrollbar-track {
@@ -35,14 +51,14 @@
 }
 
 .settings-nav-scroll::-webkit-scrollbar-thumb {
-    background-color: rgba(var(--ecs-neutral-90-rgb), 0.2);
-    border-radius: 4px;
+    background-color: rgba(var(--color-neutral-900), 0.2);
+    border-radius: var(--radius-sm);
 }
 
 .settings-nav-scroll .navbar-nav {
     display: flex;
     flex-wrap: nowrap;
-    gap: 0.125rem;
+    gap: var(--space-1);
     width: max-content;
     min-width: 100%;
 }
@@ -52,13 +68,16 @@
     flex-shrink: 0;
 }
 
-/* Nav Links - Aligned with admin panel */
+/* ============================================================================
+   NAV LINKS - Base Styles
+   ============================================================================ */
+
 .settings-nav-scroll .nav-link {
     display: flex;
     align-items: center;
-    padding: 0.35rem 0.5rem;
-    border-radius: 0.375rem;
-    color: var(--ecs-neutral-50);
+    padding: var(--space-2) var(--space-2);
+    border-radius: var(--radius-md);
+    color: var(--color-text-muted);
     font-weight: 500;
     font-size: 0.8125rem;
     white-space: nowrap;
@@ -66,54 +85,123 @@
 }
 
 .settings-nav-scroll .nav-link:hover {
-    background-color: rgba(var(--ecs-primary-rgb), 0.1);
-    color: var(--ecs-primary);
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary);
 }
 
 .settings-nav-scroll .nav-link.active {
-    background-color: var(--ecs-primary);
-    color: var(--ecs-neutral-0) !important;
+    background-color: var(--color-primary);
+    color: var(--color-neutral-0);
 }
 
 .settings-nav-scroll .nav-link i {
     font-size: 1rem;
-    margin-right: 0.2rem;
+    margin-right: var(--space-1);
 }
 
-.settings-nav-scroll .nav-link .nav-link-text {
-    /* Text is inline with icon */
-}
+/* ============================================================================
+   NAV LINKS - Light Mode Theme Variant
+   ============================================================================ */
 
-/* Light mode specific styles for settings nav */
 [data-theme-variant="modern"]:not([data-style="dark"]) .settings-nav-scroll .nav-link {
-    color: var(--ecs-neutral-60) !important;
+    color: var(--color-neutral-600);
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .settings-nav-scroll .nav-link:hover {
-    background-color: rgba(var(--ecs-primary-rgb), 0.08) !important;
-    color: var(--ecs-primary) !important;
+    background-color: rgba(var(--color-primary-rgb), 0.08);
+    color: var(--color-primary);
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .settings-nav-scroll .nav-link.active {
-    background-color: var(--ecs-primary) !important;
-    color: #ffffff !important;
+    background-color: var(--color-primary);
+    color: var(--color-neutral-0);
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .settings-nav-scroll .nav-link i {
-    color: inherit !important;
+    color: inherit;
 }
 
-/* Settings Card Styles */
+/* ============================================================================
+   NAV LINKS - Dark Mode
+   ============================================================================ */
+
+[data-style="dark"] .settings-nav-scroll .nav-link {
+    color: var(--color-text-muted);
+}
+
+[data-style="dark"] .settings-nav-scroll .nav-link:hover {
+    background-color: rgba(var(--color-primary-rgb), 0.15);
+    color: var(--color-primary-600);
+}
+
+[data-style="dark"] .settings-nav-scroll .nav-link.active {
+    background-color: var(--color-primary);
+    color: var(--color-neutral-0);
+}
+
+/* ============================================================================
+   SETTINGS CARDS
+   ============================================================================ */
+
 .settings-card {
     transition: all 0.2s ease-in-out;
-    border-radius: 0.75rem;
+    border-radius: var(--radius-xl);
 }
 
 .settings-card:hover {
-    box-shadow: 0 0.125rem 0.5rem rgba(var(--ecs-neutral-50-rgb), 0.2);
+    box-shadow: var(--shadow-md);
 }
 
-/* Settings Icon */
+/* Light Mode - Settings Cards */
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-card {
+    background-color: var(--color-neutral-0);
+    border: var(--border-width-1) solid var(--color-neutral-200);
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-card .card-header {
+    background-color: transparent;
+    border-bottom: var(--border-width-1) solid var(--color-neutral-200);
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-card .card-title {
+    color: var(--color-neutral-900);
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-card .card-body {
+    color: var(--color-neutral-600);
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-card .form-label {
+    color: var(--color-neutral-900);
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-card .form-text {
+    color: var(--color-neutral-500);
+}
+
+/* Dark Mode - Settings Cards */
+[data-style="dark"] .settings-card {
+    background-color: var(--color-bg-card);
+    border-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .settings-card:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+[data-style="dark"] .settings-card .card-header {
+    background-color: var(--color-bg-primary);
+    border-bottom-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .settings-card .card-title {
+    color: var(--color-text-primary);
+}
+
+/* ============================================================================
+   SETTINGS ICON
+   ============================================================================ */
+
 .settings-icon {
     font-size: 1.25rem;
     width: 42px;
@@ -122,21 +210,101 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
 }
 
-/* Form Controls in Settings */
+/* Light Mode - Settings Icons */
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-icon {
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary);
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-icon.bg-warning {
+    background-color: var(--color-warning-subtle);
+    color: var(--color-warning);
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-icon.bg-success {
+    background-color: var(--color-success-subtle);
+    color: var(--color-success);
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-icon.bg-info {
+    background-color: var(--color-info-subtle);
+    color: var(--color-info);
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-icon.bg-danger {
+    background-color: var(--color-danger-subtle);
+    color: var(--color-danger);
+}
+
+/* Dark Mode - Settings Icons */
+[data-style="dark"] .settings-icon {
+    background-color: rgba(var(--color-primary-rgb), 0.15);
+}
+
+[data-style="dark"] .settings-icon.bg-primary.bg-opacity-10 {
+    background-color: rgba(var(--color-primary-rgb), 0.15);
+    color: var(--color-primary-600);
+}
+
+[data-style="dark"] .settings-icon.bg-warning.bg-opacity-10 {
+    background-color: rgba(var(--color-warning-rgb), 0.15);
+    color: var(--color-warning-600);
+}
+
+[data-style="dark"] .settings-icon.bg-success.bg-opacity-10 {
+    background-color: rgba(var(--color-success-rgb), 0.15);
+    color: var(--color-success-600);
+}
+
+[data-style="dark"] .settings-icon.bg-info.bg-opacity-10 {
+    background-color: rgba(var(--color-info-rgb), 0.15);
+    color: var(--color-info-600);
+}
+
+[data-style="dark"] .settings-icon.bg-dark.bg-opacity-10 {
+    background-color: rgba(var(--color-neutral-600), 0.3);
+    color: var(--color-text-secondary);
+}
+
+/* ============================================================================
+   FORM CONTROLS IN SETTINGS
+   ============================================================================ */
+
 .settings-card .form-label.fw-semibold {
     font-size: 0.875rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-2);
 }
 
 .settings-card .form-control,
 .settings-card .form-select {
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
 }
 
-/* Wallet Badge */
+/* Dark Mode - Form Controls */
+[data-style="dark"] .settings-card .form-control,
+[data-style="dark"] .settings-card .form-select {
+    background-color: var(--color-bg-primary);
+    border-color: var(--color-border-primary);
+    color: var(--color-text-secondary);
+}
+
+[data-style="dark"] .settings-card .form-control:focus,
+[data-style="dark"] .settings-card .form-select:focus {
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-focus);
+}
+
+[data-style="dark"] .settings-card .form-control::placeholder {
+    color: var(--color-text-muted);
+}
+
+/* ============================================================================
+   WALLET BADGE
+   ============================================================================ */
+
 .wallet-badge {
     transition: transform 0.2s ease, opacity 0.2s ease;
     display: inline-block;
@@ -148,129 +316,168 @@
 }
 
 .wallet-badge svg {
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(var(--ecs-neutral-90-rgb), 0.2);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
 }
 
-/* Verification Code Input */
+/* Dark Mode - Wallet Badge */
+[data-style="dark"] .wallet-badge svg rect {
+    fill: var(--color-text-primary);
+}
+
+/* ============================================================================
+   VERIFICATION CODE INPUT
+   ============================================================================ */
+
 .verification-code-input {
-    letter-spacing: 4px;
+    letter-spacing: var(--space-1);
     font-weight: 600;
     text-align: center;
     font-size: 1.25rem;
 }
 
-/* Desktop/Large screens - lg (992px-1199px) */
-@media (min-width: 992px) {
-    .settings-nav-scroll .nav-link {
-        padding: 0.35rem 0.45rem;
-        font-size: 0.7rem;
-    }
-
-    .settings-nav-scroll .nav-link i {
-        margin-right: 0.15rem !important;
-        font-size: 0.85rem;
-    }
-
-    .settings-nav-scroll .nav-link-text {
-        display: inline;
-    }
+/* Dark Mode - Verification Input */
+[data-style="dark"] .verification-code-input {
+    background-color: var(--color-bg-primary);
+    border-color: var(--color-border-primary);
+    color: var(--color-text-primary);
 }
 
-/* Extra large screens - xl (1200px-1399px) */
-@media (min-width: 1200px) {
-    .settings-nav-scroll .nav-link {
-        padding: 0.4rem 0.55rem;
-        font-size: 0.78rem;
-    }
+/* ============================================================================
+   ALERTS AND STATUS BOXES
+   ============================================================================ */
 
-    .settings-nav-scroll .nav-link i {
-        margin-right: 0.2rem !important;
-        font-size: 0.9rem;
-    }
+/* Light Mode - Alert Light */
+[data-theme-variant="modern"]:not([data-style="dark"]) .alert.alert-light {
+    background-color: var(--color-neutral-50);
+    border-color: var(--color-neutral-200);
+    color: var(--color-neutral-600);
 }
 
-/* XXL screens (1400px+) */
-@media (min-width: 1400px) {
-    .settings-nav-scroll .nav-link {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.875rem;
-    }
-
-    .settings-nav-scroll .nav-link i {
-        margin-right: 0.25rem !important;
-        font-size: 1rem;
-    }
+/* Dark Mode - Alert Light */
+[data-style="dark"] .alert.alert-light {
+    background-color: var(--color-bg-primary);
+    border-color: var(--color-border-primary);
+    color: var(--color-text-secondary);
 }
 
-/* Tablet screens - (768px-991px) */
-@media (min-width: 768px) and (max-width: 991.98px) {
-    .settings-nav-scroll {
-        position: relative;
-    }
-
-    .settings-nav-scroll .nav-link {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.8125rem;
-        min-height: 44px;
-        display: flex;
-        align-items: center;
-    }
-
-    .settings-nav-scroll .nav-link i {
-        font-size: 1rem;
-    }
+[data-style="dark"] .alert.alert-light.border {
+    border-color: var(--color-border-primary);
 }
 
-/* Mobile Responsive */
-@media (max-width: 767.98px) {
-    .settings-nav-scroll .nav-link {
-        padding: 0.5rem 0.625rem;
-        font-size: 0.75rem;
-    }
-
-    .settings-nav-scroll .nav-link .nav-link-text {
-        display: none;
-    }
-
-    .settings-nav-scroll .nav-link i {
-        margin-right: 0 !important;
-        font-size: 1.1rem;
-    }
-
-    .settings-icon {
-        width: 36px;
-        height: 36px;
-        min-width: 36px;
-        font-size: 1.1rem;
-    }
-
-    .settings-card .card-header {
-        padding: 1rem;
-    }
-
-    .settings-card .card-body {
-        padding: 1rem;
-    }
-
-    .wallet-badge svg {
-        width: 140px;
-        height: 38px;
-    }
+/* Light Mode - Quick Actions Card */
+[data-theme-variant="modern"]:not([data-style="dark"]) .card.border-0.bg-light {
+    background-color: var(--color-neutral-50);
 }
 
-@media (max-width: 575.98px) {
-    .settings-nav-scroll .nav-link {
-        padding: 0.5rem;
-    }
-
-    .settings-nav-scroll .navbar-nav {
-        justify-content: space-around;
-        width: 100%;
-    }
+[data-theme-variant="modern"]:not([data-style="dark"]) .card.border-0.bg-light h6 {
+    color: var(--color-neutral-900);
 }
 
-/* Tab Content Transitions */
+/* Dark Mode - Quick Actions Card */
+[data-style="dark"] .card.border-0.bg-light {
+    background-color: var(--color-bg-primary);
+}
+
+[data-style="dark"] .card.border-0.bg-light h6 {
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .card.border-0.bg-light .small {
+    color: var(--color-text-muted);
+}
+
+/* Quick Actions Card - Buttons */
+.card.border-0.bg-light .btn {
+    justify-content: flex-start;
+}
+
+/* Light Mode - Status boxes */
+[data-theme-variant="modern"]:not([data-style="dark"]) .bg-light.rounded {
+    background-color: var(--color-neutral-50);
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .bg-light.rounded .text-muted {
+    color: var(--color-neutral-500);
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .bg-light.rounded .fw-semibold {
+    color: var(--color-neutral-900);
+}
+
+/* Dark Mode - Status boxes */
+[data-style="dark"] .bg-light.rounded {
+    background-color: var(--color-bg-primary);
+}
+
+[data-style="dark"] .bg-light.rounded .text-muted {
+    color: var(--color-text-muted);
+}
+
+[data-style="dark"] .bg-light.rounded .fw-semibold {
+    color: var(--color-text-secondary);
+}
+
+/* ============================================================================
+   2FA STATUS CIRCLES
+   ============================================================================ */
+
+/* Dark Mode - 2FA Status Circles */
+[data-style="dark"] .rounded-circle.bg-success.bg-opacity-10 {
+    background-color: rgba(var(--color-success-rgb), 0.15);
+}
+
+[data-style="dark"] .rounded-circle.bg-warning.bg-opacity-10 {
+    background-color: rgba(var(--color-warning-rgb), 0.15);
+}
+
+[data-style="dark"] .rounded-circle.bg-light {
+    background-color: var(--color-bg-elevated);
+}
+
+/* ============================================================================
+   FORM SWITCH ALIGNMENT FIXES
+   ============================================================================ */
+
+.form-check.form-switch {
+    padding-left: 0;
+}
+
+.form-switch .form-check-input {
+    margin-left: 0;
+}
+
+/* ============================================================================
+   NOTIFICATION CHANNEL CARDS
+   ============================================================================ */
+
+/* Dark Mode - Notification Channels */
+[data-style="dark"] .notification-channel {
+    background-color: var(--color-bg-card);
+    border-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .notification-channel.channel-enabled {
+    border-color: var(--color-success);
+}
+
+[data-style="dark"] .channel-icon-lg {
+    background-color: rgba(var(--color-neutral-600), 0.15);
+}
+
+/* ============================================================================
+   CALENDAR SUBSCRIPTION STATS
+   ============================================================================ */
+
+/* Dark Mode - Calendar Subscription */
+[data-style="dark"] #subscriptionContent .bg-light {
+    background-color: var(--color-bg-primary);
+}
+
+/* ============================================================================
+   TAB CONTENT TRANSITIONS
+   ============================================================================ */
+
 .tab-pane {
     animation: fadeInTab 0.3s ease;
 }
@@ -286,282 +493,9 @@
     }
 }
 
-/* Quick Actions Card */
-.card.border-0.bg-light .btn {
-    justify-content: flex-start;
-}
-
-/* Form Switch Alignment Fixes */
-.form-check.form-switch {
-    padding-left: 0;
-}
-
-.form-switch .form-check-input {
-    margin-left: 0;
-}
-
-/* ========================================
-   Light Mode Support (Modern Theme)
-   ======================================== */
-
-/* Settings Cards - Light Mode */
-[data-theme-variant="modern"]:not([data-style="dark"]) .settings-card {
-    background-color: #ffffff !important;
-    border: 1px solid var(--ecs-neutral-20) !important;
-}
-
-[data-theme-variant="modern"]:not([data-style="dark"]) .settings-card .card-header {
-    background-color: transparent !important;
-    border-bottom: 1px solid var(--ecs-neutral-20) !important;
-}
-
-[data-theme-variant="modern"]:not([data-style="dark"]) .settings-card .card-title {
-    color: var(--ecs-neutral-90) !important;
-}
-
-[data-theme-variant="modern"]:not([data-style="dark"]) .settings-card .card-body {
-    color: var(--ecs-neutral-60) !important;
-}
-
-[data-theme-variant="modern"]:not([data-style="dark"]) .settings-card .form-label {
-    color: var(--ecs-neutral-90) !important;
-}
-
-[data-theme-variant="modern"]:not([data-style="dark"]) .settings-card .form-text {
-    color: var(--ecs-neutral-50) !important;
-}
-
-/* Settings Icon - Light Mode */
-[data-theme-variant="modern"]:not([data-style="dark"]) .settings-icon {
-    background-color: rgba(var(--ecs-primary-rgb), 0.1) !important;
-    color: var(--ecs-primary) !important;
-}
-
-[data-theme-variant="modern"]:not([data-style="dark"]) .settings-icon.bg-warning {
-    background-color: rgba(var(--ecs-warning-rgb), 0.1) !important;
-    color: var(--ecs-warning) !important;
-}
-
-[data-theme-variant="modern"]:not([data-style="dark"]) .settings-icon.bg-success {
-    background-color: rgba(var(--ecs-success-rgb), 0.1) !important;
-    color: var(--ecs-success) !important;
-}
-
-[data-theme-variant="modern"]:not([data-style="dark"]) .settings-icon.bg-info {
-    background-color: rgba(var(--ecs-info-rgb), 0.1) !important;
-    color: var(--ecs-info) !important;
-}
-
-[data-theme-variant="modern"]:not([data-style="dark"]) .settings-icon.bg-danger {
-    background-color: rgba(var(--ecs-danger-rgb), 0.1) !important;
-    color: var(--ecs-danger) !important;
-}
-
-/* Alert Light in Light Mode */
-[data-theme-variant="modern"]:not([data-style="dark"]) .alert.alert-light {
-    background: var(--ecs-neutral-5) !important;
-    border-color: var(--ecs-neutral-20) !important;
-    color: var(--ecs-neutral-60) !important;
-}
-
-/* Quick Actions Card - Light Mode */
-[data-theme-variant="modern"]:not([data-style="dark"]) .card.border-0.bg-light {
-    background: var(--ecs-neutral-5) !important;
-}
-
-[data-theme-variant="modern"]:not([data-style="dark"]) .card.border-0.bg-light h6 {
-    color: var(--ecs-neutral-90) !important;
-}
-
-/* Status boxes - Light Mode */
-[data-theme-variant="modern"]:not([data-style="dark"]) .bg-light.rounded {
-    background: var(--ecs-neutral-5) !important;
-}
-
-[data-theme-variant="modern"]:not([data-style="dark"]) .bg-light.rounded .text-muted {
-    color: var(--ecs-neutral-50) !important;
-}
-
-[data-theme-variant="modern"]:not([data-style="dark"]) .bg-light.rounded .fw-semibold {
-    color: var(--ecs-neutral-90) !important;
-}
-
-/* ========================================
-   Dark Mode Support
-   ======================================== */
-
-/* Navbar Container Dark Mode */
-[data-style="dark"] .navbar.bg-body-tertiary {
-    background-color: var(--ecs-dark-bg-card, #25282f) !important;
-}
-
-/* Tab Navigation */
-[data-style="dark"] .settings-nav-scroll .nav-link {
-    color: var(--ecs-dark-text-muted, #9ca3af);
-}
-
-[data-style="dark"] .settings-nav-scroll .nav-link:hover {
-    background: rgba(var(--ecs-primary-rgb), 0.15);
-    color: var(--ecs-primary-light);
-}
-
-[data-style="dark"] .settings-nav-scroll .nav-link.active {
-    background: var(--ecs-primary);
-    color: var(--ecs-neutral-0);
-}
-
-/* Settings Cards */
-[data-style="dark"] .settings-card {
-    background: var(--ecs-dark-bg-card, #25282f);
-    border-color: var(--ecs-dark-border, #2d3139);
-}
-
-[data-style="dark"] .settings-card:hover {
-    box-shadow: 0 0.125rem 0.5rem rgba(var(--ecs-neutral-90-rgb), 0.3);
-}
-
-[data-style="dark"] .settings-card .card-header {
-    background: var(--ecs-dark-bg-body, #1f2228);
-    border-bottom-color: var(--ecs-dark-border, #2d3139);
-}
-
-[data-style="dark"] .settings-card .card-title {
-    color: var(--ecs-dark-text-primary, #f3f4f6);
-}
-
-/* Settings Icon Backgrounds */
-[data-style="dark"] .settings-icon {
-    background-color: rgba(var(--ecs-primary-rgb), 0.15) !important;
-}
-
-[data-style="dark"] .settings-icon.bg-primary.bg-opacity-10 {
-    background-color: rgba(var(--ecs-primary-rgb), 0.15) !important;
-    color: var(--ecs-primary-light) !important;
-}
-
-[data-style="dark"] .settings-icon.bg-warning.bg-opacity-10 {
-    background-color: rgba(var(--ecs-warning-rgb), 0.15) !important;
-    color: var(--ecs-warning-light) !important;
-}
-
-[data-style="dark"] .settings-icon.bg-success.bg-opacity-10 {
-    background-color: rgba(var(--ecs-success-rgb), 0.15) !important;
-    color: var(--ecs-success-light) !important;
-}
-
-[data-style="dark"] .settings-icon.bg-info.bg-opacity-10 {
-    background-color: rgba(var(--ecs-info-rgb), 0.15) !important;
-    color: var(--ecs-info-light) !important;
-}
-
-[data-style="dark"] .settings-icon.bg-dark.bg-opacity-10 {
-    background-color: rgba(var(--ecs-neutral-60-rgb), 0.3) !important;
-    color: var(--ecs-dark-text-secondary) !important;
-}
-
-/* Quick Actions Card */
-[data-style="dark"] .card.border-0.bg-light {
-    background: var(--ecs-dark-bg-body, #1f2228) !important;
-}
-
-[data-style="dark"] .card.border-0.bg-light h6 {
-    color: var(--ecs-dark-text-primary, #f3f4f6);
-}
-
-/* Status/Info Boxes */
-[data-style="dark"] .bg-light.rounded {
-    background: var(--ecs-dark-bg-body, #1f2228) !important;
-}
-
-[data-style="dark"] .bg-light.rounded .text-muted {
-    color: var(--ecs-dark-text-muted, #9ca3af) !important;
-}
-
-[data-style="dark"] .bg-light.rounded .fw-semibold {
-    color: var(--ecs-dark-text-secondary, #e5e7eb);
-}
-
-/* Alert Light in Dark Mode */
-[data-style="dark"] .alert.alert-light {
-    background: var(--ecs-dark-bg-body, #1f2228);
-    border-color: var(--ecs-dark-border, #2d3139);
-    color: var(--ecs-dark-text-secondary, #e5e7eb);
-}
-
-[data-style="dark"] .alert.alert-light.border {
-    border-color: var(--ecs-dark-border, #2d3139) !important;
-}
-
-/* 2FA Status Circle */
-[data-style="dark"] .rounded-circle.bg-success.bg-opacity-10 {
-    background-color: rgba(var(--ecs-success-rgb), 0.15) !important;
-}
-
-[data-style="dark"] .rounded-circle.bg-warning.bg-opacity-10 {
-    background-color: rgba(var(--ecs-warning-rgb), 0.15) !important;
-}
-
-[data-style="dark"] .rounded-circle.bg-light {
-    background: var(--ecs-dark-bg-elevated) !important;
-}
-
-/* Security Tips Card */
-[data-style="dark"] .card.border-0.bg-light .small {
-    color: var(--ecs-dark-text-muted, #9ca3af);
-}
-
-/* Verification Code Input */
-[data-style="dark"] .verification-code-input {
-    background: var(--ecs-dark-bg-body, #1f2228);
-    border-color: var(--ecs-dark-border, #2d3139);
-    color: var(--ecs-dark-text-primary, #f3f4f6);
-}
-
-/* Wallet Badge */
-[data-style="dark"] .wallet-badge svg rect {
-    fill: var(--ecs-dark-text-primary, #f3f4f6);
-}
-
-/* Calendar Subscription Stats */
-[data-style="dark"] #subscriptionContent .bg-light {
-    background: var(--ecs-dark-bg-body, #1f2228) !important;
-}
-
-/* Form Controls */
-[data-style="dark"] .settings-card .form-control,
-[data-style="dark"] .settings-card .form-select {
-    background: var(--ecs-dark-bg-body, #1f2228);
-    border-color: var(--ecs-dark-border, #2d3139);
-    color: var(--ecs-dark-text-secondary, #e5e7eb);
-}
-
-[data-style="dark"] .settings-card .form-control:focus,
-[data-style="dark"] .settings-card .form-select:focus {
-    border-color: var(--ecs-primary);
-    box-shadow: 0 0 0 0.2rem rgba(var(--ecs-primary-rgb), 0.25);
-}
-
-[data-style="dark"] .settings-card .form-control::placeholder {
-    color: var(--ecs-dark-text-muted);
-}
-
-/* Notification Channel Cards */
-[data-style="dark"] .notification-channel {
-    background: var(--ecs-dark-bg-card, #25282f);
-    border-color: var(--ecs-dark-border, #2d3139);
-}
-
-[data-style="dark"] .notification-channel.channel-enabled {
-    border-color: var(--ecs-success);
-}
-
-[data-style="dark"] .channel-icon-lg {
-    background-color: rgba(var(--ecs-neutral-60-rgb), 0.15) !important;
-}
-
-/* ========================================
-   Appearance Tab - Theme Selection
-   ======================================== */
+/* ============================================================================
+   APPEARANCE TAB - THEME SELECTION
+   ============================================================================ */
 
 /* Theme Selection Card */
 .theme-selection-card {
@@ -571,25 +505,30 @@
 
 .theme-selection-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 0.25rem 0.75rem rgba(var(--ecs-neutral-90-rgb), 0.1);
+    box-shadow: var(--shadow-md);
+}
+
+/* Dark Mode - Theme Selection */
+[data-style="dark"] .theme-selection-card:hover {
+    box-shadow: var(--shadow-lg);
 }
 
 /* Theme Preview Mockups */
 .theme-preview-mockup {
     height: 120px;
     position: relative;
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     overflow: hidden;
 }
 
 /* Default Theme (Purple) */
 .theme-preview-default {
-    background: linear-gradient(135deg, var(--ecs-primary) 0%, var(--ecs-primary-light) 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-600) 100%);
 }
 
 /* Emerald Coast Theme */
 .theme-preview-emerald {
-    background: linear-gradient(135deg, var(--ecs-primary) 0%, var(--ecs-primary-light) 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-600) 100%);
 }
 
 /* Mockup Elements - Shared */
@@ -599,8 +538,8 @@
     left: 10px;
     right: 10px;
     height: 20px;
-    background: rgba(var(--ecs-neutral-0-rgb), 0.2);
-    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-sm);
 }
 
 .theme-preview-sidebar {
@@ -609,8 +548,8 @@
     left: 10px;
     width: 40px;
     height: 70px;
-    background: rgba(var(--ecs-neutral-0-rgb), 0.15);
-    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-sm);
 }
 
 .theme-preview-card {
@@ -619,8 +558,8 @@
     left: 60px;
     right: 10px;
     height: 30px;
-    background: rgba(var(--ecs-neutral-0-rgb), 0.3);
-    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: var(--radius-sm);
 }
 
 .theme-preview-button {
@@ -629,16 +568,308 @@
     left: 60px;
     right: 10px;
     height: 25px;
-    background: rgba(var(--ecs-neutral-0-rgb), 0.2);
-    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-sm);
 }
 
 /* Emerald Coast specific button color */
 .theme-preview-emerald .theme-preview-button {
-    background: rgba(var(--ecs-warning-rgb), 0.7);
+    background: rgba(var(--color-warning-rgb), 0.7);
 }
 
-/* Dark Mode Support for Theme Previews */
-[data-style="dark"] .theme-selection-card:hover {
-    box-shadow: 0 0.25rem 0.75rem rgba(var(--ecs-neutral-90-rgb), 0.3);
+/* ============================================================================
+   DISCORD BRANDING COLORS
+   Discord's brand colors are hardcoded as per their brand guidelines
+   ============================================================================ */
+
+.discord-icon-bg {
+    background-color: rgba(88, 101, 242, 0.1);
+    color: #5865F2;
+}
+
+.discord-circle-icon {
+    width: 80px;
+    height: 80px;
+    background-color: rgba(88, 101, 242, 0.1);
+}
+
+.discord-circle-icon i {
+    font-size: 2.5rem;
+    color: #5865F2;
+}
+
+.discord-circle-icon-disconnected {
+    width: 80px;
+    height: 80px;
+}
+
+.discord-circle-icon-disconnected i {
+    font-size: 2.5rem;
+}
+
+/* Light Mode - Discord Branding */
+[data-theme-variant="modern"]:not([data-style="dark"]) .discord-icon-bg {
+    background-color: rgba(88, 101, 242, 0.08);
+    color: #5865F2;
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .discord-circle-icon {
+    background-color: rgba(88, 101, 242, 0.08);
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .discord-circle-icon i {
+    color: #5865F2;
+}
+
+/* Dark Mode - Discord Branding */
+[data-style="dark"] .discord-icon-bg {
+    background-color: rgba(88, 101, 242, 0.2);
+    color: #7983f5;
+}
+
+[data-style="dark"] .discord-circle-icon {
+    background-color: rgba(88, 101, 242, 0.2);
+}
+
+[data-style="dark"] .discord-circle-icon i {
+    color: #7983f5;
+}
+
+/* ============================================================================
+   2FA SECURITY STATUS CIRCLES
+   ============================================================================ */
+
+.security-status-circle {
+    width: 80px;
+    height: 80px;
+}
+
+.security-status-circle i {
+    font-size: 2.5rem;
+}
+
+/* ============================================================================
+   RESPONSIVE BREAKPOINTS
+   ============================================================================ */
+
+/* Desktop/Large screens - lg (992px-1199px) */
+@media (min-width: 992px) {
+    .settings-nav-scroll .nav-link {
+        padding: var(--space-2) 0.45rem;
+        font-size: 0.7rem;
+    }
+
+    .settings-nav-scroll .nav-link i {
+        margin-right: 0.15rem;
+        font-size: 0.85rem;
+    }
+
+    .settings-nav-scroll .nav-link-text {
+        display: inline;
+    }
+}
+
+/* Extra large screens - xl (1200px-1399px) */
+@media (min-width: 1200px) {
+    .settings-nav-scroll .nav-link {
+        padding: var(--space-2) 0.55rem;
+        font-size: 0.78rem;
+    }
+
+    .settings-nav-scroll .nav-link i {
+        margin-right: var(--space-1);
+        font-size: 0.9rem;
+    }
+}
+
+/* XXL screens (1400px+) */
+@media (min-width: 1400px) {
+    .settings-nav-scroll .nav-link {
+        padding: var(--space-2) var(--space-3);
+        font-size: 0.875rem;
+    }
+
+    .settings-nav-scroll .nav-link i {
+        margin-right: var(--space-1);
+        font-size: 1rem;
+    }
+}
+
+/* Tablet screens - (768px-991px) */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .settings-nav-scroll {
+        position: relative;
+    }
+
+    .settings-nav-scroll .nav-link {
+        padding: var(--space-2) var(--space-3);
+        font-size: 0.8125rem;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+
+    .settings-nav-scroll .nav-link i {
+        font-size: 1rem;
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 767.98px) {
+    .settings-nav-scroll .nav-link {
+        padding: var(--space-2) 0.625rem;
+        font-size: 0.75rem;
+    }
+
+    .settings-nav-scroll .nav-link .nav-link-text {
+        display: none;
+    }
+
+    .settings-nav-scroll .nav-link i {
+        margin-right: 0;
+        font-size: 1.1rem;
+    }
+
+    .settings-icon {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        font-size: 1.1rem;
+    }
+
+    .settings-card .card-header {
+        padding: var(--space-4);
+    }
+
+    .settings-card .card-body {
+        padding: var(--space-4);
+    }
+
+    .wallet-badge svg {
+        width: 140px;
+        height: 38px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .settings-nav-scroll .nav-link {
+        padding: var(--space-2);
+    }
+
+    .settings-nav-scroll .navbar-nav {
+        justify-content: space-around;
+        width: 100%;
+    }
+}
+
+/* ============================================================================
+   SETTINGS TAB PANES - Visibility Control
+   Critical for tabs-controller.js to work
+   ============================================================================ */
+
+/* Base: All tab panes are hidden by default */
+.c-settings-tab {
+    display: none;
+}
+
+/* Active tab pane is visible */
+.c-settings-tab--active {
+    display: block;
+}
+
+/* ============================================================================
+   MODERN TAB NAVIGATION (.c-tabs-modern)
+   BEM tab navigation component for settings page
+   ============================================================================ */
+
+.c-tabs-modern {
+    margin-bottom: var(--space-4);
+}
+
+.c-tabs-modern__container {
+    background: var(--color-bg-card);
+    border: var(--border-width-1) solid var(--color-border-primary);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.c-tabs-modern__scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+.c-tabs-modern__list {
+    display: flex;
+    flex-wrap: nowrap;
+    list-style: none;
+    margin: 0;
+    padding: var(--space-2);
+    gap: var(--space-1);
+    min-width: max-content;
+}
+
+.c-tabs-modern__item {
+    flex-shrink: 0;
+}
+
+.c-tabs-modern__tab {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    cursor: pointer;
+    transition: var(--transition-colors);
+    white-space: nowrap;
+}
+
+.c-tabs-modern__tab:hover {
+    background: var(--color-hover-bg);
+    color: var(--color-text-primary);
+}
+
+.c-tabs-modern__tab.is-active {
+    background: var(--color-primary);
+    color: var(--color-text-on-primary, #fff);
+}
+
+.c-tabs-modern__tab i {
+    font-size: 1.125rem;
+}
+
+/* Dark mode adjustments */
+[data-style="dark"] .c-tabs-modern__container {
+    background: var(--color-bg-primary);
+    border-color: var(--color-border-secondary);
+}
+
+[data-style="dark"] .c-tabs-modern__tab:hover {
+    background: rgba(var(--color-primary-rgb, 139, 92, 246), 0.15);
+}
+
+[data-style="dark"] .c-tabs-modern__tab.is-active {
+    background: var(--color-primary);
+    color: var(--color-text-on-primary, #fff);
+}
+
+/* Mobile responsive */
+@media (max-width: 767.98px) {
+    .c-tabs-modern__tab {
+        padding: var(--space-2) var(--space-3);
+    }
+
+    .c-tabs-modern__tab span {
+        display: none;
+    }
+
+    .c-tabs-modern__tab i {
+        font-size: 1.25rem;
+    }
 }

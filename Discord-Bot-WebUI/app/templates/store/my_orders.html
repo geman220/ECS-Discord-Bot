@@ -1,27 +1,25 @@
 {% extends "base.html" %}
 
 {% block page_css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/features/store.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/store.css') }}" />
 {% endblock %}
 
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Page Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <h2 class="fw-bold py-3 mb-2">
-                <i class="ti ti-list me-2 text-primary"></i>My Orders
-            </h2>
-            <div class="text-muted">
-                View your order history and status
-            </div>
+    <div class="c-page-header" data-component="page-header">
+        <div class="c-page-header__content">
+            <h1 class="c-page-header__title">
+                <i class="ti ti-list me-2"></i>My Orders
+            </h1>
+            <p class="c-page-header__description">View your order history and status</p>
         </div>
     </div>
 
     <!-- Navigation -->
     <div class="row mb-4">
         <div class="col-12">
-            <a href="{{ url_for('store.index') }}" class="btn btn-outline-secondary">
+            <a href="{{ url_for('store.index') }}" class="c-btn c-btn--outline-secondary">
                 <i class="ti ti-arrow-left me-1"></i> Back to Store
             </a>
         </div>
@@ -31,51 +29,51 @@
     {% if orders %}
     <div class="row">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header border-bottom">
-                    <h5 class="card-title mb-0">Order History</h5>
+            <div class="c-card" data-component="order-history">
+                <div class="c-card__header border-bottom">
+                    <h5 class="c-card__title mb-0">Order History</h5>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable mb-0" data-table>
+                        <thead class="c-table--light" scope="col">
                             <tr>
-                                <th>Order ID</th>
-                                <th>Item</th>
-                                <th>Details</th>
-                                <th>Status</th>
-                                <th>Order Date</th>
-                                <th>Notes</th>
+                                <th scope="col">Order ID</th>
+                                <th scope="col">Item</th>
+                                <th scope="col">Details</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Order Date</th>
+                                <th scope="col">Notes</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for order in orders %}
-                            <tr>
-                                <td>#{{ order.id }}</td>
+                            <tr data-order-id="{{ order.id }}">
+                                <td class="c-order__id">#{{ order.id }}</td>
                                 <td>
-                                    <div>
-                                        <strong>{{ order.item.name if order.item else 'Unknown Item' }}</strong>
-                                        <br><small class="text-muted">Qty: {{ order.quantity }}</small>
+                                    <div class="c-order__item">
+                                        <strong class="c-order__item-name">{{ order.item.name if order.item else 'Unknown Item' }}</strong>
+                                        <br><small class="c-order__item-qty">Qty: {{ order.quantity }}</small>
                                     </div>
                                 </td>
                                 <td>
                                     {% if order.selected_color %}
-                                    <span class="badge bg-label-info me-1">{{ order.selected_color }}</span>
+                                    <span class="badge bg-label-info me-1" data-badge>{{ order.selected_color }}</span>
                                     {% endif %}
                                     {% if order.selected_size %}
-                                    <span class="badge bg-label-secondary me-1">{{ order.selected_size }}</span>
+                                    <span class="badge bg-label-secondary me-1" data-badge>{{ order.selected_size }}</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if order.status == 'PENDING' %}
-                                    <span class="badge bg-label-warning">Pending</span>
+                                    <span class="badge bg-label-warning" data-badge>Pending</span>
                                     {% elif order.status == 'PROCESSING' %}
-                                    <span class="badge bg-label-info">Processing</span>
+                                    <span class="badge bg-label-info" data-badge>Processing</span>
                                     {% elif order.status == 'ORDERED' %}
-                                    <span class="badge bg-label-primary">Ordered</span>
+                                    <span class="badge bg-label-primary" data-badge>Ordered</span>
                                     {% elif order.status == 'DELIVERED' %}
-                                    <span class="badge bg-label-success">Delivered</span>
+                                    <span class="badge bg-label-success" data-badge>Delivered</span>
                                     {% elif order.status == 'CANCELLED' %}
-                                    <span class="badge bg-label-danger">Cancelled</span>
+                                    <span class="badge bg-label-danger" data-badge>Cancelled</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -103,12 +101,12 @@
     <!-- No Orders -->
     <div class="row">
         <div class="col-12">
-            <div class="card">
-                <div class="card-body text-center py-5">
+            <div class="c-card">
+                <div class="c-card__body text-center py-5">
                     <i class="ti ti-shopping-cart-off text-muted mb-3 store-empty-icon"></i>
                     <h4 class="text-muted">No Orders Yet</h4>
                     <p class="text-muted">You haven't placed any orders yet. Start shopping to see your order history here.</p>
-                    <a href="{{ url_for('store.index') }}" class="btn btn-primary">
+                    <a href="{{ url_for('store.index') }}" class="c-btn c-btn--primary">
                         <i class="ti ti-shopping-cart me-1"></i>Start Shopping
                     </a>
                 </div>

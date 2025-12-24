@@ -1,8 +1,16 @@
 // static/custom_js/admin_actions.js
 
 function toggleRole(role, playerId) {
-    var csrfToken = $('input[name="csrf_token"]').val();
-    var isChecked = $('#' + role + 'ToggleDropdown').is(':checked');
+    const csrfTokenInput = document.querySelector('input[name="csrf_token"]');
+    const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
+    const roleToggle = document.querySelector(`[data-role-toggle="${role}"]`);
+
+    if (!roleToggle) {
+        console.error('Role toggle element not found for role:', role);
+        return;
+    }
+
+    const isChecked = roleToggle.checked;
 
     $.ajax({
         url: '/players/player_profile/' + playerId,  // Updated to use existing endpoint
@@ -39,7 +47,7 @@ function toggleRole(role, playerId) {
                     'error'
                 );
                 // Revert the toggle if there's an error
-                $('#' + role + 'ToggleDropdown').prop('checked', !isChecked);
+                roleToggle.checked = !isChecked;
             }
         },
         error: function () {
@@ -49,7 +57,7 @@ function toggleRole(role, playerId) {
                 'error'
             );
             // Revert the toggle if there's an error
-            $('#' + role + 'ToggleDropdown').prop('checked', !isChecked);
+            roleToggle.checked = !isChecked;
         }
     });
 }

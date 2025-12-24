@@ -9,105 +9,90 @@
 <li class="breadcrumb-item active">Live Matches</li>
 {% endblock %}
 
+{% block custom_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/match-operations/seasons.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/match-operations/live-matches.css') }}">
+{% endblock %}
+
 {% block panel_content %}
 
 <!-- Statistics Cards -->
-<div class="row mb-4">
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.total_today or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Total Today</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-calendar" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
+<div class="c-stats-grid" data-component="stats-grid">
+    <div class="c-stat-card c-stat-card--primary">
+        <div class="c-stat-card__content">
+            <div class="c-stat-card__body">
+                <h5 class="c-stat-card__value">{{ stats.total_today or 0 }}</h5>
+                <p class="c-stat-card__label">Total Today</p>
             </div>
+            <i class="ti ti-calendar c-stat-card__icon"></i>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.in_progress or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">In Progress</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-broadcast" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
+    <div class="c-stat-card c-stat-card--success">
+        <div class="c-stat-card__content">
+            <div class="c-stat-card__body">
+                <h5 class="c-stat-card__value">{{ stats.in_progress or 0 }}</h5>
+                <p class="c-stat-card__label">In Progress</p>
             </div>
+            <i class="ti ti-broadcast c-stat-card__icon"></i>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.upcoming_today or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Upcoming Today</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-clock" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
+    <div class="c-stat-card c-stat-card--warning">
+        <div class="c-stat-card__content">
+            <div class="c-stat-card__body">
+                <h5 class="c-stat-card__value">{{ stats.upcoming_today or 0 }}</h5>
+                <p class="c-stat-card__label">Upcoming Today</p>
             </div>
+            <i class="ti ti-clock c-stat-card__icon"></i>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.completed_today or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Completed Today</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-check" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
+    <div class="c-stat-card c-stat-card--info">
+        <div class="c-stat-card__content">
+            <div class="c-stat-card__body">
+                <h5 class="c-stat-card__value">{{ stats.completed_today or 0 }}</h5>
+                <p class="c-stat-card__label">Completed Today</p>
             </div>
+            <i class="ti ti-check c-stat-card__icon"></i>
         </div>
     </div>
 </div>
 
 <!-- Live Matches Content -->
-<div class="row">
+<div class="c-match-columns" data-component="match-columns">
     <!-- Matches In Progress -->
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-broadcast me-2 text-success"></i>In Progress
+    <div class="c-match-column" data-column-type="in-progress">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title">
+                    <i class="ti ti-broadcast"></i>
+                    In Progress
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if in_progress %}
                     {% for match in in_progress %}
-                    <div class="d-flex justify-content-between align-items-center mb-3 p-3 border rounded">
-                        <div>
-                            <h6 class="mb-1">{{ match.home_team.name if match.home_team else 'TBD' }} vs {{ match.away_team.name if match.away_team else 'TBD' }}</h6>
-                            <small class="text-muted">
+                    <div class="c-match-item" data-component="match-item" data-match-id="{{ match.id }}">
+                        <div class="c-match-item__teams">
+                            <h6 class="c-match-item__matchup">
+                                {{ match.home_team.name if match.home_team else 'TBD' }} vs {{ match.away_team.name if match.away_team else 'TBD' }}
+                            </h6>
+                            <div class="c-match-item__time">
                                 {% if match.time %}{{ match.time.strftime('%H:%M') }}{% else %}TBD{% endif %}
-                            </small>
+                            </div>
                         </div>
-                        <div class="text-end">
+                        <div class="c-match-item__status">
                             {% if match.home_team_score is not none and match.away_team_score is not none %}
-                                <span class="badge bg-success">{{ match.home_team_score }} - {{ match.away_team_score }}</span>
+                                <span class="c-badge c-badge--success">{{ match.home_team_score }} - {{ match.away_team_score }}</span>
                             {% else %}
-                                <span class="badge bg-warning">Live</span>
+                                <span class="c-badge c-badge--warning">Live</span>
                             {% endif %}
                         </div>
                     </div>
                     {% endfor %}
                 {% else %}
-                    <div class="text-center py-4">
-                        <i class="ti ti-broadcast text-muted" style="font-size: 3rem;"></i>
-                        <p class="text-muted mt-2">No matches in progress</p>
+                    <div class="c-empty-state c-empty-state--compact" data-component="empty-state">
+                        <i class="ti ti-broadcast c-empty-state__icon"></i>
+                        <p class="c-empty-state__text">No matches in progress</p>
                     </div>
                 {% endif %}
             </div>
@@ -115,32 +100,35 @@
     </div>
 
     <!-- Upcoming Today -->
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-clock me-2 text-warning"></i>Upcoming Today
+    <div class="c-match-column" data-column-type="upcoming">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title">
+                    <i class="ti ti-clock"></i>
+                    Upcoming Today
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if upcoming_today %}
                     {% for match in upcoming_today %}
-                    <div class="d-flex justify-content-between align-items-center mb-3 p-3 border rounded">
-                        <div>
-                            <h6 class="mb-1">{{ match.home_team.name if match.home_team else 'TBD' }} vs {{ match.away_team.name if match.away_team else 'TBD' }}</h6>
-                            <small class="text-muted">
+                    <div class="c-match-item" data-component="match-item" data-match-id="{{ match.id }}">
+                        <div class="c-match-item__teams">
+                            <h6 class="c-match-item__matchup">
+                                {{ match.home_team.name if match.home_team else 'TBD' }} vs {{ match.away_team.name if match.away_team else 'TBD' }}
+                            </h6>
+                            <div class="c-match-item__time">
                                 {% if match.time %}{{ match.time.strftime('%H:%M') }}{% else %}TBD{% endif %}
-                            </small>
+                            </div>
                         </div>
-                        <div class="text-end">
-                            <span class="badge bg-info">Scheduled</span>
+                        <div class="c-match-item__status">
+                            <span class="c-badge c-badge--info">Scheduled</span>
                         </div>
                     </div>
                     {% endfor %}
                 {% else %}
-                    <div class="text-center py-4">
-                        <i class="ti ti-clock text-muted" style="font-size: 3rem;"></i>
-                        <p class="text-muted mt-2">No upcoming matches today</p>
+                    <div class="c-empty-state c-empty-state--compact" data-component="empty-state">
+                        <i class="ti ti-clock c-empty-state__icon"></i>
+                        <p class="c-empty-state__text">No upcoming matches today</p>
                     </div>
                 {% endif %}
             </div>
@@ -148,36 +136,39 @@
     </div>
 
     <!-- Completed Today -->
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-check me-2 text-info"></i>Completed Today
+    <div class="c-match-column" data-column-type="completed">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title">
+                    <i class="ti ti-check"></i>
+                    Completed Today
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if completed_today %}
                     {% for match in completed_today %}
-                    <div class="d-flex justify-content-between align-items-center mb-3 p-3 border rounded">
-                        <div>
-                            <h6 class="mb-1">{{ match.home_team.name if match.home_team else 'TBD' }} vs {{ match.away_team.name if match.away_team else 'TBD' }}</h6>
-                            <small class="text-muted">
+                    <div class="c-match-item" data-component="match-item" data-match-id="{{ match.id }}">
+                        <div class="c-match-item__teams">
+                            <h6 class="c-match-item__matchup">
+                                {{ match.home_team.name if match.home_team else 'TBD' }} vs {{ match.away_team.name if match.away_team else 'TBD' }}
+                            </h6>
+                            <div class="c-match-item__time">
                                 {% if match.time %}{{ match.time.strftime('%H:%M') }}{% else %}TBD{% endif %}
-                            </small>
+                            </div>
                         </div>
-                        <div class="text-end">
+                        <div class="c-match-item__status">
                             {% if match.home_team_score is not none and match.away_team_score is not none %}
-                                <span class="badge bg-success">{{ match.home_team_score }} - {{ match.away_team_score }}</span>
+                                <span class="c-badge c-badge--success">{{ match.home_team_score }} - {{ match.away_team_score }}</span>
                             {% else %}
-                                <span class="badge bg-secondary">Finished</span>
+                                <span class="c-badge c-badge--secondary">Finished</span>
                             {% endif %}
                         </div>
                     </div>
                     {% endfor %}
                 {% else %}
-                    <div class="text-center py-4">
-                        <i class="ti ti-check text-muted" style="font-size: 3rem;"></i>
-                        <p class="text-muted mt-2">No completed matches today</p>
+                    <div class="c-empty-state c-empty-state--compact" data-component="empty-state">
+                        <i class="ti ti-check c-empty-state__icon"></i>
+                        <p class="c-empty-state__text">No completed matches today</p>
                     </div>
                 {% endif %}
             </div>
@@ -185,23 +176,15 @@
     </div>
 </div>
 
-<!-- Quick Actions -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="alert alert-info">
-            <div class="d-flex align-items-center">
-                <i class="ti ti-info-circle me-2"></i>
-                <div>
-                    <strong>Live Match Monitoring:</strong> 
-                    This page shows all matches scheduled for today. Matches are automatically categorized based on their scheduled time and current status.
-                </div>
-            </div>
+<!-- Help Alert -->
+<div class="c-panel-section">
+    <div class="c-alert c-alert--info">
+        <i class="ti ti-info-circle c-alert__icon"></i>
+        <div class="c-alert__content">
+            <strong>Live Match Monitoring:</strong>
+            This page shows all matches scheduled for today. Matches are automatically categorized based on their scheduled time and current status.
         </div>
     </div>
 </div>
 
-{% endblock %}
-
-{% block custom_css %}
-{{ super() }}
 {% endblock %}

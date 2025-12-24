@@ -11,60 +11,60 @@
 <!-- I-Spy Overview Cards -->
 <div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
+        <div class="c-card bg-primary text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.total_players }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Total Players</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.total_players }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Total Players</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-users" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-users card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
+        <div class="c-card bg-success text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.active_games }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Active Games</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.active_games }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Active Games</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-eye" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-eye card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
+        <div class="c-card bg-info text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.total_shots }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Total Shots</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.total_shots }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Total Shots</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-camera" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-camera card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
+        <div class="c-card bg-warning text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.players_in_jail }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Players in Jail</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.players_in_jail }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Players in Jail</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-lock" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-lock card-icon-stat"></i>
                     </div>
                 </div>
             </div>
@@ -75,38 +75,38 @@
 <!-- Quick Actions -->
 <div class="row mb-4">
     <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-rocket me-2"></i>Quick Actions
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <div class="d-grid">
-                            <a href="{{ url_for('admin_panel.ispy_seasons') }}" class="btn btn-primary">
+                            <a href="{{ url_for('admin_panel.ispy_seasons') }}" class="c-btn c-btn--primary">
                                 <i class="ti ti-calendar me-2"></i>Manage Seasons
                             </a>
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <div class="d-grid">
-                            <a href="{{ url_for('admin_panel.ispy_categories') }}" class="btn btn-success">
+                            <a href="{{ url_for('admin_panel.ispy_categories') }}" class="c-btn c-btn--success">
                                 <i class="ti ti-category me-2"></i>Manage Categories
                             </a>
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <div class="d-grid">
-                            <a href="{{ url_for('admin_panel.ispy_shots') }}" class="btn btn-info">
+                            <a href="{{ url_for('admin_panel.ispy_shots') }}" class="c-btn c-btn--info">
                                 <i class="ti ti-camera me-2"></i>Manage Shots
                             </a>
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <div class="d-grid">
-                            <a href="{{ url_for('admin_panel.ispy_players') }}" class="btn btn-warning">
+                            <a href="{{ url_for('admin_panel.ispy_players') }}" class="c-btn c-btn--warning">
                                 <i class="ti ti-users me-2"></i>Player Management
                             </a>
                         </div>
@@ -117,21 +117,21 @@
     </div>
     
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-gauge me-2"></i>Game Health
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <span class="small">Active Seasons</span>
                         <span class="small fw-bold">{{ stats.active_seasons }}/{{ stats.total_seasons }}</span>
                     </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar bg-primary" 
-                             style="width: {% if stats.total_seasons > 0 %}{{ (stats.active_seasons / stats.total_seasons * 100) }}%{% else %}0%{% endif %}"></div>
+                    <div class="progress u-progress-sm">
+                        <div class="progress-bar bg-primary"
+                             data-width="{% if stats.total_seasons > 0 %}{{ (stats.active_seasons / stats.total_seasons * 100) }}{% else %}0{% endif %}"></div>
                     </div>
                 </div>
                 <div class="mb-3">
@@ -139,13 +139,13 @@
                         <span class="small">Game Completion</span>
                         <span class="small fw-bold">{{ stats.completed_games }}</span>
                     </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar bg-success" 
-                             style="width: {% if (stats.active_games + stats.completed_games) > 0 %}{{ (stats.completed_games / (stats.active_games + stats.completed_games) * 100) }}%{% else %}0%{% endif %}"></div>
+                    <div class="progress u-progress-sm">
+                        <div class="progress-bar bg-success"
+                             data-width="{% if (stats.active_games + stats.completed_games) > 0 %}{{ (stats.completed_games / (stats.active_games + stats.completed_games) * 100) }}{% else %}0{% endif %}"></div>
                     </div>
                 </div>
                 <div class="text-center">
-                    <span class="badge bg-{% if stats.recent_activity > 10 %}success{% elif stats.recent_activity > 5 %}warning{% else %}secondary{% endif %}">
+                    <span class="badge bg-{% if stats.recent_activity > 10 %}success{% elif stats.recent_activity > 5 %}warning{% else %}secondary{% endif %}" data-badge>
                         {{ stats.recent_activity }} recent activities
                     </span>
                 </div>
@@ -157,16 +157,16 @@
 <!-- Active Seasons and Categories -->
 <div class="row mb-4">
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-calendar me-2"></i>Active Seasons
                 </h5>
-                <button type="button" class="btn btn-outline-primary btn-sm" onclick="createNewSeason()">
+                <button type="button" class="c-btn c-btn--outline-primary c-btn--sm js-create-season" data-action="create-season">
                     <i class="ti ti-plus me-1"></i>New Season
                 </button>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if seasons %}
                 <div class="list-group list-group-flush">
                     {% for season in seasons %}
@@ -176,7 +176,7 @@
                             <br><small class="text-muted">{{ season.description or 'No description' }}</small>
                         </div>
                         <div>
-                            <span class="badge bg-{% if season.is_active %}success{% else %}secondary{% endif %}">
+                            <span class="badge bg-{% if season.is_active %}success{% else %}secondary{% endif %}" data-badge>
                                 {% if season.is_active %}Active{% else %}Inactive{% endif %}
                             </span>
                         </div>
@@ -185,9 +185,9 @@
                 </div>
                 {% else %}
                 <div class="text-center py-4">
-                    <i class="ti ti-calendar-off" style="font-size: 3rem; opacity: 0.3;"></i>
+                    <i class="ti ti-calendar-off icon-empty-state"></i>
                     <p class="text-muted mt-2">No active seasons found</p>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="createNewSeason()">
+                    <button type="button" class="c-btn c-btn--primary c-btn--sm js-create-season" data-action="create-season">
                         <i class="ti ti-plus me-1"></i>Create First Season
                     </button>
                 </div>
@@ -197,22 +197,22 @@
     </div>
     
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-category me-2"></i>Categories
                 </h5>
-                <button type="button" class="btn btn-outline-success btn-sm" onclick="createNewCategory()">
+                <button type="button" class="c-btn c-btn--outline-success c-btn--sm js-create-category" data-action="create-category">
                     <i class="ti ti-plus me-1"></i>New Category
                 </button>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if categories %}
                 <div class="row">
                     {% for category in categories[:8] %}
                     <div class="col-md-6 mb-2">
                         <div class="d-flex align-items-center">
-                            <div class="category-color me-2" style="width: 12px; height: 12px; background-color: {{ category.color or '#007bff' }}; border-radius: 50%;"></div>
+                            <div class="category-color me-2 rounded-circle"></div>
                             <div>
                                 <strong class="small">{{ category.name }}</strong>
                             </div>
@@ -227,9 +227,9 @@
                 {% endif %}
                 {% else %}
                 <div class="text-center py-4">
-                    <i class="ti ti-category-2" style="font-size: 3rem; opacity: 0.3;"></i>
+                    <i class="ti ti-category-2 icon-empty-state"></i>
                     <p class="text-muted mt-2">No categories found</p>
-                    <button type="button" class="btn btn-success btn-sm" onclick="createNewCategory()">
+                    <button type="button" class="c-btn c-btn--success c-btn--sm js-create-category" data-action="create-category">
                         <i class="ti ti-plus me-1"></i>Create First Category
                     </button>
                 </div>
@@ -242,18 +242,18 @@
 <!-- Game Statistics -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-chart-bar me-2"></i>Game Statistics
                 </h5>
                 <div class="btn-group btn-group-sm" role="group">
-                    <button type="button" class="btn btn-outline-primary active" onclick="showGameStats('overview')">Overview</button>
-                    <button type="button" class="btn btn-outline-primary" onclick="showGameStats('trends')">Trends</button>
-                    <button type="button" class="btn btn-outline-primary" onclick="showGameStats('performance')">Performance</button>
+                    <button type="button" class="c-btn c-btn--outline-primary active js-show-stats" data-action="show-stats" data-stats-type="overview">Overview</button>
+                    <button type="button" class="c-btn c-btn--outline-primary js-show-stats" data-action="show-stats" data-stats-type="trends">Trends</button>
+                    <button type="button" class="c-btn c-btn--outline-primary js-show-stats" data-action="show-stats" data-stats-type="performance">Performance</button>
                 </div>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div id="gameStatsContent">
                     <div class="row text-center">
                         <div class="col-md-3">
@@ -290,16 +290,16 @@
 <!-- Recent Activity -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-activity me-2"></i>Recent Activity
                 </h5>
-                <a href="{{ url_for('admin_panel.ispy_analytics') }}" class="btn btn-outline-primary btn-sm">
+                <a href="{{ url_for('admin_panel.ispy_analytics') }}" class="c-btn c-btn--outline-primary c-btn--sm">
                     <i class="ti ti-chart-line me-1"></i>View Analytics
                 </a>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if recent_activity %}
                 <div class="timeline">
                     {% for activity in recent_activity %}
@@ -311,7 +311,7 @@
                                     <p class="mb-1 small">{{ activity.new_value or activity.action|title }}</p>
                                     <small class="text-muted">{{ activity.user.username if activity.user else 'System' }} • {{ activity.timestamp.strftime('%H:%M') }}</small>
                                 </div>
-                                <span class="badge bg-info ms-2">{{ activity.resource_type|title }}</span>
+                                <span class="badge bg-info ms-2" data-badge>{{ activity.resource_type|title }}</span>
                             </div>
                         </div>
                     </div>
@@ -319,7 +319,7 @@
                 </div>
                 {% else %}
                 <div class="text-center py-4">
-                    <i class="ti ti-clock" style="font-size: 3rem; opacity: 0.3;"></i>
+                    <i class="ti ti-clock icon-empty-state"></i>
                     <p class="text-muted mt-2">No recent activity</p>
                 </div>
                 {% endif %}
@@ -329,31 +329,31 @@
 </div>
 
 <!-- Create Season Modal -->
-<div class="modal fade" id="createSeasonModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Create New I-Spy Season</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal c-modal fade" id="createSeasonModal" tabindex="-1" data-modal aria-labelledby="createSeasonModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="createSeasonModalLabel">Create New I-Spy Season</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body>
                 <form id="createSeasonForm">
                     <div class="mb-3">
                         <label for="seasonName" class="form-label">Season Name</label>
-                        <input type="text" class="form-control" id="seasonName" required>
+                        <input type="text" class="form-control" id="seasonName" required data-form-control>
                     </div>
                     <div class="mb-3">
                         <label for="seasonDescription" class="form-label">Description</label>
-                        <textarea class="form-control" id="seasonDescription" rows="3"></textarea>
+                        <textarea class="form-control" id="seasonDescription" rows="3" data-form-control></textarea>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="seasonStartDate" class="form-label">Start Date</label>
-                            <input type="date" class="form-control" id="seasonStartDate">
+                            <input type="date" class="form-control" id="seasonStartDate" data-form-control>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="seasonEndDate" class="form-label">End Date</label>
-                            <input type="date" class="form-control" id="seasonEndDate">
+                            <input type="date" class="form-control" id="seasonEndDate" data-form-control>
                         </div>
                     </div>
                     <div class="form-check">
@@ -364,9 +364,9 @@
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitCreateSeason()">
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--primary js-submit-season" data-action="submit-season">
                     <i class="ti ti-plus me-2"></i>Create Season
                 </button>
             </div>
@@ -375,31 +375,31 @@
 </div>
 
 <!-- Create Category Modal -->
-<div class="modal fade" id="createCategoryModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Create New Category</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal c-modal fade" id="createCategoryModal" tabindex="-1" data-modal aria-labelledby="createCategoryModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="createCategoryModalLabel">Create New Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body>
                 <form id="createCategoryForm">
                     <div class="mb-3">
                         <label for="categoryName" class="form-label">Category Name</label>
-                        <input type="text" class="form-control" id="categoryName" required>
+                        <input type="text" class="form-control" id="categoryName" required data-form-control>
                     </div>
                     <div class="mb-3">
                         <label for="categoryDescription" class="form-label">Description</label>
-                        <textarea class="form-control" id="categoryDescription" rows="2"></textarea>
+                        <textarea class="form-control" id="categoryDescription" rows="2" data-form-control></textarea>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="categoryColor" class="form-label">Color</label>
-                            <input type="color" class="form-control form-control-color" id="categoryColor" value="#007bff">
+                            <input type="color" class="form-control form-control-color" id="categoryColor" value="#007bff" data-form-control>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="categoryIcon" class="form-label">Icon</label>
-                            <select class="form-select" id="categoryIcon">
+                            <select class="form-select" id="categoryIcon" data-form-select>
                                 <option value="ti-eye">Eye</option>
                                 <option value="ti-camera">Camera</option>
                                 <option value="ti-target">Target</option>
@@ -416,9 +416,9 @@
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success" onclick="submitCreateCategory()">
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--success js-submit-category" data-action="submit-category">
                     <i class="ti ti-plus me-2"></i>Create Category
                 </button>
             </div>
@@ -429,6 +429,7 @@
 {% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
 .timeline {
     position: relative;
@@ -484,15 +485,53 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
+// Event delegation for action buttons
+document.addEventListener('DOMContentLoaded', function() {
+    // Create season buttons
+    document.querySelectorAll('.js-create-season').forEach(btn => {
+        btn.addEventListener('click', function() {
+            createNewSeason();
+        });
+    });
+
+    // Create category buttons
+    document.querySelectorAll('.js-create-category').forEach(btn => {
+        btn.addEventListener('click', function() {
+            createNewCategory();
+        });
+    });
+
+    // Submit season
+    document.querySelectorAll('.js-submit-season').forEach(btn => {
+        btn.addEventListener('click', function() {
+            submitCreateSeason();
+        });
+    });
+
+    // Submit category
+    document.querySelectorAll('.js-submit-category').forEach(btn => {
+        btn.addEventListener('click', function() {
+            submitCreateCategory();
+        });
+    });
+
+    // Show game stats
+    document.querySelectorAll('.js-show-stats').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const type = this.dataset.statsType;
+            showGameStats(type);
+        });
+    });
+});
+
 function createNewSeason() {
-    const modal = new bootstrap.Modal(document.getElementById('createSeasonModal'));
-    modal.show();
+    ModalManager.show('createSeasonModal');
 }
 
 function createNewCategory() {
-    const modal = new bootstrap.Modal(document.getElementById('createCategoryModal'));
-    modal.show();
+    ModalManager.show('createCategoryModal');
 }
 
 function submitCreateSeason() {
@@ -584,14 +623,14 @@ function showGameStats(type) {
     } else if (type === 'trends') {
         content.innerHTML = `
             <div class="text-center py-4">
-                <i class="ti ti-chart-line" style="font-size: 3rem; color: var(--bs-primary);"></i>
+                <i class="ti ti-chart-line u-text-4xl text-primary"></i>
                 <p class="text-muted mt-2">Trends analysis coming soon</p>
             </div>
         `;
     } else if (type === 'performance') {
         content.innerHTML = `
             <div class="text-center py-4">
-                <i class="ti ti-chart-bar" style="font-size: 3rem; color: var(--bs-success);"></i>
+                <i class="ti ti-chart-bar u-text-4xl text-success"></i>
                 <p class="text-muted mt-2">Performance metrics coming soon</p>
             </div>
         `;

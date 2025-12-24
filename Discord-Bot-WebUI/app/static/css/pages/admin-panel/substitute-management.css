@@ -1,0 +1,301 @@
+/**
+ * ============================================================================
+ * SUBSTITUTE MANAGEMENT - TEAM OPERATIONS AESTHETIC
+ * ============================================================================
+ *
+ * Design Philosophy: Sports Operations Dashboard
+ * - Focused on player availability and match scheduling
+ * - Clear status indicators and urgency signaling
+ * - Quick-action oriented interface
+ * - Organized by match/request priority
+ *
+ * Components:
+ *   1. Sub Header (.c-sub-header)
+ *   2. Sub Stats (.c-sub-stats, .c-sub-stat)
+ *   - (Existing template structure uses generic data attributes for other components)
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   DESIGN TOKENS - Sports Operations Palette
+   ============================================================================ */
+
+:root {
+  --sub-primary: #3b82f6;
+  --sub-success: #10b981;
+  --sub-warning: #f59e0b;
+  --sub-info: #06b6d4;
+  --sub-danger: #ef4444;
+
+  --sub-bg-base: #f8fafc;
+  --sub-bg-card: #ffffff;
+  --sub-border: #e2e8f0;
+  --sub-border-hover: #cbd5e1;
+
+  --sub-text-primary: #0f172a;
+  --sub-text-secondary: #475569;
+  --sub-text-muted: #94a3b8;
+
+  --sub-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --sub-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --sub-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  --sub-radius: 10px;
+  --sub-radius-lg: 14px;
+}
+
+[data-style="dark"] {
+  --sub-bg-base: #0f172a;
+  --sub-bg-card: #1e293b;
+  --sub-border: #334155;
+  --sub-border-hover: #475569;
+
+  --sub-text-primary: #f1f5f9;
+  --sub-text-secondary: #cbd5e1;
+  --sub-text-muted: #64748b;
+
+  --sub-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --sub-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --sub-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.5);
+}
+
+/* ============================================================================
+   1. SUB HEADER
+   Page introduction
+   ============================================================================ */
+
+.c-sub-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 28px;
+  background: var(--sub-bg-card);
+  border: 1px solid var(--sub-border);
+  border-left: 4px solid var(--sub-primary);
+  border-radius: var(--sub-radius-lg);
+  margin-bottom: 28px;
+  box-shadow: var(--sub-shadow-sm);
+}
+
+.c-sub-header__icon {
+  width: 52px;
+  height: 52px;
+  background: linear-gradient(135deg, var(--sub-primary), var(--sub-info));
+  border-radius: var(--sub-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 26px;
+  color: white;
+  box-shadow: var(--sub-shadow-md);
+}
+
+.c-sub-header__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-sub-header__title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--sub-text-primary);
+  margin: 0 0 8px 0;
+  letter-spacing: -0.015em;
+}
+
+.c-sub-header__description {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--sub-text-secondary);
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .c-sub-header {
+    flex-direction: column;
+    padding: 20px;
+  }
+
+  .c-sub-header__icon {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+  }
+
+  .c-sub-header__title {
+    font-size: 20px;
+  }
+}
+
+/* ============================================================================
+   2. SUB STATS
+   Metrics cards
+   ============================================================================ */
+
+.c-sub-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 768px) {
+  .c-sub-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .c-sub-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+.c-sub-stat {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  background: var(--sub-bg-card);
+  border: 1px solid var(--sub-border);
+  border-radius: var(--sub-radius);
+  box-shadow: var(--sub-shadow-sm);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.c-sub-stat::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 3px;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.c-sub-stat:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--sub-shadow-md);
+}
+
+.c-sub-stat:hover::before {
+  opacity: 1;
+}
+
+.c-sub-stat__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--sub-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+  background: currentColor;
+  color: white;
+  opacity: 0.95;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.c-sub-stat:hover .c-sub-stat__icon {
+  transform: scale(1.1) rotate(-8deg);
+}
+
+.c-sub-stat__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-sub-stat__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sub-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.c-sub-stat__value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--sub-text-primary);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* Stat variants */
+.c-sub-stat--primary {
+  color: var(--sub-primary);
+}
+
+.c-sub-stat--success {
+  color: var(--sub-success);
+}
+
+.c-sub-stat--warning {
+  color: var(--sub-warning);
+}
+
+.c-sub-stat--info {
+  color: var(--sub-info);
+}
+
+@media (max-width: 768px) {
+  .c-sub-stat {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .c-sub-stat__icon {
+    width: 42px;
+    height: 42px;
+    font-size: 20px;
+  }
+
+  .c-sub-stat__value {
+    font-size: 24px;
+  }
+}
+
+/* ============================================================================
+   ACCESSIBILITY & MOTION
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .c-sub-stat,
+  .c-sub-stat__icon {
+    transition: none;
+  }
+
+  .c-sub-stat:hover,
+  .c-sub-stat:hover .c-sub-stat__icon {
+    transform: none;
+  }
+
+  .c-sub-stat::before {
+    transition: none;
+  }
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+@media print {
+  .c-sub-header,
+  .c-sub-stats {
+    break-inside: avoid;
+  }
+
+  .c-sub-stat {
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+}

@@ -1,28 +1,32 @@
 {% extends "base.html" %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/seasonal-schedule.css') }}">
+{% endblock %}
+
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Header -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card bg-primary">
-                <div class="card-body">
+            <div class="c-card bg-primary">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="text-white">
                             <h2 class="mb-1">{{ season.name }} Schedule</h2>
                             <p class="mb-0">Complete season schedule for all leagues and divisions</p>
                         </div>
                         <div>
-                            <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="btn btn-light">
+                            <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="c-btn c-btn--light">
                                 <i class="ti ti-arrow-left me-1"></i>Back to Season Builder
                             </a>
                             {% if current_user.has_role('Pub League Admin') or current_user.has_role('Global Admin') %}
                             <div class="btn-group ms-2">
-                                <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                <button type="button" class="c-btn c-btn--primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle>
                                     <i class="ti ti-settings me-1"></i>Admin Tools
                                 </button>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="#" onclick="toggleEditMode()">
+                                <ul class="dropdown-menu" data-dropdown-menu>
+                                    <li><a class="dropdown-item js-toggle-edit" href="#" data-action="toggle-edit">
                                         <i class="ti ti-edit me-1"></i>Toggle Edit Mode
                                     </a></li>
                                     <li><hr class="dropdown-divider"></li>
@@ -44,13 +48,13 @@
     <!-- Filter Controls -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">Filter Schedule</h5>
+            <div class="c-card">
+                <div class="c-card__body">
+                    <h5 class="c-card__title mb-3">Filter Schedule</h5>
                     <div class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label">League/Division</label>
-                            <select class="form-select" id="leagueFilter">
+                            <select class="form-select" id="leagueFilter" data-form-select>
                                 <option value="">All Leagues</option>
                                 {% for league in leagues %}
                                 <option value="{{ league.id }}">{{ league.name }}</option>
@@ -59,7 +63,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Team</label>
-                            <select class="form-select" id="teamFilter">
+                            <select class="form-select" id="teamFilter" data-form-select>
                                 <option value="">All Teams</option>
                                 {% for league in leagues %}
                                     <optgroup label="{{ league.name }}">
@@ -72,7 +76,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Week Type</label>
-                            <select class="form-select" id="weekTypeFilter">
+                            <select class="form-select" id="weekTypeFilter" data-form-select>
                                 <option value="">All Weeks</option>
                                 <option value="REGULAR">Regular Season</option>
                                 <option value="TST">TST Week</option>
@@ -83,7 +87,7 @@
                         <div class="col-md-3">
                             <label class="form-label">Actions</label>
                             <div>
-                                <button class="btn btn-primary w-100" onclick="applyFilters()">
+                                <button class="c-btn c-btn--primary w-100 js-apply-filters" data-action="apply-filters">
                                     <i class="ti ti-filter me-1"></i>Apply Filters
                                 </button>
                             </div>
@@ -98,84 +102,81 @@
     <div id="scheduleContainer">
         {% for week_num, week_data in schedule_by_week.items() %}
         <div class="week-container mb-4" data-week="{{ week_num }}" data-week-type="{{ week_data.week_type }}">
-            <div class="card">
-                <div class="card-header bg-light">
+            <div class="c-card">
+                <div class="c-card__header bg-light">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0 week-header" data-week="{{ week_num }}">
                             <span class="week-title">Week {{ week_num }} - {{ week_data.date.strftime('%B %d, %Y') }}</span>
-                            <span class="week-edit-form" style="display: none;">
-                                <input type="date" class="form-control d-inline-block me-2" style="width: auto;" 
-                                       value="{{ week_data.date.strftime('%Y-%m-%d') }}" id="week-date-{{ week_num }}">
-                                <input type="time" class="form-control d-inline-block me-2" style="width: auto;" 
-                                       id="week-time-{{ week_num }}">
-                                <button class="btn btn-sm btn-success me-1" onclick="saveWeek({{ week_num }})">
+                            <span class="week-edit-form week-edit-form-hidden">
+                                <input type="date" class="form-control week-edit-date-input"
+                                       value="{{ week_data.date.strftime('%Y-%m-%d') }}" id="week-date-{{ week_num }}" data-form-control>
+                                <input type="time" class="form-control week-edit-time-input"
+                                       id="week-time-{{ week_num }}" data-form-control>
+                                <button class="c-btn c-btn--sm c-btn--success me-1 js-save-week" data-action="save-week" data-week="{{ week_num }}">
                                     <i class="ti ti-check"></i>
                                 </button>
-                                <button class="btn btn-sm btn-secondary" onclick="cancelWeekEdit({{ week_num }})">
+                                <button class="c-btn c-btn--sm c-btn--secondary js-cancel-week-edit" data-action="cancel-week-edit" data-week="{{ week_num }}">
                                     <i class="ti ti-x"></i>
                                 </button>
                             </span>
                             {% if week_data.week_type == 'TST' %}
-                            <span class="badge bg-info ms-2">TST Week</span>
+                            <span class="badge bg-info ms-2" data-badge>TST Week</span>
                             {% elif week_data.week_type == 'FUN' %}
-                            <span class="badge bg-warning ms-2">Fun Week</span>
+                            <span class="badge bg-warning ms-2" data-badge>Fun Week</span>
                             {% elif week_data.week_type == 'BYE' %}
-                            <span class="badge bg-secondary ms-2">Bye Week</span>
+                            <span class="badge bg-secondary ms-2" data-badge>Bye Week</span>
                             {% endif %}
                         </h5>
                         <div>
                             <span class="text-muted">{{ week_data.matches|length }} matches</span>
                             <div class="btn-group ms-2">
-                                <button class="btn btn-sm btn-outline-primary" onclick="toggleWeek({{ week_num }})">
+                                <button class="c-btn c-btn--sm c-btn--outline-primary js-toggle-week" data-action="toggle-week" data-week="{{ week_num }}">
                                     <i class="ti ti-chevron-down" id="chevron-{{ week_num }}"></i>
                                 </button>
-                                <button class="btn btn-sm btn-outline-secondary edit-controls" style="display: none;" 
-                                        onclick="editWeek({{ week_num }})" title="Edit Week">
+                                <button class="c-btn c-btn--sm c-btn--outline-secondary edit-controls js-edit-week" data-action="edit-week" data-week="{{ week_num }}" title="Edit Week">
                                     <i class="ti ti-edit"></i>
                                 </button>
-                                <button class="btn btn-sm btn-outline-success edit-controls" style="display: none;" 
-                                        onclick="addMatch({{ week_num }})" title="Add Match">
+                                <button class="c-btn c-btn--sm c-btn--outline-success edit-controls js-add-match" data-action="add-match" data-week="{{ week_num }}" title="Add Match">
                                     <i class="ti ti-plus"></i>
                                 </button>
-                                <button class="btn btn-sm btn-outline-danger edit-controls" style="display: none;" 
-                                        onclick="deleteWeek({{ week_num }})" title="Delete Week">
+                                <button class="c-btn c-btn--sm c-btn--outline-danger edit-controls js-delete-week" data-action="delete-week" data-week="{{ week_num }}" title="Delete Week">
                                     <i class="ti ti-trash"></i>
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="card-body week-content" id="week-{{ week_num }}" style="display: block;">
+                <div class="c-card__body week-content" id="week-{{ week_num }}">
                     {% if week_data.week_type == 'BYE' %}
-                    <div class="alert alert-secondary mb-0">
+                    <div class="alert alert-secondary mb-0" data-alert>
                         <i class="ti ti-moon me-2"></i>
                         <strong>Bye Week</strong> - No matches scheduled. Teams have the week off.
                     </div>
                     {% elif week_data.week_type == 'FUN' %}
-                    <div class="alert alert-warning mb-3">
+                    <div class="alert alert-warning mb-3" data-alert>
                         <i class="ti ti-confetti me-2"></i>
                         <strong>Fun Week</strong> - Special activities and fun matches for all teams.
                     </div>
                     {% elif week_data.week_type == 'TST' %}
-                    <div class="alert alert-info mb-3">
+                    <div class="alert alert-info mb-3" data-alert>
                         <i class="ti ti-trophy me-2"></i>
                         <strong>TST Week</strong> - The Soccer Tournament competition week.
                     </div>
                     {% endif %}
                     
                     {% if week_data.matches %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
+                    <div class="c-table-wrapper" data-table-responsive>
+                        <table class="c-table c-table--hoverable" data-table>
+                            <thead scope="col">
                                 <tr>
-                                    <th>Time</th>
-                                    <th>Field</th>
-                                    <th>League</th>
-                                    <th>Home Team</th>
-                                    <th>Away Team</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                    <th class="edit-controls" style="display: none;">Edit</th>
+                                    <th scope="col">Time</th>
+                                    <th scope="col">Field</th>
+                                    <th scope="col">League</th>
+                                    <th scope="col">Home Team</th>
+                                    <th scope="col">Away Team</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col">Actions</th>
+                                    <th class="edit-controls" scope="col">Edit</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -189,14 +190,14 @@
                                     <td class="match-time" data-time="{{ match.time.strftime('%H:%M') }}">
                                         <i class="ti ti-clock me-1"></i>
                                         <span class="time-display">{{ match.time.strftime('%I:%M %p') }}</span>
-                                        <input type="time" class="form-control time-edit" style="display: none;" 
-                                               value="{{ match.time.strftime('%H:%M') }}">
+                                        <input type="time" class="form-control time-edit"
+                                               value="{{ match.time.strftime('%H:%M') }}" data-form-control>
                                     </td>
                                     <td class="match-field" data-field="{{ match.location }}">
                                         <span class="field-display">
-                                            <span class="badge bg-label-primary">{{ match.location }}</span>
+                                            <span class="badge bg-label-primary" data-badge>{{ match.location }}</span>
                                         </span>
-                                        <select class="form-select field-edit" style="display: none;">
+                                        <select class="form-select field-edit" data-form-select>
                                             <option value="North" {% if match.location == 'North' %}selected{% endif %}>North</option>
                                             <option value="South" {% if match.location == 'South' %}selected{% endif %}>South</option>
                                             <option value="East" {% if match.location == 'East' %}selected{% endif %}>East</option>
@@ -209,7 +210,7 @@
                                     <td>
                                         {% if match.week_type == 'PLAYOFF' and match.home_team_id != match.away_team_id %}
                                             {# Confirmed playoff match - show actual team #}
-                                            <span class="badge bg-info">Playoff</span>
+                                            <span class="badge bg-info" data-badge>Playoff</span>
                                             <span class="team-display">
                                                 <a href="{{ url_for('teams.team_details', team_id=match.home_team_id) }}"
                                                    class="text-decoration-none">
@@ -217,7 +218,7 @@
                                                 </a>
                                             </span>
                                         {% elif match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
-                                            <span class="badge bg-info">
+                                            <span class="badge bg-info" data-badge>
                                                 {% if match.week_type == 'FUN' %}
                                                     Fun Week
                                                 {% elif match.week_type == 'TST' %}
@@ -231,21 +232,21 @@
                                                 {% endif %}
                                             </span>
                                         {% elif match.week_type == 'PRACTICE' or (match.is_practice_game if match.is_practice_game is defined else False) %}
-                                            <span class="badge bg-warning">
+                                            <span class="badge bg-warning" data-badge>
                                                 PRACTICE
                                             </span>
                                         {% else %}
                                             <span class="team-display">
-                                                <a href="{{ url_for('teams.team_details', team_id=match.home_team_id) }}" 
+                                                <a href="{{ url_for('teams.team_details', team_id=match.home_team_id) }}"
                                                    class="text-decoration-none">
                                                     {{ match.home_team.name }}
                                                 </a>
                                             </span>
-                                            <select class="form-select team-edit" style="display: none;" data-team-type="home">
+                                            <select class="form-select team-edit" data-team-type="home" data-form-select>
                                                 {% for league in leagues %}
                                                     {% if league.id == match.home_team.league_id %}
                                                         {% for team in league.teams %}
-                                                        <option value="{{ team.id }}" 
+                                                        <option value="{{ team.id }}"
                                                                 {% if team.id == match.home_team_id %}selected{% endif %}>
                                                             {{ team.name }}
                                                         </option>
@@ -284,16 +285,16 @@
                                             </span>
                                         {% else %}
                                             <span class="team-display">
-                                                <a href="{{ url_for('teams.team_details', team_id=match.away_team_id) }}" 
+                                                <a href="{{ url_for('teams.team_details', team_id=match.away_team_id) }}"
                                                    class="text-decoration-none">
                                                     {{ match.away_team.name }}
                                                 </a>
                                             </span>
-                                            <select class="form-select team-edit" style="display: none;" data-team-type="away">
+                                            <select class="form-select team-edit" data-team-type="away" data-form-select>
                                                 {% for league in leagues %}
                                                     {% if league.id == match.home_team.league_id %}
                                                         {% for team in league.teams %}
-                                                        <option value="{{ team.id }}" 
+                                                        <option value="{{ team.id }}"
                                                                 {% if team.id == match.away_team_id %}selected{% endif %}>
                                                             {{ team.name }}
                                                         </option>
@@ -305,24 +306,24 @@
                                     </td>
                                     <td>
                                         {% if match.reported %}
-                                        <span class="badge bg-success">Reported</span>
+                                        <span class="badge bg-success" data-badge>Reported</span>
                                         {% else %}
-                                        <span class="badge bg-secondary">Scheduled</span>
+                                        <span class="badge bg-secondary" data-badge>Scheduled</span>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" 
-                                           class="btn btn-sm btn-outline-primary">
+                                        <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}"
+                                           class="c-btn c-btn--sm c-btn--outline-primary">
                                             <i class="ti ti-eye"></i>
                                         </a>
                                     </td>
-                                    <td class="edit-controls" style="display: none;">
-                                        <button class="btn btn-sm btn-outline-secondary me-1" 
-                                                onclick="editMatch({{ match.id }})" title="Edit Match">
+                                    <td class="edit-controls">
+                                        <button class="c-btn c-btn--sm c-btn--outline-secondary me-1 js-edit-match"
+                                                data-action="edit-match" data-match-id="{{ match.id }}" title="Edit Match">
                                             <i class="ti ti-edit"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-danger" 
-                                                onclick="deleteMatch({{ match.id }})" title="Delete Match">
+                                        <button class="c-btn c-btn--sm c-btn--outline-danger js-delete-match"
+                                                data-action="delete-match" data-match-id="{{ match.id }}" title="Delete Match">
                                             <i class="ti ti-trash"></i>
                                         </button>
                                     </td>
@@ -337,12 +338,12 @@
         </div>
         {% else %}
         <div class="col-12">
-            <div class="card">
-                <div class="card-body text-center py-5">
+            <div class="c-card">
+                <div class="c-card__body text-center py-5">
                     <i class="ti ti-calendar-off ti-lg mb-3 text-muted"></i>
                     <h5>No Schedule Found</h5>
                     <p class="text-muted mb-3">No matches have been scheduled for this season yet.</p>
-                    <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="btn btn-primary">
+                    <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="c-btn c-btn--primary">
                         <i class="ti ti-plus me-1"></i>Create Schedule
                     </a>
                 </div>
@@ -355,17 +356,17 @@
     {% if schedule_by_week %}
     <div class="row mt-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">Export Options</h5>
+            <div class="c-card">
+                <div class="c-card__body">
+                    <h5 class="c-card__title mb-3">Export Options</h5>
                     <div class="btn-group" role="group">
-                        <button class="btn btn-outline-primary" onclick="exportToCSV()">
+                        <button class="c-btn c-btn--outline-primary js-export-csv" data-action="export-csv">
                             <i class="ti ti-file-spreadsheet me-1"></i>Export to CSV
                         </button>
-                        <button class="btn btn-outline-primary" onclick="printSchedule()">
+                        <button class="c-btn c-btn--outline-primary js-print-schedule" data-action="print-schedule">
                             <i class="ti ti-printer me-1"></i>Print Schedule
                         </button>
-                        <button class="btn btn-outline-primary" onclick="shareSchedule()">
+                        <button class="c-btn c-btn--outline-primary js-share-schedule" data-action="share-schedule">
                             <i class="ti ti-share me-1"></i>Share Link
                         </button>
                     </div>
@@ -377,24 +378,24 @@
 </div>
 
 <!-- Edit Match Modal -->
-<div class="modal fade" id="editMatchModal" tabindex="-1" aria-labelledby="editMatchModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editMatchModalLabel">Edit Match</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal c-modal fade" id="editMatchModal" tabindex="-1" aria-labelledby="editMatchModalLabel" aria-hidden="true" data-modal>
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="editMatchModalLabel">Edit Match</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body>
                 <form id="editMatchForm">
                     <input type="hidden" id="editMatchId">
                     <div class="row">
                         <div class="col-md-6">
                             <label for="editMatchTime" class="form-label">Time</label>
-                            <input type="time" class="form-control" id="editMatchTime" required>
+                            <input type="time" class="form-control" id="editMatchTime" required data-form-control>
                         </div>
                         <div class="col-md-6">
                             <label for="editMatchField" class="form-label">Field</label>
-                            <select class="form-select" id="editMatchField" required>
+                            <select class="form-select" id="editMatchField" required data-form-select>
                                 <option value="North">North</option>
                                 <option value="South">South</option>
                                 <option value="East">East</option>
@@ -405,52 +406,52 @@
                     <div class="row mt-3">
                         <div class="col-md-6">
                             <label for="editMatchHomeTeam" class="form-label">Home Team</label>
-                            <select class="form-select" id="editMatchHomeTeam" required>
+                            <select class="form-select" id="editMatchHomeTeam" required data-form-select>
                                 <!-- Options populated by JavaScript -->
                             </select>
                         </div>
                         <div class="col-md-6">
                             <label for="editMatchAwayTeam" class="form-label">Away Team</label>
-                            <select class="form-select" id="editMatchAwayTeam" required>
+                            <select class="form-select" id="editMatchAwayTeam" required data-form-select>
                                 <!-- Options populated by JavaScript -->
                             </select>
                         </div>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveMatchFromModal()">Save Changes</button>
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--primary js-save-match-modal" data-action="save-match-modal">Save Changes</button>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Add Match Modal -->
-<div class="modal fade" id="addMatchModal" tabindex="-1" aria-labelledby="addMatchModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addMatchModalLabel">Add New Match</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal c-modal fade" id="addMatchModal" tabindex="-1" aria-labelledby="addMatchModalLabel" aria-hidden="true" data-modal>
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="addMatchModalLabel">Add New Match</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body>
                 <form id="addMatchForm">
                     <input type="hidden" id="addMatchWeek">
                     <div class="row">
                         <div class="col-md-6">
                             <label for="addMatchDate" class="form-label">Date</label>
-                            <input type="date" class="form-control" id="addMatchDate" required>
+                            <input type="date" class="form-control" id="addMatchDate" required data-form-control>
                         </div>
                         <div class="col-md-6">
                             <label for="addMatchTime" class="form-label">Time</label>
-                            <input type="time" class="form-control" id="addMatchTime" value="19:00" required>
+                            <input type="time" class="form-control" id="addMatchTime" value="19:00" required data-form-control>
                         </div>
                     </div>
                     <div class="row mt-3">
                         <div class="col-md-6">
                             <label for="addMatchField" class="form-label">Field</label>
-                            <select class="form-select" id="addMatchField" required>
+                            <select class="form-select" id="addMatchField" required data-form-select>
                                 <option value="North">North</option>
                                 <option value="South">South</option>
                                 <option value="East">East</option>
@@ -459,7 +460,7 @@
                         </div>
                         <div class="col-md-6">
                             <label for="addMatchLeague" class="form-label">League</label>
-                            <select class="form-select" id="addMatchLeague" required>
+                            <select class="form-select" id="addMatchLeague" required data-form-select>
                                 {% for league in leagues %}
                                 <option value="{{ league.id }}">{{ league.name }}</option>
                                 {% endfor %}
@@ -469,189 +470,155 @@
                     <div class="row mt-3">
                         <div class="col-md-6">
                             <label for="addMatchHomeTeam" class="form-label">Home Team</label>
-                            <select class="form-select" id="addMatchHomeTeam" required>
+                            <select class="form-select" id="addMatchHomeTeam" required data-form-select>
                                 <!-- Options populated by JavaScript -->
                             </select>
                         </div>
                         <div class="col-md-6">
                             <label for="addMatchAwayTeam" class="form-label">Away Team</label>
-                            <select class="form-select" id="addMatchAwayTeam" required>
+                            <select class="form-select" id="addMatchAwayTeam" required data-form-select>
                                 <!-- Options populated by JavaScript -->
                             </select>
                         </div>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveMatchFromAddModal()">Add Match</button>
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--primary js-save-match-add" data-action="save-match-add">Add Match</button>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-.week-container {
-    transition: all 0.3s ease;
-}
-
-.week-content {
-    transition: all 0.3s ease;
-}
-
-.match-row {
-    transition: all 0.2s ease;
-}
-
-.match-row:hover {
-    background-color: var(--bs-gray-100);
-}
-
-.match-row.filtered-out {
-    display: none;
-}
-
-@media print {
-    .btn, .form-select, .card-header button {
-        display: none !important;
-    }
-    
-    .week-content {
-        display: block !important;
-    }
-}
-
-.badge {
-    font-weight: 500;
-}
-
-/* Edit mode styles */
-.edit-controls {
-    transition: opacity 0.2s ease;
-}
-
-.week-header {
-    position: relative;
-}
-
-.week-edit-form {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.week-edit-form input {
-    width: auto;
-    min-width: 120px;
-}
-
-.match-row.editing {
-    background-color: var(--bs-warning-bg-subtle);
-    border-left: 3px solid var(--bs-warning);
-}
-
-.match-row.new-match {
-    background-color: var(--bs-success-bg-subtle);
-    border-left: 3px solid var(--bs-success);
-}
-
-.time-edit,
-.field-edit,
-.team-edit {
-    min-width: 100px;
-}
-
-.team-edit {
-    font-size: 0.875rem;
-}
-
-/* Drag and drop styles */
-.week-container {
-    position: relative;
-}
-
-.week-container.dragging {
-    opacity: 0.5;
-}
-
-.week-container.drag-over {
-    border: 2px dashed var(--bs-primary);
-    background-color: var(--bs-primary-bg-subtle);
-}
-
-.match-row.dragging {
-    opacity: 0.5;
-}
-
-.match-row.drag-over {
-    border-top: 2px solid var(--bs-primary);
-}
-
-/* Edit mode toggle button */
-.edit-mode-active {
-    background-color: var(--bs-warning) !important;
-    border-color: var(--bs-warning) !important;
-    color: var(--bs-dark) !important;
-}
-
-/* Form controls in edit mode */
-.edit-controls input,
-.edit-controls select {
-    font-size: 0.875rem;
-    padding: 0.25rem 0.5rem;
-}
-
-/* Alert positioning - only for dynamic alerts */
-.alert.alert-dismissible {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 1050;
-    min-width: 300px;
-    margin: 0;
-}
-
-/* Mobile responsive adjustments */
-@media (max-width: 768px) {
-    .week-edit-form {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .week-edit-form input {
-        width: 100%;
-        margin-bottom: 0.25rem;
-    }
-    
-    .edit-controls {
-        white-space: nowrap;
-    }
-    
-    .edit-controls .btn {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
-    }
-}
-</style>
-
 <script>
 // Global edit mode state
 let editMode = false;
+
+// Event delegation setup
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle edit mode
+    document.querySelectorAll('.js-toggle-edit').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            toggleEditMode();
+        });
+    });
+
+    // Apply filters
+    document.querySelectorAll('.js-apply-filters').forEach(btn => {
+        btn.addEventListener('click', applyFilters);
+    });
+
+    // Toggle week
+    document.querySelectorAll('.js-toggle-week').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const weekNum = this.dataset.week;
+            toggleWeek(weekNum);
+        });
+    });
+
+    // Edit week
+    document.querySelectorAll('.js-edit-week').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const weekNum = this.dataset.week;
+            editWeek(weekNum);
+        });
+    });
+
+    // Add match
+    document.querySelectorAll('.js-add-match').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const weekNum = this.dataset.week;
+            addMatch(weekNum);
+        });
+    });
+
+    // Delete week
+    document.querySelectorAll('.js-delete-week').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const weekNum = this.dataset.week;
+            deleteWeek(weekNum);
+        });
+    });
+
+    // Save week
+    document.querySelectorAll('.js-save-week').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const weekNum = this.dataset.week;
+            saveWeek(weekNum);
+        });
+    });
+
+    // Cancel week edit
+    document.querySelectorAll('.js-cancel-week-edit').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const weekNum = this.dataset.week;
+            cancelWeekEdit(weekNum);
+        });
+    });
+
+    // Edit match
+    document.querySelectorAll('.js-edit-match').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const matchId = this.dataset.matchId;
+            editMatch(matchId);
+        });
+    });
+
+    // Delete match
+    document.querySelectorAll('.js-delete-match').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const matchId = this.dataset.matchId;
+            deleteMatch(matchId);
+        });
+    });
+
+    // Export/print/share buttons
+    document.querySelectorAll('.js-export-csv').forEach(btn => {
+        btn.addEventListener('click', exportToCSV);
+    });
+
+    document.querySelectorAll('.js-print-schedule').forEach(btn => {
+        btn.addEventListener('click', printSchedule);
+    });
+
+    document.querySelectorAll('.js-share-schedule').forEach(btn => {
+        btn.addEventListener('click', shareSchedule);
+    });
+
+    // Modal save buttons
+    document.querySelectorAll('.js-save-match-modal').forEach(btn => {
+        btn.addEventListener('click', saveMatchFromModal);
+    });
+
+    document.querySelectorAll('.js-save-match-add').forEach(btn => {
+        btn.addEventListener('click', saveMatchFromAddModal);
+    });
+});
 
 // Toggle edit mode
 function toggleEditMode() {
     editMode = !editMode;
     const editControls = document.querySelectorAll('.edit-controls');
-    
+
     editControls.forEach(control => {
-        control.style.display = editMode ? '' : 'none';
+        if (editMode) {
+            if (control.tagName === 'TH' || control.tagName === 'TD') {
+                control.classList.add('edit-controls-visible');
+            } else {
+                control.classList.add('edit-controls-btn-visible');
+            }
+        } else {
+            control.classList.remove('edit-controls-visible', 'edit-controls-btn-visible');
+        }
     });
-    
+
     // Update button text
-    const button = document.querySelector('[onclick="toggleEditMode()"]');
+    const button = document.querySelector('[data-action="toggle-edit"]');
     if (button) {
-        button.innerHTML = editMode ? 
-            '<i class="ti ti-eye me-1"></i>Exit Edit Mode' : 
+        button.innerHTML = editMode ?
+            '<i class="ti ti-eye me-1"></i>Exit Edit Mode' :
             '<i class="ti ti-edit me-1"></i>Toggle Edit Mode';
     }
 }
@@ -660,13 +627,13 @@ function toggleEditMode() {
 function toggleWeek(weekNum) {
     const content = document.getElementById(`week-${weekNum}`);
     const chevron = document.getElementById(`chevron-${weekNum}`);
-    
-    if (content.style.display === 'none') {
-        content.style.display = 'block';
+
+    if (content.classList.contains('week-content-collapsed')) {
+        content.classList.remove('week-content-collapsed');
         chevron.classList.remove('ti-chevron-right');
         chevron.classList.add('ti-chevron-down');
     } else {
-        content.style.display = 'none';
+        content.classList.add('week-content-collapsed');
         chevron.classList.remove('ti-chevron-down');
         chevron.classList.add('ti-chevron-right');
     }
@@ -677,10 +644,10 @@ function editWeek(weekNum) {
     const weekHeader = document.querySelector(`[data-week="${weekNum}"]`);
     const weekTitle = weekHeader.querySelector('.week-title');
     const weekEditForm = weekHeader.querySelector('.week-edit-form');
-    
-    weekTitle.style.display = 'none';
-    weekEditForm.style.display = 'inline-block';
-    
+
+    weekTitle.classList.add('d-none');
+    weekEditForm.classList.remove('week-edit-form-hidden');
+
     // Get first match time as default
     const firstMatch = document.querySelector(`[data-week="${weekNum}"] .match-time`);
     if (firstMatch) {
@@ -693,9 +660,9 @@ function cancelWeekEdit(weekNum) {
     const weekHeader = document.querySelector(`[data-week="${weekNum}"]`);
     const weekTitle = weekHeader.querySelector('.week-title');
     const weekEditForm = weekHeader.querySelector('.week-edit-form');
-    
-    weekTitle.style.display = 'inline-block';
-    weekEditForm.style.display = 'none';
+
+    weekTitle.classList.remove('d-none');
+    weekEditForm.classList.add('week-edit-form-hidden');
 }
 
 function saveWeek(weekNum) {
@@ -759,10 +726,8 @@ function editMatch(matchId) {
                 
                 populateTeamOptions(homeTeamSelect, leagueId, data.match.home_team_id);
                 populateTeamOptions(awayTeamSelect, leagueId, data.match.away_team_id);
-                
-                // Show modal
-                const modal = new bootstrap.Modal(document.getElementById('editMatchModal'));
-                modal.show();
+
+                ModalManager.show('editMatchModal');
             } else {
                 showAlert('error', data.error);
             }
@@ -818,7 +783,7 @@ function saveMatchFromModal() {
 
 function cancelMatchEdit(matchId) {
     const matchRow = document.querySelector(`[data-match-id="${matchId}"]`);
-    
+
     // Hide edit elements
     const timeDisplay = matchRow.querySelector('.time-display');
     const timeEdit = matchRow.querySelector('.time-edit');
@@ -826,14 +791,14 @@ function cancelMatchEdit(matchId) {
     const fieldEdit = matchRow.querySelector('.field-edit');
     const teamDisplays = matchRow.querySelectorAll('.team-display');
     const teamEdits = matchRow.querySelectorAll('.team-edit');
-    
-    timeDisplay.style.display = 'inline-block';
-    timeEdit.style.display = 'none';
-    fieldDisplay.style.display = 'inline-block';
-    fieldEdit.style.display = 'none';
-    teamDisplays.forEach(display => display.style.display = 'inline-block');
-    teamEdits.forEach(edit => edit.style.display = 'none');
-    
+
+    timeDisplay.classList.remove('d-none');
+    timeEdit.classList.remove('time-edit-visible');
+    fieldDisplay.classList.remove('d-none');
+    fieldEdit.classList.remove('field-edit-visible');
+    teamDisplays.forEach(display => display.classList.remove('d-none'));
+    teamEdits.forEach(edit => edit.classList.remove('team-edit-visible'));
+
     // Remove save/cancel buttons
     const saveBtn = matchRow.querySelector('.save-match');
     const cancelBtn = matchRow.querySelector('.cancel-match');
@@ -1007,10 +972,8 @@ function addMatch(weekNum) {
     
     // Populate team options
     updateAddMatchTeams();
-    
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('addMatchModal'));
-    modal.show();
+
+    ModalManager.show('addMatchModal');
 }
 
 function updateAddMatchTeams() {
@@ -1196,16 +1159,16 @@ document.getElementById('leagueFilter').addEventListener('change', function() {
     // Show/hide team options based on selected league
     Array.from(teamFilter.options).forEach(option => {
         if (option.value === '') return; // Skip "All Teams" option
-        
+
         if (selectedLeague === '' || option.dataset.league === selectedLeague) {
-            option.style.display = 'block';
+            option.classList.remove('d-none');
         } else {
-            option.style.display = 'none';
+            option.classList.add('d-none');
         }
     });
-    
+
     // Reset team filter if current selection is hidden
-    if (teamFilter.value && teamFilter.options[teamFilter.selectedIndex].style.display === 'none') {
+    if (teamFilter.value && teamFilter.options[teamFilter.selectedIndex].classList.contains('d-none')) {
         teamFilter.value = '';
     }
 });
@@ -1220,12 +1183,12 @@ function applyFilters() {
     document.querySelectorAll('.week-container').forEach(weekContainer => {
         const weekType = weekContainer.dataset.weekType;
         let showWeek = true;
-        
+
         if (weekTypeFilter && weekType !== weekTypeFilter) {
             showWeek = false;
         }
-        
-        weekContainer.style.display = showWeek ? 'block' : 'none';
+
+        weekContainer.classList.toggle('d-none', !showWeek);
     });
     
     // Filter matches
@@ -1333,20 +1296,18 @@ document.addEventListener('DOMContentLoaded', function() {
     editMode = true;
     const editControls = document.querySelectorAll('.edit-controls');
     editControls.forEach(control => {
-        control.style.display = '';
+        if (control.tagName === 'TH' || control.tagName === 'TD') {
+            control.classList.add('edit-controls-visible');
+        } else {
+            control.classList.add('edit-controls-btn-visible');
+        }
     });
-    
+
     // Update button text
-    const button = document.querySelector('[onclick="toggleEditMode()"]');
+    const button = document.querySelector('[data-action="toggle-edit"]');
     if (button) {
         button.innerHTML = '<i class="ti ti-eye me-1"></i>Exit Edit Mode';
     }
-    {% else %}
-    // Hide edit controls for non-admin users
-    const editControls = document.querySelectorAll('.edit-controls');
-    editControls.forEach(control => {
-        control.style.display = 'none';
-    });
     {% endif %}
     
     // Add event listener for league change in add match modal

@@ -2,6 +2,7 @@
 {% block title %}Pass Scanner{% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
     /* Scanner - Theme-aware styling */
     .scanner-container {
@@ -123,10 +124,10 @@
                     <p class="text-muted mb-0">Scan digital wallet passes to validate membership and record check-ins</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <a href="{{ url_for('wallet_admin.checkins_list') }}" class="btn btn-outline-secondary">
+                    <a href="{{ url_for('wallet_admin.checkins_list') }}" class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-list-check me-1"></i>Check-in History
                     </a>
-                    <a href="{{ url_for('wallet_admin.passes_list') }}" class="btn btn-outline-secondary">
+                    <a href="{{ url_for('wallet_admin.passes_list') }}" class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-arrow-left me-1"></i>Back to Passes
                     </a>
                 </div>
@@ -137,13 +138,13 @@
     <div class="row">
         <!-- Scanner Column -->
         <div class="col-lg-6 mb-4">
-            <div class="card">
-                <div class="card-header">
+            <div class="c-card">
+                <div class="c-card__header">
                     <h5 class="mb-0">
                         <i class="ti ti-scan me-2"></i>Scan Pass
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <div class="scanner-container">
                         <!-- Scanner Video -->
                         <div class="scanner-overlay mb-3">
@@ -153,10 +154,10 @@
 
                         <!-- Scanner Controls -->
                         <div class="d-flex gap-2 mb-4">
-                            <button id="start-scanner" class="btn btn-primary flex-grow-1">
+                            <button id="start-scanner" class="c-btn c-btn--primary flex-grow-1">
                                 <i class="ti ti-scan me-1"></i>Start Camera
                             </button>
-                            <button id="stop-scanner" class="btn btn-outline-secondary" disabled>
+                            <button id="stop-scanner" class="c-btn c-btn--outline-secondary" disabled>
                                 <i class="ti ti-player-stop me-1"></i>Stop
                             </button>
                         </div>
@@ -166,10 +167,10 @@
                             <label class="form-label">
                                 <i class="ti ti-keyboard me-1"></i>Manual Entry
                             </label>
-                            <div class="input-group">
+                            <div class="input-group" data-input-group>
                                 <input type="text" id="manual-barcode" class="form-control"
-                                       placeholder="Enter pass barcode (e.g., ECS-2025-ABC123)">
-                                <button class="btn btn-primary" id="manual-submit">
+                                       placeholder="Enter pass barcode (e.g., ECS-2025-ABC123)" data-form-control>
+                                <button class="c-btn c-btn--primary" id="manual-submit">
                                     <i class="ti ti-check me-1"></i>Validate
                                 </button>
                             </div>
@@ -177,12 +178,12 @@
                         </div>
 
                         <!-- Options -->
-                        <div class="card bg-body-tertiary border-0">
-                            <div class="card-body py-3">
+                        <div class="c-card bg-body-tertiary border-0">
+                            <div class="c-card__body py-3">
                                 <div class="mb-3">
                                     <label class="form-label small text-muted mb-1">Event Name (optional)</label>
                                     <input type="text" id="event-name" class="form-control form-control-sm"
-                                           placeholder="e.g., Match vs Seattle Sounders">
+                                           placeholder="e.g., Match vs Seattle Sounders" data-form-control>
                                 </div>
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="auto-checkin" checked>
@@ -200,15 +201,15 @@
         <!-- Result & History Column -->
         <div class="col-lg-6">
             <!-- Latest Scan Result -->
-            <div class="card mb-4 result-card" id="result-card">
-                <div class="card-header">
+            <div class="c-card mb-4 result-card" id="result-card">
+                <div class="c-card__header">
                     <h5 class="mb-0">
                         <i class="ti ti-user-check me-2"></i>Scan Result
                     </h5>
                 </div>
-                <div class="card-body" id="result-body">
+                <div class="c-card__body" id="result-body">
                     <div class="text-center text-muted py-5">
-                        <i class="ti ti-qrcode mb-2" style="font-size: 3rem;"></i>
+                        <i class="ti ti-qrcode mb-2" class="u-icon-3xl"></i>
                         <p class="mb-0">Scan a pass to see validation results</p>
                     </div>
                 </div>
@@ -237,16 +238,16 @@
             </div>
 
             <!-- Scan History -->
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="c-card">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <i class="ti ti-history me-2"></i>Recent Scans
                     </h5>
-                    <button class="btn btn-sm btn-outline-secondary" id="clear-history">
+                    <button class="c-btn c-btn--sm c-btn--outline-secondary" id="clear-history">
                         <i class="ti ti-trash me-1"></i>Clear
                     </button>
                 </div>
-                <div class="card-body" style="max-height: 350px; overflow-y: auto;">
+                <div class="c-card__body" class="u-max-h-350-scroll">
                     <div id="scan-history">
                         <div class="text-center text-muted py-4">
                             <small>No scans in this session</small>
@@ -405,15 +406,15 @@ document.addEventListener('DOMContentLoaded', function() {
         resultCard.classList.add(isValid ? 'valid' : 'invalid');
 
         let statusBadge = isValid
-            ? '<span class="badge bg-success fs-6"><i class="ti ti-check me-1"></i>VALID</span>'
-            : '<span class="badge bg-danger fs-6"><i class="ti ti-x me-1"></i>INVALID</span>';
+            ? '<span class="badge bg-success fs-6" data-badge><i class="ti ti-check me-1"></i>VALID</span>'
+            : '<span class="badge bg-danger fs-6" data-badge><i class="ti ti-x me-1"></i>INVALID</span>';
 
         let alertHtml = '';
         if (!isValid && data.reason) {
-            alertHtml = `<div class="alert alert-danger mt-3 mb-0"><i class="ti ti-alert-circle me-1"></i>${data.reason}</div>`;
+            alertHtml = `<div class="alert alert-danger mt-3 mb-0" data-alert><i class="ti ti-alert-circle me-1"></i>${data.reason}</div>`;
         }
         if (data.check_in_recorded) {
-            alertHtml += '<div class="alert alert-success mt-3 mb-0"><i class="ti ti-check me-1"></i>Check-in recorded successfully</div>';
+            alertHtml += '<div class="alert alert-success mt-3 mb-0" data-alert><i class="ti ti-check me-1"></i>Check-in recorded successfully</div>';
         }
 
         resultBody.innerHTML = `
@@ -421,10 +422,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 <h4 class="mb-0">${pass.member_name}</h4>
                 ${statusBadge}
             </div>
-            <div class="table-responsive">
-                <table class="table table-sm mb-0">
-                    <tr><td class="text-muted" style="width:35%">Email</td><td>${pass.member_email || '-'}</td></tr>
-                    <tr><td class="text-muted">Pass Type</td><td><span class="badge bg-label-primary">${pass.pass_type || '-'}</span></td></tr>
+            <div class="c-table-wrapper" data-table-responsive>
+                <table class="c-table c-table--compact mb-0" data-table>
+                    <tr><td class="text-muted" class="u-w-35-percent">Email</td><td>${pass.member_email || '-'}</td></tr>
+                    <tr><td class="text-muted">Pass Type</td><td><span class="badge bg-label-primary" data-badge>${pass.pass_type || '-'}</span></td></tr>
                     <tr><td class="text-muted">Validity</td><td>${pass.validity || '-'}</td></tr>
                     ${pass.team_name ? `<tr><td class="text-muted">Team</td><td>${pass.team_name}</td></tr>` : ''}
                     <tr><td class="text-muted">Status</td><td>${pass.status}</td></tr>
@@ -440,7 +441,7 @@ document.addEventListener('DOMContentLoaded', function() {
         resultCard.classList.add('invalid');
         resultBody.innerHTML = `
             <div class="text-center text-danger py-4">
-                <i class="ti ti-alert-triangle mb-2" style="font-size: 3rem;"></i>
+                <i class="ti ti-alert-triangle mb-2" class="u-icon-3xl"></i>
                 <p class="mb-0 fw-semibold">${message}</p>
             </div>
         `;
@@ -464,7 +465,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     ${data.pass ? `<br><small class="text-muted">${data.pass.pass_type}</small>` : ''}
                 </div>
                 <div class="text-end">
-                    <span class="badge ${isValid ? 'bg-success' : 'bg-danger'}">${isValid ? 'Valid' : 'Invalid'}</span>
+                    <span class="badge ${isValid ? 'bg-success' : 'bg-danger'}" data-badge>${isValid ? 'Valid' : 'Invalid'}</span>
                     <br><small class="text-muted">${time}</small>
                 </div>
             </div>
@@ -493,7 +494,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('stat-invalid').textContent = '0';
         document.getElementById('stat-total').textContent = '0';
         resultCard.classList.remove('valid', 'invalid');
-        resultBody.innerHTML = '<div class="text-center text-muted py-5"><i class="ti ti-qrcode mb-2" style="font-size: 3rem;"></i><p class="mb-0">Scan a pass to see validation results</p></div>';
+        resultBody.innerHTML = '<div class="text-center text-muted py-5"><i class="ti ti-qrcode mb-2" class="u-icon-3xl"></i><p class="mb-0">Scan a pass to see validation results</p></div>';
     });
 
     // Initialize

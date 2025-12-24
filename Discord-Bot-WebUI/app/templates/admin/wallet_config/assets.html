@@ -14,28 +14,28 @@
                     <p class="text-muted mb-0">Manage icons, logos, and images for wallet passes</p>
                 </div>
                 <div>
-                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="btn btn-outline-secondary">
+                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-arrow-left me-1"></i> Back to Dashboard
                     </a>
                 </div>
             </div>
 
             {% if pass_types_missing %}
-            <div class="alert alert-warning d-flex align-items-start">
+            <div class="alert alert-warning d-flex align-items-start" data-alert>
                 <i class="ti ti-alert-triangle me-3 fs-3"></i>
                 <div class="flex-grow-1">
                     <h6 class="alert-heading mb-1">Pass Types Not Initialized</h6>
                     <p class="mb-2">Before uploading assets, you need to initialize the pass types (ECS Membership and Pub League).</p>
                     <form action="{{ url_for('wallet_config.init_pass_types') }}" method="post" class="d-inline">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-warning">
+                        <button type="submit" class="c-btn c-btn--warning">
                             <i class="ti ti-database-plus me-1"></i> Initialize Pass Types
                         </button>
                     </form>
                 </div>
             </div>
             {% else %}
-            <div class="alert alert-info d-flex align-items-start">
+            <div class="alert alert-info d-flex align-items-start" data-alert>
                 <i class="ti ti-info-circle me-3 fs-3"></i>
                 <div>
                     <h6 class="alert-heading mb-1">Asset Requirements</h6>
@@ -54,7 +54,7 @@
     <div class="row">
         <div class="col-12">
             <div class="nav-align-top mb-4">
-                <ul class="nav nav-tabs" role="tablist">
+                <ul class="nav nav-tabs" role="tablist" data-tabs>
                     <li class="nav-item">
                         <button
                             type="button"
@@ -85,34 +85,34 @@
                 
                 <div class="tab-content">
                     <!-- ECS Membership Tab -->
-                    <div class="tab-pane fade show active" id="ecs-tab" role="tabpanel">
-                        <div class="card border-0">
-                            <div class="card-body">
+                    <div class="tab-pane fade show active" id="ecs-tab" role="tabpanel" data-tab-pane>
+                        <div class="c-card border-0">
+                            <div class="c-card__body">
                                 <h5 class="mb-4">ECS Membership Assets</h5>
                                 
                                 <div class="row mb-4">
                                     <div class="col-md-6">
-                                        <div class="card bg-body-tertiary">
-                                            <div class="card-body">
-                                                <h6 class="card-title">Asset Status</h6>
+                                        <div class="c-card bg-body-tertiary">
+                                            <div class="c-card__body">
+                                                <h6 class="c-card__title">Asset Status</h6>
                                                 {% set has_icon = ecs_assets.icon is defined %}
                                                 {% set has_logo = ecs_assets.logo is defined %}
                                                 {% set complete = has_icon and has_logo %}
                                                 
-                                                <p class="card-text">
+                                                <p class="c-card__description">
                                                     {% if complete %}
-                                                    <span class="badge bg-label-success"><i class="ti ti-check me-1"></i> Complete</span>
+                                                    <span class="badge bg-label-success" data-badge><i class="ti ti-check me-1"></i> Complete</span>
                                                     {% else %}
-                                                    <span class="badge bg-label-warning"><i class="ti ti-alert-triangle me-1"></i> Incomplete</span>
+                                                    <span class="badge bg-label-warning" data-badge><i class="ti ti-alert-triangle me-1"></i> Incomplete</span>
                                                     {% endif %}
                                                 </p>
-                                                <div class="progress mb-3" style="height: 8px;">
+                                                <div class="progress mb-3" class="u-progress-h-8">
                                                     {% set required = 2 %}
                                                     {% set count = 0 %}
                                                     {% if has_icon %}{% set count = count + 1 %}{% endif %}
                                                     {% if has_logo %}{% set count = count + 1 %}{% endif %}
                                                     {% set percentage = (count / required * 100)|int %}
-                                                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ percentage }}%" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    <div class="progress-bar bg-primary" role="progressbar" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
                                                 </div>
                                                 <p class="mb-0 small">
                                                     {{ count }} of {{ required }} required assets uploaded.
@@ -121,14 +121,14 @@
                                         </div>
                                     </div>
                                     <div class="col-md-6">
-                                        <div class="card">
-                                            <div class="card-body">
-                                                <h6 class="card-title">Upload Asset</h6>
+                                        <div class="c-card">
+                                            <div class="c-card__body">
+                                                <h6 class="c-card__title">Upload Asset</h6>
                                                 <form action="{{ url_for('wallet_config.upload_asset') }}" method="post" enctype="multipart/form-data">
                                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                     <div class="mb-3">
                                                         <label class="form-label">Asset Type</label>
-                                                        <select name="asset_type" class="form-select">
+                                                        <select name="asset_type" class="form-select" data-form-select>
                                                             {% for asset_type, asset_info in asset_types.items() %}
                                                             <option value="{{ asset_type }}">{{ asset_info.description }} ({{ asset_info.dimensions }})</option>
                                                             {% endfor %}
@@ -136,10 +136,10 @@
                                                     </div>
                                                     <div class="mb-3">
                                                         <label class="form-label">Asset File</label>
-                                                        <input type="file" class="form-control" name="asset_file" required>
+                                                        <input type="file" class="form-control" name="asset_file" required data-form-control>
                                                     </div>
                                                     <input type="hidden" name="pass_type_id" value="{{ ecs_type.id }}">
-                                                    <button type="submit" class="btn btn-primary">Upload Asset</button>
+                                                    <button type="submit" class="c-btn c-btn--primary">Upload Asset</button>
                                                 </form>
                                             </div>
                                         </div>
@@ -150,12 +150,12 @@
                                 <div class="row">
                                     {% for asset_type, asset_info in asset_types.items() %}
                                     <div class="col-md-4 mb-4">
-                                        <div class="card h-100">
-                                            <div class="card-header">
+                                        <div class="c-card h-100">
+                                            <div class="c-card__header">
                                                 <h6 class="mb-0">{{ asset_info.description }}</h6>
                                                 <small class="text-muted">{{ asset_info.dimensions }}</small>
                                             </div>
-                                            <div class="card-body text-center">
+                                            <div class="c-card__body text-center">
                                                 {% if ecs_assets[asset_type] is defined %}
                                                     {% set asset = ecs_assets[asset_type] %}
                                                     <img src="{{ url_for('wallet_config.get_asset', asset_id=asset.id) }}" class="img-fluid mb-3 border" alt="{{ asset_type }}">
@@ -163,11 +163,11 @@
                                                     <form action="{{ url_for('wallet_config.delete_asset', asset_id=asset.id) }}" method="post" class="mt-2 delete-asset-form">
                                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                         <input type="hidden" name="asset_name" value="{{ asset_info.description }}">
-                                                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                                        <button type="submit" class="c-btn c-btn--sm c-btn--outline-danger">Delete</button>
                                                     </form>
                                                 {% else %}
                                                     <div class="text-muted py-4">
-                                                        <i class="ti ti-photo" style="font-size: 3rem;"></i>
+                                                        <i class="ti ti-photo" class="u-icon-3xl"></i>
                                                         <p>No asset uploaded</p>
                                                     </div>
                                                 {% endif %}
@@ -181,34 +181,34 @@
                     </div>
 
                     <!-- Pub League Tab -->
-                    <div class="tab-pane fade" id="pub-tab" role="tabpanel">
-                        <div class="card border-0">
-                            <div class="card-body">
+                    <div class="tab-pane fade" id="pub-tab" role="tabpanel" data-tab-pane>
+                        <div class="c-card border-0">
+                            <div class="c-card__body">
                                 <h5 class="mb-4">Pub League Assets</h5>
                                 
                                 <div class="row mb-4">
                                     <div class="col-md-6">
-                                        <div class="card bg-body-tertiary">
-                                            <div class="card-body">
-                                                <h6 class="card-title">Asset Status</h6>
+                                        <div class="c-card bg-body-tertiary">
+                                            <div class="c-card__body">
+                                                <h6 class="c-card__title">Asset Status</h6>
                                                 {% set pub_has_icon = pub_assets.icon is defined %}
                                                 {% set pub_has_logo = pub_assets.logo is defined %}
                                                 {% set pub_complete = pub_has_icon and pub_has_logo %}
                                                 
-                                                <p class="card-text">
+                                                <p class="c-card__description">
                                                     {% if pub_complete %}
-                                                    <span class="badge bg-label-success"><i class="ti ti-check me-1"></i> Complete</span>
+                                                    <span class="badge bg-label-success" data-badge><i class="ti ti-check me-1"></i> Complete</span>
                                                     {% else %}
-                                                    <span class="badge bg-label-warning"><i class="ti ti-alert-triangle me-1"></i> Incomplete</span>
+                                                    <span class="badge bg-label-warning" data-badge><i class="ti ti-alert-triangle me-1"></i> Incomplete</span>
                                                     {% endif %}
                                                 </p>
-                                                <div class="progress mb-3" style="height: 8px;">
+                                                <div class="progress mb-3" class="u-progress-h-8">
                                                     {% set required = 2 %}
                                                     {% set count = 0 %}
                                                     {% if pub_has_icon %}{% set count = count + 1 %}{% endif %}
                                                     {% if pub_has_logo %}{% set count = count + 1 %}{% endif %}
                                                     {% set percentage = (count / required * 100)|int %}
-                                                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ percentage }}%" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    <div class="progress-bar bg-primary" role="progressbar" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
                                                 </div>
                                                 <p class="mb-0 small">
                                                     {{ count }} of {{ required }} required assets uploaded.
@@ -217,14 +217,14 @@
                                         </div>
                                     </div>
                                     <div class="col-md-6">
-                                        <div class="card">
-                                            <div class="card-body">
-                                                <h6 class="card-title">Upload Asset</h6>
+                                        <div class="c-card">
+                                            <div class="c-card__body">
+                                                <h6 class="c-card__title">Upload Asset</h6>
                                                 <form action="{{ url_for('wallet_config.upload_asset') }}" method="post" enctype="multipart/form-data">
                                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                     <div class="mb-3">
                                                         <label class="form-label">Asset Type</label>
-                                                        <select name="asset_type" class="form-select">
+                                                        <select name="asset_type" class="form-select" data-form-select>
                                                             {% for asset_type, asset_info in asset_types.items() %}
                                                             <option value="{{ asset_type }}">{{ asset_info.description }} ({{ asset_info.dimensions }})</option>
                                                             {% endfor %}
@@ -232,10 +232,10 @@
                                                     </div>
                                                     <div class="mb-3">
                                                         <label class="form-label">Asset File</label>
-                                                        <input type="file" class="form-control" name="asset_file" required>
+                                                        <input type="file" class="form-control" name="asset_file" required data-form-control>
                                                     </div>
                                                     <input type="hidden" name="pass_type_id" value="{{ pub_type.id }}">
-                                                    <button type="submit" class="btn btn-primary">Upload Asset</button>
+                                                    <button type="submit" class="c-btn c-btn--primary">Upload Asset</button>
                                                 </form>
                                             </div>
                                         </div>
@@ -246,12 +246,12 @@
                                 <div class="row">
                                     {% for asset_type, asset_info in asset_types.items() %}
                                     <div class="col-md-4 mb-4">
-                                        <div class="card h-100">
-                                            <div class="card-header">
+                                        <div class="c-card h-100">
+                                            <div class="c-card__header">
                                                 <h6 class="mb-0">{{ asset_info.description }}</h6>
                                                 <small class="text-muted">{{ asset_info.dimensions }}</small>
                                             </div>
-                                            <div class="card-body text-center">
+                                            <div class="c-card__body text-center">
                                                 {% if pub_assets[asset_type] is defined %}
                                                     {% set asset = pub_assets[asset_type] %}
                                                     <img src="{{ url_for('wallet_config.get_asset', asset_id=asset.id) }}" class="img-fluid mb-3 border" alt="{{ asset_type }}">
@@ -259,11 +259,11 @@
                                                     <form action="{{ url_for('wallet_config.delete_asset', asset_id=asset.id) }}" method="post" class="mt-2 delete-asset-form">
                                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                         <input type="hidden" name="asset_name" value="{{ asset_info.description }}">
-                                                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                                        <button type="submit" class="c-btn c-btn--sm c-btn--outline-danger">Delete</button>
                                                     </form>
                                                 {% else %}
                                                     <div class="text-muted py-4">
-                                                        <i class="ti ti-photo" style="font-size: 3rem;"></i>
+                                                        <i class="ti ti-photo" class="u-icon-3xl"></i>
                                                         <p>No asset uploaded</p>
                                                     </div>
                                                 {% endif %}

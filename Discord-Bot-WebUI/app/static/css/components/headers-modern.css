@@ -1,0 +1,350 @@
+/**
+ * ============================================================================
+ * HEADERS MODERN - BEM COMPONENT
+ * ============================================================================
+ *
+ * Modern page header component for consistent page titles and navigation.
+ * Designed for sports dashboard with clean, athletic aesthetic.
+ *
+ * Design Direction: Athletic/Modern Sports Dashboard
+ * - Bold titles with subtle accent underlines
+ * - Clean hierarchy with supporting metadata
+ * - Smooth transitions and hover states
+ * - Accessible and responsive
+ *
+ * Component Structure:
+ *   .c-header-modern                    - Container
+ *   .c-header-modern__content           - Inner content wrapper
+ *   .c-header-modern__title             - Main title
+ *   .c-header-modern__subtitle          - Supporting subtitle
+ *   .c-header-modern__actions           - Action buttons area
+ *   .c-header-modern__meta              - Metadata row
+ *   .c-header-modern__breadcrumb        - Breadcrumb navigation
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. CONTAINER
+   ============================================================================ */
+
+.c-header-modern {
+  position: relative;
+  padding: var(--space-6, 24px) 0;
+  margin-bottom: var(--space-6, 24px);
+  background: var(--color-bg-primary, #fff);
+  border-bottom: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.06));
+}
+
+/* Variant: With background gradient */
+.c-header-modern--gradient {
+  background: linear-gradient(
+    135deg,
+    var(--color-bg-primary, #fff) 0%,
+    var(--color-bg-secondary, #f8fafc) 100%
+  );
+}
+
+/* Variant: Compact header */
+.c-header-modern--compact {
+  padding: var(--space-4, 16px) 0;
+  margin-bottom: var(--space-4, 16px);
+}
+
+/* Variant: With accent bar */
+.c-header-modern--accent::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--color-primary, #2563EB);
+  border-radius: 0 4px 4px 0;
+}
+
+/* ============================================================================
+   2. CONTENT WRAPPER
+   ============================================================================ */
+
+.c-header-modern__content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4, 16px);
+}
+
+.c-header-modern__content--column {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.c-header-modern__info {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ============================================================================
+   3. TITLE
+   ============================================================================ */
+
+.c-header-modern__title {
+  margin: 0;
+  font-family: var(--font-display, 'Barlow', sans-serif);
+  font-size: var(--text-2xl, 1.5rem);
+  font-weight: var(--font-bold, 700);
+  line-height: 1.2;
+  color: var(--color-text-primary, #1e293b);
+  letter-spacing: -0.01em;
+}
+
+/* Title with icon */
+.c-header-modern__title i {
+  margin-right: var(--space-2, 8px);
+  color: var(--color-primary, #2563EB);
+  opacity: 0.85;
+}
+
+/* Large title variant */
+.c-header-modern__title--lg {
+  font-size: var(--text-3xl, 1.875rem);
+}
+
+/* Small title variant */
+.c-header-modern__title--sm {
+  font-size: var(--text-xl, 1.25rem);
+  font-weight: var(--font-semibold, 600);
+}
+
+/* ============================================================================
+   4. SUBTITLE
+   ============================================================================ */
+
+.c-header-modern__subtitle {
+  margin: var(--space-1, 4px) 0 0;
+  font-family: var(--font-body, 'Barlow', sans-serif);
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: var(--font-normal, 400);
+  color: var(--color-text-secondary, #64748b);
+  line-height: 1.5;
+}
+
+.c-header-modern__subtitle--muted {
+  color: var(--color-text-muted, #94a3b8);
+}
+
+/* ============================================================================
+   5. ACTIONS
+   ============================================================================ */
+
+.c-header-modern__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+/* ============================================================================
+   6. META ROW
+   ============================================================================ */
+
+.c-header-modern__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4, 16px);
+  margin-top: var(--space-3, 12px);
+  padding-top: var(--space-3, 12px);
+  border-top: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.06));
+}
+
+.c-header-modern__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-secondary, #64748b);
+}
+
+.c-header-modern__meta-item i {
+  font-size: 1rem;
+  opacity: 0.7;
+}
+
+/* ============================================================================
+   7. BREADCRUMB
+   ============================================================================ */
+
+.c-header-modern__breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1, 4px);
+  margin-bottom: var(--space-2, 8px);
+  font-size: var(--text-xs, 0.75rem);
+}
+
+.c-header-modern__breadcrumb-item {
+  color: var(--color-text-secondary, #64748b);
+  text-decoration: none;
+  transition: color var(--duration-fast, 150ms) ease;
+}
+
+.c-header-modern__breadcrumb-item:hover {
+  color: var(--color-primary, #2563EB);
+}
+
+.c-header-modern__breadcrumb-separator {
+  color: var(--color-text-muted, #94a3b8);
+  margin: 0 var(--space-1, 4px);
+}
+
+.c-header-modern__breadcrumb-item--active {
+  color: var(--color-text-primary, #1e293b);
+  font-weight: var(--font-medium, 500);
+}
+
+/* ============================================================================
+   8. TABS INTEGRATION
+   ============================================================================ */
+
+.c-header-modern__tabs {
+  margin-top: var(--space-4, 16px);
+  padding-top: var(--space-4, 16px);
+  border-top: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.06));
+}
+
+/* ============================================================================
+   9. RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .c-header-modern {
+    padding: var(--space-4, 16px) 0;
+    margin-bottom: var(--space-4, 16px);
+  }
+
+  .c-header-modern__content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .c-header-modern__title {
+    font-size: var(--text-xl, 1.25rem);
+  }
+
+  .c-header-modern__title--lg {
+    font-size: var(--text-2xl, 1.5rem);
+  }
+
+  .c-header-modern__actions {
+    width: 100%;
+  }
+
+  .c-header-modern__meta {
+    gap: var(--space-3, 12px);
+  }
+}
+
+@media (max-width: 480px) {
+  .c-header-modern__title {
+    font-size: var(--text-lg, 1.125rem);
+  }
+
+  .c-header-modern__actions {
+    flex-direction: column;
+  }
+
+  .c-header-modern__actions > * {
+    width: 100%;
+  }
+}
+
+/* ============================================================================
+   10. DARK MODE
+   ============================================================================ */
+
+[data-style="dark"] .c-header-modern {
+  background: var(--color-bg-primary, #1e293b);
+  border-bottom-color: var(--color-border-primary, rgba(255, 255, 255, 0.08));
+}
+
+[data-style="dark"] .c-header-modern--gradient {
+  background: linear-gradient(
+    135deg,
+    var(--color-bg-primary, #1e293b) 0%,
+    var(--color-bg-secondary, #0f172a) 100%
+  );
+}
+
+[data-style="dark"] .c-header-modern__title {
+  color: var(--color-text-primary, #f1f5f9);
+}
+
+[data-style="dark"] .c-header-modern__subtitle {
+  color: var(--color-text-secondary, #94a3b8);
+}
+
+[data-style="dark"] .c-header-modern__meta {
+  border-top-color: var(--color-border-primary, rgba(255, 255, 255, 0.08));
+}
+
+[data-style="dark"] .c-header-modern__meta-item {
+  color: var(--color-text-secondary, #94a3b8);
+}
+
+[data-style="dark"] .c-header-modern__breadcrumb-item {
+  color: var(--color-text-secondary, #94a3b8);
+}
+
+[data-style="dark"] .c-header-modern__breadcrumb-item:hover {
+  color: var(--color-primary-light, #60a5fa);
+}
+
+[data-style="dark"] .c-header-modern__breadcrumb-item--active {
+  color: var(--color-text-primary, #f1f5f9);
+}
+
+[data-style="dark"] .c-header-modern__tabs {
+  border-top-color: var(--color-border-primary, rgba(255, 255, 255, 0.08));
+}
+
+/* ============================================================================
+   11. ANIMATIONS
+   ============================================================================ */
+
+@keyframes header-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.c-header-modern {
+  animation: header-fade-in var(--duration-normal, 200ms) ease-out;
+}
+
+/* ============================================================================
+   12. ACCESSIBILITY
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .c-header-modern {
+    animation: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .c-header-modern {
+    border-bottom-width: 2px;
+  }
+
+  .c-header-modern--accent::before {
+    width: 6px;
+  }
+}

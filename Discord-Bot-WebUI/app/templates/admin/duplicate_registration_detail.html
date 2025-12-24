@@ -3,6 +3,7 @@
 {% block title %}Duplicate Alert #{{ alert.id }}{% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
     .comparison-card {
         border: 2px solid var(--ecs-neutral-10, #e7eaf3);
@@ -56,30 +57,30 @@
                     <p class="text-muted mb-0">Review and resolve potential duplicate registration</p>
                 </div>
                 <div>
-                    <a href="{{ url_for('duplicate_management.duplicate_registrations') }}" class="btn btn-outline-secondary">
+                    <a href="{{ url_for('duplicate_management.duplicate_registrations') }}" class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-arrow-left me-2"></i>Back to List
                     </a>
                 </div>
             </div>
 
             <!-- Alert Status -->
-            <div class="card mb-4">
-                <div class="card-body">
+            <div class="c-card mb-4">
+                <div class="c-card__body">
                     <div class="row align-items-center">
                         <div class="col-md-8">
                             <h6 class="mb-2">Alert Status</h6>
                             <div class="d-flex align-items-center gap-3">
-                                <span class="badge {% if alert.status == 'pending' %}bg-warning{% elif alert.status == 'resolved' %}bg-success{% else %}bg-secondary{% endif %} px-3 py-2">
+                                <span class="badge {% if alert.status == 'pending' %}bg-warning{% elif alert.status == 'resolved' %}bg-success{% else %}bg-secondary{% endif %} px-3 py-2" data-badge>
                                     {{ alert.status.title() }}
                                 </span>
-                                <span class="badge match-type-{{ alert.match_type }} px-3 py-2">
+                                <span class="badge match-type-{{ alert.match_type }} px-3 py-2" data-badge>
                                     {{ alert.match_type.replace('_', ' ').title() }} Match
                                 </span>
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="text-muted">Confidence:</span>
-                                    <div class="confidence-meter" style="width: 100px;">
-                                        <div class="confidence-fill {% if alert.confidence_score >= 0.8 %}confidence-high{% elif alert.confidence_score >= 0.6 %}confidence-medium{% else %}confidence-low{% endif %}" 
-                                             style="width: {{ (alert.confidence_score * 100)|round }}%;"></div>
+                                    <div class="confidence-meter u-w-100">
+                                        <div class="confidence-fill {% if alert.confidence_score data-alert>= 0.8 %}confidence-high{% elif alert.confidence_score >= 0.6 %}confidence-medium{% else %}confidence-low{% endif %}"
+                                             data-width="{{ (alert.confidence_score * 100)|round }}"></div>
                                     </div>
                                     <span class="fw-bold {% if alert.confidence_score >= 0.8 %}text-danger{% elif alert.confidence_score >= 0.6 %}text-warning{% else %}text-success{% endif %}">
                                         {{ (alert.confidence_score * 100)|round|int }}%
@@ -105,13 +106,13 @@
             <!-- Profile Comparison -->
             <div class="row">
                 <div class="col-lg-6 mb-4">
-                    <div class="card comparison-card h-100">
-                        <div class="card-header bg-primary text-white">
+                    <div class="c-card comparison-card h-100">
+                        <div class="c-card__header bg-primary text-white">
                             <h6 class="mb-0">
                                 <i class="ti ti-user-plus me-2"></i>New Registration
                             </h6>
                         </div>
-                        <div class="card-body">
+                        <div class="c-card__body">
                             <div class="mb-3">
                                 <label class="form-label text-muted">Name</label>
                                 <p class="fw-bold">{{ alert.new_name or 'N/A' }}</p>
@@ -149,19 +150,19 @@
                 </div>
 
                 <div class="col-lg-6 mb-4">
-                    <div class="card comparison-card h-100">
-                        <div class="card-header bg-success text-white">
+                    <div class="c-card comparison-card h-100">
+                        <div class="c-card__header bg-success text-white">
                             <h6 class="mb-0">
                                 <i class="ti ti-user-check me-2"></i>Existing Player
                                 {% if alert.existing_player.user %}
                                 <a href="{{ url_for('players.player_profile', player_id=alert.existing_player.id) }}" 
-                                   class="btn btn-sm btn-outline-light ms-2" target="_blank">
+                                   class="c-btn c-btn--sm c-btn--outline-light ms-2" target="_blank">
                                     <i class="ti ti-external-link"></i>
                                 </a>
                                 {% endif %}
                             </h6>
                         </div>
-                        <div class="card-body">
+                        <div class="c-card__body">
                             <div class="mb-3">
                                 <label class="form-label text-muted">Name</label>
                                 <p class="fw-bold">{{ alert.existing_player.name }}</p>
@@ -208,7 +209,7 @@
                                     <small class="text-muted">Teams:</small>
                                     <p class="mb-0">
                                         {% for team in alert.existing_player.teams %}
-                                        <span class="badge bg-label-primary me-1">{{ team.name }}</span>
+                                        <span class="badge bg-label-primary me-1" data-badge>{{ team.name }}</span>
                                         {% endfor %}
                                     </p>
                                 </div>
@@ -221,31 +222,31 @@
 
             <!-- Resolution Actions -->
             {% if alert.status == 'pending' %}
-            <div class="card">
-                <div class="card-header">
+            <div class="c-card">
+                <div class="c-card__header">
                     <h6 class="mb-0">Resolution Actions</h6>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <form method="POST" action="{{ url_for('duplicate_management.resolve_duplicate_registration', alert_id=alert.id) }}">
                         <div class="row">
                             <div class="col-lg-8">
                                 <div class="mb-3">
                                     <label class="form-label">Resolution Notes</label>
                                     <textarea name="notes" class="form-control" rows="3" 
-                                              placeholder="Add any notes about your decision..."></textarea>
+                                              placeholder="Add any notes about your decision..." data-form-control></textarea>
                                 </div>
                             </div>
                             <div class="col-lg-4">
                                 <label class="form-label">Choose Action</label>
                                 <div class="d-grid gap-2">
-                                    <button type="submit" name="action" value="allow" class="btn btn-success action-button">
+                                    <button type="submit" name="action" value="allow" class="c-btn c-btn--success action-button">
                                         <i class="ti ti-check me-2"></i>Allow Registration
                                     </button>
-                                    <button type="submit" name="action" value="block" class="btn btn-warning action-button">
+                                    <button type="submit" name="action" value="block" class="c-btn c-btn--warning action-button">
                                         <i class="ti ti-ban me-2"></i>Block as Duplicate
                                     </button>
                                     <a href="{{ url_for('duplicate_management.merge_profiles', alert_id=alert.id) }}" 
-                                       class="btn btn-primary action-button">
+                                       class="c-btn c-btn--primary action-button">
                                         <i class="ti ti-git-merge me-2"></i>Merge Profiles
                                     </a>
                                 </div>
@@ -253,7 +254,7 @@
                         </div>
                     </form>
 
-                    <div class="alert alert-info mt-4">
+                    <div class="alert alert-info mt-4" data-alert>
                         <h6 class="alert-heading">Action Explanations</h6>
                         <ul class="mb-0">
                             <li><strong>Allow Registration:</strong> Mark as not a duplicate and allow the new registration to proceed</li>
@@ -264,11 +265,11 @@
                 </div>
             </div>
             {% elif alert.resolution_notes %}
-            <div class="card">
-                <div class="card-header">
+            <div class="c-card">
+                <div class="c-card__header">
                     <h6 class="mb-0">Resolution Details</h6>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <p class="mb-0">{{ alert.resolution_notes }}</p>
                 </div>
             </div>

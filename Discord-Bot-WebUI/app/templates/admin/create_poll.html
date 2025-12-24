@@ -11,9 +11,9 @@
 
     <div class="row">
         <div class="col-lg-8 mx-auto">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Create League Poll</h5>
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title mb-0">Create League Poll</h5>
                     {% if current_season and team_count > 0 %}
                     <p class="text-muted mb-0">This poll will be sent to {{ team_count }} teams in {{ current_season.name }}</p>
                     {% elif current_season %}
@@ -22,21 +22,21 @@
                     <p class="text-muted mb-0 text-danger">⚠️ No active Pub League season found</p>
                     {% endif %}
                 </div>
-                <div class="card-body">
-                    <form method="POST">
+                <div class="c-card__body">
+                    <form method="POST" data-form-group>
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        
-                        <div class="mb-3">
+
+                        <div class="mb-3" data-form-group>
                             <label for="title" class="form-label">Poll Title <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="title" name="title" required 
-                                   placeholder="e.g., Fun Week Attendance" maxlength="255">
+                            <input type="text" class="form-control" id="title" name="title" required
+                                   placeholder="e.g., Fun Week Attendance" maxlength="255" data-form-control>
                             <div class="form-text">A short, descriptive title for your poll</div>
                         </div>
 
-                        <div class="mb-4">
+                        <div class="mb-4" data-form-group>
                             <label for="question" class="form-label">Poll Question <span class="text-danger">*</span></label>
-                            <textarea class="form-control" id="question" name="question" rows="3" required 
-                                      placeholder="e.g., Will you be able to attend Fun Week activities?"></textarea>
+                            <textarea class="form-control" id="question" name="question" rows="3" required
+                                      placeholder="e.g., Will you be able to attend Fun Week activities?" data-form-control></textarea>
                             <div class="form-text">The question that will be asked to all players</div>
                         </div>
 
@@ -50,18 +50,18 @@
                                 </div>
                                 <p class="mb-2" id="preview-question">Your poll question will appear here...</p>
                                 <div class="d-flex gap-2">
-                                    <span class="badge bg-success">✅ Yes</span>
-                                    <span class="badge bg-danger">❌ No</span>
-                                    <span class="badge bg-warning">⚠️ Maybe</span>
+                                    <span class="badge bg-success" data-badge>✅ Yes</span>
+                                    <span class="badge bg-danger" data-badge>❌ No</span>
+                                    <span class="badge bg-warning" data-badge>⚠️ Maybe</span>
                                 </div>
                             </div>
                         </div>
 
                         <div class="d-flex justify-content-between">
-                            <a href="{{ url_for('admin.manage_polls') }}" class="btn btn-outline-secondary">
+                            <a href="{{ url_for('admin.manage_polls') }}" class="c-btn c-btn--outline-secondary">
                                 <i class="ti ti-arrow-left me-1"></i> Back to Polls
                             </a>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="c-btn c-btn--primary">
                                 <i class="ti ti-send me-1"></i> Create & Send Poll
                                 {% if team_count > 10 %}
                                 <small class="d-block text-light">(~{{ (team_count * 0.8)|round|int }}s to send)</small>
@@ -73,9 +73,9 @@
             </div>
 
             <!-- Info Card -->
-            <div class="card mt-4">
-                <div class="card-body">
-                    <h6 class="card-title">
+            <div class="c-card mt-4">
+                <div class="c-card__body">
+                    <h6 class="c-card__title">
                         <i class="ti ti-info-circle me-1"></i> How League Polls Work
                     </h6>
                     <ul class="mb-0">
@@ -93,19 +93,8 @@
     </div>
 </div>
 
-<script>
-$(document).ready(function() {
-    // Live preview functionality
-    function updatePreview() {
-        const title = $('#title').val() || 'Poll Title';
-        const question = $('#question').val() || 'Your poll question will appear here...';
-        
-        $('#preview-title').text(title);
-        $('#preview-question').text(question);
-    }
-    
-    $('#title, #question').on('input', updatePreview);
-    updatePreview(); // Initial update
-});
-</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='custom_js/create-poll.js') }}"></script>
 {% endblock %}

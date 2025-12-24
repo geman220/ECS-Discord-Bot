@@ -1,0 +1,243 @@
+/**
+ * ============================================================================
+ * TOGGLE SWITCH COMPONENT
+ * ============================================================================
+ *
+ * Standardized toggle switch component used throughout the application.
+ * Uses hidden input + label pseudo-elements pattern for bulletproof styling.
+ *
+ * HTML Structure:
+ * <div class="c-toggle">
+ *   <input class="c-toggle__input" type="checkbox" id="my-toggle">
+ *   <label class="c-toggle__label" for="my-toggle">
+ *     <span class="c-toggle__text">Label text (optional)</span>
+ *   </label>
+ * </div>
+ *
+ * Modifiers:
+ * - c-toggle--sm: Small size (36x18px)
+ * - c-toggle--lg: Large size (56x28px)
+ * - c-toggle--label-left: Label text on left side
+ * - c-toggle--primary: Primary color when checked (instead of success)
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   BASE TOGGLE
+   ============================================================================ */
+
+.c-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  position: relative;
+}
+
+/* Hidden checkbox - completely invisible but still functional */
+.c-toggle__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Label contains the visual toggle */
+.c-toggle__label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Track (the pill-shaped background) */
+.c-toggle__label::before {
+  content: '';
+  display: block;
+  flex-shrink: 0;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--color-neutral-300, #cbd5e1);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Thumb (the circular toggle) */
+.c-toggle__label::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, left 0.2s ease;
+}
+
+/* Optional label text */
+.c-toggle__text {
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: var(--font-medium, 500);
+  color: var(--color-text-primary, #1e293b);
+  line-height: 1.4;
+}
+
+/* ============================================================================
+   CHECKED STATE
+   ============================================================================ */
+
+.c-toggle__input:checked + .c-toggle__label::before {
+  background: var(--color-success, #10b981);
+}
+
+.c-toggle__input:checked + .c-toggle__label::after {
+  transform: translateY(-50%) translateX(20px);
+}
+
+/* ============================================================================
+   FOCUS STATE (Keyboard Navigation)
+   ============================================================================ */
+
+.c-toggle__input:focus-visible + .c-toggle__label::before {
+  outline: 2px solid var(--color-focus-ring, #60a5fa);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+}
+
+/* ============================================================================
+   DISABLED STATE
+   ============================================================================ */
+
+.c-toggle__input:disabled + .c-toggle__label {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.c-toggle__input:disabled + .c-toggle__label::before {
+  background: var(--color-neutral-200, #e2e8f0);
+}
+
+/* ============================================================================
+   SIZE MODIFIERS
+   ============================================================================ */
+
+/* Small toggle (36x18px) */
+.c-toggle--sm .c-toggle__label::before {
+  width: 36px;
+  height: 18px;
+  border-radius: 9px;
+}
+
+.c-toggle--sm .c-toggle__label::after {
+  width: 14px;
+  height: 14px;
+}
+
+.c-toggle--sm .c-toggle__input:checked + .c-toggle__label::after {
+  transform: translateY(-50%) translateX(18px);
+}
+
+/* Large toggle (56x28px) */
+.c-toggle--lg .c-toggle__label::before {
+  width: 56px;
+  height: 28px;
+  border-radius: 14px;
+}
+
+.c-toggle--lg .c-toggle__label::after {
+  width: 24px;
+  height: 24px;
+}
+
+.c-toggle--lg .c-toggle__input:checked + .c-toggle__label::after {
+  transform: translateY(-50%) translateX(28px);
+}
+
+/* ============================================================================
+   COLOR MODIFIERS
+   ============================================================================ */
+
+/* Primary color instead of success green */
+.c-toggle--primary .c-toggle__input:checked + .c-toggle__label::before {
+  background: var(--color-primary, #2563eb);
+}
+
+/* Danger/warning for destructive toggles */
+.c-toggle--danger .c-toggle__input:checked + .c-toggle__label::before {
+  background: var(--color-danger, #ef4444);
+}
+
+/* ============================================================================
+   LAYOUT MODIFIERS
+   ============================================================================ */
+
+/* Label text on left side */
+.c-toggle--label-left .c-toggle__label {
+  flex-direction: row-reverse;
+}
+
+/* Full width - label takes remaining space */
+.c-toggle--full .c-toggle__label {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.c-toggle--full .c-toggle__text {
+  flex: 1;
+}
+
+/* ============================================================================
+   DARK MODE
+   ============================================================================ */
+
+[data-style="dark"] .c-toggle__label::before {
+  background: var(--color-neutral-600, #475569);
+}
+
+[data-style="dark"] .c-toggle__text {
+  color: var(--color-text-primary, #f8fafc);
+}
+
+[data-style="dark"] .c-toggle__input:checked + .c-toggle__label::before {
+  background: var(--color-success, #10b981);
+}
+
+[data-style="dark"] .c-toggle__input:disabled + .c-toggle__label::before {
+  background: var(--color-neutral-700, #334155);
+}
+
+/* ============================================================================
+   NOTE ON BACKWARDS COMPATIBILITY
+   ============================================================================
+
+   The .c-toggle-switch component is defined in feature-toggles.css and should
+   NOT be duplicated here. This file only provides the .c-toggle component.
+
+   If you need toggle switches elsewhere, either:
+   1. Use the .c-toggle component defined above
+   2. Include the feature-toggles.css for .c-toggle-switch
+
+   ============================================================================ */
+
+/* ============================================================================
+   ANIMATION PREFERENCES
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .c-toggle__label::before,
+  .c-toggle__label::after {
+    transition: none;
+  }
+}

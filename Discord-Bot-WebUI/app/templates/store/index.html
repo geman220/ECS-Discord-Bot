@@ -1,23 +1,23 @@
 {% extends "base.html" %}
 
 {% block page_css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/features/store.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/store.css') }}" />
 {% endblock %}
 
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Page Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <h2 class="fw-bold py-3 mb-2">
-                <i class="ti ti-shopping-cart me-2 text-primary"></i>League Store
-            </h2>
-            <div class="text-muted">
+    <div class="c-page-header" data-component="page-header">
+        <div class="c-page-header__content">
+            <h1 class="c-page-header__title">
+                <i class="ti ti-shopping-cart me-2"></i>League Store
+            </h1>
+            <p class="c-page-header__description">
                 Order league merchandise and equipment
                 {% if current_season %}
                 <br><small class="fw-medium">Current Season: {{ current_season.name }}</small>
                 {% endif %}
-            </div>
+            </p>
         </div>
     </div>
 
@@ -26,11 +26,11 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <a href="{{ url_for('store.my_orders') }}" class="btn btn-outline-primary me-2">
+                    <a href="{{ url_for('store.my_orders') }}" class="c-btn c-btn--outline-primary me-2">
                         <i class="ti ti-list me-1"></i> My Orders
                     </a>
                     {% if user_roles and ('Pub League Admin' in user_roles or 'Global Admin' in user_roles) %}
-                    <a href="{{ url_for('store.admin') }}" class="btn btn-warning">
+                    <a href="{{ url_for('store.admin') }}" class="c-btn c-btn--warning">
                         <i class="ti ti-settings me-1"></i> Store Administration
                     </a>
                     {% endif %}
@@ -43,7 +43,7 @@
     {% if has_ordered_this_season and current_season_order %}
     <div class="row mb-4">
         <div class="col-12">
-            <div class="alert alert-info d-flex align-items-center">
+            <div class="alert alert-info d-flex align-items-center" data-alert>
                 <i class="ti ti-info-circle me-2"></i>
                 <div>
                     <strong>You have already placed your order for {{ current_season.name }}!</strong><br>
@@ -61,21 +61,21 @@
     {% if recent_orders %}
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header border-bottom">
-                    <h5 class="card-title mb-0">Recent Orders</h5>
+            <div class="c-card">
+                <div class="c-card__header border-bottom">
+                    <h5 class="c-card__title mb-0">Recent Orders</h5>
                 </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
+                <div class="c-card__body">
+                    <div class="c-table-wrapper" data-table-responsive>
+                        <table class="c-table c-table--compact" data-table>
+                            <thead scope="col">
                                 <tr>
-                                    <th>Item</th>
-                                    <th>Quantity</th>
-                                    <th>Details</th>
-                                    <th>Status</th>
-                                    <th>Season</th>
-                                    <th>Order Date</th>
+                                    <th scope="col">Item</th>
+                                    <th scope="col">Quantity</th>
+                                    <th scope="col">Details</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col">Season</th>
+                                    <th scope="col">Order Date</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -85,23 +85,23 @@
                                     <td>{{ order.quantity }}</td>
                                     <td>
                                         {% if order.selected_color %}
-                                        <span class="badge bg-label-info">{{ order.selected_color }}</span>
+                                        <span class="badge bg-label-info" data-badge>{{ order.selected_color }}</span>
                                         {% endif %}
                                         {% if order.selected_size %}
-                                        <span class="badge bg-label-secondary">{{ order.selected_size }}</span>
+                                        <span class="badge bg-label-secondary" data-badge>{{ order.selected_size }}</span>
                                         {% endif %}
                                     </td>
                                     <td>
                                         {% if order.status == 'PENDING' %}
-                                        <span class="badge bg-label-warning">Pending</span>
+                                        <span class="badge bg-label-warning" data-badge>Pending</span>
                                         {% elif order.status == 'PROCESSING' %}
-                                        <span class="badge bg-label-info">Processing</span>
+                                        <span class="badge bg-label-info" data-badge>Processing</span>
                                         {% elif order.status == 'ORDERED' %}
-                                        <span class="badge bg-label-primary">Ordered</span>
+                                        <span class="badge bg-label-primary" data-badge>Ordered</span>
                                         {% elif order.status == 'DELIVERED' %}
-                                        <span class="badge bg-label-success">Delivered</span>
+                                        <span class="badge bg-label-success" data-badge>Delivered</span>
                                         {% elif order.status == 'CANCELLED' %}
-                                        <span class="badge bg-label-danger">Cancelled</span>
+                                        <span class="badge bg-label-danger" data-badge>Cancelled</span>
                                         {% endif %}
                                     </td>
                                     <td>{{ order.season.name if order.season else 'Unknown' }}</td>
@@ -122,23 +122,23 @@
         {% if items %}
         {% for item in items %}
         <div class="col-xl-4 col-lg-6 col-md-6 col-12 mb-4">
-            <div class="card h-100">
+            <div class="c-card h-100 c-store-card" data-component="store-card" data-item-id="{{ item.id }}">
                 {% if item.image_url %}
-                <img src="{{ item.image_url }}" class="card-img-top store-item-image" alt="{{ item.name }}">
+                <img src="{{ item.image_url }}" class="c-store-card__image" alt="{{ item.name }}">
                 {% else %}
-                <div class="card-img-top bg-light d-flex align-items-center justify-content-center store-item-placeholder">
-                    <i class="ti ti-photo text-muted"></i>
+                <div class="c-store-card__placeholder">
+                    <i class="ti ti-photo"></i>
                 </div>
                 {% endif %}
-                
-                <div class="card-body d-flex flex-column">
+
+                <div class="c-card__body d-flex flex-column">
                     <div class="flex-grow-1">
-                        <h5 class="card-title">{{ item.name }}</h5>
+                        <h5 class="c-store-card__title">{{ item.name }}</h5>
                         {% if item.category %}
-                        <span class="badge bg-label-primary mb-2">{{ item.category }}</span>
+                        <span class="badge bg-label-primary mb-2" data-badge>{{ item.category }}</span>
                         {% endif %}
                         {% if item.description %}
-                        <p class="card-text">{{ item.description }}</p>
+                        <p class="c-card__description">{{ item.description }}</p>
                         {% endif %}
                         
                         <!-- Available Options -->
@@ -149,7 +149,7 @@
                             <h6 class="small mb-1">Available Colors:</h6>
                             <div class="mb-2">
                                 {% for color in colors %}
-                                <span class="badge bg-label-info me-1">{{ color }}</span>
+                                <span class="badge bg-label-info me-1" data-badge>{{ color }}</span>
                                 {% endfor %}
                             </div>
                             {% endif %}
@@ -161,7 +161,7 @@
                             <h6 class="small mb-1">Available Sizes:</h6>
                             <div class="mb-2">
                                 {% for size in sizes %}
-                                <span class="badge bg-label-secondary me-1">{{ size }}</span>
+                                <span class="badge bg-label-secondary me-1" data-badge>{{ size }}</span>
                                 {% endfor %}
                             </div>
                             {% endif %}
@@ -169,13 +169,13 @@
                         </div>
                     </div>
                     
-                    <div class="mt-auto">
+                    <div class="c-store-card__actions">
                         {% if has_ordered_this_season %}
-                        <button type="button" class="btn btn-secondary w-100" disabled>
+                        <button type="button" class="c-btn c-btn--secondary w-100" disabled>
                             <i class="ti ti-check me-1"></i> Already Ordered This Season
                         </button>
                         {% else %}
-                        <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#orderModal{{ item.id }}">
+                        <button type="button" class="c-btn c-btn--primary w-100" data-bs-toggle="modal" data-bs-target="#orderModal{{ item.id }}" data-action="order-item">
                             <i class="ti ti-shopping-cart me-1"></i> Order Item
                         </button>
                         {% endif %}
@@ -185,21 +185,21 @@
         </div>
         
         <!-- Order Modal for this item -->
-        <div class="modal fade" id="orderModal{{ item.id }}" tabindex="-1" aria-labelledby="orderModalLabel{{ item.id }}" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <form class="order-form" data-item-id="{{ item.id }}">
-                        <div class="modal-header bg-light">
-                            <h5 class="modal-title" id="orderModalLabel{{ item.id }}">
+        <div class="modal c-modal fade" data-modal id="orderModal{{ item.id }}" tabindex="-1" aria-labelledby="orderModalLabel{{ item.id }}" aria-hidden="true">
+            <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+                <div class="modal-content c-modal__content" data-modal-content>
+                    <form class="c-order-form" data-component="order-form" data-form="place-order" data-item-id="{{ item.id }}">
+                        <div class="modal-header c-modal__header bg-light" data-modal-header>
+                            <h5 class="modal-title c-modal__title" id="orderModalLabel{{ item.id }}">
                                 <i class="ti ti-shopping-cart me-2"></i>Order: {{ item.name }}
                             </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
                         </div>
-                        <div class="modal-body">
+                        <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="quantity" value="1">
                             
-                            <div class="alert alert-info alert-sm mb-3">
+                            <div class="alert alert-info alert-sm mb-3" data-alert>
                                 <i class="ti ti-info-circle me-1"></i>
                                 <strong>Note:</strong> Both color and size selections are required for all orders.
                             </div>
@@ -212,7 +212,7 @@
                             
                             <div class="mb-3">
                                 <label for="color{{ item.id }}" class="form-label">Color *</label>
-                                <select class="form-select" id="color{{ item.id }}" name="color" required>
+                                <select class="form-select" id="color{{ item.id }}" name="color" required data-form-select>
                                     {% if colors|length == 0 %}
                                     <option value="N/A" selected>N/A (No color options)</option>
                                     {% elif colors|length == 1 %}
@@ -234,7 +234,7 @@
                             
                             <div class="mb-3">
                                 <label for="size{{ item.id }}" class="form-label">Size *</label>
-                                <select class="form-select" id="size{{ item.id }}" name="size" required>
+                                <select class="form-select" id="size{{ item.id }}" name="size" required data-form-select>
                                     {% if sizes|length == 0 %}
                                     <option value="One Size" selected>One Size</option>
                                     {% elif sizes|length == 1 %}
@@ -248,11 +248,11 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="modal-footer bg-light">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <div class="modal-footer c-modal__footer bg-light" data-modal-footer>
+                            <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>
                                 <i class="ti ti-x me-1"></i>Cancel
                             </button>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="c-btn c-btn--primary">
                                 <i class="ti ti-shopping-cart me-1"></i>Place Order
                             </button>
                         </div>
@@ -263,13 +263,13 @@
         {% endfor %}
         {% else %}
         <div class="col-12">
-            <div class="card">
-                <div class="card-body text-center py-5">
+            <div class="c-card">
+                <div class="c-card__body text-center py-5">
                     <i class="ti ti-shopping-cart-off text-muted mb-3 store-empty-icon"></i>
                     <h4 class="text-muted">No Items Available</h4>
                     <p class="text-muted">There are currently no items available in the store.</p>
                     {% if user_roles and ('Pub League Admin' in user_roles or 'Global Admin' in user_roles) %}
-                    <a href="{{ url_for('store.admin') }}" class="btn btn-primary">
+                    <a href="{{ url_for('store.admin') }}" class="c-btn c-btn--primary">
                         <i class="ti ti-plus me-1"></i>Add Items
                     </a>
                     {% endif %}
@@ -282,23 +282,24 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle order form submissions
-    const orderForms = document.querySelectorAll('.order-form');
+    // Handle order form submissions using data-form attribute
+    const orderForms = document.querySelectorAll('[data-form="place-order"]');
     orderForms.forEach(form => {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
-            
-            const itemId = this.getAttribute('data-item-id');
+
+            const itemId = this.dataset.itemId;
             const formData = new FormData(this);
             const modalId = `orderModal${itemId}`;
             const modal = bootstrap.Modal.getInstance(document.getElementById(modalId));
-            
+
             // Validate color selection
             const colorSelect = this.querySelector(`#color${itemId}`);
             const sizeSelect = this.querySelector(`#size${itemId}`);
-            
+
             if (colorSelect && !colorSelect.value) {
                 Swal.fire({
                     icon: 'warning',
@@ -308,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 colorSelect.focus();
                 return;
             }
-            
+
             if (sizeSelect && !sizeSelect.value) {
                 Swal.fire({
                     icon: 'warning',
@@ -318,13 +319,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 sizeSelect.focus();
                 return;
             }
-            
+
             // Show loading
             const submitBtn = this.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<div class="spinner-border spinner-border-sm me-1" role="status"></div>Ordering...';
-            
+            submitBtn.innerHTML = '<div class="spinner-border spinner-border-sm me-1" role="status" data-spinner></div>Ordering...';
+
             fetch(`{{ url_for('store.place_order', item_id=0) }}`.replace('0', itemId), {
                 method: 'POST',
                 body: formData

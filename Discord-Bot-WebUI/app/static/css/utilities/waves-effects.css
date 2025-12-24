@@ -1,0 +1,93 @@
+/**
+ * ============================================================================
+ * WAVES RIPPLE EFFECTS - CSS ONLY
+ * ============================================================================
+ *
+ * Styles for node-waves ripple effects without inline style injection.
+ * Works with waves-css-override.js to use classes instead of inline styles.
+ * ============================================================================
+ */
+
+/* Base ripple container */
+.waves-effect {
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Ripple element */
+.waves-ripple {
+    position: absolute;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    margin-top: -10px;
+    margin-left: -10px;
+    opacity: 0;
+    background: rgba(0, 0, 0, 0.2);
+    transition: all 0.4s ease-out;
+    transition-property: transform, opacity;
+    transform: scale(0);
+    pointer-events: none;
+}
+
+/* Active ripple animation */
+.waves-ripple.waves-ripple-active {
+    opacity: 0.3;
+    transform: scale(40);
+}
+
+/* Light ripple variant */
+.waves-light .waves-ripple {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+/* Button-specific ripple styling */
+.btn.waves-effect {
+    /* Don't let ripple overflow on rounded buttons */
+    overflow: hidden;
+}
+
+/* Prevent transform conflicts */
+.waves-effect,
+.waves-effect:hover,
+.waves-effect:active,
+.waves-effect:focus {
+    transform: none !important;
+    transition: background-color var(--duration-fast) var(--ease-smooth),
+                color var(--duration-fast) var(--ease-smooth),
+                border-color var(--duration-fast) var(--ease-smooth),
+                box-shadow var(--duration-fast) var(--ease-smooth) !important;
+}
+
+/* Dark mode adjustments */
+[data-style="dark"] .waves-ripple {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+[data-style="dark"] .waves-light .waves-ripple {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+/* Ripple on primary buttons */
+.btn-primary.waves-effect .waves-ripple {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+/* Ripple on dark buttons */
+.btn-dark.waves-effect .waves-ripple {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Ripple on light/secondary buttons */
+.btn-light.waves-effect .waves-ripple,
+.btn-secondary.waves-effect .waves-ripple {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* Remove any transform-style that conflicts */
+.waves-effect * {
+    transform-style: flat !important;
+}

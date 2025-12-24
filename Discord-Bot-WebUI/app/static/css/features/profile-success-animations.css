@@ -1,0 +1,442 @@
+/**
+ * ============================================================================
+ * PROFILE SUCCESS PAGE STYLES
+ * ============================================================================
+ *
+ * Styles for profile verification success page.
+ * Mobile-first design with high contrast for outdoor visibility.
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   KEYFRAME ANIMATIONS
+   ============================================================================ */
+
+@keyframes fade-in-up {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
+}
+
+@keyframes heart-beat {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+/* ============================================================================
+   SUCCESS CARD - Main Hero Section
+   ============================================================================ */
+
+.c-success-card {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.3);
+  animation: fade-in-up 0.5s ease-out;
+}
+
+.c-success-card__body {
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.c-success-card__title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 24px 0 12px;
+  animation: fade-in-up 0.5s ease-out 0.3s both;
+}
+
+.c-success-card__text {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  line-height: 1.6;
+  animation: fade-in-up 0.5s ease-out 0.5s both;
+}
+
+/* ============================================================================
+   SUCCESS ICON - Simple Tabler Icon
+   ============================================================================ */
+
+.c-success-icon {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: icon-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.c-success-icon i {
+  font-size: 100px;
+  color: #ffffff;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
+}
+
+@keyframes icon-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ============================================================================
+   CONFIRMATION CARD - Player Info Display
+   ============================================================================ */
+
+.c-confirmation-card {
+  background: #1e293b;
+  border: 2px solid #10b981;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  animation: fade-in-up 0.5s ease-out 0.4s both;
+  overflow: hidden;
+}
+
+.c-confirmation-card__header {
+  background: linear-gradient(to right, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.05));
+  border-bottom: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 16px 20px;
+}
+
+.c-confirmation-card__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #10b981;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.c-confirmation-card__body {
+  padding: 20px;
+}
+
+/* ============================================================================
+   PLAYER INFO - Avatar and Details
+   ============================================================================ */
+
+.c-player-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.c-player-info__avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 3px solid #10b981;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.c-player-info__details {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-player-info__name {
+  font-weight: 600;
+  font-size: 18px;
+  margin: 0 0 6px;
+  color: #ffffff !important; /* Force white for readability */
+}
+
+/* ============================================================================
+   STATUS GRID - Profile Status Indicators (FIXED)
+   ============================================================================ */
+
+.c-status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.c-status-item {
+  padding: 16px 12px;
+  text-align: center;
+  position: relative;
+}
+
+.c-status-item:first-child {
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.c-status-item__border {
+  display: none;
+}
+
+.c-status-item__icon {
+  font-size: 24px;
+  display: block;
+  margin-bottom: 8px;
+  color: #64748b;
+}
+
+.c-status-item__icon--success {
+  color: #10b981;
+}
+
+.c-status-item__label {
+  display: block;
+  font-size: 12px;
+  color: #94a3b8;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.c-status-item__value {
+  font-weight: 600;
+  font-size: 16px;
+  color: #f1f5f9;
+}
+
+.c-status-item__value--success {
+  color: #10b981;
+}
+
+/* ============================================================================
+   STAFF NOTICE - Show to Staff Card (HIGH CONTRAST)
+   ============================================================================ */
+
+.c-staff-notice {
+  background: #fef3c7;
+  border: 2px solid #f59e0b;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  animation: fade-in-up 0.5s ease-out 0.6s both;
+}
+
+.c-staff-notice__body {
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.c-staff-notice__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #92400e;
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.c-staff-notice__text {
+  color: #78350f;
+  margin: 0 0 20px;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+/* ============================================================================
+   VERIFICATION BADGE - Large Status Badge
+   ============================================================================ */
+
+.c-verification-badge {
+  text-align: center;
+}
+
+.c-verification-badge__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #10b981;
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 700;
+  padding: 14px 32px;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
+  animation: pulse-glow 2s infinite;
+}
+
+.c-verification-badge__timestamp {
+  font-size: 13px;
+  color: #92400e;
+  margin-top: 12px;
+  font-weight: 500;
+}
+
+/* ============================================================================
+   FORM ACTIONS - View Profile Button (FIXED)
+   ============================================================================ */
+
+.c-form-actions {
+  margin-bottom: 24px;
+  animation: fade-in-up 0.5s ease-out 0.7s both;
+}
+
+.c-form-actions .c-btn--primary,
+.c-form-actions .c-btn--lg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 16px 24px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  border: none;
+  border-radius: 12px;
+  text-decoration: none;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.4);
+  transition: all 0.2s ease;
+}
+
+.c-form-actions .c-btn--primary:hover,
+.c-form-actions .c-btn--lg:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(37, 99, 235, 0.5);
+}
+
+.c-form-actions .c-btn--primary:active,
+.c-form-actions .c-btn--lg:active {
+  transform: translateY(0);
+}
+
+/* ============================================================================
+   THANK YOU - Footer Message (HIGH CONTRAST)
+   ============================================================================ */
+
+.c-thank-you {
+  text-align: center;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  animation: fade-in-up 0.5s ease-out 0.8s both;
+}
+
+.c-thank-you__message {
+  margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 16px;
+  color: #f1f5f9;
+  font-weight: 500;
+}
+
+.c-thank-you__icon {
+  color: #ef4444;
+  animation: heart-beat 1s infinite;
+}
+
+.c-thank-you__subtitle {
+  font-size: 14px;
+  margin: 0;
+  color: #94a3b8;
+}
+
+/* ============================================================================
+   BADGE COMPONENT
+   ============================================================================ */
+
+.c-badge--success {
+  display: inline-block;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #10b981;
+  border-radius: 20px;
+}
+
+/* ============================================================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================================================ */
+
+@media (max-width: 480px) {
+  .c-success-checkmark {
+    width: 80px;
+    height: 80px;
+  }
+
+  .c-success-checkmark__icon,
+  .c-success-checkmark__circle {
+    width: 80px;
+    height: 80px;
+  }
+
+  .c-success-checkmark__fix {
+    height: 80px;
+  }
+
+  .c-success-card__body {
+    padding: 36px 16px;
+  }
+
+  .c-success-card__title {
+    font-size: 24px;
+  }
+
+  .c-verification-badge__icon {
+    font-size: 18px;
+    padding: 12px 24px;
+  }
+}
+
+/* ============================================================================
+   REDUCED MOTION ACCESSIBILITY
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .c-success-checkmark__line--tip,
+  .c-success-checkmark__line--long,
+  .c-success-checkmark__circle,
+  .c-success-card,
+  .c-success-card__title,
+  .c-success-card__text,
+  .c-confirmation-card,
+  .c-staff-notice,
+  .c-verification-badge__icon,
+  .c-form-actions,
+  .c-thank-you,
+  .c-thank-you__icon {
+    animation: none !important;
+  }
+
+  .c-success-checkmark__line--tip {
+    width: 28px;
+  }
+
+  .c-success-checkmark__line--long {
+    width: 52px;
+  }
+
+  .c-success-checkmark__circle {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

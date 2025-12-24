@@ -4,6 +4,7 @@
 
 {% block custom_css %}
 {{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/user-approvals.css') }}">
 {% endblock %}
 
 {% block main_content %}
@@ -17,7 +18,7 @@
                     <p class="text-muted mb-0">Review and approve new user applications for league placement</p>
                 </div>
                 <div>
-                    <button class="btn btn-primary" onclick="refreshStats()">
+                    <button class="c-btn c-btn--primary js-refresh-stats" data-action="refresh-approval-stats">
                         <i class="ti ti-refresh"></i> Refresh
                     </button>
                 </div>
@@ -28,26 +29,26 @@
     <!-- Stats Cards -->
     <div class="row mb-4">
         <div class="col-md-3 mb-3">
-            <div class="stats-card pending">
-                <div class="stats-number">{{ stats.pending_count }}</div>
+            <div class="stats-card pending" data-role="stats-card" data-status="pending">
+                <div class="stats-number" data-role="stats-number">{{ stats.pending_count }}</div>
                 <div class="stats-label">Pending Approval</div>
             </div>
         </div>
         <div class="col-md-3 mb-3">
-            <div class="stats-card approved">
-                <div class="stats-number">{{ stats.total_approved }}</div>
+            <div class="stats-card approved" data-role="stats-card" data-status="approved">
+                <div class="stats-number" data-role="stats-number">{{ stats.total_approved }}</div>
                 <div class="stats-label">Total Approved</div>
             </div>
         </div>
         <div class="col-md-3 mb-3">
-            <div class="stats-card denied">
-                <div class="stats-number">{{ stats.total_denied }}</div>
+            <div class="stats-card denied" data-role="stats-card" data-status="denied">
+                <div class="stats-number" data-role="stats-number">{{ stats.total_denied }}</div>
                 <div class="stats-label">Total Denied</div>
             </div>
         </div>
         <div class="col-md-3 mb-3">
-            <div class="stats-card">
-                <div class="stats-number">{{ stats.pending_count + stats.total_approved + stats.total_denied }}</div>
+            <div class="stats-card" data-role="stats-card" data-status="total">
+                <div class="stats-number" data-role="stats-number">{{ stats.pending_count + stats.total_approved + stats.total_denied }}</div>
                 <div class="stats-label">Total Applications</div>
             </div>
         </div>
@@ -56,32 +57,32 @@
     <!-- Pending Users Table -->
     <div class="row">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Pending Approvals</h5>
-                    <span class="badge bg-label-warning">{{ stats.pending_count }} pending</span>
+            <div class="c-card">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
+                    <h5 class="c-card__title mb-0">Pending Approvals</h5>
+                    <span class="badge bg-label-warning" data-role="pending-count-badge" data-badge>{{ stats.pending_count }} pending</span>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body" data-role="table-container">
                     {% if pending_users %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
+                    <div class="c-table-wrapper" data-table-responsive>
+                        <table class="c-table c-table--hoverable" data-table data-role="approval-table">
+                            <thead scope="col">
                                 <tr>
-                                    <th>User</th>
-                                    <th>Email</th>
-                                    <th>League Preference</th>
-                                    <th>Discord ID</th>
-                                    <th>Registered</th>
-                                    <th>Current Roles</th>
-                                    <th>Actions</th>
+                                    <th scope="col">User</th>
+                                    <th scope="col">Email</th>
+                                    <th scope="col">League Preference</th>
+                                    <th scope="col">Discord ID</th>
+                                    <th scope="col">Registered</th>
+                                    <th scope="col">Current Roles</th>
+                                    <th scope="col">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for user in pending_users %}
-                                <tr>
+                                <tr data-role="user-row" data-user-id="{{ user.id }}">
                                     <td>
                                         <div class="user-info">
-                                            <div class="user-avatar" onclick="showPlayerDetails({{ user.id }})">
+                                            <div class="user-avatar js-show-player-details u-cursor-pointer" data-action="show-player-details" data-user-id="{{ user.id }}">
                                                 {% if user.player and user.player.profile_picture_url %}
                                                     <img src="{{ user.player.profile_picture_url }}" alt="{{ user.player.name }}">
                                                 {% else %}
@@ -90,7 +91,7 @@
                                             </div>
                                             <div class="user-details">
                                                 <h6>
-                                                    <a href="#" class="user-name-link" onclick="showPlayerDetails({{ user.id }}); return false;">
+                                                    <a href="#" class="user-name-link js-show-player-details" data-action="show-player-details" data-user-id="{{ user.id }}">
                                                         {{ user.username }}
                                                     </a>
                                                 </h6>
@@ -102,13 +103,13 @@
                                     <td>
                                         {% if user.preferred_league %}
                                             {% if user.preferred_league == 'pub_league_classic' %}
-                                                <span class="badge bg-label-primary">🏆 Pub League Classic</span>
+                                                <span class="badge bg-label-primary" data-badge>🏆 Pub League Classic</span>
                                             {% elif user.preferred_league == 'pub_league_premier' %}
-                                                <span class="badge bg-label-success">🌟 Pub League Premier</span>
+                                                <span class="badge bg-label-success" data-badge>🌟 Pub League Premier</span>
                                             {% elif user.preferred_league == 'ecs_fc' %}
-                                                <span class="badge bg-label-warning">⚽ ECS FC</span>
+                                                <span class="badge bg-label-warning" data-badge>⚽ ECS FC</span>
                                             {% else %}
-                                                <span class="badge bg-label-secondary">{{ user.preferred_league }}</span>
+                                                <span class="badge bg-label-secondary" data-badge>{{ user.preferred_league }}</span>
                                             {% endif %}
                                             {% if user.league_selection_method %}
                                                 <br><small class="text-muted">via {{ user.league_selection_method.replace('_', ' ').title() }}</small>
@@ -130,14 +131,14 @@
                                     <td>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'Unknown' }}</td>
                                     <td>
                                         {% for role in user.roles %}
-                                            <span class="badge bg-label-primary me-1">{{ role.name }}</span>
+                                            <span class="badge bg-label-primary me-1" data-badge data-role="user-role">{{ role.name }}</span>
                                         {% endfor %}
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-approve me-2" onclick="showApprovalModal({{ user.id }})">
+                                        <button class="c-btn c-btn--sm btn-approve me-2 js-show-approval-modal" data-action="show-approval-modal" data-user-id="{{ user.id }}">
                                             <i class="ti ti-check"></i> Approve
                                         </button>
-                                        <button class="btn btn-sm btn-deny" onclick="showDenialModal({{ user.id }})">
+                                        <button class="c-btn c-btn--sm btn-deny js-show-denial-modal" data-action="show-denial-modal" data-user-id="{{ user.id }}">
                                             <i class="ti ti-x"></i> Deny
                                         </button>
                                     </td>
@@ -162,20 +163,20 @@
     {% if recent_actions %}
     <div class="row mt-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Recent Actions</h5>
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title mb-0">Recent Actions</h5>
                 </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
+                <div class="c-card__body">
+                    <div class="c-table-wrapper" data-table-responsive>
+                        <table class="c-table c-table--compact" data-table>
+                            <thead scope="col">
                                 <tr>
-                                    <th>User</th>
-                                    <th>Action</th>
-                                    <th>League</th>
-                                    <th>Processed By</th>
-                                    <th>Date</th>
+                                    <th scope="col">User</th>
+                                    <th scope="col">Action</th>
+                                    <th scope="col">League</th>
+                                    <th scope="col">Processed By</th>
+                                    <th scope="col">Date</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -184,17 +185,17 @@
                                     <td>{{ user.username }}</td>
                                     <td>
                                         {% if user.approval_status == 'approved' %}
-                                            <span class="badge status-approved">Approved</span>
+                                            <span class="badge status-approved" data-badge data-status="approved">Approved</span>
                                         {% elif user.approval_status == 'denied' %}
-                                            <span class="badge status-denied">Denied</span>
+                                            <span class="badge status-denied" data-badge data-status="denied">Denied</span>
                                         {% endif %}
                                     </td>
                                     <td>
                                         {% if user.approval_league %}
                                             {% if user.approval_league.startswith('sub-') %}
-                                                <span class="badge bg-label-warning">{{ user.approval_league[4:].title() }} Sub</span>
+                                                <span class="badge bg-label-warning" data-badge>{{ user.approval_league[4:].title() }} Sub</span>
                                             {% else %}
-                                                <span class="badge bg-label-primary">{{ user.approval_league.title() }}</span>
+                                                <span class="badge bg-label-primary" data-badge>{{ user.approval_league.title() }}</span>
                                             {% endif %}
                                         {% else %}
                                             <span class="text-muted">N/A</span>
@@ -215,18 +216,18 @@
 </div>
 
 <!-- Approval Modal -->
-<div class="modal fade" id="approvalModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Approve User</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal c-modal fade" data-modal id="approvalModal" tabindex="-1" aria-hidden="true" aria-labelledby="approvalModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="approvalModalLabel">Approve User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <form id="approvalForm">
                     <div class="mb-3">
                         <label for="leagueSelect" class="form-label">Assign to League <span class="text-danger">*</span></label>
-                        <select class="form-select" id="leagueSelect" name="league_type" required>
+                        <select class="form-select" id="leagueSelect" name="league_type" required data-form-select>
                             <option value="">Select a league...</option>
                             <optgroup label="Full League Roles">
                                 <option value="classic">Classic Division</option>
@@ -245,64 +246,64 @@
                     </div>
                     <div class="mb-3">
                         <label for="approvalNotes" class="form-label">Notes (optional)</label>
-                        <textarea class="form-control" id="approvalNotes" name="notes" rows="3" placeholder="Add any notes about the approval..."></textarea>
+                        <textarea class="form-control" id="approvalNotes" name="notes" rows="3" placeholder="Add any notes about the approval..." data-form-control></textarea>
                     </div>
                     <input type="hidden" id="approvalUserId" name="user_id">
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-approve" onclick="submitApproval()">Approve User</button>
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss data-dismiss>Cancel</button>
+                <button type="button" class="c-btn btn-approve js-submit-approval" data-action="approve-user">Approve User</button>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Denial Modal -->
-<div class="modal fade" id="denialModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Deny User Application</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal c-modal fade" data-modal id="denialModal" tabindex="-1" aria-hidden="true" aria-labelledby="denialModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="denialModalLabel">Deny User Application</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <form id="denialForm">
-                    <div class="alert alert-warning">
+                    <div class="alert alert-warning" data-alert>
                         <i class="ti ti-alert-triangle"></i>
                         <strong>Warning:</strong> Denying this user will remove their Discord roles and prevent them from accessing league features.
                     </div>
                     <div class="mb-3">
                         <label for="denialNotes" class="form-label">Reason for Denial <span class="text-danger">*</span></label>
-                        <textarea class="form-control" id="denialNotes" name="notes" rows="3" placeholder="Explain why this application is being denied..." required></textarea>
+                        <textarea class="form-control" id="denialNotes" name="notes" rows="3" placeholder="Explain why this application is being denied..." required data-form-control></textarea>
                     </div>
                     <input type="hidden" id="denialUserId" name="user_id">
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-deny" onclick="submitDenial()">Deny Application</button>
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss data-dismiss>Cancel</button>
+                <button type="button" class="c-btn btn-deny js-submit-denial" data-action="deny-user">Deny Application</button>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Player Details Modal -->
-<div class="modal fade" id="playerDetailsModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Player Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal c-modal fade" data-modal id="playerDetailsModal" tabindex="-1" aria-hidden="true" aria-labelledby="playerDetailsModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="playerDetailsModalLabel">Player Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <div id="playerDetailsContent">
                     <!-- Player details will be loaded here -->
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <a id="profileLink" href="#" target="_blank" class="btn btn-primary">
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss data-dismiss>Close</button>
+                <a id="profileLink" href="#" target="_blank" class="c-btn c-btn--primary">
                     <i class="ti ti-external-link"></i> View Full Profile
                 </a>
             </div>

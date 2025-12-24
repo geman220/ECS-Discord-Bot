@@ -1,0 +1,67 @@
+/**
+ * MATCH REPORT UTILITIES
+ * ======================
+ * Utility classes specific to match reporting functionality
+ *
+ * Classes:
+ * - Team selector sizing (.select-own-goal-team)
+ * - Minute input sizing (.input-minute-compact)
+ *
+ * Usage:
+ * - Use for match reporting forms (report_match.js)
+ * - Ensures consistent sizing across match event entries
+ * - Replaces inline styles with reusable classes
+ *
+ * Refactoring: 2025-12-15
+ * - Removed inline style="min-width: 200px" on team selectors
+ * - Removed inline style="max-width: 80px" on minute inputs
+ * - Extracted to reusable utility classes
+ */
+
+/* ============================================
+   OWN GOAL TEAM SELECTOR
+   ============================================ */
+
+/**
+ * Team selector for own goal entries
+ * Ensures adequate width for team names
+ */
+.select-own-goal-team {
+    min-width: 200px !important;
+}
+
+/* Responsive adjustment for mobile */
+@media (max-width: 576px) {
+    .select-own-goal-team {
+        min-width: 150px !important;
+    }
+}
+
+/* ============================================
+   MINUTE INPUT COMPACT
+   ============================================ */
+
+/**
+ * Compact minute input for match events
+ * Prevents excessive width while maintaining usability
+ */
+.input-minute-compact {
+    max-width: 80px !important;
+}
+
+/* Responsive adjustment for mobile */
+@media (max-width: 576px) {
+    .input-minute-compact {
+        max-width: 70px !important;
+    }
+}
+
+/* ============================================
+   DARK MODE SUPPORT
+   ============================================ */
+
+[data-style="dark"] .select-own-goal-team,
+[data-style="dark"] .input-minute-compact {
+    /* Inherit dark mode styles from Bootstrap form controls */
+    /* No additional overrides needed */
+}

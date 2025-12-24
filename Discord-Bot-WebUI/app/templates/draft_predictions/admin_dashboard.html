@@ -1,37 +1,37 @@
-{% extends "base.html" %}
+{% extends "admin_panel/base.html" %}
 {% import 'macros.html' as macros %}
 
 {% block title %}Draft Predictions Admin{% endblock %}
+{% block panel_description %}View aggregated draft predictions and coach analytics{% endblock %}
 
-{% block main_content %}
-<div class="container-xxl flex-grow-1 container-p-y">
-    
-    <!-- Header Section -->
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.draft_overview') }}">Draft</a></li>
+<li class="breadcrumb-item active">Predictions</li>
+{% endblock %}
+
+{% block panel_content %}
+    <!-- Header with Season Selector -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
+            <div class="c-card">
+                <div class="c-card__body">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <div>
-                            <nav aria-label="breadcrumb" class="mb-2">
-                                <ol class="breadcrumb breadcrumb-style1 mb-0">
-                                    <li class="breadcrumb-item">
-                                        <a href="{{ url_for('draft_predictions.index') }}">Draft Predictions</a>
-                                    </li>
-                                    <li class="breadcrumb-item active">Admin Dashboard</li>
-                                </ol>
-                            </nav>
-                            <h1 class="h3 mb-2 text-primary">
-                                <i class="ti ti-settings me-2"></i>Draft Predictions Admin
-                            </h1>
                             <p class="text-muted mb-0">
-                                Manage draft seasons, view analytics, and enter actual results
+                                View and analyze draft predictions submitted by coaches across all seasons.
                             </p>
                         </div>
-                        <div>
-                            <a href="{{ url_for('draft_predictions.create_season') }}" class="btn btn-primary">
-                                <i class="ti ti-plus me-1"></i>Create Season
-                            </a>
+                        <div class="d-flex gap-2 align-items-center">
+                            <label class="text-muted me-2">Season:</label>
+                            <select class="form-select" id="seasonSelector" style="width: 250px;" data-form-select>
+                                {% for season in seasons %}
+                                    <option value="{{ season.id }}"
+                                            {% if selected_season and season.id == selected_season.id %}selected{% endif %}>
+                                        {{ season.name }}
+                                        {% if season.is_current %}(Current){% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -39,16 +39,16 @@
         </div>
     </div>
 
+    {% if selected_season %}
     <!-- Overview Stats -->
     <div class="row mb-4">
-        {% set all_seasons = current_season_drafts + other_season_drafts %}
-        {% set total_seasons = all_seasons|length %}
-        {% set active_seasons = all_seasons|selectattr('is_active')|list|length %}
-        {% set completed_seasons = all_seasons|selectattr('draft_completed')|list|length %}
-        
+        {% set total_predictions = league_stats.get('Premier', {}).get('prediction_count', 0) + league_stats.get('Classic', {}).get('prediction_count', 0) %}
+        {% set total_coaches = league_stats.get('Premier', {}).get('coach_count', 0) + league_stats.get('Classic', {}).get('coach_count', 0) %}
+        {% set total_players = league_stats.get('Premier', {}).get('player_count', 0) + league_stats.get('Classic', {}).get('player_count', 0) %}
+
         <div class="col-lg-3 col-sm-6 mb-3">
-            <div class="card">
-                <div class="card-body">
+            <div class="c-card">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-md me-3">
                             <div class="avatar-initial bg-label-primary rounded">
@@ -56,63 +56,62 @@
                             </div>
                         </div>
                         <div>
-                            <span class="fw-medium d-block">Total Seasons</span>
-                            <h3 class="card-title mb-1">{{ total_seasons }}</h3>
+                            <span class="fw-medium d-block">Season</span>
+                            <h5 class="mb-0">{{ selected_season.name[:20] }}{% if selected_season.name|length > 20 %}...{% endif %}</h5>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <div class="col-lg-3 col-sm-6 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="avatar avatar-md me-3">
-                            <div class="avatar-initial bg-label-success rounded">
-                                <i class="ti ti-circle-check"></i>
-                            </div>
-                        </div>
-                        <div>
-                            <span class="fw-medium d-block">Active Seasons</span>
-                            <h3 class="card-title mb-1">{{ active_seasons }}</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-sm-6 mb-3">
-            <div class="card">
-                <div class="card-body">
+            <div class="c-card">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-md me-3">
                             <div class="avatar-initial bg-label-info rounded">
-                                <i class="ti ti-flag"></i>
-                            </div>
-                        </div>
-                        <div>
-                            <span class="fw-medium d-block">Completed Drafts</span>
-                            <h3 class="card-title mb-1">{{ completed_seasons }}</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-sm-6 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="avatar avatar-md me-3">
-                            <div class="avatar-initial bg-label-warning rounded">
                                 <i class="ti ti-chart-bar"></i>
                             </div>
                         </div>
                         <div>
                             <span class="fw-medium d-block">Total Predictions</span>
-                            {% set total_predictions = season_stats.values()|map(attribute='prediction_count')|sum %}
-                            <h3 class="card-title mb-1">{{ total_predictions }}</h3>
+                            <h3 class="mb-0">{{ total_predictions }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-sm-6 mb-3">
+            <div class="c-card">
+                <div class="c-card__body">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar avatar-md me-3">
+                            <div class="avatar-initial bg-label-success rounded">
+                                <i class="ti ti-users"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="fw-medium d-block">Coaches</span>
+                            <h3 class="mb-0">{{ total_coaches }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-sm-6 mb-3">
+            <div class="c-card">
+                <div class="c-card__body">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar avatar-md me-3">
+                            <div class="avatar-initial bg-label-warning rounded">
+                                <i class="ti ti-user-check"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="fw-medium d-block">Players Predicted</span>
+                            <h3 class="mb-0">{{ total_players }}</h3>
                         </div>
                     </div>
                 </div>
@@ -120,157 +119,84 @@
         </div>
     </div>
 
-    <!-- Draft Seasons Table -->
+    <!-- League Cards -->
     <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
+        <!-- Premier League -->
+        <div class="col-lg-6 mb-4">
+            <div class="c-card h-100">
+                <div class="c-card__header">
                     <h5 class="mb-0">
-                        <i class="ti ti-list me-2"></i>Draft Seasons
+                        <i class="ti ti-shield text-success me-2"></i>Premier League
                     </h5>
-                    <div class="d-flex gap-2">
-                        <select class="form-select form-select-sm" id="statusFilter" style="width: 150px;">
-                            <option value="">All Statuses</option>
-                            <option value="active">Active Only</option>
-                            <option value="completed">Completed</option>
-                            <option value="upcoming">Upcoming</option>
-                        </select>
-                        <select class="form-select form-select-sm" id="leagueFilter" style="width: 120px;">
-                            <option value="">All Leagues</option>
-                            <option value="classic">Classic</option>
-                            <option value="premier">Premier</option>
-                        </select>
-                    </div>
                 </div>
-                <div class="card-body">
-                    {% if all_seasons %}
-                        <div class="table-responsive">
-                            <table class="table table-hover" id="seasonsTable">
-                                <thead>
-                                    <tr>
-                                        <th>Season</th>
-                                        <th>League Type</th>
-                                        <th>Status</th>
-                                        <th>Prediction Period</th>
-                                        <th>Draft Date</th>
-                                        <th>Predictions</th>
-                                        <th>Coaches</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for season in all_seasons %}
-                                    {% set stats = season_stats.get(season.id, {}) %}
-                                    <tr data-league-type="{{ season.league_type.lower() }}" 
-                                        data-status="{% if season.draft_completed %}completed{% elif season.is_active %}active{% else %}upcoming{% endif %}">
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <div>
-                                                    <h6 class="mb-0">{{ season.name }}</h6>
-                                                    {% if season.description %}
-                                                        <small class="text-muted">{{ season.description[:50] }}{% if season.description|length > 50 %}...{% endif %}</small>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-label-{{ 'success' if season.league_type.lower() == 'premier' else 'primary' }}">
-                                                {{ season.league_type|title }}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            {% if season.draft_completed %}
-                                                <span class="badge bg-label-info">
-                                                    <i class="ti ti-flag me-1"></i>Draft Complete
-                                                </span>
-                                            {% elif season.is_active %}
-                                                {% if season.prediction_start_date <= now <= season.prediction_end_date %}
-                                                    <span class="badge bg-label-success">
-                                                        <i class="ti ti-circle-check me-1"></i>Active
-                                                    </span>
-                                                {% elif season.prediction_start_date > now %}
-                                                    <span class="badge bg-label-warning">
-                                                        <i class="ti ti-clock me-1"></i>Upcoming
-                                                    </span>
-                                                {% else %}
-                                                    <span class="badge bg-label-secondary">
-                                                        <i class="ti ti-clock-off me-1"></i>Ended
-                                                    </span>
-                                                {% endif %}
-                                            {% else %}
-                                                <span class="badge bg-label-secondary">Inactive</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <div class="small">
-                                                {{ season.prediction_start_date.strftime('%b %d') }} - 
-                                                {{ season.prediction_end_date.strftime('%b %d, %Y') }}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            {% if season.draft_date %}
-                                                <div class="small">{{ season.draft_date.strftime('%b %d, %Y') }}</div>
-                                            {% else %}
-                                                <span class="text-muted">TBD</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <span class="badge bg-label-info me-2">{{ stats.get('prediction_count', 0) }}</span>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-label-secondary">{{ stats.get('coach_count', 0) }}</span>
-                                        </td>
-                                        <td>
-                                            <div class="dropdown">
-                                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                                    <i class="ti ti-dots-vertical"></i>
-                                                </button>
-                                                <ul class="dropdown-menu">
-                                                    <li>
-                                                        <a class="dropdown-item" href="{{ url_for('draft_predictions.season_predictions', season_id=season.id) }}">
-                                                            <i class="ti ti-eye me-2"></i>View Season
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        <a class="dropdown-item" href="{{ url_for('draft_predictions.edit_season', season_id=season.id) }}">
-                                                            <i class="ti ti-edit me-2"></i>Edit Season
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        <a class="dropdown-item" href="{{ url_for('draft_predictions.season_analytics', season_id=season.id) }}">
-                                                            <i class="ti ti-chart-bar me-2"></i>Analytics
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        <a class="dropdown-item" href="{{ url_for('admin.draft_history') }}?season={{ season.season_id }}&league={{ season.league_type }}">
-                                                            <i class="ti ti-history me-2"></i>View Draft History
-                                                        </a>
-                                                    </li>
-                                                    <li><hr class="dropdown-divider"></li>
-                                                    <li>
-                                                        <a class="dropdown-item text-warning" href="#" onclick="toggleSeasonStatus({{ season.id }}, {{ season.is_active|tojson }})">
-                                                            <i class="ti ti-{% if season.is_active %}pause{% else %}play{% endif %} me-2"></i>
-                                                            {% if season.is_active %}Deactivate{% else %}Activate{% endif %}
-                                                        </a>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                <div class="c-card__body">
+                    {% set premier_stats = league_stats.get('Premier', {}) %}
+                    <div class="row mb-4">
+                        <div class="col-4 text-center">
+                            <h3 class="mb-1">{{ premier_stats.get('prediction_count', 0) }}</h3>
+                            <small class="text-muted">Predictions</small>
+                        </div>
+                        <div class="col-4 text-center">
+                            <h3 class="mb-1">{{ premier_stats.get('coach_count', 0) }}</h3>
+                            <small class="text-muted">Coaches</small>
+                        </div>
+                        <div class="col-4 text-center">
+                            <h3 class="mb-1">{{ premier_stats.get('player_count', 0) }}</h3>
+                            <small class="text-muted">Players</small>
+                        </div>
+                    </div>
+
+                    {% if premier_stats.get('prediction_count', 0) > 0 %}
+                        <div class="d-grid">
+                            <a href="{{ url_for('draft_predictions.admin_view_league', league_type='Premier', season_id=selected_season.id) }}"
+                               class="c-btn c-btn--success">
+                                <i class="ti ti-eye me-1"></i>View Predictions
+                            </a>
                         </div>
                     {% else %}
-                        <div class="text-center py-5">
-                            <i class="ti ti-trophy text-muted" style="font-size: 4rem;"></i>
-                            <h5 class="mt-3 text-muted">No Draft Seasons</h5>
-                            <p class="text-muted mb-4">Get started by creating your first draft prediction season.</p>
-                            <a href="{{ url_for('draft_predictions.create_season') }}" class="btn btn-primary">
-                                <i class="ti ti-plus me-1"></i>Create First Season
+                        <div class="text-center text-muted py-3">
+                            <i class="ti ti-info-circle me-1"></i>No predictions yet
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Classic League -->
+        <div class="col-lg-6 mb-4">
+            <div class="c-card h-100">
+                <div class="c-card__header">
+                    <h5 class="mb-0">
+                        <i class="ti ti-shield text-primary me-2"></i>Classic League
+                    </h5>
+                </div>
+                <div class="c-card__body">
+                    {% set classic_stats = league_stats.get('Classic', {}) %}
+                    <div class="row mb-4">
+                        <div class="col-4 text-center">
+                            <h3 class="mb-1">{{ classic_stats.get('prediction_count', 0) }}</h3>
+                            <small class="text-muted">Predictions</small>
+                        </div>
+                        <div class="col-4 text-center">
+                            <h3 class="mb-1">{{ classic_stats.get('coach_count', 0) }}</h3>
+                            <small class="text-muted">Coaches</small>
+                        </div>
+                        <div class="col-4 text-center">
+                            <h3 class="mb-1">{{ classic_stats.get('player_count', 0) }}</h3>
+                            <small class="text-muted">Players</small>
+                        </div>
+                    </div>
+
+                    {% if classic_stats.get('prediction_count', 0) > 0 %}
+                        <div class="d-grid">
+                            <a href="{{ url_for('draft_predictions.admin_view_league', league_type='Classic', season_id=selected_season.id) }}"
+                               class="c-btn c-btn--primary">
+                                <i class="ti ti-eye me-1"></i>View Predictions
                             </a>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-3">
+                            <i class="ti ti-info-circle me-1"></i>No predictions yet
                         </div>
                     {% endif %}
                 </div>
@@ -278,81 +204,64 @@
         </div>
     </div>
 
-</div>
+    {% else %}
+    <!-- No Season Selected/Available -->
+    <div class="row">
+        <div class="col-12">
+            <div class="c-card">
+                <div class="c-card__body text-center py-5">
+                    <div class="mb-4">
+                        <i class="ti ti-calendar-off text-muted" style="font-size: 4rem;"></i>
+                    </div>
+                    <h4 class="mb-3">{{ message if message else 'No Season Selected' }}</h4>
+                    <p class="text-muted mb-0">
+                        Select a season from the dropdown to view prediction data.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick Links -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="mb-0">
+                        <i class="ti ti-link me-2"></i>Quick Links
+                    </h5>
+                </div>
+                <div class="c-card__body">
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ url_for('draft_predictions.index') }}" class="c-btn c-btn--outline-secondary">
+                            <i class="ti ti-home me-1"></i>Coach View
+                        </a>
+                        <a href="{{ url_for('admin.draft_history') }}" class="c-btn c-btn--outline-secondary">
+                            <i class="ti ti-history me-1"></i>Draft History
+                        </a>
+                        <a href="{{ url_for('admin_panel.draft_overview') }}" class="c-btn c-btn--outline-secondary">
+                            <i class="ti ti-settings me-1"></i>Draft Settings
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
-// Filter functionality
 document.addEventListener('DOMContentLoaded', function() {
-    const statusFilter = document.getElementById('statusFilter');
-    const leagueFilter = document.getElementById('leagueFilter');
-    const tableRows = document.querySelectorAll('#seasonsTable tbody tr');
+    const seasonSelector = document.getElementById('seasonSelector');
 
-    function filterTable() {
-        const statusValue = statusFilter.value.toLowerCase();
-        const leagueValue = leagueFilter.value.toLowerCase();
-
-        tableRows.forEach(row => {
-            const rowStatus = row.dataset.status;
-            const rowLeague = row.dataset.leagueType;
-
-            const statusMatch = !statusValue || rowStatus === statusValue;
-            const leagueMatch = !leagueValue || rowLeague === leagueValue;
-
-            if (statusMatch && leagueMatch) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
+    if (seasonSelector) {
+        seasonSelector.addEventListener('change', function() {
+            const seasonId = this.value;
+            window.location.href = `{{ url_for('draft_predictions.admin_dashboard') }}?season_id=${seasonId}`;
         });
     }
-
-    if (statusFilter) statusFilter.addEventListener('change', filterTable);
-    if (leagueFilter) leagueFilter.addEventListener('change', filterTable);
 });
-
-// Toggle season status
-async function toggleSeasonStatus(seasonId, currentlyActive) {
-    const action = currentlyActive ? 'deactivate' : 'activate';
-    const result = await Swal.fire({
-        title: `${action.charAt(0).toUpperCase() + action.slice(1)} Season?`,
-        text: `Are you sure you want to ${action} this draft season?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: `Yes, ${action}`,
-        cancelButtonText: 'Cancel'
-    });
-
-    if (result.isConfirmed) {
-        try {
-            const response = await fetch(`/draft-predictions/admin/season/${seasonId}/toggle-status`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCSRFToken()
-                }
-            });
-
-            const data = await response.json();
-            
-            if (data.success) {
-                Swal.fire('Success!', `Season has been ${action}d`, 'success').then(() => {
-                    location.reload();
-                });
-            } else {
-                Swal.fire('Error!', data.message || 'Failed to update season status', 'error');
-            }
-        } catch (error) {
-            console.error('Error toggling season status:', error);
-            Swal.fire('Error!', 'Network error occurred', 'error');
-        }
-    }
-}
-
-function getCSRFToken() {
-    const tokenMeta = document.querySelector('meta[name="csrf-token"]');
-    return tokenMeta ? tokenMeta.getAttribute('content') : '';
-}
 </script>
 {% endblock %}

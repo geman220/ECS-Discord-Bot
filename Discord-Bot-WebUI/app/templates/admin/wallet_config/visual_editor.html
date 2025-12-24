@@ -8,6 +8,7 @@
 {% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
     /* Visual Editor - Theme-aware styling */
     .pass-preview {
@@ -116,10 +117,10 @@
                     <p class="text-muted mb-0">Customize the appearance and layout of your wallet passes</p>
                 </div>
                 <div>
-                    <a href="{{ url_for('wallet_config.templates') }}" class="btn btn-outline-secondary">
+                    <a href="{{ url_for('wallet_config.templates') }}" class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-arrow-left me-1"></i> Back to Templates
                     </a>
-                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="btn btn-outline-secondary ms-2">
+                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="c-btn c-btn--outline-secondary ms-2">
                         <i class="ti ti-layout-dashboard me-1"></i> Dashboard
                     </a>
                 </div>
@@ -136,18 +137,18 @@
                 <input type="hidden" name="pass_type_id" value="{{ pass_type.id }}">
                 
                 <!-- Appearance Card -->
-                <div class="card mb-4">
-                    <div class="card-header">
+                <div class="c-card mb-4">
+                    <div class="c-card__header">
                         <h5 class="mb-0">Appearance Settings</h5>
                     </div>
-                    <div class="card-body">
+                    <div class="c-card__body">
                         <!-- Background Color -->
                         <div class="mb-3">
                             <label class="form-label">Background Color</label>
-                            <div class="input-group">
-                                <div class="color-preview" id="bgColorPreview" style="background-color: {{ pass_type.background_color }};"></div>
-                                <input type="text" class="form-control" id="background_color" name="background_color" value="{{ pass_type.background_color }}">
-                                <button class="btn btn-outline-secondary" type="button" id="bgColorPicker">
+                            <div class="input-group" data-input-group>
+                                <div class="color-preview" id="bgColorPreview" class="bg-custom" data-bg-color="{{ pass_type.background_color }};"></div>
+                                <input type="text" class="form-control" id="background_color" name="background_color" value="{{ pass_type.background_color }}" data-form-control>
+                                <button class="c-btn c-btn--outline-secondary" type="button" id="bgColorPicker">
                                     <i class="ti ti-color-picker"></i>
                                 </button>
                             </div>
@@ -157,10 +158,10 @@
                         <!-- Foreground Color -->
                         <div class="mb-3">
                             <label class="form-label">Foreground Color</label>
-                            <div class="input-group">
-                                <div class="color-preview" id="fgColorPreview" style="background-color: {{ pass_type.foreground_color }};"></div>
-                                <input type="text" class="form-control" id="foreground_color" name="foreground_color" value="{{ pass_type.foreground_color }}">
-                                <button class="btn btn-outline-secondary" type="button" id="fgColorPicker">
+                            <div class="input-group" data-input-group>
+                                <div class="color-preview" id="fgColorPreview" class="bg-custom" data-bg-color="{{ pass_type.foreground_color }};"></div>
+                                <input type="text" class="form-control" id="foreground_color" name="foreground_color" value="{{ pass_type.foreground_color }}" data-form-control>
+                                <button class="c-btn c-btn--outline-secondary" type="button" id="fgColorPicker">
                                     <i class="ti ti-color-picker"></i>
                                 </button>
                             </div>
@@ -170,10 +171,10 @@
                         <!-- Label Color -->
                         <div class="mb-3">
                             <label class="form-label">Label Color</label>
-                            <div class="input-group">
-                                <div class="color-preview" id="lblColorPreview" style="background-color: {{ pass_type.label_color }};"></div>
-                                <input type="text" class="form-control" id="label_color" name="label_color" value="{{ pass_type.label_color }}">
-                                <button class="btn btn-outline-secondary" type="button" id="lblColorPicker">
+                            <div class="input-group" data-input-group>
+                                <div class="color-preview" id="lblColorPreview" class="bg-custom" data-bg-color="{{ pass_type.label_color }};"></div>
+                                <input type="text" class="form-control" id="label_color" name="label_color" value="{{ pass_type.label_color }}" data-form-control>
+                                <button class="c-btn c-btn--outline-secondary" type="button" id="lblColorPicker">
                                     <i class="ti ti-color-picker"></i>
                                 </button>
                             </div>
@@ -183,25 +184,25 @@
                         <!-- Logo Text -->
                         <div class="mb-3">
                             <label class="form-label">Logo Text</label>
-                            <input type="text" class="form-control" id="logo_text" name="logo_text" value="{{ pass_type.logo_text }}">
+                            <input type="text" class="form-control" id="logo_text" name="logo_text" value="{{ pass_type.logo_text }}" data-form-control>
                             <div class="form-text">Text displayed next to the logo</div>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Template Content Card -->
-                <div class="card mb-4">
-                    <div class="card-header">
+                <div class="c-card mb-4">
+                    <div class="c-card__header">
                         <h5 class="mb-0">Template Content</h5>
                     </div>
-                    <div class="card-body">
+                    <div class="c-card__body">
                         <div class="mb-3">
                             <label class="form-label">Template JSON</label>
-                            <textarea class="form-control template-editor" id="template_content" name="template_content">{% if template_content %}{{ template_content|tojson(indent=2) }}{% endif %}</textarea>
+                            <textarea class="form-control template-editor" id="template_content" name="template_content" data-form-control>{% if template_content %}{{ template_content|tojson(indent=2) }}{% endif %}</textarea>
                             <div class="form-text">Edit the raw template JSON (advanced)</div>
                         </div>
                         
-                        <div class="alert alert-info">
+                        <div class="alert alert-info" data-alert>
                             <i class="ti ti-info-circle me-1"></i>
                             <strong>Template Variables:</strong> Use variables like <code>{% raw %}{{member_name}}{% endraw %}</code>, <code>{% raw %}{{validity}}{% endraw %}</code>, and <code>{% raw %}{{team_name}}{% endraw %}</code> for dynamic content.
                         </div>
@@ -210,10 +211,10 @@
                 
                 <!-- Submit Button -->
                 <div class="d-flex justify-content-between">
-                    <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                    <button type="button" class="c-btn c-btn--outline-secondary" data-action="reset-form" class="js-reset-form">
                         <i class="ti ti-refresh me-1"></i> Reset Changes
                     </button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="c-btn c-btn--primary">
                         <i class="ti ti-device-floppy me-1"></i> Save Changes
                     </button>
                 </div>
@@ -222,12 +223,12 @@
         
         <!-- Right Column: Live Preview -->
         <div class="col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header">
+            <div class="c-card h-100">
+                <div class="c-card__header">
                     <h5 class="mb-0">Live Preview</h5>
                 </div>
-                <div class="card-body d-flex flex-column">
-                    <div class="alert alert-info mb-3">
+                <div class="c-card__body d-flex flex-column">
+                    <div class="alert alert-info mb-3" data-alert>
                         <i class="ti ti-eye me-1"></i>
                         This preview shows how your pass will appear in the wallet app. Changes update in real-time.
                     </div>
@@ -266,15 +267,15 @@
                             <!-- Barcode -->
                             <div class="pass-barcode">
                                 <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAMAAABrrFhUAAAABlBMVEX///8AAABVwtN+AAACG0lEQVR4nO3VwXHEMAxEQcv3P3RcrsCFLQCzT+BtUdUaVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVXV+4+9OeZ6O5KJJGNIJpKMIZlIMoZkIskYkokk40jG2NvJRJJxJBNJxpFMJBlHMpFkHMlEkjEkE0nGkEwkGUMykWQMyUSSMSQT7S0dSTKGZCLJGJKJJGNIJpKMIZlIMoZkIsl4JGPsLc1EkvFIxthbmokk45GMsbc0E0nGIxlnb2m2lzEe23v7a03vN5Jl6f1Gsiy930iWpfcbybL0fiNZlt5vJMvS+41kWXq/kSxL7zeSZen9RrIsvd9IlqX3G8my9H4jWZbeb+zlXnq/sZd76f3GXu6l9xt7uZfeb+zlXnq/sZd76f3GXu6l9xt7uZfeb+zlXnq/sZd76f3GXu6l9xt7uZfeb+zlXnq/sZd76f1Gkokk40gmkowjmUgyjmQiyTiSiSTjSCaSjCOZSDKOZCLJOJKJJONIJpKMI5lIMo5kIsk4kokk40gmkowjmUgyjmQiyTiSiSTjSCaSjCOZSDKOZCLJOJKJJONIJpKMI5lIMo5kIsk4kokk4/4B9d4InVtocZ0AAAAASUVORK5CYII=" alt="QR Code">
-                                <div style="font-size: 12px; margin-top: 5px;">ECSFC-ECS-12345678ABCD</div>
+                                <div class="u-font-size-12 u-mt-5">ECSFC-ECS-12345678ABCD</div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Preview Controls -->
                     <div class="mt-auto">
-                        <div class="card mt-3">
-                            <div class="card-body">
+                        <div class="c-card mt-3">
+                            <div class="c-card__body">
                                 <h6>Preview Options</h6>
                                 <div class="form-check form-switch mb-2">
                                     <input class="form-check-input" type="checkbox" id="toggleBackground">
@@ -301,26 +302,26 @@
     <!-- Asset Management -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="c-card">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Pass Assets</h5>
-                    <a href="{{ url_for('wallet_config.assets') }}" class="btn btn-sm btn-primary">
+                    <a href="{{ url_for('wallet_config.assets') }}" class="c-btn c-btn--sm c-btn--primary">
                         <i class="ti ti-photo me-1"></i> Manage Assets
                     </a>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <div class="row">
                         {% if assets %}
                             {% for asset_type, asset in assets.items() %}
                                 <div class="col-md-2 col-sm-4 col-6 mb-3">
-                                    <div class="card h-100">
-                                        <div class="card-body text-center p-2">
-                                            <div style="height: 80px; display: flex; align-items: center; justify-content: center;">
+                                    <div class="c-card h-100">
+                                        <div class="c-card__body text-center p-2">
+                                            <div class="u-h-80 u-flex-center">
                                                 <img src="{{ url_for('wallet_config.get_asset', asset_id=asset.id) }}" alt="{{ asset_type }}"
-                                                     class="img-fluid" style="max-height: 100%; max-width: 100%;">
+                                                     class="img-fluid" class="u-max-h-100-percent u-max-w-100-percent">
                                             </div>
                                             <div class="mt-2">
-                                                <h6 class="mb-0" style="font-size: 0.9rem;">{{ asset_type }}</h6>
+                                                <h6 class="mb-0" class="u-font-size-0-9rem">{{ asset_type }}</h6>
                                                 <small class="text-muted">{{ asset.file_name|truncate(15) }}</small>
                                             </div>
                                         </div>
@@ -329,7 +330,7 @@
                             {% endfor %}
                         {% else %}
                             <div class="col-12">
-                                <div class="alert alert-warning">
+                                <div class="alert alert-warning" data-alert>
                                     <i class="ti ti-alert-triangle me-2"></i>
                                     No assets uploaded for this pass type yet. 
                                     <a href="{{ url_for('wallet_config.assets') }}">Upload assets</a> to enhance your pass appearance.
@@ -343,11 +344,11 @@
     </div>
     
     <!-- Help & Tips -->
-    <div class="card">
-        <div class="card-header">
+    <div class="c-card">
+        <div class="c-card__header">
             <h5 class="mb-0"><i class="ti ti-bulb me-2"></i>Design Tips</h5>
         </div>
-        <div class="card-body">
+        <div class="c-card__body">
             <div class="row">
                 <div class="col-md-4">
                     <h6>Colors</h6>

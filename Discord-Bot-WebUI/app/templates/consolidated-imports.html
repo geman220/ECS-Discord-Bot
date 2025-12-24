@@ -1,9 +1,0 @@
-{% block consolidated_css %}
-<!-- Consolidated UI System CSS - replaces multiple modal and button fixes -->
-<link rel="stylesheet" href="{{ url_for('static', filename='css/consolidated/ui-system.css') }}?v={{ range(1, 1000000) | random }}" />
-{% endblock %}
-
-{% block consolidated_js %}
-<!-- Consolidated UI System JS - replaces multiple modal and button fixes -->
-<script src="{{ url_for('static', filename='js/consolidated/ui-system.js') }}?v={{ range(1, 1000000) | random }}"></script>
-{% endblock %}

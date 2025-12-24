@@ -1,6 +1,8 @@
 /**
  * Soccer Pitch View System
  * Visual drafting interface with position-based player placement
+ *
+ * REFACTORED: Eliminated all inline style manipulations in favor of CSS classes
  */
 
 class PitchViewSystem {
@@ -11,77 +13,104 @@ class PitchViewSystem {
         this.socket = null;
         this.currentDraggedPlayer = null;
         this.isConnected = false;
-        
+
         this.init();
     }
-    
+
     init() {
         this.setupSocket();
         this.setupEventListeners();
         this.populateExistingPlayers();
         this.setupSearch();
         this.updateAllStats();
-        
+
         console.log('🏟️ Pitch View System initialized');
     }
-    
+
     setupSocket() {
         try {
+            // Reuse existing global socket if available (from navbar presence)
+            // Check if socket EXISTS (not just connected) - it may still be connecting
+            if (window.socket) {
+                console.log('🏟️ [PitchView] Reusing existing socket (connected:', window.socket.connected, ')');
+                this.socket = window.socket;
+
+                // If already connected, join room immediately
+                if (this.socket.connected) {
+                    this.isConnected = true;
+                    this.socket.emit('join_draft_room', { league_name: this.leagueName });
+                }
+                // Set up listeners regardless - connect handler will join room when connected
+                this.setupSocketListeners();
+                return;
+            }
+
+            // Create new socket if none exists
+            console.log('🏟️ [PitchView] Creating new socket connection');
             this.socket = io('/', {
                 transports: ['websocket', 'polling'],
                 upgrade: true,
                 timeout: 10000
             });
-            
-            this.socket.on('connect', () => {
-                console.log('✅ Connected to draft system');
-                this.isConnected = true;
-                this.socket.emit('join_draft_room', { league_name: this.leagueName });
-            });
-            
-            this.socket.on('disconnect', () => {
-                console.log('❌ Disconnected from draft system');
-                this.isConnected = false;
-            });
-            
-            this.socket.on('player_drafted_enhanced', (data) => {
-                console.log('🎯 Player drafted:', data);
-                this.handlePlayerDrafted(data);
-            });
-            
-            this.socket.on('player_removed_enhanced', (data) => {
-                console.log('🔥 Player removed:', data);
-                this.handlePlayerRemoved(data);
-            });
-            
-            this.socket.on('player_position_updated', (data) => {
-                console.log('📍 Player position updated:', data);
-                this.handlePlayerPositionUpdated(data);
-            });
-            
-            this.socket.on('error', (data) => {
-                console.error('❌ Socket error:', data);
-                this.showToast('Error: ' + data.message, 'error');
-            });
-            
+
+            // Store globally for other components to reuse
+            window.socket = this.socket;
+
+            this.setupSocketListeners();
+
         } catch (error) {
             console.error('Failed to initialize socket:', error);
         }
     }
-    
+
+    setupSocketListeners() {
+        if (!this.socket) return;
+
+        this.socket.on('connect', () => {
+            console.log('✅ Connected to draft system');
+            this.isConnected = true;
+            this.socket.emit('join_draft_room', { league_name: this.leagueName });
+        });
+
+        this.socket.on('disconnect', () => {
+            console.log('❌ Disconnected from draft system');
+            this.isConnected = false;
+        });
+
+        this.socket.on('player_drafted_enhanced', (data) => {
+            console.log('🎯 Player drafted:', data);
+            this.handlePlayerDrafted(data);
+        });
+
+        this.socket.on('player_removed_enhanced', (data) => {
+            console.log('🔥 Player removed:', data);
+            this.handlePlayerRemoved(data);
+        });
+
+        this.socket.on('player_position_updated', (data) => {
+            console.log('📍 Player position updated:', data);
+            this.handlePlayerPositionUpdated(data);
+        });
+
+        this.socket.on('error', (data) => {
+            console.error('❌ Socket error:', data);
+            this.showToast('Error: ' + data.message, 'error');
+        });
+    }
+
     setupEventListeners() {
         // Search functionality
         const searchInput = document.getElementById('playerSearchPitch');
         if (searchInput) {
             searchInput.addEventListener('input', this.handleSearch.bind(this));
         }
-        
+
         // Position filter
         const positionFilter = document.getElementById('positionFilterPitch');
         if (positionFilter) {
             positionFilter.addEventListener('change', this.handlePositionFilter.bind(this));
         }
-        
+
         // Team tab switching
         document.addEventListener('shown.bs.tab', (event) => {
             if (event.target.id.includes('team-') && event.target.id.includes('-tab')) {
@@ -90,44 +119,58 @@ class PitchViewSystem {
             }
         });
     }
-    
+
     setupSearch() {
         // Initialize search state
         this.updateAvailablePlayerCount();
     }
-    
+
     handleSearch(event) {
         const searchTerm = event.target.value.toLowerCase();
         const playerItems = document.querySelectorAll('#availablePlayersList .player-item');
         let visibleCount = 0;
-        
+
         playerItems.forEach(item => {
             const playerName = item.getAttribute('data-player-name') || '';
             const isVisible = !searchTerm || playerName.includes(searchTerm);
-            
-            item.style.display = isVisible ? 'flex' : 'none';
-            if (isVisible) visibleCount++;
+
+            // Use CSS classes instead of inline styles
+            if (isVisible) {
+                item.classList.remove('d-none');
+                item.classList.add('d-flex');
+                visibleCount++;
+            } else {
+                item.classList.remove('d-flex');
+                item.classList.add('d-none');
+            }
         });
-        
+
         this.updateAvailablePlayerCount(visibleCount);
     }
-    
+
     handlePositionFilter(event) {
         const selectedPosition = event.target.value.toLowerCase();
         const playerItems = document.querySelectorAll('#availablePlayersList .player-item');
         let visibleCount = 0;
-        
+
         playerItems.forEach(item => {
             const playerPosition = item.getAttribute('data-position') || '';
             const isVisible = !selectedPosition || playerPosition.includes(selectedPosition);
-            
-            item.style.display = isVisible ? 'flex' : 'none';
-            if (isVisible) visibleCount++;
+
+            // Use CSS classes instead of inline styles
+            if (isVisible) {
+                item.classList.remove('d-none');
+                item.classList.add('d-flex');
+                visibleCount++;
+            } else {
+                item.classList.remove('d-flex');
+                item.classList.add('d-none');
+            }
         });
-        
+
         this.updateAvailablePlayerCount(visibleCount);
     }
-    
+
     populateExistingPlayers() {
         // Populate already drafted players into their saved positions
         Object.keys(this.draftedPlayersByTeam).forEach(teamId => {
@@ -139,12 +182,12 @@ class PitchViewSystem {
             });
         });
     }
-    
+
     onTeamTabSwitch(teamId) {
         // Update any team-specific UI when switching between teams
         console.log(`Switched to team ${teamId}`);
     }
-    
+
     // Player Management
     addPlayerToPosition(player, position, teamId, emitEvent = true) {
         const positionContainer = document.getElementById(`position-${position}-${teamId}`);
@@ -152,21 +195,21 @@ class PitchViewSystem {
             console.error(`Position container not found: position-${position}-${teamId}`);
             return;
         }
-        
+
         // Check if player is already positioned somewhere in this team
         this.removePlayerFromAllPositions(player.id, teamId);
-        
+
         // Create player element
         const playerElement = this.createPositionedPlayerElement(player, position, teamId);
         positionContainer.appendChild(playerElement);
-        
+
         // Remove from available players list if it exists there
         this.removePlayerFromAvailable(player.id);
-        
+
         // Update stats
         this.updatePositionStats(teamId);
         this.updateTeamCounts();
-        
+
         // Emit socket event if requested
         if (emitEvent && this.socket && this.isConnected) {
             this.socket.emit('update_player_position', {
@@ -176,10 +219,10 @@ class PitchViewSystem {
                 league_name: this.leagueName
             });
         }
-        
+
         console.log(`Added ${player.name} to ${position} position in team ${teamId}`);
     }
-    
+
     createPositionedPlayerElement(player, position, teamId) {
         const element = document.createElement('div');
         element.className = 'positioned-player newly-added';
@@ -187,17 +230,19 @@ class PitchViewSystem {
         element.setAttribute('data-player-name', player.name);
         element.setAttribute('data-position', position);
         element.setAttribute('draggable', 'true');
-        
+        element.setAttribute('title', player.name); // Tooltip with full name
+
         // Add drag event listeners
         element.addEventListener('dragstart', (e) => this.handlePositionedPlayerDragStart(e, player.id));
         element.addEventListener('dragend', (e) => this.handlePositionedPlayerDragEnd(e));
-        
+
         // Player image or initials
         if (player.profile_picture_url && player.profile_picture_url !== '/static/img/default_player.png') {
             element.innerHTML = `
-                <img src="${player.profile_picture_url}" alt="${player.name}" 
-                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                <div class="player-initials" style="display: none;">${this.getPlayerInitials(player.name)}</div>
+                <img src="${player.profile_picture_url}" alt="${player.name}"
+                     class="player-profile-img"
+                     onerror="this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none');">
+                <div class="player-initials d-none">${this.getPlayerInitials(player.name)}</div>
                 <button class="remove-btn" onclick="pitchViewInstance.removePlayerFromPosition(${player.id}, '${position}', ${teamId})" title="Remove ${player.name}">×</button>
             `;
         } else {
@@ -206,46 +251,44 @@ class PitchViewSystem {
                 <button class="remove-btn" onclick="pitchViewInstance.removePlayerFromPosition(${player.id}, '${position}', ${teamId})" title="Remove ${player.name}">×</button>
             `;
         }
-        
+
         // Remove the newly-added class after animation
         setTimeout(() => {
             element.classList.remove('newly-added');
         }, 500);
-        
+
         return element;
     }
-    
+
     getPlayerInitials(name) {
         return name.split(' ')
             .map(part => part.charAt(0).toUpperCase())
             .join('')
             .substring(0, 2);
     }
-    
+
     removePlayerFromPosition(playerId, position, teamId) {
         const positionContainer = document.getElementById(`position-${position}-${teamId}`);
         if (positionContainer) {
             const playerElement = positionContainer.querySelector(`[data-player-id="${playerId}"]`);
             if (playerElement) {
-                // Animate removal
-                playerElement.style.transition = 'all 0.3s ease';
-                playerElement.style.opacity = '0';
-                playerElement.style.transform = 'scale(0.5)';
-                
+                // Use CSS classes for animation instead of inline styles
+                playerElement.classList.add('removing');
+
                 setTimeout(() => {
                     playerElement.remove();
                     this.updatePositionStats(teamId);
                 }, 300);
             }
         }
-        
+
         // If removing from team entirely, add back to available
         const teamHasPlayer = this.isPlayerInTeam(playerId, teamId);
         if (!teamHasPlayer) {
             this.addPlayerBackToAvailable(playerId);
         }
     }
-    
+
     removePlayerFromAllPositions(playerId, teamId) {
         const positions = ['gk', 'lb', 'cb', 'rb', 'lwb', 'rwb', 'cdm', 'cm', 'cam', 'lw', 'rw', 'st', 'bench'];
         positions.forEach(position => {
@@ -258,27 +301,26 @@ class PitchViewSystem {
             }
         });
     }
-    
+
     removePlayerFromAvailable(playerId) {
         const playerItem = document.querySelector(`#availablePlayersList [data-player-id="${playerId}"]`);
         if (playerItem) {
-            playerItem.style.transition = 'all 0.3s ease';
-            playerItem.style.opacity = '0';
-            playerItem.style.transform = 'translateX(-20px)';
-            
+            // Use CSS class for animation instead of inline styles
+            playerItem.classList.add('removing-from-list');
+
             setTimeout(() => {
                 playerItem.remove();
                 this.updateAvailablePlayerCount();
             }, 300);
         }
     }
-    
+
     addPlayerBackToAvailable(playerId) {
         // This would require the full player data - for now, we'll reload or emit an event
         // In a real implementation, you'd maintain a player cache
         console.log(`Should add player ${playerId} back to available pool`);
     }
-    
+
     isPlayerInTeam(playerId, teamId) {
         const positions = ['gk', 'lb', 'cb', 'rb', 'lwb', 'rwb', 'cdm', 'cm', 'cam', 'lw', 'rw', 'st', 'bench'];
         return positions.some(position => {
@@ -286,56 +328,52 @@ class PitchViewSystem {
             return container && container.querySelector(`[data-player-id="${playerId}"]`);
         });
     }
-    
+
     // Drag and Drop Handlers
     handlePlayerDragStart(event, playerId) {
         this.currentDraggedPlayer = playerId;
         event.dataTransfer.setData('text/plain', playerId);
         event.dataTransfer.effectAllowed = 'move';
-        
-        // Visual feedback
+
+        // Visual feedback using CSS classes
         event.target.classList.add('dragging');
-        event.target.style.opacity = '0.6';
     }
-    
+
     handlePlayerDragEnd(event) {
         this.currentDraggedPlayer = null;
         event.target.classList.remove('dragging');
-        event.target.style.opacity = '1';
     }
-    
+
     handlePositionedPlayerDragStart(event, playerId) {
         this.currentDraggedPlayer = playerId;
         event.dataTransfer.setData('text/plain', playerId);
         event.dataTransfer.effectAllowed = 'move';
-        
+
         // Mark as positioned player being moved
         event.dataTransfer.setData('positioned', 'true');
-        
-        // Visual feedback
+
+        // Visual feedback using CSS classes
         event.target.classList.add('dragging');
-        event.target.style.opacity = '0.6';
     }
-    
+
     handlePositionedPlayerDragEnd(event) {
         this.currentDraggedPlayer = null;
         event.target.classList.remove('dragging');
-        event.target.style.opacity = '1';
     }
-    
+
     handlePositionDragOver(event) {
         event.preventDefault();
         event.dataTransfer.dropEffect = 'move';
-        
+
         const zone = event.currentTarget;
         zone.classList.add('drag-over');
     }
-    
+
     handlePositionDragLeave(event) {
         const zone = event.currentTarget;
         zone.classList.remove('drag-over');
     }
-    
+
     handlePositionDrop(event, position, teamId) {
         event.preventDefault();
 
@@ -410,9 +448,9 @@ class PitchViewSystem {
 
         document.body.appendChild(toast);
 
-        // Auto-remove after 3 seconds
+        // Auto-remove after 3 seconds - use CSS class for animation
         setTimeout(() => {
-            toast.style.animation = 'slideOutRight 0.3s ease';
+            toast.classList.add('toast-dismissing');
             setTimeout(() => toast.remove(), 300);
         }, 3000);
     }
@@ -448,13 +486,13 @@ class PitchViewSystem {
             slot.classList.add('over-capacity');
         }
     }
-    
+
     movePlayerBetweenPositions(playerId, newPosition, teamId) {
         // Find current position
         const positions = ['gk', 'lb', 'cb', 'rb', 'lwb', 'rwb', 'cdm', 'cm', 'cam', 'lw', 'rw', 'st', 'bench'];
         let currentPosition = null;
         let playerData = null;
-        
+
         for (const pos of positions) {
             const container = document.getElementById(`position-${pos}-${teamId}`);
             const playerElement = container?.querySelector(`[data-player-id="${playerId}"]`);
@@ -468,18 +506,18 @@ class PitchViewSystem {
                 break;
             }
         }
-        
+
         if (!playerData) {
             this.showToast('Player not found', 'error');
             return;
         }
-        
+
         // Add to new position
         this.addPlayerToPosition(playerData, newPosition, teamId, true);
-        
+
         this.showToast(`Moved ${playerData.name} to ${newPosition}`, 'success');
     }
-    
+
     draftPlayerToPosition(playerId, position, teamId) {
         // Get player data from available list
         const playerItem = document.querySelector(`#availablePlayersList [data-player-id="${playerId}"]`);
@@ -487,13 +525,13 @@ class PitchViewSystem {
             this.showToast('Player not found in available list', 'error');
             return;
         }
-        
+
         const playerName = playerItem.querySelector('.player-name').textContent;
-        
+
         // First, draft the player to the team via the regular draft system
         if (this.socket && this.isConnected) {
             this.showLoading();
-            
+
             this.socket.emit('draft_player_enhanced', {
                 player_id: parseInt(playerId),
                 team_id: parseInt(teamId),
@@ -504,67 +542,91 @@ class PitchViewSystem {
             this.showToast('Not connected to server', 'error');
         }
     }
-    
+
     // Socket Event Handlers
     handlePlayerDrafted(data) {
         this.hideLoading();
-        
+
         // Add player to the specified position (default to bench if no position specified)
         const position = data.position || 'bench';
         this.addPlayerToPosition(data.player, position, data.team_id, false);
-        
+
         this.showToast(`${data.player.name} drafted to ${data.team_name}`, 'success');
     }
-    
+
     handlePlayerRemoved(data) {
         this.hideLoading();
-        
+
         // Remove from all positions in the team
         this.removePlayerFromAllPositions(data.player.id, data.team_id);
         this.updatePositionStats(data.team_id);
-        
+
         // Add back to available (this would need the full player data in real implementation)
         this.showToast(`${data.player.name} removed from team`, 'info');
-        
+
         // For now, just reload to refresh available players
         setTimeout(() => {
             window.location.reload();
         }, 1000);
     }
-    
+
     handlePlayerPositionUpdated(data) {
         // Handle position updates from other clients
         this.addPlayerToPosition(data.player, data.position, data.team_id, false);
     }
-    
+
     // Stats and UI Updates
     updatePositionStats(teamId) {
-        const positions = [
-            { key: 'goalkeeper', label: 'gk' },
-            { key: 'defender', label: 'def' },
-            { key: 'midfielder', label: 'mid' },
-            { key: 'forward', label: 'fwd' },
-            { key: 'bench', label: 'bench' }
-        ];
-        
-        positions.forEach(pos => {
-            const container = document.getElementById(`position-${pos.key}-${teamId}`);
-            const countElement = document.getElementById(`${pos.label}-count-${teamId}`);
-            
-            if (container && countElement) {
-                const count = container.children.length;
-                countElement.textContent = count;
+        // Position categories for the formation stats at bottom
+        const positionCategories = {
+            gk: ['gk'],
+            def: ['lb', 'cb', 'rb', 'lwb', 'rwb'],
+            mid: ['cdm', 'cm', 'cam'],
+            fwd: ['lw', 'rw', 'st'],
+            bench: ['bench']
+        };
+
+        // Update category counts (GK, DEF, MID, FWD, BENCH at bottom)
+        Object.entries(positionCategories).forEach(([category, positions]) => {
+            let totalCount = 0;
+            positions.forEach(pos => {
+                const container = document.getElementById(`position-${pos}-${teamId}`);
+                if (container) {
+                    totalCount += container.querySelectorAll('.positioned-player').length;
+                }
+            });
+
+            const countElement = document.getElementById(`${category}-count-${teamId}`);
+            if (countElement) {
+                countElement.textContent = totalCount;
+            }
+        });
+
+        // Update individual position zone counts (the (0) on each zone)
+        const allPositions = ['gk', 'lb', 'cb', 'rb', 'lwb', 'rwb', 'cdm', 'cm', 'cam', 'lw', 'rw', 'st', 'bench'];
+        allPositions.forEach(pos => {
+            const container = document.getElementById(`position-${pos}-${teamId}`);
+            if (container) {
+                const count = container.querySelectorAll('.positioned-player').length;
+                // Find the position-count span in the parent zone
+                const zone = container.closest('.position-zone');
+                if (zone) {
+                    const countSpan = zone.querySelector('.position-count');
+                    if (countSpan) {
+                        countSpan.textContent = `(${count})`;
+                    }
+                }
             }
         });
     }
-    
+
     updateAllStats() {
         this.teams.forEach(team => {
             this.updatePositionStats(team.id);
         });
         this.updateTeamCounts();
     }
-    
+
     updateTeamCounts() {
         this.teams.forEach(team => {
             const totalPlayers = this.getTotalPlayersInTeam(team.id);
@@ -574,7 +636,7 @@ class PitchViewSystem {
             }
         });
     }
-    
+
     getTotalPlayersInTeam(teamId) {
         const positions = ['gk', 'lb', 'cb', 'rb', 'lwb', 'rwb', 'cdm', 'cm', 'cam', 'lw', 'rw', 'st', 'bench'];
         return positions.reduce((total, position) => {
@@ -582,43 +644,45 @@ class PitchViewSystem {
             return total + (container ? container.children.length : 0);
         }, 0);
     }
-    
+
     updateAvailablePlayerCount(count = null) {
         if (count === null) {
-            const visiblePlayers = document.querySelectorAll('#availablePlayersList .player-item[style*="flex"], #availablePlayersList .player-item:not([style*="none"])');
+            const visiblePlayers = document.querySelectorAll('#availablePlayersList .player-item:not(.d-none)');
             count = visiblePlayers.length;
         }
-        
+
         const countElement = document.getElementById('availablePlayerCount');
         if (countElement) {
             countElement.textContent = count;
         }
     }
-    
+
     // UI Helpers
     showLoading() {
         const overlay = document.getElementById('loadingOverlay');
         if (overlay) {
-            overlay.style.display = 'flex';
+            overlay.classList.remove('d-none');
+            overlay.classList.add('d-flex');
         }
     }
-    
+
     hideLoading() {
         const overlay = document.getElementById('loadingOverlay');
         if (overlay) {
-            overlay.style.display = 'none';
+            overlay.classList.remove('d-flex');
+            overlay.classList.add('d-none');
         }
     }
-    
+
     showToast(message, type = 'info') {
         if (window.Swal) {
             const iconMap = {
                 'success': 'success',
-                'error': 'error', 
+                'error': 'error',
                 'warning': 'warning',
                 'info': 'info'
             };
-            
+
             Swal.fire({
                 title: message,
                 icon: iconMap[type] || 'info',

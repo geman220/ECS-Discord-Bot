@@ -6,16 +6,16 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Season Configuration - {{ league.name }}</h3>
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h3 class="c-card__title">Season Configuration - {{ league.name }}</h3>
                     <div class="card-tools">
-                        <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="btn btn-secondary btn-sm">
+                        <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="c-btn c-btn--secondary c-btn--sm">
                             <i class="fas fa-arrow-left"></i> Back to Schedule Manager
                         </a>
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <form method="POST" action="{{ url_for('auto_schedule.season_config', league_id=league.id) }}">
                         <div class="row">
                             <div class="col-md-6">
@@ -23,7 +23,7 @@
                                     <label for="regular_season_weeks">Regular Season Weeks</label>
                                     <input type="number" class="form-control" id="regular_season_weeks" 
                                            name="regular_season_weeks" value="{{ season_config.regular_season_weeks }}" 
-                                           min="1" max="20" required>
+                                           min="1" max="20" required data-form-control>
                                     <small class="form-text text-muted">Number of regular season weeks</small>
                                 </div>
                             </div>
@@ -32,7 +32,7 @@
                                     <label for="playoff_weeks">Playoff Weeks</label>
                                     <input type="number" class="form-control" id="playoff_weeks" 
                                            name="playoff_weeks" value="{{ season_config.playoff_weeks }}" 
-                                           min="0" max="5" required>
+                                           min="0" max="5" required data-form-control>
                                     <small class="form-text text-muted">Number of playoff weeks</small>
                                 </div>
                             </div>
@@ -82,20 +82,20 @@
                             </div>
                         </div>
 
-                        <div class="row practice-config" style="{{ 'display: none;' if not season_config.has_practice_sessions else '' }}">
+                        <div class="row practice-config">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="practice_weeks">Practice Weeks</label>
                                     <input type="text" class="form-control" id="practice_weeks" 
                                            name="practice_weeks" value="{{ season_config.practice_weeks or '' }}" 
-                                           placeholder="e.g., 1,3">
+                                           placeholder="e.g., 1,3" data-form-control>
                                     <small class="form-text text-muted">Comma-separated week numbers (e.g., 1,3)</small>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="practice_game_number">Practice Game Number</label>
-                                    <select class="form-control" id="practice_game_number" name="practice_game_number">
+                                    <select class="form-control" id="practice_game_number" name="practice_game_number" data-form-select>
                                         <option value="1" {{ 'selected' if season_config.practice_game_number == 1 else '' }}>Game 1</option>
                                         <option value="2" {{ 'selected' if season_config.practice_game_number == 2 else '' }}>Game 2</option>
                                     </select>
@@ -106,7 +106,7 @@
 
                         <div class="row">
                             <div class="col-md-12">
-                                <div class="alert alert-info">
+                                <div class="alert alert-info" data-alert>
                                     <h5><i class="icon fas fa-info"></i> Season Structure Preview</h5>
                                     <div id="season-preview">
                                         <p><strong>League Type:</strong> {{ season_config.league_type }}</p>
@@ -128,10 +128,10 @@
 
                         <div class="row">
                             <div class="col-md-12">
-                                <button type="submit" class="btn btn-primary">
+                                <button type="submit" class="c-btn c-btn--primary">
                                     <i class="fas fa-save"></i> Save Configuration
                                 </button>
-                                <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="btn btn-secondary">
+                                <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="c-btn c-btn--secondary">
                                     <i class="fas fa-times"></i> Cancel
                                 </a>
                             </div>

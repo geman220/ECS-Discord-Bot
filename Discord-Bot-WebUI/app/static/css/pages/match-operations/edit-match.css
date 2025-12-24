@@ -1,0 +1,260 @@
+/**
+ * ============================================================================
+ * EDIT MATCH - MODERN BEM FORM COMPONENTS
+ * ============================================================================
+ *
+ * Match editing form with modern form components
+ * Simple, focused editing interface
+ *
+ * Components:
+ *   1. Match Edit Form (.c-match-edit-form)
+ *   2. Form Actions (.c-form-actions)
+ *
+ * Design: Clean, focused form with clear CTAs
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. MATCH EDIT FORM
+   ============================================================================ */
+
+.c-match-edit-form {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-md);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.c-match-edit-form__header {
+  margin-bottom: var(--space-6);
+}
+
+.c-match-edit-form__title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.c-match-edit-form__subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.c-match-edit-form__group {
+  margin-bottom: var(--space-4);
+}
+
+.c-match-edit-form__label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.c-match-edit-form__label--required::after {
+  content: '*';
+  color: var(--color-danger);
+  margin-left: var(--space-1);
+}
+
+.c-match-edit-form__input,
+.c-match-edit-form__select {
+  width: 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
+  transition: var(--transition-all);
+}
+
+.c-match-edit-form__input:focus,
+.c-match-edit-form__select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb, 13, 110, 253), 0.1);
+}
+
+.c-match-edit-form__input:disabled,
+.c-match-edit-form__select:disabled {
+  background: var(--color-bg-subtle);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.c-match-edit-form__help {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--space-1);
+}
+
+.c-match-edit-form__error {
+  font-size: var(--text-xs);
+  color: var(--color-danger);
+  margin-top: var(--space-1);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* Input group for date/time pairs */
+.c-match-edit-form__input-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+@media (max-width: 576px) {
+  .c-match-edit-form__input-group {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================================
+   2. FORM ACTIONS
+   ============================================================================ */
+
+.c-form-actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-primary);
+  margin-top: var(--space-6);
+}
+
+.c-form-actions__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  transition: var(--transition-all);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.c-form-actions__button--primary {
+  background: var(--color-primary);
+  color: var(--color-neutral-0);
+  flex: 1;
+}
+
+.c-form-actions__button--primary:hover:not(:disabled) {
+  background: var(--color-primary-dark, var(--color-primary));
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.c-form-actions__button--secondary {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-primary);
+}
+
+.c-form-actions__button--secondary:hover:not(:disabled) {
+  background: var(--color-bg-hover);
+  border-color: var(--color-border-subtle);
+}
+
+.c-form-actions__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.c-form-actions__button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+@media (max-width: 576px) {
+  .c-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .c-form-actions__button {
+    width: 100%;
+  }
+}
+
+/* ============================================================================
+   3. FORM VALIDATION STATES
+   ============================================================================ */
+
+.c-match-edit-form__input.is-invalid,
+.c-match-edit-form__select.is-invalid {
+  border-color: var(--color-danger);
+}
+
+.c-match-edit-form__input.is-valid,
+.c-match-edit-form__select.is-valid {
+  border-color: var(--color-success);
+}
+
+.c-match-edit-form__input.is-invalid:focus,
+.c-match-edit-form__select.is-invalid:focus {
+  box-shadow: 0 0 0 3px rgba(var(--color-danger-rgb, 220, 53, 69), 0.1);
+}
+
+.c-match-edit-form__input.is-valid:focus,
+.c-match-edit-form__select.is-valid:focus {
+  box-shadow: 0 0 0 3px rgba(var(--color-success-rgb, 40, 167, 69), 0.1);
+}
+
+/* ============================================================================
+   DARK MODE
+   ============================================================================ */
+
+[data-style="dark"] .c-match-edit-form {
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-lg);
+}
+
+[data-style="dark"] .c-match-edit-form__input,
+[data-style="dark"] .c-match-edit-form__select {
+  background: var(--color-bg-elevated);
+  border-color: var(--color-border-primary);
+  color: var(--color-text-primary);
+}
+
+[data-style="dark"] .c-match-edit-form__input:disabled,
+[data-style="dark"] .c-match-edit-form__select:disabled {
+  background: var(--color-bg-subtle);
+}
+
+[data-style="dark"] .c-form-actions__button--secondary {
+  background: var(--color-bg-elevated);
+  border-color: var(--color-border-primary);
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .c-form-actions__button:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .c-match-edit-form__input,
+  .c-match-edit-form__select {
+    border-width: 2px;
+  }
+}
+
+/* ============================================================================
+   END OF EDIT MATCH STYLES
+   ============================================================================ */

@@ -502,56 +502,81 @@ async def create_discord_roles(session: Session, team_name: str, team_id: int) -
         return {'success': False, 'error': str(e)}
 
 
-async def create_discord_channel_async_only(team_name: str, division: str, team_id: int) -> Dict[str, Any]:
+async def create_discord_channel_async_only(team_name: str, league_name: str, team_id: int) -> Dict[str, Any]:
     """
     Create a dedicated Discord channel for a team without database session.
-    
+
     Args:
         team_name: The team's name
-        division: Division identifier  
+        league_name: League name (e.g., "Pub League Premier", "Pub League Classic", "ECS FC")
         team_id: The team's ID
-        
+
     Returns:
         Dict with success status and channel_id if successful
     """
     try:
         guild_id = int(os.getenv('SERVER_ID'))
         bot_api_url = os.getenv('BOT_API_URL', 'http://discord-bot:5001')
-        category_name = f"ECS FC PL {division.capitalize()}"
+
+        # Determine category and channel naming based on league type
+        if league_name and 'ECS FC' in league_name and 'Pub League' not in league_name:
+            # ECS FC league teams go under "ECS FC LEAGUE TEAMS"
+            category_name = "ECS FC LEAGUE TEAMS"
+            role_prefix = "ECS-FC-LEAGUE"
+            channel_name = f"ecs-fc-{team_name}"  # ECS FC teams get ecs-fc- prefix
+        elif league_name and 'Premier' in league_name:
+            # Pub League Premier
+            category_name = "ECS FC PL Premier"
+            role_prefix = "ECS-FC-PL"
+            channel_name = team_name  # Pub League uses team name as-is
+        elif league_name and 'Classic' in league_name:
+            # Pub League Classic
+            category_name = "ECS FC PL Classic"
+            role_prefix = "ECS-FC-PL"
+            channel_name = team_name  # Pub League uses team name as-is
+        else:
+            # Default fallback
+            category_name = f"ECS FC PL {league_name.capitalize() if league_name else 'Teams'}"
+            role_prefix = "ECS-FC-PL"
+            channel_name = team_name
         
         async with aiohttp.ClientSession() as session:
             # First, get or create the category
             category_id = await get_or_create_category(guild_id, category_name, session)
             if not category_id:
                 return {'success': False, 'message': f"Failed to get/create category '{category_name}'"}
-            
-            # Create or get the required Discord roles
-            player_role_name = f"ECS-FC-PL-{team_name}-Player"
+
+            # Create or get the required Discord roles using the appropriate prefix
+            player_role_name = f"{role_prefix}-{team_name}-Player"
             player_role_id = await get_or_create_role(guild_id, player_role_name, session)
             if not player_role_id:
                 return {'success': False, 'message': f"Failed to create player role '{player_role_name}'"}
-                
-            # Get admin and leadership roles
+
+            # Get admin and leadership roles (same for both league types)
             wg_admin_role_id = await get_or_create_role(guild_id, "WG: ECS FC ADMIN", session)
-            pl_leadership_role_id = await get_or_create_role(guild_id, "WG: ECS FC PL Leadership", session)
-            
+            # Use appropriate leadership role based on league type
+            if role_prefix == "ECS-FC-LEAGUE":
+                leadership_role_id = await get_or_create_role(guild_id, "WG: ECS FC Leadership", session)
+            else:
+                leadership_role_id = await get_or_create_role(guild_id, "WG: ECS FC PL Leadership", session)
+
             # Set up permission overwrites
             permission_overwrites = [
                 {"id": str(guild_id), "type": 0, "deny": str(VIEW_CHANNEL), "allow": "0"},
                 {"id": str(player_role_id), "type": 0, "allow": str(TEAM_PLAYER_PERMISSIONS), "deny": "0"},
             ]
-            
+
             # Add admin permissions if roles exist
             if wg_admin_role_id:
                 permission_overwrites.append({"id": str(wg_admin_role_id), "type": 0, "allow": str(LEADERSHIP_PERMISSIONS), "deny": "0"})
-            if pl_leadership_role_id:
-                permission_overwrites.append({"id": str(pl_leadership_role_id), "type": 0, "allow": str(LEADERSHIP_PERMISSIONS), "deny": "0"})
-            
+            if leadership_role_id:
+                permission_overwrites.append({"id": str(leadership_role_id), "type": 0, "allow": str(LEADERSHIP_PERMISSIONS), "deny": "0"})
+
             # Create channel with proper setup
             channel_data = {
-                'name': team_name,
+                'name': channel_name,
                 'type': 0,  # Text channel
-                'topic': f"Team channel for {team_name} ({division})",
+                'topic': f"Team channel for {team_name} ({league_name})",
                 'parent_id': category_id,
                 'permission_overwrites': permission_overwrites
             }
@@ -745,46 +770,69 @@ async def create_match_thread_async_only(match_data: Dict[str, Any]) -> Optional
     return None
 
 
-async def create_discord_channel(session: Session, team_name: str, division: str, team_id: int) -> Dict[str, Any]:
+async def create_discord_channel(session: Session, team_name: str, league_name: str, team_id: int) -> Dict[str, Any]:
     """
     Create a dedicated Discord channel for a team under a specific category.
 
     Args:
         session (Session): The database session.
         team_name (str): The team's name.
-        division (str): Division identifier.
+        league_name (str): League name (e.g., "Pub League Premier", "Pub League Classic", "ECS FC").
         team_id (int): The team's ID.
 
     Returns:
         Dict[str, Any]: Result with success status and channel ID or error message.
     """
     guild_id = int(os.getenv('SERVER_ID'))
-    category_name = f"ECS FC PL {division.capitalize()}"
+
+    # Determine category and channel naming based on league type
+    if league_name and 'ECS FC' in league_name and 'Pub League' not in league_name:
+        # ECS FC league teams go under "ECS FC LEAGUE TEAMS"
+        category_name = "ECS FC LEAGUE TEAMS"
+        is_ecs_fc_league = True
+        channel_name = f"ecs-fc-{team_name}"  # ECS FC teams get ecs-fc- prefix
+    elif league_name and 'Premier' in league_name:
+        category_name = "ECS FC PL Premier"
+        is_ecs_fc_league = False
+        channel_name = team_name
+    elif league_name and 'Classic' in league_name:
+        category_name = "ECS FC PL Classic"
+        is_ecs_fc_league = False
+        channel_name = team_name
+    else:
+        category_name = f"ECS FC PL {league_name.capitalize() if league_name else 'Teams'}"
+        is_ecs_fc_league = False
+        channel_name = team_name
+
     try:
         async with aiohttp.ClientSession() as http_session:
             category_id = await get_or_create_category(guild_id, category_name, http_session)
             if not category_id:
                 return {'success': False, 'error': f"Failed to get/create category '{category_name}'"}
-            
+
             role_result = await create_discord_roles(session, team_name, team_id)
             if not role_result.get('success'):
                 return role_result
-            
+
             team = session.query(Team).get(team_id)
             if not team.discord_player_role_id:
                 return {'success': False, 'error': 'Player role ID not found'}
-            
+
             wg_admin_role_id = await get_or_create_role(guild_id, "WG: ECS FC ADMIN", http_session)
-            pl_leadership_role_id = await get_or_create_role(guild_id, "WG: ECS FC PL Leadership", http_session)
-            
+            # Use appropriate leadership role based on league type
+            if is_ecs_fc_league:
+                leadership_role_id = await get_or_create_role(guild_id, "WG: ECS FC Leadership", http_session)
+            else:
+                leadership_role_id = await get_or_create_role(guild_id, "WG: ECS FC PL Leadership", http_session)
+
             permission_overwrites = [
                 {"id": str(guild_id), "type": 0, "deny": str(VIEW_CHANNEL), "allow": "0"},
                 {"id": str(team.discord_player_role_id), "type": 0, "allow": str(TEAM_PLAYER_PERMISSIONS), "deny": "0"},
                 {"id": str(wg_admin_role_id), "type": 0, "allow": str(LEADERSHIP_PERMISSIONS), "deny": "0"},
-                {"id": str(pl_leadership_role_id), "type": 0, "allow": str(LEADERSHIP_PERMISSIONS), "deny": "0"},
+                {"id": str(leadership_role_id), "type": 0, "allow": str(LEADERSHIP_PERMISSIONS), "deny": "0"},
             ]
             payload = {
-                "name": team_name,
+                "name": channel_name,
                 "parent_id": category_id,
                 "type": 0,  # text channel
                 "permission_overwrites": permission_overwrites,

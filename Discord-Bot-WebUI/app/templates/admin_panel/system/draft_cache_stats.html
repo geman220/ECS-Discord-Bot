@@ -14,10 +14,10 @@
 <div class="row">
     <!-- Header -->
     <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="ti ti-chart-bar me-2"></i>Draft Cache Statistics</h5>
-                <button id="refresh-btn" class="btn btn-primary btn-sm">
+                <button id="draft-cache-stats-refresh-btn" class="c-btn c-btn--primary c-btn--sm">
                     <i class="ti ti-refresh me-1"></i>Refresh
                 </button>
             </div>
@@ -26,8 +26,8 @@
 
     <!-- Cache Overview Stats -->
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-primary bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-primary bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-database fs-1 text-primary mb-2"></i>
                 <h3 class="mb-0" id="total-keys">{{ cache_stats.total_keys|default(0) }}</h3>
                 <small class="text-muted">Total Cache Keys</small>
@@ -35,8 +35,8 @@
         </div>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-success bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-success bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-check fs-1 text-success mb-2"></i>
                 <h3 class="mb-0" id="hit-rate">{{ cache_stats.hit_rate|default(0) }}%</h3>
                 <small class="text-muted">Cache Hit Rate</small>
@@ -44,8 +44,8 @@
         </div>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-info bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-info bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-users fs-1 text-info mb-2"></i>
                 <h3 class="mb-0" id="player-keys">{{ cache_stats.player_keys|default(0) }}</h3>
                 <small class="text-muted">Player Data Keys</small>
@@ -53,8 +53,8 @@
         </div>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-warning bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-warning bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-shield fs-1 text-warning mb-2"></i>
                 <h3 class="mb-0" id="team-keys">{{ cache_stats.team_keys|default(0) }}</h3>
                 <small class="text-muted">Team Data Keys</small>
@@ -64,20 +64,20 @@
 
     <!-- League Cache Status -->
     <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header">
+        <div class="c-card">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-trophy me-2"></i>League Cache Status</h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if leagues %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>League</th>
-                                <th>Cache Status</th>
-                                <th>Last Warmed</th>
-                                <th>Actions</th>
+                                <th scope="col">League</th>
+                                <th scope="col">Cache Status</th>
+                                <th scope="col">Last Warmed</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -89,11 +89,11 @@
                                 </td>
                                 <td>
                                     {% if league_cache_status.get(league, {}).get('warmed', false) %}
-                                    <span class="badge bg-success">
+                                    <span class="badge bg-success" data-badge>
                                         <i class="ti ti-check me-1"></i>Warmed
                                     </span>
                                     {% else %}
-                                    <span class="badge bg-warning">
+                                    <span class="badge bg-warning" data-badge>
                                         <i class="ti ti-alert-triangle me-1"></i>Cold
                                     </span>
                                     {% endif %}
@@ -102,8 +102,9 @@
                                     {{ league_cache_status.get(league, {}).get('last_warmed', 'Never') }}
                                 </td>
                                 <td>
-                                    <button class="btn btn-outline-primary btn-sm"
-                                            onclick="warmCache('{{ league }}')"
+                                    <button class="c-btn c-btn--outline-primary c-btn--sm js-warm-cache"
+                                            data-action="warm-cache"
+                                            data-league="{{ league }}"
                                             id="warm-btn-{{ loop.index }}">
                                         <i class="ti ti-flame me-1"></i>Warm Cache
                                     </button>
@@ -125,12 +126,12 @@
 
     <!-- TTL Settings -->
     <div class="col-md-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
+        <div class="c-card h-100">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-clock me-2"></i>TTL Settings</h5>
             </div>
-            <div class="card-body">
-                <table class="table table-sm">
+            <div class="c-card__body">
+                <table class="c-table c-table--compact" data-table>
                     <tbody>
                         <tr>
                             <td>Player Data TTL</td>
@@ -156,25 +157,25 @@
 
     <!-- Cache Performance -->
     <div class="col-md-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
+        <div class="c-card h-100">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-chart-line me-2"></i>Cache Performance</h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="mb-3">
                     <label class="small text-muted">Hit Rate</label>
-                    <div class="progress" style="height: 20px;">
+                    <div class="progress progress-height-20">
                         <div class="progress-bar bg-success" id="hit-rate-bar"
-                             style="width: {{ cache_stats.hit_rate|default(0) }}%">
+                             data-width="{{ cache_stats.hit_rate|default(0) }}">
                             {{ cache_stats.hit_rate|default(0) }}%
                         </div>
                     </div>
                 </div>
                 <div class="mb-3">
                     <label class="small text-muted">Memory Usage</label>
-                    <div class="progress" style="height: 20px;">
+                    <div class="progress progress-height-20">
                         <div class="progress-bar bg-info" id="memory-bar"
-                             style="width: {{ cache_stats.memory_usage_percent|default(0) }}%">
+                             data-width="{{ cache_stats.memory_usage_percent|default(0) }}">
                             {{ cache_stats.memory_usage_percent|default(0) }}%
                         </div>
                     </div>
@@ -185,24 +186,24 @@
 
     <!-- Quick Links -->
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
+        <div class="c-card">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-link me-2"></i>Related Tools</h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-4 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.redis_management') }}" class="btn btn-outline-primary w-100">
+                        <a href="{{ url_for('admin_panel.redis_management') }}" class="c-btn c-btn--outline-primary w-100">
                             <i class="ti ti-database me-2"></i>Redis Management
                         </a>
                     </div>
                     <div class="col-md-4 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.cache_management') }}" class="btn btn-outline-primary w-100">
+                        <a href="{{ url_for('admin_panel.cache_management') }}" class="c-btn c-btn--outline-primary w-100">
                             <i class="ti ti-database me-2"></i>Cache Management
                         </a>
                     </div>
                     <div class="col-md-4 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="btn btn-outline-primary w-100">
+                        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="c-btn c-btn--outline-primary w-100">
                             <i class="ti ti-activity me-2"></i>System Monitoring
                         </a>
                     </div>
@@ -250,30 +251,36 @@ function formatTTL(seconds) {
     return Math.round(seconds / 86400) + ' days';
 }
 
-function warmCache(leagueName) {
-    const buttons = document.querySelectorAll('[id^="warm-btn-"]');
-    buttons.forEach(btn => btn.disabled = true);
+// Event delegation for warm cache button
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.js-warm-cache')) {
+        const btn = e.target.closest('.js-warm-cache');
+        const leagueName = btn.dataset.league;
+        const buttons = document.querySelectorAll('[id^="warm-btn-"]');
 
-    fetch(`{{ url_for('admin_panel.redis_warm_draft_cache', league_name='LEAGUE_NAME') }}`.replace('LEAGUE_NAME', leagueName), {
-        method: 'POST'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            AdminPanel.showMobileToast(data.message, 'success');
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
-        }
-    })
-    .catch(error => {
-        console.error('Error warming cache:', error);
-        AdminPanel.showMobileToast('Error warming cache', 'danger');
-    })
-    .finally(() => {
-        buttons.forEach(btn => btn.disabled = false);
-    });
-}
+        buttons.forEach(b => b.disabled = true);
+
+        fetch(`{{ url_for('admin_panel.redis_warm_draft_cache', league_name='LEAGUE_NAME') }}`.replace('LEAGUE_NAME', leagueName), {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                AdminPanel.showMobileToast(data.message, 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error warming cache:', error);
+            AdminPanel.showMobileToast('Error warming cache', 'danger');
+        })
+        .finally(() => {
+            buttons.forEach(b => b.disabled = false);
+        });
+    }
+});
 
 document.getElementById('refresh-btn').addEventListener('click', function() {
     location.reload();

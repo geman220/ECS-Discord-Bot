@@ -144,14 +144,14 @@ class DraftPredictionsManager {
         if (!row) return;
 
         // Remove all status classes
-        row.classList.remove('table-success', 'table-warning', 'table-danger');
+        row.classList.remove('table-success', 'table-warning', 'table-danger', 'is-saving', 'is-saved', 'is-error');
 
         if (status === 'saving') {
-            row.classList.add('table-warning');
+            row.classList.add('is-saving');
         } else if (status === true) {
-            row.classList.add('table-success');
+            row.classList.add('is-saved');
         } else if (status === 'error') {
-            row.classList.add('table-danger');
+            row.classList.add('is-error');
         }
         // If status === false (no prediction), no special class
     }
@@ -160,18 +160,24 @@ class DraftPredictionsManager {
         const statusElement = document.getElementById('autoSaveStatus');
         if (!statusElement) return;
 
-        const savedSpan = statusElement.querySelector('.text-success');
-        const savingSpan = statusElement.querySelector('.text-warning');
+        const savedSpan = statusElement.querySelector('[data-status="saved"]');
+        const savingSpan = statusElement.querySelector('[data-status="saving"]');
 
-        // Hide all status indicators
-        if (savedSpan) savedSpan.style.display = 'none';
-        if (savingSpan) savingSpan.style.display = 'none';
+        // Remove active state from all status indicators
+        if (savedSpan) {
+            savedSpan.classList.remove('is-active');
+            savedSpan.classList.add('draft-status-saved');
+        }
+        if (savingSpan) {
+            savingSpan.classList.remove('is-active');
+            savingSpan.classList.add('draft-status-saving');
+        }
 
-        // Show appropriate status
+        // Add active state to appropriate status indicator
         if (status === 'saved' && savedSpan) {
-            savedSpan.style.display = 'inline';
+            savedSpan.classList.add('is-active');
         } else if (status === 'saving' && savingSpan) {
-            savingSpan.style.display = 'inline';
+            savingSpan.classList.add('is-active');
         }
     }
 
@@ -312,8 +318,7 @@ class DraftPredictionsManager {
         modalLabel.textContent = `${playerName} - Player Photo`;
 
         // Show modal using Bootstrap 5
-        const bsModal = new bootstrap.Modal(modal);
-        bsModal.show();
+        ModalManager.show(modal.id);
 
         // Handle image load error
         modalImg.onerror = function() {

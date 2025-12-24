@@ -1,582 +1,435 @@
-<!-- navbar.html -->
-<nav class="layout-navbar container-xxl navbar navbar-expand-xl navbar-detached align-items-center bg-navbar-theme" id="layout-navbar">
-    <!-- Menu Toggle (Visible on smaller screens) -->
-    <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
-        <a class="nav-item nav-link px-0 me-xl-4" href="javascript:void(0)">
-            <i class="ti ti-menu-2 ti-md" id="menu-toggle-icon"></i>
-        </a>
+<!-- ============================================================================
+     MODERN NAVBAR COMPONENT - BEM ARCHITECTURE
+     ============================================================================
+
+     Modern navbar with strict BEM naming and event delegation patterns.
+
+     Features:
+     - 100% BEM naming (.c-navbar-modern__element--modifier)
+     - Zero inline styles or scripts
+     - Data-action attributes for all interactions
+     - Full accessibility (ARIA, keyboard nav)
+     - Mobile-first responsive design
+     - Dark mode support
+
+     ============================================================================ -->
+<nav class="c-navbar-modern"
+     id="navbar-modern"
+     data-component="navbar"
+     role="navigation"
+     aria-label="Main navigation">
+
+    <!-- Mobile Menu Toggle -->
+    <div class="c-navbar-modern__menu-toggle" data-mobile-only>
+        <button class="c-navbar-modern__toggle-btn"
+                type="button"
+                data-action="toggle-menu"
+                aria-label="Toggle navigation menu"
+                aria-expanded="false"
+                aria-controls="navbar-content">
+            <i class="ti ti-menu-2 c-navbar-modern__toggle-icon"></i>
+        </button>
     </div>
 
-    <!-- Navbar content -->
-    <div class="navbar-nav-right d-flex align-items-center" id="navbar-collapse">
-        <!-- Search (Autocomplete) -->
-        <!-- Added flex-grow-1 so the form can expand -->
-        <form class="d-flex align-items-center flex-grow-1" onsubmit="return false;">
-            <input type="text" id="player-search" name="query" class="form-control" placeholder="Search players" aria-label="Search">
-        </form>
-        <!-- /Search -->
+    <!-- Navbar Content Container -->
+    <div class="c-navbar-modern__content" id="navbar-content">
 
-        <ul class="navbar-nav flex-row align-items-center ms-auto">
-            <!-- Style Switcher -->
-            <li class="nav-item dropdown-style-switcher dropdown">
-                <a class="nav-link btn btn-text-secondary btn-icon rounded-pill dropdown-toggle hide-arrow waves-effect waves-light" href="javascript:void(0);" data-bs-toggle="dropdown">
-                    <i class="ti ti-sun ti-md theme-switcher-icon"></i>
-                </a>
-                <ul class="dropdown-menu dropdown-menu-end dropdown-styles">
-                    <li>
-                        <a class="dropdown-item waves-effect active" href="javascript:void(0);" data-theme="light">
-                            <span class="align-middle">
-                                <i class="ti ti-sun ti-md me-3"></i>Light
-                            </span>
-                        </a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item waves-effect" href="javascript:void(0);" data-theme="dark">
-                            <span class="align-middle">
-                                <i class="ti ti-moon-stars ti-md me-3"></i>Dark
-                            </span>
-                        </a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item waves-effect" href="javascript:void(0);" data-theme="system">
-                            <span class="align-middle">
-                                <i class="ti ti-device-desktop-analytics ti-md me-3"></i>System
-                            </span>
-                        </a>
-                    </li>
-                </ul>
+        <!-- Player Search -->
+        <div class="c-navbar-modern__search" data-component="search">
+            <form class="c-navbar-modern__search-form"
+                  data-action="prevent-submit"
+                  data-form="search"
+                  role="search"
+                  aria-label="Search players">
+                <input type="text"
+                       id="player-search"
+                       name="query"
+                       class="c-navbar-modern__search-input"
+                       placeholder="Search players"
+                       aria-label="Search for players"
+                       data-input="search"
+                       autocomplete="off">
+            </form>
+        </div>
+
+        <!-- Navigation Actions -->
+        <ul class="c-navbar-modern__nav" role="menubar">
+
+            <!-- Theme Switcher -->
+            <li class="c-navbar-modern__nav-item" role="none">
+                <button class="c-navbar-modern__nav-btn"
+                        type="button"
+                        data-action="toggle-dropdown"
+                        data-dropdown="theme"
+                        aria-label="Switch theme"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                        role="menuitem">
+                    <i class="ti ti-sun c-navbar-modern__nav-icon" data-role="theme-icon"></i>
+                </button>
+
+                <!-- Theme Dropdown -->
+                <div class="c-navbar-modern__dropdown c-navbar-modern__dropdown--theme"
+                     data-dropdown-id="theme"
+                     role="menu"
+                     aria-hidden="true"
+                     aria-label="Theme options">
+                    <button class="c-navbar-modern__dropdown-item"
+                            type="button"
+                            data-action="switch-theme"
+                            data-theme="light"
+                            role="menuitem">
+                        <i class="ti ti-sun c-navbar-modern__dropdown-icon"></i>
+                        <span class="c-navbar-modern__dropdown-text">Light</span>
+                    </button>
+                    <button class="c-navbar-modern__dropdown-item"
+                            type="button"
+                            data-action="switch-theme"
+                            data-theme="dark"
+                            role="menuitem">
+                        <i class="ti ti-moon-stars c-navbar-modern__dropdown-icon"></i>
+                        <span class="c-navbar-modern__dropdown-text">Dark</span>
+                    </button>
+                    <button class="c-navbar-modern__dropdown-item"
+                            type="button"
+                            data-action="switch-theme"
+                            data-theme="system"
+                            role="menuitem">
+                        <i class="ti ti-device-desktop-analytics c-navbar-modern__dropdown-icon"></i>
+                        <span class="c-navbar-modern__dropdown-text">System</span>
+                    </button>
+                </div>
             </li>
-            <!-- /Style Switcher -->
-            
+
             <!-- Role Impersonation (Global Admin Only) -->
             {% if 'Global Admin' in user_roles %}
-            <li class="nav-item dropdown-role-impersonation dropdown d-none d-md-block">
-                <a class="nav-link btn btn-text-secondary btn-icon rounded-pill dropdown-toggle hide-arrow waves-effect waves-light" 
-                   href="javascript:void(0);" data-bs-toggle="dropdown" id="roleImpersonationToggle">
-                    <i class="ti ti-user-check ti-md" id="roleImpersonationIcon"></i>
-                    <span class="badge bg-warning badge-dot position-absolute" id="impersonationActiveBadge" style="display: none;"></span>
-                </a>
-                <ul class="dropdown-menu dropdown-menu-end" style="min-width: 320px;">
-                    <li>
-                        <div class="dropdown-header d-flex align-items-center py-3">
-                            <h6 class="mb-0 me-auto">View As Role</h6>
-                            <button class="btn btn-sm btn-outline-secondary" id="refreshRolesBtn">
-                                <i class="ti ti-refresh ti-xs"></i>
-                            </button>
-                        </div>
-                    </li>
-                    <li><hr class="dropdown-divider"></li>
-                    
-                    <!-- Current Status -->
-                    <li class="px-3 mb-2">
-                        <div id="currentRoleStatus" class="p-2 rounded bg-light">
-                            <div class="d-flex align-items-center">
-                                <i class="ti ti-user me-2 text-primary"></i>
-                                <span class="small text-muted">Loading status...</span>
-                            </div>
-                        </div>
-                    </li>
-                    
-                    <!-- Stop Impersonation Button -->
-                    <li class="px-3 mb-2">
-                        <button class="btn btn-outline-danger btn-sm w-100" id="stopImpersonationBtn" style="display: none;">
-                            <i class="ti ti-x me-1"></i> Stop Impersonation
+            <li class="c-navbar-modern__nav-item" role="none" data-desktop-only>
+                <button class="c-navbar-modern__nav-btn"
+                        type="button"
+                        data-action="toggle-dropdown"
+                        data-dropdown="impersonation"
+                        aria-label="Role impersonation"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                        role="menuitem">
+                    <i class="ti ti-user-check c-navbar-modern__nav-icon" data-role="impersonation-icon"></i>
+                    <span class="c-navbar-modern__badge c-navbar-modern__badge--warning u-hidden"
+                          data-badge="impersonation-active"
+                          aria-label="Impersonation active"></span>
+                </button>
+
+                <!-- Role Impersonation Dropdown -->
+                <div class="c-navbar-modern__dropdown c-navbar-modern__dropdown--impersonation"
+                     data-dropdown-id="impersonation"
+                     role="menu"
+                     aria-hidden="true"
+                     aria-label="Role impersonation options">
+
+                    <!-- Header -->
+                    <div class="c-navbar-modern__dropdown-header">
+                        <h6 class="c-navbar-modern__dropdown-title">View As Role</h6>
+                        <button class="c-navbar-modern__icon-btn"
+                                type="button"
+                                data-action="refresh-roles"
+                                aria-label="Refresh roles list">
+                            <i class="ti ti-refresh"></i>
                         </button>
-                    </li>
-                    
+                    </div>
+
+                    <div class="c-navbar-modern__dropdown-divider"></div>
+
+                    <!-- Current Status -->
+                    <div class="c-navbar-modern__dropdown-section">
+                        <div class="c-navbar-modern__role-status" id="currentRoleStatus" data-status>
+                            <i class="ti ti-user c-navbar-modern__role-status-icon"></i>
+                            <span class="c-navbar-modern__role-status-text">Loading status...</span>
+                        </div>
+                    </div>
+
+                    <!-- Stop Impersonation Button -->
+                    <div class="c-navbar-modern__dropdown-section u-hidden" data-section="stop-impersonation">
+                        <button class="c-btn c-btn--danger c-btn--sm c-btn--block"
+                                type="button"
+                                data-action="stop-impersonation"
+                                id="stopImpersonationBtn">
+                            <i class="ti ti-x"></i>
+                            <span>Stop Impersonation</span>
+                        </button>
+                    </div>
+
                     <!-- Role Selection -->
-                    <li class="px-3 mb-2">
-                        <label class="form-label small mb-1">Select Role(s) to View As:</label>
-                        <select class="form-select form-select-sm" id="roleSelect" multiple style="height: auto;">
+                    <div class="c-navbar-modern__dropdown-section">
+                        <label class="c-navbar-modern__dropdown-label" for="roleSelect">
+                            Select Role(s) to View As:
+                        </label>
+                        <select class="c-navbar-modern__role-select"
+                                id="roleSelect"
+                                multiple
+                                data-select="roles"
+                                aria-label="Select roles to impersonate">
                             <option value="">Loading roles...</option>
                         </select>
-                    </li>
-                    
+                    </div>
+
                     <!-- Start Impersonation Button -->
-                    <li class="px-3 mb-2">
-                        <button class="btn btn-primary btn-sm w-100" id="startImpersonationBtn" disabled>
-                            <i class="ti ti-eye me-1"></i> Start Viewing As Selected Roles
+                    <div class="c-navbar-modern__dropdown-section">
+                        <button class="c-btn c-btn--primary c-btn--sm c-btn--block"
+                                type="button"
+                                data-action="start-impersonation"
+                                id="startImpersonationBtn"
+                                disabled>
+                            <i class="ti ti-eye"></i>
+                            <span>Start Viewing As Selected Roles</span>
                         </button>
-                    </li>
-                    
-                    <li><hr class="dropdown-divider"></li>
-                    
+                    </div>
+
+                    <div class="c-navbar-modern__dropdown-divider"></div>
+
                     <!-- Help Text -->
-                    <li class="px-3">
-                        <div class="small text-muted">
-                            <i class="ti ti-info-circle me-1"></i>
+                    <div class="c-navbar-modern__dropdown-section">
+                        <p class="c-navbar-modern__dropdown-help">
+                            <i class="ti ti-info-circle"></i>
                             This allows you to view the application as if you have different roles. Perfect for testing permissions without switching accounts.
-                        </div>
-                    </li>
-                </ul>
+                        </p>
+                    </div>
+                </div>
             </li>
-            <!-- /Role Impersonation -->
             {% endif %}
-            
-            <!-- Notifications -->
-            <li class="nav-item dropdown-notifications navbar-dropdown dropdown me-3 me-xl-2">
-                <a class="nav-link btn btn-text-secondary btn-icon rounded-pill dropdown-toggle hide-arrow waves-effect waves-light" href="javascript:void(0);" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                    <span class="position-relative">
-                        <i class="ti ti-bell ti-md"></i>
-                        <span id="needs-review-count" class="badge rounded-pill bg-danger badge-dot badge-notifications border" style="display: none;"></span>
-                    </span>
+
+            <!-- Messages -->
+            {% if safe_current_user.is_authenticated %}
+            <li class="c-navbar-modern__nav-item" role="none">
+                <a href="{{ url_for('messages_pages.messages_inbox') }}"
+                   class="c-navbar-modern__nav-btn"
+                   aria-label="View messages"
+                   role="menuitem"
+                   title="Messages">
+                    <i class="ti ti-message-circle c-navbar-modern__nav-icon"></i>
+                    <span class="c-navbar-modern__badge c-navbar-modern__badge--primary u-hidden"
+                          data-badge="messages-count"
+                          aria-label="Unread messages"></span>
                 </a>
-                <ul class="dropdown-menu dropdown-menu-end p-0">
-                    <li class="dropdown-menu-header border-bottom">
-                        <div class="dropdown-header d-flex align-items-center py-3">
-                            <h6 class="mb-0 me-auto">Notification</h6>
-                            <div class="d-flex align-items-center h6 mb-0">
-                                <span id="needs-review-count" class="badge bg-label-primary me-2" style="display: none;"></span>
-                                <a href="{{ url_for('main.notifications') }}" class="btn btn-text-secondary rounded-pill btn-icon dropdown-notifications-all waves-effect waves-light" data-bs-toggle="tooltip" data-bs-placement="top" aria-label="Mark all as read" data-bs-original-title="Mark all as read">
-                                    <i class="ti ti-mail-opened text-heading"></i>
-                                </a>
-                            </div>
+            </li>
+            {% endif %}
+
+            <!-- Notifications -->
+            <li class="c-navbar-modern__nav-item" role="none">
+                <button class="c-navbar-modern__nav-btn"
+                        type="button"
+                        data-action="toggle-dropdown"
+                        data-dropdown="notifications"
+                        aria-label="View notifications"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                        role="menuitem">
+                    <i class="ti ti-bell c-navbar-modern__nav-icon"></i>
+                    <span class="c-navbar-modern__badge c-navbar-modern__badge--danger u-hidden"
+                          id="notification-badge"
+                          data-badge="notification-count"
+                          aria-label="Unread notifications"></span>
+                </button>
+
+                <!-- Notifications Dropdown -->
+                <div class="c-navbar-modern__dropdown c-navbar-modern__dropdown--notifications"
+                     data-dropdown-id="notifications"
+                     role="menu"
+                     aria-hidden="true"
+                     aria-label="Notifications">
+
+                    <!-- Header -->
+                    <div class="c-navbar-modern__dropdown-header c-navbar-modern__dropdown-header--sticky">
+                        <h6 class="c-navbar-modern__dropdown-title">Notifications</h6>
+                        <div class="c-navbar-modern__dropdown-actions">
+                            <span class="c-badge c-badge--primary" id="notification-count" data-count>0</span>
+                            <button class="c-navbar-modern__icon-btn"
+                                    type="button"
+                                    data-action="mark-all-read"
+                                    aria-label="Mark all notifications as read"
+                                    title="Mark all as read">
+                                <i class="ti ti-mail-opened"></i>
+                            </button>
                         </div>
-                    </li>
-                    <li id="needs-review-alerts" class="dropdown-notifications-list scrollable-container ps">
-                        <!-- Alerts will be injected here -->
-                        <ul class="list-group list-group-flush">
+                    </div>
+
+                    <!-- Notifications List -->
+                    <div class="c-navbar-modern__notifications-list" id="notifications-list" data-list>
+                        {% if notifications and notifications|length > 0 %}
+                        <ul class="c-navbar-modern__notifications" role="list">
                             {% for notification in notifications %}
-                            <li class="list-group-item list-group-item-action dropdown-notifications-item waves-effect {% if not notification.read %}bg-light{% endif %}">
-                                <div class="d-flex">
-                                    <div class="flex-shrink-0 me-3">
-                                        <div class="avatar">
-                                            <i class="{{ notification.icon }} ti-md"></i>
-                                        </div>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <h6 class="small mb-1">{{ notification.content }}</h6>
-                                        <small class="text-muted">{{ notification.created_at.strftime('%b %d, %I:%M %p') }}</small>
-                                    </div>
-                                    <div class="flex-shrink-0 dropdown-notifications-actions">
-                                        <a href="{{ url_for('main.mark_as_read', notification_id=notification.id) }}" class="dropdown-notifications-read">
-                                            <span class="badge badge-dot"></span>
-                                        </a>
-                                    </div>
+                            <li class="c-navbar-modern__notification {% if not notification.read %}c-navbar-modern__notification--unread{% endif %}"
+                                data-notification-id="{{ notification.id }}"
+                                role="listitem">
+                                <div class="c-navbar-modern__notification-icon">
+                                    <i class="{{ notification.icon }}"></i>
                                 </div>
+                                <div class="c-navbar-modern__notification-content">
+                                    <p class="c-navbar-modern__notification-text">{{ notification.content }}</p>
+                                    <span class="c-navbar-modern__notification-time">{{ notification.created_at.strftime('%b %d, %I:%M %p') }}</span>
+                                </div>
+                                <button class="c-navbar-modern__notification-action"
+                                        type="button"
+                                        data-action="mark-read"
+                                        data-notification-id="{{ notification.id }}"
+                                        aria-label="Mark as read">
+                                    <span class="c-navbar-modern__badge-dot"></span>
+                                </button>
                             </li>
                             {% endfor %}
                         </ul>
-                    </li>
-                    <li class="border-top">
-                        <div class="d-grid p-4">
-                            <a class="btn btn-primary btn-sm d-flex waves-effect waves-light" href="{{ url_for('main.notifications') }}">
-                                <small class="align-middle">View all notifications</small>
-                            </a>
-                        </div>
-                    </li>
-                </ul>
-            </li>
-            <!-- /Notifications -->
-            <!-- User Profile -->
-            <li class="nav-item navbar-dropdown dropdown-user dropdown">
-                <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);" data-bs-toggle="dropdown">
-                    <div class="avatar avatar-online">
-                        {% if safe_current_user.is_authenticated %}
-                        {% if safe_current_user.player %}
-                        <img src="{{ safe_current_user.player.profile_picture_url if safe_current_user.player.profile_picture_url else url_for('static', filename='img/default_player.png') }}" alt="{{ safe_current_user.player.name }}" class="rounded-circle">
                         {% else %}
-                        <img src="{{ url_for('static', filename='img/default_player.png') }}" alt="Default Profile Picture" class="rounded-circle">
-                        {% endif %}
+                        <div class="c-navbar-modern__empty-state">
+                            <i class="ti ti-bell-off c-navbar-modern__empty-icon"></i>
+                            <p class="c-navbar-modern__empty-text">No notifications</p>
+                        </div>
                         {% endif %}
                     </div>
-                </a>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    {% if safe_current_user.is_authenticated %}
-                    {% if safe_current_user.player %}
-                    <li>
-                        <a class="dropdown-item mt-0 waves-effect" href="{{ url_for('players.player_profile', player_id=safe_current_user.player.id) }}">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-shrink-0 me-2">
-                                    <div class="avatar avatar-online">
-                                        <img src="{{ safe_current_user.player.profile_picture_url if safe_current_user.player.profile_picture_url else url_for('static', filename='img/default_player.png') }}" alt="{{ safe_current_user.player.name }}" class="rounded-circle">
-                                    </div>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-0">{{ safe_current_user.player.name }}</h6>
-                                </div>
-                            </div>
+
+                    <!-- Footer -->
+                    <div class="c-navbar-modern__dropdown-footer">
+                        <a href="{{ url_for('main.notifications') }}"
+                           class="c-btn c-btn--primary c-btn--sm c-btn--block"
+                           data-action="view-all-notifications">
+                            View all notifications
                         </a>
-                    </li>
-                    <li>
-                        <div class="dropdown-divider my-1 mx-n2"></div>
-                    </li>
-                    <li>
-                        <a class="dropdown-item waves-effect" href="{{ url_for('players.player_profile', player_id=safe_current_user.player.id) }}">
-                            <i class="ti ti-user me-3 ti-md"></i><span class="align-middle">My Profile</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item waves-effect" href="{{ url_for('account.settings') }}">
-                            <i class="ti ti-settings me-3 ti-md"></i><span class="align-middle">Settings</span>
-                        </a>
-                    </li>
-                    <li>
-                        <div class="dropdown-divider my-1 mx-n2"></div>
-                    </li>
-                    {% else %}
-                    <li>
-                        <a class="dropdown-item waves-effect" href="{{ url_for('players.create_profile') }}">
-                            <i class="ti ti-user-plus me-3 ti-md"></i><span class="align-middle">Create Player Profile</span>
-                        </a>
-                    </li>
-                    <li>
-                        <div class="dropdown-divider my-1 mx-n2"></div>
-                    </li>
-                    {% endif %}
-                    <li>
-                        <form action="{{ url_for('auth.logout') }}" method="post" id="logout-form" style="display: none;">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        </form>
-                        <a class="dropdown-item waves-effect" href="javascript:void(0);" onclick="document.getElementById('logout-form').submit();">
-                            <small class="align-middle">Logout</small>
-                            <i class="ti ti-logout ms-2 ti-14px"></i>
-                        </a>
-                    </li>
-                    {% else %}
-                    <li>
-                        <a class="dropdown-item waves-effect" href="{{ url_for('auth.login') }}">
-                            <i class="ti ti-login me-3 ti-md"></i><span class="align-middle">Login</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item waves-effect" href="{{ url_for('auth.register') }}">
-                            <i class="ti ti-user-plus me-3 ti-md"></i><span class="align-middle">Register</span>
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
+                    </div>
+                </div>
             </li>
-            <!-- /User Profile -->
+
+            <!-- User Profile -->
+            <li class="c-navbar-modern__nav-item" role="none">
+                {% if safe_current_user.is_authenticated %}
+                <button class="c-navbar-modern__nav-btn c-navbar-modern__nav-btn--avatar"
+                        type="button"
+                        data-action="toggle-dropdown"
+                        data-dropdown="profile"
+                        aria-label="User profile menu"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                        role="menuitem">
+                    <div class="c-navbar-modern__avatar">
+                        {% if safe_current_user.player %}
+                        <img src="{{ safe_current_user.player.profile_picture_url if safe_current_user.player.profile_picture_url else url_for('static', filename='img/default_player.png') }}"
+                             alt="{{ safe_current_user.player.name }}"
+                             class="c-navbar-modern__avatar-img">
+                        {% else %}
+                        <img src="{{ url_for('static', filename='img/default_player.png') }}"
+                             alt="Default Profile Picture"
+                             class="c-navbar-modern__avatar-img">
+                        {% endif %}
+                        <span class="c-navbar-modern__avatar-status" data-status="online"></span>
+                    </div>
+                </button>
+
+                <!-- Profile Dropdown -->
+                <div class="c-navbar-modern__dropdown c-navbar-modern__dropdown--profile"
+                     data-dropdown-id="profile"
+                     role="menu"
+                     aria-hidden="true"
+                     aria-label="User profile options">
+
+                    {% if safe_current_user.player %}
+                    <!-- Profile Header -->
+                    <a href="{{ url_for('players.player_profile', player_id=safe_current_user.player.id) }}"
+                       class="c-navbar-modern__profile-header"
+                       data-action="view-profile">
+                        <div class="c-navbar-modern__avatar c-navbar-modern__avatar--lg">
+                            <img src="{{ safe_current_user.player.profile_picture_url if safe_current_user.player.profile_picture_url else url_for('static', filename='img/default_player.png') }}"
+                                 alt="{{ safe_current_user.player.name }}"
+                                 class="c-navbar-modern__avatar-img">
+                            <span class="c-navbar-modern__avatar-status" data-status="online"></span>
+                        </div>
+                        <h6 class="c-navbar-modern__profile-name">{{ safe_current_user.player.name }}</h6>
+                    </a>
+
+                    <div class="c-navbar-modern__dropdown-divider"></div>
+
+                    <!-- Profile Menu Items -->
+                    <a href="{{ url_for('players.player_profile', player_id=safe_current_user.player.id) }}"
+                       class="c-navbar-modern__dropdown-item"
+                       role="menuitem">
+                        <i class="ti ti-user c-navbar-modern__dropdown-icon"></i>
+                        <span class="c-navbar-modern__dropdown-text">My Profile</span>
+                    </a>
+                    <a href="{{ url_for('account.settings') }}"
+                       class="c-navbar-modern__dropdown-item"
+                       role="menuitem">
+                        <i class="ti ti-settings c-navbar-modern__dropdown-icon"></i>
+                        <span class="c-navbar-modern__dropdown-text">Settings</span>
+                    </a>
+
+                    <div class="c-navbar-modern__dropdown-divider"></div>
+
+                    {% else %}
+                    <!-- No Player Profile -->
+                    <a href="{{ url_for('players.create_profile') }}"
+                       class="c-navbar-modern__dropdown-item"
+                       role="menuitem">
+                        <i class="ti ti-user-plus c-navbar-modern__dropdown-icon"></i>
+                        <span class="c-navbar-modern__dropdown-text">Create Player Profile</span>
+                    </a>
+
+                    <div class="c-navbar-modern__dropdown-divider"></div>
+                    {% endif %}
+
+                    <!-- Logout -->
+                    <form action="{{ url_for('auth.logout') }}"
+                          method="post"
+                          id="logout-form"
+                          class="u-hidden">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    </form>
+                    <button class="c-navbar-modern__dropdown-item c-navbar-modern__dropdown-item--logout"
+                            type="button"
+                            data-action="logout"
+                            role="menuitem">
+                        <span class="c-navbar-modern__dropdown-text">Logout</span>
+                        <i class="ti ti-logout c-navbar-modern__dropdown-icon"></i>
+                    </button>
+
+                {% else %}
+                <!-- Not Authenticated - Login/Register Links -->
+                <button class="c-navbar-modern__nav-btn c-navbar-modern__nav-btn--avatar"
+                        type="button"
+                        data-action="toggle-dropdown"
+                        data-dropdown="auth"
+                        aria-label="Authentication menu"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                        role="menuitem">
+                    <div class="c-navbar-modern__avatar">
+                        <img src="{{ url_for('static', filename='img/default_player.png') }}"
+                             alt="Guest User"
+                             class="c-navbar-modern__avatar-img">
+                    </div>
+                </button>
+
+                <!-- Auth Dropdown -->
+                <div class="c-navbar-modern__dropdown c-navbar-modern__dropdown--auth"
+                     data-dropdown-id="auth"
+                     role="menu"
+                     aria-hidden="true"
+                     aria-label="Authentication options">
+                    <a href="{{ url_for('auth.login') }}"
+                       class="c-navbar-modern__dropdown-item"
+                       role="menuitem">
+                        <i class="ti ti-login c-navbar-modern__dropdown-icon"></i>
+                        <span class="c-navbar-modern__dropdown-text">Login</span>
+                    </a>
+                    <a href="{{ url_for('auth.register') }}"
+                       class="c-navbar-modern__dropdown-item"
+                       role="menuitem">
+                        <i class="ti ti-user-plus c-navbar-modern__dropdown-icon"></i>
+                        <span class="c-navbar-modern__dropdown-text">Register</span>
+                    </a>
+                </div>
+                {% endif %}
+            </li>
         </ul>
     </div>
 </nav>
-<style>
-    /* Base search input styling */
-    #player-search {
-        width: 100%;
-        padding: 10px 15px;
-        font-size: 16px;
-        border: none;
-        background: transparent;
-        outline: none;
-        box-shadow: none;
-        -webkit-appearance: none;
-        -moz-appearance: none;
-    }
 
-    /* On smaller screens, limit the max width */
-    @media (max-width: 991px) {
-        #player-search {
-            max-width: 600px;
-        }
-    }
+<!-- Link to Modern Navbar Styles -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/layout/navbar-modern.css') }}">
 
-    /* On larger screens, allow a larger search input */
-    @media (min-width: 992px) {
-        #player-search {
-            max-width: 1200px;
-        }
-    }
-
-    #player-search:focus {
-        box-shadow: 0 0 0 2px var(--ecs-primary, #007bff);
-    }
-
-    /* Style the autocomplete dropdown with a dark background and white text */
-    .ui-autocomplete {
-        max-height: 250px;
-        overflow-y: auto;
-        overflow-x: hidden;
-        padding: 10px 0;
-        font-size: 16px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        border: 1px solid #444;
-        border-radius: 0 0 4px 4px;
-        background-color: #333 !important;
-        color: #fff !important;
-        /* z-index handled by centralized system in mobile-scale-system.css */
-    }
-
-    .ui-menu-item-wrapper {
-        padding: 10px 20px;
-        cursor: pointer;
-        color: #fff;
-    }
-
-        .ui-menu-item-wrapper:hover,
-        .ui-state-active {
-            background: #555 !important;
-        }
-
-        .ui-menu-item-wrapper img {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            margin-right: 10px;
-            vertical-align: middle;
-        }
-
-    /* Role Impersonation Styles */
-    .dropdown-role-impersonation .dropdown-menu {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-    
-    #roleSelect {
-        min-height: 80px;
-        max-height: 120px;
-        overflow-y: auto;
-    }
-    
-    .impersonation-active #roleImpersonationIcon {
-        color: var(--ecs-warning, #ff9f43) !important;
-    }
-
-    .role-status-card {
-        background: linear-gradient(135deg, var(--ecs-primary, #667eea) 0%, var(--ecs-primary-dark, #764ba2) 100%);
-        color: white;
-        border: none;
-    }
-
-    .role-status-card.impersonating {
-        background: linear-gradient(135deg, var(--ecs-warning, #ff9f43) 0%, var(--ecs-warning-dark, #ff6b35) 100%);
-    }
-</style>
-
-<!-- Role Impersonation JavaScript -->
-{% if 'Global Admin' in user_roles %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const roleImpersonation = {
-        isActive: false,
-        availableRoles: [],
-        
-        // DOM elements
-        statusElement: document.getElementById('currentRoleStatus'),
-        roleSelect: document.getElementById('roleSelect'),
-        startBtn: document.getElementById('startImpersonationBtn'),
-        stopBtn: document.getElementById('stopImpersonationBtn'),
-        refreshBtn: document.getElementById('refreshRolesBtn'),
-        activeBadge: document.getElementById('impersonationActiveBadge'),
-        toggle: document.getElementById('roleImpersonationToggle'),
-        
-        async init() {
-            await this.loadStatus();
-            await this.loadAvailableRoles();
-            this.bindEvents();
-        },
-        
-        bindEvents() {
-            this.startBtn.addEventListener('click', () => this.startImpersonation());
-            this.stopBtn.addEventListener('click', () => this.stopImpersonation());
-            this.refreshBtn.addEventListener('click', () => this.loadAvailableRoles());
-            this.roleSelect.addEventListener('change', () => this.validateSelection());
-        },
-        
-        validateSelection() {
-            const selectedRoles = Array.from(this.roleSelect.selectedOptions).map(opt => opt.value);
-            this.startBtn.disabled = selectedRoles.length === 0;
-        },
-        
-        async loadStatus() {
-            try {
-                const response = await fetch('/api/role-impersonation/status');
-                if (!response.ok) throw new Error('Failed to load status');
-                
-                const data = await response.json();
-                this.updateStatusDisplay(data);
-            } catch (error) {
-                console.error('Error loading impersonation status:', error);
-                this.statusElement.innerHTML = `
-                    <div class="d-flex align-items-center">
-                        <i class="ti ti-alert-triangle me-2 text-danger"></i>
-                        <span class="small text-danger">Error loading status</span>
-                    </div>
-                `;
-            }
-        },
-        
-        async loadAvailableRoles() {
-            this.refreshBtn.disabled = true;
-            this.refreshBtn.innerHTML = '<i class="ti ti-loader ti-spin ti-xs"></i>';
-            
-            try {
-                const response = await fetch('/api/role-impersonation/available-roles');
-                if (!response.ok) throw new Error('Failed to load roles');
-                
-                const data = await response.json();
-                this.availableRoles = data.roles;
-                this.populateRoleSelect();
-                this.updateStatusDisplay(data.current_impersonation);
-            } catch (error) {
-                console.error('Error loading available roles:', error);
-                this.roleSelect.innerHTML = '<option value="">Error loading roles</option>';
-            } finally {
-                this.refreshBtn.disabled = false;
-                this.refreshBtn.innerHTML = '<i class="ti ti-refresh ti-xs"></i>';
-            }
-        },
-        
-        populateRoleSelect() {
-            this.roleSelect.innerHTML = '';
-            
-            this.availableRoles.forEach(role => {
-                const option = document.createElement('option');
-                option.value = role.name;
-                option.textContent = `${role.name} (${role.permissions.length} permissions)`;
-                option.title = role.description || '';
-                this.roleSelect.appendChild(option);
-            });
-            
-            this.validateSelection();
-        },
-        
-        updateStatusDisplay(data) {
-            this.isActive = data.active || false;
-            
-            if (this.isActive) {
-                this.statusElement.className = 'p-2 rounded role-status-card impersonating';
-                this.statusElement.innerHTML = `
-                    <div class="d-flex align-items-center">
-                        <i class="ti ti-eye me-2"></i>
-                        <div>
-                            <div class="small fw-bold">Viewing as: ${data.roles.join(', ')}</div>
-                            <div class="small opacity-75">Original: ${data.original_roles.join(', ')}</div>
-                        </div>
-                    </div>
-                `;
-                this.stopBtn.style.display = 'block';
-                this.activeBadge.style.display = 'block';
-                this.toggle.classList.add('impersonation-active');
-            } else {
-                this.statusElement.className = 'p-2 rounded role-status-card';
-                this.statusElement.innerHTML = `
-                    <div class="d-flex align-items-center">
-                        <i class="ti ti-user me-2"></i>
-                        <div>
-                            <div class="small fw-bold">Normal View</div>
-                            <div class="small opacity-75">Using your actual permissions</div>
-                        </div>
-                    </div>
-                `;
-                this.stopBtn.style.display = 'none';
-                this.activeBadge.style.display = 'none';
-                this.toggle.classList.remove('impersonation-active');
-            }
-        },
-        
-        async startImpersonation() {
-            const selectedRoles = Array.from(this.roleSelect.selectedOptions).map(opt => opt.value);
-            if (selectedRoles.length === 0) return;
-            
-            this.startBtn.disabled = true;
-            this.startBtn.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i> Starting...';
-            
-            try {
-                const response = await fetch('/api/role-impersonation/start', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-                    },
-                    body: JSON.stringify({ roles: selectedRoles })
-                });
-                
-                const data = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to start impersonation');
-                }
-                
-                // Show success notification
-                this.showToast('success', `Now viewing as: ${selectedRoles.join(', ')}`);
-                
-                // Reload page to apply new permissions
-                setTimeout(() => window.location.reload(), 1000);
-                
-            } catch (error) {
-                console.error('Error starting impersonation:', error);
-                this.showToast('danger', error.message);
-            } finally {
-                this.startBtn.disabled = false;
-                this.startBtn.innerHTML = '<i class="ti ti-eye me-1"></i> Start Viewing As Selected Roles';
-            }
-        },
-        
-        async stopImpersonation() {
-            this.stopBtn.disabled = true;
-            this.stopBtn.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i> Stopping...';
-            
-            try {
-                const response = await fetch('/api/role-impersonation/stop', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-                    }
-                });
-                
-                const data = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to stop impersonation');
-                }
-                
-                // Show success notification
-                this.showToast('success', 'Returned to normal view');
-                
-                // Reload page to apply original permissions
-                setTimeout(() => window.location.reload(), 1000);
-                
-            } catch (error) {
-                console.error('Error stopping impersonation:', error);
-                this.showToast('danger', error.message);
-            } finally {
-                this.stopBtn.disabled = false;
-                this.stopBtn.innerHTML = '<i class="ti ti-x me-1"></i> Stop Impersonation';
-            }
-        },
-        
-        showToast(type, message) {
-            // Create toast element
-            const toastId = 'roleImpersonationToast' + Date.now();
-            const toastHtml = `
-                <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-                    <div class="toast-body d-flex align-items-center">
-                        <i class="ti ti-${type === 'success' ? 'check-circle text-success' : 'alert-triangle text-danger'} me-2"></i>
-                        <span>${message}</span>
-                    </div>
-                </div>
-            `;
-            
-            // Add to page
-            let toastContainer = document.querySelector('.toast-container');
-            if (!toastContainer) {
-                toastContainer = document.createElement('div');
-                toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
-                // Z-index handled by centralized CSS system in mobile-scale-system.css
-                document.body.appendChild(toastContainer);
-            }
-            
-            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-            
-            // Show toast
-            const toastElement = document.getElementById(toastId);
-            const toast = new bootstrap.Toast(toastElement);
-            toast.show();
-            
-            // Remove after hiding
-            toastElement.addEventListener('hidden.bs.toast', () => {
-                toastElement.remove();
-            });
-        }
-    };
-    
-    // Initialize role impersonation
-    roleImpersonation.init();
-    
-    // Make available globally for debugging
-    window.roleImpersonation = roleImpersonation;
-});
-</script>
-{% endif %}
+<!-- Link to Modern Navbar JavaScript -->
+<script src="{{ url_for('static', filename='js/navbar-modern.js') }}" defer></script>

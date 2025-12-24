@@ -1,0 +1,42 @@
+/**
+ * Roles Management Styles
+ * BEM-compliant styles for role and permission management pages
+ */
+
+/* Role-specific empty states */
+.c-empty-state--roles {
+    padding: 4rem 2rem;
+}
+
+/* Select2 Bootstrap 5 Theme Override */
+.select2-container--bootstrap-5 .select2-selection {
+    border-color: var(--bs-border-color);
+}
+
+.select2-container--bootstrap-5 .select2-selection:focus {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+/* Dark mode support for Select2 */
+[data-theme="dark"] .select2-container--bootstrap-5 .select2-selection,
+[data-theme="dark"] .select2-dropdown {
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    border-color: var(--bs-border-color);
+}
+
+[data-theme="dark"] .select2-container--bootstrap-5 .select2-results__option {
+    color: var(--bs-body-color);
+}
+
+[data-theme="dark"] .select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background-color: var(--bs-primary);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .c-empty-state--roles {
+        padding: 3rem 1.5rem;
+    }
+}

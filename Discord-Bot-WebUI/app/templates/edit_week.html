@@ -8,27 +8,27 @@
 <form method="POST" action="{{ url_for('publeague.manage_week', season_id=season.id, week_number=week_number, league_name=league.name) }}">
     {{ csrf_token() }}
 
-    <div class="card mb-4">
-        <div class="card-header">
+    <div class="c-card mb-4">
+        <div class="c-card__header">
             <h5>{{ league.name }} League</h5>
         </div>
-        <div class="card-body">
+        <div class="c-card__body">
             <div class="form-group">
                 <label for="date_week{{ week_number }}">{{ league.name }} League Date</label>
                 <input type="date" class="form-control" id="date_week{{ week_number }}" name="date_week{{ week_number }}"
-                       value="{{ schedule[league.name][0]['date'] if schedule.get(league.name) and schedule[league.name] else '' }}" required>
+                       value="{{ schedule[league.name][0]['date'] if schedule.get(league.name) and schedule[league.name] else '' }}" required data-form-control>
             </div>
             <div class="form-group">
                 <label for="matches_per_week">Matches per Week</label>
                 <input type="number" class="form-control" id="matches_per_week" name="matches_per_week"
-                       value="{{ schedule[league.name]|length if schedule.get(league.name) else 8 }}" required>
+                       value="{{ schedule[league.name]|length if schedule.get(league.name) else 8 }}" required data-form-control>
             </div>
             {% for match in range(1, 9) %}
             <div class="form-group">
                 <label>Match {{ match }}</label>
                 <div class="form-row align-items-center">
                     <div class="col-auto">
-                        <select class="form-control" name="teamA_week{{ week_number }}_match{{ match }}">
+                        <select class="form-control" name="teamA_week{{ week_number }}_match{{ match }}" data-form-select>
                             {% for team in league.teams %}
                             <option value="{{ team.id }}"
                                     {% if schedule.get(league.name) and schedule[league.name]|length>
@@ -40,7 +40,7 @@
                         </select>
                     </div>
                     <div class="col-auto">
-                        <select class="form-control" name="teamB_week{{ week_number }}_match{{ match }}">
+                        <select class="form-control" name="teamB_week{{ week_number }}_match{{ match }}" data-form-select>
                             {% for team in league.teams %}
                             <option value="{{ team.id }}"
                                     {% if schedule.get(league.name) and schedule[league.name]|length>
@@ -53,10 +53,10 @@
                     </div>
                     <div class="col-auto">
                         <input type="time" class="form-control" name="time_week{{ week_number }}_match{{ match }}"
-                               value="{{ schedule[league.name][match - 1]['time'] if schedule.get(league.name) and schedule[league.name]|length >= match else '' }}" required>
+                               value="{{ schedule[league.name][match - 1]['time'] if schedule.get(league.name) and schedule[league.name]|length  data-form-control>= match else '' }}" required>
                     </div>
                     <div class="col-auto">
-                        <select class="form-control" name="location_week{{ week_number }}_match{{ match }}">
+                        <select class="form-control" name="location_week{{ week_number }}_match{{ match }}" data-form-select>
                             <option value="North" {% if schedule.get(league.name) and schedule[league.name]|length>
                                 = match
                                 and schedule[league.name][match - 1]['location'] == 'North' %}selected{% endif %}>North
@@ -73,7 +73,7 @@
         </div>
     </div>
 
-    <button type="submit" class="btn btn-primary">Save Week</button>
-    <a href="{{ url_for('publeague.manage_schedule', season_id=season.id) }}" class="btn btn-secondary">Cancel</a>
+    <button type="submit" class="c-btn c-btn--primary">Save Week</button>
+    <a href="{{ url_for('publeague.manage_schedule', season_id=season.id) }}" class="c-btn c-btn--secondary">Cancel</a>
 </form>
 {% endblock %}

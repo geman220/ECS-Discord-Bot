@@ -1,0 +1,569 @@
+/**
+ * ============================================================================
+ * Live Match Reporting - Comprehensive Styles
+ * ============================================================================
+ *
+ * All styles for the live match reporting feature, extracted from inline styles.
+ * Uses design token system for colors, spacing, and other properties.
+ * Supports dark mode via [data-style="dark"] selector.
+ * Zero inline styles in the template.
+ *
+ * Structure:
+ *   1. Match Details Header
+ *   2. Team Score Display
+ *   3. Timer Display
+ *   4. Match Status Badge
+ *   5. Control Panels
+ *   6. Event Cards
+ *   7. Player Shifts
+ *   8. Notifications
+ *   9. Report Complete Message
+ *   10. Hidden Elements
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. MATCH DETAILS HEADER
+   Container for match information and score display
+   ============================================================================ */
+
+.live-reporting-match-details {
+    background-color: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    margin-bottom: var(--space-5);
+    border: var(--border);
+}
+
+[data-style="dark"] .live-reporting-match-details {
+    background-color: var(--color-bg-card);
+    border-color: var(--border-color-primary);
+}
+
+/* ============================================================================
+   2. TEAM SCORE DISPLAY
+   Large, bold score numbers for both teams
+   ============================================================================ */
+
+.live-reporting-team-score {
+    font-size: var(--text-5xl);
+    font-weight: var(--font-bold);
+    line-height: var(--leading-tight);
+    color: var(--color-text-primary);
+    letter-spacing: var(--tracking-tight);
+}
+
+/* Responsive adjustment for smaller screens */
+@media (max-width: 768px) {
+    .live-reporting-team-score {
+        font-size: var(--text-4xl);
+    }
+}
+
+/* ============================================================================
+   3. TIMER DISPLAY
+   Match timer with large, readable numbers
+   ============================================================================ */
+
+.live-reporting-timer {
+    font-size: var(--text-4xl);
+    font-weight: var(--font-bold);
+    line-height: var(--leading-tight);
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+    letter-spacing: var(--tracking-wide);
+    text-align: center;
+}
+
+/* Responsive adjustment for mobile */
+@media (max-width: 768px) {
+    .live-reporting-timer {
+        font-size: var(--text-3xl);
+    }
+}
+
+/* ============================================================================
+   4. MATCH STATUS BADGE
+   Positioned badge for match status
+   ============================================================================ */
+
+.live-reporting-status-container {
+    margin-bottom: var(--space-2);
+}
+
+/* ============================================================================
+   5. EVENT CARDS
+   Cards displaying match events with semantic color borders
+   ============================================================================ */
+
+.live-reporting-event-card {
+    border-left-width: var(--border-width-4);
+    border-left-style: solid;
+    border-left-color: var(--color-neutral-300);
+    margin-bottom: var(--space-3);
+    padding: var(--space-3);
+    background-color: var(--color-bg-card);
+    border-radius: var(--radius-md);
+    transition: all var(--duration-fast, 0.2s) var(--ease-smooth, ease);
+}
+
+.live-reporting-event-card:hover {
+    box-shadow: var(--shadow-sm);
+    transform: translateX(2px);
+}
+
+/* Event type variants */
+.live-reporting-event-card--goal {
+    border-left-color: var(--color-success);
+}
+
+.live-reporting-event-card--yellow-card {
+    border-left-color: var(--color-warning);
+}
+
+.live-reporting-event-card--red-card {
+    border-left-color: var(--color-danger);
+}
+
+.live-reporting-event-card--substitution {
+    border-left-color: var(--color-info);
+}
+
+.live-reporting-event-card--injury {
+    border-left-color: var(--color-danger-400);
+}
+
+.live-reporting-event-card--other {
+    border-left-color: var(--color-neutral-400);
+}
+
+/* Dark mode adjustments */
+[data-style="dark"] .live-reporting-event-card {
+    background-color: var(--color-bg-card);
+    border-left-color: var(--color-neutral-400);
+}
+
+[data-style="dark"] .live-reporting-event-card--goal {
+    border-left-color: var(--color-success-500);
+}
+
+[data-style="dark"] .live-reporting-event-card--yellow-card {
+    border-left-color: var(--color-warning-500);
+}
+
+[data-style="dark"] .live-reporting-event-card--red-card {
+    border-left-color: var(--color-danger-500);
+}
+
+[data-style="dark"] .live-reporting-event-card--substitution {
+    border-left-color: var(--color-info-500);
+}
+
+/* ============================================================================
+   6. PLAYER SHIFTS
+   Active/inactive player shift states
+   ============================================================================ */
+
+.live-reporting-player-shift {
+    padding: var(--space-3);
+    margin-bottom: var(--space-2);
+    border-radius: var(--radius-md);
+    border: var(--border);
+    transition: all var(--duration-fast, 0.2s) var(--ease-smooth, ease);
+}
+
+.live-reporting-player-shift--active {
+    background-color: var(--color-success-subtle);
+    border-color: var(--color-success-300);
+}
+
+.live-reporting-player-shift--inactive {
+    background-color: var(--color-bg-secondary);
+    border-color: var(--color-border-primary);
+    opacity: 0.7;
+}
+
+/* Dark mode adjustments */
+[data-style="dark"] .live-reporting-player-shift--active {
+    background-color: var(--color-success-subtle);
+    border-color: var(--color-success-500);
+}
+
+[data-style="dark"] .live-reporting-player-shift--inactive {
+    background-color: var(--color-bg-secondary);
+    border-color: var(--color-border-primary);
+    opacity: 0.6;
+}
+
+/* ============================================================================
+   7. NOTIFICATIONS
+   Fixed notification area for toast messages
+   ============================================================================ */
+
+.live-reporting-notifications {
+    position: fixed;
+    top: var(--space-5);
+    right: var(--space-5);
+    z-index: var(--z-toast);
+    width: 300px;
+    max-width: 90vw;
+}
+
+/* Responsive adjustment for mobile */
+@media (max-width: 768px) {
+    .live-reporting-notifications {
+        top: var(--space-3);
+        right: var(--space-3);
+        left: var(--space-3);
+        width: auto;
+    }
+}
+
+/* ============================================================================
+   8. REPORT COMPLETE MESSAGE
+   Success message shown after match report submission
+   ============================================================================ */
+
+.live-reporting-report-complete {
+    background-color: var(--color-success-subtle);
+    border: var(--border);
+    border-color: var(--color-success-300);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    margin-bottom: var(--space-5);
+}
+
+.live-reporting-report-complete h4 {
+    color: var(--color-success-700);
+    margin-bottom: var(--space-2);
+    font-size: var(--text-xl);
+    font-weight: var(--font-semibold);
+}
+
+.live-reporting-report-complete p {
+    color: var(--color-success-800);
+    margin-bottom: 0;
+}
+
+/* Dark mode adjustments */
+[data-style="dark"] .live-reporting-report-complete {
+    background-color: var(--color-success-subtle);
+    border-color: var(--color-success-500);
+}
+
+[data-style="dark"] .live-reporting-report-complete h4 {
+    color: var(--color-success-300);
+}
+
+[data-style="dark"] .live-reporting-report-complete p {
+    color: var(--color-success-200);
+}
+
+/* ============================================================================
+   9. CONTROL PANELS
+   Score controls and other interactive elements
+   ============================================================================ */
+
+.live-reporting-score-controls {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.live-reporting-score-display {
+    text-align: center;
+    font-size: var(--text-xl);
+    font-weight: var(--font-semibold);
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-secondary);
+}
+
+/* Dark mode */
+[data-style="dark"] .live-reporting-score-display {
+    background-color: var(--color-bg-tertiary);
+}
+
+/* ============================================================================
+   10. PERIOD SELECTOR
+   Match period dropdown styling
+   ============================================================================ */
+
+.live-reporting-period-selector {
+    margin-top: var(--space-2);
+}
+
+/* ============================================================================
+   11. TIMER CONTROLS
+   Start/Stop and Reset button group
+   ============================================================================ */
+
+.live-reporting-timer-controls {
+    display: flex;
+    gap: var(--space-2);
+    justify-content: center;
+    margin-top: var(--space-2);
+}
+
+/* ============================================================================
+   12. ACTIVE REPORTERS LIST
+   List of currently connected reporters
+   ============================================================================ */
+
+.live-reporting-reporters-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.live-reporting-reporters-list .list-group-item {
+    font-size: var(--text-sm);
+    padding: var(--space-2) var(--space-3);
+}
+
+/* ============================================================================
+   13. EVENT ENTRY FORM
+   Form for adding new match events
+   ============================================================================ */
+
+.live-reporting-event-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+/* ============================================================================
+   14. EVENTS LIST
+   Scrollable list of match events
+   ============================================================================ */
+
+.live-reporting-events-list {
+    max-height: 500px;
+    overflow-y: auto;
+    padding: var(--space-2);
+}
+
+.live-reporting-events-list:empty::after {
+    content: 'No events recorded yet';
+    display: block;
+    text-align: center;
+    color: var(--color-text-muted);
+    padding: var(--space-8) var(--space-4);
+    font-style: italic;
+}
+
+/* ============================================================================
+   15. PLAYER SHIFTS CONTAINER
+   Container for player shift management
+   ============================================================================ */
+
+.live-reporting-shifts-container {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: var(--space-2);
+}
+
+/* ============================================================================
+   16. MATCH NOTES
+   Text area for additional match notes
+   ============================================================================ */
+
+.live-reporting-notes {
+    resize: vertical;
+    min-height: 120px;
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+}
+
+/* ============================================================================
+   17. SUBMIT BUTTON
+   Final report submission button
+   ============================================================================ */
+
+.live-reporting-submit-btn {
+    margin-top: var(--space-3);
+}
+
+/* ============================================================================
+   18. HIDDEN DATA ELEMENTS
+   Data containers for JavaScript
+   ============================================================================ */
+
+.live-reporting-hidden-data {
+    display: none !important;
+    visibility: hidden;
+}
+
+/* ============================================================================
+   19. RESPONSIVE ADJUSTMENTS
+   Mobile-specific layouts
+   ============================================================================ */
+
+@media (max-width: 992px) {
+    .live-reporting-match-details {
+        padding: var(--space-4);
+    }
+
+    .live-reporting-match-details .row {
+        gap: var(--space-4);
+    }
+
+    .live-reporting-team-score {
+        font-size: var(--text-3xl);
+        margin-bottom: var(--space-2);
+    }
+
+    .live-reporting-timer {
+        font-size: var(--text-2xl);
+    }
+}
+
+@media (max-width: 768px) {
+    .live-reporting-match-details {
+        padding: var(--space-3);
+    }
+
+    .live-reporting-team-score {
+        font-size: var(--text-2xl);
+    }
+
+    .live-reporting-timer {
+        font-size: var(--text-xl);
+    }
+
+    .live-reporting-event-card {
+        padding: var(--space-2);
+        margin-bottom: var(--space-2);
+    }
+}
+
+/* ============================================================================
+   20. CARD ENHANCEMENTS
+   Additional styling for card components
+   ============================================================================ */
+
+.live-reporting-card {
+    margin-bottom: var(--space-4);
+}
+
+.live-reporting-card .card-header {
+    background-color: var(--color-bg-secondary);
+    border-bottom: var(--border);
+    padding: var(--space-3) var(--space-4);
+}
+
+.live-reporting-card .card-header h5 {
+    margin-bottom: 0;
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    color: var(--color-text-primary);
+}
+
+.live-reporting-card .card-body {
+    padding: var(--space-4);
+}
+
+/* Dark mode card adjustments */
+[data-style="dark"] .live-reporting-card .card-header {
+    background-color: var(--color-bg-tertiary);
+    border-bottom-color: var(--border-color-primary);
+}
+
+/* ============================================================================
+   21. TEAM NAME HEADERS
+   Styling for team names in match header
+   ============================================================================ */
+
+.live-reporting-team-name {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-semibold);
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-2);
+}
+
+@media (max-width: 768px) {
+    .live-reporting-team-name {
+        font-size: var(--text-xl);
+    }
+}
+
+/* ============================================================================
+   22. INPUT GROUP STYLING
+   Score control input groups
+   ============================================================================ */
+
+.live-reporting-input-group {
+    display: flex;
+    align-items: center;
+}
+
+.live-reporting-input-group .form-control {
+    text-align: center;
+    font-weight: var(--font-semibold);
+    font-size: var(--text-lg);
+}
+
+/* ============================================================================
+   23. LOADING STATES
+   Loading indicators for dynamic content
+   ============================================================================ */
+
+.live-reporting-loading {
+    color: var(--color-text-muted);
+    font-style: italic;
+    padding: var(--space-4);
+    text-align: center;
+}
+
+/* ============================================================================
+   24. ANIMATION SUPPORT
+   Smooth transitions for interactive elements
+   ============================================================================ */
+
+.live-reporting-animated {
+    transition: all var(--duration-normal, 0.3s) var(--ease-smooth, ease);
+}
+
+.live-reporting-fade-in {
+    animation: liveReportingFadeIn var(--duration-normal, 0.3s) ease-in;
+}
+
+@keyframes liveReportingFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================================================
+   25. ACCESSIBILITY IMPROVEMENTS
+   Focus states and screen reader support
+   ============================================================================ */
+
+.live-reporting-card:focus-within {
+    box-shadow: var(--shadow-focus);
+    outline: none;
+}
+
+/* Improved button focus states */
+.live-reporting-submit-btn:focus,
+.live-reporting-timer-controls button:focus {
+    box-shadow: var(--shadow-focus);
+    outline: none;
+}
+
+/* Screen reader only content */
+.live-reporting-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}

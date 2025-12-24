@@ -1,0 +1,491 @@
+/**
+ * ============================================================================
+ * LEAGUE MANAGEMENT DASHBOARD - Page-specific Styles
+ * ============================================================================
+ *
+ * Styles for the league management dashboard and related pages.
+ * Uses BEM naming and design tokens.
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   HERO CARD (Welcome Card with Gradient)
+   ============================================================================ */
+
+.c-league-hero {
+  position: relative;
+  background: linear-gradient(135deg, var(--color-primary, #2563eb) 0%, var(--color-primary-600, #1d4ed8) 100%);
+  border-radius: var(--radius-lg, 12px);
+  overflow: hidden;
+}
+
+.c-league-hero__body {
+  padding: var(--space-6, 24px);
+  position: relative;
+  z-index: 1;
+}
+
+.c-league-hero__content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4, 16px);
+  flex-wrap: wrap;
+}
+
+.c-league-hero__title {
+  color: #fff;
+  font-size: var(--text-xl, 1.25rem);
+  font-weight: 600;
+  margin: 0 0 var(--space-2, 8px);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.c-league-hero__description {
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+  font-size: var(--text-sm, 0.875rem);
+}
+
+/* Hero button - explicit white styling for visibility */
+.c-league-hero__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  padding: var(--space-2, 8px) var(--space-4, 16px);
+  background: #fff;
+  color: var(--color-primary, #2563eb);
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  font-weight: 600;
+  font-size: var(--text-sm, 0.875rem);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--duration-fast, 150ms) ease;
+  flex-shrink: 0;
+}
+
+.c-league-hero__btn:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Dark mode - hero remains the same (gradient is already dark-friendly) */
+
+/* ============================================================================
+   QUICK ACTIONS GRID
+   ============================================================================ */
+
+.c-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3, 12px);
+}
+
+@media (max-width: 991px) {
+  .c-quick-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 575px) {
+  .c-quick-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Quick action button */
+.c-quick-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2, 8px);
+  padding: var(--space-4, 16px) var(--space-3, 12px);
+  background: var(--color-primary, #2563eb);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  font-weight: 600;
+  font-size: var(--text-sm, 0.875rem);
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--duration-fast, 150ms) ease;
+}
+
+.c-quick-action:hover {
+  background: var(--color-primary-hover, #1d4ed8);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  color: #fff;
+}
+
+.c-quick-action--outline {
+  background: transparent;
+  color: var(--color-primary, #2563eb);
+  border: 1px solid var(--color-primary, #2563eb);
+}
+
+.c-quick-action--outline:hover {
+  background: var(--color-primary, #2563eb);
+  color: #fff;
+}
+
+.c-quick-action__icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+/* Dark mode quick actions */
+[data-style="dark"] .c-quick-action--outline {
+  color: var(--color-primary-light, #60a5fa);
+  border-color: var(--color-primary, #2563eb);
+}
+
+[data-style="dark"] .c-quick-action--outline:hover {
+  color: #fff;
+}
+
+/* ============================================================================
+   LEAGUE TYPE CARDS (Pub League / ECS FC)
+   ============================================================================ */
+
+.c-league-type-card {
+  height: 100%;
+}
+
+.c-league-type-card .c-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.c-league-type-card__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  margin: 0;
+  font-size: var(--text-lg, 1.125rem);
+  font-weight: 600;
+}
+
+/* Division stats boxes */
+.c-division-stat {
+  background: var(--color-bg-secondary, #f8fafc);
+  border: 1px solid var(--color-border-light, #e2e8f0);
+  border-radius: var(--radius-md, 8px);
+  padding: var(--space-2, 8px);
+  text-align: center;
+}
+
+[data-style="dark"] .c-division-stat {
+  background: var(--color-bg-elevated, #334155);
+  border-color: var(--color-border-primary, #475569);
+}
+
+.c-division-stat__label {
+  display: block;
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-muted, #64748b);
+  margin-bottom: var(--space-1, 4px);
+}
+
+.c-division-stat__value {
+  font-weight: 600;
+  color: var(--color-text-primary, #1e293b);
+}
+
+[data-style="dark"] .c-division-stat__value {
+  color: var(--color-text-primary, #f8fafc);
+}
+
+/* ============================================================================
+   STATS GRID (Overall Stats)
+   ============================================================================ */
+
+.c-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4, 16px);
+}
+
+@media (max-width: 767px) {
+  .c-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.c-stat-card {
+  text-align: center;
+  padding: var(--space-4, 16px);
+}
+
+.c-stat-card__icon {
+  font-size: 2rem;
+  margin-bottom: var(--space-2, 8px);
+  line-height: 1;
+}
+
+.c-stat-card__value {
+  font-size: var(--text-2xl, 1.5rem);
+  font-weight: 700;
+  margin: 0;
+  color: var(--color-text-primary, #1e293b);
+}
+
+[data-style="dark"] .c-stat-card__value {
+  color: var(--color-text-primary, #f8fafc);
+}
+
+.c-stat-card__label {
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--color-text-muted, #64748b);
+}
+
+/* ============================================================================
+   LEGACY SYSTEMS CARD
+   ============================================================================ */
+
+.c-legacy-card {
+  background: var(--color-bg-secondary, #f8fafc);
+  border: 1px solid var(--color-border-light, #e2e8f0);
+}
+
+[data-style="dark"] .c-legacy-card {
+  background: var(--color-bg-elevated, #1e293b);
+  border-color: var(--color-border-primary, #334155);
+}
+
+.c-legacy-card__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  color: var(--color-text-muted, #64748b);
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 600;
+  margin-bottom: var(--space-3, 12px);
+}
+
+.c-legacy-card__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+}
+
+.c-legacy-card__help {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-muted, #64748b);
+  margin-top: var(--space-2, 8px);
+  margin-bottom: 0;
+}
+
+/* ============================================================================
+   FIX: Bootstrap bg-gradient-primary override for dark mode
+   ============================================================================ */
+
+/* Override Bootstrap gradient classes to work in dark mode */
+.bg-gradient-primary {
+  background: linear-gradient(135deg, var(--color-primary, #2563eb) 0%, var(--color-primary-600, #1d4ed8) 100%);
+}
+
+/* Ensure text is white on gradient backgrounds */
+.bg-gradient-primary,
+.bg-gradient-primary .c-card__body {
+  color: #fff;
+}
+
+.bg-gradient-primary .text-white {
+  color: #fff;
+}
+
+/* Fix c-btn--light visibility on gradient backgrounds */
+.bg-gradient-primary .c-btn--light,
+[data-style="dark"] .bg-gradient-primary .c-btn--light {
+  background: #fff;
+  color: var(--color-primary, #2563eb);
+  border-color: #fff;
+}
+
+.bg-gradient-primary .c-btn--light:hover,
+[data-style="dark"] .bg-gradient-primary .c-btn--light:hover {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--color-primary, #2563eb);
+}
+
+/* ============================================================================
+   FIX: Ensure primary buttons are visible
+   ============================================================================ */
+
+/* Force primary button colors to ensure visibility */
+.c-card .c-btn--primary {
+  background: var(--color-primary, #2563eb);
+  color: #fff;
+  border-color: var(--color-primary, #2563eb);
+}
+
+[data-style="dark"] .c-card .c-btn--primary {
+  background: var(--color-primary, #2563eb);
+  color: #fff;
+  border-color: var(--color-primary, #2563eb);
+}
+
+.c-card .c-btn--primary:hover {
+  background: var(--color-primary-hover, #1d4ed8);
+  border-color: var(--color-primary-hover, #1d4ed8);
+}
+
+/* ============================================================================
+   FIX: bg-body-tertiary for dark mode
+   ============================================================================ */
+
+[data-style="dark"] .bg-body-tertiary {
+  background-color: var(--color-bg-elevated, #1e293b);
+}
+
+/* ============================================================================
+   EMPTY STATE
+   ============================================================================ */
+
+.c-league-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6, 24px);
+  text-align: center;
+}
+
+.c-league-empty__icon {
+  font-size: 3rem;
+  color: var(--color-text-muted, #64748b);
+  margin-bottom: var(--space-2, 8px);
+}
+
+.c-league-empty__text {
+  color: var(--color-text-muted, #64748b);
+  margin: 0;
+}
+
+/* ============================================================================
+   MATCH STATS ROW
+   ============================================================================ */
+
+.c-match-stats {
+  display: flex;
+  justify-content: space-around;
+  text-align: center;
+  margin-bottom: var(--space-3, 12px);
+}
+
+.c-match-stat {
+  flex: 1;
+}
+
+.c-match-stat__value {
+  display: block;
+  font-size: var(--text-2xl, 1.5rem);
+  font-weight: 700;
+  color: var(--color-text-primary, #1e293b);
+}
+
+[data-style="dark"] .c-match-stat__value {
+  color: var(--color-text-primary, #f8fafc);
+}
+
+.c-match-stat__value--success {
+  color: var(--color-success, #10b981);
+}
+
+.c-match-stat__value--primary {
+  color: var(--color-primary, #2563eb);
+}
+
+.c-match-stat__label {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-muted, #64748b);
+}
+
+/* ============================================================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================================================ */
+
+@media (max-width: 767px) {
+  .c-league-hero__content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .c-league-hero__btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ============================================================================
+   FORM SWITCH DARK MODE FIX
+   Ensures toggle switches have proper contrast in dark mode
+   ============================================================================ */
+
+[data-style="dark"] .form-check-label {
+  color: var(--color-text-primary, #f8fafc);
+}
+
+[data-style="dark"] .form-switch .form-check-input {
+  background-color: var(--color-neutral-600, #475569);
+  border-color: var(--color-neutral-500, #64748b);
+}
+
+[data-style="dark"] .form-switch .form-check-input:checked {
+  background-color: var(--color-primary, #2563eb);
+  border-color: var(--color-primary, #2563eb);
+}
+
+/* ============================================================================
+   SEASON CARD STYLING
+   Card variants for season display
+   ============================================================================ */
+
+.c-card.border-primary {
+  border-color: var(--color-primary, #2563eb) !important;
+  border-width: 2px;
+}
+
+[data-style="dark"] .c-card.border-primary {
+  border-color: var(--color-primary-400, #60a5fa) !important;
+}
+
+/* Season card footer buttons */
+.c-card__footer .c-btn--outline-success {
+  color: var(--color-success, #10b981);
+  border-color: var(--color-success, #10b981);
+}
+
+.c-card__footer .c-btn--outline-success:hover {
+  background-color: var(--color-success, #10b981);
+  color: white;
+}
+
+.c-card__footer .c-btn--outline-danger {
+  color: var(--color-danger, #ef4444);
+  border-color: var(--color-danger, #ef4444);
+}
+
+.c-card__footer .c-btn--outline-danger:hover {
+  background-color: var(--color-danger, #ef4444);
+  color: white;
+}
+
+[data-style="dark"] .c-card__footer .c-btn--outline-success {
+  color: var(--color-success-400, #34d399);
+  border-color: var(--color-success-400, #34d399);
+}
+
+[data-style="dark"] .c-card__footer .c-btn--outline-danger {
+  color: var(--color-danger-400, #f87171);
+  border-color: var(--color-danger-400, #f87171);
+}

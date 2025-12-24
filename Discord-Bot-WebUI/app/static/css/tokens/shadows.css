@@ -1,0 +1,233 @@
+/**
+ * ============================================================================
+ * ECS SHADOW TOKENS
+ * ============================================================================
+ *
+ * Comprehensive shadow system for depth and elevation.
+ * Includes box shadows, text shadows, and focus states.
+ *
+ * Structure:
+ *   1. Box Shadows (Elevation levels)
+ *   2. Colored Shadows
+ *   3. Focus Shadows
+ *   4. Inset Shadows
+ *   5. Text Shadows
+ *   6. Utility Classes
+ *
+ * ============================================================================
+ */
+
+:root {
+  /* ========================================================================
+     1. BOX SHADOWS - Elevation System
+     Neutral shadows providing depth without color tint
+     ======================================================================== */
+
+  /* No shadow */
+  --shadow-none: none;
+
+  /* Extra Small - Subtle depth for hover states */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+
+  /* Small - Cards, dropdowns */
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1),
+               0 1px 2px -1px rgba(0, 0, 0, 0.1);
+
+  /* Medium - Raised components, popovers */
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+               0 2px 4px -2px rgba(0, 0, 0, 0.1);
+
+  /* Large - Modals, drawers */
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+               0 4px 6px -4px rgba(0, 0, 0, 0.1);
+
+  /* Extra Large - Major elevated surfaces */
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+               0 8px 10px -6px rgba(0, 0, 0, 0.1);
+
+  /* 2XL - Maximum elevation */
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+
+  /* Inner shadow - For inset/pressed states */
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+
+  /* ========================================================================
+     2. COLORED SHADOWS
+     Soft colored shadows for brand emphasis
+     ======================================================================== */
+
+  /* Primary shadows - Blue (#2563EB = 37, 99, 235) */
+  --shadow-primary-sm: 0 1px 3px 0 rgba(37, 99, 235, 0.12),
+                       0 1px 2px -1px rgba(37, 99, 235, 0.12);
+  --shadow-primary-md: 0 4px 6px -1px rgba(37, 99, 235, 0.15),
+                       0 2px 4px -2px rgba(37, 99, 235, 0.15);
+  --shadow-primary-lg: 0 10px 15px -3px rgba(37, 99, 235, 0.15),
+                       0 4px 6px -4px rgba(37, 99, 235, 0.15);
+
+  /* Success shadows */
+  --shadow-success-sm: 0 1px 3px 0 rgba(16, 185, 129, 0.12),
+                       0 1px 2px -1px rgba(16, 185, 129, 0.12);
+  --shadow-success-md: 0 4px 6px -1px rgba(16, 185, 129, 0.15),
+                       0 2px 4px -2px rgba(16, 185, 129, 0.15);
+
+  /* Warning shadows */
+  --shadow-warning-sm: 0 1px 3px 0 rgba(245, 158, 11, 0.12),
+                       0 1px 2px -1px rgba(245, 158, 11, 0.12);
+  --shadow-warning-md: 0 4px 6px -1px rgba(245, 158, 11, 0.15),
+                       0 2px 4px -2px rgba(245, 158, 11, 0.15);
+
+  /* Danger shadows */
+  --shadow-danger-sm: 0 1px 3px 0 rgba(239, 68, 68, 0.12),
+                      0 1px 2px -1px rgba(239, 68, 68, 0.12);
+  --shadow-danger-md: 0 4px 6px -1px rgba(239, 68, 68, 0.15),
+                      0 2px 4px -2px rgba(239, 68, 68, 0.15);
+
+  /* Info shadows */
+  --shadow-info-sm: 0 1px 3px 0 rgba(59, 130, 246, 0.12),
+                    0 1px 2px -1px rgba(59, 130, 246, 0.12);
+  --shadow-info-md: 0 4px 6px -1px rgba(59, 130, 246, 0.15),
+                    0 2px 4px -2px rgba(59, 130, 246, 0.15);
+
+  /* ========================================================================
+     3. FOCUS SHADOWS
+     Ring-style focus indicators for accessibility
+     ======================================================================== */
+
+  /* Focus rings - Blue (#2563EB = 37, 99, 235) */
+  --shadow-focus: 0 0 0 3px rgba(37, 99, 235, 0.5);
+  --shadow-focus-primary: 0 0 0 3px rgba(37, 99, 235, 0.5);
+  --shadow-focus-secondary: 0 0 0 3px rgba(100, 116, 139, 0.5);
+  --shadow-focus-success: 0 0 0 3px rgba(16, 185, 129, 0.5);
+  --shadow-focus-warning: 0 0 0 3px rgba(245, 158, 11, 0.5);
+  --shadow-focus-danger: 0 0 0 3px rgba(239, 68, 68, 0.5);
+  --shadow-focus-info: 0 0 0 3px rgba(59, 130, 246, 0.5);
+
+  /* Thin focus ring (for smaller elements) */
+  --shadow-focus-thin: 0 0 0 2px rgba(37, 99, 235, 0.5);
+
+  /* Thick focus ring (for emphasis) */
+  --shadow-focus-thick: 0 0 0 4px rgba(37, 99, 235, 0.5);
+
+  /* ========================================================================
+     4. GLOW EFFECTS
+     Soft glow for special emphasis
+     ======================================================================== */
+
+  --glow-primary: 0 0 20px rgba(37, 99, 235, 0.3);
+  --glow-success: 0 0 20px rgba(16, 185, 129, 0.3);
+  --glow-warning: 0 0 20px rgba(245, 158, 11, 0.3);
+  --glow-danger: 0 0 20px rgba(239, 68, 68, 0.3);
+
+  /* ========================================================================
+     5. TEXT SHADOWS
+     Subtle shadows for text legibility
+     ======================================================================== */
+
+  --text-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --text-shadow-md: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --text-shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.15);
+
+  /* Text shadows for light text on dark backgrounds */
+  --text-shadow-dark-sm: 0 1px 2px rgba(0, 0, 0, 0.8);
+  --text-shadow-dark-md: 0 2px 4px rgba(0, 0, 0, 0.8);
+
+  /* ========================================================================
+     6. DROP SHADOWS (for filters)
+     Modern drop-shadow filter effects
+     ======================================================================== */
+
+  --drop-shadow-sm: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+  --drop-shadow-md: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+  --drop-shadow-lg: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.1));
+  --drop-shadow-xl: drop-shadow(0 20px 25px rgba(0, 0, 0, 0.15));
+}
+
+/* ============================================================================
+   DARK MODE SHADOW ADJUSTMENTS
+   Stronger shadows for better depth perception on dark backgrounds
+   ============================================================================ */
+
+[data-style="dark"] {
+  /* Neutral shadows - Darker for visibility */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4),
+               0 1px 2px -1px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4),
+               0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4),
+               0 4px 6px -2px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5),
+               0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+
+  /* Inner shadow */
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+
+  /* Colored shadows - Adjusted for dark mode - Blue light (#60A5FA = 96, 165, 250) */
+  --shadow-primary-sm: 0 1px 3px 0 rgba(96, 165, 250, 0.15),
+                       0 1px 2px -1px rgba(96, 165, 250, 0.15);
+  --shadow-primary-md: 0 4px 6px -1px rgba(96, 165, 250, 0.2),
+                       0 2px 4px -2px rgba(96, 165, 250, 0.2);
+  --shadow-primary-lg: 0 10px 15px -3px rgba(96, 165, 250, 0.2),
+                       0 4px 6px -4px rgba(96, 165, 250, 0.2);
+
+  /* Focus shadows - Brighter for visibility */
+  --shadow-focus: 0 0 0 3px rgba(96, 165, 250, 0.6);
+  --shadow-focus-primary: 0 0 0 3px rgba(96, 165, 250, 0.6);
+  --shadow-focus-success: 0 0 0 3px rgba(52, 211, 153, 0.6);
+  --shadow-focus-warning: 0 0 0 3px rgba(251, 191, 36, 0.6);
+  --shadow-focus-danger: 0 0 0 3px rgba(248, 113, 113, 0.6);
+
+  /* Glow effects - Brighter for dark mode */
+  --glow-primary: 0 0 25px rgba(96, 165, 250, 0.4);
+  --glow-success: 0 0 25px rgba(52, 211, 153, 0.4);
+}
+
+/* ============================================================================
+   UTILITY CLASSES - Shadow Helpers
+   ============================================================================ */
+
+/* Box shadows */
+.shadow-none { box-shadow: var(--shadow-none); }
+.shadow-xs { box-shadow: var(--shadow-xs); }
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+.shadow-xl { box-shadow: var(--shadow-xl); }
+.shadow-2xl { box-shadow: var(--shadow-2xl); }
+.shadow-inner { box-shadow: var(--shadow-inner); }
+
+/* Colored shadows */
+.shadow-primary-sm { box-shadow: var(--shadow-primary-sm); }
+.shadow-primary-md { box-shadow: var(--shadow-primary-md); }
+.shadow-primary-lg { box-shadow: var(--shadow-primary-lg); }
+
+/* Focus states */
+.focus-ring { box-shadow: var(--shadow-focus); }
+.focus-ring:focus { box-shadow: var(--shadow-focus); }
+.focus-visible:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* Text shadows */
+.text-shadow-sm { text-shadow: var(--text-shadow-sm); }
+.text-shadow-md { text-shadow: var(--text-shadow-md); }
+.text-shadow-lg { text-shadow: var(--text-shadow-lg); }
+
+/* Hover shadow transitions */
+.hover-shadow-sm:hover { box-shadow: var(--shadow-sm); transition: box-shadow 150ms ease; }
+.hover-shadow-md:hover { box-shadow: var(--shadow-md); transition: box-shadow 150ms ease; }
+.hover-shadow-lg:hover { box-shadow: var(--shadow-lg); transition: box-shadow 150ms ease; }
+
+/* ============================================================================
+   LEGACY COMPATIBILITY
+   Support old variable names
+   ============================================================================ */
+
+:root {
+  --ecs-shadow-sm: var(--shadow-sm);
+  --ecs-shadow-md: var(--shadow-md);
+  --ecs-shadow-lg: var(--shadow-lg);
+  --ecs-shadow-xl: var(--shadow-xl);
+}

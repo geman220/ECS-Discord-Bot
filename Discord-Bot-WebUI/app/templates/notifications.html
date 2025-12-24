@@ -1,31 +1,115 @@
 {% extends "base.html" %}
 
+{% block title %}Notifications{% endblock %}
+
+{% block custom_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/notifications.css') }}">
+{% endblock %}
+
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
-    <h4 class="fw-bold">Notifications</h4>
+    <!-- Page Header -->
+    <div class="c-notifications-header" data-component="notifications-header">
+        <div class="c-notifications-header__content">
+            <h1 class="c-notifications-header__title">
+                <i class="ti ti-bell"></i>
+                <span>Notifications</span>
+            </h1>
+            <p class="c-notifications-header__description">
+                Stay updated with your latest activity and announcements
+            </p>
+        </div>
+        {% if notifications %}
+        <div class="c-notifications-header__actions">
+            <button class="c-btn c-btn--outline-secondary" data-action="mark-all-read">
+                <i class="ti ti-check-all"></i>
+                <span>Mark All as Read</span>
+            </button>
+        </div>
+        {% endif %}
+    </div>
 
     {% if notifications %}
-    <ul class="list-group">
+    <!-- Notifications List -->
+    <div class="c-notifications-list" data-component="notifications-list">
         {% for notification in notifications %}
-        <li class="list-group-item {{ 'list-group-item-secondary' if not notification.read else '' }}">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h6 class="mb-1">{{ notification.content }}</h6>
-                    <small class="text-muted">{{ notification.created_at.strftime('%b %d, %I:%M %p') }}</small>
+        <div class="c-notification-card {% if not notification.read %}c-notification-card--unread{% endif %}"
+             data-component="notification-card"
+             data-notification-id="{{ notification.id }}">
+            <div class="c-notification-card__indicator"></div>
+            <div class="c-notification-card__content">
+                <div class="c-notification-card__body">
+                    <h6 class="c-notification-card__title">{{ notification.content }}</h6>
+                    <div class="c-notification-card__meta">
+                        <i class="ti ti-clock c-notification-card__icon"></i>
+                        <time class="c-notification-card__time" datetime="{{ notification.created_at.isoformat() }}">
+                            {{ notification.created_at.strftime('%b %d, %I:%M %p') }}
+                        </time>
+                    </div>
                 </div>
-                <div>
+                <div class="c-notification-card__actions">
                     {% if not notification.read %}
-                    <a href="{{ url_for('main.mark_as_read', notification_id=notification.id) }}" class="btn btn-sm btn-success">Mark as Read</a>
+                    <a href="{{ url_for('main.mark_as_read', notification_id=notification.id) }}"
+                       class="c-notification-card__btn"
+                       data-action="mark-read"
+                       data-notification-id="{{ notification.id }}"
+                       title="Mark as read">
+                        <i class="ti ti-check"></i>
+                        <span>Mark as Read</span>
+                    </a>
                     {% endif %}
                 </div>
             </div>
-        </li>
+        </div>
         {% endfor %}
-    </ul>
+    </div>
     {% else %}
-    <div class="alert alert-info" role="alert">
-        You have no notifications at this time.
+    <!-- Empty State -->
+    <div class="c-empty-state" data-component="empty-state">
+        <div class="c-empty-state__content">
+            <img src="{{ url_for('static', filename='img/undraw_notify_re_65on.svg') }}"
+                 alt="No notifications"
+                 class="c-empty-state__image">
+            <h3 class="c-empty-state__title">All Caught Up!</h3>
+            <p class="c-empty-state__text">
+                You have no notifications at this time. We'll let you know when something new comes up.
+            </p>
+        </div>
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+// Event delegation for notification actions
+document.addEventListener('click', function(e) {
+    const action = e.target.closest('[data-action]')?.dataset.action;
+    if (!action) return;
+
+    const target = e.target.closest('[data-action]');
+
+    switch(action) {
+        case 'mark-all-read':
+            e.preventDefault();
+            markAllNotificationsAsRead();
+            break;
+        case 'mark-read':
+            // Let the link navigate naturally, but add visual feedback
+            const card = target.closest('.c-notification-card');
+            if (card) {
+                card.classList.add('is-fading');
+            }
+            break;
+    }
+});
+
+function markAllNotificationsAsRead() {
+    if (confirm('Mark all notifications as read?')) {
+        // Implement mark all as read functionality
+        window.location.href = "{{ url_for('main.mark_all_as_read') }}";
+    }
+}
+</script>
 {% endblock %}

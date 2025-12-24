@@ -1,71 +1,87 @@
 {% macro render_report_match_modal(match, player_choices) %}
-<div class="modal fade ecs-modal"
+<div class="c-match-modal modal c-modal fade"
      id="reportMatchModal-{{ match.id }}"
      tabindex="-1"
      role="dialog"
      aria-labelledby="reportMatchModalLabel-{{ match.id }}"
      aria-hidden="true"
-     data-bs-backdrop="static">
-    <div class="modal-dialog modal-lg modal-dialog-centered ecs-modal-dialog ecs-modal-lg ecs-modal-dialog-centered" role="document">
-        <div class="modal-content ecs-modal-content">
+     data-bs-backdrop="static"
+     data-component="match-modal"
+     data-modal>
+    <div class="c-match-modal__dialog modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg modal-dialog-centered c-modal__dialog--centered" role="document" data-modal-dialog>
+        <div class="c-match-modal__content modal-content c-modal__content" data-modal-content>
             <!-- Modal Header -->
-            <div class="modal-header bg-primary text-white ecs-modal-header">
-                <h5 class="modal-title ecs-modal-title" id="reportMatchModalLabel-{{ match.id }}">
-                    <i data-feather="edit" class="me-2"></i>
+            <div class="c-match-modal__header modal-header c-modal__header bg-primary text-white" data-modal-header>
+                <h5 class="c-match-modal__title modal-title c-modal__title" id="reportMatchModalLabel-{{ match.id }}">
+                    <i data-feather="edit" class="c-match-modal__icon"></i>
                     {{ 'Edit' if match.reported else 'Report' }} Match:
-                    <span class="home-team-name">{{ match.home_team.name if match.home_team else match.home_team_name }}</span>
+                    <span class="c-match-modal__team-name c-match-modal__team-name--home">{{ match.home_team.name if match.home_team else match.home_team_name }}</span>
                     vs
-                    <span class="away-team-name">{{ match.away_team.name if match.away_team else match.away_team_name }}</span>
+                    <span class="c-match-modal__team-name c-match-modal__team-name--away">{{ match.away_team.name if match.away_team else match.away_team_name }}</span>
                 </h5>
                 <button type="button"
-                        class="btn-close btn-close-white ecs-modal-close"
+                        class="c-match-modal__close btn-close btn-close-white"
                         data-bs-dismiss="modal"
+                        data-action="dismiss-modal"
                         aria-label="Close"></button>
             </div>
 
             <!-- Modal Body -->
-            <form id="reportMatchForm-{{ match.id }}" class="report-match-form" data-match-id="{{ match.id }}" action="{{ url_for('teams.report_match', match_id=match.id) }}" method="POST" novalidate>
-                <div class="modal-body ecs-modal-body compact-layout">
+            <form id="reportMatchForm-{{ match.id }}"
+                  class="c-match-form"
+                  data-component="match-form"
+                  data-match-id="{{ match.id }}"
+                  action="{{ url_for('teams.report_match', match_id=match.id) }}"
+                  method="POST"
+                  novalidate>
+                <div class="c-match-modal__body modal-body c-modal__body" data-modal-body>
                     <!-- CSRF Token -->
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                     <!-- Home and Away Team Scores - Always Full Width at Top -->
-                    <div class="row mb-3 compact-full-width">
-                        <div class="col-md-6 compact-form-group">
-                            <label for="home_team_score-{{ match.id }}" class="form-label">{{ match.home_team_name }} Score</label>
+                    <div class="c-match-form__scores">
+                        <div class="c-match-form__score-field">
+                            <label for="home_team_score-{{ match.id }}" class="c-match-form__label">{{ match.home_team_name }} Score</label>
                             <input type="number"
                                    min="0"
-                                   class="form-control"
+                                   class="c-match-form__input form-control"
                                    id="home_team_score-{{ match.id }}"
                                    name="home_team_score"
                                    value="{{ match.home_team_score }}"
-                                   required />
+                                   required
+                                   data-form-control>
                         </div>
-                        <div class="col-md-6 compact-form-group">
-                            <label for="away_team_score-{{ match.id }}" class="form-label">{{ match.away_team_name }} Score</label>
+                        <div class="c-match-form__score-field">
+                            <label for="away_team_score-{{ match.id }}" class="c-match-form__label">{{ match.away_team_name }} Score</label>
                             <input type="number"
                                    min="0"
-                                   class="form-control"
+                                   class="c-match-form__input form-control"
                                    id="away_team_score-{{ match.id }}"
                                    name="away_team_score"
                                    value="{{ match.away_team_score if match.away_team_score is not none else 0 }}"
-                                   required />
+                                   required
+                                   data-form-control>
                         </div>
                     </div>
 
                     <!-- Two-Column Grid Layout for Events -->
-                    <div class="compact-two-column">
+                    <div class="c-match-form__events">
                         <!-- Left Column: Goals and Assists -->
-                        <div>
+                        <div class="c-match-form__events-column">
                             <!-- Goal Scorers -->
-                            <div class="compact-card">
-                                <div class="card-header">⚽ Goal Scorers</div>
-                                <div class="card-body">
-                                    <div id="goalScorersContainer-{{ match.id }}" class="mb-2">
+                            <div class="c-event-card" data-component="event-card">
+                                <div class="c-event-card__header">⚽ Goal Scorers</div>
+                                <div class="c-event-card__body">
+                                    <div id="goalScorersContainer-{{ match.id }}" class="c-event-card__list">
                                         {% for scorer in match.goal_scorers %}
-                                        <div class="input-group mb-2 player-event-entry" data-unique-id="{{ scorer.id }}">
+                                        <div class="c-event-entry"
+                                             data-component="event-entry"
+                                             data-unique-id="{{ scorer.id }}"
+                                             data-input-group>
                                             <input type="hidden" name="goal_scorers-stat_id[]" value="{{ scorer.id }}">
-                                            <select class="form-select" name="goal_scorers-player_id[]" style="min-width: 200px;">
+                                            <select class="c-event-entry__select form-select"
+                                                    name="goal_scorers-player_id[]"
+                                                    data-form-select>
                                                 {% for team_name, players in player_choices[match.id].items() %}
                                                 <optgroup label="{{ team_name }}">
                                                     {% for player_id, player_name in players.items() %}
@@ -74,13 +90,27 @@
                                                 </optgroup>
                                                 {% endfor %}
                                             </select>
-                                            <input type="text" class="form-control" name="goal_scorers-minute[]" placeholder="Min" value="{{ scorer.minute }}" pattern="^\d{1,3}(\+\d{1,2})?$" title="Enter minute (e.g., '45' or '45+2')" style="max-width: 80px;">
-                                            <button class="btn btn-danger btn-sm" type="button" onclick="removeEvent(this)">×</button>
+                                            <input type="text"
+                                                   class="c-event-entry__minute form-control"
+                                                   name="goal_scorers-minute[]"
+                                                   placeholder="Min"
+                                                   value="{{ scorer.minute }}"
+                                                   pattern="^\d{1,3}(\+\d{1,2})?$"
+                                                   title="Enter minute (e.g., '45' or '45+2')"
+                                                   data-form-control>
+                                            <button class="c-event-entry__remove c-btn c-btn--danger c-btn--sm"
+                                                    type="button"
+                                                    data-action="remove-event"
+                                                    aria-label="Remove goal scorer">×</button>
                                         </div>
                                         {% endfor %}
                                     </div>
-                                    <div class="compact-button-group">
-                                        <button class="btn btn-primary btn-sm" type="button" onclick="addEvent('{{ match.id }}', 'goalScorersContainer-{{ match.id }}')">
+                                    <div class="c-event-card__actions">
+                                        <button class="c-event-card__add-btn c-btn c-btn--primary c-btn--sm"
+                                                type="button"
+                                                data-action="add-event"
+                                                data-match-id="{{ match.id }}"
+                                                data-container="goalScorersContainer-{{ match.id }}">
                                             <i data-feather="plus"></i> Add Goal
                                         </button>
                                     </div>
@@ -88,14 +118,19 @@
                             </div>
 
                             <!-- Assist Providers -->
-                            <div class="compact-card">
-                                <div class="card-header">🅰️ Assists</div>
-                                <div class="card-body">
-                                    <div id="assistProvidersContainer-{{ match.id }}" class="mb-2">
+                            <div class="c-event-card" data-component="event-card">
+                                <div class="c-event-card__header">🅰️ Assists</div>
+                                <div class="c-event-card__body">
+                                    <div id="assistProvidersContainer-{{ match.id }}" class="c-event-card__list">
                                         {% for assist in match.assist_providers %}
-                                        <div class="input-group mb-2 player-event-entry" data-unique-id="{{ assist.id }}">
+                                        <div class="c-event-entry"
+                                             data-component="event-entry"
+                                             data-unique-id="{{ assist.id }}"
+                                             data-input-group>
                                             <input type="hidden" name="assist_providers-stat_id[]" value="{{ assist.id }}">
-                                            <select class="form-select" name="assist_providers-player_id[]" style="min-width: 200px;">
+                                            <select class="c-event-entry__select form-select"
+                                                    name="assist_providers-player_id[]"
+                                                    data-form-select>
                                                 {% for team_name, players in player_choices[match.id].items() %}
                                                 <optgroup label="{{ team_name }}">
                                                     {% for player_id, player_name in players.items() %}
@@ -104,13 +139,27 @@
                                                 </optgroup>
                                                 {% endfor %}
                                             </select>
-                                            <input type="text" class="form-control" name="assist_providers-minute[]" placeholder="Min" value="{{ assist.minute }}" pattern="^\d{1,3}(\+\d{1,2})?$" title="Enter minute" style="max-width: 80px;">
-                                            <button class="btn btn-danger btn-sm" type="button" onclick="removeEvent(this)">×</button>
+                                            <input type="text"
+                                                   class="c-event-entry__minute form-control"
+                                                   name="assist_providers-minute[]"
+                                                   placeholder="Min"
+                                                   value="{{ assist.minute }}"
+                                                   pattern="^\d{1,3}(\+\d{1,2})?$"
+                                                   title="Enter minute"
+                                                   data-form-control>
+                                            <button class="c-event-entry__remove c-btn c-btn--danger c-btn--sm"
+                                                    type="button"
+                                                    data-action="remove-event"
+                                                    aria-label="Remove assist">×</button>
                                         </div>
                                         {% endfor %}
                                     </div>
-                                    <div class="compact-button-group">
-                                        <button class="btn btn-primary btn-sm" type="button" onclick="addEvent('{{ match.id }}', 'assistProvidersContainer-{{ match.id }}')">
+                                    <div class="c-event-card__actions">
+                                        <button class="c-event-card__add-btn c-btn c-btn--primary c-btn--sm"
+                                                type="button"
+                                                data-action="add-event"
+                                                data-match-id="{{ match.id }}"
+                                                data-container="assistProvidersContainer-{{ match.id }}">
                                             <i data-feather="plus"></i> Add Assist
                                         </button>
                                     </div>
@@ -119,18 +168,23 @@
                         </div>
 
                         <!-- Right Column: Cards and Own Goals -->
-                        <div>
+                        <div class="c-match-form__events-column">
                             <!-- Cards Section -->
-                            <div class="compact-card">
-                                <div class="card-header">🟨🟥 Cards</div>
-                                <div class="card-body">
+                            <div class="c-event-card" data-component="event-card">
+                                <div class="c-event-card__header">🟨🟥 Cards</div>
+                                <div class="c-event-card__body">
                                     <!-- Yellow Cards -->
-                                    <div id="yellowCardsContainer-{{ match.id }}" class="mb-2">
+                                    <div id="yellowCardsContainer-{{ match.id }}" class="c-event-card__list">
                                         {% for card in match.yellow_cards %}
-                                        <div class="input-group mb-1 player-event-entry" data-unique-id="{{ card.id }}">
-                                            <span class="input-group-text bg-warning text-dark" style="min-width: 32px; padding: 0.375rem 0.25rem;">🟨</span>
+                                        <div class="c-event-entry c-event-entry--yellow"
+                                             data-component="event-entry"
+                                             data-unique-id="{{ card.id }}"
+                                             data-input-group>
+                                            <span class="c-event-entry__indicator c-event-entry__indicator--yellow input-group-text bg-warning text-dark">🟨</span>
                                             <input type="hidden" name="yellow_cards-stat_id[]" value="{{ card.id }}">
-                                            <select class="form-select" name="yellow_cards-player_id[]" style="min-width: 200px;">
+                                            <select class="c-event-entry__select form-select"
+                                                    name="yellow_cards-player_id[]"
+                                                    data-form-select>
                                                 {% for team_name, players in player_choices[match.id].items() %}
                                                 <optgroup label="{{ team_name }}">
                                                     {% for player_id, player_name in players.items() %}
@@ -139,19 +193,33 @@
                                                 </optgroup>
                                                 {% endfor %}
                                             </select>
-                                            <input type="text" class="form-control" name="yellow_cards-minute[]" placeholder="Min" value="{{ card.minute }}" pattern="^\d{1,3}(\+\d{1,2})?$" style="max-width: 80px;">
-                                            <button class="btn btn-danger btn-sm" type="button" onclick="removeEvent(this)">×</button>
+                                            <input type="text"
+                                                   class="c-event-entry__minute form-control"
+                                                   name="yellow_cards-minute[]"
+                                                   placeholder="Min"
+                                                   value="{{ card.minute }}"
+                                                   pattern="^\d{1,3}(\+\d{1,2})?$"
+                                                   data-form-control>
+                                            <button class="c-event-entry__remove c-btn c-btn--danger c-btn--sm"
+                                                    type="button"
+                                                    data-action="remove-event"
+                                                    aria-label="Remove yellow card">×</button>
                                         </div>
                                         {% endfor %}
                                     </div>
-                                    
+
                                     <!-- Red Cards -->
-                                    <div id="redCardsContainer-{{ match.id }}" class="mb-2">
+                                    <div id="redCardsContainer-{{ match.id }}" class="c-event-card__list">
                                         {% for card in match.red_cards %}
-                                        <div class="input-group mb-1 player-event-entry" data-unique-id="{{ card.id }}">
-                                            <span class="input-group-text bg-danger text-white" style="min-width: 32px; padding: 0.375rem 0.25rem;">🟥</span>
+                                        <div class="c-event-entry c-event-entry--red"
+                                             data-component="event-entry"
+                                             data-unique-id="{{ card.id }}"
+                                             data-input-group>
+                                            <span class="c-event-entry__indicator c-event-entry__indicator--red input-group-text bg-danger text-white">🟥</span>
                                             <input type="hidden" name="red_cards-stat_id[]" value="{{ card.id }}">
-                                            <select class="form-select" name="red_cards-player_id[]" style="min-width: 200px;">
+                                            <select class="c-event-entry__select form-select"
+                                                    name="red_cards-player_id[]"
+                                                    data-form-select>
                                                 {% for team_name, players in player_choices[match.id].items() %}
                                                 <optgroup label="{{ team_name }}">
                                                     {% for player_id, player_name in players.items() %}
@@ -160,17 +228,34 @@
                                                 </optgroup>
                                                 {% endfor %}
                                             </select>
-                                            <input type="text" class="form-control" name="red_cards-minute[]" placeholder="Min" value="{{ card.minute }}" pattern="^\d{1,3}(\+\d{1,2})?$" style="max-width: 80px;">
-                                            <button class="btn btn-danger btn-sm" type="button" onclick="removeEvent(this)">×</button>
+                                            <input type="text"
+                                                   class="c-event-entry__minute form-control"
+                                                   name="red_cards-minute[]"
+                                                   placeholder="Min"
+                                                   value="{{ card.minute }}"
+                                                   pattern="^\d{1,3}(\+\d{1,2})?$"
+                                                   data-form-control>
+                                            <button class="c-event-entry__remove c-btn c-btn--danger c-btn--sm"
+                                                    type="button"
+                                                    data-action="remove-event"
+                                                    aria-label="Remove red card">×</button>
                                         </div>
                                         {% endfor %}
                                     </div>
-                                    
-                                    <div class="compact-button-group">
-                                        <button class="btn btn-warning btn-sm" type="button" onclick="addEvent('{{ match.id }}', 'yellowCardsContainer-{{ match.id }}')">
+
+                                    <div class="c-event-card__actions">
+                                        <button class="c-event-card__add-btn c-btn c-btn--warning c-btn--sm"
+                                                type="button"
+                                                data-action="add-event"
+                                                data-match-id="{{ match.id }}"
+                                                data-container="yellowCardsContainer-{{ match.id }}">
                                             🟨 Yellow
                                         </button>
-                                        <button class="btn btn-danger btn-sm" type="button" onclick="addEvent('{{ match.id }}', 'redCardsContainer-{{ match.id }}')">
+                                        <button class="c-event-card__add-btn c-btn c-btn--danger c-btn--sm"
+                                                type="button"
+                                                data-action="add-event"
+                                                data-match-id="{{ match.id }}"
+                                                data-container="redCardsContainer-{{ match.id }}">
                                             🟥 Red
                                         </button>
                                     </div>
@@ -178,24 +263,42 @@
                             </div>
 
                             <!-- Own Goals -->
-                            <div class="compact-card">
-                                <div class="card-header">⚽❌ Own Goals</div>
-                                <div class="card-body">
-                                    <div id="ownGoalsContainer-{{ match.id }}" class="mb-2">
+                            <div class="c-event-card" data-component="event-card">
+                                <div class="c-event-card__header">⚽❌ Own Goals</div>
+                                <div class="c-event-card__body">
+                                    <div id="ownGoalsContainer-{{ match.id }}" class="c-event-card__list">
                                         {% for own_goal in match.own_goals %}
-                                        <div class="input-group mb-2 player-event-entry" data-unique-id="{{ own_goal.id }}">
+                                        <div class="c-event-entry"
+                                             data-component="event-entry"
+                                             data-unique-id="{{ own_goal.id }}"
+                                             data-input-group>
                                             <input type="hidden" name="own_goals-stat_id[]" value="{{ own_goal.id }}">
-                                            <select class="form-select" name="own_goals-team_id[]" style="min-width: 200px;">
+                                            <select class="c-event-entry__select form-select"
+                                                    name="own_goals-team_id[]"
+                                                    data-form-select>
                                                 <option value="{{ match.home_team_id }}" {% if own_goal.team_id == match.home_team_id %}selected{% endif %}>{{ match.home_team_name }}</option>
                                                 <option value="{{ match.away_team_id }}" {% if own_goal.team_id == match.away_team_id %}selected{% endif %}>{{ match.away_team_name }}</option>
                                             </select>
-                                            <input type="text" class="form-control" name="own_goals-minute[]" placeholder="Min" value="{{ own_goal.minute }}" pattern="^\d{1,3}(\+\d{1,2})?$" style="max-width: 80px;">
-                                            <button class="btn btn-danger btn-sm" type="button" onclick="removeEvent(this)">×</button>
+                                            <input type="text"
+                                                   class="c-event-entry__minute form-control"
+                                                   name="own_goals-minute[]"
+                                                   placeholder="Min"
+                                                   value="{{ own_goal.minute }}"
+                                                   pattern="^\d{1,3}(\+\d{1,2})?$"
+                                                   data-form-control>
+                                            <button class="c-event-entry__remove c-btn c-btn--danger c-btn--sm"
+                                                    type="button"
+                                                    data-action="remove-event"
+                                                    aria-label="Remove own goal">×</button>
                                         </div>
                                         {% endfor %}
                                     </div>
-                                    <div class="compact-button-group">
-                                        <button class="btn btn-warning btn-sm" type="button" onclick="addEvent('{{ match.id }}', 'ownGoalsContainer-{{ match.id }}')">
+                                    <div class="c-event-card__actions">
+                                        <button class="c-event-card__add-btn c-btn c-btn--warning c-btn--sm"
+                                                type="button"
+                                                data-action="add-event"
+                                                data-match-id="{{ match.id }}"
+                                                data-container="ownGoalsContainer-{{ match.id }}">
                                             <i data-feather="plus"></i> Own Goal
                                         </button>
                                     </div>
@@ -205,21 +308,31 @@
                     </div>
 
                     <!-- Match Notes - Full Width -->
-                    <div class="compact-full-width compact-form-group">
-                        <label class="form-label" for="match_notes-{{ match.id }}">Match Notes</label>
-                        <textarea class="form-control compact" id="match_notes-{{ match.id }}" name="match_notes" rows="3">{{ match.notes }}</textarea>
+                    <div class="c-match-form__notes">
+                        <label class="c-match-form__label" for="match_notes-{{ match.id }}">Match Notes</label>
+                        <textarea class="c-match-form__textarea form-control"
+                                  id="match_notes-{{ match.id }}"
+                                  name="match_notes"
+                                  rows="3"
+                                  data-form-control>{{ match.notes }}</textarea>
                     </div>
-                    
+
                     <!-- Verification Section - Full Width -->
-                    <div id="verificationSection-{{ match.id }}" class="compact-verification compact-full-width">
+                    <div id="verificationSection-{{ match.id }}" class="c-match-form__verification">
                         <!-- This will be populated by report_match.js -->
                     </div>
                 </div>
 
                 <!-- Modal Footer -->
-                <div class="modal-footer ecs-modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary" id="submitBtn-{{ match.id }}">
+                <div class="c-match-modal__footer modal-footer c-modal__footer" data-modal-footer>
+                    <button type="button"
+                            class="c-btn c-btn--secondary"
+                            data-bs-dismiss="modal"
+                            data-action="dismiss-modal">Close</button>
+                    <button type="submit"
+                            class="c-btn c-btn--primary"
+                            id="submitBtn-{{ match.id }}"
+                            data-action="submit-match">
                         Submit
                     </button>
                 </div>
@@ -230,26 +343,37 @@
 {% endmacro %}
 
 {% macro render_player_item(player, safe_current_user, season) %}
-<li class="list-group-item d-flex justify-content-between align-items-center">
-    <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="d-flex align-items-center text-decoration-none">
-        <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" alt="{{ player.name }}" class="rounded-circle border" style="width: 50px; height: 50px; margin-right: 15px;">
-        <span>{{ player.name }}</span>
+<li class="c-player-item list-group-item" data-component="player-item">
+    <a href="{{ url_for('players.player_profile', player_id=player.id) }}"
+       class="c-player-item__link"
+       data-action="view-player">
+        <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
+             alt="{{ player.name }}"
+             class="c-player-item__avatar rounded-circle border">
+        <span class="c-player-item__name">{{ player.name }}</span>
         {% if player.is_coach %}
-        <span class="badge bg-secondary ms-2">C</span>
+        <span class="c-player-item__badge c-player-item__badge--coach badge bg-secondary" data-badge>C</span>
         {% endif %}
         {% if player.is_ref %}
-        <!-- Use a valid Boxicons class for Referee -->
-        <i class="bx bx-user-check" title="Referee"></i>
+        <i class="c-player-item__icon bx bx-user-check" title="Referee" aria-label="Referee"></i>
         {% endif %}
     </a>
-    <div>
+    <div class="c-player-item__stats">
         {% if safe_current_user.has_permission('view_player_goals_assists') %}
-        <span class="badge bg-light text-dark"><i class="bx bx-football"></i> {{ player.season_goals(season.id) }}</span>
-        <span class="badge bg-light text-dark"><i class="bx bx-football"></i> <i class="bx bx-right-arrow-alt"></i> {{ player.season_assists(season.id) }}</span>
+        <span class="c-player-item__stat badge bg-light text-dark" data-badge>
+            <i class="bx bx-football"></i> {{ player.season_goals(season.id) }}
+        </span>
+        <span class="c-player-item__stat badge bg-light text-dark" data-badge>
+            <i class="bx bx-football"></i> <i class="bx bx-right-arrow-alt"></i> {{ player.season_assists(season.id) }}
+        </span>
         {% endif %}
         {% if safe_current_user.has_permission('view_player_cards') %}
-        <span class="badge bg-light text-dark"><i class="bx bxs-square text-warning"></i> {{ player.season_yellow_cards(season.id) }}</span>
-        <span class="badge bg-light text-dark"><i class="bx bxs-square text-danger"></i> {{ player.season_red_cards(season.id) }}</span>
+        <span class="c-player-item__stat badge bg-light text-dark" data-badge>
+            <i class="bx bxs-square text-warning"></i> {{ player.season_yellow_cards(season.id) }}
+        </span>
+        <span class="c-player-item__stat badge bg-light text-dark" data-badge>
+            <i class="bx bxs-square text-danger"></i> {{ player.season_red_cards(season.id) }}
+        </span>
         {% endif %}
     </div>
 </li>
@@ -257,7 +381,8 @@
 
 {% macro render_enhanced_onboarding_modal(onboarding_form, player) %}
 <form method="POST"
-      class="needs-validation"
+      class="c-onboarding-form needs-validation"
+      data-component="onboarding-form"
       enctype="multipart/form-data"
       novalidate>
     {{ onboarding_form.hidden_tag() }} <!-- CSRF Token -->
@@ -272,37 +397,53 @@
     {% endif %}
 
     <!-- Progress Bar -->
-    <div class="progress mb-3">
-        <div id="onboardingProgress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+    <div class="c-onboarding-form__progress-wrapper progress mb-3">
+        <div id="onboardingProgress"
+             class="c-onboarding-form__progress progress-bar progress-bar-striped progress-bar-animated"
+             role="progressbar"
+             aria-valuenow="0"
+             aria-valuemin="0"
+             aria-valuemax="100"></div>
     </div>
-    <div class="text-center mb-4">
+    <div class="c-onboarding-form__step-info text-center mb-4">
         <small class="text-muted" id="currentStep">Step 1 of 5</small>
     </div>
 
     <!-- Carousel for Onboarding Steps -->
-    <div id="modalCarouselControls" class="carousel slide" data-bs-interval="false">
+    <div id="modalCarouselControls"
+         class="c-onboarding-carousel carousel slide"
+         data-component="onboarding-carousel"
+         data-bs-interval="false">
         <!-- Carousel Inner -->
         <div class="carousel-inner">
             {% if not player %}
             <!-- Step 0: For Users without a Profile -->
-            <div class="carousel-item active" data-step="0">
-                <div class="onboarding-content text-center">
-                    <div class="mb-4 d-flex justify-content-center">
-                        <img src="{{ url_for('static', filename='img/undraw_questions_re_1fy7.svg') }}" alt="Welcome Image" class="img-fluid" style="max-width: 300px; height: auto;">
+            <div class="c-onboarding-step carousel-item active" data-component="onboarding-step" data-step="0">
+                <div class="c-onboarding-step__content">
+                    <div class="c-onboarding-step__image-wrapper">
+                        <img src="{{ url_for('static', filename='img/undraw_questions_re_1fy7.svg') }}"
+                             alt="Welcome Image"
+                             class="c-onboarding-step__image">
                     </div>
-                    <div class="card bg-light p-4 mb-4">
-                        <h4 class="fw-bold text-primary mb-3">Welcome to the ECS!</h4>
-                        <p class="text-muted">It looks like you don't have a player profile yet. Would you like to create one?</p>
-                        <div class="alert alert-warning">
+                    <div class="c-onboarding-step__card c-card bg-light p-4 mb-4">
+                        <h4 class="c-onboarding-step__heading fw-bold text-primary mb-3">Welcome to the ECS!</h4>
+                        <p class="c-onboarding-step__text text-muted">It looks like you don't have a player profile yet. Would you like to create one?</p>
+                        <div class="c-onboarding-step__alert alert alert-warning" data-alert>
                             <i class="ti ti-alert-circle me-2"></i>
                             <strong>A player profile is required for ECS FC or ECS FC Pub League!</strong>
                         </div>
                     </div>
-                    <div class="d-flex justify-content-center gap-3 mt-4">
-                        <button type="button" id="createProfileCarouselButton" class="btn btn-lg btn-primary">
+                    <div class="c-onboarding-step__actions">
+                        <button type="button"
+                                id="createProfileCarouselButton"
+                                class="c-onboarding-step__button c-onboarding-step__button--primary c-btn c-btn--lg c-btn--primary"
+                                data-action="onboarding-create-profile">
                             <i class="ti ti-user-plus me-2"></i>Create Profile
                         </button>
-                        <button type="button" id="skipProfileButton" class="btn btn-lg btn-outline-secondary">
+                        <button type="button"
+                                id="skipProfileButton"
+                                class="c-onboarding-step__button c-onboarding-step__button--secondary c-btn c-btn--lg c-btn--outline-secondary"
+                                data-action="onboarding-skip-profile">
                             <i class="ti ti-arrow-right me-2"></i>Skip for now
                         </button>
                     </div>
@@ -311,27 +452,29 @@
             {% endif %}
 
             <!-- Step 1: Contact Info -->
-            <div class="carousel-item {% if player %}active{% endif %}" data-step="1">
-                <div class="onboarding-content">
-                    <div class="section-header d-flex align-items-center mb-4">
-                        <div class="me-3 text-primary">
-                            <i class="ti ti-user-circle" style="font-size: 2.5rem;"></i>
+            <div class="c-onboarding-step carousel-item {% if player %}active{% endif %}"
+                 data-component="onboarding-step"
+                 data-step="1">
+                <div class="c-onboarding-step__content">
+                    <div class="c-onboarding-step__header">
+                        <div class="c-onboarding-step__icon text-primary">
+                            <i class="ti ti-user-circle"></i>
                         </div>
-                        <div>
-                            <h4 class="fw-bold text-primary mb-1">Contact Information</h4>
-                            <p class="text-muted mb-0">Tell us how to reach you</p>
+                        <div class="c-onboarding-step__header-text">
+                            <h4 class="c-onboarding-step__heading fw-bold text-primary mb-1">Contact Information</h4>
+                            <p class="c-onboarding-step__subheading text-muted mb-0">Tell us how to reach you</p>
                         </div>
                     </div>
 
-                    <div class="card shadow-sm p-4 mb-4">
+                    <div class="c-onboarding-step__card c-card shadow-sm p-4 mb-4">
                         <!-- Contact Info Fields -->
                         <div class="row">
                             <div class="col-md-12 mb-3">
-                                <label for="{{ onboarding_form.name.id }}" class="form-label">
-                                    <i class="ti ti-id-badge me-1"></i>{{ onboarding_form.name.label.text }} <span class="text-danger">*</span>
+                                <label for="{{ onboarding_form.name.id }}" class="c-onboarding-step__label form-label">
+                                    <i class="ti ti-id-badge me-1"></i>{{ onboarding_form.name.label.text }} <span class="text-danger" data-badge>*</span>
                                 </label>
-                                {{ onboarding_form.name(class="form-control form-control-lg", required=True, placeholder="First and Last name (e.g. John Smith)") }}
-                                <div class="form-text">Enter your real full name - this will be displayed on your public profile</div>
+                                {{ onboarding_form.name(class="c-onboarding-step__input form-control form-control-lg", required=True, placeholder="First and Last name (e.g. John Smith)") }}
+                                <div class="c-onboarding-step__help-text form-text">Enter your real full name - this will be displayed on your public profile</div>
                                 {% if onboarding_form.name.errors %}
                                 <div class="invalid-feedback">
                                     {{ onboarding_form.name.errors[0] }}
@@ -339,11 +482,11 @@
                                 {% endif %}
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="{{ onboarding_form.email.id }}" class="form-label">
+                                <label for="{{ onboarding_form.email.id }}" class="c-onboarding-step__label form-label">
                                     <i class="ti ti-mail me-1"></i>{{ onboarding_form.email.label.text }} <span class="text-danger">*</span>
                                 </label>
-                                {{ onboarding_form.email(class="form-control form-control-lg", required=True, placeholder="email@example.com") }}
-                                <div class="form-text">Used for match notifications and team communications</div>
+                                {{ onboarding_form.email(class="c-onboarding-step__input form-control form-control-lg", required=True, placeholder="email@example.com") }}
+                                <div class="c-onboarding-step__help-text form-text">Used for match notifications and team communications</div>
                                 {% if onboarding_form.email.errors %}
                                 <div class="invalid-feedback">
                                     {{ onboarding_form.email.errors[0] }}
@@ -351,11 +494,11 @@
                                 {% endif %}
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="{{ onboarding_form.phone.id }}" class="form-label">
+                                <label for="{{ onboarding_form.phone.id }}" class="c-onboarding-step__label form-label">
                                     <i class="ti ti-phone me-1"></i>{{ onboarding_form.phone.label.text }} <span class="text-danger">*</span>
                                 </label>
-                                {{ onboarding_form.phone(class="form-control form-control-lg", required=True, placeholder="(555) 555-5555") }}
-                                <div class="form-text">Used for emergency contacts and optional SMS notifications</div>
+                                {{ onboarding_form.phone(class="c-onboarding-step__input form-control form-control-lg", required=True, placeholder="(555) 555-5555") }}
+                                <div class="c-onboarding-step__help-text form-text">Used for emergency contacts and optional SMS notifications</div>
                                 {% if onboarding_form.phone.errors %}
                                 <div class="invalid-feedback">
                                     {{ onboarding_form.phone.errors[0] }}
@@ -368,37 +511,39 @@
             </div>
 
             <!-- Step 2: Profile Picture -->
-            <div class="carousel-item" data-step="2">
-                <div class="onboarding-content">
-                    <div class="section-header d-flex align-items-center mb-4">
-                        <div class="me-3 text-primary">
-                            <i class="ti ti-camera" style="font-size: 2.5rem;"></i>
+            <div class="c-onboarding-step carousel-item" data-component="onboarding-step" data-step="2">
+                <div class="c-onboarding-step__content">
+                    <div class="c-onboarding-step__header">
+                        <div class="c-onboarding-step__icon text-primary">
+                            <i class="ti ti-camera"></i>
                         </div>
-                        <div>
-                            <h4 class="fw-bold text-primary mb-1">Profile Picture</h4>
-                            <p class="text-muted mb-0">Add a photo to personalize your profile</p>
+                        <div class="c-onboarding-step__header-text">
+                            <h4 class="c-onboarding-step__heading fw-bold text-primary mb-1">Profile Picture</h4>
+                            <p class="c-onboarding-step__subheading text-muted mb-0">Add a photo to personalize your profile</p>
                         </div>
                     </div>
 
-                    <div class="card shadow-sm p-4 mb-4">
+                    <div class="c-onboarding-step__card c-card shadow-sm p-4 mb-4">
                         <div class="row align-items-center">
                             <!-- Profile Picture / Cropper Area -->
                             <div class="col-md-6 text-center mb-4 mb-md-0">
                                 <!-- Default Profile Picture Preview (shown initially) -->
-                                <div id="profilePicturePreview" class="mb-3">
-                                    <div class="avatar-preview mx-auto" style="width: 200px; height: 200px; overflow: hidden; border-radius: 50%; border: 3px solid var(--bs-primary); box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-                                        <img id="currentProfilePicture" src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
+                                <div id="profilePicturePreview" class="c-profile-preview">
+                                    <div class="c-profile-preview__avatar">
+                                        <img id="currentProfilePicture"
+                                             src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
                                              alt="Profile Picture"
-                                             style="width: 100%; height: 100%; object-fit: cover;">
+                                             class="c-profile-preview__image">
                                     </div>
                                 </div>
-                                
+
                                 <!-- Cropper Interface (shown when image selected) -->
-                                <div id="cropperInterface" class="d-none">
-                                    <div class="text-center mb-3">
-                                        <canvas id="cropCanvas" class="mx-auto d-block border rounded shadow-sm" style="max-width: 300px;"></canvas>
+                                <div id="cropperInterface" class="c-cropper u-hidden">
+                                    <div class="c-cropper__canvas-wrapper text-center mb-3">
+                                        <canvas id="cropCanvas"
+                                                class="c-cropper__canvas mx-auto d-block border rounded shadow-sm"></canvas>
                                     </div>
-                                    <div class="text-muted small text-center">
+                                    <div class="c-cropper__help text-muted small text-center">
                                         <i class="ti ti-info-circle me-1"></i>
                                         Drag to move • Mouse wheel to zoom • Image will be cropped to a circle
                                     </div>
@@ -408,24 +553,37 @@
                             <div class="col-md-6">
                                 <div class="text-center text-md-start">
                                     <!-- Initial Instructions (shown before image selected) -->
-                                    <div id="uploadInstructions">
-                                        <p class="mb-4">Upload a clear photo of yourself for your player profile. A good profile picture helps teammates and admins recognize you.</p>
+                                    <div id="uploadInstructions" class="c-upload-instructions">
+                                        <p class="c-upload-instructions__text mb-4">Upload a clear photo of yourself for your player profile. A good profile picture helps teammates and admins recognize you.</p>
                                         <!-- Hidden file input -->
-                                        <input type="file" name="image" id="image" accept="image/*" class="form-control d-none">
+                                        <input type="file"
+                                               name="image"
+                                               id="image"
+                                               accept="image/*"
+                                               class="c-upload-instructions__input form-control u-hidden"
+                                               data-action="load-profile-image"
+                                               data-form-control>
                                         <!-- Button that triggers the file input -->
-                                        <button type="button" class="btn btn-lg btn-primary w-100 mb-2" onclick="document.getElementById('image').click();">
+                                        <button type="button"
+                                                class="c-upload-instructions__button c-btn c-btn--lg c-btn--primary w-100 mb-2"
+                                                data-action="trigger-file-input"
+                                                data-target="image">
                                             <i class="ti ti-upload me-1"></i> Select Image
                                         </button>
                                     </div>
-                                    
+
                                     <!-- Cropper Controls (shown after image selected) -->
-                                    <div id="cropperControls" class="d-none">
-                                        <p class="mb-4">Perfect! Now adjust your photo using the controls below. Drag to move and use your mouse wheel to zoom.</p>
-                                        <div class="d-grid gap-2">
-                                            <button type="button" class="btn btn-outline-secondary" onclick="resetImageSelection()">
+                                    <div id="cropperControls" class="c-cropper-controls u-hidden">
+                                        <p class="c-cropper-controls__text mb-4">Perfect! Now adjust your photo using the controls below. Drag to move and use your mouse wheel to zoom.</p>
+                                        <div class="c-cropper-controls__actions d-grid gap-2">
+                                            <button type="button"
+                                                    class="c-cropper-controls__button c-btn c-btn--outline-secondary"
+                                                    data-action="reset-image-selection">
                                                 <i class="ti ti-photo me-1"></i> Choose Different Image
                                             </button>
-                                            <button type="button" class="btn btn-lg btn-success" onclick="cropAndSaveProfileImage()">
+                                            <button type="button"
+                                                    class="c-cropper-controls__button c-btn c-btn--lg c-btn--success"
+                                                    data-action="crop-save-profile-image">
                                                 <i class="ti ti-device-floppy me-1"></i> Crop & Save Photo
                                             </button>
                                         </div>
@@ -434,7 +592,6 @@
                             </div>
                         </div>
 
-
                         <!-- Hidden input that can store the final base64 for form submission -->
                         <input type="hidden" id="cropped_image_data" name="cropped_image_data">
                     </div>
@@ -442,26 +599,26 @@
             </div>
 
             <!-- Step 3: Player Profile -->
-            <div class="carousel-item" data-step="3">
-                <div class="onboarding-content">
-                    <div class="section-header d-flex align-items-center mb-4">
-                        <div class="me-3 text-primary">
-                            <i class="ti ti-soccer-field" style="font-size: 2.5rem;"></i>
+            <div class="c-onboarding-step carousel-item" data-component="onboarding-step" data-step="3">
+                <div class="c-onboarding-step__content">
+                    <div class="c-onboarding-step__header">
+                        <div class="c-onboarding-step__icon text-primary">
+                            <i class="ti ti-soccer-field"></i>
                         </div>
-                        <div>
-                            <h4 class="fw-bold text-primary mb-1">Player Preferences</h4>
-                            <p class="text-muted mb-0">Tell us about your playing preferences</p>
+                        <div class="c-onboarding-step__header-text">
+                            <h4 class="c-onboarding-step__heading fw-bold text-primary mb-1">Player Preferences</h4>
+                            <p class="c-onboarding-step__subheading text-muted mb-0">Tell us about your playing preferences</p>
                         </div>
                     </div>
 
-                    <div class="card shadow-sm p-4 mb-4">
+                    <div class="c-onboarding-step__card c-card shadow-sm p-4 mb-4">
                         <!-- Player Profile Fields -->
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="{{ onboarding_form.jersey_size.id }}" class="form-label">
+                                <label for="{{ onboarding_form.jersey_size.id }}" class="c-onboarding-step__label form-label">
                                     <i class="ti ti-shirt me-1"></i>{{ onboarding_form.jersey_size.label.text }} <span class="text-danger">*</span>
                                 </label>
-                                {{ onboarding_form.jersey_size(class="form-select form-select-lg select2-single", required=True) }}
+                                {{ onboarding_form.jersey_size(class="c-onboarding-step__select form-select form-select-lg select2-single", required=True) }}
                                 {% if onboarding_form.jersey_size.errors %}
                                 <div class="invalid-feedback">
                                     {{ onboarding_form.jersey_size.errors[0] }}
@@ -469,10 +626,10 @@
                                 {% endif %}
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="{{ onboarding_form.pronouns.id }}" class="form-label">
+                                <label for="{{ onboarding_form.pronouns.id }}" class="c-onboarding-step__label form-label">
                                     <i class="ti ti-user me-1"></i>{{ onboarding_form.pronouns.label.text }} <span class="text-danger">*</span>
                                 </label>
-                                {{ onboarding_form.pronouns(class="form-select form-select-lg select2-single", required=True) }}
+                                {{ onboarding_form.pronouns(class="c-onboarding-step__select form-select form-select-lg select2-single", required=True) }}
                                 {% if onboarding_form.pronouns.errors %}
                                 <div class="invalid-feedback">
                                     {{ onboarding_form.pronouns.errors[0] }}
@@ -483,11 +640,11 @@
 
                         <div class="row">
                             <div class="col-12 mb-3">
-                                <label for="{{ onboarding_form.favorite_position.id }}" class="form-label">
+                                <label for="{{ onboarding_form.favorite_position.id }}" class="c-onboarding-step__label form-label">
                                     <i class="ti ti-star me-1"></i>{{ onboarding_form.favorite_position.label.text }} <span class="text-danger">*</span>
                                 </label>
-                                {{ onboarding_form.favorite_position(class="form-select form-select-lg select2-single", required=True) }}
-                                <div class="form-text">This is the position you'd most like to play</div>
+                                {{ onboarding_form.favorite_position(class="c-onboarding-step__select form-select form-select-lg select2-single", required=True) }}
+                                <div class="c-onboarding-step__help-text form-text">This is the position you'd most like to play</div>
                                 {% if onboarding_form.favorite_position.errors %}
                                 <div class="invalid-feedback">
                                     {{ onboarding_form.favorite_position.errors[0] }}
@@ -498,11 +655,11 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="{{ onboarding_form.other_positions.id }}" class="form-label">
+                                <label for="{{ onboarding_form.other_positions.id }}" class="c-onboarding-step__label form-label">
                                     <i class="ti ti-list-check me-1"></i>{{ onboarding_form.other_positions.label.text }}
                                 </label>
-                                {{ onboarding_form.other_positions(class="form-select form-select-lg select2-multiple", multiple=True) }}
-                                <div class="form-text">Other positions you're comfortable playing</div>
+                                {{ onboarding_form.other_positions(class="c-onboarding-step__select form-select form-select-lg select2-multiple", multiple=True) }}
+                                <div class="c-onboarding-step__help-text form-text">Other positions you're comfortable playing</div>
                                 {% if onboarding_form.other_positions.errors %}
                                 <div class="invalid-feedback">
                                     {{ onboarding_form.other_positions.errors[0] }}
@@ -510,11 +667,11 @@
                                 {% endif %}
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="{{ onboarding_form.positions_not_to_play.id }}" class="form-label">
+                                <label for="{{ onboarding_form.positions_not_to_play.id }}" class="c-onboarding-step__label form-label">
                                     <i class="ti ti-list-x me-1"></i>{{ onboarding_form.positions_not_to_play.label.text }}
                                 </label>
-                                {{ onboarding_form.positions_not_to_play(class="form-select form-select-lg select2-multiple", multiple=True) }}
-                                <div class="form-text">Positions you prefer not to play</div>
+                                {{ onboarding_form.positions_not_to_play(class="c-onboarding-step__select form-select form-select-lg select2-multiple", multiple=True) }}
+                                <div class="c-onboarding-step__help-text form-text">Positions you prefer not to play</div>
                                 {% if onboarding_form.positions_not_to_play.errors %}
                                 <div class="invalid-feedback">
                                     {{ onboarding_form.positions_not_to_play.errors[0] }}
@@ -525,10 +682,10 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="{{ onboarding_form.expected_weeks_available.id }}" class="form-label">
+                                <label for="{{ onboarding_form.expected_weeks_available.id }}" class="c-onboarding-step__label form-label">
                                     <i class="ti ti-calendar me-1"></i>{{ onboarding_form.expected_weeks_available.label.text }}
                                 </label>
-                                {{ onboarding_form.expected_weeks_available(class="form-select form-select-lg select2-single") }}
+                                {{ onboarding_form.expected_weeks_available(class="c-onboarding-step__select form-select form-select-lg select2-single") }}
                                 {% if onboarding_form.expected_weeks_available.errors %}
                                 <div class="invalid-feedback">
                                     {{ onboarding_form.expected_weeks_available.errors[0] }}
@@ -536,11 +693,11 @@
                                 {% endif %}
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="{{ onboarding_form.unavailable_dates.id }}" class="form-label">
+                                <label for="{{ onboarding_form.unavailable_dates.id }}" class="c-onboarding-step__label form-label">
                                     <i class="ti ti-calendar-off me-1"></i>{{ onboarding_form.unavailable_dates.label.text }}
                                 </label>
-                                {{ onboarding_form.unavailable_dates(class="form-control form-control-lg") }}
-                                <div class="form-text">Specific dates when you know you'll be unavailable</div>
+                                {{ onboarding_form.unavailable_dates(class="c-onboarding-step__input form-control form-control-lg") }}
+                                <div class="c-onboarding-step__help-text form-text">Specific dates when you know you'll be unavailable</div>
                                 {% if onboarding_form.unavailable_dates.errors %}
                                 <div class="invalid-feedback">
                                     {{ onboarding_form.unavailable_dates.errors[0] }}
@@ -551,11 +708,11 @@
 
                         <div class="row">
                             <div class="col-12 mb-3">
-                                <label for="{{ onboarding_form.player_notes.id }}" class="form-label">
+                                <label for="{{ onboarding_form.player_notes.id }}" class="c-onboarding-step__label form-label">
                                     <i class="ti ti-notes me-1"></i>{{ onboarding_form.player_notes.label.text }}
                                 </label>
-                                {{ onboarding_form.player_notes(class="form-control form-control-lg", placeholder="Share any additional information that would help coaches or team managers...", rows="3") }}
-                                <div class="form-text">Include any relevant information about your playing experience or special accommodations</div>
+                                {{ onboarding_form.player_notes(class="c-onboarding-step__textarea form-control form-control-lg", placeholder="Share any additional information that would help coaches or team managers...", rows="3") }}
+                                <div class="c-onboarding-step__help-text form-text">Include any relevant information about your playing experience or special accommodations</div>
                                 {% if onboarding_form.player_notes.errors %}
                                 <div class="invalid-feedback">
                                     {{ onboarding_form.player_notes.errors[0] }}
@@ -568,27 +725,29 @@
             </div>
 
             <!-- Step 4: Discord Linking -->
-            <div class="carousel-item" data-step="4">
-                <div class="onboarding-content">
-                    <div class="section-header d-flex align-items-center mb-4">
-                        <div class="me-3 text-primary">
-                            <i class="fab fa-discord" style="font-size: 2.5rem;"></i>
+            <div class="c-onboarding-step carousel-item" data-component="onboarding-step" data-step="4">
+                <div class="c-onboarding-step__content">
+                    <div class="c-onboarding-step__header">
+                        <div class="c-onboarding-step__icon text-primary">
+                            <i class="fab fa-discord"></i>
                         </div>
-                        <div>
-                            <h4 class="fw-bold text-primary mb-1">Discord Integration</h4>
-                            <p class="text-muted mb-0">Connect with your team on Discord</p>
+                        <div class="c-onboarding-step__header-text">
+                            <h4 class="c-onboarding-step__heading fw-bold text-primary mb-1">Discord Integration</h4>
+                            <p class="c-onboarding-step__subheading text-muted mb-0">Connect with your team on Discord</p>
                         </div>
                     </div>
 
-                    <div class="card shadow-sm p-4 mb-4">
+                    <div class="c-onboarding-step__card c-card shadow-sm p-4 mb-4">
                         <div class="row align-items-center">
                             <div class="col-md-6 text-center mb-4 mb-md-0">
-                                <img src="{{ url_for('static', filename='img/discord-mark-black.svg') }}" alt="Discord" class="img-fluid mb-3" style="max-width: 150px;">
+                                <img src="{{ url_for('static', filename='img/discord-mark-black.svg') }}"
+                                     alt="Discord"
+                                     class="c-onboarding-step__discord-image">
                             </div>
                             <div class="col-md-6">
                                 {% if player.discord_id %}
-                                <div class="alert alert-success mb-4">
-                                    <div class="d-flex align-items-center">
+                                <div class="c-onboarding-step__alert alert alert-success mb-4" data-alert>
+                                    <div class="c-onboarding-step__alert-content">
                                         <i class="ti ti-check-circle me-2 fs-3"></i>
                                         <div>
                                             <h5 class="alert-heading mb-1">Discord Connected!</h5>
@@ -597,14 +756,15 @@
                                     </div>
                                 </div>
                                 {% else %}
-                                <h5 class="fw-bold mb-3">Why Connect Discord?</h5>
-                                <ul class="mb-4">
+                                <h5 class="c-onboarding-step__subheading fw-bold mb-3">Why Connect Discord?</h5>
+                                <ul class="c-onboarding-step__list mb-4">
                                     <li>Get match notifications directly in Discord</li>
                                     <li>Communicate easily with teammates and coaches</li>
                                     <li>Access team-specific channels and information</li>
                                     <li>Verify your identity for team servers</li>
                                 </ul>
-                                <a href="{{ url_for('auth.discord_login') }}" class="btn btn-lg btn-primary w-100">
+                                <a href="{{ url_for('auth.discord_login') }}"
+                                   class="c-onboarding-step__button c-onboarding-step__button--primary c-btn c-btn--lg c-btn--primary w-100">
                                     <i class="fab fa-discord me-2"></i> Connect Discord Account
                                 </a>
                                 {% endif %}
@@ -615,33 +775,33 @@
             </div>
 
             <!-- Step 5: Notification Settings -->
-            <div class="carousel-item" data-step="5">
-                <div class="onboarding-content">
-                    <div class="section-header d-flex align-items-center mb-4">
-                        <div class="me-3 text-primary">
-                            <i class="ti ti-bell" style="font-size: 2.5rem;"></i>
+            <div class="c-onboarding-step carousel-item" data-component="onboarding-step" data-step="5">
+                <div class="c-onboarding-step__content">
+                    <div class="c-onboarding-step__header">
+                        <div class="c-onboarding-step__icon text-primary">
+                            <i class="ti ti-bell"></i>
                         </div>
-                        <div>
-                            <h4 class="fw-bold text-primary mb-1">Communication Preferences</h4>
-                            <p class="text-muted mb-0">How would you like to be notified?</p>
+                        <div class="c-onboarding-step__header-text">
+                            <h4 class="c-onboarding-step__heading fw-bold text-primary mb-1">Communication Preferences</h4>
+                            <p class="c-onboarding-step__subheading text-muted mb-0">How would you like to be notified?</p>
                         </div>
                     </div>
 
-                    <div class="card shadow-sm p-4 mb-4">
-                        <div class="notification-group mb-4">
-                            <h5 class="fw-bold mb-3">Notification Channels</h5>
+                    <div class="c-onboarding-step__card c-card shadow-sm p-4 mb-4">
+                        <div class="c-notification-group mb-4">
+                            <h5 class="c-notification-group__heading fw-bold mb-3">Notification Channels</h5>
 
                             <!-- Email Notifications -->
-                            <div class="card mb-3 border">
-                                <div class="card-body">
-                                    <div class="form-check">
-                                        <label class="form-check-label fw-semibold d-flex align-items-start" for="emailNotifications">
-                                            {{ onboarding_form.email_notifications(class="form-check-input me-3 mt-1", id="emailNotifications") }}
-                                            <div>
-                                                <div class="d-flex align-items-center">
+                            <div class="c-notification-channel c-card mb-3 border">
+                                <div class="c-notification-channel__body c-card__body">
+                                    <div class="c-notification-channel__check form-check">
+                                        <label class="c-notification-channel__label form-check-label fw-semibold" for="emailNotifications">
+                                            {{ onboarding_form.email_notifications(class="c-notification-channel__input form-check-input", id="emailNotifications") }}
+                                            <div class="c-notification-channel__info">
+                                                <div class="c-notification-channel__title">
                                                     <i class="ti ti-mail me-2 text-primary"></i>Email Notifications
                                                 </div>
-                                                <p class="text-muted mb-0 small">Match schedules, team updates, and important announcements</p>
+                                                <p class="c-notification-channel__description text-muted mb-0 small">Match schedules, team updates, and important announcements</p>
                                             </div>
                                         </label>
                                     </div>
@@ -649,56 +809,82 @@
                             </div>
 
                             <!-- SMS Notifications -->
-                            <div class="card mb-3 border">
-                                <div class="card-body">
-                                    <div class="form-check">
-                                        <label class="form-check-label fw-semibold d-flex align-items-start" for="smsNotifications">
-                                            <input class="form-check-input me-3 mt-1" type="checkbox" id="smsNotifications" name="sms_notifications">
-                                            <div>
-                                                <div class="d-flex align-items-center">
+                            <div class="c-notification-channel c-card mb-3 border">
+                                <div class="c-notification-channel__body c-card__body">
+                                    <div class="c-notification-channel__check form-check">
+                                        <label class="c-notification-channel__label form-check-label fw-semibold" for="smsNotifications">
+                                            <input class="c-notification-channel__input form-check-input"
+                                                   type="checkbox"
+                                                   id="smsNotifications"
+                                                   name="sms_notifications"
+                                                   data-on-change="onboarding-toggle-sms">
+                                            <div class="c-notification-channel__info">
+                                                <div class="c-notification-channel__title">
                                                     <i class="ti ti-message me-2 text-primary"></i>SMS Notifications
                                                 </div>
-                                                <p class="text-muted mb-0 small">Game day reminders, last-minute changes, and quick RSVPs</p>
+                                                <p class="c-notification-channel__description text-muted mb-0 small">Game day reminders, last-minute changes, and quick RSVPs</p>
                                             </div>
                                         </label>
                                     </div>
 
                                     <!-- SMS Opt-in Section (Initially hidden) -->
-                                    <div id="smsOptInSection" class="mt-3" style="display: none;">
+                                    <div id="smsOptInSection" class="c-sms-optin u-hidden">
                                         <hr>
-                                        <div class="alert alert-light border p-3">
-                                            <h6 class="fw-bold">Verify Your Phone Number</h6>
-                                            <p class="small mb-3">We'll send a verification code to confirm your phone number.</p>
+                                        <div class="c-sms-optin__alert alert alert-light border p-3" data-alert>
+                                            <h6 class="c-sms-optin__heading fw-bold">Verify Your Phone Number</h6>
+                                            <p class="c-sms-optin__text small mb-3">We'll send a verification code to confirm your phone number.</p>
 
                                             <div class="row">
                                                 <div class="col-md-8 mb-2">
-                                                    <label for="phoneNumber" class="form-label small">Phone Number</label>
-                                                    <input type="tel" class="form-control" id="phoneNumber" name="phone_number" placeholder="(555) 555-5555">
+                                                    <label for="phoneNumber" class="c-sms-optin__label form-label small">Phone Number</label>
+                                                    <input type="tel"
+                                                           class="c-sms-optin__input form-control"
+                                                           id="phoneNumber"
+                                                           name="phone_number"
+                                                           placeholder="(555) 555-5555"
+                                                           data-form-control>
                                                 </div>
                                                 <div class="col-md-4 mb-2 d-flex align-items-end">
-                                                    <button type="button" id="sendVerificationCode" class="btn btn-primary w-100">Send Code</button>
+                                                    <button type="button"
+                                                            id="sendVerificationCode"
+                                                            class="c-sms-optin__button c-btn c-btn--primary w-100"
+                                                            data-action="send-verification-code">Send Code</button>
                                                 </div>
                                             </div>
 
-                                            <div class="form-check mb-3">
-                                                <input type="checkbox" class="form-check-input" id="smsConsent" name="sms_consent">
-                                                <label class="form-check-label small" for="smsConsent">
+                                            <div class="c-sms-optin__consent form-check mb-3">
+                                                <input type="checkbox"
+                                                       class="c-sms-optin__consent-input form-check-input"
+                                                       id="smsConsent"
+                                                       name="sms_consent">
+                                                <label class="c-sms-optin__consent-label form-check-label small" for="smsConsent">
                                                     I consent to receive SMS messages. Standard rates may apply.
                                                 </label>
                                             </div>
 
                                             <!-- Verification Code Input (Initially hidden) -->
-                                            <div id="verificationCodeSection" class="mt-3" style="display: none;">
+                                            <div id="verificationCodeSection" class="c-sms-verification u-hidden">
                                                 <div class="row">
                                                     <div class="col-md-8 mb-2">
-                                                        <label for="verificationCode" class="form-label small">Verification Code</label>
-                                                        <input type="text" class="form-control" id="verificationCode" name="verification_code" placeholder="Enter verification code">
+                                                        <label for="verificationCode" class="c-sms-verification__label form-label small">Verification Code</label>
+                                                        <input type="text"
+                                                               class="c-sms-verification__input form-control"
+                                                               id="verificationCode"
+                                                               name="verification_code"
+                                                               placeholder="Enter verification code"
+                                                               data-form-control>
                                                     </div>
                                                     <div class="col-md-4 mb-2 d-flex align-items-end">
-                                                        <button type="button" id="verifyCode" class="btn btn-success w-100">Verify</button>
+                                                        <button type="button"
+                                                                id="verifyCode"
+                                                                class="c-sms-verification__button c-btn c-btn--success w-100"
+                                                                data-action="verify-code">Verify</button>
                                                     </div>
                                                 </div>
-                                                <button type="button" id="resendCode" class="btn btn-link btn-sm p-0">Resend Code</button>
+                                                <button type="button"
+                                                        id="resendCode"
+                                                        class="c-sms-verification__resend c-btn c-btn--link c-btn--sm p-0"
+                                                        data-action="resend-code">Resend Code</button>
                                             </div>
                                         </div>
                                     </div>
@@ -706,16 +892,16 @@
                             </div>
 
                             <!-- Discord Notifications -->
-                            <div class="card mb-3 border">
-                                <div class="card-body">
-                                    <div class="form-check">
-                                        <label class="form-check-label fw-semibold d-flex align-items-start" for="discordNotifications">
-                                            {{ onboarding_form.discord_notifications(class="form-check-input me-3 mt-1", id="discordNotifications") }}
-                                            <div>
-                                                <div class="d-flex align-items-center">
+                            <div class="c-notification-channel c-card mb-3 border">
+                                <div class="c-notification-channel__body c-card__body">
+                                    <div class="c-notification-channel__check form-check">
+                                        <label class="c-notification-channel__label form-check-label fw-semibold" for="discordNotifications">
+                                            {{ onboarding_form.discord_notifications(class="c-notification-channel__input form-check-input", id="discordNotifications") }}
+                                            <div class="c-notification-channel__info">
+                                                <div class="c-notification-channel__title">
                                                     <i class="fab fa-discord me-2 text-primary"></i>Discord Notifications
                                                 </div>
-                                                <p class="text-muted mb-0 small">Get notified in Discord channels for team communications</p>
+                                                <p class="c-notification-channel__description text-muted mb-0 small">Get notified in Discord channels for team communications</p>
                                             </div>
                                         </label>
                                     </div>
@@ -723,17 +909,18 @@
                             </div>
                         </div>
 
-                        <div class="notification-group">
-                            <h5 class="fw-bold mb-3">Privacy Settings</h5>
+                        <div class="c-privacy-group">
+                            <h5 class="c-privacy-group__heading fw-bold mb-3">Privacy Settings</h5>
 
                             <!-- Profile Visibility -->
-                            <div class="card border">
-                                <div class="card-body">
-                                    <label for="{{ onboarding_form.profile_visibility.id }}" class="form-label fw-semibold">
+                            <div class="c-privacy-setting c-card border">
+                                <div class="c-privacy-setting__body c-card__body">
+                                    <label for="{{ onboarding_form.profile_visibility.id }}"
+                                           class="c-privacy-setting__label form-label fw-semibold">
                                         <i class="ti ti-eye me-2 text-primary"></i>Profile Visibility
                                     </label>
-                                    <p class="text-muted small mb-2">Control who can see your profile information</p>
-                                    {{ onboarding_form.profile_visibility(class="form-select select2-single") }}
+                                    <p class="c-privacy-setting__description text-muted small mb-2">Control who can see your profile information</p>
+                                    {{ onboarding_form.profile_visibility(class="c-privacy-setting__select form-select select2-single") }}
                                 </div>
                             </div>
                         </div>
@@ -742,125 +929,23 @@
             </div>
 
             <!-- Navigation Buttons -->
-            <div class="d-flex justify-content-between mt-3" id="carouselControls">
-                <button class="btn btn-lg btn-outline-secondary" type="button" data-bs-target="#modalCarouselControls" data-bs-slide="prev" id="previousButton">
+            <div class="c-onboarding-controls" id="carouselControls" data-component="onboarding-controls">
+                <button class="c-onboarding-controls__button c-onboarding-controls__button--previous c-btn c-btn--lg c-btn--outline-secondary"
+                        type="button"
+                        id="previousButton"
+                        data-action="onboarding-previous">
                     <i class="ti ti-chevron-left me-2"></i> Previous
                 </button>
-                <button class="btn btn-lg btn-primary" type="button" id="nextOrSaveButton" data-bs-target="#modalCarouselControls" data-bs-slide="next">
+                <button class="c-onboarding-controls__button c-onboarding-controls__button--next c-btn c-btn--lg c-btn--primary"
+                        type="button"
+                        id="nextOrSaveButton"
+                        data-action="onboarding-next">
                     Next <i class="ti ti-chevron-right ms-2"></i>
                 </button>
             </div>
         </div>
     </div>
 </form>
-
-<style>
-    /* Fix z-index for onboarding modal to be above everything */
-    #onboardingSlideModal {
-        z-index: 1080 !important;
-    }
-
-    /* Ensure modal backdrop is also higher z-index */
-    .modal-backdrop {
-        z-index: 1070 !important;
-    }
-
-    /* Fix content scrolling and layout */
-    .onboarding-content {
-        max-height: 60vh;
-        overflow-y: auto;
-        padding: 20px 25px;
-        margin-bottom: 80px; /* Make room for buttons */
-        scrollbar-width: thin;
-    }
-
-        .onboarding-content::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .onboarding-content::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        .onboarding-content::-webkit-scrollbar-thumb {
-            background: var(--bs-primary);
-            border-radius: 4px;
-        }
-
-    /* Fix button layout to prevent overlapping */
-    #carouselControls {
-        position: absolute;
-        bottom: 20px;
-        left: 20px;
-        right: 20px;
-        margin: 0;
-        padding: 10px 15px;
-        background: rgba(255, 255, 255, 0.95);
-        z-index: 10;
-        border-radius: 8px;
-        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
-    }
-
-    .form-label {
-        font-weight: 500;
-    }
-
-    .carousel-item {
-        transition: transform 0.5s ease, opacity 0.5s ease;
-        position: relative;
-        padding-bottom: 70px;
-    }
-
-    /* Highlight required fields */
-    .form-control:required,
-    .form-select:required {
-        border-left: 3px solid var(--bs-primary);
-    }
-
-    /* Improve section headers */
-    .section-header {
-        margin-bottom: 20px;
-        position: relative;
-        z-index: 1;
-    }
-
-    /* Modal dialog improvements */
-    .modal-lg {
-        max-width: 800px;
-    }
-
-    .modal-dialog-centered {
-        display: flex;
-        align-items: center;
-        min-height: calc(100% - 1rem);
-    }
-
-    /* Mobile improvements */
-    @media (max-width: 768px) {
-        .onboarding-content {
-            max-height: 55vh;
-            padding: 15px;
-            margin-bottom: 70px;
-        }
-
-        #carouselControls {
-            padding: 10px;
-            bottom: 15px;
-            left: 15px;
-            right: 15px;
-        }
-
-            #carouselControls .btn {
-                width: 100%;
-                padding: 8px 16px;
-                font-size: 1rem;
-            }
-
-        .carousel-item {
-            padding-bottom: 60px;
-        }
-    }
-</style>
 {% endmacro %}
 
 {% macro render_onboarding_modal(onboarding_form, player) %}
@@ -869,47 +954,77 @@
 {% endmacro %}
 
 {% macro render_sms_optin_modal() %}
-<div class="modal fade" id="smsOptInModal" tabindex="-1" aria-labelledby="smsOptInModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="smsOptInModalLabel">Enable SMS Notifications</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="c-sms-modal modal c-modal fade"
+     id="smsOptInModal"
+     tabindex="-1"
+     aria-labelledby="smsOptInModalLabel"
+     aria-hidden="true"
+     data-component="sms-modal"
+     data-modal>
+    <div class="c-sms-modal__dialog modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="c-sms-modal__content modal-content c-modal__content" data-modal-content>
+            <div class="c-sms-modal__header modal-header c-modal__header" data-modal-header>
+                <h5 class="c-sms-modal__title modal-title c-modal__title" id="smsOptInModalLabel">Enable SMS Notifications</h5>
+                <button type="button"
+                        class="c-sms-modal__close btn-close"
+                        data-bs-dismiss="modal"
+                        data-action="dismiss-modal"
+                        aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="c-sms-modal__body modal-body c-modal__body" data-modal-body>
                 <!-- Step 1: Consent and Phone Number -->
-                <div id="smsConsentStep">
-                    <p>By providing your phone number, you consent to receive SMS notifications from ECS FC, including match reminders, RSVP confirmations, and important club announcements. Message and data rates may apply. You can opt-out at any time by replying END to any message.</p>
-                    <form id="smsOptInForm">
+                <div id="smsConsentStep" class="c-sms-consent-step">
+                    <p class="c-sms-consent-step__text">By providing your phone number, you consent to receive SMS notifications from ECS FC, including match reminders, RSVP confirmations, and important club announcements. Message and data rates may apply. You can opt-out at any time by replying END to any message.</p>
+                    <form id="smsOptInForm" class="c-sms-consent-step__form" data-component="sms-optin-form">
                         <div class="mb-3">
-                            <label for="phoneNumber" class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control" id="phoneNumber" required>
+                            <label for="phoneNumber" class="c-sms-consent-step__label form-label">Phone Number</label>
+                            <input type="tel"
+                                   class="c-sms-consent-step__input form-control"
+                                   id="phoneNumber"
+                                   required
+                                   data-form-control>
                         </div>
                         <div class="mb-3 form-check">
-                            <input type="checkbox" class="form-check-input" id="smsConsent" required>
-                            <label class="form-check-label" for="smsConsent">I agree to receive SMS notifications</label>
+                            <input type="checkbox"
+                                   class="c-sms-consent-step__checkbox form-check-input"
+                                   id="smsConsent"
+                                   required>
+                            <label class="c-sms-consent-step__checkbox-label form-check-label" for="smsConsent">I agree to receive SMS notifications</label>
                         </div>
-                        <button type="submit" class="btn btn-primary">Send Verification Code</button>
+                        <button type="submit"
+                                class="c-sms-consent-step__button c-btn c-btn--primary"
+                                data-action="send-verification">Send Verification Code</button>
                     </form>
                 </div>
                 <!-- Step 2: Verification Code -->
-                <div id="smsVerificationStep" style="display: none;">
-                    <p>We sent a verification code to <span id="sentPhoneNumber"></span>. Please enter it below to confirm your opt-in.</p>
-                    <form id="smsVerificationForm">
+                <div id="smsVerificationStep" class="c-sms-verify-step u-hidden">
+                    <p class="c-sms-verify-step__text">We sent a verification code to <span id="sentPhoneNumber" class="c-sms-verify-step__phone"></span>. Please enter it below to confirm your opt-in.</p>
+                    <form id="smsVerificationForm" class="c-sms-verify-step__form" data-component="sms-verification-form">
                         <div class="mb-3">
-                            <label for="verificationCode" class="form-label">Verification Code</label>
-                            <input type="text" class="form-control" id="verificationCode" required>
+                            <label for="verificationCode" class="c-sms-verify-step__label form-label">Verification Code</label>
+                            <input type="text"
+                                   class="c-sms-verify-step__input form-control"
+                                   id="verificationCode"
+                                   required
+                                   data-form-control>
                         </div>
-                        <button type="submit" class="btn btn-primary">Verify & Enable SMS</button>
+                        <button type="submit"
+                                class="c-sms-verify-step__button c-btn c-btn--primary"
+                                data-action="verify-sms">Verify & Enable SMS</button>
                     </form>
-                    <button id="resendCodeBtn" class="btn btn-link" style="display: none;">Resend Verification Code</button>
+                    <button id="resendCodeBtn"
+                            class="c-sms-verify-step__resend c-btn c-btn--link u-hidden"
+                            data-action="resend-sms">Resend Verification Code</button>
                 </div>
                 <!-- Step 3: Confirmation -->
-                <div id="smsConfirmationStep" style="display: none;">
-                    <p>Congratulations! You've successfully opted in for SMS notifications from ECS FC.</p>
-                    <p>You'll now receive important updates like match reminders, RSVP confirmations, and club announcements via text message.</p>
-                    <p>Remember, you can opt-out at any time by replying END to any of our messages.</p>
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Got it!</button>
+                <div id="smsConfirmationStep" class="c-sms-confirm-step u-hidden">
+                    <p class="c-sms-confirm-step__text">Congratulations! You've successfully opted in for SMS notifications from ECS FC.</p>
+                    <p class="c-sms-confirm-step__text">You'll now receive important updates like match reminders, RSVP confirmations, and club announcements via text message.</p>
+                    <p class="c-sms-confirm-step__text">Remember, you can opt-out at any time by replying END to any of our messages.</p>
+                    <button type="button"
+                            class="c-sms-confirm-step__button c-btn c-btn--primary"
+                            data-bs-dismiss="modal"
+                            data-action="dismiss-modal">Got it!</button>
                 </div>
             </div>
         </div>
@@ -918,21 +1033,203 @@
 {% endmacro %}
 
 {% macro team_avatar(team, size='sm', css_classes='') %}
-{# 
+{#
     Renders a team avatar - either the uploaded kit image or a fallback with team initial
-    
+
     Args:
         team: Team object with name and kit_url properties
         size: Avatar size ('sm', 'md', 'lg', etc.) - defaults to 'sm'
         css_classes: Additional CSS classes to apply
 #}
 {% if team.kit_url %}
-    <div class="avatar avatar-{{ size }} {{ css_classes }} d-flex align-items-center justify-content-center">
-        <img src="{{ team.kit_url }}" alt="{{ team.name }} Kit" class="rounded-circle" style="width: 100%; height: 100%; object-fit: cover;">
+    <div class="c-team-avatar c-team-avatar--{{ size }} {{ css_classes }}"
+         data-component="team-avatar">
+        <img src="{{ team.kit_url }}"
+             alt="{{ team.name }} Kit"
+             class="c-team-avatar__image rounded-circle">
     </div>
 {% else %}
-    <div class="avatar avatar-{{ size }} {{ css_classes }} d-flex align-items-center justify-content-center">
-        <span class="team-initial text-white">{{ team.name[0] if team.name else '?' }}</span>
+    <div class="c-team-avatar c-team-avatar--{{ size }} c-team-avatar--fallback {{ css_classes }}"
+         data-component="team-avatar">
+        <span class="c-team-avatar__initial text-white">{{ team.name[0] if team.name else '?' }}</span>
     </div>
 {% endif %}
+{% endmacro %}
+
+
+{% macro player_avatar(player, size='md', show_online=true, link=true, css_classes='') %}
+{#
+    Renders a player avatar with optional online status indicator.
+
+    The online status is automatically updated by OnlineStatusManager.js which
+    looks for elements with data-online-status="<user_id>" attributes.
+
+    Args:
+        player: Player object with name, profile_picture_url, user_id properties
+        size: Avatar size ('sm', 'md', 'lg') - defaults to 'md'
+        show_online: Whether to show online status indicator - defaults to true
+        link: Whether to wrap in link to player profile - defaults to true
+        css_classes: Additional CSS classes to apply
+#}
+{% set avatar_url = player.profile_picture_url or url_for('static', filename='img/default_player.png') %}
+{% set player_name = player.name or 'Unknown Player' %}
+{% set user_id = player.user_id %}
+
+{% if link %}
+<a href="{{ url_for('players.player_profile', player_id=player.id) }}"
+   class="c-player-avatar-link"
+   title="{{ player_name }}">
+{% endif %}
+
+<div class="c-avatar-with-status c-avatar-with-status--{{ size }} {{ css_classes }}"
+     data-component="player-avatar">
+    <img src="{{ avatar_url }}"
+         alt="{{ player_name }}"
+         class="c-player-avatar c-player-avatar--{{ size }}">
+    {% if show_online and user_id %}
+    <span class="c-online-status is-offline"
+          data-online-status="{{ user_id }}"
+          title="Offline"
+          aria-label="User status"></span>
+    {% endif %}
+</div>
+
+{% if link %}
+</a>
+{% endif %}
+{% endmacro %}
+
+
+{% macro player_avatar_simple(image_url, name, user_id=none, size='md', show_online=true) %}
+{#
+    Renders a simple player avatar with online status - for cases where you don't have a full player object.
+
+    Args:
+        image_url: URL to the avatar image (or None for default)
+        name: Player name for alt text
+        user_id: User ID for online status tracking (optional)
+        size: Avatar size ('sm', 'md', 'lg') - defaults to 'md'
+        show_online: Whether to show online status indicator - defaults to true
+#}
+{% set avatar_url = image_url or url_for('static', filename='img/default_player.png') %}
+
+<div class="c-avatar-with-status c-avatar-with-status--{{ size }}"
+     data-component="player-avatar">
+    <img src="{{ avatar_url }}"
+         alt="{{ name }}"
+         class="c-player-avatar c-player-avatar--{{ size }}">
+    {% if show_online and user_id %}
+    <span class="c-online-status is-offline"
+          data-online-status="{{ user_id }}"
+          title="Offline"
+          aria-label="User status"></span>
+    {% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro toggle(name, id=none, checked=false, label=none, size=none, color=none, disabled=false, data_attrs=none) %}
+{#
+    Renders a standardized toggle switch component.
+    Uses hidden input + label pseudo-elements pattern for bulletproof styling.
+
+    Args:
+        name: Input name attribute (required)
+        id: Input id attribute (defaults to name if not provided)
+        checked: Whether toggle is checked/on (default: false)
+        label: Optional label text to display next to toggle
+        size: Size modifier ('sm', 'lg') or none for default
+        color: Color modifier ('primary', 'danger') or none for success (default)
+        disabled: Whether toggle is disabled (default: false)
+        data_attrs: Dictionary of data attributes to add (e.g., {'setting-key': 'my_key'})
+
+    Usage:
+        {{ macros.toggle('notifications', checked=true) }}
+        {{ macros.toggle('dark_mode', label='Dark Mode', checked=user.dark_mode) }}
+        {{ macros.toggle('danger_setting', color='danger', label='Delete All') }}
+        {{ macros.toggle('feature_flag', size='sm', data_attrs={'setting-key': 'feature_x'}) }}
+#}
+{% set input_id = id or name %}
+{% set size_class = 'c-toggle--' ~ size if size else '' %}
+{% set color_class = 'c-toggle--' ~ color if color else '' %}
+
+<div class="c-toggle {{ size_class }} {{ color_class }}">
+    <input class="c-toggle__input"
+           type="checkbox"
+           name="{{ name }}"
+           id="{{ input_id }}"
+           {% if checked %}checked{% endif %}
+           {% if disabled %}disabled{% endif %}
+           {% if data_attrs %}
+           {% for key, value in data_attrs.items() %}
+           data-{{ key }}="{{ value }}"
+           {% endfor %}
+           {% endif %}>
+    <label class="c-toggle__label" for="{{ input_id }}">
+        {% if label %}
+        <span class="c-toggle__text">{{ label }}</span>
+        {% endif %}
+    </label>
+</div>
+{% endmacro %}
+
+
+{% macro toggle_row(name, title, description=none, id=none, checked=false, size=none, color=none, disabled=false, data_attrs=none, icon=none) %}
+{#
+    Renders a full toggle row with title, optional description, and toggle.
+    Perfect for settings pages and feature toggles.
+
+    Args:
+        name: Input name attribute (required)
+        title: Title text displayed next to toggle (required)
+        description: Optional description text below title
+        id: Input id attribute (defaults to name if not provided)
+        checked: Whether toggle is checked/on (default: false)
+        size: Size modifier ('sm', 'lg') or none for default
+        color: Color modifier ('primary', 'danger') or none for success (default)
+        disabled: Whether toggle is disabled (default: false)
+        data_attrs: Dictionary of data attributes to add
+        icon: Optional Tabler icon name (e.g., 'bell', 'mail')
+
+    Usage:
+        {{ macros.toggle_row('email_notifications', 'Email Notifications',
+           description='Receive email alerts for new messages', checked=true) }}
+        {{ macros.toggle_row('feature_x', 'Feature X', icon='star',
+           data_attrs={'setting-key': 'feature_x'}) }}
+#}
+{% set input_id = id or name %}
+{% set size_class = 'c-toggle--' ~ size if size else '' %}
+{% set color_class = 'c-toggle--' ~ color if color else '' %}
+
+<div class="c-setting-row">
+    <div class="c-setting-row__info">
+        {% if icon %}
+        <div class="c-setting-row__icon">
+            <i class="ti ti-{{ icon }} c-setting-row__status-icon {% if checked %}c-setting-row__status-icon--enabled{% else %}c-setting-row__status-icon--disabled{% endif %}"></i>
+        </div>
+        {% endif %}
+        <div class="c-setting-row__content">
+            <h6 class="c-setting-row__title">{{ title }}</h6>
+            {% if description %}
+            <p class="c-setting-row__description">{{ description }}</p>
+            {% endif %}
+        </div>
+    </div>
+    <div class="c-setting-row__control">
+        <div class="c-toggle {{ size_class }} {{ color_class }}">
+            <input class="c-toggle__input"
+                   type="checkbox"
+                   name="{{ name }}"
+                   id="{{ input_id }}"
+                   {% if checked %}checked{% endif %}
+                   {% if disabled %}disabled{% endif %}
+                   {% if data_attrs %}
+                   {% for key, value in data_attrs.items() %}
+                   data-{{ key }}="{{ value }}"
+                   {% endfor %}
+                   {% endif %}>
+            <label class="c-toggle__label" for="{{ input_id }}"></label>
+        </div>
+    </div>
+</div>
 {% endmacro %}

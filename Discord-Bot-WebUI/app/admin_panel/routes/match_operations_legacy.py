@@ -897,11 +897,13 @@ def league_standings():
         return redirect(url_for('admin_panel.match_operations'))
 
 
-@admin_panel_bp.route('/match-operations/seasons')
-@login_required
-@role_required(['Global Admin', 'Pub League Admin'])
-def seasons():
-    """Manage seasons."""
+# DEPRECATED: Route moved to match_operations/seasons.py which redirects to league_management
+# This duplicate route registration has been disabled to avoid conflicts
+# @admin_panel_bp.route('/match-operations/seasons')
+# @login_required
+# @role_required(['Global Admin', 'Pub League Admin'])
+def _seasons_deprecated():
+    """DEPRECATED: Manage seasons."""
     try:
         from app.models import Season, League, Match
         
@@ -948,11 +950,13 @@ def seasons():
         return redirect(url_for('admin_panel.match_operations'))
 
 
-@admin_panel_bp.route('/match-operations/teams')
-@login_required
-@role_required(['Global Admin', 'Pub League Admin'])
-def manage_teams():
-    """Manage teams across all Pub League divisions (Premier, Classic, ECS FC)."""
+# DEPRECATED: Route moved to match_operations/teams.py which redirects to league_management
+# This duplicate route registration has been disabled to avoid conflicts
+# @admin_panel_bp.route('/match-operations/teams')
+# @login_required
+# @role_required(['Global Admin', 'Pub League Admin'])
+def _manage_teams_deprecated():
+    """DEPRECATED: Manage teams across all Pub League divisions (Premier, Classic, ECS FC)."""
     try:
         from app.models import Team, League, Player, Season
         from sqlalchemy import or_

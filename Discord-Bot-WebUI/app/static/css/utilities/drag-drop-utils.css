@@ -1,0 +1,156 @@
+/**
+ * DRAG AND DROP UTILITIES
+ * ========================
+ * Specialized utilities for drag-and-drop interactions in the auto-schedule wizard
+ *
+ * Classes:
+ * - Drag state utilities (.drag-*)
+ * - Drop indicator utilities (.drop-indicator-*)
+ * - Drop position utilities (.drop-position-*)
+ *
+ * Usage:
+ * - Applied dynamically during drag-and-drop operations
+ * - Support theme-aware drop indicators
+ * - Maintain visual feedback for users
+ */
+
+/* ============================================
+   DRAG STATE UTILITIES
+   ============================================ */
+
+/**
+ * Applied to element being dragged
+ */
+.drag-active {
+    opacity: 0.5 !important;
+}
+
+/**
+ * Remove drag styling (reset opacity)
+ */
+.drag-inactive {
+    opacity: 1 !important;
+}
+
+/* ============================================
+   DROP INDICATOR UTILITIES
+   ============================================ */
+
+/**
+ * Drop indicator for "drop above" position
+ * Uses theme-aware border color via CSS custom property
+ */
+.drop-indicator-top {
+    border-top: 3px solid var(--drop-indicator-color, #0d6efd) !important;
+}
+
+/**
+ * Drop indicator for "drop below" position
+ * Uses theme-aware border color via CSS custom property
+ */
+.drop-indicator-bottom {
+    border-bottom: 3px solid var(--drop-indicator-color, #0d6efd) !important;
+}
+
+/**
+ * Clear drop indicators (remove borders)
+ */
+.drop-indicator-clear {
+    border-top: none !important;
+    border-bottom: none !important;
+}
+
+/* ============================================
+   THEME-AWARE DROP INDICATORS
+   ============================================ */
+
+/**
+ * Set custom property for dynamic color support
+ * This allows JavaScript to set theme colors while using class-based styling
+ */
+[data-drop-color] {
+    --drop-indicator-color: attr(data-drop-color);
+}
+
+/* Dark mode adjustments */
+[data-style="dark"] .drop-indicator-top,
+[data-style="dark"] .drop-indicator-bottom {
+    --drop-indicator-color: #0d6efd;
+}
+
+/* ============================================
+   DROP POSITION DATA ATTRIBUTES
+   ============================================ */
+
+/**
+ * Visual feedback based on drop position data attribute
+ * Alternative to class-based approach when using data-drop-position
+ */
+[data-drop-position="before"] {
+    border-top: 3px solid var(--drop-indicator-color, #0d6efd) !important;
+}
+
+[data-drop-position="after"] {
+    border-bottom: 3px solid var(--drop-indicator-color, #0d6efd) !important;
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+
+/**
+ * Ensure drag handles are keyboard accessible
+ */
+.drag-handle {
+    cursor: move !important;
+    outline-offset: 2px !important;
+}
+
+.drag-handle:focus-visible {
+    outline: 2px solid #0d6efd !important;
+}
+
+/**
+ * Screen reader announcements for drag state
+ */
+.drag-active::after {
+    content: attr(aria-label) !important;
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+/* ============================================
+   DRAG IMAGE UTILITIES
+   ============================================ */
+
+/**
+ * Drag image transform - creates tilted effect
+ * Applied to cloned element during drag operation
+ */
+.drag-image-transform {
+    transform: rotate(3deg) scale(0.9) !important;
+}
+
+/**
+ * Drag image opacity - slightly transparent
+ * Makes dragged element appear floating
+ */
+.drag-image-opacity {
+    opacity: 0.9 !important;
+}
+
+/**
+ * Combined drag image utility for convenience
+ * Use this single class instead of separate transform + opacity
+ */
+.drag-image-preview {
+    transform: rotate(3deg) scale(0.9) !important;
+    opacity: 0.9 !important;
+}

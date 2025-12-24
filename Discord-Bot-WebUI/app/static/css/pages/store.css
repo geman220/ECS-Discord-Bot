@@ -1,0 +1,385 @@
+/* ============================================================================
+   STORE PAGES CSS
+   Wave 9 BEM Migration - Store Templates
+   ============================================================================ */
+
+/* ==========================================================================
+   PAGE HEADER COMPONENTS
+   ========================================================================== */
+
+.c-page-header {
+    margin-bottom: 2rem;
+}
+
+.c-page-header__content {
+    flex: 1;
+}
+
+.c-page-header__title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--ecs-primary, #696cff);
+    margin-bottom: 0.5rem;
+}
+
+.c-page-header__description {
+    color: var(--ecs-text-muted, #697a8d);
+    margin-bottom: 0;
+}
+
+.c-page-header--with-back {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.c-page-header__actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* ==========================================================================
+   ADMIN HEADER
+   ========================================================================== */
+
+.c-admin-header {
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.c-admin-header__content {
+    flex: 1;
+}
+
+.c-admin-header__title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--ecs-heading, #566a7f);
+    margin-bottom: 0.5rem;
+}
+
+.c-admin-header__description {
+    color: var(--ecs-text-muted, #697a8d);
+    margin-bottom: 0;
+}
+
+.c-admin-header__actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   ACTION BAR
+   ========================================================================== */
+
+.c-action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.c-action-bar__group {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   STORE ITEM COMPONENTS
+   ========================================================================== */
+
+.c-store-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.c-store-item__image {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: var(--ecs-border-radius, 0.375rem);
+    flex-shrink: 0;
+}
+
+.c-store-item__placeholder {
+    width: 50px;
+    height: 50px;
+    background-color: var(--ecs-neutral-5, #f8f9fa);
+    border-radius: var(--ecs-border-radius, 0.375rem);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ecs-text-muted, #697a8d);
+    flex-shrink: 0;
+}
+
+[data-style="dark"] .c-store-item__placeholder {
+    background-color: var(--ecs-dark-bg-card, #2b2c40);
+}
+
+.c-store-item__details {
+    flex: 1;
+    min-width: 0;
+}
+
+.c-store-item__name {
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+    color: var(--ecs-heading, #566a7f);
+}
+
+.c-store-item__description {
+    color: var(--ecs-text-muted, #697a8d);
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ==========================================================================
+   STORE CARD COMPONENTS (Product Cards)
+   ========================================================================== */
+
+.c-store-card__image {
+    height: 200px;
+    object-fit: contain;
+    background-color: var(--ecs-neutral-5, #f8f9fa);
+    padding: 1rem;
+}
+
+[data-style="dark"] .c-store-card__image {
+    background-color: var(--ecs-dark-bg-card, #2b2c40);
+}
+
+.c-store-card__placeholder {
+    height: 200px;
+    background-color: var(--ecs-neutral-5, #f8f9fa);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.c-store-card__placeholder i {
+    font-size: 3rem;
+    color: var(--ecs-text-muted, #697a8d);
+}
+
+[data-style="dark"] .c-store-card__placeholder {
+    background-color: var(--ecs-dark-bg-card, #2b2c40);
+}
+
+.c-store-card__title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--ecs-heading, #566a7f);
+}
+
+.c-store-card__actions {
+    margin-top: auto;
+}
+
+/* ==========================================================================
+   ORDER COMPONENTS
+   ========================================================================== */
+
+.c-orders-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    width: 100%;
+}
+
+.c-orders-header__title {
+    margin-bottom: 0;
+}
+
+.c-orders-header__actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.c-bulk-select {
+    width: auto;
+    min-width: 180px;
+}
+
+.c-order__id {
+    font-weight: 500;
+    color: var(--ecs-primary, #696cff);
+}
+
+.c-order__customer {
+    color: var(--ecs-text, #697a8d);
+}
+
+.c-order__item {
+    display: flex;
+    flex-direction: column;
+}
+
+.c-order__item-name {
+    font-weight: 500;
+    color: var(--ecs-heading, #566a7f);
+}
+
+.c-order__item-qty {
+    color: var(--ecs-text-muted, #697a8d);
+}
+
+.c-order__date {
+    color: var(--ecs-text, #697a8d);
+}
+
+.c-order__processor {
+    color: var(--ecs-text-muted, #697a8d);
+}
+
+.c-order__actions {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.c-order-status {
+    min-width: 150px;
+}
+
+/* ==========================================================================
+   ORDER FORM
+   ========================================================================== */
+
+.c-order-form {
+    width: 100%;
+}
+
+/* ==========================================================================
+   FORM COMPONENTS
+   ========================================================================== */
+
+.c-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+/* ==========================================================================
+   EMPTY STATE
+   ========================================================================== */
+
+.c-empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+}
+
+.c-empty-state__icon {
+    font-size: 4rem;
+    color: var(--ecs-text-muted, #697a8d);
+    margin-bottom: 1rem;
+}
+
+.c-empty-state__title {
+    font-size: 1.25rem;
+    color: var(--ecs-text-muted, #697a8d);
+    margin-bottom: 0.5rem;
+}
+
+.c-empty-state__description {
+    color: var(--ecs-text-muted, #697a8d);
+    margin-bottom: 1.5rem;
+}
+
+/* ==========================================================================
+   RESPONSIVE ADJUSTMENTS
+   ========================================================================== */
+
+@media (max-width: 767.98px) {
+    .c-admin-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .c-admin-header__actions {
+        width: 100%;
+    }
+
+    .c-page-header--with-back {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .c-page-header__actions {
+        width: 100%;
+    }
+
+    .c-orders-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .c-orders-header__actions {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .c-bulk-select {
+        width: 100%;
+    }
+
+    .c-store-item {
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: center;
+    }
+
+    .c-store-item__image,
+    .c-store-item__placeholder {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1;
+    }
+
+    .c-action-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .c-action-bar__group {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .c-action-bar__group .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .c-page-header__title,
+    .c-admin-header__title {
+        font-size: 1.5rem;
+    }
+
+    .c-order__actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .c-order__actions .btn {
+        width: 100%;
+    }
+}

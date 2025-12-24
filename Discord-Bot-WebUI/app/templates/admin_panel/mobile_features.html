@@ -8,299 +8,386 @@
 {% endblock %}
 
 {% block panel_content %}
-
+<div class="c-mobile-hub" data-component="mobile-hub">
     <!-- Mobile Features Overview -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ stats.total_app_installs or 0 }}</h5>
-                            <p class="card-text small opacity-75 mb-0">App Installs</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-download" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
+    <div class="c-mobile-stats" data-component="stats-grid">
+        <div class="c-mobile-stats__grid">
+            <div class="c-stat-card c-stat-card--primary" data-stat-card data-stat-type="installs">
+                <div class="c-stat-card__content">
+                    <div class="c-stat-card__value">{{ stats.total_app_installs or 0 }}</div>
+                    <div class="c-stat-card__label">App Installs</div>
+                </div>
+                <div class="c-stat-card__icon">
+                    <i class="ti ti-download"></i>
                 </div>
             </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ stats.mobile_users or 0 }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Mobile Users</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-device-mobile" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
+            <div class="c-stat-card c-stat-card--success" data-stat-card data-stat-type="users">
+                <div class="c-stat-card__content">
+                    <div class="c-stat-card__value">{{ stats.mobile_users or 0 }}</div>
+                    <div class="c-stat-card__label">Mobile Users</div>
+                </div>
+                <div class="c-stat-card__icon">
+                    <i class="ti ti-device-mobile"></i>
                 </div>
             </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ stats.push_subscriptions or 0 }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Push Subscriptions</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-bell" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
+            <div class="c-stat-card c-stat-card--warning" data-stat-card data-stat-type="subscriptions">
+                <div class="c-stat-card__content">
+                    <div class="c-stat-card__value">{{ stats.push_subscriptions or 0 }}</div>
+                    <div class="c-stat-card__label">Push Subscriptions</div>
+                </div>
+                <div class="c-stat-card__icon">
+                    <i class="ti ti-bell"></i>
                 </div>
             </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ stats.app_downloads or 0 }}</h5>
-                            <p class="card-text small opacity-75 mb-0">App Downloads</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-download" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
+            <div class="c-stat-card c-stat-card--info" data-stat-card data-stat-type="downloads">
+                <div class="c-stat-card__content">
+                    <div class="c-stat-card__value">{{ stats.app_downloads or 0 }}</div>
+                    <div class="c-stat-card__label">App Downloads</div>
+                </div>
+                <div class="c-stat-card__icon">
+                    <i class="ti ti-download"></i>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Mobile User & App Management -->
-    <div class="row mb-4">
-        <!-- Mobile User Management -->
-        <div class="col-md-6 mb-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-users me-2"></i>Mobile User Management
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <p>Manage users with mobile app access and their roles</p>
-                    <div class="list-group list-group-flush">
-                        <a href="{{ url_for('admin_panel.mobile_user_management') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-user-cog me-2"></i>Manage Mobile Users
-                                </div>
-                                <span class="badge bg-primary">{{ stats.mobile_users or 0 }}</span>
-                            </div>
-                        </a>
-                        <a href="{{ url_for('admin_panel.user_management') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-users-group me-2"></i>All User Management
-                                </div>
-                            </div>
-                        </a>
-                        <a href="{{ url_for('admin_panel.mobile_users') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-device-mobile me-2"></i>View Mobile Users
-                                </div>
-                                <span class="badge bg-success">{{ stats.active_mobile_users or 0 }}</span>
-                            </div>
-                        </a>
+    <div class="c-mobile-sections" data-component="sections-grid">
+        <div class="c-mobile-sections__grid">
+            <!-- Mobile User Management -->
+            <div class="c-card" data-card data-section="users">
+                <div class="c-card__header">
+                    <div class="c-card__title">
+                        <i class="ti ti-users c-card__title-icon c-card__title-icon--primary"></i>
+                        <span>Mobile User Management</span>
                     </div>
+                </div>
+                <div class="c-card__body">
+                    <p class="c-card__description">Manage users with mobile app access and their roles</p>
+                    <nav class="c-link-list" aria-label="Mobile user management">
+                        <a href="{{ url_for('admin_panel.mobile_user_management') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="manage-mobile-users">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-user-cog"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Manage Mobile Users</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <span class="c-badge c-badge--primary" data-badge data-count="{{ stats.mobile_users or 0 }}">{{ stats.mobile_users or 0 }}</span>
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.user_management') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="all-users">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-users-group"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">All User Management</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.mobile_users') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="view-mobile-users">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-device-mobile"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">View Mobile Users</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <span class="c-badge c-badge--success" data-badge data-count="{{ stats.active_mobile_users or 0 }}">{{ stats.active_mobile_users or 0 }}</span>
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                    </nav>
                 </div>
             </div>
-        </div>
 
-        <!-- Mobile App Settings -->
-        <div class="col-md-6 mb-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-device-mobile me-2"></i>Mobile App Settings
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <p>Configure mobile app features and functionality</p>
-                    <div class="list-group list-group-flush">
-                        <a href="{{ url_for('admin_panel.mobile_config') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-settings-cog me-2"></i>App Configuration
-                                </div>
-                                <i class="ti ti-chevron-right"></i>
-                            </div>
-                        </a>
-                        <a href="{{ url_for('admin_panel.mobile_app_distribution') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-app-window me-2"></i>App Distribution
-                                </div>
-                                <i class="ti ti-chevron-right"></i>
-                            </div>
-                        </a>
-                        <a href="{{ url_for('admin_panel.mobile_features_toggle') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-toggle-left me-2"></i>Feature Toggles
-                                </div>
-                                <i class="ti ti-chevron-right"></i>
-                            </div>
-                        </a>
+            <!-- Mobile App Settings -->
+            <div class="c-card" data-card data-section="app-settings">
+                <div class="c-card__header">
+                    <div class="c-card__title">
+                        <i class="ti ti-device-mobile c-card__title-icon c-card__title-icon--success"></i>
+                        <span>Mobile App Settings</span>
                     </div>
+                </div>
+                <div class="c-card__body">
+                    <p class="c-card__description">Configure mobile app features and functionality</p>
+                    <nav class="c-link-list" aria-label="Mobile app settings">
+                        <a href="{{ url_for('admin_panel.mobile_config') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="app-configuration">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-settings-cog"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">App Configuration</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.mobile_app_distribution') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="app-distribution">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-app-window"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">App Distribution</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.mobile_features_toggle') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="feature-toggles">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-toggle-left"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Feature Toggles</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                    </nav>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Push Notifications & Analytics -->
-    <div class="row">
-        <!-- Push Notification Management -->
-        <div class="col-md-6 mb-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-bell me-2"></i>Push Notifications
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <p>Manage mobile push notification campaigns</p>
-                    <div class="list-group list-group-flush">
-                        <a href="{{ url_for('admin_panel.push_notifications') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-send me-2"></i>Send Notification
-                                </div>
-                                <i class="ti ti-chevron-right"></i>
-                            </div>
-                        </a>
-                        <a href="{{ url_for('admin_panel.notification_groups_list') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-users-group me-2"></i>Notification Groups
-                                </div>
-                                <i class="ti ti-chevron-right"></i>
-                            </div>
-                        </a>
-                        <a href="{{ url_for('admin_panel.campaigns_list') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-broadcast me-2"></i>Push Campaigns
-                                </div>
-                                <i class="ti ti-chevron-right"></i>
-                            </div>
-                        </a>
-                        <a href="{{ url_for('admin_panel.push_subscriptions') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-users me-2"></i>Subscriptions
-                                </div>
-                                <span class="badge bg-warning">{{ stats.push_subscriptions or 0 }}</span>
-                            </div>
-                        </a>
-                        <a href="{{ url_for('admin_panel.push_history') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-history me-2"></i>Notification History
-                                </div>
-                                <i class="ti ti-chevron-right"></i>
-                            </div>
-                        </a>
+    <div class="c-mobile-sections" data-component="sections-grid">
+        <div class="c-mobile-sections__grid">
+            <!-- Push Notification Management -->
+            <div class="c-card" data-card data-section="push">
+                <div class="c-card__header">
+                    <div class="c-card__title">
+                        <i class="ti ti-bell c-card__title-icon c-card__title-icon--warning"></i>
+                        <span>Push Notifications</span>
                     </div>
+                </div>
+                <div class="c-card__body">
+                    <p class="c-card__description">Manage mobile push notification campaigns</p>
+                    <nav class="c-link-list" aria-label="Push notification management">
+                        <a href="{{ url_for('admin_panel.push_notifications') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="send-notification">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-send"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Send Notification</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.notification_groups_list') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="notification-groups">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-users-group"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Notification Groups</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.campaigns_list') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="push-campaigns">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-broadcast"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Push Campaigns</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.push_subscriptions') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="subscriptions">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-users"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Subscriptions</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <span class="c-badge c-badge--warning" data-badge data-count="{{ stats.push_subscriptions or 0 }}">{{ stats.push_subscriptions or 0 }}</span>
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.push_history') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="notification-history">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-history"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Notification History</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                    </nav>
                 </div>
             </div>
-        </div>
 
-        <!-- Mobile Analytics -->
-        <div class="col-md-6 mb-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-chart-line me-2"></i>Mobile Analytics
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <p>Track mobile app performance and user engagement</p>
-                    <div class="list-group list-group-flush">
-                        <a href="{{ url_for('admin_panel.mobile_analytics') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-chart-dots me-2"></i>Usage Analytics
-                                </div>
-                                <i class="ti ti-chevron-right"></i>
-                            </div>
-                        </a>
-                        <a href="{{ url_for('admin_panel.mobile_app_analytics') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-chart-bar me-2"></i>App Analytics
-                                </div>
-                                <i class="ti ti-chevron-right"></i>
-                            </div>
-                        </a>
-                        <div class="list-group-item">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-download me-2"></i>App Downloads
-                                </div>
-                                <span class="badge bg-info">{{ stats.app_downloads or 0 }}</span>
-                            </div>
-                        </div>
-                        <div class="list-group-item">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-users me-2"></i>Active Mobile Users
-                                </div>
-                                <span class="badge bg-success">{{ stats.active_mobile_users or 0 }}</span>
-                            </div>
-                        </div>
+            <!-- Mobile Analytics -->
+            <div class="c-card" data-card data-section="analytics">
+                <div class="c-card__header">
+                    <div class="c-card__title">
+                        <i class="ti ti-chart-line c-card__title-icon c-card__title-icon--info"></i>
+                        <span>Mobile Analytics</span>
                     </div>
+                </div>
+                <div class="c-card__body">
+                    <p class="c-card__description">Track mobile app performance and user engagement</p>
+                    <nav class="c-link-list" aria-label="Mobile analytics">
+                        <a href="{{ url_for('admin_panel.mobile_analytics') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="usage-analytics">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-chart-dots"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Usage Analytics</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.mobile_app_analytics') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="app-analytics">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-chart-bar"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">App Analytics</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                        <div class="c-link-list__item" data-list-item data-item-type="status">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-download"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">App Downloads</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <span class="c-badge c-badge--info" data-badge data-count="{{ stats.app_downloads or 0 }}">{{ stats.app_downloads or 0 }}</span>
+                            </div>
+                        </div>
+                        <div class="c-link-list__item" data-list-item data-item-type="status">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-users"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Active Mobile Users</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <span class="c-badge c-badge--success" data-badge data-count="{{ stats.active_mobile_users or 0 }}">{{ stats.active_mobile_users or 0 }}</span>
+                            </div>
+                        </div>
+                    </nav>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Mobile Status & Configuration -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-device-mobile me-2"></i>Mobile Platform Status
-                    </h5>
+    <div class="c-mobile-status" data-component="status-panel">
+        <div class="c-card" data-card data-section="status">
+            <div class="c-card__header">
+                <div class="c-card__title">
+                    <i class="ti ti-device-mobile c-card__title-icon c-card__title-icon--primary"></i>
+                    <span>Mobile Platform Status</span>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="text-center p-3 border-end">
-                                <div class="h4 mb-1 text-{% if stats.mobile_service_status == 'active' %}success{% else %}danger{% endif %}">
-                                    {% if stats.mobile_service_status == 'active' %}Online{% else %}Offline{% endif %}
-                                </div>
-                                <div class="text-muted small">Mobile Service</div>
-                            </div>
+            </div>
+            <div class="c-card__body">
+                <div class="c-mobile-status__grid">
+                    <div class="c-mobile-status__item" data-status-item data-type="service">
+                        <div class="c-mobile-status__value c-mobile-status__value--{% if stats.mobile_service_status == 'active' %}success{% else %}danger{% endif %}">
+                            {% if stats.mobile_service_status == 'active' %}Online{% else %}Offline{% endif %}
                         </div>
-                        <div class="col-md-3">
-                            <div class="text-center p-3 border-end">
-                                <div class="h4 mb-1 text-{% if stats.push_service_status == 'active' %}success{% else %}danger{% endif %}">
-                                    {% if stats.push_service_status == 'active' %}Active{% else %}Inactive{% endif %}
-                                </div>
-                                <div class="text-muted small">Push Service</div>
-                            </div>
+                        <div class="c-mobile-status__label">Mobile Service</div>
+                    </div>
+                    <div class="c-mobile-status__item" data-status-item data-type="push">
+                        <div class="c-mobile-status__value c-mobile-status__value--{% if stats.push_service_status == 'active' %}success{% else %}danger{% endif %}">
+                            {% if stats.push_service_status == 'active' %}Active{% else %}Inactive{% endif %}
                         </div>
-                        <div class="col-md-3">
-                            <div class="text-center p-3 border-end">
-                                <div class="h4 mb-1 text-info">{{ stats.mobile_app_version or 'v1.0.0' }}</div>
-                                <div class="text-muted small">App Version</div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="text-center p-3">
-                                <div class="h4 mb-1 text-primary">{{ stats.last_updated or 'Recently' }}</div>
-                                <div class="text-muted small">Last Updated</div>
-                            </div>
-                        </div>
+                        <div class="c-mobile-status__label">Push Service</div>
+                    </div>
+                    <div class="c-mobile-status__item" data-status-item data-type="version">
+                        <div class="c-mobile-status__value c-mobile-status__value--info">{{ stats.mobile_app_version or 'v1.0.0' }}</div>
+                        <div class="c-mobile-status__label">App Version</div>
+                    </div>
+                    <div class="c-mobile-status__item" data-status-item data-type="updated">
+                        <div class="c-mobile-status__value c-mobile-status__value--primary">{{ stats.last_updated or 'Recently' }}</div>
+                        <div class="c-mobile-status__label">Last Updated</div>
                     </div>
                 </div>
             </div>
@@ -308,113 +395,83 @@
     </div>
 
     <!-- Information Alert -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="alert alert-info border-0" style="background: linear-gradient(135deg, rgba(0, 123, 255, 0.1) 0%, rgba(0, 123, 255, 0.05) 100%);">
-                <h6 class="alert-heading mb-2"><i class="ti ti-info-circle me-2"></i>Mobile App Status Information</h6>
-                <p class="mb-2 small">
+    <div class="c-mobile-info" data-component="info-alert">
+        <div class="c-alert c-alert--info">
+            <div class="c-alert__icon">
+                <i class="ti ti-info-circle"></i>
+            </div>
+            <div class="c-alert__content">
+                <h6 class="c-alert__title">Mobile App Status Information</h6>
+                <p class="c-alert__text">
                     <strong>Mobile Service Status</strong> reflects whether the mobile app is configured and enabled in Admin Settings.
                     <strong>Push Service Status</strong> shows if push notifications are enabled.
                 </p>
-                <div class="row small">
-                    <div class="col-md-4">
-                        <strong>If "Offline":</strong>
-                        <ul class="mb-0 ps-3">
-                            <li>Check Admin Config for <code>mobile_app_enabled</code></li>
-                            <li>Verify API endpoints are accessible</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-4">
-                        <strong>If "Inactive":</strong>
-                        <ul class="mb-0 ps-3">
-                            <li>Enable <code>push_notifications_enabled</code></li>
-                            <li>Configure Firebase/APNS keys</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-4">
-                        <strong>Mobile App (In Development):</strong>
-                        <ul class="mb-0 ps-3">
-                            <li>iOS &amp; Android apps in progress</li>
-                            <li>Contact tech team for API docs</li>
-                        </ul>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
 
-    <!-- Mobile API Documentation Link -->
-    <div class="row mt-3">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-api me-2"></i>Mobile API Documentation
-                    </h5>
+    <!-- Mobile API Documentation -->
+    <div class="c-mobile-api" data-component="api-docs">
+        <div class="c-card" data-card data-section="api">
+            <div class="c-card__header">
+                <div class="c-card__title">
+                    <i class="ti ti-api c-card__title-icon c-card__title-icon--success"></i>
+                    <span>Mobile API Documentation</span>
                 </div>
-                <div class="card-body">
-                    <p class="text-muted mb-3">
-                        The following API endpoints are available for mobile app integration. Share this with the mobile development team.
-                    </p>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-bordered">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Endpoint</th>
-                                    <th>Method</th>
-                                    <th>Description</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><code>/api/mobile/auth/login</code></td>
-                                    <td><span class="badge bg-success">POST</span></td>
-                                    <td>User authentication</td>
-                                </tr>
-                                <tr>
-                                    <td><code>/api/mobile/user/profile</code></td>
-                                    <td><span class="badge bg-primary">GET</span></td>
-                                    <td>Get user profile data</td>
-                                </tr>
-                                <tr>
-                                    <td><code>/api/mobile/matches</code></td>
-                                    <td><span class="badge bg-primary">GET</span></td>
-                                    <td>Get matches for user's team</td>
-                                </tr>
-                                <tr>
-                                    <td><code>/api/mobile/push/register</code></td>
-                                    <td><span class="badge bg-success">POST</span></td>
-                                    <td>Register device for push notifications</td>
-                                </tr>
-                                <tr>
-                                    <td><code>/api/mobile/notifications</code></td>
-                                    <td><span class="badge bg-primary">GET</span></td>
-                                    <td>Get user notifications</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <p class="text-muted small mb-0 mt-2">
-                        <i class="ti ti-info-circle me-1"></i>
-                        Full API documentation available at <code>/api/docs</code> (if enabled) or contact tech support for Swagger/OpenAPI spec.
-                    </p>
+            </div>
+            <div class="c-card__body">
+                <p class="c-card__description">
+                    The following API endpoints are available for mobile app integration. Share this with the mobile development team.
+                </p>
+                <div class="c-table-wrapper" data-table-wrapper>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead class="c-table__head">
+                            <tr class="c-table__row">
+                                <th class="c-table__header">Endpoint</th>
+                                <th class="c-table__header">Method</th>
+                                <th class="c-table__header">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody class="c-table__body">
+                            <tr class="c-table__row">
+                                <td class="c-table__cell"><code>/api/mobile/auth/login</code></td>
+                                <td class="c-table__cell"><span class="c-badge c-badge--success" data-badge>POST</span></td>
+                                <td class="c-table__cell">User authentication</td>
+                            </tr>
+                            <tr class="c-table__row">
+                                <td class="c-table__cell"><code>/api/mobile/user/profile</code></td>
+                                <td class="c-table__cell"><span class="c-badge c-badge--primary" data-badge>GET</span></td>
+                                <td class="c-table__cell">Get user profile data</td>
+                            </tr>
+                            <tr class="c-table__row">
+                                <td class="c-table__cell"><code>/api/mobile/matches</code></td>
+                                <td class="c-table__cell"><span class="c-badge c-badge--primary" data-badge>GET</span></td>
+                                <td class="c-table__cell">Get matches for user's team</td>
+                            </tr>
+                            <tr class="c-table__row">
+                                <td class="c-table__cell"><code>/api/mobile/push/register</code></td>
+                                <td class="c-table__cell"><span class="c-badge c-badge--success" data-badge>POST</span></td>
+                                <td class="c-table__cell">Register device for push notifications</td>
+                            </tr>
+                            <tr class="c-table__row">
+                                <td class="c-table__cell"><code>/api/mobile/notifications</code></td>
+                                <td class="c-table__cell"><span class="c-badge c-badge--primary" data-badge>GET</span></td>
+                                <td class="c-table__cell">Get user notifications</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
+                <p class="c-mobile-api__note">
+                    <i class="ti ti-info-circle"></i>
+                    Full API documentation available at <code>/api/docs</code> (if enabled) or contact tech support for Swagger/OpenAPI spec.
+                </p>
             </div>
         </div>
     </div>
+</div>
 {% endblock %}
 
 {% block custom_css %}
 {{ super() }}
-<style>
-{# Shared component styles (card-icon, status-indicator, list-group dark mode) are in foundation-overrides.css #}
-
-/* Page-specific: Mobile responsive border adjustments */
-@media (max-width: 768px) {
-    .border-end {
-        border-right: none !important;
-        border-bottom: 1px solid var(--bs-border-color) !important;
-    }
-}
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin-panel/mobile-features.css') }}">
 {% endblock %}

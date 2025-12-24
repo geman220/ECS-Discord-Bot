@@ -1,0 +1,646 @@
+/**
+ * INTERACTION UTILITIES
+ * =====================
+ * Cursor, pointer-events, user-select, touch-action utilities
+ *
+ * Classes:
+ * - Cursor utilities (.cursor-*)
+ * - Pointer events (.pointer-events-*)
+ * - User select (.user-select-*)
+ * - Touch action (.touch-action-*)
+ * - Resize utilities
+ * - Input utilities
+ *
+ * Usage:
+ * - Control user interaction behavior
+ * - Manage selection and dragging
+ * - Support touch and pointer devices
+ * - Enhance accessibility
+ */
+
+/* ============================================
+   CURSOR UTILITIES
+   ============================================ */
+
+.cursor-auto {
+    cursor: auto !important;
+}
+
+.cursor-default {
+    cursor: default !important;
+}
+
+.cursor-pointer {
+    cursor: pointer !important;
+}
+
+.cursor-wait {
+    cursor: wait !important;
+}
+
+.cursor-text {
+    cursor: text !important;
+}
+
+.cursor-move {
+    cursor: move !important;
+}
+
+.cursor-help {
+    cursor: help !important;
+}
+
+.cursor-not-allowed {
+    cursor: not-allowed !important;
+}
+
+.cursor-none {
+    cursor: none !important;
+}
+
+.cursor-context-menu {
+    cursor: context-menu !important;
+}
+
+.cursor-progress {
+    cursor: progress !important;
+}
+
+.cursor-cell {
+    cursor: cell !important;
+}
+
+.cursor-crosshair {
+    cursor: crosshair !important;
+}
+
+.cursor-vertical-text {
+    cursor: vertical-text !important;
+}
+
+.cursor-alias {
+    cursor: alias !important;
+}
+
+.cursor-copy {
+    cursor: copy !important;
+}
+
+.cursor-no-drop {
+    cursor: no-drop !important;
+}
+
+/* Directional resize cursors */
+.cursor-e-resize {
+    cursor: e-resize !important;
+}
+
+.cursor-n-resize {
+    cursor: n-resize !important;
+}
+
+.cursor-ne-resize {
+    cursor: ne-resize !important;
+}
+
+.cursor-nw-resize {
+    cursor: nw-resize !important;
+}
+
+.cursor-s-resize {
+    cursor: s-resize !important;
+}
+
+.cursor-se-resize {
+    cursor: se-resize !important;
+}
+
+.cursor-sw-resize {
+    cursor: sw-resize !important;
+}
+
+.cursor-w-resize {
+    cursor: w-resize !important;
+}
+
+.cursor-ew-resize {
+    cursor: ew-resize !important;
+}
+
+.cursor-ns-resize {
+    cursor: ns-resize !important;
+}
+
+.cursor-nesw-resize {
+    cursor: nesw-resize !important;
+}
+
+.cursor-nwse-resize {
+    cursor: nwse-resize !important;
+}
+
+.cursor-col-resize {
+    cursor: col-resize !important;
+}
+
+.cursor-row-resize {
+    cursor: row-resize !important;
+}
+
+.cursor-all-scroll {
+    cursor: all-scroll !important;
+}
+
+/* Zoom cursors */
+.cursor-zoom-in {
+    cursor: zoom-in !important;
+}
+
+.cursor-zoom-out {
+    cursor: zoom-out !important;
+}
+
+/* Grab cursors */
+.cursor-grab {
+    cursor: grab !important;
+}
+
+.cursor-grabbing {
+    cursor: grabbing !important;
+}
+
+/* Cursor on hover */
+.hover-cursor-pointer:hover {
+    cursor: pointer !important;
+}
+
+.hover-cursor-move:hover {
+    cursor: move !important;
+}
+
+.hover-cursor-grab:hover {
+    cursor: grab !important;
+}
+
+/* ============================================
+   POINTER EVENTS UTILITIES
+   ============================================ */
+
+.pointer-events-auto {
+    pointer-events: auto !important;
+}
+
+.pointer-events-none {
+    pointer-events: none !important;
+}
+
+.pointer-events-all {
+    pointer-events: all !important;
+}
+
+/**
+ * Allow pointer events on children only
+ */
+.pointer-events-children-only {
+    pointer-events: none !important;
+}
+
+.pointer-events-children-only > * {
+    pointer-events: auto !important;
+}
+
+/* ============================================
+   USER SELECT UTILITIES
+   ============================================ */
+
+.user-select-auto {
+    -webkit-user-select: auto !important;
+    -moz-user-select: auto !important;
+    -ms-user-select: auto !important;
+    user-select: auto !important;
+}
+
+.user-select-none {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+}
+
+.user-select-text {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+}
+
+.user-select-all {
+    -webkit-user-select: all !important;
+    -moz-user-select: all !important;
+    -ms-user-select: all !important;
+    user-select: all !important;
+}
+
+/* ============================================
+   TOUCH ACTION UTILITIES
+   ============================================ */
+
+.touch-action-auto {
+    touch-action: auto !important;
+}
+
+.touch-action-none {
+    touch-action: none !important;
+}
+
+.touch-action-pan-x {
+    touch-action: pan-x !important;
+}
+
+.touch-action-pan-y {
+    touch-action: pan-y !important;
+}
+
+/* Note: pan-left, pan-right, pan-up, pan-down are not valid touch-action values
+   Valid values: auto, none, pan-x, pan-y, manipulation, pinch-zoom
+   Use pan-x for horizontal panning, pan-y for vertical panning */
+
+.touch-action-pinch-zoom {
+    touch-action: pinch-zoom !important;
+}
+
+.touch-action-manipulation {
+    touch-action: manipulation !important;
+}
+
+/* ============================================
+   RESIZE UTILITIES
+   ============================================ */
+
+.resize-none {
+    resize: none !important;
+}
+
+.resize-both {
+    resize: both !important;
+}
+
+.resize-horizontal {
+    resize: horizontal !important;
+}
+
+.resize-vertical {
+    resize: vertical !important;
+}
+
+/* ============================================
+   APPEARANCE UTILITIES
+   ============================================ */
+
+.appearance-none {
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+}
+
+.appearance-auto {
+    -webkit-appearance: auto !important;
+    -moz-appearance: auto !important;
+    appearance: auto !important;
+}
+
+/* ============================================
+   CARET COLOR UTILITIES
+   ============================================ */
+
+.caret-transparent {
+    caret-color: transparent !important;
+}
+
+.caret-current {
+    caret-color: currentColor !important;
+}
+
+.caret-primary {
+    caret-color: #0d6efd !important;
+}
+
+.caret-success {
+    caret-color: #198754 !important;
+}
+
+.caret-danger {
+    caret-color: #dc3545 !important;
+}
+
+.caret-warning {
+    caret-color: #ffc107 !important;
+}
+
+.caret-info {
+    caret-color: #0dcaf0 !important;
+}
+
+/* ============================================
+   OUTLINE UTILITIES
+   ============================================ */
+
+.outline-none {
+    outline: none !important;
+}
+
+.outline-0 {
+    outline: 0 !important;
+}
+
+.outline-dashed {
+    outline-style: dashed !important;
+}
+
+.outline-dotted {
+    outline-style: dotted !important;
+}
+
+.outline-solid {
+    outline-style: solid !important;
+}
+
+/* ============================================
+   TAB INDEX UTILITIES
+   ============================================ */
+
+/**
+ * Force keyboard focusable
+ */
+.focusable {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    user-select: none !important;
+}
+
+.focusable:focus {
+    outline: 2px solid #0d6efd !important;
+    outline-offset: 2px !important;
+}
+
+/**
+ * Not keyboard focusable
+ */
+.not-focusable {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    user-select: none !important;
+}
+
+.not-focusable:focus {
+    outline: none !important;
+}
+
+/* ============================================
+   SCROLL BEHAVIOR UTILITIES
+   ============================================ */
+
+.scroll-smooth {
+    scroll-behavior: smooth !important;
+}
+
+.scroll-auto {
+    scroll-behavior: auto !important;
+}
+
+/* ============================================
+   DRAG AND DROP UTILITIES
+   ============================================ */
+
+.draggable {
+    cursor: move !important;
+    -webkit-user-drag: element !important;
+    -khtml-user-drag: element !important;
+    -moz-user-drag: element !important;
+    -o-user-drag: element !important;
+    user-drag: element !important;
+}
+
+.not-draggable {
+    -webkit-user-drag: none !important;
+    -khtml-user-drag: none !important;
+    -moz-user-drag: none !important;
+    -o-user-drag: none !important;
+    user-drag: none !important;
+}
+
+/* ============================================
+   INPUT INTERACTION UTILITIES
+   ============================================ */
+
+/**
+ * Prevent input spin buttons (number inputs)
+ */
+.no-spin-buttons::-webkit-outer-spin-button,
+.no-spin-buttons::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+}
+
+.no-spin-buttons[type=number] {
+    -moz-appearance: textfield !important;
+}
+
+/**
+ * Prevent input clear button
+ */
+.no-clear-button::-ms-clear,
+.no-clear-button::-webkit-search-cancel-button {
+    display: none !important;
+}
+
+/**
+ * Prevent autocomplete styling
+ */
+.no-autocomplete-style:-webkit-autofill,
+.no-autocomplete-style:-webkit-autofill:hover,
+.no-autocomplete-style:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px white inset !important;
+    -webkit-text-fill-color: inherit !important;
+}
+
+[data-style="dark"] .no-autocomplete-style:-webkit-autofill,
+[data-style="dark"] .no-autocomplete-style:-webkit-autofill:hover,
+[data-style="dark"] .no-autocomplete-style:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px #212529 inset !important;
+}
+
+/* ============================================
+   PLACEHOLDER UTILITIES
+   ============================================ */
+
+.placeholder-transparent::placeholder {
+    color: transparent !important;
+}
+
+.placeholder-shown:placeholder-shown {
+    border-color: #ced4da !important;
+}
+
+/* ============================================
+   SELECTION UTILITIES
+   ============================================ */
+
+.selection-none::selection {
+    background: transparent !important;
+    color: inherit !important;
+}
+
+.selection-primary::selection {
+    background: rgba(13, 110, 253, 0.3) !important;
+    color: inherit !important;
+}
+
+.selection-success::selection {
+    background: rgba(25, 135, 84, 0.3) !important;
+    color: inherit !important;
+}
+
+.selection-danger::selection {
+    background: rgba(220, 53, 69, 0.3) !important;
+    color: inherit !important;
+}
+
+/* ============================================
+   CLICK INTERACTION UTILITIES
+   ============================================ */
+
+/**
+ * Active state on click
+ */
+.clickable {
+    cursor: pointer !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    user-select: none !important;
+    transition: transform 0.1s ease-in-out !important;
+}
+
+.clickable:active {
+    transform: scale(0.98) !important;
+}
+
+/**
+ * Prevent double-tap zoom on mobile
+ */
+.no-double-tap-zoom {
+    touch-action: manipulation !important;
+}
+
+/* ============================================
+   KEYBOARD INTERACTION UTILITIES
+   ============================================ */
+
+/**
+ * Show focus only on keyboard navigation
+ */
+.keyboard-focus:focus:not(:focus-visible) {
+    outline: none !important;
+}
+
+.keyboard-focus:focus-visible {
+    outline: 2px solid #0d6efd !important;
+    outline-offset: 2px !important;
+}
+
+/* ============================================
+   INTERACTION STATE COMBINATIONS
+   ============================================ */
+
+/**
+ * Interactive element (combines cursor, select, and tap behavior)
+ */
+.interactive {
+    cursor: pointer !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    user-select: none !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/**
+ * Non-interactive element
+ */
+.non-interactive {
+    cursor: default !important;
+    pointer-events: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    user-select: none !important;
+}
+
+/**
+ * Read-only interaction (can select text but not modify)
+ */
+.read-only-interactive {
+    cursor: default !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    user-select: text !important;
+}
+
+/* ============================================
+   ACCESSIBILITY HELPERS
+   ============================================ */
+
+/**
+ * Skip to content link (keyboard navigation)
+ */
+.skip-to-content {
+    position: absolute !important;
+    top: -40px !important;
+    left: 0 !important;
+    background: #0d6efd !important;
+    color: white !important;
+    padding: 8px !important;
+    text-decoration: none !important;
+    z-index: 10000 !important;
+}
+
+.skip-to-content:focus {
+    top: 0 !important;
+}
+
+/**
+ * Focus trap for modals/dialogs
+ */
+.focus-trap {
+    position: relative !important;
+}
+
+.focus-trap:focus {
+    outline: none !important;
+}
+
+/* ============================================
+   BUTTON ANIMATION UTILITIES
+   ============================================ */
+
+/**
+ * Discord-style pulse animation for warning buttons
+ * Used for urgent call-to-action buttons that need attention
+ */
+.btn-pulse-warning {
+    animation: btnPulseWarning 2s infinite !important;
+}
+
+@keyframes btnPulseWarning {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(var(--ecs-warning-rgb, 245, 158, 11), 0.7);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 10px rgba(var(--ecs-warning-rgb, 245, 158, 11), 0);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(var(--ecs-warning-rgb, 245, 158, 11), 0);
+    }
+}

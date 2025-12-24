@@ -4,8 +4,8 @@
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <h4 class="fw-bold py-3 mb-4">Edit Help Topic</h4>
-    <div class="card">
-        <div class="card-body">
+    <div class="c-card">
+        <div class="c-card__body">
             <form method="POST">
                 {{ form.hidden_tag() }}
                 <div class="mb-3">
@@ -20,7 +20,7 @@
                     {{ form.roles.label(class="form-label") }}
                     {{ form.roles(class="form-select select2-multiple", multiple="multiple") }}
                 </div>
-                <button type="submit" class="btn btn-primary">{{ form.submit.label.text }}</button>
+                <button type="submit" class="c-btn c-btn--primary">{{ form.submit.label.text }}</button>
             </form>
         </div>
     </div>
@@ -28,6 +28,7 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
 <script>
     var easyMDE = new EasyMDE({

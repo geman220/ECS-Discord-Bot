@@ -14,13 +14,13 @@
 <!-- Current Season Info -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-calendar me-2"></i>Current Season: {{ transfers_data.current_season.name if transfers_data.current_season else 'No Active Season' }}
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if transfers_data.current_season %}
                 <div class="row">
                     <div class="col-md-3">
@@ -37,7 +37,7 @@
                     </div>
                 </div>
                 {% else %}
-                <div class="alert alert-warning">
+                <div class="alert alert-warning" data-alert>
                     <i class="ti ti-alert-triangle me-2"></i>
                     No active season found. Please create a season to manage player transfers.
                 </div>
@@ -50,18 +50,18 @@
 <!-- Transfer Actions -->
 <div class="row mb-4">
     <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card h-100">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-arrow-right me-2"></i>New Transfer
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <p>Transfer a player between teams</p>
-                <form onsubmit="processTransfer(event)">
+                <form>
                     <div class="mb-3">
                         <label class="form-label">Player</label>
-                        <select class="form-select" name="player_id" required>
+                        <select class="form-select" name="player_id" required data-form-select>
                             <option value="">Select Player</option>
                             {% for player in transfers_data.available_players %}
                             <option value="{{ player.id }}">{{ player.username or player.display_name or 'Unknown Player' }}</option>
@@ -70,7 +70,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">To Team</label>
-                        <select class="form-select" name="team_id" required>
+                        <select class="form-select" name="team_id" required data-form-select>
                             <option value="">Select Team</option>
                             {% for team in transfers_data.teams %}
                             <option value="{{ team.id }}">{{ team.name }}</option>
@@ -79,9 +79,9 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Transfer Reason</label>
-                        <textarea class="form-control" name="reason" rows="2" placeholder="Optional reason for transfer"></textarea>
+                        <textarea class="form-control" name="reason" rows="2" placeholder="Optional reason for transfer" data-form-control></textarea>
                     </div>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="c-btn c-btn--primary">
                         <i class="ti ti-arrow-right me-1"></i>Process Transfer
                     </button>
                 </form>
@@ -90,13 +90,13 @@
     </div>
 
     <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card h-100">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-clock me-2"></i>Pending Requests
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if transfers_data.pending_requests %}
                 <div class="list-group">
                     {% for request in transfers_data.pending_requests %}
@@ -107,10 +107,10 @@
                             <small class="text-muted">to {{ request.team.name or 'Unknown Team' }}</small>
                         </div>
                         <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-success" onclick="approveTransfer({{ request.id }})">
+                            <button class="c-btn c-btn--outline-success js-approve-transfer" data-action="approve-transfer" data-request-id="{{ request.id }}">
                                 <i class="ti ti-check"></i>
                             </button>
-                            <button class="btn btn-outline-danger" onclick="rejectTransfer({{ request.id }})">
+                            <button class="c-btn c-btn--outline-danger js-reject-transfer" data-action="reject-transfer" data-request-id="{{ request.id }}">
                                 <i class="ti ti-x"></i>
                             </button>
                         </div>
@@ -119,7 +119,7 @@
                 </div>
                 {% else %}
                 <div class="text-center py-3">
-                    <i class="ti ti-clock text-muted" style="font-size: 2rem;"></i>
+                    <i class="ti ti-clock text-muted icon-empty-state"></i>
                     <p class="text-muted mt-2">No pending requests</p>
                 </div>
                 {% endif %}
@@ -131,29 +131,29 @@
 <!-- Recent Transfers -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
+        <div class="c-card">
+            <div class="c-card__header">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-history me-2"></i>Recent Transfers
                     </h5>
-                    <button class="btn btn-outline-primary btn-sm" onclick="exportTransferHistory()">
+                    <button class="c-btn c-btn--outline-primary c-btn--sm js-export-transfer-history" data-action="export-transfer-history">
                         <i class="ti ti-download me-1"></i>Export History
                     </button>
                 </div>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if transfers_data.recent_transfers %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Date</th>
-                                <th>Player</th>
-                                <th>From Team</th>
-                                <th>To Team</th>
-                                <th>Reason</th>
-                                <th>Status</th>
+                                <th scope="col">Date</th>
+                                <th scope="col">Player</th>
+                                <th scope="col">From Team</th>
+                                <th scope="col">To Team</th>
+                                <th scope="col">Reason</th>
+                                <th scope="col">Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -167,20 +167,20 @@
                                     <span class="text-muted">{{ transfer.from_team.name if transfer.from_team else 'Free Agent' }}</span>
                                 </td>
                                 <td>
-                                    <span class="badge bg-info">{{ transfer.to_team.name if transfer.to_team else 'Unknown' }}</span>
+                                    <span class="badge bg-info" data-badge>{{ transfer.to_team.name if transfer.to_team else 'Unknown' }}</span>
                                 </td>
                                 <td>
                                     <small class="text-muted">{{ transfer.reason or '-' }}</small>
                                 </td>
                                 <td>
                                     {% if transfer.status == 'completed' %}
-                                        <span class="badge bg-success">Completed</span>
+                                        <span class="badge bg-success" data-badge>Completed</span>
                                     {% elif transfer.status == 'pending' %}
-                                        <span class="badge bg-warning">Pending</span>
+                                        <span class="badge bg-warning" data-badge>Pending</span>
                                     {% elif transfer.status == 'rejected' %}
-                                        <span class="badge bg-danger">Rejected</span>
+                                        <span class="badge bg-danger" data-badge>Rejected</span>
                                     {% else %}
-                                        <span class="badge bg-secondary">{{ transfer.status or 'Unknown' }}</span>
+                                        <span class="badge bg-secondary" data-badge>{{ transfer.status or 'Unknown' }}</span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -190,7 +190,7 @@
                 </div>
                 {% else %}
                 <div class="text-center py-5">
-                    <i class="ti ti-arrows-exchange text-muted" style="font-size: 4rem;"></i>
+                    <i class="ti ti-arrows-exchange text-muted icon-empty-state"></i>
                     <h5 class="text-muted mt-3">No Transfer History</h5>
                     <p class="text-muted">Player transfers will appear here once they are processed.</p>
                 </div>
@@ -203,7 +203,7 @@
 <!-- Quick Actions -->
 <div class="row mt-4">
     <div class="col-12">
-        <div class="alert alert-info">
+        <div class="alert alert-info" data-alert>
             <div class="d-flex align-items-center">
                 <i class="ti ti-info-circle me-2"></i>
                 <div>
@@ -219,7 +219,37 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Event delegation for player transfers
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+
+        switch(action) {
+            case 'approve-transfer':
+                approveTransfer(target.dataset.requestId);
+                break;
+            case 'reject-transfer':
+                rejectTransfer(target.dataset.requestId);
+                break;
+            case 'export-transfer-history':
+                exportTransferHistory();
+                break;
+        }
+    });
+
+    // Handle form submission
+    const transferForm = document.querySelector('form[onsubmit]');
+    if (transferForm) {
+        transferForm.addEventListener('submit', processTransfer);
+        transferForm.removeAttribute('onsubmit');
+    }
+});
+
 function processTransfer(event) {
     event.preventDefault();
     Swal.fire({

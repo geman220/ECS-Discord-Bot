@@ -2,80 +2,89 @@
 {% import 'macros.html' as macros %}
 
 {% block main_content %}
-<div class="container-xxl flex-grow-1 container-p-y standings-page">
+<div class="container-xxl flex-grow-1 container-p-y">
     <!-- Page Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2 class="text-primary mb-1">League Standings</h2>
-                    <p class="text-muted">Current team rankings and statistics</p>
-                </div>
-                <div>
-                    <select class="form-select form-select-sm season-selector" id="seasonSelector">
-                        <!-- This would be populated with your seasons if you decide to add season selection -->
-                        <option selected>Current Season</option>
-                    </select>
-                </div>
-            </div>
+    <div class="c-standings-header" data-component="standings-header">
+        <div class="c-standings-header__content">
+            <h2 class="c-standings-header__title">League Standings</h2>
+            <p class="c-standings-header__subtitle">Current team rankings and statistics</p>
+        </div>
+        <div class="c-standings-header__actions">
+            <select class="form-select form-select-sm" id="seasonSelector" data-form-select>
+                <option selected>Current Season</option>
+            </select>
         </div>
     </div>
 
     <!-- Tabs for Leagues -->
-    <div class="row mb-3">
-        <div class="col-12">
-            <ul class="nav nav-pills mb-3" id="league-tabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="premier-tab" data-bs-toggle="pill" data-bs-target="#premier" 
-                            type="button" role="tab" aria-controls="premier" aria-selected="true">
-                        <i class="ti ti-trophy me-1"></i>Premier Division
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="classic-tab" data-bs-toggle="pill" data-bs-target="#classic" 
-                            type="button" role="tab" aria-controls="classic" aria-selected="false">
-                        <i class="ti ti-ball-football me-1"></i>Classic Division
-                    </button>
-                </li>
-                {% if ecsfc_standings %}
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="ecsfc-tab" data-bs-toggle="pill" data-bs-target="#ecsfc" 
-                            type="button" role="tab" aria-controls="ecsfc" aria-selected="false">
-                        <i class="ti ti-shield me-1"></i>ECS FC Division
-                    </button>
-                </li>
-                {% endif %}
-            </ul>
-        </div>
-    </div>
+    <ul class="c-nav-modern c-nav-modern--pills" id="league-tabs" role="tablist" data-nav="standings-tabs">
+        <li class="c-nav-modern__item" role="presentation">
+            <button class="c-nav-modern__link c-nav-modern__link--active"
+                    id="premier-tab"
+                    data-bs-toggle="pill"
+                    data-bs-target="#premier"
+                    type="button"
+                    role="tab"
+                    aria-controls="premier"
+                    aria-selected="true">
+                <i class="ti ti-trophy c-nav-modern__icon"></i>Premier Division
+            </button>
+        </li>
+        <li class="c-nav-modern__item" role="presentation">
+            <button class="c-nav-modern__link"
+                    id="classic-tab"
+                    data-bs-toggle="pill"
+                    data-bs-target="#classic"
+                    type="button"
+                    role="tab"
+                    aria-controls="classic"
+                    aria-selected="false">
+                <i class="ti ti-ball-football c-nav-modern__icon"></i>Classic Division
+            </button>
+        </li>
+        {% if ecsfc_standings %}
+        <li class="c-nav-modern__item" role="presentation">
+            <button class="c-nav-modern__link"
+                    id="ecsfc-tab"
+                    data-bs-toggle="pill"
+                    data-bs-target="#ecsfc"
+                    type="button"
+                    role="tab"
+                    aria-controls="ecsfc"
+                    aria-selected="false">
+                <i class="ti ti-shield c-nav-modern__icon"></i>ECS FC Division
+            </button>
+        </li>
+        {% endif %}
+    </ul>
 
     <!-- Tab Content -->
-    <div class="tab-content" id="leagueTabsContent">
+    <div class="c-tab-content-modern" id="leagueTabsContent">
         <!-- Premier Division Standings -->
-        <div class="tab-pane fade show active" id="premier" role="tabpanel" aria-labelledby="premier-tab">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Premier Division Standings</h5>
-                    <div>
-                        <span class="badge bg-label-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Teams are ranked by points, then goal difference, then goals scored">
-                            <i class="ti ti-info-circle me-1"></i>Ranking Info
+        <div class="c-tab-pane-modern show active" id="premier" role="tabpanel" aria-labelledby="premier-tab">
+            <div class="c-card-modern">
+                <div class="c-card-modern__header">
+                    <h5 class="c-card-modern__title">Premier Division Standings</h5>
+                    <div class="c-card-modern__actions">
+                        <span class="c-badge c-badge--primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Teams are ranked by points, then goal difference, then goals scored" data-badge>
+                            <i class="ti ti-info-circle"></i> Ranking Info
                         </span>
                     </div>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-light">
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead class="c-table--light" scope="col">
                             <tr>
-                                <th class="text-center col-rank">#</th>
-                                <th class="col-team">Team</th>
-                                <th class="text-center">P</th>
-                                <th class="text-center">W</th>
-                                <th class="text-center">D</th>
-                                <th class="text-center">L</th>
-                                <th class="text-center">GF</th>
-                                <th class="text-center">GA</th>
-                                <th class="text-center">GD</th>
-                                <th class="text-center">Pts</th>
+                                <th class="text-center col-rank" scope="col">#</th>
+                                <th class="col-team" scope="col">Team</th>
+                                <th class="text-center" scope="col">P</th>
+                                <th class="text-center" scope="col">W</th>
+                                <th class="text-center" scope="col">D</th>
+                                <th class="text-center" scope="col">L</th>
+                                <th class="text-center" scope="col">GF</th>
+                                <th class="text-center" scope="col">GA</th>
+                                <th class="text-center" scope="col">GD</th>
+                                <th class="text-center" scope="col">Pts</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -117,11 +126,11 @@
                             {% if premier_standings|length == 0 %}
                             <tr>
                                 <td colspan="10" class="text-center p-4">
-                                    <div class="empty-state">
-                                        <div class="empty-state-icon mb-3">
+                                    <div class="c-empty-state" data-component="empty-state">
+                                        <div class="c-empty-state__icon">
                                             <i class="ti ti-trophy"></i>
                                         </div>
-                                        <p class="empty-state-message">No standings data available for Premier Division.</p>
+                                        <p class="c-empty-state__text">No standings data available for Premier Division.</p>
                                     </div>
                                 </td>
                             </tr>
@@ -133,30 +142,30 @@
         </div>
 
         <!-- Classic Division Standings -->
-        <div class="tab-pane fade" id="classic" role="tabpanel" aria-labelledby="classic-tab">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Classic Division Standings</h5>
-                    <div>
-                        <span class="badge bg-label-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Teams are ranked by points, then goal difference, then goals scored">
-                            <i class="ti ti-info-circle me-1"></i>Ranking Info
+        <div class="c-tab-pane-modern" id="classic" role="tabpanel" aria-labelledby="classic-tab">
+            <div class="c-card-modern">
+                <div class="c-card-modern__header">
+                    <h5 class="c-card-modern__title">Classic Division Standings</h5>
+                    <div class="c-card-modern__actions">
+                        <span class="c-badge c-badge--primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Teams are ranked by points, then goal difference, then goals scored" data-badge>
+                            <i class="ti ti-info-circle"></i> Ranking Info
                         </span>
                     </div>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-light">
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead class="c-table--light" scope="col">
                             <tr>
-                                <th class="text-center col-rank">#</th>
-                                <th class="col-team">Team</th>
-                                <th class="text-center">P</th>
-                                <th class="text-center">W</th>
-                                <th class="text-center">D</th>
-                                <th class="text-center">L</th>
-                                <th class="text-center">GF</th>
-                                <th class="text-center">GA</th>
-                                <th class="text-center">GD</th>
-                                <th class="text-center">Pts</th>
+                                <th class="text-center col-rank" scope="col">#</th>
+                                <th class="col-team" scope="col">Team</th>
+                                <th class="text-center" scope="col">P</th>
+                                <th class="text-center" scope="col">W</th>
+                                <th class="text-center" scope="col">D</th>
+                                <th class="text-center" scope="col">L</th>
+                                <th class="text-center" scope="col">GF</th>
+                                <th class="text-center" scope="col">GA</th>
+                                <th class="text-center" scope="col">GD</th>
+                                <th class="text-center" scope="col">Pts</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -198,11 +207,11 @@
                             {% if classic_standings|length == 0 %}
                             <tr>
                                 <td colspan="10" class="text-center p-4">
-                                    <div class="empty-state">
-                                        <div class="empty-state-icon mb-3">
+                                    <div class="c-empty-state" data-component="empty-state">
+                                        <div class="c-empty-state__icon">
                                             <i class="ti ti-ball-football"></i>
                                         </div>
-                                        <p class="empty-state-message">No standings data available for Classic Division.</p>
+                                        <p class="c-empty-state__text">No standings data available for Classic Division.</p>
                                     </div>
                                 </td>
                             </tr>
@@ -215,30 +224,30 @@
 
         {% if ecsfc_standings %}
         <!-- ECS FC Division Standings -->
-        <div class="tab-pane fade" id="ecsfc" role="tabpanel" aria-labelledby="ecsfc-tab">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">ECS FC Division Standings</h5>
-                    <div>
-                        <span class="badge bg-label-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Teams are ranked by points, then goal difference, then goals scored">
-                            <i class="ti ti-info-circle me-1"></i>Ranking Info
+        <div class="c-tab-pane-modern" id="ecsfc" role="tabpanel" aria-labelledby="ecsfc-tab">
+            <div class="c-card-modern">
+                <div class="c-card-modern__header">
+                    <h5 class="c-card-modern__title">ECS FC Division Standings</h5>
+                    <div class="c-card-modern__actions">
+                        <span class="c-badge c-badge--primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Teams are ranked by points, then goal difference, then goals scored" data-badge>
+                            <i class="ti ti-info-circle"></i> Ranking Info
                         </span>
                     </div>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-light">
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead class="c-table--light" scope="col">
                             <tr>
-                                <th class="text-center col-rank">#</th>
-                                <th class="col-team">Team</th>
-                                <th class="text-center">P</th>
-                                <th class="text-center">W</th>
-                                <th class="text-center">D</th>
-                                <th class="text-center">L</th>
-                                <th class="text-center">GF</th>
-                                <th class="text-center">GA</th>
-                                <th class="text-center">GD</th>
-                                <th class="text-center">Pts</th>
+                                <th class="text-center col-rank" scope="col">#</th>
+                                <th class="col-team" scope="col">Team</th>
+                                <th class="text-center" scope="col">P</th>
+                                <th class="text-center" scope="col">W</th>
+                                <th class="text-center" scope="col">D</th>
+                                <th class="text-center" scope="col">L</th>
+                                <th class="text-center" scope="col">GF</th>
+                                <th class="text-center" scope="col">GA</th>
+                                <th class="text-center" scope="col">GD</th>
+                                <th class="text-center" scope="col">Pts</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -282,11 +291,11 @@
                             {% if ecsfc_standings|length == 0 %}
                             <tr>
                                 <td colspan="10" class="text-center p-4">
-                                    <div class="empty-state">
-                                        <div class="empty-state-icon mb-3">
+                                    <div class="c-empty-state" data-component="empty-state">
+                                        <div class="c-empty-state__icon">
                                             <i class="ti ti-shield"></i>
                                         </div>
-                                        <p class="empty-state-message">No standings data available for ECS FC Division.</p>
+                                        <p class="c-empty-state__text">No standings data available for ECS FC Division.</p>
                                     </div>
                                 </td>
                             </tr>
@@ -300,101 +309,56 @@
     </div>
 
     <!-- Legend -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <h6 class="mb-3">Legend</h6>
-                    <div class="d-flex flex-wrap gap-4">
-                        <div class="d-flex align-items-center">
-                            <span class="me-2">P:</span>
-                            <span class="text-muted">Played</span>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <span class="me-2">W:</span>
-                            <span class="text-muted">Won</span>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <span class="me-2">D:</span>
-                            <span class="text-muted">Drawn</span>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <span class="me-2">L:</span>
-                            <span class="text-muted">Lost</span>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <span class="me-2">GF:</span>
-                            <span class="text-muted">Goals For</span>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <span class="me-2">GA:</span>
-                            <span class="text-muted">Goals Against</span>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <span class="me-2">GD:</span>
-                            <span class="text-muted">Goal Difference</span>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <span class="me-2">Pts:</span>
-                            <span class="text-muted">Points</span>
-                        </div>
+    <div class="c-standings-legend" data-component="standings-legend">
+        <div class="c-card-modern">
+            <div class="c-card-modern__body">
+                <h6 class="c-standings-legend__title">Legend</h6>
+                <div class="c-standings-legend__items">
+                    <div class="c-standings-legend__item">
+                        <span class="c-standings-legend__abbr">P:</span>
+                        <span class="c-standings-legend__label">Played</span>
+                    </div>
+                    <div class="c-standings-legend__item">
+                        <span class="c-standings-legend__abbr">W:</span>
+                        <span class="c-standings-legend__label">Won</span>
+                    </div>
+                    <div class="c-standings-legend__item">
+                        <span class="c-standings-legend__abbr">D:</span>
+                        <span class="c-standings-legend__label">Drawn</span>
+                    </div>
+                    <div class="c-standings-legend__item">
+                        <span class="c-standings-legend__abbr">L:</span>
+                        <span class="c-standings-legend__label">Lost</span>
+                    </div>
+                    <div class="c-standings-legend__item">
+                        <span class="c-standings-legend__abbr">GF:</span>
+                        <span class="c-standings-legend__label">Goals For</span>
+                    </div>
+                    <div class="c-standings-legend__item">
+                        <span class="c-standings-legend__abbr">GA:</span>
+                        <span class="c-standings-legend__label">Goals Against</span>
+                    </div>
+                    <div class="c-standings-legend__item">
+                        <span class="c-standings-legend__abbr">GD:</span>
+                        <span class="c-standings-legend__label">Goal Difference</span>
+                    </div>
+                    <div class="c-standings-legend__item">
+                        <span class="c-standings-legend__abbr">Pts:</span>
+                        <span class="c-standings-legend__label">Points</span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+</div>
 {% endblock %}
 
 {% block custom_css %}
-<!-- Styles moved to /app/static/css/core/foundation-overrides.css -->
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/standings.css') }}">
 {% endblock %}
 
 {% block custom_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize tooltips
-        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.map(function(tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl, {
-                delay: { show: 300, hide: 100 }
-            });
-        });
-        
-        // Initialize popovers
-        const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-        popoverTriggerList.map(function(popoverTriggerEl) {
-            return new bootstrap.Popover(popoverTriggerEl, {
-                delay: { show: 100, hide: 100 },
-                container: 'body'
-            });
-        });
-        
-        // Get saved active tab from localStorage if available
-        const activeTabId = localStorage.getItem('standingsActiveTab');
-        if (activeTabId) {
-            const tabElement = document.getElementById(activeTabId);
-            if (tabElement) {
-                const tab = new bootstrap.Tab(tabElement);
-                tab.show();
-            }
-        }
-        
-        // Save active tab to localStorage when changed
-        const tabs = document.querySelectorAll('#league-tabs button');
-        tabs.forEach(function(tab) {
-            tab.addEventListener('shown.bs.tab', function(event) {
-                localStorage.setItem('standingsActiveTab', event.target.id);
-            });
-        });
-        
-        // Mobile optimization - make tabs scrollable on small screens
-        if (window.innerWidth < 768) {
-            const tabContainer = document.querySelector('#league-tabs');
-            if (tabContainer) {
-                tabContainer.classList.add('overflow-auto', 'flex-nowrap');
-            }
-        }
-    });
-</script>
+<script src="{{ url_for('static', filename='custom_js/view-standings.js') }}"></script>
 {% endblock %}

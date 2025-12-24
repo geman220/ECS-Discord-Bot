@@ -1,0 +1,433 @@
+/**
+ * ============================================================================
+ * ECS ALERT COMPONENT
+ * ============================================================================
+ *
+ * Contextual feedback messages for user actions.
+ * Provides visual feedback for success, warning, error, and info states.
+ *
+ * Structure:
+ *   1. Base Alert Styles
+ *   2. Alert Variants (Success, Warning, Danger, Info)
+ *   3. Alert with Icons
+ *   4. Dismissible Alerts
+ *   5. Alert Sizes
+ *   6. Dark Mode
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. BASE ALERT STYLES
+   ============================================================================ */
+
+.alert {
+  position: relative;
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+}
+
+.alert-heading {
+  margin-top: 0;
+  margin-bottom: var(--space-2);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-lg);
+  color: inherit;
+}
+
+.alert p {
+  margin-bottom: 0;
+}
+
+.alert p + p {
+  margin-top: var(--space-2);
+}
+
+.alert a {
+  font-weight: var(--font-semibold);
+  color: inherit;
+  text-decoration: underline;
+}
+
+.alert a:hover {
+  opacity: 0.8;
+}
+
+/* ============================================================================
+   2. ALERT VARIANTS
+   ============================================================================ */
+
+.alert-primary {
+  background-color: var(--color-primary-subtle);
+  border-color: var(--color-primary-300);
+  color: var(--color-primary-800);
+}
+
+.alert-secondary {
+  background-color: var(--color-secondary-subtle);
+  border-color: var(--color-secondary-300);
+  color: var(--color-secondary-800);
+}
+
+.alert-success {
+  background-color: var(--color-success-subtle);
+  border-color: var(--color-success-300);
+  color: var(--color-success-800);
+}
+
+.alert-danger {
+  background-color: var(--color-danger-subtle);
+  border-color: var(--color-danger-300);
+  color: var(--color-danger-800);
+}
+
+.alert-warning {
+  background-color: var(--color-warning-subtle);
+  border-color: var(--color-warning-300);
+  color: var(--color-warning-800);
+}
+
+.alert-info {
+  background-color: var(--color-info-subtle);
+  border-color: var(--color-info-300);
+  color: var(--color-info-800);
+}
+
+.alert-light {
+  background-color: var(--color-neutral-50);
+  border-color: var(--color-neutral-200);
+  color: var(--color-neutral-900);
+}
+
+.alert-dark {
+  background-color: var(--color-neutral-800);
+  border-color: var(--color-neutral-700);
+  color: white;
+}
+
+/* ============================================================================
+   3. SOLID VARIANTS (Filled backgrounds)
+   ============================================================================ */
+
+.alert-solid-primary {
+  background-color: var(--color-primary-600);
+  border-color: var(--color-primary-600);
+  color: white;
+}
+
+.alert-solid-success {
+  background-color: var(--color-success-600);
+  border-color: var(--color-success-600);
+  color: white;
+}
+
+.alert-solid-danger {
+  background-color: var(--color-danger-600);
+  border-color: var(--color-danger-600);
+  color: white;
+}
+
+.alert-solid-warning {
+  background-color: var(--color-warning-600);
+  border-color: var(--color-warning-600);
+  color: var(--color-neutral-900);
+}
+
+.alert-solid-info {
+  background-color: var(--color-info-600);
+  border-color: var(--color-info-600);
+  color: white;
+}
+
+/* ============================================================================
+   4. ALERT WITH ICONS
+   ============================================================================ */
+
+.alert-icon {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.alert-icon-content {
+  flex: 1;
+}
+
+.alert-icon i,
+.alert-icon svg {
+  flex-shrink: 0;
+  font-size: var(--text-xl);
+  margin-top: 2px;
+}
+
+/* Icon colors for each variant */
+.alert-success .alert-icon i,
+.alert-success .alert-icon svg {
+  color: var(--color-success-600);
+}
+
+.alert-danger .alert-icon i,
+.alert-danger .alert-icon svg {
+  color: var(--color-danger-600);
+}
+
+.alert-warning .alert-icon i,
+.alert-warning .alert-icon svg {
+  color: var(--color-warning-600);
+}
+
+.alert-info .alert-icon i,
+.alert-info .alert-icon svg {
+  color: var(--color-info-600);
+}
+
+/* ============================================================================
+   5. DISMISSIBLE ALERTS
+   ============================================================================ */
+
+.alert-dismissible {
+  padding-right: var(--space-12);
+}
+
+.alert-close,
+.btn-close {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  padding: var(--space-2);
+  background: transparent;
+  border: none;
+  font-size: var(--text-xl);
+  line-height: 1;
+  color: inherit;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: opacity var(--duration-fast) var(--ease-smooth);
+}
+
+.alert-close:hover,
+.btn-close:hover {
+  opacity: 1;
+}
+
+.alert-close:focus,
+.btn-close:focus {
+  outline: none;
+  opacity: 1;
+  box-shadow: 0 0 0 2px currentColor;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================================================
+   6. ALERT SIZES
+   ============================================================================ */
+
+.alert-sm {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.alert-lg {
+  padding: var(--space-6) var(--space-8);
+  font-size: var(--text-lg);
+}
+
+/* ============================================================================
+   7. BORDERED ALERTS (Left border accent)
+   ============================================================================ */
+
+.alert-bordered-start {
+  border-left-width: 4px;
+}
+
+.alert-bordered-start.alert-primary {
+  border-left-color: var(--color-primary-600);
+}
+
+.alert-bordered-start.alert-success {
+  border-left-color: var(--color-success-600);
+}
+
+.alert-bordered-start.alert-danger {
+  border-left-color: var(--color-danger-600);
+}
+
+.alert-bordered-start.alert-warning {
+  border-left-color: var(--color-warning-600);
+}
+
+.alert-bordered-start.alert-info {
+  border-left-color: var(--color-info-600);
+}
+
+/* ============================================================================
+   8. TOAST-STYLE ALERTS (Floating)
+   ============================================================================ */
+
+.alert-toast {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  min-width: 300px;
+  max-width: 400px;
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-toast);
+  animation: slide-in-right var(--duration-slow) var(--ease-deceleration);
+}
+
+.alert-toast.alert-toast-bottom {
+  top: auto;
+  bottom: var(--space-4);
+  animation: slide-in-up var(--duration-slow) var(--ease-deceleration);
+}
+
+.alert-toast.alert-toast-left {
+  right: auto;
+  left: var(--space-4);
+  animation: slide-in-left var(--duration-slow) var(--ease-deceleration);
+}
+
+/* Stack multiple toasts */
+.alert-toast + .alert-toast {
+  margin-top: var(--space-2);
+}
+
+/* ============================================================================
+   9. ALERT WITH ACTIONS
+   ============================================================================ */
+
+.alert-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.alert-actions .btn {
+  font-size: var(--text-sm);
+  padding: var(--space-1) var(--space-3);
+}
+
+/* ============================================================================
+   10. ALERT ANIMATIONS
+   ============================================================================ */
+
+.alert-fade-in {
+  animation: fade-in var(--duration-normal) var(--ease-smooth);
+}
+
+.alert-slide-down {
+  animation: slide-in-down var(--duration-slow) var(--ease-deceleration);
+}
+
+/* Dismissing animation */
+.alert-dismissing {
+  opacity: 0;
+  transform: translateX(100%);
+  transition: all var(--duration-slow) var(--ease-acceleration);
+}
+
+/* ============================================================================
+   11. INLINE ALERTS (Compact)
+   ============================================================================ */
+
+.alert-inline {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ============================================================================
+   12. ALERT BANNER (Full width at top)
+   ============================================================================ */
+
+.alert-banner {
+  border-radius: 0;
+  margin-bottom: 0;
+  text-align: center;
+  border-left: 0;
+  border-right: 0;
+}
+
+/* ============================================================================
+   13. DARK MODE
+   ============================================================================ */
+
+[data-style="dark"] .alert-primary {
+  background-color: rgba(96, 165, 250, 0.15);
+  border-color: var(--color-primary-700);
+  color: var(--color-primary-200);
+}
+
+[data-style="dark"] .alert-success {
+  background-color: rgba(52, 211, 153, 0.15);
+  border-color: var(--color-success-700);
+  color: var(--color-success-200);
+}
+
+[data-style="dark"] .alert-danger {
+  background-color: rgba(248, 113, 113, 0.15);
+  border-color: var(--color-danger-700);
+  color: var(--color-danger-200);
+}
+
+[data-style="dark"] .alert-warning {
+  background-color: rgba(251, 191, 36, 0.15);
+  border-color: var(--color-warning-700);
+  color: var(--color-warning-200);
+}
+
+[data-style="dark"] .alert-info {
+  background-color: rgba(96, 165, 250, 0.15);
+  border-color: var(--color-info-700);
+  color: var(--color-info-200);
+}
+
+[data-style="dark"] .alert-light {
+  background-color: var(--color-neutral-800);
+  border-color: var(--color-neutral-700);
+  color: var(--color-neutral-100);
+}
+
+[data-style="dark"] .alert-dark {
+  background-color: var(--color-neutral-100);
+  border-color: var(--color-neutral-200);
+  color: var(--color-neutral-900);
+}
+
+/* ============================================================================
+   14. UTILITY CLASSES
+   ============================================================================ */
+
+.alert-link {
+  font-weight: var(--font-semibold);
+  text-decoration: underline;
+}
+
+.alert-link:hover {
+  opacity: 0.8;
+}
+
+/* List inside alerts */
+.alert ul,
+.alert ol {
+  margin: var(--space-2) 0;
+  padding-left: var(--space-6);
+}
+
+.alert li {
+  margin-bottom: var(--space-1);
+}
+
+/* Code inside alerts */
+.alert code {
+  background-color: rgba(0, 0, 0, 0.1);
+  padding: 2px var(--space-1);
+  border-radius: var(--radius-sm);
+  font-size: 0.9em;
+}

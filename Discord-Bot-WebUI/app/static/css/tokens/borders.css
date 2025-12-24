@@ -1,0 +1,282 @@
+/**
+ * ============================================================================
+ * ECS BORDER TOKENS
+ * ============================================================================
+ *
+ * Border system including radius, widths, styles, and colors.
+ * Provides consistent visual language for component boundaries.
+ *
+ * Structure:
+ *   1. Border Radius
+ *   2. Border Widths
+ *   3. Border Colors
+ *   4. Border Styles
+ *   5. Utility Classes
+ *
+ * ============================================================================
+ */
+
+:root {
+  /* ========================================================================
+     1. BORDER RADIUS
+     Rounded corners for modern, friendly feel
+     ======================================================================== */
+
+  --radius-none: 0;
+  --radius-sm: 0.25rem;      /* 4px - Subtle rounding */
+  --radius-md: 0.375rem;     /* 6px - Standard rounding */
+  --radius-lg: 0.5rem;       /* 8px - Generous rounding */
+  --radius-xl: 0.75rem;      /* 12px - Large rounding */
+  --radius-2xl: 1rem;        /* 16px - Extra large rounding */
+  --radius-3xl: 1.5rem;      /* 24px - Huge rounding */
+  --radius-full: 9999px;     /* Pill shape / circular */
+
+  /* Semantic radius mappings */
+  --radius-button: var(--radius-md);
+  --radius-input: var(--radius-md);
+  --radius-card: var(--radius-lg);
+  --radius-modal: var(--radius-lg);
+  --radius-dropdown: var(--radius-md);
+  --radius-badge: var(--radius-full);
+  --radius-avatar: var(--radius-full);
+  --radius-tooltip: var(--radius-sm);
+
+  /* ========================================================================
+     2. BORDER WIDTHS
+     ======================================================================== */
+
+  --border-width-0: 0;
+  --border-width-1: 1px;
+  --border-width-2: 2px;
+  --border-width-4: 4px;
+  --border-width-8: 8px;
+
+  /* Default border width */
+  --border-width: var(--border-width-1);
+
+  /* Focus ring width */
+  --border-focus-width: 2px;
+
+  /* ========================================================================
+     3. BORDER COLORS
+     ======================================================================== */
+
+  /* Default borders */
+  --border-color-primary: var(--color-neutral-200);
+  --border-color-secondary: var(--color-neutral-300);
+  --border-color-muted: var(--color-neutral-100);
+
+  /* Interactive borders */
+  --border-color-hover: var(--color-neutral-300);
+  --border-color-focus: var(--color-primary-600);
+  --border-color-active: var(--color-primary-600);
+
+  /* Input borders */
+  --border-color-input: var(--color-neutral-300);
+  --border-color-input-hover: var(--color-neutral-400);
+  --border-color-input-focus: var(--color-primary-600);
+  --border-color-input-error: var(--color-danger-600);
+
+  /* Semantic borders */
+  --border-color-success: var(--color-success-600);
+  --border-color-warning: var(--color-warning-600);
+  --border-color-danger: var(--color-danger-600);
+  --border-color-info: var(--color-info-600);
+
+  /* Dividers */
+  --border-color-divider: var(--color-neutral-200);
+  --border-color-divider-strong: var(--color-neutral-300);
+
+  /* ========================================================================
+     4. BORDER STYLES
+     ======================================================================== */
+
+  --border-style-solid: solid;
+  --border-style-dashed: dashed;
+  --border-style-dotted: dotted;
+  --border-style-double: double;
+  --border-style-none: none;
+
+  /* Common border combinations */
+  --border: var(--border-width) var(--border-style-solid) var(--border-color-primary);
+  --border-muted: var(--border-width) var(--border-style-solid) var(--border-color-muted);
+  --border-strong: var(--border-width-2) var(--border-style-solid) var(--border-color-primary);
+  --border-dashed: var(--border-width) var(--border-style-dashed) var(--border-color-primary);
+
+  /* ========================================================================
+     5. OUTLINE STYLES
+     For focus states and accessibility
+     ======================================================================== */
+
+  --outline-width: 2px;
+  --outline-offset: 2px;
+  --outline-style: solid;
+  --outline-color-focus: var(--color-primary-600);
+
+  /* ========================================================================
+     6. DIVIDER STYLES
+     Horizontal and vertical dividers
+     ======================================================================== */
+
+  --divider-horizontal: 1px solid var(--border-color-divider);
+  --divider-vertical: 1px solid var(--border-color-divider);
+  --divider-horizontal-strong: 2px solid var(--border-color-divider-strong);
+  --divider-vertical-strong: 2px solid var(--border-color-divider-strong);
+}
+
+/* ============================================================================
+   DARK MODE BORDER ADJUSTMENTS
+   Softer, lighter borders for dark backgrounds
+   ============================================================================ */
+
+[data-style="dark"] {
+  /* Border colors */
+  --border-color-primary: var(--color-neutral-200);
+  --border-color-secondary: var(--color-neutral-300);
+  --border-color-muted: var(--color-neutral-100);
+
+  --border-color-hover: var(--color-neutral-300);
+
+  /* Input borders */
+  --border-color-input: var(--color-neutral-200);
+  --border-color-input-hover: var(--color-neutral-300);
+
+  /* Dividers */
+  --border-color-divider: var(--color-neutral-200);
+  --border-color-divider-strong: var(--color-neutral-300);
+
+  /* Outline for focus */
+  --outline-color-focus: var(--color-primary-500);
+}
+
+/* ============================================================================
+   THEME VARIANT - Modern V2
+   More rounded corners for friendly feel
+   ============================================================================ */
+
+[data-theme-variant="modern-v2"] {
+  /* Modern V2 uses more generous rounding */
+  --radius-sm: 0.5rem;       /* 8px */
+  --radius-md: 0.75rem;      /* 12px */
+  --radius-lg: 1rem;         /* 16px */
+  --radius-xl: 1.25rem;      /* 20px */
+  --radius-2xl: 1.5rem;      /* 24px */
+
+  /* Component rounding */
+  --radius-button: var(--radius-md);
+  --radius-input: var(--radius-md);
+  --radius-card: var(--radius-xl);
+  --radius-modal: var(--radius-xl);
+}
+
+/* ============================================================================
+   UTILITY CLASSES - Border Helpers
+   ============================================================================ */
+
+/* Border all sides */
+.border { border: var(--border); }
+.border-0 { border: none; }
+.border-muted { border: var(--border-muted); }
+.border-strong { border: var(--border-strong); }
+.border-dashed { border: var(--border-dashed); }
+
+/* Border individual sides */
+.border-t { border-top: var(--border); }
+.border-r { border-right: var(--border); }
+.border-b { border-bottom: var(--border); }
+.border-l { border-left: var(--border); }
+
+.border-t-0 { border-top: none; }
+.border-r-0 { border-right: none; }
+.border-b-0 { border-bottom: none; }
+.border-l-0 { border-left: none; }
+
+/* Border widths */
+.border-1 { border-width: var(--border-width-1); }
+.border-2 { border-width: var(--border-width-2); }
+.border-4 { border-width: var(--border-width-4); }
+
+/* Border colors */
+.border-primary { border-color: var(--border-color-primary); }
+.border-secondary { border-color: var(--border-color-secondary); }
+.border-success { border-color: var(--border-color-success); }
+.border-warning { border-color: var(--border-color-warning); }
+.border-danger { border-color: var(--border-color-danger); }
+.border-info { border-color: var(--border-color-info); }
+
+/* Border radius */
+.rounded-none { border-radius: var(--radius-none); }
+.rounded-sm { border-radius: var(--radius-sm); }
+.rounded-md { border-radius: var(--radius-md); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.rounded-xl { border-radius: var(--radius-xl); }
+.rounded-2xl { border-radius: var(--radius-2xl); }
+.rounded-3xl { border-radius: var(--radius-3xl); }
+.rounded-full { border-radius: var(--radius-full); }
+
+/* Border radius individual corners */
+.rounded-t-none { border-top-left-radius: var(--radius-none); border-top-right-radius: var(--radius-none); }
+.rounded-r-none { border-top-right-radius: var(--radius-none); border-bottom-right-radius: var(--radius-none); }
+.rounded-b-none { border-bottom-left-radius: var(--radius-none); border-bottom-right-radius: var(--radius-none); }
+.rounded-l-none { border-top-left-radius: var(--radius-none); border-bottom-left-radius: var(--radius-none); }
+
+.rounded-t-sm { border-top-left-radius: var(--radius-sm); border-top-right-radius: var(--radius-sm); }
+.rounded-r-sm { border-top-right-radius: var(--radius-sm); border-bottom-right-radius: var(--radius-sm); }
+.rounded-b-sm { border-bottom-left-radius: var(--radius-sm); border-bottom-right-radius: var(--radius-sm); }
+.rounded-l-sm { border-top-left-radius: var(--radius-sm); border-bottom-left-radius: var(--radius-sm); }
+
+.rounded-t-md { border-top-left-radius: var(--radius-md); border-top-right-radius: var(--radius-md); }
+.rounded-r-md { border-top-right-radius: var(--radius-md); border-bottom-right-radius: var(--radius-md); }
+.rounded-b-md { border-bottom-left-radius: var(--radius-md); border-bottom-right-radius: var(--radius-md); }
+.rounded-l-md { border-top-left-radius: var(--radius-md); border-bottom-left-radius: var(--radius-md); }
+
+.rounded-t-lg { border-top-left-radius: var(--radius-lg); border-top-right-radius: var(--radius-lg); }
+.rounded-r-lg { border-top-right-radius: var(--radius-lg); border-bottom-right-radius: var(--radius-lg); }
+.rounded-b-lg { border-bottom-left-radius: var(--radius-lg); border-bottom-right-radius: var(--radius-lg); }
+.rounded-l-lg { border-top-left-radius: var(--radius-lg); border-bottom-left-radius: var(--radius-lg); }
+
+/* Dividers */
+.divider-horizontal {
+  height: 0;
+  border-top: var(--divider-horizontal);
+  margin: var(--space-4) 0;
+}
+
+.divider-vertical {
+  width: 0;
+  border-left: var(--divider-vertical);
+  margin: 0 var(--space-4);
+  align-self: stretch;
+}
+
+/* Outline */
+.outline-none { outline: none; }
+.outline-focus:focus {
+  outline: var(--outline-width) var(--outline-style) var(--outline-color-focus);
+  outline-offset: var(--outline-offset);
+}
+
+/* Ring (alternative focus style) */
+.ring {
+  box-shadow: 0 0 0 3px var(--outline-color-focus);
+}
+
+.ring:focus {
+  box-shadow: 0 0 0 3px var(--outline-color-focus);
+}
+
+/* ============================================================================
+   LEGACY COMPATIBILITY
+   Support old variable names
+   ============================================================================ */
+
+:root {
+  --ecs-radius-sm: var(--radius-sm);
+  --ecs-radius-md: var(--radius-md);
+  --ecs-radius-lg: var(--radius-lg);
+  --ecs-radius-xl: var(--radius-xl);
+  --ecs-radius-2xl: var(--radius-2xl);
+  --ecs-radius-full: var(--radius-full);
+  --ecs-border-width: var(--border-width);
+  --ecs-border-color: var(--border-color-primary);
+}

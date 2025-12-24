@@ -1,818 +1,628 @@
 # app/draft_predictions_routes.py
 
 """
-Draft Predictions Routes
+Draft Predictions Routes - Simplified Architecture
 
-This module handles all routes related to the draft prediction system.
-Includes coach interfaces for making predictions and admin interfaces for analysis.
+Coaches can predict what round they think players will be drafted.
+No setup required - just works based on current season and league membership.
+
+Coach Flow:
+1. Go to /draft-predictions/
+2. See their league (Premier or Classic)
+3. Make predictions - auto-saved
+
+Admin Flow:
+1. Go to /draft-predictions/admin
+2. See aggregated predictions by season
+3. Drill down by player or coach
+4. View historical predictions from past seasons
 """
 
 import logging
 from datetime import datetime
-from flask import Blueprint, render_template, request, redirect, url_for, jsonify, flash, g, abort
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, g, flash
 from flask_login import login_required, current_user
-from sqlalchemy import func, and_, or_
-from sqlalchemy.orm import joinedload
+from sqlalchemy import func, or_
 
+from app.models.predictions import DraftPrediction
 from app.decorators import role_required
-from app.models import Player, League, Season, User, DraftOrderHistory
-from app.models.predictions import DraftSeason, DraftPrediction, DraftPredictionSummary
-from app.alert_helpers import show_success, show_error, show_warning, show_info
 
 logger = logging.getLogger(__name__)
 
 draft_predictions_bp = Blueprint('draft_predictions', __name__, url_prefix='/draft-predictions')
 
 
-def ensure_current_season_draft_seasons():
-    """Ensure draft seasons exist for the current season's Premier and Classic divisions."""
-    from app.models import Season, League
-    from datetime import datetime, timedelta
-    
-    # Get current season
-    current_season = g.db_session.query(Season).filter_by(is_current=True).first()
-    if not current_season:
-        logger.warning("No current season found")
-        return
-    
-    # Get Premier and Classic divisions for current season
-    leagues = g.db_session.query(League).filter_by(season_id=current_season.id).filter(
-        League.name.in_(['Premier', 'Classic'])
+# =============================================================================
+# Helper Functions
+# =============================================================================
+
+def get_current_season():
+    """Get the current active season."""
+    from app.models import Season
+    return g.db_session.query(Season).filter_by(is_current=True).first()
+
+
+def get_coach_league_type(user, season):
+    """Determine which league type (Premier/Classic) a coach belongs to."""
+    from app.models import Team, League
+
+    # Find teams where this user is a coach
+    coach_teams = g.db_session.query(Team).join(League).filter(
+        Team.discord_channel_id.isnot(None),  # Has a team
+        League.season_id == season.id
     ).all()
-    
-    for league in leagues:
-        # Check if draft season already exists
-        existing_season = g.db_session.query(DraftSeason).filter_by(
-            season_id=current_season.id,
-            league_type=league.name
-        ).first()
-        
-        if not existing_season:
-            # Create draft season for this league
-            # Default prediction period: 30 days before season starts
-            prediction_start = datetime.utcnow()
-            prediction_end = prediction_start + timedelta(days=30)
-            
-            draft_season = DraftSeason(
-                season_id=current_season.id,
-                league_type=league.name,
-                name=f"{current_season.name} {league.name} Draft",
-                description=f"Draft predictions for {league.name} league in {current_season.name}",
-                is_active=True,
-                prediction_start_date=prediction_start,
-                prediction_end_date=prediction_end,
-                draft_completed=False,
-                created_by=1  # System user
-            )
-            
-            g.db_session.add(draft_season)
-            logger.info(f"Created draft season for {current_season.name} {league.name}")
-    
-    g.db_session.commit()
+
+    # Check if user is linked to any team as coach
+    # For now, check by looking at the user's team associations
+    for team in coach_teams:
+        if team.league and team.league.name:
+            league_name = team.league.name.lower()
+            if 'premier' in league_name:
+                return 'Premier'
+            elif 'classic' in league_name:
+                return 'Classic'
+
+    # Fallback: check user's roles or return None
+    return None
 
 
-def handle_season_transition(new_season_id, old_season_id=None):
-    """Handle draft predictions when a new season becomes current."""
-    from app.models import Season, League
-    from datetime import datetime, timedelta
-    
-    # Deactivate all previous draft seasons
-    if old_season_id:
-        g.db_session.query(DraftSeason).filter_by(season_id=old_season_id).update({'is_active': False})
-        logger.info(f"Deactivated draft seasons for old season {old_season_id}")
-    
-    # Create new draft seasons for the new current season
-    new_season = g.db_session.query(Season).get(new_season_id)
-    if not new_season:
-        logger.error(f"Season {new_season_id} not found")
-        return
-    
-    # Get Premier and Classic divisions for new season
-    leagues = g.db_session.query(League).filter_by(season_id=new_season_id).filter(
-        League.name.in_(['Premier', 'Classic'])
-    ).all()
-    
-    for league in leagues:
-        # Check if draft season already exists
-        existing_season = g.db_session.query(DraftSeason).filter_by(
-            season_id=new_season_id,
-            league_type=league.name
-        ).first()
-        
-        if not existing_season:
-            # Create new draft season
-            prediction_start = datetime.utcnow()
-            prediction_end = prediction_start + timedelta(days=30)
-            
-            draft_season = DraftSeason(
-                season_id=new_season_id,
-                league_type=league.name,
-                name=f"{new_season.name} {league.name} Draft",
-                description=f"Draft predictions for {league.name} league in {new_season.name}",
-                is_active=True,
-                prediction_start_date=prediction_start,
-                prediction_end_date=prediction_end,
-                draft_completed=False,
-                created_by=1  # System user
-            )
-            
-            g.db_session.add(draft_season)
-            logger.info(f"Created new draft season for {new_season.name} {league.name}")
-        else:
-            # Reactivate existing draft season
-            existing_season.is_active = True
-            logger.info(f"Reactivated draft season for {new_season.name} {league.name}")
-    
-    g.db_session.commit()
+def get_league_players(season_id, league_type):
+    """Get all players in a specific league type for a season."""
+    from app.models import Player, League
 
+    players = g.db_session.query(Player).join(Player.league).filter(
+        Player.is_current_player == True,
+        League.season_id == season_id,
+        League.name.ilike(f'%{league_type}%')
+    ).order_by(Player.name).all()
+
+    return players
+
+
+def get_prediction_stats_for_players(season_id, league_type, player_ids):
+    """Get aggregated prediction stats for multiple players."""
+    if not player_ids:
+        return {}
+
+    stats = g.db_session.query(
+        DraftPrediction.player_id,
+        func.avg(DraftPrediction.predicted_round).label('avg_round'),
+        func.min(DraftPrediction.predicted_round).label('min_round'),
+        func.max(DraftPrediction.predicted_round).label('max_round'),
+        func.count(DraftPrediction.id).label('prediction_count')
+    ).filter(
+        DraftPrediction.season_id == season_id,
+        DraftPrediction.league_type == league_type,
+        DraftPrediction.player_id.in_(player_ids)
+    ).group_by(DraftPrediction.player_id).all()
+
+    return {
+        s.player_id: {
+            'avg_round': float(s.avg_round) if s.avg_round else None,
+            'min_round': s.min_round,
+            'max_round': s.max_round,
+            'prediction_count': s.prediction_count
+        }
+        for s in stats
+    }
+
+
+# =============================================================================
+# Coach Routes
+# =============================================================================
 
 @draft_predictions_bp.route('/')
 @login_required
-@role_required(['Pub League Coach', 'Pub League Admin', 'Global Admin'])
 def index():
-    """Main draft predictions page - shows active draft seasons."""
+    """
+    Coach landing page - shows available leagues to make predictions for.
+    No setup required - automatically shows Premier and Classic for current season.
+    """
     try:
-        logger.info(f"Draft predictions index - User: {current_user.id}, Session: {g.db_session}")
-        logger.info(f"Current user object: {current_user}")
-        
-        # Ensure draft seasons exist for current season
-        ensure_current_season_draft_seasons()
-        
-        # Get active draft seasons that are within their prediction period
-        now = datetime.utcnow()
-        logger.info(f"Current time: {now}")
-        
-        # First get all active seasons for debugging
-        all_active_seasons = g.db_session.query(DraftSeason).options(
-            joinedload(DraftSeason.season)
-        ).filter(DraftSeason.is_active == True).all()
-        
-        for season in all_active_seasons:
-            logger.info(f"Season: {season.name}, Start: {season.prediction_start_date}, End: {season.prediction_end_date}, Active: {season.is_active}")
-        
-        active_seasons = g.db_session.query(DraftSeason).options(
-            joinedload(DraftSeason.season)
-        ).filter(
-            DraftSeason.is_active == True,
-            DraftSeason.prediction_start_date <= now,
-            DraftSeason.prediction_end_date >= now
-        ).order_by(DraftSeason.league_type).all()
-        logger.info(f"Found {len(active_seasons)} active draft seasons within prediction period")
-        
-        # Get current season for display purposes
-        from app.models import Season
-        current_season = g.db_session.query(Season).filter_by(is_current=True).first()
-        
-        # Get user's existing predictions count for each season
-        user_predictions = {}
-        for season in active_seasons:
-            count = g.db_session.query(DraftPrediction).filter_by(
-                draft_season_id=season.id,
-                coach_user_id=current_user.id
-            ).count()
-            user_predictions[season.id] = count
-        
-        # Get user roles for template display - use role impersonation helpers
-        from app.role_impersonation import get_effective_roles
-        
-        user_roles = get_effective_roles()
-        
-        return render_template('draft_predictions/index.html',
-                             active_seasons=active_seasons,
-                             user_predictions=user_predictions,
-                             user_roles=user_roles,
-                             current_season=current_season,
-                             now=now)
-    
+        current_season = get_current_season()
+        if not current_season:
+            return render_template(
+                'draft_predictions/index.html',
+                current_season=None,
+                leagues=[],
+                message="No active season found."
+            )
+
+        # Get leagues for current season (Premier and Classic)
+        from app.models import League
+        leagues = g.db_session.query(League).filter(
+            League.season_id == current_season.id,
+            or_(
+                League.name.ilike('%premier%'),
+                League.name.ilike('%classic%')
+            )
+        ).all()
+
+        # Determine league type for display
+        league_options = []
+        for league in leagues:
+            league_name = league.name.lower()
+            if 'premier' in league_name:
+                league_options.append({
+                    'type': 'Premier',
+                    'name': league.name,
+                    'team_count': len(league.teams) if league.teams else 0
+                })
+            elif 'classic' in league_name:
+                league_options.append({
+                    'type': 'Classic',
+                    'name': league.name,
+                    'team_count': len(league.teams) if league.teams else 0
+                })
+
+        # Get user's existing prediction counts
+        for option in league_options:
+            count = g.db_session.query(func.count(DraftPrediction.id)).filter(
+                DraftPrediction.season_id == current_season.id,
+                DraftPrediction.league_type == option['type'],
+                DraftPrediction.coach_user_id == current_user.id
+            ).scalar() or 0
+            option['my_predictions'] = count
+
+        return render_template(
+            'draft_predictions/index.html',
+            current_season=current_season,
+            leagues=league_options,
+            is_admin='Global Admin' in [r.name for r in current_user.roles] or
+                     'Pub League Admin' in [r.name for r in current_user.roles]
+        )
+
     except Exception as e:
-        logger.error(f"Error loading draft predictions index: {e}")
-        logger.error(f"Exception type: {type(e)}")
-        logger.error(f"Exception args: {e.args}")
-        import traceback
-        logger.error(f"Stack trace: {traceback.format_exc()}")
-        show_error("Error loading draft predictions page")
-        return redirect(url_for('main.index'))
+        logger.error(f"Error in draft predictions index: {e}", exc_info=True)
+        return render_template(
+            'draft_predictions/index.html',
+            current_season=None,
+            leagues=[],
+            message="Error loading draft predictions."
+        )
 
 
-@draft_predictions_bp.route('/season/<int:season_id>')
+@draft_predictions_bp.route('/predict/<league_type>')
 @login_required
-@role_required(['Pub League Coach', 'Pub League Admin', 'Global Admin'])
-def season_predictions(season_id):
-    """View and make predictions for a specific draft season."""
+def predict(league_type):
+    """
+    Prediction page for a specific league type.
+    Shows all players in the league, coach can set predicted round for each.
+    """
     try:
-        draft_season = g.db_session.query(DraftSeason).get(season_id)
-        if not draft_season:
-            abort(404)
-        
-        # Check if prediction period is active
-        now = datetime.utcnow()
-        can_predict = (draft_season.is_active and 
-                      draft_season.prediction_start_date <= now <= draft_season.prediction_end_date)
-        
-        # Get user roles using role impersonation helpers
-        from app.role_impersonation import get_effective_roles
-        
-        user_roles = get_effective_roles()
-        
-        # Get pagination parameters
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 24, type=int)  # 24 players per page (6x4 grid)
-        search = request.args.get('search', '').strip()
-        position_filter = request.args.get('position', '').strip()
-        
-        # Limit per_page to reasonable bounds
-        per_page = min(max(per_page, 12), 100)
-        
-        # Get eligible players for this season with optimized loading and pagination
-        from sqlalchemy.orm import joinedload
-        from sqlalchemy import func
-        
-        # Build base query with eager loading of relationships to avoid N+1 queries
-        base_query = g.db_session.query(Player).join(Player.league).options(
-            joinedload(Player.league),
-            joinedload(Player.image_cache)
-        ).filter(
-            Player.is_current_player == True,
-            League.season_id == draft_season.season_id,
-            func.lower(League.name) == func.lower(draft_season.league_type)
+        # Validate league type
+        if league_type not in ['Premier', 'Classic']:
+            flash('Invalid league type', 'error')
+            return redirect(url_for('draft_predictions.index'))
+
+        current_season = get_current_season()
+        if not current_season:
+            flash('No active season', 'error')
+            return redirect(url_for('draft_predictions.index'))
+
+        # Get players in this league
+        players = get_league_players(current_season.id, league_type)
+
+        # Get coach's existing predictions
+        existing_predictions = g.db_session.query(DraftPrediction).filter(
+            DraftPrediction.season_id == current_season.id,
+            DraftPrediction.league_type == league_type,
+            DraftPrediction.coach_user_id == current_user.id
+        ).all()
+
+        predictions_map = {p.player_id: p for p in existing_predictions}
+
+        # Get aggregate stats for all players (what other coaches predicted)
+        player_ids = [p.id for p in players]
+        aggregate_stats = get_prediction_stats_for_players(
+            current_season.id, league_type, player_ids
         )
-        
-        # Apply search filter
-        if search:
-            base_query = base_query.filter(
-                Player.name.ilike(f'%{search}%')
-            )
-        
-        # Apply position filter
-        if position_filter:
-            base_query = base_query.filter(
-                Player.favorite_position.ilike(f'%{position_filter}%')
-            )
-        
-        # Get total count for pagination
-        total_players = base_query.count()
-        
-        # Apply pagination and ordering manually
-        eligible_players = base_query.order_by(Player.name).offset(
-            (page - 1) * per_page
-        ).limit(per_page).all()
-        
-        # Create pagination object manually
-        from math import ceil
-        has_prev = page > 1
-        has_next = (page * per_page) < total_players
-        prev_num = page - 1 if has_prev else None
-        next_num = page + 1 if has_next else None
-        pages = ceil(total_players / per_page) if total_players > 0 else 1
-        
-        # Simple pagination object
-        class PaginationObject:
-            def __init__(self, page, per_page, total, items, has_prev, has_next, prev_num, next_num, pages):
-                self.page = page
-                self.per_page = per_page
-                self.total = total
-                self.items = items
-                self.has_prev = has_prev
-                self.has_next = has_next
-                self.prev_num = prev_num
-                self.next_num = next_num
-                self.pages = pages
-            
-            def iter_pages(self, left_edge=2, right_edge=2, left_current=2, right_current=3):
-                """Generate page numbers for pagination display."""
-                last = self.pages
-                for num in range(1, last + 1):
-                    if num <= left_edge or \
-                       (self.page - left_current - 1 < num < self.page + right_current) or \
-                       num > last - right_edge:
-                        yield num
-        
-        eligible_players_paginated = PaginationObject(
-            page, per_page, total_players, eligible_players, 
-            has_prev, has_next, prev_num, next_num, pages
+
+        return render_template(
+            'draft_predictions/predict.html',
+            current_season=current_season,
+            league_type=league_type,
+            players=players,
+            predictions_map=predictions_map,
+            aggregate_stats=aggregate_stats
         )
-        
-        # Get current user's predictions for this season in one query
-        user_predictions = {}
-        if eligible_players:
-            player_ids = [p.id for p in eligible_players]
-            predictions = g.db_session.query(DraftPrediction).filter(
-                DraftPrediction.draft_season_id == season_id,
-                DraftPrediction.coach_user_id == current_user.id,
-                DraftPrediction.player_id.in_(player_ids)
-            ).all()
-            user_predictions = {p.player_id: p for p in predictions}
-        
-        # For admins, get prediction summaries efficiently in batch queries
-        prediction_summaries = {}
-        
-        is_admin = any(role in ['Pub League Admin', 'Global Admin'] for role in user_roles)
-        
-        if is_admin and eligible_players:
-            player_ids = [p.id for p in eligible_players]
-            
-            # Get all prediction stats in optimized queries
-            prediction_stats = g.db_session.query(
-                DraftPrediction.player_id,
-                func.avg(DraftPrediction.predicted_round).label('avg_round'),
-                func.min(DraftPrediction.predicted_round).label('min_round'),
-                func.max(DraftPrediction.predicted_round).label('max_round'),
-                func.count(DraftPrediction.id).label('prediction_count')
-            ).filter(
-                DraftPrediction.draft_season_id == season_id,
-                DraftPrediction.player_id.in_(player_ids)
-            ).group_by(DraftPrediction.player_id).all()
-            
-            for stats in prediction_stats:
-                prediction_summaries[stats.player_id] = {
-                    'avg_round': float(stats.avg_round) if stats.avg_round else None,
-                    'min_round': stats.min_round,
-                    'max_round': stats.max_round,
-                    'prediction_count': stats.prediction_count
-                }
-        
-        return render_template('draft_predictions/season_predictions.html',
-                             draft_season=draft_season,
-                             eligible_players=eligible_players,
-                             pagination=eligible_players_paginated,
-                             total_players=total_players,
-                             user_predictions=user_predictions,
-                             prediction_summaries=prediction_summaries,
-                             can_predict=can_predict,
-                             is_admin=is_admin,
-                             search=search,
-                             position_filter=position_filter,
-                             current_page=page,
-                             per_page=per_page)
-    
+
     except Exception as e:
-        import traceback
-        logger.error(f"Error loading season predictions {season_id}: {e}")
-        logger.error(f"Full traceback: {traceback.format_exc()}")
-        show_error("Error loading season predictions")
+        logger.error(f"Error loading prediction page: {e}", exc_info=True)
+        flash('Error loading prediction page', 'error')
         return redirect(url_for('draft_predictions.index'))
 
 
-@draft_predictions_bp.route('/predict', methods=['POST'])
+@draft_predictions_bp.route('/api/predict', methods=['POST'])
 @login_required
-@role_required(['Pub League Coach', 'Pub League Admin', 'Global Admin'])
-def submit_prediction():
-    """Submit or update a draft prediction."""
+def api_save_prediction():
+    """
+    API endpoint to save/update a prediction.
+    Auto-save style - called on each change.
+    """
     try:
-        logger.info(f"Received prediction request from user {current_user.id}")
         data = request.get_json()
-        logger.info(f"Prediction data: {data}")
-        draft_season_id = data.get('draft_season_id')
+
+        season_id = data.get('season_id')
+        league_type = data.get('league_type')
         player_id = data.get('player_id')
         predicted_round = data.get('predicted_round')
         confidence_level = data.get('confidence_level')
         notes = data.get('notes', '')
-        
-        # Validate inputs
-        if not all([draft_season_id, player_id, predicted_round]):
+
+        # Validation
+        if not all([season_id, league_type, player_id]):
             return jsonify({'success': False, 'message': 'Missing required fields'}), 400
-        
-        draft_season = g.db_session.query(DraftSeason).get(draft_season_id)
-        if not draft_season:
-            return jsonify({'success': False, 'message': 'Draft season not found'}), 404
-        
-        # Check if prediction period is active
-        now = datetime.utcnow()
-        if not (draft_season.is_active and 
-                draft_season.prediction_start_date <= now <= draft_season.prediction_end_date):
-            return jsonify({'success': False, 'message': 'Prediction period is not active'}), 400
-        
-        # Validate predicted round
-        try:
-            predicted_round = int(predicted_round)
-            if predicted_round < 1 or predicted_round > 20:  # Reasonable bounds
-                return jsonify({'success': False, 'message': 'Invalid round number'}), 400
-        except ValueError:
-            return jsonify({'success': False, 'message': 'Invalid round number'}), 400
-        
-        # Check if player is eligible
-        eligible_players = draft_season.get_eligible_players(g.db_session)
-        player_ids = [p.id for p in eligible_players]
-        if player_id not in player_ids:
-            return jsonify({'success': False, 'message': 'Player not eligible for this draft'}), 400
-        
-        # Get or create prediction
+
+        if league_type not in ['Premier', 'Classic']:
+            return jsonify({'success': False, 'message': 'Invalid league type'}), 400
+
+        # If predicted_round is empty/None, delete the prediction
+        if not predicted_round:
+            existing = g.db_session.query(DraftPrediction).filter_by(
+                season_id=season_id,
+                league_type=league_type,
+                player_id=player_id,
+                coach_user_id=current_user.id
+            ).first()
+
+            if existing:
+                g.db_session.delete(existing)
+                g.db_session.commit()
+
+            return jsonify({'success': True, 'message': 'Prediction cleared'})
+
+        # Find existing or create new
         prediction = g.db_session.query(DraftPrediction).filter_by(
-            draft_season_id=draft_season_id,
+            season_id=season_id,
+            league_type=league_type,
             player_id=player_id,
             coach_user_id=current_user.id
         ).first()
-        
+
         if prediction:
-            # Update existing prediction
-            prediction.predicted_round = predicted_round
-            prediction.confidence_level = confidence_level
+            # Update existing
+            prediction.predicted_round = int(predicted_round)
+            prediction.confidence_level = int(confidence_level) if confidence_level else None
             prediction.notes = notes
-            prediction.updated_at = datetime.utcnow()
-            action = 'updated'
         else:
-            # Create new prediction
+            # Create new
             prediction = DraftPrediction(
-                draft_season_id=draft_season_id,
+                season_id=season_id,
+                league_type=league_type,
                 player_id=player_id,
                 coach_user_id=current_user.id,
-                predicted_round=predicted_round,
-                confidence_level=confidence_level,
+                predicted_round=int(predicted_round),
+                confidence_level=int(confidence_level) if confidence_level else None,
                 notes=notes
             )
             g.db_session.add(prediction)
-            action = 'created'
-        
+
         g.db_session.commit()
-        
-        # Update summary if needed
-        DraftPredictionSummary.refresh_summary(draft_season_id, player_id, g.db_session)
-        g.db_session.commit()
-        
+
         return jsonify({
             'success': True,
-            'message': f'Prediction {action} successfully',
-            'prediction': prediction.to_dict()
+            'message': 'Prediction saved',
+            'prediction_id': prediction.id
         })
-    
-    except Exception as e:
-        logger.error(f"Error submitting prediction: {e}")
-        g.db_session.rollback()
-        return jsonify({'success': False, 'message': 'Error saving prediction'}), 500
 
+    except Exception as e:
+        logger.error(f"Error saving prediction: {e}", exc_info=True)
+        g.db_session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# =============================================================================
+# Admin Routes
+# =============================================================================
 
 @draft_predictions_bp.route('/admin')
 @login_required
-@role_required(['Pub League Admin', 'Global Admin'])
+@role_required(['Global Admin', 'Pub League Admin'])
 def admin_dashboard():
-    """Admin dashboard for managing draft seasons and viewing analytics."""
+    """
+    Admin dashboard - view aggregated predictions by season.
+    Can see current season and historical data.
+    """
     try:
-        # Ensure draft seasons exist for current season
-        ensure_current_season_draft_seasons()
-        
-        # Get current season info
         from app.models import Season
-        current_season = g.db_session.query(Season).filter_by(is_current=True).first()
-        
-        # Get all draft seasons, prioritizing current season
-        draft_seasons = g.db_session.query(DraftSeason).options(
-            joinedload(DraftSeason.season)
-        ).order_by(
-            DraftSeason.season_id.desc(),
-            DraftSeason.league_type
-        ).all()
-        
-        # Separate current season draft seasons
-        current_season_drafts = []
-        other_season_drafts = []
-        
-        for season in draft_seasons:
-            if current_season and season.season_id == current_season.id:
-                current_season_drafts.append(season)
-            else:
-                other_season_drafts.append(season)
-        
-        # Get stats for each season (simplified for now)
-        season_stats = {}
-        for season in draft_seasons:
-            prediction_count = g.db_session.query(DraftPrediction).filter_by(draft_season_id=season.id).count()
-            coach_count = g.db_session.query(DraftPrediction).filter_by(draft_season_id=season.id).distinct(DraftPrediction.coach_user_id).count()
-            season_stats[season.id] = {
+
+        # Get all seasons for dropdown
+        seasons = g.db_session.query(Season).order_by(Season.id.desc()).all()
+        current_season = get_current_season()
+
+        # Get selected season (default to current)
+        selected_season_id = request.args.get('season_id', type=int)
+        if selected_season_id:
+            selected_season = g.db_session.query(Season).get(selected_season_id)
+        else:
+            selected_season = current_season
+
+        if not selected_season:
+            return render_template(
+                'draft_predictions/admin_dashboard.html',
+                seasons=seasons,
+                selected_season=None,
+                league_stats={},
+                message="No season selected."
+            )
+
+        # Get prediction stats for both leagues
+        league_stats = {}
+        for league_type in ['Premier', 'Classic']:
+            # Count predictions
+            prediction_count = g.db_session.query(func.count(DraftPrediction.id)).filter(
+                DraftPrediction.season_id == selected_season.id,
+                DraftPrediction.league_type == league_type
+            ).scalar() or 0
+
+            # Count unique coaches
+            coach_count = g.db_session.query(
+                func.count(func.distinct(DraftPrediction.coach_user_id))
+            ).filter(
+                DraftPrediction.season_id == selected_season.id,
+                DraftPrediction.league_type == league_type
+            ).scalar() or 0
+
+            # Count unique players predicted
+            player_count = g.db_session.query(
+                func.count(func.distinct(DraftPrediction.player_id))
+            ).filter(
+                DraftPrediction.season_id == selected_season.id,
+                DraftPrediction.league_type == league_type
+            ).scalar() or 0
+
+            league_stats[league_type] = {
                 'prediction_count': prediction_count,
-                'coach_count': coach_count
+                'coach_count': coach_count,
+                'player_count': player_count
             }
-        
-        return render_template('draft_predictions/admin_dashboard.html',
-                             current_season=current_season,
-                             current_season_drafts=current_season_drafts,
-                             other_season_drafts=other_season_drafts,
-                             season_stats=season_stats,
-                             now=datetime.utcnow())
-    
-    except Exception as e:
-        logger.error(f"Error loading admin dashboard: {e}")
-        show_error("Error loading admin dashboard")
-        return redirect(url_for('draft_predictions.index'))
 
-
-@draft_predictions_bp.route('/admin/create-season', methods=['GET', 'POST'])
-@login_required
-@role_required(['Pub League Admin', 'Global Admin'])
-def create_season():
-    """Create a new draft season."""
-    if request.method == 'GET':
-        # Get available seasons and league types
-        seasons = g.db_session.query(Season).filter_by(is_current=True).all()
-        return render_template('draft_predictions/create_season.html', seasons=seasons)
-    
-    try:
-        name = request.form.get('name')
-        description = request.form.get('description')
-        season_id = request.form.get('season_id')
-        league_type = request.form.get('league_type')
-        prediction_start_date = datetime.strptime(request.form.get('prediction_start_date'), '%Y-%m-%d')
-        prediction_end_date = datetime.strptime(request.form.get('prediction_end_date'), '%Y-%m-%d')
-        draft_date = request.form.get('draft_date')
-        
-        if draft_date:
-            draft_date = datetime.strptime(draft_date, '%Y-%m-%d')
-        
-        # Validate inputs
-        if not all([name, season_id, league_type, prediction_start_date, prediction_end_date]):
-            show_error("All required fields must be filled")
-            return redirect(url_for('draft_predictions.create_season'))
-        
-        if prediction_start_date >= prediction_end_date:
-            show_error("Prediction start date must be before end date")
-            return redirect(url_for('draft_predictions.create_season'))
-        
-        # Create draft season
-        draft_season = DraftSeason(
-            name=name,
-            description=description,
-            season_id=season_id,
-            league_type=league_type,
-            prediction_start_date=prediction_start_date,
-            prediction_end_date=prediction_end_date,
-            draft_date=draft_date,
-            created_by=current_user.id
+        return render_template(
+            'draft_predictions/admin_dashboard.html',
+            seasons=seasons,
+            selected_season=selected_season,
+            current_season=current_season,
+            league_stats=league_stats
         )
-        
-        g.db_session.add(draft_season)
-        g.db_session.commit()
-        
-        show_success(f"Draft season '{name}' created successfully")
-        return redirect(url_for('draft_predictions.admin_dashboard'))
-    
+
     except Exception as e:
-        logger.error(f"Error creating draft season: {e}")
-        g.db_session.rollback()
-        show_error("Error creating draft season")
-        return redirect(url_for('draft_predictions.create_season'))
+        logger.error(f"Error in admin dashboard: {e}", exc_info=True)
+        return render_template(
+            'draft_predictions/admin_dashboard.html',
+            seasons=[],
+            selected_season=None,
+            league_stats={},
+            message="Error loading admin dashboard."
+        )
 
 
-@draft_predictions_bp.route('/admin/season/<int:season_id>/analytics')
+@draft_predictions_bp.route('/admin/view/<league_type>')
 @login_required
-@role_required(['Pub League Admin', 'Global Admin'])
-def season_analytics(season_id):
-    """Detailed analytics for a specific draft season."""
+@role_required(['Global Admin', 'Pub League Admin'])
+def admin_view_league(league_type):
+    """
+    Admin view of predictions for a specific league.
+    Shows aggregated predictions per player with drill-down capability.
+    """
     try:
-        draft_season = g.db_session.query(DraftSeason).get(season_id)
-        if not draft_season:
-            abort(404)
-        
-        # Get all predictions for this season with coach and player names
-        predictions = g.db_session.query(DraftPrediction, Player, User).join(
-            Player, DraftPrediction.player_id == Player.id
-        ).join(
-            User, DraftPrediction.coach_user_id == User.id
-        ).filter(DraftPrediction.draft_season_id == season_id).all()
-        
-        # Get prediction summaries with player names
-        summaries = []
-        try:
-            summaries = g.db_session.query(DraftPredictionSummary, Player).join(
-                Player, DraftPredictionSummary.player_id == Player.id
-            ).filter(DraftPredictionSummary.draft_season_id == season_id).order_by(
-                DraftPredictionSummary.avg_predicted_round.asc()
-            ).all()
-        except Exception as e:
-            logger.warning(f"Could not query prediction summaries: {e}")
-            summaries = []
-        
-        # Get actual results from draft history if available
-        # We need to match draft season to actual league and season
-        actuals = []
-        try:
-            actuals = g.db_session.query(DraftOrderHistory).filter_by(
-                season_id=draft_season.season_id
-            ).all()
-        except Exception as e:
-            logger.warning(f"Could not query draft order history: {e}")
-            actuals = []
-        
-        # Calculate analytics
-        analytics = {
-            'total_predictions': len(predictions),
-            'unique_coaches': len(set(p[0].coach_user_id for p in predictions)),
-            'unique_players': len(set(p[0].player_id for p in predictions)),
-            'average_predictions_per_player': 0,
-            'most_predicted_players': [],
-            'coach_participation': {},
-            'round_distribution': {},
-            'coach_details': {},
-            'player_details': {}
-        }
-        
-        if predictions:
-            # Average predictions per player
-            player_prediction_counts = {}
-            for pred, player, user in predictions:
-                player_name = player.name
-                player_prediction_counts[player_name] = player_prediction_counts.get(player_name, 0) + 1
-            
-            if player_prediction_counts:
-                analytics['average_predictions_per_player'] = sum(player_prediction_counts.values()) / len(player_prediction_counts)
-            
-            # Most predicted players (with names)
-            sorted_players = sorted(player_prediction_counts.items(), key=lambda x: x[1], reverse=True)
-            analytics['most_predicted_players'] = sorted_players[:10]
-            
-            # Coach participation (with names)
-            coach_counts = {}
-            coach_details = {}
-            for pred, player, user in predictions:
-                coach_name = user.username
-                coach_counts[coach_name] = coach_counts.get(coach_name, 0) + 1
-                
-                # Build detailed coach predictions
-                if coach_name not in coach_details:
-                    coach_details[coach_name] = {
-                        'predictions': [],
-                        'total_predictions': 0,
-                        'avg_confidence': 0,
-                        'rounds_predicted': set()
-                    }
-                
-                coach_details[coach_name]['predictions'].append({
-                    'player_name': player.name,
-                    'predicted_round': pred.predicted_round,
-                    'confidence_level': pred.confidence_level,
-                    'notes': pred.notes,
-                    'created_at': pred.created_at
-                })
-                coach_details[coach_name]['total_predictions'] += 1
-                coach_details[coach_name]['rounds_predicted'].add(pred.predicted_round)
-            
-            # Calculate coach averages
-            for coach_name in coach_details:
-                predictions_list = coach_details[coach_name]['predictions']
-                confidences = [p['confidence_level'] for p in predictions_list if p['confidence_level']]
-                if confidences:
-                    coach_details[coach_name]['avg_confidence'] = sum(confidences) / len(confidences)
-                coach_details[coach_name]['rounds_predicted'] = list(coach_details[coach_name]['rounds_predicted'])
-            
-            analytics['coach_participation'] = coach_counts
-            analytics['coach_details'] = coach_details
-            
-            # Round distribution
-            round_counts = {}
-            for pred, player, user in predictions:
-                round_counts[pred.predicted_round] = round_counts.get(pred.predicted_round, 0) + 1
-            analytics['round_distribution'] = round_counts
-        
-        return render_template('draft_predictions/season_analytics.html',
-                             draft_season=draft_season,
-                             analytics=analytics,
-                             summaries=summaries,
-                             actuals=actuals,
-                             has_actuals=len(actuals) > 0)
-    
-    except Exception as e:
-        logger.error(f"Error loading season analytics {season_id}: {e}")
-        show_error("Error loading season analytics")
-        return redirect(url_for('draft_predictions.admin_dashboard'))
+        if league_type not in ['Premier', 'Classic']:
+            flash('Invalid league type', 'error')
+            return redirect(url_for('draft_predictions.admin_dashboard'))
 
+        from app.models import Season
 
+        # Get selected season
+        season_id = request.args.get('season_id', type=int)
+        if season_id:
+            season = g.db_session.query(Season).get(season_id)
+        else:
+            season = get_current_season()
 
-@draft_predictions_bp.route('/api/players/<int:season_id>/<league_type>')
-@login_required
-@role_required(['Pub League Coach', 'Pub League Admin', 'Global Admin'])
-def api_get_players(season_id, league_type):
-    """API endpoint to get eligible players for a draft season."""
-    try:
-        # Get players who are current and in leagues of the specified type
-        players = g.db_session.query(Player).join(Player.league).filter(
-            Player.is_current_player == True,
-            League.season_id == season_id,
-            func.lower(League.name) == func.lower(league_type)
-        ).options(
-            joinedload(Player.league),
-            joinedload(Player.image_cache)
-        ).all()
-        
-        players_data = []
+        if not season:
+            flash('No season found', 'error')
+            return redirect(url_for('draft_predictions.admin_dashboard'))
+
+        # Get all players in this league
+        players = get_league_players(season.id, league_type)
+        player_ids = [p.id for p in players]
+
+        # Get aggregate stats
+        aggregate_stats = get_prediction_stats_for_players(season.id, league_type, player_ids)
+
+        # Build player data with stats
+        player_data = []
         for player in players:
-            player_dict = {
-                'id': player.id,
-                'name': player.name,
-                'favorite_position': player.favorite_position,
-                'profile_picture_url': player.profile_picture_url,
-                'league': player.league.name if player.league else None
+            stats = aggregate_stats.get(player.id, {})
+            player_data.append({
+                'player': player,
+                'avg_round': stats.get('avg_round'),
+                'min_round': stats.get('min_round'),
+                'max_round': stats.get('max_round'),
+                'prediction_count': stats.get('prediction_count', 0)
+            })
+
+        # Sort by average predicted round (unpredicted players at end)
+        player_data.sort(key=lambda x: (x['avg_round'] is None, x['avg_round'] or 999))
+
+        return render_template(
+            'draft_predictions/admin_view_league.html',
+            season=season,
+            league_type=league_type,
+            player_data=player_data,
+            total_coaches=g.db_session.query(
+                func.count(func.distinct(DraftPrediction.coach_user_id))
+            ).filter(
+                DraftPrediction.season_id == season.id,
+                DraftPrediction.league_type == league_type
+            ).scalar() or 0
+        )
+
+    except Exception as e:
+        logger.error(f"Error in admin view league: {e}", exc_info=True)
+        flash('Error loading league view', 'error')
+        return redirect(url_for('draft_predictions.admin_dashboard'))
+
+
+@draft_predictions_bp.route('/admin/player/<int:player_id>')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def admin_player_detail(player_id):
+    """
+    Admin drill-down view for a specific player.
+    Shows what each coach predicted for this player.
+    """
+    try:
+        from app.models import Player, Season, User
+
+        player = g.db_session.query(Player).get_or_404(player_id)
+
+        # Get season from query param or use current
+        season_id = request.args.get('season_id', type=int)
+        league_type = request.args.get('league_type', 'Premier')
+
+        if season_id:
+            season = g.db_session.query(Season).get(season_id)
+        else:
+            season = get_current_season()
+
+        if not season:
+            flash('No season found', 'error')
+            return redirect(url_for('draft_predictions.admin_dashboard'))
+
+        # Get all predictions for this player
+        predictions = g.db_session.query(DraftPrediction, User).join(
+            User, DraftPrediction.coach_user_id == User.id
+        ).filter(
+            DraftPrediction.season_id == season.id,
+            DraftPrediction.league_type == league_type,
+            DraftPrediction.player_id == player_id
+        ).order_by(DraftPrediction.predicted_round).all()
+
+        # Calculate stats
+        if predictions:
+            rounds = [p[0].predicted_round for p in predictions]
+            avg_round = sum(rounds) / len(rounds)
+            min_round = min(rounds)
+            max_round = max(rounds)
+        else:
+            avg_round = min_round = max_round = None
+
+        return render_template(
+            'draft_predictions/admin_player_detail.html',
+            player=player,
+            season=season,
+            league_type=league_type,
+            predictions=predictions,
+            stats={
+                'avg_round': avg_round,
+                'min_round': min_round,
+                'max_round': max_round,
+                'count': len(predictions)
             }
-            
-            # Add cached image if available
-            if player.image_cache and player.image_cache.thumbnail_url:
-                player_dict['thumbnail_url'] = player.image_cache.thumbnail_url
-            
-            players_data.append(player_dict)
-        
-        return jsonify({'success': True, 'players': players_data})
-    
-    except Exception as e:
-        logger.error(f"Error getting players for season {season_id}, league {league_type}: {e}")
-        return jsonify({'success': False, 'message': 'Error loading players'}), 500
+        )
 
-
-@draft_predictions_bp.route('/admin/sync-seasons', methods=['POST'])
-@login_required
-@role_required(['Pub League Admin', 'Global Admin'])
-def sync_seasons():
-    """Sync draft seasons with current season."""
-    try:
-        ensure_current_season_draft_seasons()
-        show_success("Draft seasons synchronized with current season")
-        return redirect(url_for('draft_predictions.admin_dashboard'))
     except Exception as e:
-        logger.error(f"Error syncing seasons: {e}")
-        show_error("Error synchronizing draft seasons")
+        logger.error(f"Error in player detail: {e}", exc_info=True)
+        flash('Error loading player details', 'error')
         return redirect(url_for('draft_predictions.admin_dashboard'))
 
 
-@draft_predictions_bp.route('/admin/season/<int:season_id>/edit', methods=['GET', 'POST'])
+@draft_predictions_bp.route('/admin/coach/<int:coach_id>')
 @login_required
-@role_required(['Pub League Admin', 'Global Admin'])
-def edit_season(season_id):
-    """Edit an existing draft season."""
-    draft_season = g.db_session.query(DraftSeason).get(season_id)
-    if not draft_season:
-        abort(404)
-    
-    if request.method == 'GET':
-        # Get available seasons for the dropdown
-        seasons = g.db_session.query(Season).all()
-        return render_template('draft_predictions/edit_season.html', 
-                             draft_season=draft_season, 
-                             seasons=seasons)
-    
+@role_required(['Global Admin', 'Pub League Admin'])
+def admin_coach_detail(coach_id):
+    """
+    Admin view of all predictions by a specific coach.
+    """
     try:
-        name = request.form.get('name')
-        description = request.form.get('description')
-        season_id_form = request.form.get('season_id')
-        league_type = request.form.get('league_type')
-        prediction_start_date = datetime.strptime(request.form.get('prediction_start_date'), '%Y-%m-%d')
-        prediction_end_date = datetime.strptime(request.form.get('prediction_end_date'), '%Y-%m-%d')
-        draft_date = request.form.get('draft_date')
-        is_active = request.form.get('is_active') == 'on'
-        
-        if draft_date:
-            draft_date = datetime.strptime(draft_date, '%Y-%m-%d')
-        
-        # Validate inputs
-        if not all([name, season_id_form, league_type, prediction_start_date, prediction_end_date]):
-            show_error("All required fields must be filled")
-            return redirect(url_for('draft_predictions.edit_season', season_id=season_id))
-        
-        if prediction_start_date >= prediction_end_date:
-            show_error("Prediction start date must be before end date")
-            return redirect(url_for('draft_predictions.edit_season', season_id=season_id))
-        
-        # Update draft season
-        draft_season.name = name
-        draft_season.description = description
-        draft_season.season_id = season_id_form
-        draft_season.league_type = league_type
-        draft_season.prediction_start_date = prediction_start_date
-        draft_season.prediction_end_date = prediction_end_date
-        draft_season.draft_date = draft_date
-        draft_season.is_active = is_active
-        draft_season.updated_at = datetime.utcnow()
-        
-        g.db_session.commit()
-        
-        show_success(f"Draft season '{name}' updated successfully")
-        return redirect(url_for('draft_predictions.admin_dashboard'))
-    
+        from app.models import Player, Season, User
+
+        coach = g.db_session.query(User).get_or_404(coach_id)
+
+        # Get season from query param or use current
+        season_id = request.args.get('season_id', type=int)
+        league_type = request.args.get('league_type', 'Premier')
+
+        if season_id:
+            season = g.db_session.query(Season).get(season_id)
+        else:
+            season = get_current_season()
+
+        if not season:
+            flash('No season found', 'error')
+            return redirect(url_for('draft_predictions.admin_dashboard'))
+
+        # Get all predictions by this coach
+        predictions = g.db_session.query(DraftPrediction, Player).join(
+            Player, DraftPrediction.player_id == Player.id
+        ).filter(
+            DraftPrediction.season_id == season.id,
+            DraftPrediction.league_type == league_type,
+            DraftPrediction.coach_user_id == coach_id
+        ).order_by(DraftPrediction.predicted_round, Player.name).all()
+
+        return render_template(
+            'draft_predictions/admin_coach_detail.html',
+            coach=coach,
+            season=season,
+            league_type=league_type,
+            predictions=predictions,
+            prediction_count=len(predictions)
+        )
+
     except Exception as e:
-        logger.error(f"Error updating draft season: {e}")
-        g.db_session.rollback()
-        show_error("Error updating draft season")
-        return redirect(url_for('draft_predictions.edit_season', season_id=season_id))
+        logger.error(f"Error in coach detail: {e}", exc_info=True)
+        flash('Error loading coach details', 'error')
+        return redirect(url_for('draft_predictions.admin_dashboard'))
 
 
-@draft_predictions_bp.route('/admin/season/<int:season_id>/toggle-status', methods=['POST'])
+# =============================================================================
+# API Endpoints
+# =============================================================================
+
+@draft_predictions_bp.route('/api/stats/<league_type>')
 @login_required
-@role_required(['Pub League Admin', 'Global Admin'])
-def toggle_season_status(season_id):
-    """Toggle active status of a draft season."""
+@role_required(['Global Admin', 'Pub League Admin'])
+def api_league_stats(league_type):
+    """API endpoint to get prediction stats for a league."""
     try:
-        draft_season = g.db_session.query(DraftSeason).get(season_id)
-        if not draft_season:
-            return jsonify({'success': False, 'message': 'Season not found'}), 404
-        draft_season.is_active = not draft_season.is_active
-        g.db_session.commit()
-        
-        status = "activated" if draft_season.is_active else "deactivated"
+        season_id = request.args.get('season_id', type=int)
+
+        if not season_id:
+            current = get_current_season()
+            season_id = current.id if current else None
+
+        if not season_id:
+            return jsonify({'success': False, 'message': 'No season found'})
+
+        players = get_league_players(season_id, league_type)
+        player_ids = [p.id for p in players]
+        stats = get_prediction_stats_for_players(season_id, league_type, player_ids)
+
+        result = []
+        for player in players:
+            player_stats = stats.get(player.id, {})
+            result.append({
+                'player_id': player.id,
+                'player_name': player.name,
+                'position': player.position,
+                'avg_round': player_stats.get('avg_round'),
+                'min_round': player_stats.get('min_round'),
+                'max_round': player_stats.get('max_round'),
+                'prediction_count': player_stats.get('prediction_count', 0)
+            })
+
+        # Sort by average round
+        result.sort(key=lambda x: (x['avg_round'] is None, x['avg_round'] or 999))
+
         return jsonify({
             'success': True,
-            'message': f'Season {status} successfully',
-            'is_active': draft_season.is_active
+            'players': result,
+            'total_players': len(players),
+            'players_with_predictions': sum(1 for r in result if r['prediction_count'] > 0)
         })
-    
+
     except Exception as e:
-        logger.error(f"Error toggling season status {season_id}: {e}")
-        g.db_session.rollback()
-        return jsonify({
-            'success': False,
-            'message': 'Error updating season status'
-        }), 500
+        logger.error(f"Error in league stats API: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500

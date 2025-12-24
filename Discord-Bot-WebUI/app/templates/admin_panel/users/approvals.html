@@ -13,212 +13,194 @@
 {% block panel_content %}
 
     <!-- User Approvals Overview -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ pending_users|length }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Pending Approvals</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-user-check" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
-                </div>
+    <div class="l-grid l-grid--4-col u-mb-4">
+        <div class="c-stat-card c-stat-card--warning">
+            <div class="c-stat-card__content">
+                <div class="c-stat-card__value">{{ pending_users|length }}</div>
+                <div class="c-stat-card__label">Pending Approvals</div>
+            </div>
+            <div class="c-stat-card__icon">
+                <i class="ti ti-user-check"></i>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ approved_count }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Total Approved</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-check-circle" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
-                </div>
+        <div class="c-stat-card c-stat-card--success">
+            <div class="c-stat-card__content">
+                <div class="c-stat-card__value">{{ approved_count }}</div>
+                <div class="c-stat-card__label">Total Approved</div>
+            </div>
+            <div class="c-stat-card__icon">
+                <i class="ti ti-check-circle"></i>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-danger text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ rejected_count }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Rejected Users</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-x-circle" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
-                </div>
+        <div class="c-stat-card c-stat-card--danger">
+            <div class="c-stat-card__content">
+                <div class="c-stat-card__value">{{ rejected_count }}</div>
+                <div class="c-stat-card__label">Rejected Users</div>
+            </div>
+            <div class="c-stat-card__icon">
+                <i class="ti ti-x-circle"></i>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ total_users }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Total Users</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-users" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
-                </div>
+        <div class="c-stat-card c-stat-card--info">
+            <div class="c-stat-card__content">
+                <div class="c-stat-card__value">{{ total_users }}</div>
+                <div class="c-stat-card__label">Total Users</div>
+            </div>
+            <div class="c-stat-card__icon">
+                <i class="ti ti-users"></i>
             </div>
         </div>
     </div>
 
     <!-- Filter and Actions -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
-                            <i class="ti ti-filter me-2"></i>Filter Users
-                        </h5>
-                        <div>
-                            <button class="btn btn-outline-secondary me-2" onclick="window.history.back()">
-                                <i class="ti ti-arrow-left me-1"></i>Back
-                            </button>
-                            {% if pending_users %}
-                            <button class="btn btn-success" onclick="approveAllPending()">
-                                <i class="ti ti-check-circle me-1"></i>Approve All Pending
-                            </button>
-                            {% endif %}
-                        </div>
-                    </div>
+    <div class="l-container u-mb-4">
+        <div class="c-card-modern">
+            <div class="c-card-modern__header">
+                <div class="c-card-modern__title">
+                    <i class="ti ti-filter"></i>
+                    <span>Filter Users</span>
                 </div>
-                <div class="card-body">
-                    <form method="GET" class="row g-3">
-                        <div class="col-md-3">
-                            <label for="status_filter" class="form-label">Status</label>
-                            <select class="form-select" id="status_filter" name="status">
+                <div class="c-card-modern__actions">
+                    <button class="c-btn-modern c-btn-modern--secondary c-btn-modern--sm" data-action="back">
+                        <i class="ti ti-arrow-left"></i>
+                        <span>Back</span>
+                    </button>
+                    {% if pending_users %}
+                    <button class="c-btn-modern c-btn-modern--success c-btn-modern--sm" data-action="approve-all">
+                        <i class="ti ti-check-circle"></i>
+                        <span>Approve All Pending</span>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="c-card-modern__body">
+                <form method="GET" class="c-form-modern">
+                    <div class="c-form-modern__row">
+                        <div class="c-form-modern__group">
+                            <label for="status_filter" class="c-form-modern__label">Status</label>
+                            <select class="c-form-modern__select" id="status_filter" name="status">
                                 <option value="">All Users</option>
                                 <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>Pending Approval</option>
                                 <option value="approved" {% if request.args.get('status') == 'approved' %}selected{% endif %}>Approved</option>
                                 <option value="rejected" {% if request.args.get('status') == 'rejected' %}selected{% endif %}>Rejected</option>
                             </select>
                         </div>
-                        <div class="col-md-3">
-                            <label for="league_filter" class="form-label">League</label>
-                            <select class="form-select" id="league_filter" name="league">
+                        <div class="c-form-modern__group">
+                            <label for="league_filter" class="c-form-modern__label">League</label>
+                            <select class="c-form-modern__select" id="league_filter" name="league">
                                 <option value="">All Leagues</option>
                                 <option value="pl-premier" {% if request.args.get('league') == 'pl-premier' %}selected{% endif %}>PL Premier</option>
                                 <option value="pl-classic" {% if request.args.get('league') == 'pl-classic' %}selected{% endif %}>PL Classic</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label for="search" class="form-label">Search</label>
-                            <input type="text" class="form-control" id="search" name="search" 
+                        <div class="c-form-modern__group c-form-modern__group--grow">
+                            <label for="search" class="c-form-modern__label">Search</label>
+                            <input type="text" class="c-form-modern__input" id="search" name="search"
                                    placeholder="Search by name or email..." value="{{ request.args.get('search', '') }}">
                         </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary me-2">Filter</button>
-                            <a href="{{ url_for('admin_panel.user_approvals') }}" class="btn btn-outline-secondary">Clear</a>
+                        <div class="c-form-modern__group c-form-modern__group--actions">
+                            <button type="submit" class="c-btn-modern c-btn-modern--primary">Filter</button>
+                            <a href="{{ url_for('admin_panel.user_approvals') }}" class="c-btn-modern c-btn-modern--secondary">Clear</a>
                         </div>
-                    </form>
-                </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
     <!-- Pending Users -->
     {% if pending_users %}
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-user-check me-2"></i>Pending Approvals ({{ pending_users|length }})
-                    </h5>
+    <div class="l-container u-mb-4">
+        <div class="c-card-modern">
+            <div class="c-card-modern__header">
+                <div class="c-card-modern__title">
+                    <i class="ti ti-user-check"></i>
+                    <span>Pending Approvals ({{ pending_users|length }})</span>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>User</th>
-                                    <th>Email</th>
-                                    <th>Discord</th>
-                                    <th>Registered</th>
-                                    <th>League Interest</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for user in pending_users %}
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="avatar avatar-sm me-2">
-                                                <span class="avatar-initial bg-primary rounded-circle">
-                                                    {{ (user.name or user.username)[0].upper() }}
-                                                </span>
-                                            </div>
-                                            <div>
-                                                <strong>{{ user.name or user.username }}</strong>
-                                                {% if user.name and user.username and user.name != user.username %}
-                                                <br><small class="text-muted">@{{ user.username }}</small>
-                                                {% endif %}
-                                            </div>
+            </div>
+            <div class="c-card-modern__body c-card-modern__body--no-padding">
+                <div class="c-table-modern__wrapper">
+                    <table class="c-table-modern">
+                        <thead class="c-table-modern__header">
+                            <tr class="c-table-modern__row">
+                                <th class="c-table-modern__cell c-table-modern__cell--header">User</th>
+                                <th class="c-table-modern__cell c-table-modern__cell--header">Email</th>
+                                <th class="c-table-modern__cell c-table-modern__cell--header">Discord</th>
+                                <th class="c-table-modern__cell c-table-modern__cell--header">Registered</th>
+                                <th class="c-table-modern__cell c-table-modern__cell--header">League Interest</th>
+                                <th class="c-table-modern__cell c-table-modern__cell--header">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="c-table-modern__body">
+                            {% for user in pending_users %}
+                            <tr class="c-table-modern__row" data-user-id="{{ user.id }}">
+                                <td class="c-table-modern__cell" data-label="User">
+                                    <div class="c-user-avatar">
+                                        <div class="c-user-avatar__image c-user-avatar__image--primary">
+                                            {{ (user.name or user.username)[0].upper() }}
                                         </div>
-                                    </td>
-                                    <td>
-                                        <small>{{ user.email or 'Not provided' }}</small>
-                                    </td>
-                                    <td>
-                                        {% if user.discord_id %}
-                                        <span class="badge bg-success">
-                                            <i class="ti ti-brand-discord me-1"></i>Connected
-                                        </span>
-                                        {% else %}
-                                        <span class="badge bg-warning">
-                                            <i class="ti ti-unlink me-1"></i>Not Connected
-                                        </span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <small class="text-muted">
-                                            {{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else 'Unknown' }}
-                                        </small>
-                                    </td>
-                                    <td>
-                                        {% if user.player and user.player.league_interest %}
-                                        <span class="badge bg-info">{{ user.player.league_interest }}</span>
-                                        {% else %}
-                                        <span class="text-muted">Not specified</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-info" 
-                                                    onclick="viewUserDetails({{ user.id }}, '{{ user.name or user.username }}')">
-                                                <i class="ti ti-eye"></i>
-                                            </button>
-                                            <button class="btn btn-outline-success" 
-                                                    onclick="approveUser({{ user.id }}, '{{ user.name or user.username }}')">
-                                                <i class="ti ti-check"></i>
-                                            </button>
-                                            <button class="btn btn-outline-danger" 
-                                                    onclick="rejectUser({{ user.id }}, '{{ user.name or user.username }}')">
-                                                <i class="ti ti-x"></i>
-                                            </button>
+                                        <div class="c-user-avatar__info">
+                                            <div class="c-user-avatar__name">{{ user.name or user.username }}</div>
+                                            {% if user.name and user.username and user.name != user.username %}
+                                            <div class="c-user-avatar__meta">@{{ user.username }}</div>
+                                            {% endif %}
                                         </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                                    </div>
+                                </td>
+                                <td class="c-table-modern__cell" data-label="Email">
+                                    <span class="u-text-sm">{{ user.email or 'Not provided' }}</span>
+                                </td>
+                                <td class="c-table-modern__cell" data-label="Discord">
+                                    {% if user.discord_id %}
+                                    <span class="c-badge c-badge--success">
+                                        <i class="ti ti-brand-discord"></i>
+                                        <span>Connected</span>
+                                    </span>
+                                    {% else %}
+                                    <span class="c-badge c-badge--warning">
+                                        <i class="ti ti-unlink"></i>
+                                        <span>Not Connected</span>
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="c-table-modern__cell" data-label="Registered">
+                                    <span class="u-text-sm u-text-muted">
+                                        {{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else 'Unknown' }}
+                                    </span>
+                                </td>
+                                <td class="c-table-modern__cell" data-label="League Interest">
+                                    {% if user.player and user.player.league_interest %}
+                                    <span class="c-badge c-badge--info">{{ user.player.league_interest }}</span>
+                                    {% else %}
+                                    <span class="u-text-muted">Not specified</span>
+                                    {% endif %}
+                                </td>
+                                <td class="c-table-modern__cell" data-label="Actions">
+                                    <div class="c-btn-group">
+                                        <button class="c-btn-modern c-btn-modern--info c-btn-modern--sm c-btn-modern--icon"
+                                                data-action="view-user"
+                                                data-user-id="{{ user.id }}"
+                                                data-user-name="{{ user.name or user.username }}">
+                                            <i class="ti ti-eye"></i>
+                                        </button>
+                                        <button class="c-btn-modern c-btn-modern--success c-btn-modern--sm c-btn-modern--icon"
+                                                data-action="approve-user"
+                                                data-user-id="{{ user.id }}"
+                                                data-user-name="{{ user.name or user.username }}">
+                                            <i class="ti ti-check"></i>
+                                        </button>
+                                        <button class="c-btn-modern c-btn-modern--danger c-btn-modern--sm c-btn-modern--icon"
+                                                data-action="reject-user"
+                                                data-user-id="{{ user.id }}"
+                                                data-user-name="{{ user.name or user.username }}">
+                                            <i class="ti ti-x"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -227,102 +209,107 @@
 
     <!-- All Users (filtered) -->
     {% if filtered_users %}
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-users me-2"></i>{{ status_title or 'All Users' }} ({{ filtered_users|length }})
-                    </h5>
+    <div class="l-container">
+        <div class="c-card-modern">
+            <div class="c-card-modern__header">
+                <div class="c-card-modern__title">
+                    <i class="ti ti-users"></i>
+                    <span>{{ status_title or 'All Users' }} ({{ filtered_users|length }})</span>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>User</th>
-                                    <th>Email</th>
-                                    <th>Status</th>
-                                    <th>Discord</th>
-                                    <th>Registered</th>
-                                    <th>League</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for user in filtered_users %}
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="avatar avatar-sm me-2">
-                                                <span class="avatar-initial bg-primary rounded-circle">
-                                                    {{ (user.name or user.username)[0].upper() }}
-                                                </span>
-                                            </div>
-                                            <div>
-                                                <strong>{{ user.name or user.username }}</strong>
-                                                {% if user.name and user.username and user.name != user.username %}
-                                                <br><small class="text-muted">@{{ user.username }}</small>
-                                                {% endif %}
-                                            </div>
+            </div>
+            <div class="c-card-modern__body c-card-modern__body--no-padding">
+                <div class="c-table-modern__wrapper">
+                    <table class="c-table-modern">
+                        <thead class="c-table-modern__header">
+                            <tr class="c-table-modern__row">
+                                <th class="c-table-modern__cell c-table-modern__cell--header">User</th>
+                                <th class="c-table-modern__cell c-table-modern__cell--header">Email</th>
+                                <th class="c-table-modern__cell c-table-modern__cell--header">Status</th>
+                                <th class="c-table-modern__cell c-table-modern__cell--header">Discord</th>
+                                <th class="c-table-modern__cell c-table-modern__cell--header">Registered</th>
+                                <th class="c-table-modern__cell c-table-modern__cell--header">League</th>
+                                <th class="c-table-modern__cell c-table-modern__cell--header">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="c-table-modern__body">
+                            {% for user in filtered_users %}
+                            <tr class="c-table-modern__row" data-user-id="{{ user.id }}">
+                                <td class="c-table-modern__cell" data-label="User">
+                                    <div class="c-user-avatar">
+                                        <div class="c-user-avatar__image c-user-avatar__image--primary">
+                                            {{ (user.name or user.username)[0].upper() }}
                                         </div>
-                                    </td>
-                                    <td>
-                                        <small>{{ user.email or 'Not provided' }}</small>
-                                    </td>
-                                    <td>
-                                        {% if user.is_approved %}
-                                        <span class="badge bg-success">Approved</span>
-                                        {% else %}
-                                        <span class="badge bg-warning">Pending</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if user.discord_id %}
-                                        <span class="badge bg-success">
-                                            <i class="ti ti-brand-discord me-1"></i>Connected
-                                        </span>
-                                        {% else %}
-                                        <span class="badge bg-warning">
-                                            <i class="ti ti-unlink me-1"></i>Not Connected
-                                        </span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <small class="text-muted">
-                                            {{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else 'Unknown' }}
-                                        </small>
-                                    </td>
-                                    <td>
-                                        {% if user.player and user.player.league_interest %}
-                                        <span class="badge bg-info">{{ user.player.league_interest }}</span>
-                                        {% else %}
-                                        <span class="text-muted">Not specified</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-info" 
-                                                    onclick="viewUserDetails({{ user.id }}, '{{ user.name or user.username }}')">
-                                                <i class="ti ti-eye"></i>
-                                            </button>
-                                            {% if not user.is_approved %}
-                                            <button class="btn btn-outline-success" 
-                                                    onclick="approveUser({{ user.id }}, '{{ user.name or user.username }}')">
-                                                <i class="ti ti-check"></i>
-                                            </button>
-                                            <button class="btn btn-outline-danger" 
-                                                    onclick="rejectUser({{ user.id }}, '{{ user.name or user.username }}')">
-                                                <i class="ti ti-x"></i>
-                                            </button>
+                                        <div class="c-user-avatar__info">
+                                            <div class="c-user-avatar__name">{{ user.name or user.username }}</div>
+                                            {% if user.name and user.username and user.name != user.username %}
+                                            <div class="c-user-avatar__meta">@{{ user.username }}</div>
                                             {% endif %}
                                         </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                                    </div>
+                                </td>
+                                <td class="c-table-modern__cell" data-label="Email">
+                                    <span class="u-text-sm">{{ user.email or 'Not provided' }}</span>
+                                </td>
+                                <td class="c-table-modern__cell" data-label="Status">
+                                    {% if user.is_approved %}
+                                    <span class="c-badge c-badge--success">Approved</span>
+                                    {% else %}
+                                    <span class="c-badge c-badge--warning">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td class="c-table-modern__cell" data-label="Discord">
+                                    {% if user.discord_id %}
+                                    <span class="c-badge c-badge--success">
+                                        <i class="ti ti-brand-discord"></i>
+                                        <span>Connected</span>
+                                    </span>
+                                    {% else %}
+                                    <span class="c-badge c-badge--warning">
+                                        <i class="ti ti-unlink"></i>
+                                        <span>Not Connected</span>
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="c-table-modern__cell" data-label="Registered">
+                                    <span class="u-text-sm u-text-muted">
+                                        {{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else 'Unknown' }}
+                                    </span>
+                                </td>
+                                <td class="c-table-modern__cell" data-label="League">
+                                    {% if user.player and user.player.league_interest %}
+                                    <span class="c-badge c-badge--info">{{ user.player.league_interest }}</span>
+                                    {% else %}
+                                    <span class="u-text-muted">Not specified</span>
+                                    {% endif %}
+                                </td>
+                                <td class="c-table-modern__cell" data-label="Actions">
+                                    <div class="c-btn-group">
+                                        <button class="c-btn-modern c-btn-modern--info c-btn-modern--sm c-btn-modern--icon"
+                                                data-action="view-user"
+                                                data-user-id="{{ user.id }}"
+                                                data-user-name="{{ user.name or user.username }}">
+                                            <i class="ti ti-eye"></i>
+                                        </button>
+                                        {% if not user.is_approved %}
+                                        <button class="c-btn-modern c-btn-modern--success c-btn-modern--sm c-btn-modern--icon"
+                                                data-action="approve-user"
+                                                data-user-id="{{ user.id }}"
+                                                data-user-name="{{ user.name or user.username }}">
+                                            <i class="ti ti-check"></i>
+                                        </button>
+                                        <button class="c-btn-modern c-btn-modern--danger c-btn-modern--sm c-btn-modern--icon"
+                                                data-action="reject-user"
+                                                data-user-id="{{ user.id }}"
+                                                data-user-name="{{ user.name or user.username }}">
+                                            <i class="ti ti-x"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -330,32 +317,30 @@
     {% endif %}
 
     {% if not pending_users and not filtered_users %}
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body text-center py-5">
-                    <i class="ti ti-user-search text-muted" style="font-size: 4rem;"></i>
-                    <h5 class="text-muted mt-3">No users found</h5>
-                    <p class="text-muted">No users match your current filter criteria.</p>
-                </div>
+    <div class="l-container">
+        <div class="c-card-modern">
+            <div class="c-card-modern__body c-empty-state">
+                <i class="ti ti-user-search c-empty-state__icon"></i>
+                <h5 class="c-empty-state__title">No users found</h5>
+                <p class="c-empty-state__text">No users match your current filter criteria.</p>
             </div>
         </div>
     </div>
     {% endif %}
 
     <!-- User Details Modal -->
-    <div class="modal fade" id="userDetailsModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="user_details_title">User Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="c-modal" id="userDetailsModal" tabindex="-1" aria-labelledby="user_details_title">
+        <div class="c-modal__dialog c-modal__dialog--lg">
+            <div class="c-modal__content">
+                <div class="c-modal__header">
+                    <h5 class="c-modal__title" id="user_details_title">User Details</h5>
+                    <button type="button" class="c-modal__close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body" id="user_details_content">
+                <div class="c-modal__body" id="user_details_content">
                     <!-- User details will be loaded here -->
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <div class="c-modal__footer">
+                    <button type="button" class="c-btn-modern c-btn-modern--secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -363,47 +348,45 @@
 {% endblock %}
 
 {% block custom_css %}
-<style>
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.avatar-sm {
-    width: 32px;
-    height: 32px;
-}
-
-.avatar-initial {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.875rem;
-    font-weight: 600;
-}
-
-@media (max-width: 768px) {
-    .btn-group-sm .btn {
-        padding: 0.25rem 0.4rem;
-        font-size: 0.75rem;
-    }
-    
-    .table-responsive {
-        font-size: 0.875rem;
-    }
-}
-</style>
+{{ super() }}
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
+// Event delegation for all user actions
+document.addEventListener('click', function(e) {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+
+    const action = target.dataset.action;
+    const userId = target.dataset.userId;
+    const userName = target.dataset.userName;
+
+    switch(action) {
+        case 'back':
+            window.history.back();
+            break;
+        case 'approve-all':
+            approveAllPending();
+            break;
+        case 'view-user':
+            viewUserDetails(userId, userName);
+            break;
+        case 'approve-user':
+            approveUser(userId, userName);
+            break;
+        case 'reject-user':
+            rejectUser(userId, userName);
+            break;
+    }
+});
+
 function viewUserDetails(userId, userName) {
     document.getElementById('user_details_title').textContent = `Details for ${userName}`;
-    document.getElementById('user_details_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
-    
-    const modal = new bootstrap.Modal(document.getElementById('userDetailsModal'));
-    modal.show();
+    document.getElementById('user_details_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status" data-spinner></div></div>';
+
+    ModalManager.show('userDetailsModal');
     
     // Load user details via AJAX
     fetch(`{{ url_for('admin_panel.get_user_details') }}?user_id=${userId}`)
@@ -412,11 +395,11 @@ function viewUserDetails(userId, userName) {
             if (data.success) {
                 document.getElementById('user_details_content').innerHTML = data.html;
             } else {
-                document.getElementById('user_details_content').innerHTML = '<div class="alert alert-danger">Error loading user details</div>';
+                document.getElementById('user_details_content').innerHTML = '<div class="alert alert-danger" data-alert>Error loading user details</div>';
             }
         })
         .catch(error => {
-            document.getElementById('user_details_content').innerHTML = '<div class="alert alert-danger">Error loading user details</div>';
+            document.getElementById('user_details_content').innerHTML = '<div class="alert alert-danger" data-alert>Error loading user details</div>';
         });
 }
 

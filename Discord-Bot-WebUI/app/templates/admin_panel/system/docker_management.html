@@ -13,10 +13,10 @@
 <div class="row">
     <!-- Header -->
     <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="ti ti-box me-2"></i>Docker Container Management</h5>
-                <button id="refresh-btn" class="btn btn-primary btn-sm">
+                <button id="docker-refresh-btn" class="c-btn c-btn--primary c-btn--sm">
                     <i class="ti ti-refresh me-1"></i>Refresh
                 </button>
             </div>
@@ -25,8 +25,8 @@
 
     <!-- Container Stats -->
     <div class="col-md-4 mb-4">
-        <div class="card h-100 bg-success bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-success bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-circle-check fs-1 text-success mb-2"></i>
                 <h3 class="mb-0" id="running-count">{{ containers|selectattr('status', 'startswith', 'running')|list|length }}</h3>
                 <small class="text-muted">Running</small>
@@ -34,8 +34,8 @@
         </div>
     </div>
     <div class="col-md-4 mb-4">
-        <div class="card h-100 bg-warning bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-warning bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-circle-pause fs-1 text-warning mb-2"></i>
                 <h3 class="mb-0" id="stopped-count">{{ containers|rejectattr('status', 'startswith', 'running')|list|length }}</h3>
                 <small class="text-muted">Stopped</small>
@@ -43,8 +43,8 @@
         </div>
     </div>
     <div class="col-md-4 mb-4">
-        <div class="card h-100 bg-info bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-info bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-box fs-1 text-info mb-2"></i>
                 <h3 class="mb-0" id="total-count">{{ containers|length }}</h3>
                 <small class="text-muted">Total Containers</small>
@@ -54,21 +54,21 @@
 
     <!-- Container List -->
     <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header">
+        <div class="c-card">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-list me-2"></i>Containers</h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if containers %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Name</th>
-                                <th>Image</th>
-                                <th>Status</th>
-                                <th>Ports</th>
-                                <th>Actions</th>
+                                <th scope="col">Name</th>
+                                <th scope="col">Image</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Ports</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="container-list">
@@ -81,15 +81,15 @@
                                 <td><code class="small">{{ container.image }}</code></td>
                                 <td>
                                     {% if container.status.startswith('running') %}
-                                    <span class="badge bg-success">
+                                    <span class="badge bg-success" data-badge>
                                         <i class="ti ti-circle-check me-1"></i>Running
                                     </span>
                                     {% elif container.status.startswith('exited') %}
-                                    <span class="badge bg-danger">
+                                    <span class="badge bg-danger" data-badge>
                                         <i class="ti ti-circle-x me-1"></i>Exited
                                     </span>
                                     {% else %}
-                                    <span class="badge bg-warning">
+                                    <span class="badge bg-warning" data-badge>
                                         <i class="ti ti-circle-pause me-1"></i>{{ container.status }}
                                     </span>
                                     {% endif %}
@@ -104,18 +104,18 @@
                                 <td>
                                     <div class="btn-group btn-group-sm">
                                         {% if container.status.startswith('running') %}
-                                        <button class="btn btn-outline-warning" onclick="manageContainer('{{ container.id }}', 'stop')" title="Stop">
+                                        <button class="c-btn c-btn--outline-warning js-manage-container" data-action="manage-container" data-container-id="{{ container.id }}" data-container-action="stop" title="Stop">
                                             <i class="ti ti-player-stop"></i>
                                         </button>
-                                        <button class="btn btn-outline-info" onclick="manageContainer('{{ container.id }}', 'restart')" title="Restart">
+                                        <button class="c-btn c-btn--outline-info js-manage-container" data-action="manage-container" data-container-id="{{ container.id }}" data-container-action="restart" title="Restart">
                                             <i class="ti ti-refresh"></i>
                                         </button>
                                         {% else %}
-                                        <button class="btn btn-outline-success" onclick="manageContainer('{{ container.id }}', 'start')" title="Start">
+                                        <button class="c-btn c-btn--outline-success js-manage-container" data-action="manage-container" data-container-id="{{ container.id }}" data-container-action="start" title="Start">
                                             <i class="ti ti-player-play"></i>
                                         </button>
                                         {% endif %}
-                                        <button class="btn btn-outline-secondary" onclick="viewLogs('{{ container.id }}', '{{ container.name }}')" title="View Logs">
+                                        <button class="c-btn c-btn--outline-secondary js-view-logs" data-action="view-logs" data-container-id="{{ container.id }}" data-container-name="{{ container.name }}" title="View Logs">
                                             <i class="ti ti-file-text"></i>
                                         </button>
                                     </div>
@@ -129,7 +129,7 @@
                 <div class="text-center py-4">
                     <i class="ti ti-box-off fs-1 text-muted mb-3"></i>
                     <p class="text-muted">No Docker containers found or Docker is not available.</p>
-                    <a href="{{ url_for('admin_panel.health_dashboard') }}" class="btn btn-outline-primary">
+                    <a href="{{ url_for('admin_panel.health_dashboard') }}" class="c-btn c-btn--outline-primary">
                         <i class="ti ti-heartbeat me-2"></i>Check System Health
                     </a>
                 </div>
@@ -140,29 +140,29 @@
 
     <!-- Quick Links -->
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
+        <div class="c-card">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-link me-2"></i>Related Tools</h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.health_dashboard') }}" class="btn btn-outline-primary w-100">
+                        <a href="{{ url_for('admin_panel.health_dashboard') }}" class="c-btn c-btn--outline-primary w-100">
                             <i class="ti ti-heartbeat me-2"></i>Health Dashboard
                         </a>
                     </div>
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.redis_management') }}" class="btn btn-outline-primary w-100">
+                        <a href="{{ url_for('admin_panel.redis_management') }}" class="c-btn c-btn--outline-primary w-100">
                             <i class="ti ti-database me-2"></i>Redis Management
                         </a>
                     </div>
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="btn btn-outline-primary w-100">
+                        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="c-btn c-btn--outline-primary w-100">
                             <i class="ti ti-activity me-2"></i>System Monitoring
                         </a>
                     </div>
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.task_monitoring_page') }}" class="btn btn-outline-primary w-100">
+                        <a href="{{ url_for('admin_panel.task_monitoring_page') }}" class="c-btn c-btn--outline-primary w-100">
                             <i class="ti ti-list-check me-2"></i>Task Monitor
                         </a>
                     </div>
@@ -173,28 +173,28 @@
 </div>
 
 <!-- Log Modal -->
-<div class="modal fade" id="logModal" tabindex="-1" aria-labelledby="logModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="logModalLabel">
+<div class="modal c-modal fade" id="logModal" tabindex="-1" aria-labelledby="logModalLabel" aria-hidden="true" data-modal>
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg modal-dialog-scrollable c-modal__dialog--scrollable" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="logModalLabel">
                     <i class="ti ti-file-text me-2"></i>Container Logs
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body>
                 <div id="log-content">
                     <div class="text-center py-4">
-                        <div class="spinner-border text-primary" role="status">
+                        <div class="spinner-border text-primary" role="status" data-spinner>
                             <span class="visually-hidden">Loading...</span>
                         </div>
                         <p class="mt-2 text-muted">Loading logs...</p>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" onclick="refreshLogs()">
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
+                <button type="button" class="c-btn c-btn--primary js-refresh-logs" data-action="refresh-logs">
                     <i class="ti ti-refresh me-1"></i>Refresh
                 </button>
             </div>
@@ -210,7 +210,32 @@ let currentContainerId = null;
 let logModal = null;
 
 document.addEventListener('DOMContentLoaded', function() {
-    logModal = new bootstrap.Modal(document.getElementById('logModal'));
+    logModal = ModalManager.getInstance('logModal');
+
+    // Manage container buttons
+    document.querySelectorAll('.js-manage-container').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const containerId = this.dataset.containerId;
+            const action = this.dataset.containerAction;
+            manageContainer(containerId, action);
+        });
+    });
+
+    // View logs buttons
+    document.querySelectorAll('.js-view-logs').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const containerId = this.dataset.containerId;
+            const containerName = this.dataset.containerName;
+            viewLogs(containerId, containerName);
+        });
+    });
+
+    // Refresh logs button in modal
+    document.querySelectorAll('.js-refresh-logs').forEach(btn => {
+        btn.addEventListener('click', function() {
+            refreshLogs();
+        });
+    });
 });
 
 function refreshContainers() {
@@ -278,7 +303,7 @@ function viewLogs(containerId, containerName) {
         `<i class="ti ti-file-text me-2"></i>Logs: ${containerName}`;
     document.getElementById('log-content').innerHTML = `
         <div class="text-center py-4">
-            <div class="spinner-border text-primary" role="status">
+            <div class="spinner-border text-primary" role="status" data-spinner>
                 <span class="visually-hidden">Loading...</span>
             </div>
             <p class="mt-2 text-muted">Loading logs...</p>
@@ -296,18 +321,18 @@ function fetchLogs(containerId) {
     .then(data => {
         const logContent = document.getElementById('log-content');
         if (data.error) {
-            logContent.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            logContent.innerHTML = `<div class="alert alert-danger" data-alert>${data.error}</div>`;
         } else {
             const logs = data.logs || 'No logs available';
             logContent.innerHTML = `
-                <pre class="bg-dark text-light p-3 rounded" style="max-height: 400px; overflow-y: auto; font-size: 0.8rem;">${escapeHtml(logs)}</pre>
+                <pre class="bg-dark text-light p-3 rounded u-h-400 u-overflow-y-auto" class="u-font-size-0-8rem">${escapeHtml(logs)}</pre>
             `;
         }
     })
     .catch(error => {
         console.error('Error fetching logs:', error);
         document.getElementById('log-content').innerHTML =
-            `<div class="alert alert-danger">Error loading logs: ${error}</div>`;
+            `<div class="alert alert-danger" data-alert>Error loading logs: ${error}</div>`;
     });
 }
 
@@ -315,7 +340,7 @@ function refreshLogs() {
     if (currentContainerId) {
         document.getElementById('log-content').innerHTML = `
             <div class="text-center py-4">
-                <div class="spinner-border text-primary" role="status">
+                <div class="spinner-border text-primary" role="status" data-spinner>
                     <span class="visually-hidden">Loading...</span>
                 </div>
                 <p class="mt-2 text-muted">Refreshing logs...</p>

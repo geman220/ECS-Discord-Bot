@@ -10,10 +10,10 @@
 
 {# Platform Toggle #}
 <div class="btn-group w-100 mb-3" role="group" aria-label="Platform preview toggle">
-    <button type="button" class="btn btn-outline-primary active" data-platform="apple" onclick="PassStudio.setPreviewPlatform('apple')">
+    <button type="button" class="c-btn c-btn--outline-primary active" data-platform="apple" data-action="toggle-platform">
         <i class="ti ti-brand-apple me-1"></i>Apple
     </button>
-    <button type="button" class="btn btn-outline-primary" data-platform="google" onclick="PassStudio.setPreviewPlatform('google')">
+    <button type="button" class="c-btn c-btn--outline-primary" data-platform="google" data-action="toggle-platform">
         <i class="ti ti-brand-google me-1"></i>Google
     </button>
 </div>
@@ -23,11 +23,11 @@
 <div id="apple-preview" class="pass-preview-platform">
     {% set current_style = pass_type.apple_pass_style or 'generic' %}
     <div class="apple-pass-card pass-style-{{ current_style }}" id="pass-preview"
-         style="background-color: {{ pass_type.background_color }}; color: {{ pass_type.foreground_color }};"
+         class="bg-custom" data-bg-color="{{ pass_type.background_color }}; color: {{ pass_type.foreground_color }};"
          data-pass-style="{{ current_style }}">
 
         {# Event Ticket notch at top #}
-        <div class="pass-notch" id="preview-notch" style="{% if current_style != 'eventTicket' %}display:none{% endif %}"></div>
+        <div class="pass-notch {% if current_style != 'eventTicket' %}u-hidden{% endif %}" id="preview-notch"></div>
 
         {# Dynamic Fields from Database #}
         {# Note: is_visible defaults to True, so we check for not being explicitly False #}
@@ -40,7 +40,7 @@
         <div class="pass-header">
             {# Logo - optional, only show if uploaded AND show_logo is True #}
             {% set show_logo = pass_type.show_logo if pass_type.show_logo is not none else true %}
-            <div class="pass-logo" id="preview-logo" {% if not assets.get('logo') or not show_logo %}style="display:none"{% endif %}>
+            <div class="pass-logo" id="preview-logo" {% if not assets.get('logo') or not show_logo %}class="d-none"{% endif %}>
                 {% if assets.get('logo') %}
                 <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['logo'].id) }}" alt="Logo">
                 {% endif %}
@@ -48,10 +48,10 @@
             <div class="pass-logo-text" id="preview-logo-text">{{ pass_type.logo_text }}</div>
 
             {# Header Fields - appear on right side of header row #}
-            <div class="pass-header-fields" id="preview-header-fields" {% if not header_fields %}style="display:none"{% endif %}>
+            <div class="pass-header-fields" id="preview-header-fields" {% if not header_fields %}class="d-none"{% endif %}>
                 {% for field in header_fields %}
                 <div class="pass-header-field">
-                    <div class="pass-field-label" style="color: {{ pass_type.label_color }};">{{ field.label }}</div>
+                    <div class="pass-field-label" class="text-custom" data-color="{{ pass_type.label_color }};">{{ field.label }}</div>
                     <div class="pass-field-value">
                         {%- set var_name = field.value_template|replace('{{', '')|replace('}}', '')|trim if field.value_template else '' -%}
                         {{ sample_data.get(var_name, field.value_template or field.default_value or '') }}
@@ -61,7 +61,7 @@
             </div>
 
             {# Thumbnail - Only for generic passes, appears on right side of header #}
-            <div class="pass-thumbnail" id="preview-thumbnail" style="{% if current_style != 'generic' %}display:none{% endif %}">
+            <div class="pass-thumbnail {% if current_style != 'generic' %}u-hidden{% endif %}" id="preview-thumbnail">
                 {% if assets.get('thumbnail') %}
                 <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['thumbnail'].id) }}" alt="Thumbnail">
                 {% else %}
@@ -73,39 +73,39 @@
         </div>
 
         {# ===== STRIP AREA - For storeCard (with overlay) and eventTicket (clean, no overlay) ===== #}
-        <div class="pass-strip-area" id="preview-strip" style="{% if current_style == 'generic' %}display:none{% endif %}">
+        <div class="pass-strip-area {% if current_style == 'generic' %}u-hidden{% endif %}" id="preview-strip">
             {# Strip image as background #}
             {% if assets.get('strip') %}
             <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['strip'].id) }}" alt="Strip" class="pass-strip-image">
             {% endif %}
 
             {# Primary Field Overlay - ONLY for storeCard (eventTicket keeps strip clean) #}
-            <div class="pass-primary-field-overlay" id="preview-primary-overlay" style="{% if current_style == 'eventTicket' %}display:none{% endif %}">
+            <div class="pass-primary-field-overlay {% if current_style == 'eventTicket' %}u-hidden{% endif %}" id="preview-primary-overlay">
                 {% if primary_fields %}
                     {% for field in primary_fields %}
-                    <div class="pass-field-label" style="color: {{ pass_type.label_color }};">{{ field.label }}</div>
+                    <div class="pass-field-label" class="text-custom" data-color="{{ pass_type.label_color }};">{{ field.label }}</div>
                     <div class="pass-field-value">{{ sample_data.get(field.value_template|replace('{{', '')|replace('}}', ''), field.value_template) if field.value_template else field.default_value or '' }}</div>
                     {% endfor %}
                 {% else %}
-                <div class="pass-field-label" style="color: {{ pass_type.label_color }}; opacity: 0.5;">MEMBER</div>
-                <div class="pass-field-value" style="opacity: 0.5;">No primary field</div>
+                <div class="pass-field-label" class="text-custom" data-color="{{ pass_type.label_color }}; opacity: 0.5;">MEMBER</div>
+                <div class="pass-field-value u-opacity-50">No primary field</div>
                 {% endif %}
             </div>
         </div>
 
         {# ===== PRIMARY FIELDS SECTION - Only for generic passes (below header, separated) ===== #}
-        <div class="pass-primary-fields-section" id="preview-primary-section" style="{% if current_style != 'generic' %}display:none{% endif %}">
+        <div class="pass-primary-fields-section {% if current_style != 'generic' %}u-hidden{% endif %}" id="preview-primary-section">
             {% if primary_fields %}
                 {% for field in primary_fields %}
                 <div class="pass-field primary-field">
-                    <div class="pass-field-label" style="color: {{ pass_type.label_color }};">{{ field.label }}</div>
+                    <div class="pass-field-label" class="text-custom" data-color="{{ pass_type.label_color }};">{{ field.label }}</div>
                     <div class="pass-field-value">{{ sample_data.get(field.value_template|replace('{{', '')|replace('}}', ''), field.value_template) if field.value_template else field.default_value or '' }}</div>
                 </div>
                 {% endfor %}
             {% else %}
             <div class="pass-field primary-field">
-                <div class="pass-field-label" style="color: {{ pass_type.label_color }}; opacity: 0.5;">MEMBER</div>
-                <div class="pass-field-value" style="opacity: 0.5;">No primary field</div>
+                <div class="pass-field-label" class="text-custom" data-color="{{ pass_type.label_color }}; opacity: 0.5;">MEMBER</div>
+                <div class="pass-field-value u-opacity-50">No primary field</div>
             </div>
             {% endif %}
         </div>
@@ -115,13 +115,13 @@
         <div class="pass-secondary-fields">
             {% for field in secondary_fields %}
             <div class="pass-field">
-                <div class="pass-field-label" style="color: {{ pass_type.label_color }};">{{ field.label }}</div>
+                <div class="pass-field-label" class="text-custom" data-color="{{ pass_type.label_color }};">{{ field.label }}</div>
                 <div class="pass-field-value">{{ sample_data.get(field.value_template|replace('{{', '')|replace('}}', ''), field.value_template) if field.value_template else field.default_value or '' }}</div>
             </div>
             {% endfor %}
             {% for field in auxiliary_fields %}
             <div class="pass-field">
-                <div class="pass-field-label" style="color: {{ pass_type.label_color }};">{{ field.label }}</div>
+                <div class="pass-field-label" class="text-custom" data-color="{{ pass_type.label_color }};">{{ field.label }}</div>
                 <div class="pass-field-value">{{ sample_data.get(field.value_template|replace('{{', '')|replace('}}', ''), field.value_template) if field.value_template else field.default_value or '' }}</div>
             </div>
             {% endfor %}
@@ -164,7 +164,6 @@
         {# Hero Image #}
         <div class="google-hero-image" id="preview-google-hero"
              {% if pass_type.google_hero_image_url %}
-             style="background-image: url('{{ pass_type.google_hero_image_url }}');"
              {% endif %}>
             {% if not pass_type.google_hero_image_url %}
             <div class="google-hero-placeholder">
@@ -175,7 +174,7 @@
         </div>
 
         {# Pass Content #}
-        <div class="google-pass-content" style="background-color: {{ pass_type.background_color }}; color: {{ pass_type.foreground_color }};">
+        <div class="google-pass-content" class="bg-custom" data-bg-color="{{ pass_type.background_color }}; color: {{ pass_type.foreground_color }};">
             {# Header with logo #}
             <div class="google-header">
                 <div class="google-logo" id="preview-google-logo">
@@ -191,7 +190,7 @@
                 </div>
                 <div class="google-header-text">
                     <div class="google-card-title">{{ pass_type.name }}</div>
-                    <div class="google-card-subtitle" style="color: {{ pass_type.label_color }};">
+                    <div class="google-card-subtitle" class="text-custom" data-color="{{ pass_type.label_color }};">
                         {% if pass_type_code == 'ecs_membership' %}Member{% else %}Player{% endif %}
                     </div>
                 </div>
@@ -213,13 +212,13 @@
             <div class="google-info-rows">
                 {% for field in secondary_fields %}
                 <div class="google-info-row">
-                    <span class="google-info-label" style="color: {{ pass_type.label_color }};">{{ field.label }}</span>
+                    <span class="google-info-label" class="text-custom" data-color="{{ pass_type.label_color }};">{{ field.label }}</span>
                     <span class="google-info-value">{{ sample_data.get(field.value_template|replace('{{', '')|replace('}}', ''), field.value_template) if field.value_template else field.default_value or '' }}</span>
                 </div>
                 {% endfor %}
                 {% for field in auxiliary_fields %}
                 <div class="google-info-row">
-                    <span class="google-info-label" style="color: {{ pass_type.label_color }};">{{ field.label }}</span>
+                    <span class="google-info-label" class="text-custom" data-color="{{ pass_type.label_color }};">{{ field.label }}</span>
                     <span class="google-info-value">{{ sample_data.get(field.value_template|replace('{{', '')|replace('}}', ''), field.value_template) if field.value_template else field.default_value or '' }}</span>
                 </div>
                 {% endfor %}

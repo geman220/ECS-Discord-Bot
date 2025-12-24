@@ -1,0 +1,485 @@
+/**
+ * TRANSFORM UTILITIES
+ * ===================
+ * Transform, scale, translate, rotate, and transition utility classes
+ *
+ * Classes:
+ * - Transform utilities (.transform-*, .no-transform)
+ * - Translate utilities (.translate-x-*, .translate-y-*)
+ * - Scale utilities (.scale-*)
+ * - Rotate utilities (.rotate-*)
+ * - Transition utilities (.transition-*)
+ * - Animation utilities
+ *
+ * Usage:
+ * - Use CSS custom properties for smooth animations
+ * - Support hardware acceleration
+ * - Respect prefers-reduced-motion
+ */
+
+/* ============================================
+   TRANSFORM UTILITIES
+   ============================================ */
+
+.transform-none {
+    transform: none !important;
+}
+
+.no-transform {
+    transform: none !important;
+}
+
+/* Hardware acceleration */
+.transform-gpu {
+    transform: translateZ(0) !important;
+    will-change: transform;
+}
+
+/* ============================================
+   TRANSLATE UTILITIES
+   ============================================ */
+
+/* Translate X */
+.translate-x-0 {
+    transform: translateX(0) !important;
+}
+
+.translate-x-25 {
+    transform: translateX(25%) !important;
+}
+
+.translate-x-50 {
+    transform: translateX(50%) !important;
+}
+
+.translate-x-75 {
+    transform: translateX(75%) !important;
+}
+
+.translate-x-100 {
+    transform: translateX(100%) !important;
+}
+
+.translate-x-n25 {
+    transform: translateX(-25%) !important;
+}
+
+.translate-x-n50 {
+    transform: translateX(-50%) !important;
+}
+
+.translate-x-n75 {
+    transform: translateX(-75%) !important;
+}
+
+.translate-x-n100 {
+    transform: translateX(-100%) !important;
+}
+
+/* Translate Y */
+.translate-y-0 {
+    transform: translateY(0) !important;
+}
+
+.translate-y-25 {
+    transform: translateY(25%) !important;
+}
+
+.translate-y-50 {
+    transform: translateY(50%) !important;
+}
+
+.translate-y-75 {
+    transform: translateY(75%) !important;
+}
+
+.translate-y-100 {
+    transform: translateY(100%) !important;
+}
+
+.translate-y-n25 {
+    transform: translateY(-25%) !important;
+}
+
+.translate-y-n50 {
+    transform: translateY(-50%) !important;
+}
+
+.translate-y-n75 {
+    transform: translateY(-75%) !important;
+}
+
+.translate-y-n100 {
+    transform: translateY(-100%) !important;
+}
+
+/* Translate middle (common centering) */
+.translate-middle {
+    transform: translate(-50%, -50%) !important;
+}
+
+.translate-middle-x {
+    transform: translateX(-50%) !important;
+}
+
+.translate-middle-y {
+    transform: translateY(-50%) !important;
+}
+
+/* ============================================
+   SCALE UTILITIES
+   ============================================ */
+
+.scale-0 {
+    transform: scale(0) !important;
+}
+
+.scale-50 {
+    transform: scale(0.5) !important;
+}
+
+.scale-75 {
+    transform: scale(0.75) !important;
+}
+
+.scale-90 {
+    transform: scale(0.9) !important;
+}
+
+.scale-95 {
+    transform: scale(0.95) !important;
+}
+
+.scale-100,
+.scale-1 {
+    transform: scale(1) !important;
+}
+
+.scale-105 {
+    transform: scale(1.05) !important;
+}
+
+.scale-110 {
+    transform: scale(1.1) !important;
+}
+
+.scale-125 {
+    transform: scale(1.25) !important;
+}
+
+.scale-150 {
+    transform: scale(1.5) !important;
+}
+
+/* Hover scale effects */
+.scale-hover-105:hover {
+    transform: scale(1.05) !important;
+}
+
+.scale-hover-110:hover {
+    transform: scale(1.1) !important;
+}
+
+/* ============================================
+   ROTATE UTILITIES
+   ============================================ */
+
+.rotate-0 {
+    transform: rotate(0deg) !important;
+}
+
+.rotate-45 {
+    transform: rotate(45deg) !important;
+}
+
+.rotate-90 {
+    transform: rotate(90deg) !important;
+}
+
+.rotate-180 {
+    transform: rotate(180deg) !important;
+}
+
+.rotate-270 {
+    transform: rotate(270deg) !important;
+}
+
+.rotate-n45 {
+    transform: rotate(-45deg) !important;
+}
+
+.rotate-n90 {
+    transform: rotate(-90deg) !important;
+}
+
+.rotate-n180 {
+    transform: rotate(-180deg) !important;
+}
+
+/* ============================================
+   TRANSITION UTILITIES
+   ============================================ */
+
+.transition-none {
+    transition: none !important;
+}
+
+.transition-all {
+    transition: all 0.3s ease-in-out !important;
+}
+
+.transition-all-fast {
+    transition: all 0.15s ease-in-out !important;
+}
+
+.transition-all-slow {
+    transition: all 0.5s ease-in-out !important;
+}
+
+.transition-smooth {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.transition-colors {
+    transition: color 0.15s ease-in-out,
+                background-color 0.15s ease-in-out,
+                border-color 0.15s ease-in-out !important;
+}
+
+.transition-opacity {
+    transition: opacity 0.3s ease-in-out !important;
+}
+
+.transition-transform {
+    transition: transform 0.3s ease-in-out !important;
+}
+
+/* ============================================
+   ANIMATION UTILITIES
+   ============================================ */
+
+/* Fade animations */
+.fade-in {
+    animation: fadeIn 0.3s ease-in-out !important;
+}
+
+.fade-out {
+    animation: fadeOut 0.3s ease-in-out !important;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+/* Slide animations */
+.slide-up {
+    animation: slideUp 0.3s ease-out !important;
+}
+
+.slide-down {
+    animation: slideDown 0.3s ease-out !important;
+}
+
+.slide-left {
+    animation: slideLeft 0.3s ease-out !important;
+}
+
+.slide-right {
+    animation: slideRight 0.3s ease-out !important;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideLeft {
+    from {
+        transform: translateX(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideRight {
+    from {
+        transform: translateX(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Zoom animations */
+.zoom-in {
+    animation: zoomIn 0.3s ease-out !important;
+}
+
+.zoom-out {
+    animation: zoomOut 0.3s ease-out !important;
+}
+
+@keyframes zoomIn {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes zoomOut {
+    from {
+        transform: scale(1);
+        opacity: 1;
+    }
+    to {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+}
+
+/* Spin animation */
+.spin {
+    animation: spin 1s linear infinite !important;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Pulse animation */
+.pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Bounce animation */
+.bounce {
+    animation: bounce 1s infinite !important;
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(-25%);
+        animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+    }
+    50% {
+        transform: translateY(0);
+        animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    }
+}
+
+/* ============================================
+   WILL-CHANGE UTILITIES
+   ============================================ */
+
+.will-change-transform {
+    will-change: transform !important;
+}
+
+.will-change-opacity {
+    will-change: opacity !important;
+}
+
+.will-change-contents {
+    will-change: contents !important;
+}
+
+.will-change-auto {
+    will-change: auto !important;
+}
+
+/* ============================================
+   REDUCED MOTION SUPPORT
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    .transition-all,
+    .transition-all-fast,
+    .transition-all-slow,
+    .transition-smooth,
+    .transition-colors,
+    .transition-opacity,
+    .transition-transform {
+        transition-duration: 0.01ms !important;
+    }
+
+    .fade-in,
+    .fade-out,
+    .slide-up,
+    .slide-down,
+    .slide-left,
+    .slide-right,
+    .zoom-in,
+    .zoom-out,
+    .spin,
+    .pulse,
+    .bounce {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}
+
+/* ============================================
+   BACKFACE VISIBILITY
+   ============================================ */
+
+.backface-visible {
+    backface-visibility: visible !important;
+}
+
+.backface-hidden {
+    backface-visibility: hidden !important;
+}

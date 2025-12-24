@@ -12,18 +12,18 @@
 <!-- Filters -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-filter me-2"></i>Filters
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <form method="GET" action="{{ url_for('admin_panel.mobile_error_list') }}">
                     <div class="row">
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Time Range</label>
-                            <select name="days" class="form-select">
+                            <select name="days" class="form-select" data-form-select>
                                 <option value="1" {% if current_filters.days == 1 %}selected{% endif %}>Last 24 hours</option>
                                 <option value="7" {% if current_filters.days == 7 %}selected{% endif %}>Last 7 days</option>
                                 <option value="30" {% if current_filters.days == 30 %}selected{% endif %}>Last 30 days</option>
@@ -32,7 +32,7 @@
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Severity</label>
-                            <select name="severity" class="form-select">
+                            <select name="severity" class="form-select" data-form-select>
                                 <option value="">All Severities</option>
                                 {% for severity in severity_options %}
                                 <option value="{{ severity }}" {% if current_filters.severity == severity %}selected{% endif %}>
@@ -43,7 +43,7 @@
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Error Type</label>
-                            <select name="error_type" class="form-select">
+                            <select name="error_type" class="form-select" data-form-select>
                                 <option value="">All Types</option>
                                 {% for error_type in error_type_options %}
                                 <option value="{{ error_type }}" {% if current_filters.error_type == error_type %}selected{% endif %}>
@@ -55,10 +55,10 @@
                         <div class="col-md-3 mb-3">
                             <label class="form-label">&nbsp;</label>
                             <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-primary flex-grow-1">
+                                <button type="submit" class="c-btn c-btn--primary flex-grow-1">
                                     <i class="ti ti-search me-1"></i>Filter
                                 </button>
-                                <a href="{{ url_for('admin_panel.mobile_error_list') }}" class="btn btn-outline-secondary">
+                                <a href="{{ url_for('admin_panel.mobile_error_list') }}" class="c-btn c-btn--outline-secondary">
                                     <i class="ti ti-x"></i>
                                 </a>
                             </div>
@@ -73,24 +73,24 @@
 <!-- Error List -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-list me-2"></i>Error List
                 </h5>
-                <span class="badge bg-primary">{{ errors.total }} errors</span>
+                <span class="badge bg-primary" data-badge>{{ errors.total }} errors</span>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if errors.items %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Timestamp</th>
-                                <th>Error Type</th>
-                                <th>Severity</th>
-                                <th>Message</th>
-                                <th>Actions</th>
+                                <th scope="col">Timestamp</th>
+                                <th scope="col">Error Type</th>
+                                <th scope="col">Severity</th>
+                                <th scope="col">Message</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -101,7 +101,7 @@
                                 </td>
                                 <td>{{ error.error_type }}</td>
                                 <td>
-                                    <span class="badge bg-{% if error.severity == 'critical' %}danger{% elif error.severity == 'error' %}warning{% elif error.severity == 'warning' %}info{% else %}secondary{% endif %}">
+                                    <span class="badge bg-{% if error.severity == 'critical' %}danger{% elif error.severity == 'error' %}warning{% elif error.severity == 'warning' %}info{% else %}secondary{% endif %}" data-badge>
                                         {{ error.severity }}
                                     </span>
                                 </td>
@@ -111,7 +111,9 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-primary" onclick="viewErrorDetails({{ error.id }})">
+                                    <button class="c-btn c-btn--sm c-btn--outline-primary js-view-error"
+                                            data-action="view-error"
+                                            data-error-id="{{ error.id }}">
                                         <i class="ti ti-eye"></i>
                                     </button>
                                 </td>
@@ -124,9 +126,9 @@
                 <!-- Pagination -->
                 {% if errors.pages > 1 %}
                 <nav aria-label="Error pagination" class="mt-4">
-                    <ul class="pagination justify-content-center mb-0">
+                    <ul class="pagination justify-content-center mb-0" data-pagination>
                         {% if errors.has_prev %}
-                        <li class="page-item">
+                        <li class="page-item" data-page-item>
                             <a class="page-link" href="{{ url_for('admin_panel.mobile_error_list', page=errors.prev_num, severity=current_filters.severity, error_type=current_filters.error_type, days=current_filters.days) }}">
                                 Previous
                             </a>
@@ -135,18 +137,18 @@
 
                         {% for page_num in errors.iter_pages() %}
                             {% if page_num %}
-                                <li class="page-item {% if page_num == errors.page %}active{% endif %}">
+                                <li class="page-item {% if page_num == errors.page %}active{% endif %}" data-page-item data-page-active>
                                     <a class="page-link" href="{{ url_for('admin_panel.mobile_error_list', page=page_num, severity=current_filters.severity, error_type=current_filters.error_type, days=current_filters.days) }}">
                                         {{ page_num }}
                                     </a>
                                 </li>
                             {% else %}
-                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                                <li class="page-item disabled" data-page-item data-page-disabled><span class="page-link">...</span></li>
                             {% endif %}
                         {% endfor %}
 
                         {% if errors.has_next %}
-                        <li class="page-item">
+                        <li class="page-item" data-page-item>
                             <a class="page-link" href="{{ url_for('admin_panel.mobile_error_list', page=errors.next_num, severity=current_filters.severity, error_type=current_filters.error_type, days=current_filters.days) }}">
                                 Next
                             </a>
@@ -157,7 +159,7 @@
                 {% endif %}
                 {% else %}
                 <div class="text-center py-5 text-muted">
-                    <i class="ti ti-check-circle" style="font-size: 3rem;"></i>
+                    <i class="ti ti-check-circle u-icon-xl"></i>
                     <p class="mt-3 mb-0">No errors found matching your filters</p>
                 </div>
                 {% endif %}
@@ -168,58 +170,65 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
-async function viewErrorDetails(errorId) {
-    try {
-        const response = await fetch(`{{ url_for('admin_panel.api_mobile_error_details', error_id=0) }}`.replace('0', errorId));
-        const data = await response.json();
+// Event delegation for view error button
+document.addEventListener('click', async function(e) {
+    if (e.target.closest('.js-view-error')) {
+        const btn = e.target.closest('.js-view-error');
+        const errorId = btn.dataset.errorId;
 
-        if (data.error) {
-            Swal.fire('Error', data.error, 'error');
-            return;
+        try {
+            const response = await fetch(`{{ url_for('admin_panel.api_mobile_error_details', error_id=0) }}`.replace('0', errorId));
+            const data = await response.json();
+
+            if (data.error) {
+                Swal.fire('Error', data.error, 'error');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Error Details',
+                html: `
+                    <div class="text-start">
+                        <div class="mb-3">
+                            <strong>Error Type:</strong><br>
+                            <code>${data.error_type}</code>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Severity:</strong><br>
+                            <span class="badge bg-${data.severity === 'critical' ? 'danger' : data.severity === 'error' ? 'warning' : 'info'}" data-badge>${data.severity}</span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Message:</strong><br>
+                            ${data.message}
+                        </div>
+                        ${data.stack_trace ? `
+                        <div class="mb-3">
+                            <strong>Stack Trace:</strong><br>
+                            <pre class="bg-light p-2 rounded" class="u-max-h-200-scroll u-font-size-11">${data.stack_trace}</pre>
+                        </div>
+                        ` : ''}
+                        ${data.device_info ? `
+                        <div class="mb-3">
+                            <strong>Device Info:</strong><br>
+                            <pre class="bg-light p-2 rounded">${JSON.stringify(data.device_info, null, 2)}</pre>
+                        </div>
+                        ` : ''}
+                        <div class="mb-3">
+                            <strong>Timestamp:</strong><br>
+                            ${data.created_at || 'N/A'}
+                        </div>
+                    </div>
+                `,
+                width: '600px',
+                confirmButtonText: 'Close'
+            });
+        } catch (error) {
+            console.error('Error fetching error details:', error);
+            Swal.fire('Error', 'Failed to load error details', 'error');
         }
-
-        Swal.fire({
-            title: 'Error Details',
-            html: `
-                <div class="text-start">
-                    <div class="mb-3">
-                        <strong>Error Type:</strong><br>
-                        <code>${data.error_type}</code>
-                    </div>
-                    <div class="mb-3">
-                        <strong>Severity:</strong><br>
-                        <span class="badge bg-${data.severity === 'critical' ? 'danger' : data.severity === 'error' ? 'warning' : 'info'}">${data.severity}</span>
-                    </div>
-                    <div class="mb-3">
-                        <strong>Message:</strong><br>
-                        ${data.message}
-                    </div>
-                    ${data.stack_trace ? `
-                    <div class="mb-3">
-                        <strong>Stack Trace:</strong><br>
-                        <pre class="bg-light p-2 rounded" style="max-height: 200px; overflow-y: auto; font-size: 11px;">${data.stack_trace}</pre>
-                    </div>
-                    ` : ''}
-                    ${data.device_info ? `
-                    <div class="mb-3">
-                        <strong>Device Info:</strong><br>
-                        <pre class="bg-light p-2 rounded">${JSON.stringify(data.device_info, null, 2)}</pre>
-                    </div>
-                    ` : ''}
-                    <div class="mb-3">
-                        <strong>Timestamp:</strong><br>
-                        ${data.created_at || 'N/A'}
-                    </div>
-                </div>
-            `,
-            width: '600px',
-            confirmButtonText: 'Close'
-        });
-    } catch (error) {
-        console.error('Error fetching error details:', error);
-        Swal.fire('Error', 'Failed to load error details', 'error');
     }
-}
+});
 </script>
 {% endblock %}

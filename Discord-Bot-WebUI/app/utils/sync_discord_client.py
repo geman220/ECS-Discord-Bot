@@ -766,6 +766,126 @@ class SyncDiscordClient:
                 'error': str(e)
             }
     
+    def delete_channel(self, channel_id: str) -> Dict[str, Any]:
+        """
+        Delete a Discord channel.
+
+        Args:
+            channel_id: Discord channel ID to delete.
+
+        Returns:
+            Dictionary with success status.
+        """
+        import os
+        server_id = os.getenv('SERVER_ID')
+        discord_bot_url = f"http://discord-bot:5001/api/server/guilds/{server_id}/channels/{channel_id}"
+
+        try:
+            logger.info(f"Deleting Discord channel {channel_id} (synchronous)")
+
+            response = self.session.delete(
+                discord_bot_url,
+                timeout=self.timeout
+            )
+
+            if response.status_code == 200:
+                logger.info(f"Discord channel {channel_id} deleted successfully")
+                return {
+                    'success': True,
+                    'message': 'Channel deleted successfully'
+                }
+            elif response.status_code == 404:
+                logger.warning(f"Discord channel {channel_id} not found (may already be deleted)")
+                return {
+                    'success': True,
+                    'message': 'Channel not found (may already be deleted)'
+                }
+            else:
+                error_msg = f"Failed to delete channel: {response.status_code} - {response.text}"
+                logger.error(error_msg)
+                return {
+                    'success': False,
+                    'message': error_msg,
+                    'status_code': response.status_code
+                }
+
+        except requests.Timeout:
+            error_msg = f"Discord API call timed out after {self.timeout} seconds"
+            logger.error(error_msg)
+            return {
+                'success': False,
+                'message': error_msg,
+                'timeout': True
+            }
+        except Exception as e:
+            error_msg = f"Error deleting channel: {str(e)}"
+            logger.error(error_msg)
+            return {
+                'success': False,
+                'message': error_msg,
+                'error': str(e)
+            }
+
+    def delete_role(self, role_id: str) -> Dict[str, Any]:
+        """
+        Delete a Discord role.
+
+        Args:
+            role_id: Discord role ID to delete.
+
+        Returns:
+            Dictionary with success status.
+        """
+        import os
+        server_id = os.getenv('SERVER_ID')
+        discord_bot_url = f"http://discord-bot:5001/api/server/guilds/{server_id}/roles/{role_id}"
+
+        try:
+            logger.info(f"Deleting Discord role {role_id} (synchronous)")
+
+            response = self.session.delete(
+                discord_bot_url,
+                timeout=self.timeout
+            )
+
+            if response.status_code == 200:
+                logger.info(f"Discord role {role_id} deleted successfully")
+                return {
+                    'success': True,
+                    'message': 'Role deleted successfully'
+                }
+            elif response.status_code == 404:
+                logger.warning(f"Discord role {role_id} not found (may already be deleted)")
+                return {
+                    'success': True,
+                    'message': 'Role not found (may already be deleted)'
+                }
+            else:
+                error_msg = f"Failed to delete role: {response.status_code} - {response.text}"
+                logger.error(error_msg)
+                return {
+                    'success': False,
+                    'message': error_msg,
+                    'status_code': response.status_code
+                }
+
+        except requests.Timeout:
+            error_msg = f"Discord API call timed out after {self.timeout} seconds"
+            logger.error(error_msg)
+            return {
+                'success': False,
+                'message': error_msg,
+                'timeout': True
+            }
+        except Exception as e:
+            error_msg = f"Error deleting role: {str(e)}"
+            logger.error(error_msg)
+            return {
+                'success': False,
+                'message': error_msg,
+                'error': str(e)
+            }
+
     def close(self):
         """Close the session."""
         if self.session:

@@ -36,6 +36,207 @@ def test_onboarding():
     return redirect(url_for('admin.discord_onboarding.admin_test_onboarding'))
 
 
+@admin_bp.route('/admin/ux-test-flow', methods=['GET', 'POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def ux_test_flow():
+    """
+    Complete Onboarding UX Test - Test the entire new user journey.
+    Uses the current user's account with reset capability to simulate new user states.
+    Combines UI page links with Discord bot interaction testing.
+    """
+    import requests
+    from datetime import datetime
+
+    db_session = g.db_session
+    current_user = safe_current_user
+    results = []
+    user_state = None
+
+    # Get the current user's player ID and Discord ID
+    current_player_id = None
+    user_discord_id = None
+    if current_user and current_user.player:
+        current_player_id = current_user.player.id
+        player = db_session.query(Player).filter_by(user_id=current_user.id).first()
+        if player:
+            user_discord_id = player.discord_id
+    else:
+        # Find any player to use for testing
+        player = db_session.query(Player).first()
+        if player:
+            current_player_id = player.id
+
+    # Get current user state for display
+    if current_user:
+        user = db_session.query(User).filter_by(id=current_user.id).first()
+        if user:
+            user_state = user
+
+    # Handle POST actions
+    if request.method == 'POST':
+        action = request.form.get('action')
+        discord_id = user_discord_id or ''
+
+        if action == 'show_current_state':
+            # Just refresh the page to show current state
+            results.append("=== CURRENT USER STATE ===")
+            if user_state:
+                results.append(f"Username: {user_state.username}")
+                results.append(f"Has completed onboarding: {user_state.has_completed_onboarding}")
+                results.append(f"Preferred league: {user_state.preferred_league or 'None'}")
+                results.append(f"Bot interaction status: {user_state.bot_interaction_status}")
+                results.append(f"Bot interaction attempts: {user_state.bot_interaction_attempts}")
+                results.append(f"Is approved: {user_state.is_approved}")
+                results.append(f"Approval status: {user_state.approval_status}")
+                results.append(f"Discord join detected: {user_state.discord_join_detected_at or 'None'}")
+                results.append(f"Last bot contact: {user_state.last_bot_contact_at or 'None'}")
+
+        elif action == 'reset_user_state':
+            # Reset user to fresh state
+            if user_state:
+                user_state.has_completed_onboarding = False
+                user_state.preferred_league = None
+                user_state.league_selection_method = None
+                user_state.bot_interaction_status = 'not_contacted'
+                user_state.bot_interaction_attempts = 0
+                user_state.last_bot_contact_at = None
+                user_state.discord_join_detected_at = None
+                db_session.add(user_state)
+                results.append("✓ Reset user to fresh state")
+                results.append("  - Cleared onboarding status")
+                results.append("  - Cleared league selection")
+                results.append("  - Cleared bot interaction history")
+
+        elif action == 'apply_scenario_flags':
+            # Apply selected scenario flags
+            scenario_flags = request.form.getlist('scenario_flags')
+            if user_state and scenario_flags:
+                if 'no_onboarding' in scenario_flags:
+                    user_state.has_completed_onboarding = False
+                    results.append("✓ Set onboarding as incomplete")
+
+                if 'no_league' in scenario_flags:
+                    user_state.preferred_league = None
+                    user_state.league_selection_method = None
+                    results.append("✓ Cleared league selection")
+
+                if 'unapproved' in scenario_flags:
+                    user_state.is_approved = False
+                    user_state.approval_status = 'pending'
+                    results.append("✓ Set user as pending approval")
+
+                if 'clear_bot' in scenario_flags:
+                    user_state.bot_interaction_status = 'not_contacted'
+                    user_state.bot_interaction_attempts = 0
+                    user_state.last_bot_contact_at = None
+                    user_state.discord_join_detected_at = None
+                    results.append("✓ Cleared bot contact history")
+
+                db_session.add(user_state)
+                results.append(f"Applied {len(scenario_flags)} scenario flag(s)")
+            else:
+                results.append("⚠ No flags selected")
+
+        elif action == 'test_user_join' and discord_id:
+            # Simulate user joining Discord
+            try:
+                response = requests.post(
+                    f"http://webui:5000/api/discord/user-joined/{discord_id}",
+                    timeout=10
+                )
+                results.append(f"Discord join simulation: {response.status_code}")
+                results.append(f"Response: {response.text[:200]}")
+            except Exception as e:
+                results.append(f"Error: {e}")
+
+        elif action == 'test_contextual_welcome' and discord_id:
+            # Test contextual welcome DM
+            try:
+                response = requests.post(
+                    "http://discord-bot:5001/onboarding/send-contextual-welcome",
+                    json={"discord_id": discord_id},
+                    timeout=30
+                )
+                results.append(f"Welcome DM: {response.status_code}")
+                results.append(f"Response: {response.text[:200]}")
+            except Exception as e:
+                results.append(f"Error: {e}")
+
+        elif action == 'test_new_player_notification' and discord_id:
+            # Test new player notification
+            try:
+                response = requests.post(
+                    "http://discord-bot:5001/onboarding/notify-new-player",
+                    json={
+                        "discord_id": discord_id,
+                        "discord_username": current_user.username if current_user else "test_user",
+                        "discord_display_name": current_user.username if current_user else "Test User"
+                    },
+                    timeout=30
+                )
+                results.append(f"New player notification: {response.status_code}")
+                results.append(f"Response: {response.text[:200]}")
+            except Exception as e:
+                results.append(f"Error: {e}")
+
+        elif action == 'test_league_selection' and discord_id:
+            # Test custom league selection message
+            message = request.form.get('test_message', 'I think premier')
+            try:
+                response = requests.post(
+                    "http://discord-bot:5001/onboarding/process-user-message",
+                    json={
+                        "discord_id": discord_id,
+                        "message_content": message
+                    },
+                    timeout=30
+                )
+                results.append(f"League selection test: {response.status_code}")
+                results.append(f"Message: '{message}'")
+                results.append(f"Response: {response.text[:200]}")
+            except Exception as e:
+                results.append(f"Error: {e}")
+
+        elif action in ['test_league_classic', 'test_league_premier', 'test_league_ecs_fc', 'test_league_unclear'] and discord_id:
+            # Quick league selection tests
+            test_messages = {
+                'test_league_classic': 'I want to join classic division',
+                'test_league_premier': 'Put me in premier please',
+                'test_league_ecs_fc': 'I want ECS FC',
+                'test_league_unclear': 'I dont know maybe something good'
+            }
+            message = test_messages[action]
+            try:
+                response = requests.post(
+                    "http://discord-bot:5001/onboarding/process-user-message",
+                    json={
+                        "discord_id": discord_id,
+                        "message_content": message
+                    },
+                    timeout=30
+                )
+                results.append(f"League test '{message}'")
+                results.append(f"Status: {response.status_code}")
+                results.append(f"Response: {response.text[:200]}")
+            except Exception as e:
+                results.append(f"Error: {e}")
+
+        # Refresh user state after actions
+        if user_state:
+            db_session.refresh(user_state)
+
+    return render_template(
+        'admin/ux_test_flow.html',
+        current_player_id=current_player_id or 1,
+        user_discord_id=user_discord_id,
+        user_state=user_state,
+        results=results,
+        current_user=current_user
+    )
+
+
 @admin_bp.route('/admin/user-approvals')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])

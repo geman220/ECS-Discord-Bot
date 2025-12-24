@@ -10,7 +10,7 @@
     <!-- Filters for Status and Priority -->
     <div class="row mb-3">
         <div class="col-md-3">
-            <select id="filterStatus" class="form-select">
+            <select id="filterStatus" class="form-select" data-form-select>
                 <option value="">Filter by Status</option>
                 <option value="Open" {% if request.args.get('status') == 'Open' %}selected{% endif %}>Open</option>
                 <option value="In Progress" {% if request.args.get('status') == 'In Progress' %}selected{% endif %}>In Progress</option>
@@ -18,7 +18,7 @@
             </select>
         </div>
         <div class="col-md-3">
-            <select id="filterPriority" class="form-select">
+            <select id="filterPriority" class="form-select" data-form-select>
                 <option value="">Filter by Priority</option>
                 <option value="Low" {% if request.args.get('priority') == 'Low' %}selected{% endif %}>Low</option>
                 <option value="Medium" {% if request.args.get('priority') == 'Medium' %}selected{% endif %}>Medium</option>
@@ -27,13 +27,13 @@
         </div>
     </div>
 
-    <table class="table table-striped table-bordered table-hover">
-        <thead class="table-dark">
+    <table class="c-table c-table--striped c-table--bordered c-table--hoverable" data-table>
+        <thead class="c-table--dark" scope="col">
             <tr>
-                <th>ID</th>
-                <th>Category</th>
-                <th>Title</th>
-                <th>
+                <th scope="col">ID</th>
+                <th scope="col">Category</th>
+                <th scope="col">Title</th>
+                <th scope="col">
                     <a href="{{ url_for('admin.admin_reports', sort_by='priority', order='asc' if request.args.get('order') != 'asc' else 'desc') }}" class="text-white text-decoration-none">
                         Priority
                         {% if request.args.get('sort_by') == 'priority' %}
@@ -45,7 +45,7 @@
                         {% endif %}
                     </a>
                 </th>
-                <th>
+                <th scope="col">
                     <a href="{{ url_for('admin.admin_reports', sort_by='status', order='asc' if request.args.get('order') != 'asc' else 'desc') }}" class="text-white text-decoration-none">
                         Status
                         {% if request.args.get('sort_by') == 'status' %}
@@ -57,8 +57,8 @@
                         {% endif %}
                     </a>
                 </th>
-                <th>Submitted By</th>
-                <th>
+                <th scope="col">Submitted By</th>
+                <th scope="col">
                     <a href="{{ url_for('admin.admin_reports', sort_by='created_at', order='asc' if request.args.get('order') != 'asc' else 'desc') }}" class="text-white text-decoration-none">
                         Submitted At
                         {% if request.args.get('sort_by') == 'created_at' %}
@@ -70,8 +70,8 @@
                         {% endif %}
                     </a>
                 </th>
-                <th>Comments</th>
-                <th>Actions</th>
+                <th scope="col">Comments</th>
+                <th scope="col">Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -82,22 +82,22 @@
                 <td>{{ feedback.title }}</td>
                 <td>
                     {% if feedback.priority == 'Low' %}
-                    <span class="badge bg-success">{{ feedback.priority }}</span>
+                    <span class="badge bg-success" data-badge>{{ feedback.priority }}</span>
                     {% elif feedback.priority == 'Medium' %}
-                    <span class="badge bg-warning text-dark">{{ feedback.priority }}</span>
+                    <span class="badge bg-warning text-dark" data-badge>{{ feedback.priority }}</span>
                     {% elif feedback.priority == 'High' %}
-                    <span class="badge bg-danger">{{ feedback.priority }}</span>
+                    <span class="badge bg-danger" data-badge>{{ feedback.priority }}</span>
                     {% else %}
                     {{ feedback.priority }}
                     {% endif %}
                 </td>
                 <td>
                     {% if feedback.status == 'Open' %}
-                    <span class="badge bg-primary">{{ feedback.status }}</span>
+                    <span class="badge bg-primary" data-badge>{{ feedback.status }}</span>
                     {% elif feedback.status == 'In Progress' %}
-                    <span class="badge bg-info text-dark">{{ feedback.status }}</span>
+                    <span class="badge bg-info text-dark" data-badge>{{ feedback.status }}</span>
                     {% elif feedback.status == 'Closed' %}
-                    <span class="badge bg-secondary">{{ feedback.status }}</span>
+                    <span class="badge bg-secondary" data-badge>{{ feedback.status }}</span>
                     {% else %}
                     {{ feedback.status }}
                     {% endif %}
@@ -118,7 +118,7 @@
                     {% endif %}
                 </td>
                 <td>
-                    <a href="{{ url_for('admin.view_feedback', feedback_id=feedback.id) }}" class="btn btn-sm btn-primary">
+                    <a href="{{ url_for('admin.view_feedback', feedback_id=feedback.id) }}" class="c-btn c-btn--sm c-btn--primary">
                         <i data-feather="edit" class="me-1"></i> View/Edit
                     </a>
                 </td>
@@ -130,6 +130,7 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <!-- Optional: JavaScript for Filters -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {

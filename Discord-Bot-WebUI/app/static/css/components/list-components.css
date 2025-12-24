@@ -1,0 +1,427 @@
+/**
+ * ============================================================================
+ * LIST COMPONENTS - List & Group Components
+ * ============================================================================
+ *
+ * Various list styles for navigation and content display.
+ * Design: Clean, scannable lists with clear hierarchy.
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   LIST MODERN
+   ============================================================================ */
+
+.c-list-modern {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.c-list-modern__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.04));
+  transition: background-color var(--duration-fast, 150ms) ease;
+}
+
+.c-list-modern__item:last-child {
+  border-bottom: none;
+}
+
+.c-list-modern__item--clickable {
+  cursor: pointer;
+}
+
+.c-list-modern__item--clickable:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.c-list-modern__item--empty {
+  justify-content: center;
+  padding: var(--space-6, 24px);
+  color: var(--color-text-muted, #64748b);
+  font-style: italic;
+}
+
+.c-list-modern__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  flex: 1;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.c-list-modern__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md, 8px);
+  color: var(--color-text-secondary, #94a3b8);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.c-list-modern__item--clickable:hover .c-list-modern__icon {
+  background: var(--color-primary, #2563EB);
+  color: var(--color-text-on-primary, #fff);
+}
+
+.c-list-modern__title {
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 500;
+  color: var(--color-text-primary, #f8fafc);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.c-list-modern__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+}
+
+.c-list-modern__chevron {
+  color: var(--color-text-muted, #64748b);
+  font-size: 1rem;
+  transition: transform var(--duration-fast, 150ms) ease;
+}
+
+.c-list-modern__item--clickable:hover .c-list-modern__chevron {
+  transform: translateX(4px);
+  color: var(--color-primary-light, #60a5fa);
+}
+
+/* ============================================================================
+   LIST GROUP
+   ============================================================================ */
+
+.c-list-group {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--color-bg-elevated, #1e293b);
+  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+  border-radius: var(--radius-lg, 12px);
+  overflow: hidden;
+}
+
+.c-list-group__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.04));
+  transition: background-color var(--duration-fast, 150ms) ease;
+}
+
+.c-list-group__item:last-child {
+  border-bottom: none;
+}
+
+.c-list-group__item:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.c-list-group__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md, 8px);
+  color: var(--color-text-secondary, #94a3b8);
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.c-list-group__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-list-group__title {
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 500;
+  color: var(--color-text-primary, #f8fafc);
+}
+
+.c-list-group__subtitle,
+.c-list-group__text {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-secondary, #94a3b8);
+}
+
+.c-list-group__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+}
+
+/* ============================================================================
+   BASIC LIST
+   ============================================================================ */
+
+.c-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.c-list--unstyled {
+  padding-left: 0;
+}
+
+.c-list__item {
+  padding: var(--space-2, 8px) 0;
+  border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.04));
+}
+
+.c-list__item:last-child {
+  border-bottom: none;
+}
+
+/* ============================================================================
+   PERMISSIONS LIST
+   ============================================================================ */
+
+.c-permissions-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.c-permissions-list__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--color-text-primary, #f8fafc);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-md, 8px);
+}
+
+.c-permissions-list__item--empty {
+  color: var(--color-text-muted, #64748b);
+  font-style: italic;
+}
+
+.c-permissions-list__item--error {
+  color: var(--color-danger-light, #f87171);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* ============================================================================
+   TEAM LIST
+   ============================================================================ */
+
+.c-team-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.c-team-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  padding: var(--space-3, 12px);
+  background: rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.04));
+  border-radius: var(--radius-md, 8px);
+  transition: all var(--duration-fast, 150ms) ease;
+}
+
+.c-team-list__item:hover {
+  background: rgba(0, 0, 0, 0.15);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.c-team-list__name {
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 500;
+  color: var(--color-text-primary, #f8fafc);
+}
+
+.c-team-list__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+}
+
+.c-team-list__empty {
+  padding: var(--space-6, 24px);
+  text-align: center;
+  color: var(--color-text-muted, #64748b);
+  font-style: italic;
+}
+
+/* ============================================================================
+   TEAM HISTORY
+   ============================================================================ */
+
+.c-team-history {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.c-team-history__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  padding: var(--space-4, 16px);
+  background: transparent;
+  border-bottom: 1px solid var(--color-border-light, rgba(255, 255, 255, 0.08));
+  transition: background-color 0.15s ease;
+}
+
+.c-team-history__item:last-child {
+  border-bottom: none;
+}
+
+.c-team-history__item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.c-team-history__item--empty {
+  justify-content: center;
+  color: var(--color-text-muted, #64748b);
+  font-style: italic;
+  padding: var(--space-6, 24px);
+}
+
+.c-team-history__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 4px);
+}
+
+.c-team-history__team {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 500;
+  color: var(--color-text-primary, #f8fafc);
+}
+
+.c-team-history__team > i {
+  color: var(--color-text-muted, #64748b);
+  font-size: 1rem;
+}
+
+.c-team-history__season {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-secondary, #94a3b8);
+}
+
+.c-team-history__season > i {
+  font-size: 0.875rem;
+}
+
+.c-team-history__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  flex-shrink: 0;
+}
+
+.c-team-history__link {
+  color: var(--color-primary-light, #60a5fa);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.c-team-history__link:hover {
+  color: var(--color-primary, #818cf8);
+  text-decoration: underline;
+}
+
+/* ============================================================================
+   LIGHT MODE
+   ============================================================================ */
+
+[data-style="light"] .c-list-modern__item {
+  border-bottom-color: var(--color-border-light, rgba(0, 0, 0, 0.06));
+}
+
+[data-style="light"] .c-list-modern__item--clickable:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+[data-style="light"] .c-list-modern__icon {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--color-text-secondary, #64748b);
+}
+
+[data-style="light"] .c-list-modern__title {
+  color: var(--color-text-primary, #1e293b);
+}
+
+[data-style="light"] .c-list-group {
+  background: var(--color-bg-primary, #fff);
+  border-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
+}
+
+[data-style="light"] .c-list-group__item {
+  border-bottom-color: var(--color-border-light, rgba(0, 0, 0, 0.06));
+}
+
+[data-style="light"] .c-list-group__item:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+[data-style="light"] .c-list-group__icon {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-style="light"] .c-list-group__title {
+  color: var(--color-text-primary, #1e293b);
+}
+
+[data-style="light"] .c-permissions-list__item {
+  background: rgba(0, 0, 0, 0.02);
+  color: var(--color-text-primary, #1e293b);
+}
+
+[data-style="light"] .c-team-list__item,
+[data-style="light"] .c-team-history__item {
+  background: var(--color-bg-secondary, #f8fafc);
+  border-color: var(--color-border-light, rgba(0, 0, 0, 0.06));
+}
+
+[data-style="light"] .c-team-list__name,
+[data-style="light"] .c-team-history__team {
+  color: var(--color-text-primary, #1e293b);
+}
+
+[data-style="light"] .c-team-history__link {
+  color: var(--color-primary, #2563EB);
+}

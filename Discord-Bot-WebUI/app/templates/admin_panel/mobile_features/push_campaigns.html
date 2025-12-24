@@ -14,60 +14,60 @@
 <!-- Campaign Statistics -->
 <div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
+        <div class="c-card bg-primary text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ campaign_data.total_sent_today or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Sent Today</p>
+                        <h5 class="c-card__title text-white mb-1">{{ campaign_data.total_sent_today or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Sent Today</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-send" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-send card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
+        <div class="c-card bg-success text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ campaign_data.delivery_rate or '0%' }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Delivery Rate</p>
+                        <h5 class="c-card__title text-white mb-1">{{ campaign_data.delivery_rate or '0%' }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Delivery Rate</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-check-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-check-circle card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
+        <div class="c-card bg-info text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ campaign_data.avg_open_rate or '0%' }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Avg Open Rate</p>
+                        <h5 class="c-card__title text-white mb-1">{{ campaign_data.avg_open_rate or '0%' }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Avg Open Rate</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-eye" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-eye card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
+        <div class="c-card bg-warning text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ campaign_data.active_users or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Target Users</p>
+                        <h5 class="c-card__title text-white mb-1">{{ campaign_data.active_users or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Target Users</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-users" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-users card-icon-stat"></i>
                     </div>
                 </div>
             </div>
@@ -78,25 +78,25 @@
 <!-- Create New Campaign -->
 <div class="row mb-4">
     <div class="col-md-8 mb-3">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-plus me-2"></i>Create Push Campaign
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <form id="campaignForm">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Campaign Name</label>
-                                <input type="text" class="form-control" name="campaign_name" placeholder="Match Day Reminder" required>
+                                <input type="text" class="form-control" name="campaign_name" placeholder="Match Day Reminder" required data-form-control>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Campaign Type</label>
-                                <select class="form-select" name="campaign_type" required>
+                                <select class="form-select" name="campaign_type" required data-form-select>
                                     <option value="">Select Type</option>
                                     <option value="match_reminder">Match Reminder</option>
                                     <option value="season_update">Season Update</option>
@@ -111,13 +111,13 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Notification Title</label>
-                                <input type="text" class="form-control" name="notification_title" placeholder="Match Starting Soon!" required>
+                                <input type="text" class="form-control" name="notification_title" placeholder="Match Starting Soon!" required data-form-control>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Target Audience</label>
-                                <select class="form-select" name="target_audience" required>
+                                <select class="form-select" name="target_audience" required data-form-select>
                                     <option value="">Select Audience</option>
                                     <option value="all">All Users ({{ campaign_data.total_users }})</option>
                                     <option value="active">Active Players ({{ campaign_data.active_users }})</option>
@@ -130,7 +130,7 @@
                     
                     <div class="mb-3">
                         <label class="form-label">Notification Message</label>
-                        <textarea class="form-control" name="notification_message" rows="3" placeholder="Your match against Arsenal FC starts in 30 minutes. Good luck!" required></textarea>
+                        <textarea class="form-control" name="notification_message" rows="3" placeholder="Your match against Arsenal FC starts in 30 minutes. Good luck!" required data-form-control></textarea>
                         <div class="form-text">
                             <span id="messageCounter">0</span>/160 characters
                         </div>
@@ -140,17 +140,17 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Send Schedule</label>
-                                <select class="form-select" name="send_schedule" required>
+                                <select class="form-select" name="send_schedule" required data-form-select>
                                     <option value="immediate">Send Immediately</option>
                                     <option value="scheduled">Schedule for Later</option>
                                     <option value="recurring">Recurring Campaign</option>
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-6" id="scheduledDateField" style="display: none;">
+                        <div class="col-md-6 d-none" id="scheduledDateField">
                             <div class="mb-3">
                                 <label class="form-label">Send Date/Time</label>
-                                <input type="datetime-local" class="form-control" name="send_datetime">
+                                <input type="datetime-local" class="form-control" name="send_datetime" data-form-control>
                             </div>
                         </div>
                     </div>
@@ -175,14 +175,14 @@
                     </div>
                     
                     <div class="d-flex justify-content-between mt-3">
-                        <button type="button" class="btn btn-outline-secondary" onclick="previewCampaign()">
+                        <button type="button" class="c-btn c-btn--outline-secondary js-preview-campaign" data-action="preview-campaign">
                             <i class="ti ti-eye me-1"></i>Preview
                         </button>
                         <div>
-                            <button type="button" class="btn btn-outline-primary me-2" onclick="saveDraft()">
+                            <button type="button" class="c-btn c-btn--outline-primary me-2 js-save-draft" data-action="save-draft">
                                 <i class="ti ti-file me-1"></i>Save Draft
                             </button>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="c-btn c-btn--primary">
                                 <i class="ti ti-send me-1"></i>Create Campaign
                             </button>
                         </div>
@@ -193,23 +193,23 @@
     </div>
     
     <div class="col-md-4 mb-3">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-template me-2"></i>Campaign Templates
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% for template in campaign_data.templates %}
-                <div class="card border mb-3">
-                    <div class="card-body p-3">
+                <div class="c-card border mb-3">
+                    <div class="c-card__body p-3">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <h6 class="card-title mb-1">{{ template.name }}</h6>
-                                <p class="card-text small text-muted mb-2">{{ template.description }}</p>
+                                <h6 class="c-card__title mb-1">{{ template.name }}</h6>
+                                <p class="c-card__description small text-muted mb-2">{{ template.description }}</p>
                                 <small class="text-muted">Target: {{ template.target_audience }}</small>
                             </div>
-                            <button class="btn btn-sm btn-outline-primary" onclick="loadTemplate({{ template.id }})">
+                            <button class="c-btn c-btn--sm c-btn--outline-primary js-load-template" data-action="load-template" data-template-id="{{ template.id }}">
                                 <i class="ti ti-download"></i>
                             </button>
                         </div>
@@ -227,26 +227,26 @@
 <!-- Recent Campaigns -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-history me-2"></i>Recent Campaigns
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if campaign_data.recent_campaigns %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Campaign</th>
-                                <th>Type</th>
-                                <th>Sent Date</th>
-                                <th>Recipients</th>
-                                <th>Delivery Rate</th>
-                                <th>Open Rate</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th scope="col">Campaign</th>
+                                <th scope="col">Type</th>
+                                <th scope="col">Sent Date</th>
+                                <th scope="col">Recipients</th>
+                                <th scope="col">Delivery Rate</th>
+                                <th scope="col">Open Rate</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -257,34 +257,34 @@
                                     <br><small class="text-muted">{{ campaign.description or 'No description' }}</small>
                                 </td>
                                 <td>
-                                    <span class="badge bg-primary">{{ campaign.type or 'Custom' }}</span>
+                                    <span class="badge bg-primary" data-badge>{{ campaign.type or 'Custom' }}</span>
                                 </td>
                                 <td>{{ campaign.sent_date }}</td>
                                 <td>
-                                    <span class="badge bg-info">{{ campaign.recipients }}</span>
+                                    <span class="badge bg-info" data-badge>{{ campaign.recipients }}</span>
                                 </td>
                                 <td>
-                                    <span class="badge bg-{{ 'success' if campaign.delivery_rate and campaign.delivery_rate.rstrip('%')|int > 90 else 'warning' }}">
+                                    <span class="badge bg-{{ 'success' if campaign.delivery_rate and campaign.delivery_rate.rstrip('%')|int > 90 else 'warning' }}" data-badge>
                                         {{ campaign.delivery_rate }}
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="badge bg-{{ 'success' if campaign.open_rate and campaign.open_rate.rstrip('%')|int > 50 else 'secondary' }}">
+                                    <span class="badge bg-{{ 'success' if campaign.open_rate and campaign.open_rate.rstrip('%')|int > 50 else 'secondary' }}" data-badge>
                                         {{ campaign.open_rate }}
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="badge bg-success">Completed</span>
+                                    <span class="badge bg-success" data-badge>Completed</span>
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-info" onclick="viewCampaignDetails({{ campaign.id }})">
+                                        <button class="c-btn c-btn--outline-info js-view-campaign-details" data-action="view-campaign-details" data-campaign-id="{{ campaign.id }}">
                                             <i class="ti ti-eye"></i>
                                         </button>
-                                        <button class="btn btn-outline-primary" onclick="duplicateCampaign({{ campaign.id }})">
+                                        <button class="c-btn c-btn--outline-primary js-duplicate-campaign" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}">
                                             <i class="ti ti-copy"></i>
                                         </button>
-                                        <button class="btn btn-outline-secondary" onclick="downloadReport({{ campaign.id }})">
+                                        <button class="c-btn c-btn--outline-secondary js-download-report" data-action="download-report" data-campaign-id="{{ campaign.id }}">
                                             <i class="ti ti-download"></i>
                                         </button>
                                     </div>
@@ -296,7 +296,7 @@
                 </div>
                 {% else %}
                 <div class="text-center py-5">
-                    <i class="ti ti-send-off text-muted" style="font-size: 4rem;"></i>
+                    <i class="ti ti-send-off text-muted icon-empty-state"></i>
                     <h5 class="text-muted mt-3">No Campaigns Yet</h5>
                     <p class="text-muted">Create your first push notification campaign to get started.</p>
                 </div>
@@ -309,6 +309,7 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
 // Form handling
 document.getElementById('campaignForm').addEventListener('submit', function(e) {
@@ -332,10 +333,56 @@ document.querySelector('textarea[name="notification_message"]').addEventListener
 document.querySelector('select[name="send_schedule"]').addEventListener('change', function() {
     const scheduledField = document.getElementById('scheduledDateField');
     if (this.value === 'scheduled' || this.value === 'recurring') {
-        scheduledField.style.display = 'block';
+        scheduledField.classList.remove('d-none');
     } else {
-        scheduledField.style.display = 'none';
+        scheduledField.classList.add('d-none');
     }
+});
+
+// Preview campaign button
+document.querySelectorAll('.js-preview-campaign').forEach(btn => {
+    btn.addEventListener('click', function() {
+        previewCampaign();
+    });
+});
+
+// Save draft button
+document.querySelectorAll('.js-save-draft').forEach(btn => {
+    btn.addEventListener('click', function() {
+        saveDraft();
+    });
+});
+
+// Load template buttons
+document.querySelectorAll('.js-load-template').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const templateId = this.dataset.templateId;
+        loadTemplate(templateId);
+    });
+});
+
+// View campaign details buttons
+document.querySelectorAll('.js-view-campaign-details').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const campaignId = this.dataset.campaignId;
+        viewCampaignDetails(campaignId);
+    });
+});
+
+// Duplicate campaign buttons
+document.querySelectorAll('.js-duplicate-campaign').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const campaignId = this.dataset.campaignId;
+        duplicateCampaign(campaignId);
+    });
+});
+
+// Download report buttons
+document.querySelectorAll('.js-download-report').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const campaignId = this.dataset.campaignId;
+        downloadReport(campaignId);
+    });
 });
 
 function createCampaign() {
@@ -391,21 +438,21 @@ function previewCampaign() {
         title: 'Campaign Preview',
         html: `
             <div class="text-start">
-                <div class="card border mb-3" style="max-width: 300px; margin: 0 auto;">
-                    <div class="card-body">
+                <div class="c-card border mb-3 u-max-w-300 mx-auto">
+                    <div class="c-card__body">
                         <div class="d-flex align-items-center mb-2">
-                            <div class="bg-primary rounded-circle me-2" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                            <div class="bg-primary rounded-circle me-2" class="u-w-h-32 u-flex-center">
                                 <i class="ti ti-shield text-white"></i>
                             </div>
                             <div>
-                                <strong style="font-size: 14px;">ECS FC</strong><br>
+                                <strong class="u-font-size-14">ECS FC</strong><br>
                                 <small class="text-muted">now</small>
                             </div>
                         </div>
                         <div class="mb-2">
-                            <strong style="font-size: 15px;">${title}</strong>
+                            <strong class="u-font-size-15">${title}</strong>
                         </div>
-                        <div style="font-size: 14px; color: #666;">
+                        <div class="u-font-size-14 text-muted">
                             ${message}
                         </div>
                     </div>
@@ -495,7 +542,7 @@ function viewCampaignDetails(campaignId) {
                 </div>
                 <div class="mb-3">
                     <strong>Notification Content:</strong><br>
-                    <div class="card bg-light p-2">
+                    <div class="c-card bg-light p-2">
                         <strong>Title:</strong> Match Starting Soon!<br>
                         <strong>Message:</strong> Your match against Arsenal FC starts in 30 minutes. Good luck team!
                     </div>

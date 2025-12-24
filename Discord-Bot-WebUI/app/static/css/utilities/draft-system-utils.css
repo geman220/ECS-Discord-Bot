@@ -1,0 +1,401 @@
+/**
+ * DRAFT SYSTEM UTILITIES
+ * =======================
+ * Additional utility classes for draft-system.js refactoring
+ * These classes complement existing utilities to support the draft system's
+ * animation and display requirements
+ */
+
+/* ============================================
+   ANIMATION UTILITIES
+   ============================================ */
+
+/* Exit animations */
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+.animate-slide-out-right {
+    animation: slideOutRight 0.3s ease !important;
+}
+
+.animate-fade-out {
+    animation: fadeOut 0.3s ease !important;
+}
+
+/* ============================================
+   HEIGHT & DIMENSION UTILITIES
+   ============================================ */
+
+.h-0 {
+    height: 0 !important;
+}
+
+.max-h-0 {
+    max-height: 0 !important;
+}
+
+/* Dynamic max-height - used with JS */
+.max-h-full {
+    max-height: 100% !important;
+}
+
+.max-h-fit {
+    max-height: fit-content !important;
+}
+
+/* ============================================
+   SPACING UTILITIES (complement Bootstrap)
+   ============================================ */
+
+.m-0-important {
+    margin: 0 !important;
+}
+
+.mb-0-important {
+    margin-bottom: 0 !important;
+}
+
+.p-0-important {
+    padding: 0 !important;
+}
+
+.pt-0-important {
+    padding-top: 0 !important;
+}
+
+.pb-0-important {
+    padding-bottom: 0 !important;
+}
+
+/* ============================================
+   BORDER UTILITIES
+   ============================================ */
+
+.border-transparent {
+    border-color: transparent !important;
+}
+
+.border-left-0 {
+    border-left: 0 !important;
+}
+
+.border-left-4 {
+    border-left-width: 4px !important;
+}
+
+/* ============================================
+   BACKGROUND UTILITIES
+   ============================================ */
+
+.bg-transparent {
+    background-color: transparent !important;
+}
+
+.bg-reset {
+    background-color: initial !important;
+}
+
+/* ============================================
+   OPACITY UTILITIES (complement existing)
+   ============================================ */
+
+.opacity-50 {
+    opacity: 0.5 !important;
+}
+
+/* ============================================
+   TRANSFORM & TRANSITION COMBINATIONS
+   ============================================ */
+
+/* Combined transform states for draft card removal animation */
+.draft-card-exit {
+    opacity: 0;
+    transform: scale(0.8) translateY(-10px);
+    max-height: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Draft card enter state */
+.draft-card-enter {
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+.draft-card-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Team player remove animation */
+.team-player-exit {
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* ============================================
+   DRAG & DROP UTILITIES
+   ============================================ */
+
+.dragging {
+    cursor: grabbing !important;
+    z-index: 1000 !important;
+}
+
+.drag-over {
+    position: relative;
+}
+
+/* Drag over states for available players pool */
+.drag-over-available {
+    border-color: var(--bs-success, #28c76f) !important;
+    background-color: rgba(40, 199, 111, 0.1) !important;
+}
+
+/* Drag over states for team sections */
+.drag-over-team {
+    border-color: var(--bs-primary, #7367f0) !important;
+    background-color: rgba(115, 103, 240, 0.1) !important;
+}
+
+/* Drag over state for team drop zones */
+.drag-over-team-zone {
+    background-color: rgba(115, 103, 240, 0.1) !important;
+    border-left: 4px solid var(--bs-primary, #7367f0) !important;
+}
+
+/* ============================================
+   OBJECT POSITIONING UTILITIES
+   ============================================ */
+
+/* Smart crop utilities for player images */
+.object-position-top-20 {
+    object-position: center 20% !important;
+}
+
+.object-position-top-15 {
+    object-position: center 15% !important;
+}
+
+.object-position-top-25 {
+    object-position: center 25% !important;
+}
+
+.object-position-center-35 {
+    object-position: center 35% !important;
+}
+
+/* ============================================
+   Z-INDEX UTILITIES (Mobile Draft)
+   ============================================ */
+
+.z-index-100 {
+    z-index: 100 !important;
+}
+
+.z-index-1060 {
+    z-index: 1060 !important;
+}
+
+/* ============================================
+   STICKY POSITIONING UTILITIES
+   ============================================ */
+
+.sticky-top-60 {
+    position: sticky !important;
+    top: 60px !important;
+}
+
+.sticky-top-80 {
+    position: sticky !important;
+    top: 80px !important;
+}
+
+/* ============================================
+   WEBKIT OVERFLOW SCROLLING
+   ============================================ */
+
+.webkit-overflow-scrolling-touch {
+    -webkit-overflow-scrolling: touch !important;
+}
+
+/* ============================================
+   TRANSFORM ORIGIN UTILITIES
+   ============================================ */
+
+.transform-origin-center {
+    transform-origin: center center !important;
+}
+
+.transform-origin-top {
+    transform-origin: top center !important;
+}
+
+.transform-origin-bottom {
+    transform-origin: bottom center !important;
+}
+
+/* ============================================
+   MOBILE DRAFT SPECIFIC UTILITIES
+   ============================================ */
+
+/* Quick draft panel z-index overlay */
+.mobile-quick-draft-overlay {
+    z-index: 1060 !important;
+}
+
+/* iOS smooth scrolling for pitch */
+.pitch-smooth-scroll {
+    -webkit-overflow-scrolling: touch !important;
+}
+
+/* Transform origin for pinch zoom */
+.pinch-zoom-origin {
+    transform-origin: center center !important;
+}
+
+/* Sticky filter with proper positioning */
+.sticky-filter-mobile {
+    position: sticky !important;
+    top: 60px !important;
+    z-index: 100 !important;
+}
+
+/* ============================================
+   VIRTUAL SCROLLING UTILITIES
+   ============================================ */
+
+/* Virtual scroll wrapper - container with scrolling */
+.virtual-scroll-wrapper {
+    position: relative !important;
+    overflow-y: auto !important;
+    height: 100% !important;
+}
+
+/* Virtual scroll content - maintains total height */
+.virtual-scroll-content {
+    position: relative !important;
+}
+
+/* Virtual scroll viewport - visible items container */
+.virtual-scroll-viewport {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+}
+
+/* Virtual scroll item - individual item wrapper */
+.virtual-scroll-item {
+    margin-bottom: 10px !important;
+    position: relative !important;
+}
+
+/* Player card content layout */
+.player-card-content {
+    display: flex !important;
+    align-items: center !important;
+    padding: 15px !important;
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    height: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Player avatar container */
+.player-avatar-container {
+    width: 60px !important;
+    height: 60px !important;
+    margin-right: 15px !important;
+    position: relative !important;
+    flex-shrink: 0 !important;
+}
+
+/* Player avatar image */
+.player-avatar {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    border: 2px solid var(--border-color) !important;
+}
+
+/* Player info section */
+.player-info {
+    flex: 1 !important;
+    min-width: 0 !important;
+}
+
+/* Player name styling */
+.player-name {
+    font-weight: 600 !important;
+    font-size: 16px !important;
+    color: var(--text-primary) !important;
+    margin-bottom: 5px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+/* Player details section */
+.player-details {
+    font-size: 14px !important;
+    color: var(--text-secondary) !important;
+    display: flex !important;
+    gap: 15px !important;
+    flex-wrap: wrap !important;
+}
+
+/* Player actions button group */
+.player-actions {
+    display: flex !important;
+    gap: 10px !important;
+    flex-shrink: 0 !important;
+}
+
+/* Action button min widths */
+.player-actions .draft-player-btn {
+    min-width: 80px !important;
+}
+
+.player-actions .view-details-btn {
+    min-width: 70px !important;
+}
+
+/* ============================================
+   REDUCED MOTION SUPPORT
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-slide-out-right,
+    .animate-fade-out,
+    .draft-card-exit,
+    .draft-card-enter-active,
+    .team-player-exit {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}

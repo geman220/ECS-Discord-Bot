@@ -1,35 +1,33 @@
 {% extends "base.html" %}
 
 {% block page_css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/features/store.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/store.css') }}" />
 {% endblock %}
 
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Page Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <h2 class="fw-bold py-3 mb-2">
-                <i class="ti ti-settings me-2 text-primary"></i>Store Administration
-            </h2>
-            <div class="text-muted">
-                Manage store items and orders
-            </div>
+    <div class="c-admin-header" data-component="admin-header">
+        <div class="c-admin-header__content">
+            <h1 class="c-admin-header__title">
+                <i class="ti ti-settings me-2"></i>Store Administration
+            </h1>
+            <p class="c-admin-header__description">Manage store items and orders</p>
         </div>
     </div>
 
     <!-- Navigation -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <a href="{{ url_for('store.index') }}" class="btn btn-outline-primary me-2">
+            <div class="c-action-bar" data-component="action-bar">
+                <div class="c-action-bar__group">
+                    <a href="{{ url_for('store.index') }}" class="c-btn c-btn--outline-primary me-2">
                         <i class="ti ti-arrow-left me-1"></i> Back to Store
                     </a>
-                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createItemModal">
+                    <button type="button" class="c-btn c-btn--success" data-bs-toggle="modal" data-bs-target="#createItemModal" data-action="create-item">
                         <i class="ti ti-plus me-1"></i> Add New Item
                     </button>
-                    <button type="button" class="btn btn-warning ms-2" data-bs-toggle="modal" data-bs-target="#resetOrderingModal">
+                    <button type="button" class="c-btn c-btn--warning ms-2" data-bs-toggle="modal" data-bs-target="#resetOrderingModal" data-action="reset-season">
                         <i class="ti ti-refresh me-1"></i> Reset Season Ordering
                     </button>
                 </div>
@@ -40,46 +38,46 @@
     <!-- Store Items Management -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header border-bottom">
-                    <h5 class="card-title mb-0">Store Items</h5>
+            <div class="c-card" data-component="store-items-table">
+                <div class="c-card__header border-bottom">
+                    <h5 class="c-card__title mb-0">Store Items</h5>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable mb-0" data-table>
+                        <thead class="c-table--light" scope="col">
                             <tr>
-                                <th>Item</th>
-                                <th>Category</th>
-                                <th>Price</th>
-                                <th>Options</th>
-                                <th>Status</th>
-                                <th>Created</th>
-                                <th>Actions</th>
+                                <th scope="col">Item</th>
+                                <th scope="col">Category</th>
+                                <th scope="col">Price</th>
+                                <th scope="col">Options</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Created</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for item in items %}
-                            <tr>
+                            <tr data-item-id="{{ item.id }}">
                                 <td>
-                                    <div class="d-flex align-items-center">
+                                    <div class="c-store-item" data-component="store-item">
                                         {% if item.image_url %}
-                                        <img src="{{ item.image_url }}" alt="{{ item.name }}" class="rounded me-3 store-admin-item-image">
+                                        <img src="{{ item.image_url }}" alt="{{ item.name }}" class="c-store-item__image">
                                         {% else %}
-                                        <div class="avatar avatar-md bg-label-secondary me-3">
+                                        <div class="c-store-item__placeholder">
                                             <i class="ti ti-photo"></i>
                                         </div>
                                         {% endif %}
-                                        <div>
-                                            <h6 class="mb-0">{{ item.name }}</h6>
+                                        <div class="c-store-item__details">
+                                            <h6 class="c-store-item__name">{{ item.name }}</h6>
                                             {% if item.description %}
-                                            <small class="text-muted">{{ item.description[:50] }}{% if item.description|length > 50 %}...{% endif %}</small>
+                                            <small class="c-store-item__description">{{ item.description[:50] }}{% if item.description|length > 50 %}...{% endif %}</small>
                                             {% endif %}
                                         </div>
                                     </div>
                                 </td>
                                 <td>
                                     {% if item.category %}
-                                    <span class="badge bg-label-primary">{{ item.category }}</span>
+                                    <span class="badge bg-label-primary" data-badge>{{ item.category }}</span>
                                     {% else %}
                                     <span class="text-muted">-</span>
                                     {% endif %}
@@ -106,9 +104,9 @@
                                 </td>
                                 <td>
                                     {% if item.is_active %}
-                                    <span class="badge bg-label-success">Active</span>
+                                    <span class="badge bg-label-success" data-badge>Active</span>
                                     {% else %}
-                                    <span class="badge bg-label-danger">Inactive</span>
+                                    <span class="badge bg-label-danger" data-badge>Inactive</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -117,18 +115,18 @@
                                 </td>
                                 <td>
                                     <div class="dropdown">
-                                        <button class="btn btn-sm btn-icon btn-text-secondary rounded-pill dropdown-toggle hide-arrow" type="button" data-bs-toggle="dropdown">
+                                        <button class="c-btn c-btn--sm c-btn--icon-only btn-text-secondary rounded-pill dropdown-toggle hide-arrow" type="button" data-bs-toggle="dropdown" data-dropdown-toggle>
                                             <i class="ti ti-dots-vertical"></i>
                                         </button>
-                                        <ul class="dropdown-menu dropdown-menu-end">
+                                        <ul class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
                                             <li>
-                                                <a class="dropdown-item" href="{{ url_for('store.edit_item', item_id=item.id) }}">
+                                                <a class="dropdown-item" href="{{ url_for('store.edit_item', item_id=item.id) }}" data-action="edit">
                                                     <i class="ti ti-edit me-2"></i>Edit
                                                 </a>
                                             </li>
                                             <li><hr class="dropdown-divider"></li>
                                             <li>
-                                                <a class="dropdown-item text-danger delete-item-btn" href="#" data-item-id="{{ item.id }}" data-item-name="{{ item.name }}">
+                                                <a class="dropdown-item text-danger delete-item-btn" href="#" data-action="delete-item" data-item-id="{{ item.id }}" data-item-name="{{ item.name }}">
                                                     <i class="ti ti-trash me-2"></i>Delete
                                                 </a>
                                             </li>
@@ -147,12 +145,12 @@
     <!-- Orders Management -->
     <div class="row">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header border-bottom">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">Recent Orders</h5>
-                        <div class="d-flex gap-2">
-                            <select id="bulk-status-select" class="form-select form-select-sm bulk-status-select">
+            <div class="c-card" data-component="orders-table">
+                <div class="c-card__header border-bottom">
+                    <div class="c-orders-header" data-component="orders-header">
+                        <h5 class="c-orders-header__title">Recent Orders</h5>
+                        <div class="c-orders-header__actions">
+                            <select id="bulk-status-select" class="form-select form-select-sm c-bulk-select" data-form-select data-action="bulk-status-select">
                                 <option value="">Bulk Update Status</option>
                                 <option value="PENDING">Mark as Pending</option>
                                 <option value="PROCESSING">Mark as Processing</option>
@@ -160,64 +158,64 @@
                                 <option value="DELIVERED">Mark as Delivered</option>
                                 <option value="CANCELLED">Mark as Cancelled</option>
                             </select>
-                            <button type="button" class="btn btn-sm btn-primary" id="bulk-update-btn" disabled>
+                            <button type="button" class="c-btn c-btn--sm c-btn--primary" id="bulk-update-btn" disabled data-action="bulk-update">
                                 <i class="ti ti-check me-1"></i>Update Selected
                             </button>
-                            <button type="button" class="btn btn-sm btn-danger" id="bulk-delete-btn" disabled>
+                            <button type="button" class="c-btn c-btn--sm c-btn--danger" id="bulk-delete-btn" disabled data-action="bulk-delete">
                                 <i class="ti ti-trash me-1"></i>Delete Selected
                             </button>
                         </div>
                     </div>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable mb-0" data-table>
+                        <thead class="c-table--light" scope="col">
                             <tr>
-                                <th>
+                                <th scope="col">
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" id="select-all-orders">
                                         <label class="form-check-label" for="select-all-orders"></label>
                                     </div>
                                 </th>
-                                <th>Order ID</th>
-                                <th>Customer</th>
-                                <th>Item</th>
-                                <th>Details</th>
-                                <th>Status</th>
-                                <th>Order Date</th>
-                                <th>Actions</th>
+                                <th scope="col">Order ID</th>
+                                <th scope="col">Customer</th>
+                                <th scope="col">Item</th>
+                                <th scope="col">Details</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Order Date</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for order in orders %}
-                            <tr>
+                            <tr data-order-id="{{ order.id }}">
                                 <td>
                                     <div class="form-check">
-                                        <input class="form-check-input order-checkbox" type="checkbox" value="{{ order.id }}" id="order-{{ order.id }}">
+                                        <input class="form-check-input order-checkbox" type="checkbox" value="{{ order.id }}" id="order-{{ order.id }}" data-action="select-order">
                                         <label class="form-check-label" for="order-{{ order.id }}"></label>
                                     </div>
                                 </td>
-                                <td>#{{ order.id }}</td>
-                                <td>{{ order.orderer.username if order.orderer else 'Unknown' }}</td>
+                                <td class="c-order__id">#{{ order.id }}</td>
+                                <td class="c-order__customer">{{ order.orderer.username if order.orderer else 'Unknown' }}</td>
                                 <td>
-                                    <div>
-                                        <strong>{{ order.item.name if order.item else 'Unknown Item' }}</strong>
-                                        <br><small class="text-muted">Qty: {{ order.quantity }}</small>
+                                    <div class="c-order__item">
+                                        <strong class="c-order__item-name">{{ order.item.name if order.item else 'Unknown Item' }}</strong>
+                                        <br><small class="c-order__item-qty">Qty: {{ order.quantity }}</small>
                                     </div>
                                 </td>
                                 <td>
                                     {% if order.selected_color %}
-                                    <span class="badge bg-label-info me-1">{{ order.selected_color }}</span>
+                                    <span class="badge bg-label-info me-1" data-badge>{{ order.selected_color }}</span>
                                     {% endif %}
                                     {% if order.selected_size %}
-                                    <span class="badge bg-label-secondary me-1">{{ order.selected_size }}</span>
+                                    <span class="badge bg-label-secondary me-1" data-badge>{{ order.selected_size }}</span>
                                     {% endif %}
                                     {% if order.notes %}
                                     <br><small class="text-muted">{{ order.notes[:30] }}{% if order.notes|length > 30 %}...{% endif %}</small>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <select class="form-select form-select-sm order-status-select" data-order-id="{{ order.id }}" data-current-status="{{ order.status }}">
+                                    <select class="form-select form-select-sm c-order-status" data-action="update-order-status" data-order-id="{{ order.id }}" data-current-status="{{ order.status }}" data-form-select>
                                         <option value="PENDING" {% if order.status == 'PENDING' %}selected{% endif %}>Pending</option>
                                         <option value="PROCESSING" {% if order.status == 'PROCESSING' %}selected{% endif %}>Processing</option>
                                         <option value="ORDERED" {% if order.status == 'ORDERED' %}selected{% endif %}>Ordered</option>
@@ -225,19 +223,20 @@
                                         <option value="CANCELLED" {% if order.status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
                                     </select>
                                 </td>
-                                <td>
+                                <td class="c-order__date">
                                     {{ format_pacific_time_short(order.order_date) if order.order_date else '' }}
                                     {% if order.processed_by %}
-                                    <br><small class="text-muted">Processed by {{ order.processor.username if order.processor else 'Unknown' }}</small>
+                                    <br><small class="c-order__processor">Processed by {{ order.processor.username if order.processor else 'Unknown' }}</small>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <div class="d-flex gap-1">
-                                        <button type="button" class="btn btn-sm btn-outline-info view-order-btn" data-order-id="{{ order.id }}" title="View Order">
+                                    <div class="c-order__actions">
+                                        <button type="button" class="c-btn c-btn--sm c-btn--outline-info view-order-btn" data-action="view-order" data-order-id="{{ order.id }}" title="View Order">
                                             <i class="ti ti-eye"></i>
                                         </button>
-                                        <button type="button" class="btn btn-sm btn-outline-danger delete-order-btn" 
-                                                data-order-id="{{ order.id }}" 
+                                        <button type="button" class="c-btn c-btn--sm c-btn--outline-danger delete-order-btn"
+                                                data-action="delete-order"
+                                                data-order-id="{{ order.id }}"
                                                 data-order-info="Order #{{ order.id }} for {{ order.item.name if order.item else 'Unknown Item' }}"
                                                 data-customer-name="{{ order.orderer.username if order.orderer else 'Unknown Customer' }}"
                                                 title="Delete Order">
@@ -256,49 +255,49 @@
 </div>
 
 <!-- Create Item Modal -->
-<div class="modal fade" id="createItemModal" tabindex="-1" aria-labelledby="createItemModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
+<div class="modal c-modal fade" data-modal id="createItemModal" tabindex="-1" aria-labelledby="createItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
             <form id="createItemForm" enctype="multipart/form-data">
-                <div class="modal-header bg-light">
-                    <h5 class="modal-title" id="createItemModalLabel">
+                <div class="modal-header c-modal__header bg-light" data-modal-header>
+                    <h5 class="modal-title c-modal__title" id="createItemModalLabel">
                         <i class="ti ti-plus me-2"></i>Add New Store Item
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     
                     <div class="row">
                         <div class="col-md-8">
                             <div class="mb-3">
-                                <label for="name" class="form-label">Item Name *</label>
-                                <input type="text" class="form-control" id="name" name="name" required 
-                                       placeholder="e.g. 0857 Pioneer Pullover">
+                                <label for="store-admin-item-name" class="form-label">Item Name *</label>
+                                <input type="text" class="form-control" id="store-admin-item-name" name="name" required 
+                                       placeholder="e.g. 0857 Pioneer Pullover" data-form-control>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="price" class="form-label">Price (Admin Only)</label>
-                                <div class="input-group">
+                                <div class="input-group" data-input-group>
                                     <span class="input-group-text">$</span>
                                     <input type="number" class="form-control" id="price" name="price" 
-                                           step="0.01" min="0" placeholder="15.00">
+                                           step="0.01" min="0" placeholder="15.00" data-form-control>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
                     <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="3" 
-                                  placeholder="Describe the item, materials, features, etc."></textarea>
+                        <label for="store-admin-item-description" class="form-label">Description</label>
+                        <textarea class="form-control" id="store-admin-item-description" name="description" rows="3" 
+                                  placeholder="Describe the item, materials, features, etc." data-form-control></textarea>
                     </div>
                     
                     <div class="mb-3">
                         <label for="category" class="form-label">Category</label>
                         <input type="text" class="form-control" id="category" name="category" 
-                               placeholder="e.g. Apparel, Equipment, Accessories">
+                               placeholder="e.g. Apparel, Equipment, Accessories" data-form-control>
                     </div>
                     
                     <div class="mb-3">
@@ -307,13 +306,13 @@
                             <div class="col-md-6">
                                 <label for="image_file" class="form-label">Upload Image</label>
                                 <input type="file" class="form-control" id="image_file" name="image_file" 
-                                       accept="image/*">
+                                       accept="image/*" data-form-control>
                                 <div class="form-text">Upload an image file</div>
                             </div>
                             <div class="col-md-6">
                                 <label for="image_url" class="form-label">Or Image URL</label>
                                 <input type="url" class="form-control" id="image_url" name="image_url" 
-                                       placeholder="https://example.com/image.jpg">
+                                       placeholder="https://example.com/image.jpg" data-form-control>
                                 <div class="form-text">Provide a direct link to an image</div>
                             </div>
                         </div>
@@ -324,14 +323,14 @@
                             <div class="mb-3">
                                 <label class="form-label">Available Colors</label>
                                 <div id="colors-container">
-                                    <div class="input-group mb-2">
-                                        <input type="text" class="form-control" name="colors[]" placeholder="e.g. Navy, Black, White">
-                                        <button type="button" class="btn btn-outline-danger remove-color d-none">
+                                    <div class="input-group mb-2" data-input-group>
+                                        <input type="text" class="form-control" name="colors[]" placeholder="e.g. Navy, Black, White" data-form-control>
+                                        <button type="button" class="c-btn c-btn--outline-danger remove-color d-none">
                                             <i class="ti ti-x"></i>
                                         </button>
                                     </div>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-outline-primary" id="add-color">
+                                <button type="button" class="c-btn c-btn--sm c-btn--outline-primary" id="add-color">
                                     <i class="ti ti-plus me-1"></i>Add Color
                                 </button>
                             </div>
@@ -341,25 +340,25 @@
                             <div class="mb-3">
                                 <label class="form-label">Available Sizes</label>
                                 <div id="sizes-container">
-                                    <div class="input-group mb-2">
-                                        <input type="text" class="form-control" name="sizes[]" placeholder="e.g. YXS, YS, YM, YL, AS, AM, AL">
-                                        <button type="button" class="btn btn-outline-danger remove-size d-none">
+                                    <div class="input-group mb-2" data-input-group>
+                                        <input type="text" class="form-control" name="sizes[]" placeholder="e.g. YXS, YS, YM, YL, AS, AM, AL" data-form-control>
+                                        <button type="button" class="c-btn c-btn--outline-danger remove-size d-none">
                                             <i class="ti ti-x"></i>
                                         </button>
                                     </div>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-outline-primary" id="add-size">
+                                <button type="button" class="c-btn c-btn--sm c-btn--outline-primary" id="add-size">
                                     <i class="ti ti-plus me-1"></i>Add Size
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                <div class="modal-footer c-modal__footer bg-light" data-modal-footer>
+                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>
                         <i class="ti ti-x me-1"></i>Cancel
                     </button>
-                    <button type="submit" class="btn btn-success">
+                    <button type="submit" class="c-btn c-btn--success">
                         <i class="ti ti-device-floppy me-1"></i>Create Item
                     </button>
                 </div>
@@ -369,17 +368,17 @@
 </div>
 
 <!-- Reset Season Ordering Modal -->
-<div class="modal fade" id="resetOrderingModal" tabindex="-1" aria-labelledby="resetOrderingModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-warning-subtle">
-                <h5 class="modal-title" id="resetOrderingModalLabel">
+<div class="modal c-modal fade" data-modal id="resetOrderingModal" tabindex="-1" aria-labelledby="resetOrderingModalLabel" aria-hidden="true">
+    <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header bg-warning-subtle" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="resetOrderingModalLabel">
                     <i class="ti ti-refresh me-2"></i>Reset Season Ordering
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <div class="alert alert-warning">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
+                <div class="alert alert-warning" data-alert>
                     <i class="ti ti-alert-triangle me-2"></i>
                     <strong>Warning:</strong> This action will allow all coaches to place new orders for the current season, 
                     even if they have already placed an order. Use this at the beginning of a new season.
@@ -403,11 +402,11 @@
                     </label>
                 </div>
             </div>
-            <div class="modal-footer bg-warning-subtle">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            <div class="modal-footer c-modal__footer bg-warning-subtle" data-modal-footer>
+                <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>
                     <i class="ti ti-x me-1"></i>Cancel
                 </button>
-                <button type="button" class="btn btn-warning" id="confirmResetBtn">
+                <button type="button" class="c-btn c-btn--warning" id="confirmResetBtn">
                     <i class="ti ti-refresh me-1"></i>Reset Season Ordering
                 </button>
             </div>
@@ -417,6 +416,7 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Create Item Modal functionality
@@ -428,8 +428,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const div = document.createElement('div');
             div.className = 'input-group mb-2';
             div.innerHTML = `
-                <input type="text" class="form-control" name="colors[]" placeholder="e.g. Navy, Black, White">
-                <button type="button" class="btn btn-outline-danger remove-color">
+                <input type="text" class="form-control" name="colors[]" placeholder="e.g. Navy, Black, White" data-form-control>
+                <button type="button" class="c-btn c-btn--outline-danger remove-color">
                     <i class="ti ti-x"></i>
                 </button>
             `;
@@ -443,8 +443,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const div = document.createElement('div');
             div.className = 'input-group mb-2';
             div.innerHTML = `
-                <input type="text" class="form-control" name="sizes[]" placeholder="e.g. YXS, YS, YM, YL">
-                <button type="button" class="btn btn-outline-danger remove-size">
+                <input type="text" class="form-control" name="sizes[]" placeholder="e.g. YXS, YS, YM, YL" data-form-control>
+                <button type="button" class="c-btn c-btn--outline-danger remove-size">
                     <i class="ti ti-x"></i>
                 </button>
             `;
@@ -488,7 +488,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Show loading
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<div class="spinner-border spinner-border-sm me-1" role="status"></div>Creating...';
+            submitBtn.innerHTML = '<div class="spinner-border spinner-border-sm me-1" role="status" data-spinner></div>Creating...';
             
             fetch('{{ url_for("store.create_item") }}', {
                 method: 'POST',
@@ -727,7 +727,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function performBulkUpdate(orderIds, newStatus) {
         const originalText = bulkUpdateBtn.innerHTML;
         bulkUpdateBtn.disabled = true;
-        bulkUpdateBtn.innerHTML = '<div class="spinner-border spinner-border-sm me-1" role="status"></div>Updating...';
+        bulkUpdateBtn.innerHTML = '<div class="spinner-border spinner-border-sm me-1" role="status" data-spinner></div>Updating...';
         
         fetch('{{ url_for("store.bulk_update_orders") }}', {
             method: 'POST',
@@ -803,7 +803,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function performSeasonReset(resetType, modal) {
         const originalText = confirmResetBtn.innerHTML;
         confirmResetBtn.disabled = true;
-        confirmResetBtn.innerHTML = '<div class="spinner-border spinner-border-sm me-1" role="status"></div>Resetting...';
+        confirmResetBtn.innerHTML = '<div class="spinner-border spinner-border-sm me-1" role="status" data-spinner></div>Resetting...';
         
         fetch('{{ url_for("store.reset_season_ordering") }}', {
             method: 'POST',
@@ -875,7 +875,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function performBulkDelete(orderIds) {
         const originalText = bulkDeleteBtn.innerHTML;
         bulkDeleteBtn.disabled = true;
-        bulkDeleteBtn.innerHTML = '<div class="spinner-border spinner-border-sm me-1" role="status"></div>Deleting...';
+        bulkDeleteBtn.innerHTML = '<div class="spinner-border spinner-border-sm me-1" role="status" data-spinner></div>Deleting...';
         
         fetch('{{ url_for("store.bulk_delete_orders") }}', {
             method: 'POST',

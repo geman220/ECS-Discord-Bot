@@ -7,7 +7,7 @@
     background-color: var(--ecs-neutral-5, #f8f9fa);
 }
 
-[data-bs-theme="dark"] .store-item-image {
+[data-style="dark"] .store-item-image {
     background-color: var(--ecs-dark-bg-card);
 }
 

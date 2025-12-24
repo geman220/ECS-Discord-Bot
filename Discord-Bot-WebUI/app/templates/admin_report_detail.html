@@ -6,14 +6,14 @@
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-xl-10 col-lg-12 col-md-12">
-            <div class="card">
+            <div class="c-card">
                 <!-- Header -->
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h4 class="card-title mb-0">Feedback #{{ feedback.id }}</h4>
-                    <a href="{{ url_for('admin.admin_reports') }}" class="btn btn-light btn-sm">Back to Reports</a>
+                <div class="c-card__header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="c-card__title mb-0">Feedback #{{ feedback.id }}</h4>
+                    <a href="{{ url_for('admin.admin_reports') }}" class="c-btn c-btn--light c-btn--sm">Back to Reports</a>
                 </div>
 
-                <div class="card-body">
+                <div class="c-card__body">
                     <!-- Title -->
                     <div class="mb-4">
                         <h5 class="fw-bold">Title</h5>
@@ -48,7 +48,7 @@
                                     {% endfor %}
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-primary waves-effect waves-light">
+                            <button type="submit" class="c-btn c-btn--primary waves-effect waves-light">
                                 <i class="ti ti-device-floppy me-1"></i>Update Feedback
                             </button>
                         </form>
@@ -78,15 +78,15 @@
                         <h5 class="fw-bold">Replies</h5>
                         <hr>
                         {% if feedback.replies %}
-                        <div class="accordion" id="repliesAccordion">
+                        <div class="accordion" id="repliesAccordion" data-accordion>
                             {% for reply in feedback.replies %}
-                            <div class="accordion-item">
+                            <div class="accordion-item" data-accordion>
                                 <h2 class="accordion-header" id="headingReply{{ reply.id }}">
                                     <button class="accordion-button {% if not loop.first %}collapsed{% endif %}"
                                             type="button" data-bs-toggle="collapse"
                                             data-bs-target="#collapseReply{{ reply.id }}"
                                             aria-expanded="{{ 'true' if loop.first else 'false' }}"
-                                            aria-controls="collapseReply{{ reply.id }}">
+                                            aria-controls="collapseReply{{ reply.id }}" data-collapse-toggle>
                                         {% if reply.is_admin_reply %}
                                         Admin Reply - {{ reply.created_at.strftime('%Y-%m-%d %H:%M') }}
                                         {% else %}
@@ -96,8 +96,8 @@
                                 </h2>
                                 <div id="collapseReply{{ reply.id }}"
                                      class="accordion-collapse collapse {% if loop.first %}show{% endif %}"
-                                     aria-labelledby="headingReply{{ reply.id }}" data-bs-parent="#repliesAccordion">
-                                    <div class="accordion-body">
+                                     aria-labelledby="headingReply{{ reply.id }}" data-bs-parent="#repliesAccordion" data-accordion>
+                                    <div class="accordion-body" data-accordion>
                                         {{ reply.content }}
                                     </div>
                                 </div>
@@ -123,7 +123,7 @@
                                 <div class="text-danger">{{ error }}</div>
                                 {% endfor %}
                             </div>
-                            <button type="submit" class="btn btn-primary waves-effect waves-light">
+                            <button type="submit" class="c-btn c-btn--primary waves-effect waves-light">
                                 <i class="ti ti-send me-1"></i>Submit Reply
                             </button>
                         </form>
@@ -134,19 +134,19 @@
                         <h5 class="fw-bold">Admin Notes</h5>
                         <hr>
                         {% if feedback.notes %}
-                        <div class="accordion" id="notesAccordion">
+                        <div class="accordion" id="notesAccordion" data-accordion>
                             {% for note in feedback.notes %}
-                            <div class="accordion-item">
+                            <div class="accordion-item" data-accordion>
                                 <h2 class="accordion-header" id="headingNote{{ note.id }}">
                                     <button class="accordion-button collapsed" type="button"
                                             data-bs-toggle="collapse" data-bs-target="#collapseNote{{ note.id }}"
-                                            aria-expanded="false" aria-controls="collapseNote{{ note.id }}">
+                                            aria-expanded="false" aria-controls="collapseNote{{ note.id }}" data-collapse-toggle>
                                         Admin Note - {{ note.created_at.strftime('%Y-%m-%d %H:%M') }}
                                     </button>
                                 </h2>
                                 <div id="collapseNote{{ note.id }}" class="accordion-collapse collapse"
-                                     aria-labelledby="headingNote{{ note.id }}" data-bs-parent="#notesAccordion">
-                                    <div class="accordion-body">
+                                     aria-labelledby="headingNote{{ note.id }}" data-bs-parent="#notesAccordion" data-accordion>
+                                    <div class="accordion-body" data-accordion>
                                         {{ note.content }}
                                     </div>
                                 </div>
@@ -172,7 +172,7 @@
                                 <div class="text-danger">{{ error }}</div>
                                 {% endfor %}
                             </div>
-                            <button type="submit" class="btn btn-primary waves-effect waves-light">
+                            <button type="submit" class="c-btn c-btn--primary waves-effect waves-light">
                                 <i class="ti ti-notes me-1"></i>Add Note
                             </button>
                         </form>
@@ -185,15 +185,14 @@
                             {% if feedback.status != 'Closed' %}
                             <form method="POST" action="{{ url_for('admin.close_feedback', feedback_id=feedback.id) }}" class="d-inline">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-warning">Close Ticket</button>
+                                <button type="submit" class="c-btn c-btn--warning">Close Ticket</button>
                             </form>
                             {% endif %}
 
                             <form method="POST" action="{{ url_for('admin.delete_feedback', feedback_id=feedback.id) }}"
-                                  class="d-inline"
-                                  onsubmit="return confirm('Are you sure you want to delete this feedback?');">
+                                  class="d-inline">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-danger">Delete Feedback</button>
+                                <button type="submit" class="c-btn c-btn--danger">Delete Feedback</button>
                             </form>
                         </div>
                     </div>
@@ -206,6 +205,7 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
 function confirmDelete(feedbackId) {
     Swal.fire({

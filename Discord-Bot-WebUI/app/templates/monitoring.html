@@ -13,19 +13,19 @@
         </div>
         <div class="d-flex align-items-center gap-2">
             <div class="d-flex align-items-center gap-2 text-muted">
-                <div class="spinner-border spinner-border-sm text-primary" id="refreshSpinner" role="status" style="display: none;"></div>
+                <div class="spinner-border spinner-border-sm text-primary u-hidden" id="refreshSpinner" role="status" data-spinner></div>
                 <span class="small">Last updated: <span id="lastUpdated" class="fw-medium">--</span></span>
             </div>
             <div class="btn-group">
-                <button type="button" class="btn btn-outline-primary btn-sm" onclick="refreshAll()">
+                <button type="button" class="c-btn c-btn--outline-primary c-btn--sm js-refresh-all" data-action="refresh-all">
                     <i class="ti ti-refresh me-1"></i>Refresh
                 </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown">
+                <button type="button" class="c-btn c-btn--outline-secondary c-btn--sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" data-dropdown-toggle>
                     <span class="visually-hidden">Toggle Dropdown</span>
                 </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" onclick="toggleAutoRefresh()"><i class="ti ti-clock me-2"></i>Toggle Auto-refresh</a></li>
-                    <li><a class="dropdown-item" onclick="exportMetrics()"><i class="ti ti-download me-2"></i>Export Data</a></li>
+                <ul class="dropdown-menu" data-dropdown-menu>
+                    <li><a class="dropdown-item js-toggle-auto-refresh" data-action="toggle-auto-refresh"><i class="ti ti-clock me-2"></i>Toggle Auto-refresh</a></li>
+                    <li><a class="dropdown-item js-export-metrics" data-action="export-metrics"><i class="ti ti-download me-2"></i>Export Data</a></li>
                 </ul>
             </div>
         </div>
@@ -34,8 +34,8 @@
     <!-- System Health Status Bar -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card bg-gradient-primary">
-                <div class="card-body py-3">
+            <div class="c-card bg-gradient-primary">
+                <div class="c-card__body py-3">
                     <div class="d-flex align-items-center justify-content-between">
                         <div class="d-flex align-items-center">
                             <div class="avatar me-3">
@@ -72,17 +72,17 @@
     <div class="row mb-4">
         <!-- Queue Status -->
         <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
+            <div class="c-card h-100">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <div class="card-info">
-                            <h6 class="card-title mb-2">Queue Status</h6>
+                            <h6 class="c-card__title mb-2">Queue Status</h6>
                             <div class="d-flex align-items-center">
                                 <h3 class="mb-0" id="totalQueueLength">--</h3>
                                 <small class="text-muted ms-2">total tasks</small>
                             </div>
                             <div class="mt-2">
-                                <button class="btn btn-sm btn-outline-primary" onclick="showQueueDetails()">
+                                <button class="c-btn c-btn--sm c-btn--outline-primary js-show-queue-details" data-action="show-queue-details">
                                     <i class="ti ti-list-details"></i> View Queue Details
                                 </button>
                             </div>
@@ -109,11 +109,11 @@
 
         <!-- Worker Health -->
         <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
+            <div class="c-card h-100">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <div class="card-info">
-                            <h6 class="card-title mb-2">Worker Health</h6>
+                            <h6 class="c-card__title mb-2">Worker Health</h6>
                             <div class="d-flex align-items-center">
                                 <h3 class="mb-0" id="activeWorkerCount">--</h3>
                                 <small class="text-muted ms-2">active</small>
@@ -141,11 +141,11 @@
 
         <!-- Redis Performance -->
         <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
+            <div class="c-card h-100">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <div class="card-info">
-                            <h6 class="card-title mb-2">Redis Status</h6>
+                            <h6 class="c-card__title mb-2">Redis Status</h6>
                             <div class="d-flex align-items-center">
                                 <h3 class="mb-0" id="redisKeyCount">--</h3>
                                 <small class="text-muted ms-2">keys</small>
@@ -160,7 +160,7 @@
                         </div>
                     </div>
                     <div id="redisHealthIndicator" class="mb-2">
-                        <span class="badge bg-label-success">Connected</span>
+                        <span class="badge bg-label-success" data-badge>Connected</span>
                     </div>
                     <small class="text-muted">
                         <span id="redisTrend" class="d-flex align-items-center">
@@ -173,11 +173,11 @@
 
         <!-- Task Performance -->
         <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
+            <div class="c-card h-100">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <div class="card-info">
-                            <h6 class="card-title mb-2">Task Performance</h6>
+                            <h6 class="c-card__title mb-2">Task Performance</h6>
                             <div class="d-flex align-items-center">
                                 <h3 class="mb-0" id="taskSuccessRate">--</h3>
                                 <small class="text-muted ms-2">success rate</small>
@@ -208,27 +208,27 @@
     <div class="row">
         <!-- Queue Details -->
         <div class="col-lg-8 mb-4">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="c-card h-100">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
                     <div>
-                        <h5 class="card-title mb-0">Queue Overview</h5>
+                        <h5 class="c-card__title mb-0">Queue Overview</h5>
                         <small class="text-muted">Real-time queue monitoring and health status</small>
                     </div>
                     <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <button class="c-btn c-btn--sm c-btn--outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-dropdown-toggle>
                             <i class="ti ti-dots-vertical"></i>
                         </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" onclick="clearAllQueues()"><i class="ti ti-trash me-2"></i>Clear All Queues</a></li>
-                            <li><a class="dropdown-item" onclick="pauseQueues()"><i class="ti ti-pause me-2"></i>Pause Processing</a></li>
+                        <ul class="dropdown-menu" data-dropdown-menu>
+                            <li><a class="dropdown-item js-clear-queues" data-action="clear-all-queues"><i class="ti ti-trash me-2"></i>Clear All Queues</a></li>
+                            <li><a class="dropdown-item js-pause-queues" data-action="pause-queues"><i class="ti ti-pause me-2"></i>Pause Processing</a></li>
                         </ul>
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <div id="queueStatusContainer">
                         <!-- Queue status will be populated here -->
                         <div class="text-center py-4">
-                            <div class="spinner-border text-primary" role="status"></div>
+                            <div class="spinner-border text-primary" role="status" data-spinner></div>
                             <p class="text-muted mt-2">Loading queue status...</p>
                         </div>
                     </div>
@@ -238,15 +238,15 @@
 
         <!-- System Alerts & Activity -->
         <div class="col-lg-4 mb-4">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">System Alerts</h5>
-                    <span class="badge bg-label-info" id="alertCount">0</span>
+            <div class="c-card h-100">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
+                    <h5 class="c-card__title mb-0">System Alerts</h5>
+                    <span class="badge bg-label-info" id="alertCount" data-badge>0</span>
                 </div>
-                <div class="card-body p-0">
+                <div class="c-card__body p-0">
                     <div class="list-group list-group-flush" id="systemAlerts">
                         <div class="list-group-item text-center py-4">
-                            <i class="ti ti-check-circle text-success mb-2" style="font-size: 2rem;"></i>
+                            <i class="ti ti-check-circle text-success mb-2 card-icon-stat"></i>
                             <p class="text-muted mb-0">No active alerts</p>
                             <small class="text-muted">System running smoothly</small>
                         </div>
@@ -260,23 +260,23 @@
     <div class="row">
         <!-- Active Tasks -->
         <div class="col-lg-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header">
+            <div class="c-card h-100">
+                <div class="c-card__header">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">Active Tasks</h5>
+                        <h5 class="c-card__title mb-0">Active Tasks</h5>
                         <div class="d-flex align-items-center gap-2">
-                            <span class="badge bg-label-primary" id="activeTaskCount">0</span>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="refreshActiveTasks()">
+                            <span class="badge bg-label-primary" id="activeTaskCount" data-badge>0</span>
+                            <button class="c-btn c-btn--sm c-btn--outline-secondary js-refresh-tasks" data-action="refresh-active-tasks">
                                 <i class="ti ti-refresh"></i>
                             </button>
                         </div>
                     </div>
                 </div>
-                <div class="card-body p-0">
+                <div class="c-card__body p-0">
                     <div id="activeTasksList">
                         <!-- Active tasks will be populated here -->
                         <div class="text-center py-4">
-                            <i class="ti ti-list-check text-muted mb-2" style="font-size: 2rem;"></i>
+                            <i class="ti ti-list-check text-muted mb-2 card-icon-stat"></i>
                             <p class="text-muted mb-0">No active tasks</p>
                         </div>
                     </div>
@@ -286,23 +286,23 @@
 
         <!-- Worker Status -->
         <div class="col-lg-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header">
+            <div class="c-card h-100">
+                <div class="c-card__header">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">Worker Status</h5>
+                        <h5 class="c-card__title mb-0">Worker Status</h5>
                         <div class="d-flex align-items-center gap-2">
-                            <span class="badge bg-label-success" id="workerCount">0</span>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="refreshWorkers()">
+                            <span class="badge bg-label-success" id="workerCount" data-badge>0</span>
+                            <button class="c-btn c-btn--sm c-btn--outline-secondary js-refresh-workers" data-action="refresh-workers">
                                 <i class="ti ti-refresh"></i>
                             </button>
                         </div>
                     </div>
                 </div>
-                <div class="card-body p-0">
+                <div class="c-card__body p-0">
                     <div id="workerStatusList">
                         <!-- Worker status will be populated here -->
                         <div class="text-center py-4">
-                            <i class="ti ti-cpu text-muted mb-2" style="font-size: 2rem;"></i>
+                            <i class="ti ti-cpu text-muted mb-2 card-icon-stat"></i>
                             <p class="text-muted mb-0">Loading workers...</p>
                         </div>
                     </div>
@@ -314,6 +314,7 @@
 {% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
 /* Modern Dashboard Styles */
 .card {
@@ -467,17 +468,17 @@
 {% endblock %}
 
 <!-- Queue Details Modal -->
-<div class="modal fade" id="queueDetailsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Queue Task Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal c-modal fade" data-modal id="queueDetailsModal" tabindex="-1" aria-labelledby="queueDetailsModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="queueDetailsModalLabel">Queue Task Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <div id="queueDetailsContent">
                     <div class="text-center">
-                        <div class="spinner-border" role="status">
+                        <div class="spinner-border" role="status" data-spinner>
                             <span class="visually-hidden">Loading...</span>
                         </div>
                     </div>
@@ -489,6 +490,43 @@
 
 {% block custom_js %}
 <script>
+// Event delegation
+document.addEventListener('click', function(e) {
+    const action = e.target.closest('[data-action]')?.dataset.action;
+    if (!action) return;
+
+    switch(action) {
+        case 'refresh-all':
+            refreshAll();
+            break;
+        case 'toggle-auto-refresh':
+            e.preventDefault();
+            toggleAutoRefresh();
+            break;
+        case 'export-metrics':
+            e.preventDefault();
+            exportMetrics();
+            break;
+        case 'show-queue-details':
+            showQueueDetails();
+            break;
+        case 'clear-all-queues':
+            e.preventDefault();
+            clearAllQueues();
+            break;
+        case 'pause-queues':
+            e.preventDefault();
+            pauseQueues();
+            break;
+        case 'refresh-active-tasks':
+            refreshActiveTasks();
+            break;
+        case 'refresh-workers':
+            refreshWorkers();
+            break;
+    }
+});
+
 // Modern Monitoring Dashboard JavaScript
 class MonitoringDashboard {
     constructor() {
@@ -581,12 +619,12 @@ class MonitoringDashboard {
     
     showRefreshSpinner() {
         const spinner = document.getElementById('refreshSpinner');
-        if (spinner) spinner.style.display = 'block';
+        if (spinner) spinner.classList.remove('u-hidden');
     }
-    
+
     hideRefreshSpinner() {
         const spinner = document.getElementById('refreshSpinner');
-        if (spinner) spinner.style.display = 'none';
+        if (spinner) spinner.classList.add('u-hidden');
     }
     
     async loadQueueStatus() {
@@ -621,7 +659,7 @@ class MonitoringDashboard {
             const status = queueData.status || 'healthy';
             const statusColor = this.getStatusColor(status);
             
-            healthBadges += `<span class="badge bg-label-${statusColor} me-1">${queueName}</span>`;
+            healthBadges += `<span class="badge bg-label-${statusColor} me-1" data-badge>${queueName}</span>`;
             
             queueHtml += `
                 <div class="queue-item ${status} p-3 mb-2 border rounded">
@@ -640,8 +678,7 @@ class MonitoringDashboard {
                     </div>
                     ${queueData.length > 0 ? `
                         <div class="progress progress-sm mt-2">
-                            <div class="progress-bar bg-${statusColor}" 
-                                 style="width: ${Math.min(100, (queueData.length / 50) * 100)}%"></div>
+                            <div class="progress-bar bg-${statusColor}"></div>
                         </div>
                     ` : ''}
                 </div>
@@ -650,7 +687,7 @@ class MonitoringDashboard {
         
         totalElement.textContent = totalTasks;
         document.getElementById('totalQueuedTasks').textContent = totalTasks;
-        indicatorElement.innerHTML = healthBadges || '<span class="badge bg-label-secondary">No queues</span>';
+        indicatorElement.innerHTML = healthBadges || '<span class="badge bg-label-secondary" data-badge>No queues</span>';
         container.innerHTML = queueHtml || this.renderEmptyState('No active queues', 'ti-list-check');
         
         this.hideLoading('totalQueueLength');
@@ -692,10 +729,10 @@ class MonitoringDashboard {
         document.getElementById('workerCount').textContent = workers.length;
         
         if (workers.length === 0) {
-            indicatorElement.innerHTML = '<span class="badge bg-label-warning">No workers</span>';
+            indicatorElement.innerHTML = '<span class="badge bg-label-warning" data-badge>No workers</span>';
             listElement.innerHTML = this.renderEmptyState('No active workers', 'ti-cpu');
         } else {
-            indicatorElement.innerHTML = `<span class="badge bg-label-success">All online</span>`;
+            indicatorElement.innerHTML = `<span class="badge bg-label-success" data-badge>All online</span>`;
             listElement.innerHTML = workers.map(worker => `
                 <div class="list-group-item task-item">
                     <div class="d-flex justify-content-between align-items-center">
@@ -705,7 +742,7 @@ class MonitoringDashboard {
                                 <i class="ti ti-clock me-1"></i>Active: ${worker.active || 0} tasks
                             </small>
                         </div>
-                        <span class="badge bg-label-success">
+                        <span class="badge bg-label-success" data-badge>
                             <span class="status-indicator healthy me-1"></span>Online
                         </span>
                     </div>
@@ -725,7 +762,7 @@ class MonitoringDashboard {
         countElement.textContent = '--';
         totalElement.textContent = '--';
         document.getElementById('workerCount').textContent = '--';
-        indicatorElement.innerHTML = '<span class="badge bg-label-danger">Error</span>';
+        indicatorElement.innerHTML = '<span class="badge bg-label-danger" data-badge>Error</span>';
         listElement.innerHTML = this.renderError('Workers', 'Unable to load worker status');
         
         this.hideLoading('activeWorkerCount');
@@ -784,7 +821,7 @@ class MonitoringDashboard {
                                     <i class="ti ti-clock me-1"></i>Updated: ${this.formatTime(task.timestamp)}${fallbackIndicator}
                                 </small>
                             </div>
-                            <span class="badge bg-${statusColor}">
+                            <span class="badge bg-${statusColor}" data-badge>
                                 <i class="ti ${statusIcon} me-1"></i>${this.getDisplayStatus(task.status)}
                             </span>
                         </div>
@@ -862,13 +899,13 @@ class MonitoringDashboard {
         
         if (!data.success) {
             keyCountElement.textContent = '--';
-            indicatorElement.innerHTML = '<span class="badge bg-label-danger">Disconnected</span>';
+            indicatorElement.innerHTML = '<span class="badge bg-label-danger" data-badge>Disconnected</span>';
             return;
         }
         
         const keyCount = data.keys ? data.keys.length : 0;
         keyCountElement.textContent = keyCount;
-        indicatorElement.innerHTML = '<span class="badge bg-label-success">Connected</span>';
+        indicatorElement.innerHTML = '<span class="badge bg-label-success" data-badge>Connected</span>';
         
         this.hideLoading('redisKeyCount');
     }
@@ -897,17 +934,17 @@ class MonitoringDashboard {
     renderError(title, error) {
         return `
             <div class="text-center py-4">
-                <i class="ti ti-alert-circle text-danger mb-2" style="font-size: 2rem;"></i>
+                <i class="ti ti-alert-circle text-danger mb-2 card-icon-stat"></i>
                 <p class="text-danger mb-1">${title} Error</p>
                 <small class="text-muted">${error}</small>
             </div>
         `;
     }
-    
+
     renderEmptyState(message, icon) {
         return `
             <div class="text-center py-4">
-                <i class="ti ${icon} text-muted mb-2" style="font-size: 2rem;"></i>
+                <i class="ti ${icon} text-muted mb-2 card-icon-stat"></i>
                 <p class="text-muted mb-0">${message}</p>
             </div>
         `;
@@ -976,40 +1013,14 @@ function pauseQueues() {
 }
 
 async function showQueueDetails() {
-    // Check if modal exists, if not create it dynamically
-    let modalElement = document.getElementById('queueDetailsModal');
-    
+    // Use existing static modal (no dynamic creation to avoid duplicate IDs)
+    const modalElement = document.getElementById('queueDetailsModal');
+
     if (!modalElement) {
-        // Create modal dynamically if it doesn't exist
-        const modalHTML = `
-            <div class="modal fade" id="queueDetailsModal" tabindex="-1" aria-labelledby="queueDetailsModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="queueDetailsModalLabel">Queue Task Details</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div id="queueDetailsContent">
-                                <div class="text-center">
-                                    <div class="spinner-border" role="status">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-        modalElement = document.getElementById('queueDetailsModal');
-        
-        // Add event listeners for close functionality
-        modalElement.querySelector('.btn-close').onclick = hideQueueDetailsModal;
-        modalElement.querySelector('[data-bs-dismiss="modal"]').onclick = hideQueueDetailsModal;
+        console.error('Queue details modal not found');
+        return;
     }
-    
+
     const contentDiv = document.getElementById('queueDetailsContent');
     
     // Simple approach - just show the modal
@@ -1023,7 +1034,7 @@ async function showQueueDetails() {
         if (!document.querySelector('.modal-backdrop')) {
             const backdrop = document.createElement('div');
             backdrop.className = 'modal-backdrop fade show';
-            backdrop.onclick = () => hideQueueDetailsModal();
+            backdrop.addEventListener('click', () => hideQueueDetailsModal());
             document.body.appendChild(backdrop);
             document.body.classList.add('modal-open');
         }
@@ -1036,7 +1047,7 @@ async function showQueueDetails() {
     try {
         contentDiv.innerHTML = `
             <div class="text-center">
-                <div class="spinner-border" role="status">
+                <div class="spinner-border" role="status" data-spinner>
                     <span class="visually-hidden">Loading...</span>
                 </div>
             </div>
@@ -1048,7 +1059,7 @@ async function showQueueDetails() {
         
         if (!data.success) {
             contentDiv.innerHTML = `
-                <div class="alert alert-danger">
+                <div class="alert alert-danger" data-alert>
                     <strong>Error:</strong> ${data.error}
                 </div>
             `;
@@ -1063,11 +1074,11 @@ async function showQueueDetails() {
         } else {
             for (const [queueName, tasks] of Object.entries(queues)) {
                 html += `
-                    <div class="card mb-3">
-                        <div class="card-header">
+                    <div class="c-card mb-3">
+                        <div class="c-card__header">
                             <h6 class="mb-0">${queueName} Queue (${tasks.length} tasks)</h6>
                         </div>
-                        <div class="card-body">
+                        <div class="c-card__body">
                 `;
                 
                 if (tasks.length === 0) {
@@ -1082,8 +1093,8 @@ async function showQueueDetails() {
                                         <strong>ID:</strong> <code>${task.id || 'N/A'}</code><br>
                                         ${task.args && task.args.length > 0 ? `<strong>Args:</strong> ${JSON.stringify(task.args)}<br>` : ''}
                                         ${task.kwargs && Object.keys(task.kwargs).length > 0 ? `<strong>Kwargs:</strong> ${JSON.stringify(task.kwargs)}<br>` : ''}
-                                        ${task.status ? `<strong>Status:</strong> <span class="badge bg-secondary">${task.status}</span><br>` : ''}
-                                        ${task.raw_data ? `<details><summary class="text-muted small" style="cursor: pointer;">Raw Data</summary><pre class="small mt-1">${task.raw_data}</pre></details>` : ''}
+                                        ${task.status ? `<strong>Status:</strong> <span class="badge bg-secondary" data-badge>${task.status}</span><br>` : ''}
+                                        ${task.raw_data ? `<details><summary class="text-muted small" class="u-cursor-pointer">Raw Data</summary><pre class="small mt-1">${task.raw_data}</pre></details>` : ''}
                                     </div>
                                     <div class="col-md-4">
                                         <small class="text-muted">
@@ -1110,7 +1121,7 @@ async function showQueueDetails() {
     } catch (error) {
         console.error('Error loading queue details:', error);
         contentDiv.innerHTML = `
-            <div class="alert alert-danger">
+            <div class="alert alert-danger" data-alert>
                 <strong>Error:</strong> Failed to load queue details
             </div>
         `;

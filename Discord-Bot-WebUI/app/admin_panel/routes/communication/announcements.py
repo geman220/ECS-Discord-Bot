@@ -26,21 +26,29 @@ logger = logging.getLogger(__name__)
 @role_required(['Global Admin', 'Pub League Admin'])
 def announcements():
     """Announcements management page."""
+    import traceback
     try:
-        announcements = Announcement.query.order_by(Announcement.created_at.desc()).all()
+        announcements_list = Announcement.query.order_by(Announcement.created_at.desc()).all()
 
         # Get statistics
-        active_announcements = len(announcements)  # All announcements are considered active since there's no is_active field
-        recent_announcements = len([a for a in announcements if a.created_at and (datetime.utcnow() - a.created_at).days <= 7])
-        announcement_types = []  # No announcement_type field in the model
+        active_announcements = len(announcements_list)
+        recent_announcements = 0
+        for a in announcements_list:
+            try:
+                if a.created_at and (datetime.utcnow() - a.created_at).days <= 7:
+                    recent_announcements += 1
+            except Exception:
+                pass
+        announcement_types = []
 
         return render_template('admin_panel/communication/announcements.html',
-                             announcements=announcements,
+                             announcements=announcements_list,
                              active_announcements=active_announcements,
                              recent_announcements=recent_announcements,
                              announcement_types=announcement_types)
     except Exception as e:
         logger.error(f"Error loading announcements: {e}")
+        logger.error(traceback.format_exc())
         flash('Announcements data unavailable. Check database connectivity and announcement models.', 'error')
         return redirect(url_for('admin_panel.communication_hub'))
 

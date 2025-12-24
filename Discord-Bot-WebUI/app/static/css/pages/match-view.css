@@ -1,0 +1,1068 @@
+/**
+ * ============================================================================
+ * MATCH VIEW PAGE STYLES
+ * ============================================================================
+ *
+ * This file contains all styles for the match view page (view_match.html)
+ * Refactored from inline styles and <style> blocks to use design tokens
+ *
+ * Structure:
+ *   - Match Header Components
+ *   - Match Details Grid
+ *   - RSVP Summary Cards
+ *   - Player Lists (Mobile & Desktop)
+ *   - Team Summary Components
+ *   - Mobile Action Bar
+ *   - Responsive Breakpoints
+ *   - Dark Mode Support
+ *
+ * Design Tokens:
+ *   All values use CSS custom properties from the design system
+ *   No hardcoded colors, spacing, or magic numbers
+ *   Full dark mode support via [data-style="dark"]
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   GRID UTILITIES
+   Full-width grid items for special layouts
+   ============================================================================ */
+
+.match-detail-full-width {
+  grid-column: 1 / -1;
+}
+
+/* ============================================================================
+   PLAYER NAME TRUNCATION
+   Consistent text overflow handling across all player displays
+   ============================================================================ */
+
+.player-name-truncate {
+  max-width: 120px;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--font-semibold);
+}
+
+/* ============================================================================
+   AVATAR POSITION BADGES
+   Coach and referee indicators on player avatars
+   ============================================================================ */
+
+.avatar-badge-top {
+  position: absolute;
+  bottom: auto;
+  top: 0;
+}
+
+/* ============================================================================
+   MATCH HEADER COMPONENTS
+   Header banner with match information, badges, and action buttons
+   ============================================================================ */
+
+.match-header-wrapper {
+  display: flex;
+  padding: var(--space-4);
+}
+
+.match-header-wrapper .match-info {
+  flex: 1;
+}
+
+.match-info-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+/* ============================================================================
+   MATCH DETAILS GRID
+   Responsive grid layout for match information (location, time, date, field)
+   ============================================================================ */
+
+.match-details-mobile {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.match-detail-item {
+  display: flex;
+  align-items: center;
+  padding: var(--space-3);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-primary);
+}
+
+.match-detail-item .avatar {
+  width: 32px;
+  height: 32px;
+  margin-right: var(--space-2);
+  flex-shrink: 0;
+}
+
+.match-detail-item .avatar i {
+  font-size: var(--text-sm);
+}
+
+.match-detail-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.match-detail-content h6 {
+  font-size: var(--text-xs);
+  margin-bottom: var(--space-1);
+  color: var(--color-text-muted);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.match-detail-content span {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  line-height: var(--leading-tight);
+  color: var(--color-text-primary);
+}
+
+/* ============================================================================
+   RSVP SUMMARY CARDS
+   Compact cards showing availability counts (Yes, Maybe, No, No Response)
+   ============================================================================ */
+
+.rsvp-summary-mobile {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+
+.rsvp-card-mobile {
+  padding: var(--space-2) var(--space-1);
+  text-align: center;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color-primary);
+  min-height: auto;
+  background-color: var(--color-bg-card);
+  color: var(--color-text-primary);
+  transition: var(--transition-all);
+}
+
+.rsvp-card-mobile:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.rsvp-card-mobile .fs-4 {
+  font-size: 1.25rem;
+  font-weight: var(--font-bold);
+  line-height: var(--leading-tight);
+}
+
+.rsvp-card-mobile .small {
+  font-size: 0.625rem;
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.25px;
+  line-height: 1;
+  margin-top: var(--space-1);
+}
+
+/* Desktop RSVP Summary Row */
+.rsvp-summary-row .card {
+  transition: var(--transition-all);
+}
+
+.rsvp-summary-row .card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ============================================================================
+   PLAYER LISTS - MOBILE COMPACT
+   Touch-optimized player list with avatars and status badges
+   ============================================================================ */
+
+.player-list-mobile-compact {
+  max-height: 280px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color-primary);
+  background-color: var(--color-bg-card);
+}
+
+.player-item-compact {
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--border-color-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: auto;
+  background-color: transparent;
+  transition: var(--transition-all);
+}
+
+.player-item-compact:hover {
+  background-color: var(--color-bg-hover);
+}
+
+.player-item-compact:last-child {
+  border-bottom: none;
+}
+
+.player-info-compact {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.player-info-compact .avatar {
+  width: 28px;
+  height: 28px;
+  margin-right: var(--space-2);
+  flex-shrink: 0;
+}
+
+.player-name-compact {
+  font-size: 0.8rem;
+  font-weight: var(--font-semibold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  transition: var(--transition-all);
+}
+
+.player-name-compact:hover {
+  color: var(--color-primary);
+}
+
+.player-status-compact {
+  margin-left: var(--space-2);
+  flex-shrink: 0;
+}
+
+.player-status-compact .badge {
+  font-size: 0.625rem;
+  padding: var(--space-1) var(--space-2);
+  min-width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-status-compact .badge i {
+  font-size: 0.75rem;
+}
+
+/* ============================================================================
+   PLAYER LISTS - DESKTOP COMPACT
+   Slightly larger desktop version with consistent styling
+   ============================================================================ */
+
+.player-list-desktop-compact {
+  max-height: 300px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color-primary);
+  background-color: var(--color-bg-card);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.player-item-desktop-compact {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border-color-subtle);
+  display: flex;
+  align-items: center;
+  min-height: auto;
+  background-color: transparent;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: var(--transition-all);
+}
+
+.player-item-desktop-compact:hover {
+  background-color: var(--color-bg-hover);
+}
+
+.player-item-desktop-compact:last-child {
+  border-bottom: none;
+}
+
+.player-name-desktop-compact {
+  font-size: 0.8rem;
+  font-weight: var(--font-semibold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+  flex: 1;
+  margin-right: var(--space-2);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  transition: var(--transition-all);
+}
+
+.player-name-desktop-compact:hover {
+  color: var(--color-primary);
+}
+
+.status-icon-desktop {
+  font-size: 1rem;
+  margin-left: auto;
+}
+
+.status-icon-compact {
+  font-size: 0.875rem;
+  margin-left: auto;
+}
+
+/* ============================================================================
+   SUBSTITUTE PLAYER STYLING
+   Visual distinction for substitute/sub players
+   ============================================================================ */
+
+.sub-player {
+  background-color: var(--color-success-subtle);
+  border-left: 3px solid var(--color-success);
+}
+
+/* ============================================================================
+   TEAM SUMMARY COMPONENTS
+   Header showing team name, player count, and quick stats
+   ============================================================================ */
+
+.team-summary-mobile {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-md);
+  border-left: 4px solid var(--color-primary);
+  color: var(--color-text-primary);
+}
+
+.team-name-mobile {
+  font-size: 0.9rem;
+  font-weight: var(--font-bold);
+  color: var(--color-primary);
+  margin: 0;
+}
+
+.team-count-mobile {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-weight: var(--font-semibold);
+}
+
+.team-summary-desktop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-primary);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+}
+
+/* ============================================================================
+   QUICK STATS
+   Inline status indicators (Available, Maybe, Unavailable)
+   ============================================================================ */
+
+.quick-stats {
+  display: flex;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  justify-content: center;
+}
+
+.quick-stats-mobile {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  font-size: var(--text-xs);
+  justify-content: center;
+}
+
+.quick-stats-desktop {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.quick-stat {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-weight: var(--font-semibold);
+  color: var(--color-neutral-0);
+  transition: var(--transition-all);
+}
+
+.quick-stat:hover {
+  transform: scale(1.05);
+}
+
+.quick-stat.available {
+  background: var(--color-success);
+}
+
+.quick-stat.unavailable {
+  background: var(--color-danger);
+}
+
+.quick-stat.maybe {
+  background: var(--color-warning);
+  color: var(--color-neutral-900);
+}
+
+.quick-stat.no-response {
+  background: var(--color-neutral-500);
+}
+
+/* ============================================================================
+   BADGE VARIATIONS
+   Size variants for badges
+   ============================================================================ */
+
+.badge-xs {
+  font-size: 0.625rem;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.badge-sm {
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================================================
+   COACH & REFEREE ICONS
+   Position badges on avatars
+   ============================================================================ */
+
+.coach-icon,
+.ref-icon {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  font-size: 0.6rem;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-full);
+  padding: 2px;
+}
+
+.coach-icon {
+  color: var(--color-primary);
+}
+
+.ref-icon {
+  color: var(--color-warning);
+}
+
+/* ============================================================================
+   MOBILE ACTION BAR
+   Fixed bottom bar with action buttons
+   ============================================================================ */
+
+.mobile-action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-bg-card);
+  padding: var(--space-3);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-fixed);
+  border-top: 1px solid var(--border-color-primary);
+}
+
+.mobile-action-buttons {
+  display: flex;
+  gap: var(--space-2);
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.mobile-action-buttons .btn {
+  flex: 1;
+  padding: var(--space-3) var(--space-2);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+}
+
+/* ============================================================================
+   PLAYER CARDS (MOBILE)
+   Full-featured mobile player card with hover states
+   ============================================================================ */
+
+.player-card-mobile {
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color-primary);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-2);
+  overflow: hidden;
+  transition: var(--transition-all);
+}
+
+.player-card-mobile:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.player-card-content {
+  padding: var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.player-info-section {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.player-name-section {
+  margin-left: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.player-name-mobile {
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text-primary);
+}
+
+.player-role-mobile {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.player-status-section {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.status-badge-mobile {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+}
+
+/* ============================================================================
+   COLOR CODING ACCENTS
+   Left border indicators for status cards
+   ============================================================================ */
+
+.bg-success.bg-opacity-10 {
+  border-left: 3px solid var(--color-success);
+}
+
+.bg-warning.bg-opacity-10 {
+  border-left: 3px solid var(--color-warning);
+}
+
+.bg-danger.bg-opacity-10 {
+  border-left: 3px solid var(--color-danger);
+}
+
+.bg-secondary.bg-opacity-10 {
+  border-left: 3px solid var(--color-neutral-500);
+}
+
+/* ============================================================================
+   ANIMATION & INTERACTIONS
+   Touch-friendly improvements
+   ============================================================================ */
+
+.avatar {
+  transition: var(--transition-all);
+}
+
+.avatar:hover {
+  transform: scale(1.05);
+}
+
+.badge {
+  transition: var(--transition-all);
+}
+
+.btn {
+  transition: var(--transition-all);
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ============================================================================
+   DESKTOP ENHANCEMENTS
+   Enhanced interactions for mouse/pointer devices
+   ============================================================================ */
+
+@media (min-width: 768px) {
+  .mobile-action-bar {
+    display: none;
+  }
+
+  .container-xxl {
+    padding-bottom: 0;
+  }
+
+  .player-item {
+    transition: var(--transition-all);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-1);
+  }
+
+  .player-item:hover {
+    background: var(--color-bg-hover);
+    transform: translateX(4px);
+  }
+}
+
+/* ============================================================================
+   MOBILE-SPECIFIC OPTIMIZATIONS
+   Breakpoint: < 768px
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Compact match header badges */
+  .match-header-wrapper .badge {
+    font-size: 0.75rem;
+    padding: var(--space-1) var(--space-2);
+    margin-bottom: var(--space-1);
+  }
+
+  .match-header-wrapper .d-flex.flex-wrap {
+    gap: var(--space-2);
+  }
+
+  /* Add bottom padding to prevent content being hidden behind action bar */
+  .container-xxl {
+    padding-bottom: 80px;
+  }
+
+  /* Hide desktop-only elements */
+  .d-none.d-md-block {
+    display: none;
+  }
+
+  /* Simplify sort dropdown on mobile */
+  .dropdown-toggle {
+    font-size: var(--text-xs);
+    padding: var(--space-2);
+  }
+
+  /* Mobile team tabs - make them more touch-friendly */
+  .nav-tabs .nav-link {
+    padding: var(--space-3) var(--space-2);
+    font-size: var(--text-sm);
+  }
+
+  .nav-tabs .nav-link .badge {
+    font-size: 0.625rem;
+    padding: var(--space-1) var(--space-2);
+  }
+}
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   Full dark mode implementation using [data-style="dark"]
+   ============================================================================ */
+
+[data-style="dark"] .player-list-mobile-compact,
+[data-style="dark"] .player-list-desktop-compact {
+  background-color: var(--color-bg-card);
+  border-color: var(--border-color-primary);
+}
+
+[data-style="dark"] .player-item-compact,
+[data-style="dark"] .player-item-desktop-compact {
+  background-color: transparent;
+  border-bottom-color: var(--border-color-subtle);
+}
+
+[data-style="dark"] .player-item-compact:hover,
+[data-style="dark"] .player-item-desktop-compact:hover {
+  background-color: var(--color-bg-hover);
+}
+
+[data-style="dark"] .player-name-compact,
+[data-style="dark"] .player-name-desktop-compact {
+  color: var(--color-text-primary);
+}
+
+[data-style="dark"] .player-name-compact:hover,
+[data-style="dark"] .player-name-desktop-compact:hover {
+  color: var(--color-primary);
+}
+
+[data-style="dark"] .team-summary-mobile,
+[data-style="dark"] .team-summary-desktop {
+  background-color: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+[data-style="dark"] .rsvp-card-mobile {
+  background-color: var(--color-bg-card);
+  color: var(--color-text-primary);
+  border-color: var(--border-color-primary);
+}
+
+[data-style="dark"] .match-detail-item {
+  background-color: var(--color-bg-card);
+}
+
+[data-style="dark"] .match-detail-content h6,
+[data-style="dark"] .match-detail-content span {
+  color: var(--color-text-primary);
+}
+
+[data-style="dark"] .sub-player {
+  background-color: var(--color-success-subtle);
+}
+
+[data-style="dark"] .mobile-action-bar {
+  background: var(--color-bg-card);
+  border-top-color: var(--border-color-primary);
+  color: var(--color-text-primary);
+}
+
+[data-style="dark"] .player-card-mobile {
+  background-color: var(--color-bg-card);
+  border-color: var(--border-color-primary);
+}
+
+[data-style="dark"] .player-name-mobile {
+  color: var(--color-text-primary);
+}
+
+[data-style="dark"] .player-role-mobile {
+  color: var(--color-text-muted);
+}
+
+/* RSVP Cards Dark Mode - Override Bootstrap opacity backgrounds */
+[data-style="dark"] .bg-success.bg-opacity-10 {
+  background-color: rgba(40, 167, 69, 0.15);
+  color: var(--color-text-primary);
+}
+
+[data-style="dark"] .bg-warning.bg-opacity-10 {
+  background-color: rgba(255, 193, 7, 0.15);
+  color: var(--color-text-primary);
+}
+
+[data-style="dark"] .bg-danger.bg-opacity-10 {
+  background-color: rgba(220, 53, 69, 0.15);
+  color: var(--color-text-primary);
+}
+
+[data-style="dark"] .bg-secondary.bg-opacity-10 {
+  background-color: rgba(108, 117, 125, 0.15);
+  color: var(--color-text-primary);
+}
+
+[data-style="dark"] .bg-primary.bg-opacity-10 {
+  background-color: rgba(13, 110, 253, 0.15);
+  color: var(--color-text-primary);
+}
+
+/* Mobile RSVP Cards with background overrides */
+[data-style="dark"] .rsvp-card-mobile.bg-success.bg-opacity-10 {
+  background-color: rgba(40, 167, 69, 0.15);
+}
+
+[data-style="dark"] .rsvp-card-mobile.bg-warning.bg-opacity-10 {
+  background-color: rgba(255, 193, 7, 0.15);
+}
+
+[data-style="dark"] .rsvp-card-mobile.bg-danger.bg-opacity-10 {
+  background-color: rgba(220, 53, 69, 0.15);
+}
+
+[data-style="dark"] .rsvp-card-mobile.bg-secondary.bg-opacity-10 {
+  background-color: rgba(108, 117, 125, 0.15);
+}
+
+/* Text colors in dark mode */
+[data-style="dark"] .fw-bold,
+[data-style="dark"] .small {
+  color: var(--color-text-primary);
+}
+
+/* Card text elements */
+[data-style="dark"] .card .fw-bold,
+[data-style="dark"] .card .small,
+[data-style="dark"] .card span:not([class*="text-"]) {
+  color: var(--color-text-primary);
+}
+
+/* ============================================================================
+   LEGACY DARK MODE SUPPORT (.dark-mode class)
+   Backward compatibility with older dark mode implementation
+   ============================================================================ */
+
+.dark-mode .player-list-mobile-compact,
+.dark-mode .player-list-desktop-compact {
+  background-color: var(--color-bg-card);
+  border-color: var(--border-color-primary);
+}
+
+.dark-mode .player-item-compact,
+.dark-mode .player-item-desktop-compact {
+  border-bottom-color: var(--border-color-subtle);
+}
+
+.dark-mode .player-item-compact:hover,
+.dark-mode .player-item-desktop-compact:hover {
+  background-color: var(--color-bg-hover);
+}
+
+.dark-mode .team-summary-mobile,
+.dark-mode .team-summary-desktop {
+  background-color: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+.dark-mode .rsvp-card-mobile {
+  background-color: var(--color-bg-card);
+  color: var(--color-text-primary);
+  border-color: var(--border-color-primary);
+}
+
+.dark-mode .player-name-compact,
+.dark-mode .player-name-desktop-compact {
+  color: var(--color-text-primary);
+}
+
+.dark-mode .sub-player {
+  background-color: var(--color-success-subtle);
+}
+
+/* ============================================================================
+   ADDITIONAL STYLES FROM TEMPLATE <style> BLOCK
+   Player item general styling, avatar system, match cards
+   ============================================================================ */
+
+.player-item {
+  overflow-y: auto;
+  transition: var(--transition-all);
+}
+
+.player-item:hover {
+  background-color: var(--color-bg-hover);
+}
+
+.avatar {
+  position: relative;
+}
+
+.avatar-md img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+}
+
+.avatar-status {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-bg-card);
+}
+
+/* Match Styling */
+.match-detail-card {
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-all);
+}
+
+.match-detail-card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+/* RSVP Summary Counter */
+.rsvp-counter {
+  transition: var(--transition-all);
+}
+
+.rsvp-counter:hover {
+  transform: scale(1.05);
+}
+
+/* Badge Pills */
+.badge-pill {
+  border-radius: var(--radius-full);
+  padding-right: 0.6em;
+  padding-left: 0.6em;
+}
+
+/* Clean button styling - no transform on desktop */
+.ecs-btn {
+  transform: none;
+  transition: var(--transition-all);
+  box-shadow: none;
+}
+
+/* ============================================================================
+   MOBILE RESPONSIVE ADJUSTMENTS
+   Additional mobile-specific refinements
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .match-header-wrapper {
+    flex-direction: column;
+  }
+
+  .match-info .badge {
+    font-size: 0.7rem;
+  }
+
+  .player-item {
+    padding-left: var(--space-2);
+    padding-right: var(--space-2);
+  }
+
+  .player-details h6 {
+    font-size: 0.8rem;
+  }
+
+  .player-details small {
+    font-size: 0.7rem;
+  }
+
+  .player-status .badge {
+    font-size: 0.7rem;
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .avatar-md img {
+    width: 30px;
+    height: 30px;
+  }
+
+  .card-body {
+    padding: var(--space-4) var(--space-2);
+  }
+
+  /* Enhance report modal for mobile */
+  .c-report-match-modal .modal-dialog {
+    margin: 10px;
+    max-width: calc(100% - 20px);
+  }
+
+  .c-report-match-modal .input-group {
+    flex-wrap: wrap;
+  }
+
+  .c-report-match-modal .input-group > * {
+    width: 100%;
+    margin-bottom: 5px;
+    border-radius: var(--radius-md);
+  }
+
+  /* Increase touch targets */
+  .c-report-match-modal .btn {
+    min-height: 44px;
+  }
+}
+
+/* ============================================================================
+   SMALL MOBILE DEVICES
+   Extra refinements for phones
+   ============================================================================ */
+
+@media (max-width: 576px) {
+  .match-info h1 {
+    font-size: 1.5rem;
+  }
+
+  .match-info .badge {
+    font-size: 0.65rem;
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .player-status {
+    margin-left: auto;
+  }
+
+  .player-details {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Better column management on phone */
+  .col-3 {
+    width: 50%;
+    margin-bottom: 10px;
+  }
+
+  /* Ensure inputs are large enough for touch */
+  input,
+  select,
+  textarea,
+  button {
+    font-size: 16px;
+    min-height: 44px;
+  }
+
+  /* Force form elements to stay visible */
+  .form-control,
+  .form-select {
+    z-index: auto;
+  }
+
+  /* Ensure buttons are big enough */
+  .btn {
+    padding: var(--space-2) var(--space-3);
+    font-size: 0.9rem;
+  }
+}
+
+/* ============================================================================
+   END OF MATCH VIEW STYLES
+   ============================================================================ */

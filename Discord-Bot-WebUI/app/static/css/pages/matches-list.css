@@ -1,0 +1,366 @@
+/**
+ * ============================================================================
+ * MATCHES LIST - MODERN BEM COMPONENTS
+ * ============================================================================
+ *
+ * Match list/table view for admin match management
+ * Deprecated page that still needs BEM compliance
+ *
+ * Components:
+ *   1. Match List Container (.c-match-list)
+ *   2. Match Table (.c-match-table)
+ *   3. Live Status Badge (.c-live-status)
+ *   4. Match Actions (.c-match-actions)
+ *
+ * Design: Clean sports interface with status indicators
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. MATCH LIST CONTAINER
+   ============================================================================ */
+
+.c-match-list {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.c-match-list__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border-primary);
+  background: var(--color-bg-subtle);
+}
+
+.c-match-list__title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.c-match-list__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* ============================================================================
+   2. MATCH TABLE
+   ============================================================================ */
+
+.c-match-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.c-match-table thead {
+  background: var(--color-bg-subtle);
+  border-bottom: 2px solid var(--color-border-primary);
+}
+
+.c-match-table th {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.c-match-table tbody tr {
+  border-bottom: 1px solid var(--color-border-subtle);
+  transition: var(--transition-all);
+}
+
+.c-match-table tbody tr:hover {
+  background: var(--color-bg-hover);
+}
+
+.c-match-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.c-match-table td {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+}
+
+.c-match-table__opponent {
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+.c-match-table__date {
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.c-match-table__competition {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+/* Mobile responsive table */
+@media (max-width: 767.98px) {
+  .c-match-table {
+    display: block;
+  }
+
+  .c-match-table thead {
+    display: none;
+  }
+
+  .c-match-table tbody,
+  .c-match-table tr,
+  .c-match-table td {
+    display: block;
+  }
+
+  .c-match-table tr {
+    margin-bottom: var(--space-3);
+    padding: var(--space-3);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-md);
+  }
+
+  .c-match-table td {
+    padding: var(--space-2) 0;
+    border: none;
+  }
+
+  .c-match-table td::before {
+    content: attr(data-label);
+    font-weight: var(--font-semibold);
+    color: var(--color-text-secondary);
+    display: block;
+    margin-bottom: var(--space-1);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+  }
+}
+
+/* ============================================================================
+   3. LIVE STATUS BADGE
+   ============================================================================ */
+
+.c-live-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.c-live-status--running {
+  background: var(--color-success);
+  color: var(--color-neutral-0);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.c-live-status--scheduled {
+  background: var(--color-warning);
+  color: var(--color-neutral-900);
+}
+
+.c-live-status--failed {
+  background: var(--color-danger);
+  color: var(--color-neutral-0);
+}
+
+.c-live-status--stopped,
+.c-live-status--none {
+  background: var(--color-neutral-200);
+  color: var(--color-neutral-700);
+}
+
+.c-live-status__indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Dark mode */
+[data-style="dark"] .c-live-status--stopped,
+[data-style="dark"] .c-live-status--none {
+  background: var(--color-neutral-700);
+  color: var(--color-neutral-200);
+}
+
+/* ============================================================================
+   4. MATCH ACTIONS
+   ============================================================================ */
+
+.c-match-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.c-match-actions__dropdown {
+  position: relative;
+}
+
+.c-match-actions__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: var(--transition-all);
+  white-space: nowrap;
+}
+
+.c-match-actions__button--primary {
+  background: var(--color-primary);
+  color: var(--color-neutral-0);
+}
+
+.c-match-actions__button--primary:hover:not(:disabled) {
+  background: var(--color-primary-dark, var(--color-primary));
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.c-match-actions__button--danger {
+  background: var(--color-danger);
+  color: var(--color-neutral-0);
+}
+
+.c-match-actions__button--danger:hover:not(:disabled) {
+  background: var(--color-danger-dark, var(--color-danger));
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.c-match-actions__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Mobile actions */
+@media (max-width: 767.98px) {
+  .c-match-actions {
+    flex-wrap: wrap;
+    justify-content: stretch;
+  }
+
+  .c-match-actions__button {
+    flex: 1;
+    min-width: 80px;
+  }
+}
+
+/* ============================================================================
+   5. DEPRECATION NOTICE
+   ============================================================================ */
+
+.c-deprecation-notice {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 152, 0, 0.1) 100%);
+  border-left: 4px solid var(--color-warning);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+}
+
+.c-deprecation-notice__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.c-deprecation-notice__icon {
+  color: var(--color-warning);
+  font-size: var(--text-lg);
+}
+
+.c-deprecation-notice__text {
+  color: var(--color-text-secondary);
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.c-deprecation-notice__link {
+  color: var(--color-primary);
+  font-weight: var(--font-semibold);
+  text-decoration: underline;
+}
+
+.c-deprecation-notice__link:hover {
+  color: var(--color-primary-dark, var(--color-primary));
+}
+
+/* ============================================================================
+   DARK MODE
+   ============================================================================ */
+
+[data-style="dark"] .c-match-list {
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-lg);
+}
+
+[data-style="dark"] .c-match-list__header {
+  background: var(--color-bg-elevated);
+  border-bottom-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .c-match-table thead {
+  background: var(--color-bg-elevated);
+}
+
+[data-style="dark"] .c-match-table tbody tr:hover {
+  background: var(--color-bg-hover);
+}
+
+[data-style="dark"] .c-deprecation-notice {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.15) 0%, rgba(255, 152, 0, 0.15) 100%);
+  border-left-color: var(--color-warning);
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .c-live-status--running {
+    animation: none;
+  }
+
+  .c-match-actions__button:hover {
+    transform: none;
+  }
+}
+
+/* ============================================================================
+   END OF MATCHES LIST STYLES
+   ============================================================================ */

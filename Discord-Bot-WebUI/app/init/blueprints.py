@@ -87,6 +87,8 @@ def _import_blueprints():
     from app.wallet_pass.routes import public_wallet_bp, webhook_bp, validation_bp
     from app.admin_panel import admin_panel_bp
     from app.routes.notifications import notifications_bp
+    from app.routes.navbar_notifications import navbar_notifications_bp
+    from app.routes.messages import messages_bp, messages_pages_bp
     from app.api_smart_sync import smart_sync_bp
     from app.routes.health import health_bp
     from app.routes.admin_live_reporting import admin_live_bp
@@ -138,6 +140,9 @@ def _import_blueprints():
         'validation_bp': validation_bp,
         'admin_panel_bp': admin_panel_bp,
         'notifications_bp': notifications_bp,
+        'navbar_notifications_bp': navbar_notifications_bp,
+        'messages_bp': messages_bp,
+        'messages_pages_bp': messages_pages_bp,
         'smart_sync_bp': smart_sync_bp,
         'health_bp': health_bp,
         'admin_live_bp': admin_live_bp,
@@ -202,6 +207,13 @@ def _register_api_blueprints(app, bp, csrf):
     app.register_blueprint(bp['store_bp'])
     app.register_blueprint(bp['draft_predictions_bp'])
     app.register_blueprint(bp['notifications_bp'])
+    app.register_blueprint(bp['navbar_notifications_bp'])  # In-app notifications for navbar
+
+    # Register rate limit exemptions for high-frequency presence endpoints
+    from app.routes.navbar_notifications import register_rate_limit_exemptions
+    register_rate_limit_exemptions(app)
+    app.register_blueprint(bp['messages_bp'])  # Direct messaging API
+    app.register_blueprint(bp['messages_pages_bp'])  # Messages inbox page
     app.register_blueprint(bp['smart_sync_bp'])
     csrf.exempt(bp['smart_sync_bp'])
     app.register_blueprint(bp['admin_live_bp'])

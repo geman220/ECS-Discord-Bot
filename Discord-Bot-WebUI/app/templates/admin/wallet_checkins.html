@@ -2,6 +2,7 @@
 {% block title %}Check-in History{% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
     /* Check-ins - Theme-aware styling */
     .checkin-row {
@@ -27,13 +28,13 @@
                     <p class="text-muted mb-0">View all pass validations and event check-ins</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <a href="{{ url_for('wallet_admin.scanner') }}" class="btn btn-primary">
+                    <a href="{{ url_for('wallet_admin.scanner') }}" class="c-btn c-btn--primary">
                         <i class="ti ti-qrcode me-1"></i>Open Scanner
                     </a>
-                    <a href="{{ url_for('wallet_admin.export_checkins', type=pass_type_filter or 'all', date_from=request.args.get('date_from', ''), date_to=request.args.get('date_to', '')) }}" class="btn btn-success">
+                    <a href="{{ url_for('wallet_admin.export_checkins', type=pass_type_filter or 'all', date_from=request.args.get('date_from', ''), date_to=request.args.get('date_to', '')) }}" class="c-btn c-btn--success">
                         <i class="ti ti-download me-1"></i>Export CSV
                     </a>
-                    <a href="{{ url_for('wallet_admin.passes_list') }}" class="btn btn-outline-secondary">
+                    <a href="{{ url_for('wallet_admin.passes_list') }}" class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-arrow-left me-1"></i>Back to Passes
                     </a>
                 </div>
@@ -42,12 +43,12 @@
     </div>
 
     <!-- Filters -->
-    <div class="card filter-card mb-4">
-        <div class="card-body py-3">
-            <form method="get" class="row g-3 align-items-end" id="filterForm">
+    <div class="c-card filter-card mb-4">
+        <div class="c-card__body py-3">
+            <form method="get" class="row g-3 align-items-end" id="wallet-checkins-filterForm">
                 <div class="col-md-3">
                     <label class="form-label small text-muted">Pass Type</label>
-                    <select name="type" class="form-select" onchange="this.form.submit()">
+                    <select name="type" class="form-select js-filter-submit" data-action="submit-form" data-form-select>
                         <option value="all" {{ 'selected' if pass_type_filter == 'all' or not pass_type_filter else '' }}>All Pass Types</option>
                         <option value="ecs_membership" {{ 'selected' if pass_type_filter == 'ecs_membership' else '' }}>ECS Membership</option>
                         <option value="pub_league" {{ 'selected' if pass_type_filter == 'pub_league' else '' }}>Pub League</option>
@@ -56,19 +57,19 @@
                 <div class="col-md-3">
                     <label class="form-label small text-muted">Date From</label>
                     <input type="date" name="date_from" class="form-control"
-                           value="{{ request.args.get('date_from', '') }}">
+                           value="{{ request.args.get('date_from', '') }}" data-form-control>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small text-muted">Date To</label>
                     <input type="date" name="date_to" class="form-control"
-                           value="{{ request.args.get('date_to', '') }}">
+                           value="{{ request.args.get('date_to', '') }}" data-form-control>
                 </div>
                 <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary me-2">
+                    <button type="submit" class="c-btn c-btn--primary me-2">
                         <i class="ti ti-filter me-1"></i>Filter
                     </button>
                     {% if pass_type_filter and pass_type_filter != 'all' or request.args.get('date_from') or request.args.get('date_to') %}
-                    <a href="{{ url_for('wallet_admin.checkins_list') }}" class="btn btn-outline-secondary">
+                    <a href="{{ url_for('wallet_admin.checkins_list') }}" class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-x me-1"></i>Clear
                     </a>
                     {% endif %}
@@ -78,27 +79,27 @@
     </div>
 
     <!-- Check-ins Table -->
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="c-card">
+        <div class="c-card__header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
                 <i class="ti ti-history me-2"></i>Recent Check-ins
                 {% if checkins.total %}
-                <span class="badge bg-label-primary ms-2">{{ checkins.total }} total</span>
+                <span class="badge bg-label-primary ms-2" data-badge>{{ checkins.total }} total</span>
                 {% endif %}
             </h5>
         </div>
-        <div class="card-body">
+        <div class="c-card__body">
             {% if checkins.items %}
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead class="table-light">
+            <div class="c-table-wrapper" data-table-responsive>
+                <table class="c-table c-table--hoverable" data-table>
+                    <thead class="c-table--light" scope="col">
                         <tr>
-                            <th>Member</th>
-                            <th>Pass Type</th>
-                            <th>Event</th>
-                            <th>Location</th>
-                            <th>Check-in Type</th>
-                            <th>Time</th>
+                            <th scope="col">Member</th>
+                            <th scope="col">Pass Type</th>
+                            <th scope="col">Event</th>
+                            <th scope="col">Location</th>
+                            <th scope="col">Check-in Type</th>
+                            <th scope="col">Time</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -121,7 +122,7 @@
                             </td>
                             <td>
                                 {% if checkin.wallet_pass and checkin.wallet_pass.pass_type %}
-                                <span class="badge bg-label-{{ 'primary' if checkin.wallet_pass.pass_type.code == 'ecs_membership' else 'warning' }}">
+                                <span class="badge bg-label-{{ 'primary' if checkin.wallet_pass.pass_type.code == 'ecs_membership' else 'warning' }}" data-badge>
                                     {{ checkin.wallet_pass.pass_type.name }}
                                 </span>
                                 {% else %}
@@ -143,7 +144,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <span class="badge bg-label-info">
+                                <span class="badge bg-label-info" data-badge>
                                     <i class="ti ti-{{ 'qrcode' if checkin.check_in_type and checkin.check_in_type.value == 'qr_scan' else 'nfc' if checkin.check_in_type and checkin.check_in_type.value == 'nfc_tap' else 'hand-finger' }} me-1"></i>
                                     {{ checkin.check_in_type.value.replace('_', ' ').title() if checkin.check_in_type else 'Unknown' }}
                                 </span>
@@ -163,9 +164,9 @@
             <!-- Pagination -->
             {% if checkins.pages > 1 %}
             <nav class="mt-4">
-                <ul class="pagination justify-content-center mb-0">
+                <ul class="pagination justify-content-center mb-0" data-pagination>
                     {% if checkins.has_prev %}
-                    <li class="page-item">
+                    <li class="page-item" data-page-item>
                         <a class="page-link" href="{{ url_for('wallet_admin.checkins_list', type=pass_type_filter, page=checkins.prev_num) }}">
                             <i class="ti ti-chevron-left"></i>
                         </a>
@@ -174,18 +175,18 @@
 
                     {% for page_num in checkins.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
                         {% if page_num %}
-                        <li class="page-item {{ 'active' if page_num == checkins.page else '' }}">
+                        <li class="page-item {{ 'active' if page_num == checkins.page else '' }}" data-page-item data-page-active>
                             <a class="page-link" href="{{ url_for('wallet_admin.checkins_list', type=pass_type_filter, page=page_num) }}">
                                 {{ page_num }}
                             </a>
                         </li>
                         {% else %}
-                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                        <li class="page-item disabled" data-page-item data-page-disabled><span class="page-link">...</span></li>
                         {% endif %}
                     {% endfor %}
 
                     {% if checkins.has_next %}
-                    <li class="page-item">
+                    <li class="page-item" data-page-item>
                         <a class="page-link" href="{{ url_for('wallet_admin.checkins_list', type=pass_type_filter, page=checkins.next_num) }}">
                             <i class="ti ti-chevron-right"></i>
                         </a>
@@ -198,13 +199,13 @@
             {% else %}
             <!-- Empty State -->
             <div class="text-center py-5">
-                <i class="ti ti-list-check text-muted mb-3" style="font-size: 4rem;"></i>
+                <i class="ti ti-list-check text-muted mb-3" class="u-icon-4xl"></i>
                 <h5 class="text-muted mb-2">No Check-ins Yet</h5>
                 <p class="text-muted mb-4">
                     Check-ins will appear here when members scan their passes at events.
                     Use the scanner to validate passes and record check-ins.
                 </p>
-                <a href="{{ url_for('wallet_admin.scanner') }}" class="btn btn-primary">
+                <a href="{{ url_for('wallet_admin.scanner') }}" class="c-btn c-btn--primary">
                     <i class="ti ti-qrcode me-1"></i>Open Scanner
                 </a>
             </div>

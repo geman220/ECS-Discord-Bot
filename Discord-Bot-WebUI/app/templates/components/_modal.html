@@ -1,0 +1,218 @@
+{#
+================================================================================
+UNIFIED MODAL COMPONENT - Single Source of Truth
+================================================================================
+
+A reusable modal macro that provides consistent styling across the application.
+Uses BEM classes from c-modal.css for responsive scaling and proper dark mode.
+
+USAGE:
+  {% from 'components/_modal.html' import modal %}
+
+  {% call modal(id='myModal', title='Modal Title', size='md') %}
+    <p>Your modal content here</p>
+  {% endcall %}
+
+  {% call modal(id='confirmDelete', title='Confirm Delete', variant='danger', size='sm') %}
+    <div class="c-modal__message">
+      <i class="ti ti-alert-triangle c-modal__message-icon c-modal__message-icon--danger"></i>
+      <h3 class="c-modal__message-title">Are you sure?</h3>
+      <p class="c-modal__message-text">This action cannot be undone.</p>
+    </div>
+  {% endcall %}
+
+PARAMETERS:
+  id          - Required. Unique modal ID
+  title       - Required. Modal title text
+  title_icon  - Optional. Icon class for title (e.g., 'ti ti-user')
+  size        - Optional. 'xs', 'sm', 'md' (default), 'lg', 'xl', 'full', 'auto'
+  variant     - Optional. 'primary', 'success', 'danger', 'warning', 'info'
+  centered    - Optional. Whether to vertically center (default: true)
+  scrollable  - Optional. Make body scrollable for tall content
+  static      - Optional. Prevent closing by clicking backdrop
+  footer      - Optional. Footer content (buttons, etc.)
+  data_attrs  - Optional. Additional data attributes as dict
+
+CONTENT SLOTS (use in caller):
+  - c-modal__message     - For alert/confirmation dialogs
+  - c-modal__form        - For form content
+  - c-modal__list        - For selection lists
+  - c-modal__detail      - For key-value displays
+
+================================================================================
+#}
+
+{# Main modal macro #}
+{% macro modal(
+    id,
+    title,
+    title_icon='',
+    size='md',
+    variant='',
+    centered=true,
+    scrollable=false,
+    static=false,
+    footer='',
+    data_attrs={}
+) %}
+<div class="c-modal modal fade{% if variant %} c-modal--{{ variant }}{% endif %}"
+     id="{{ id }}"
+     tabindex="-1"
+     aria-labelledby="{{ id }}Label"
+     aria-hidden="true"
+     data-modal
+     {% if static %}data-bs-backdrop="static" data-bs-keyboard="false"{% endif %}
+     {% for key, value in data_attrs.items() %}data-{{ key }}="{{ value }}"{% endfor %}>
+  <div class="c-modal__dialog modal-dialog{% if centered %} modal-dialog-centered{% endif %}{% if scrollable %} modal-dialog-scrollable{% endif %} c-modal__dialog--{{ size }}">
+    <div class="c-modal__content modal-content">
+
+      {# Modal Header #}
+      <div class="c-modal__header">
+        <h5 class="c-modal__title" id="{{ id }}Label">
+          {% if title_icon %}<i class="{{ title_icon }}"></i>{% endif %}
+          {{ title }}
+        </h5>
+        <button type="button" class="c-modal__close" data-bs-dismiss="modal" aria-label="Close">
+          <i class="ti ti-x"></i>
+        </button>
+      </div>
+
+      {# Modal Body - Content from caller #}
+      <div class="c-modal__body">
+        {{ caller() }}
+      </div>
+
+      {# Modal Footer - Optional #}
+      {% if footer %}
+      <div class="c-modal__footer">
+        {{ footer | safe }}
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{# Alternative: Modal with custom footer via block #}
+{% macro modal_with_footer(
+    id,
+    title,
+    title_icon='',
+    size='md',
+    variant='',
+    centered=true,
+    scrollable=false,
+    static=false,
+    footer_class='',
+    data_attrs={}
+) %}
+<div class="c-modal modal fade{% if variant %} c-modal--{{ variant }}{% endif %}"
+     id="{{ id }}"
+     tabindex="-1"
+     aria-labelledby="{{ id }}Label"
+     aria-hidden="true"
+     data-modal
+     {% if static %}data-bs-backdrop="static" data-bs-keyboard="false"{% endif %}
+     {% for key, value in data_attrs.items() %}data-{{ key }}="{{ value }}"{% endfor %}>
+  <div class="c-modal__dialog modal-dialog{% if centered %} modal-dialog-centered{% endif %}{% if scrollable %} modal-dialog-scrollable{% endif %} c-modal__dialog--{{ size }}">
+    <div class="c-modal__content modal-content">
+
+      {# Modal Header #}
+      <div class="c-modal__header">
+        <h5 class="c-modal__title" id="{{ id }}Label">
+          {% if title_icon %}<i class="{{ title_icon }}"></i>{% endif %}
+          {{ title }}
+        </h5>
+        <button type="button" class="c-modal__close" data-bs-dismiss="modal" aria-label="Close">
+          <i class="ti ti-x"></i>
+        </button>
+      </div>
+
+      {# Modal Body - First block from caller #}
+      <div class="c-modal__body">
+        {{ caller() }}
+      </div>
+
+      {# Modal Footer with custom class #}
+      <div class="c-modal__footer{% if footer_class %} {{ footer_class }}{% endif %}">
+        {# Footer content is passed as body slot 2 via named blocks or via JS #}
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{# Confirmation dialog shorthand #}
+{% macro confirm_modal(
+    id,
+    title='Confirm Action',
+    message='Are you sure you want to proceed?',
+    icon='ti ti-alert-circle',
+    icon_variant='warning',
+    confirm_text='Confirm',
+    confirm_variant='primary',
+    cancel_text='Cancel',
+    static=true
+) %}
+<div class="c-modal modal fade"
+     id="{{ id }}"
+     tabindex="-1"
+     aria-labelledby="{{ id }}Label"
+     aria-hidden="true"
+     data-modal
+     data-bs-backdrop="static"
+     data-bs-keyboard="false">
+  <div class="c-modal__dialog modal-dialog modal-dialog-centered c-modal__dialog--centered c-modal__dialog--xs">
+    <div class="c-modal__content modal-content">
+
+      <div class="c-modal__header c-modal__header--borderless">
+        <h5 class="c-modal__title" id="{{ id }}Label">{{ title }}</h5>
+        <button type="button" class="c-modal__close" data-bs-dismiss="modal" aria-label="Close">
+          <i class="ti ti-x"></i>
+        </button>
+      </div>
+
+      <div class="c-modal__body c-modal__body--centered">
+        <div class="c-modal__message">
+          <i class="{{ icon }} c-modal__message-icon c-modal__message-icon--{{ icon_variant }}"></i>
+          <p class="c-modal__message-text">{{ message }}</p>
+        </div>
+      </div>
+
+      <div class="c-modal__footer c-modal__footer--center">
+        <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal">
+          {{ cancel_text }}
+        </button>
+        <button type="button" class="c-btn c-btn--{{ confirm_variant }}" data-action="confirm">
+          {{ confirm_text }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{# Loading modal #}
+{% macro loading_modal(id='loadingModal', message='Loading...') %}
+<div class="c-modal modal fade"
+     id="{{ id }}"
+     tabindex="-1"
+     aria-hidden="true"
+     data-modal
+     data-bs-backdrop="static"
+     data-bs-keyboard="false">
+  <div class="c-modal__dialog modal-dialog modal-dialog-centered c-modal__dialog--centered c-modal__dialog--xs">
+    <div class="c-modal__content modal-content">
+      <div class="c-modal__body c-modal__body--centered c-modal__body--loading">
+        <div class="c-modal__spinner"></div>
+      </div>
+      <div class="c-modal__footer c-modal__footer--center c-modal__footer--borderless">
+        <span class="text-muted">{{ message }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endmacro %}

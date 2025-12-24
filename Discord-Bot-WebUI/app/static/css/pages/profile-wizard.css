@@ -1,0 +1,1017 @@
+/**
+ * ============================================================================
+ * PROFILE WIZARD - 5-Step Verification Wizard
+ * ============================================================================
+ *
+ * Design: Matches authentication pages - dark athletic theme
+ *
+ * BEM Structure:
+ *   c-wizard                     - Main wizard container
+ *   c-wizard__progress           - Progress indicator section
+ *   c-wizard__step               - Individual step content
+ *   c-wizard__card               - Step card container
+ *   c-wizard__field              - Form field wrapper
+ *   c-wizard__nav                - Navigation buttons
+ *   c-wizard__review             - Review section elements
+ *
+ * ============================================================================
+ */
+
+/* ========================================================================
+   CSS CUSTOM PROPERTIES - Matches auth design tokens
+   ======================================================================== */
+
+.c-wizard {
+    --wizard-bg-page: #0f1419;
+    --wizard-bg-card: #1a1f26;
+    --wizard-bg-input: #242b33;
+    --wizard-border: rgba(148, 163, 184, 0.12);
+    --wizard-border-focus: rgba(88, 101, 242, 0.5);
+
+    --wizard-text-primary: #f1f5f9;
+    --wizard-text-secondary: #94a3b8;
+    --wizard-text-muted: #64748b;
+
+    --wizard-primary: #5865F2;
+    --wizard-primary-hover: #4752c4;
+    --wizard-success: #22c55e;
+    --wizard-success-dark: #16a34a;
+    --wizard-warning: #f59e0b;
+    --wizard-danger: #ef4444;
+
+    --wizard-radius: 12px;
+    --wizard-radius-lg: 16px;
+    --wizard-space: 1rem;
+    --wizard-space-lg: 1.5rem;
+    --wizard-space-xl: 2rem;
+
+    --wizard-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+    --wizard-transition: 0.2s ease;
+}
+
+/* ========================================================================
+   1. PAGE LAYOUT
+   ======================================================================== */
+
+.c-wizard {
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    padding: var(--wizard-space-lg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
+}
+
+/* Tablet */
+@media (min-width: 768px) {
+    .c-wizard {
+        max-width: 580px;
+        padding: var(--wizard-space-xl);
+    }
+}
+
+/* Desktop - wider for better use of space */
+@media (min-width: 992px) {
+    .c-wizard {
+        max-width: 720px;
+    }
+}
+
+/* Large desktop */
+@media (min-width: 1200px) {
+    .c-wizard {
+        max-width: 800px;
+    }
+}
+
+/* ========================================================================
+   2. PROGRESS INDICATOR
+   ======================================================================== */
+
+.c-wizard__progress {
+    position: relative;
+    padding: var(--wizard-space) 0 var(--wizard-space-xl);
+    margin-bottom: var(--wizard-space);
+}
+
+.c-wizard__progress-steps {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    z-index: 2;
+}
+
+/* Progress track background */
+.c-wizard__progress::before {
+    content: '';
+    position: absolute;
+    top: calc(var(--wizard-space) + 20px); /* Centered with 40px dots */
+    left: 10%;
+    right: 10%;
+    height: 2px;
+    background: var(--wizard-border);
+    border-radius: 2px;
+    z-index: 0;
+}
+
+/* Animated progress bar fill */
+.c-wizard__progress-bar {
+    position: absolute;
+    top: calc(var(--wizard-space) + 20px);
+    left: 10%;
+    height: 2px;
+    background: var(--wizard-primary);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+    z-index: 1;
+    box-shadow: 0 0 12px rgba(88, 101, 242, 0.5);
+}
+
+/* Individual step indicator */
+.c-wizard__progress-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+    cursor: default;
+    gap: 8px;
+}
+
+.c-wizard__progress-step--completed {
+    cursor: pointer;
+}
+
+/* Step dot/icon circle */
+.c-wizard__progress-dot {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--wizard-bg-card);
+    border: 2px solid var(--wizard-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--wizard-transition);
+}
+
+.c-wizard__progress-dot i {
+    font-size: 18px;
+    color: var(--wizard-text-muted);
+    transition: color var(--wizard-transition);
+}
+
+/* Active step */
+.c-wizard__progress-step--active .c-wizard__progress-dot {
+    background: var(--wizard-primary);
+    border-color: var(--wizard-primary);
+    box-shadow: 0 0 20px rgba(88, 101, 242, 0.4);
+}
+
+.c-wizard__progress-step--active .c-wizard__progress-dot i {
+    color: white;
+}
+
+/* Completed step */
+.c-wizard__progress-step--completed .c-wizard__progress-dot {
+    background: var(--wizard-success);
+    border-color: var(--wizard-success);
+}
+
+.c-wizard__progress-step--completed .c-wizard__progress-dot i {
+    color: white;
+}
+
+/* Step labels */
+.c-wizard__progress-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--wizard-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: color var(--wizard-transition);
+}
+
+.c-wizard__progress-step--active .c-wizard__progress-label {
+    color: var(--wizard-primary);
+}
+
+.c-wizard__progress-step--completed .c-wizard__progress-label {
+    color: var(--wizard-success);
+}
+
+/* Hide labels on small screens */
+@media (max-width: 400px) {
+    .c-wizard__progress-label {
+        display: none;
+    }
+}
+
+/* ========================================================================
+   3. STEP CONTENT
+   ======================================================================== */
+
+.c-wizard__step {
+    display: none;
+    flex: 1;
+    animation: wizardStepEnter 0.4s ease backwards;
+}
+
+.c-wizard__step--active {
+    display: flex;
+    flex-direction: column;
+}
+
+@keyframes wizardStepEnter {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+}
+
+/* ========================================================================
+   4. CARDS
+   ======================================================================== */
+
+.c-wizard__card {
+    background: var(--wizard-bg-card);
+    border: 1px solid var(--wizard-border);
+    border-radius: var(--wizard-radius-lg);
+    overflow: hidden;
+    box-shadow: var(--wizard-shadow);
+    position: relative;
+}
+
+/* Accent line at top */
+.c-wizard__card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--wizard-primary), transparent);
+    border-radius: 0 0 2px 2px;
+}
+
+.c-wizard__card-header {
+    display: flex;
+    align-items: center;
+    gap: var(--wizard-space);
+    padding: var(--wizard-space-lg);
+    border-bottom: 1px solid var(--wizard-border);
+}
+
+.c-wizard__card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--wizard-radius);
+    background: rgba(88, 101, 242, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.c-wizard__card-icon i {
+    font-size: 24px;
+    color: var(--wizard-primary);
+}
+
+.c-wizard__card-icon--success {
+    background: rgba(34, 197, 94, 0.12);
+}
+
+.c-wizard__card-icon--success i {
+    color: var(--wizard-success);
+}
+
+.c-wizard__card-titles {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Override Bootstrap heading colors within wizard */
+[data-component="profile-wizard"] h1,
+[data-component="profile-wizard"] h2,
+[data-component="profile-wizard"] h3,
+[data-component="profile-wizard"] .c-wizard__card-title,
+[data-component="profile-wizard"] .c-wizard__welcome-title,
+[data-component="profile-wizard"] .c-wizard__welcome-message h2 {
+    color: #fff !important;
+}
+
+.c-wizard__card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+    letter-spacing: -0.01em;
+}
+
+.c-wizard__card-subtitle {
+    font-size: 0.875rem;
+    color: var(--wizard-text-secondary);
+    margin: 0;
+}
+
+.c-wizard__card-body {
+    padding: var(--wizard-space-lg);
+}
+
+.c-wizard__card-content {
+    padding: var(--wizard-space-xl);
+}
+
+/* Success header variant */
+.c-wizard__card-header--success {
+    background: rgba(34, 197, 94, 0.06);
+}
+
+/* ========================================================================
+   5. WELCOME STEP (Special styling)
+   ======================================================================== */
+
+.c-wizard__card--welcome {
+    background: linear-gradient(135deg, var(--wizard-bg-card) 0%, rgba(88, 101, 242, 0.08) 100%);
+    text-align: center;
+}
+
+.c-wizard__card--welcome::before {
+    width: 60%;
+    background: linear-gradient(90deg, transparent, var(--wizard-primary), var(--wizard-success), transparent);
+}
+
+.c-wizard__avatar-section {
+    margin-bottom: var(--wizard-space-xl);
+}
+
+.c-wizard__avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--wizard-primary);
+    box-shadow: 0 0 30px rgba(88, 101, 242, 0.3);
+    margin-bottom: var(--wizard-space);
+}
+
+.c-wizard__avatar--placeholder {
+    background: var(--wizard-bg-input);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.c-wizard__avatar--placeholder i {
+    font-size: 40px;
+    color: var(--wizard-text-muted);
+}
+
+.c-wizard__team-badge {
+    display: inline-block;
+    padding: 6px 16px;
+    background: rgba(88, 101, 242, 0.15);
+    border: 1px solid rgba(88, 101, 242, 0.3);
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--wizard-primary);
+}
+
+.c-wizard__welcome-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0 0 var(--wizard-space-lg) 0;
+    letter-spacing: -0.02em;
+}
+
+.c-wizard__welcome-message {
+    margin-bottom: var(--wizard-space-xl);
+}
+
+.c-wizard__welcome-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(34, 197, 94, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--wizard-space);
+}
+
+.c-wizard__welcome-icon i {
+    font-size: 28px;
+    color: var(--wizard-success);
+}
+
+.c-wizard__welcome-message h2 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+}
+
+.c-wizard__welcome-message p {
+    font-size: 0.9375rem;
+    color: var(--wizard-text-secondary);
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* Checklist */
+.c-wizard__checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: left;
+}
+
+.c-wizard__checklist-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(34, 197, 94, 0.06);
+    border: 1px solid rgba(34, 197, 94, 0.12);
+    border-radius: var(--wizard-radius);
+}
+
+.c-wizard__checklist-item i {
+    font-size: 20px;
+    color: var(--wizard-success);
+    flex-shrink: 0;
+}
+
+.c-wizard__checklist-item span {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--wizard-text-secondary);
+}
+
+/* ========================================================================
+   6. FORM FIELDS
+   ======================================================================== */
+
+.c-wizard__field {
+    margin-bottom: var(--wizard-space-lg);
+}
+
+.c-wizard__field:last-child {
+    margin-bottom: 0;
+}
+
+.c-wizard__field-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--wizard-space);
+    margin-bottom: var(--wizard-space-lg);
+}
+
+@media (max-width: 480px) {
+    .c-wizard__field-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+.c-wizard__field--half {
+    margin-bottom: 0;
+}
+
+.c-wizard__label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--wizard-text-secondary);
+    margin-bottom: 8px;
+}
+
+.c-wizard__label i {
+    font-size: 16px;
+    color: var(--wizard-primary);
+}
+
+.c-wizard__field-hint {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--wizard-text-muted);
+    margin-bottom: 10px;
+}
+
+.c-wizard__input,
+.c-wizard__select,
+.c-wizard__textarea {
+    width: 100%;
+    padding: 14px var(--wizard-space);
+    font-size: 0.9375rem;
+    color: var(--wizard-text-primary);
+    background: var(--wizard-bg-input);
+    border: 1px solid var(--wizard-border);
+    border-radius: var(--wizard-radius);
+    transition: all var(--wizard-transition);
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.c-wizard__input:focus,
+.c-wizard__select:focus,
+.c-wizard__textarea:focus {
+    outline: none;
+    border-color: var(--wizard-border-focus);
+    box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.15);
+}
+
+.c-wizard__input::placeholder,
+.c-wizard__textarea::placeholder {
+    color: var(--wizard-text-muted);
+}
+
+.c-wizard__input.is-invalid,
+.c-wizard__select.is-invalid {
+    border-color: var(--wizard-danger);
+}
+
+.c-wizard__input.is-invalid:focus,
+.c-wizard__select.is-invalid:focus {
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+/* Shake animation for invalid fields */
+@keyframes wizardShake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+}
+
+.c-wizard__input.is-shaking,
+.c-wizard__select.is-shaking {
+    animation: wizardShake 0.3s ease;
+}
+
+/* Select dropdown arrow */
+.c-wizard__select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6,9 12,15 18,9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 18px;
+    padding-right: 44px;
+    cursor: pointer;
+}
+
+.c-wizard__textarea {
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.5;
+}
+
+/* Info box */
+.c-wizard__info-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: var(--wizard-space);
+    background: rgba(88, 101, 242, 0.08);
+    border: 1px solid rgba(88, 101, 242, 0.15);
+    border-radius: var(--wizard-radius);
+    margin-top: var(--wizard-space-lg);
+}
+
+.c-wizard__info-box i {
+    font-size: 20px;
+    color: var(--wizard-primary);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.c-wizard__info-box p {
+    font-size: 0.8125rem;
+    color: var(--wizard-text-secondary);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ========================================================================
+   CHECKBOX GROUP - Mobile-friendly multi-select
+   ======================================================================== */
+
+.c-wizard__checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.c-wizard__checkbox-item {
+    position: relative;
+}
+
+.c-wizard__checkbox-item input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.c-wizard__checkbox-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    padding: 10px 14px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--wizard-text-secondary);
+    background: var(--wizard-bg-input);
+    border: 1px solid var(--wizard-border);
+    border-radius: var(--wizard-radius);
+    cursor: pointer;
+    transition: all var(--wizard-transition);
+    user-select: none;
+}
+
+.c-wizard__checkbox-label:hover {
+    background: rgba(88, 101, 242, 0.08);
+    border-color: rgba(88, 101, 242, 0.3);
+    color: var(--wizard-text-primary);
+}
+
+.c-wizard__checkbox-item input:checked + .c-wizard__checkbox-label {
+    background: var(--wizard-primary);
+    border-color: var(--wizard-primary);
+    color: white;
+    box-shadow: 0 4px 12px rgba(88, 101, 242, 0.3);
+}
+
+.c-wizard__checkbox-item input:focus-visible + .c-wizard__checkbox-label {
+    outline: 2px solid var(--wizard-primary);
+    outline-offset: 2px;
+}
+
+/* Grid layout for larger screens */
+@media (min-width: 480px) {
+    .c-wizard__checkbox-group--grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+    }
+}
+
+@media (min-width: 768px) {
+    .c-wizard__checkbox-group--grid {
+        grid-template-columns: repeat(6, 1fr);
+    }
+}
+
+/* Position checkboxes - full names need more space */
+.c-wizard__checkbox-group--positions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+@media (min-width: 480px) {
+    .c-wizard__checkbox-group--positions {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 768px) {
+    .c-wizard__checkbox-group--positions {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 992px) {
+    .c-wizard__checkbox-group--positions {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.c-wizard__checkbox-group--positions .c-wizard__checkbox-label {
+    font-size: 0.75rem;
+    padding: 10px 12px;
+    text-align: center;
+}
+
+/* ========================================================================
+   7. REVIEW SECTION
+   ======================================================================== */
+
+.c-wizard__review-section {
+    margin-bottom: var(--wizard-space-lg);
+    padding-bottom: var(--wizard-space-lg);
+    border-bottom: 1px solid var(--wizard-border);
+}
+
+.c-wizard__review-section:last-of-type {
+    margin-bottom: var(--wizard-space);
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.c-wizard__review-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: var(--wizard-space);
+}
+
+.c-wizard__review-header i {
+    font-size: 18px;
+    color: var(--wizard-primary);
+}
+
+.c-wizard__review-header span {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--wizard-text-primary);
+    flex: 1;
+}
+
+.c-wizard__review-edit {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(88, 101, 242, 0.1);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--wizard-transition);
+}
+
+.c-wizard__review-edit i {
+    font-size: 16px;
+    color: var(--wizard-primary);
+}
+
+.c-wizard__review-edit:hover {
+    background: var(--wizard-primary);
+}
+
+.c-wizard__review-edit:hover i {
+    color: white;
+}
+
+.c-wizard__review-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 400px) {
+    .c-wizard__review-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.c-wizard__review-item {
+    padding: 10px 12px;
+    background: var(--wizard-bg-input);
+    border-radius: 8px;
+}
+
+.c-wizard__review-label {
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--wizard-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+}
+
+.c-wizard__review-value {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--wizard-text-primary);
+    word-break: break-word;
+}
+
+.c-wizard__review-notes {
+    margin-top: 12px;
+    padding: 12px;
+    background: var(--wizard-bg-input);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: var(--wizard-text-secondary);
+    line-height: 1.5;
+    font-style: italic;
+}
+
+/* ========================================================================
+   8. CONFIRMATION
+   ======================================================================== */
+
+.c-wizard__confirm-box {
+    margin-top: var(--wizard-space-lg);
+    padding: var(--wizard-space);
+    background: rgba(34, 197, 94, 0.06);
+    border: 1px solid rgba(34, 197, 94, 0.15);
+    border-radius: var(--wizard-radius);
+}
+
+.c-wizard__confirm-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.c-wizard__confirm-checkbox input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--wizard-success);
+    cursor: pointer;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.c-wizard__confirm-text {
+    font-size: 0.875rem;
+    color: var(--wizard-text-secondary);
+    line-height: 1.5;
+}
+
+/* ========================================================================
+   9. NAVIGATION
+   ======================================================================== */
+
+.c-wizard__nav {
+    display: flex;
+    gap: 12px;
+    padding: var(--wizard-space-lg) 0 var(--wizard-space);
+    margin-top: auto;
+}
+
+.c-wizard__nav-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px var(--wizard-space-lg);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--wizard-radius);
+    cursor: pointer;
+    transition: all var(--wizard-transition);
+    text-decoration: none;
+}
+
+.c-wizard__nav-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Back button */
+.c-wizard__nav-btn--back {
+    background: transparent;
+    color: var(--wizard-text-secondary);
+    border: 1px solid var(--wizard-border);
+    flex: 0 0 auto;
+}
+
+.c-wizard__nav-btn--back:hover:not(:disabled) {
+    background: var(--wizard-bg-input);
+    color: var(--wizard-text-primary);
+    border-color: var(--wizard-text-muted);
+}
+
+.c-wizard__nav-btn--back i {
+    font-size: 20px;
+}
+
+.c-wizard__nav-btn--back span {
+    display: none;
+}
+
+@media (min-width: 400px) {
+    .c-wizard__nav-btn--back span {
+        display: inline;
+    }
+}
+
+/* Next button */
+.c-wizard__nav-btn--next {
+    background: var(--wizard-primary);
+    color: white;
+    box-shadow: 0 4px 16px rgba(88, 101, 242, 0.35);
+}
+
+.c-wizard__nav-btn--next:hover:not(:disabled) {
+    background: var(--wizard-primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(88, 101, 242, 0.35);
+}
+
+.c-wizard__nav-btn--next:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+/* Confirm button */
+.c-wizard__nav-btn--confirm {
+    background: var(--wizard-success);
+    color: white;
+    box-shadow: 0 4px 16px rgba(34, 197, 94, 0.35);
+}
+
+.c-wizard__nav-btn--confirm:hover:not(:disabled) {
+    background: var(--wizard-success-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(34, 197, 94, 0.35);
+}
+
+.c-wizard__nav-btn--confirm:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+/* ========================================================================
+   10. SWIPE HINT & SAVE INDICATOR
+   ======================================================================== */
+
+.c-wizard__swipe-hint {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: var(--wizard-space);
+    font-size: 0.8125rem;
+    color: var(--wizard-text-muted);
+    transition: opacity 0.3s ease;
+}
+
+@media (pointer: coarse) {
+    .c-wizard__swipe-hint {
+        display: flex;
+    }
+}
+
+.c-wizard__swipe-hint i {
+    font-size: 18px;
+}
+
+.c-wizard__save-indicator {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--wizard-bg-card);
+    border: 1px solid var(--wizard-border);
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--wizard-success);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+}
+
+.c-wizard__save-indicator.is-visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.c-wizard__save-indicator i {
+    font-size: 16px;
+}
+
+/* ========================================================================
+   11. ACCESSIBILITY
+   ======================================================================== */
+
+.c-wizard__nav-btn:focus-visible,
+.c-wizard__input:focus-visible,
+.c-wizard__select:focus-visible,
+.c-wizard__textarea:focus-visible,
+.c-wizard__review-edit:focus-visible {
+    outline: 2px solid var(--wizard-primary);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .c-wizard__step,
+    .c-wizard__nav-btn,
+    .c-wizard__save-indicator {
+        transition: none;
+        animation: none;
+    }
+
+    .c-wizard__progress-bar {
+        transition: none;
+    }
+}

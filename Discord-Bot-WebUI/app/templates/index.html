@@ -7,18 +7,18 @@
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Enhanced Onboarding Modal -->
     {% if show_onboarding or session.get('force_onboarding') %}
-    <div class="modal fade" id="onboardingSlideModal" tabindex="-1" aria-labelledby="onboardingModalLabel" aria-hidden="true" data-bs-backdrop="static">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content shadow-lg border-0">
+    <div class="modal c-modal fade" data-modal id="onboardingSlideModal" tabindex="-1" aria-labelledby="onboardingModalLabel" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+            <div class="modal-content c-modal__content shadow-lg border-0" data-modal-content>
                 <!-- Modal Header -->
-                <div class="modal-header bg-light border-bottom-0 py-3">
-                    <h5 class="modal-title fw-bold" id="onboardingModalLabel">
+                <div class="modal-header c-modal__header bg-light border-bottom-0 py-3" data-modal-header>
+                    <h5 class="modal-title c-modal__title fw-bold" id="onboardingModalLabel">
                         <i class="ti ti-user-circle me-2 text-primary"></i>Player Profile Setup
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-action="close-modal" aria-label="Close"></button>
                 </div>
                 <!-- Modal Body -->
-                <div class="modal-body p-0">
+                <div class="modal-body c-modal__body p-0" data-modal-body>
                     {% include 'onboarding_modal_content.html' %}
                 </div>
             </div>
@@ -30,73 +30,69 @@
     <div id="rsvp-data"
          data-player-id="{{ player.id }}"
          data-discord-id="{{ player.discord_id }}"
-         data-csrf-token="{{ csrf_token() }}">
+         data-csrf-token="{{ csrf_token() }}"
+         data-discord-auth-url="{{ url_for('auth.discord_login') }}">
     </div>
     {% endif %}
 
     <!-- Welcome Header -->
     <div class="row mb-3">
         <div class="col-12">
-            <div class="card welcome-header">
-                <div class="card-body">
-                    <div class="welcome-header-content">
-                        {% if player %}
-                        <!-- Simple welcome with team info -->
-                        <div class="welcome-content">
-                            <h2 class="text-primary mb-2">Welcome, {{ player.name }}!</h2>
-                            {% if user_team and user_team|length > 0 %}
-                            <div class="team-info">
-                                <span class="text-muted me-2">You're playing for:</span>
-                                {% for team in user_team %}
-                                    <a href="{{ url_for('teams.team_details', team_id=team.id) }}" class="text-decoration-none">
-                                        <span class="badge bg-primary me-1">{{ team.name }}</span>
-                                    </a>{% if not loop.last %}, {% endif %}
-                                {% endfor %}
-                            </div>
-                            {% else %}
-                            <p class="text-muted mb-0">You are not currently assigned to a team</p>
-                            {% endif %}
-                        </div>
-                        {% else %}
-                        <!-- No player profile state -->
-                        <div class="text-center">
-                            <h2 class="text-primary mb-1">Welcome!</h2>
-                            <p class="text-muted mb-2">Please create your player profile to get started</p>
-                        </div>
-                        {% endif %}
+            <div class="c-welcome" data-component="welcome-header">
+                {% if player %}
+                <!-- Simple welcome with team info -->
+                <div class="c-welcome__content">
+                    <h2 class="c-welcome__title">Welcome, {{ player.name }}!</h2>
+                    {% if user_team and user_team|length > 0 %}
+                    <div class="c-welcome__teams">
+                        <span class="c-welcome__teams-label">You're playing for:</span>
+                        {% for team in user_team %}
+                            <a href="{{ url_for('teams.team_details', team_id=team.id) }}" class="text-decoration-none">
+                                <span class="c-badge c-badge--primary" data-badge data-team-id="{{ team.id }}">{{ team.name }}</span>
+                            </a>{% if not loop.last %}, {% endif %}
+                        {% endfor %}
                     </div>
+                    {% else %}
+                    <p class="c-welcome__no-team">You are not currently assigned to a team</p>
+                    {% endif %}
                 </div>
+                {% else %}
+                <!-- No player profile state -->
+                <div class="c-welcome__content c-welcome__center">
+                    <h2 class="c-welcome__title">Welcome!</h2>
+                    <p class="c-welcome__no-team">Please create your player profile to get started</p>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
 
     {% if not show_onboarding %}
-    <!-- Announcements Card (simple design) -->
+    <!-- Announcements Card -->
     {% if announcements %}
     <div class="row mb-3">
         <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-body p-3">
-                    <div id="announcementsCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="8000">
-                        <div class="d-flex align-items-center">
-                            <div class="flex-shrink-0 me-3">
-                                <i class="ti ti-bell text-primary icon-2xl"></i>
+            <div class="c-announcements" data-component="announcements">
+                <div id="announcementsCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="8000">
+                    <div class="c-announcements__wrapper">
+                        <div class="c-announcements__icon">
+                            <i class="ti ti-bell"></i>
+                        </div>
+                        <div class="carousel-inner c-announcements__content">
+                            {% for announcement in announcements %}
+                            <div class="carousel-item c-announcements__item {% if loop.first %}active{% endif %}">
+                                <h5 class="c-announcements__title">{{ announcement.title }}</h5>
+                                <p class="c-announcements__text">{{ announcement.content }}</p>
+                                <small class="c-announcements__date">{{ announcement.created_at.strftime('%B %d, %Y') }}</small>
                             </div>
-                            <div class="carousel-inner flex-grow-1">
-                                {% for announcement in announcements %}
-                                <div class="carousel-item {% if loop.first %}active{% endif %}">
-                                    <h5 class="text-primary mb-1">{{ announcement.title }}</h5>
-                                    <p class="mb-0">{{ announcement.content }}</p>
-                                    <small class="text-muted">{{ announcement.created_at.strftime('%B %d, %Y') }}</small>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            <div class="flex-shrink-0 ms-3">
-                                <button class="btn btn-sm btn-icon btn-outline-primary rounded-circle" type="button" 
-                                        data-bs-target="#announcementsCarousel" data-bs-slide="next">
-                                    <i class="ti ti-chevron-right"></i>
-                                </button>
-                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="c-announcements__nav">
+                            <button class="c-carousel-nav" type="button"
+                                    data-bs-target="#announcementsCarousel" data-bs-slide="next"
+                                    data-action="next-announcement" aria-label="Next announcement">
+                                <i class="ti ti-chevron-right"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -110,22 +106,18 @@
     <!-- Create Profile Card (if no player profile) -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card shadow">
-                <div class="card-body text-center p-4">
-                    <div class="mb-3">
-                        <img src="{{ url_for('static', filename='img/undraw_profile_details_re_ch9r.svg') }}"
-                             alt="Create Profile" class="image-150">
-                    </div>
-                    <h3>Get Started</h3>
-                    <p class="mb-4">Create your player profile to access team information, match scheduling, and more.</p>
-                    <form method="POST" action="{{ url_for('main.index') }}" class="d-inline">
-                        {{ onboarding_form.hidden_tag() }}
-                        <input type="hidden" name="form_action" id="form_action" value="reset_skip_profile">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="ti ti-user-plus me-2"></i>Create Player Profile
-                        </button>
-                    </form>
-                </div>
+            <div class="c-create-profile" data-component="create-profile">
+                <img src="{{ url_for('static', filename='img/undraw_profile_details_re_ch9r.svg') }}"
+                     alt="Create Profile" class="c-create-profile__image">
+                <h3 class="c-create-profile__title">Get Started</h3>
+                <p class="c-create-profile__text">Create your player profile to access team information, match scheduling, and more.</p>
+                <form method="POST" action="{{ url_for('main.index') }}" data-form="create-profile">
+                    {{ onboarding_form.hidden_tag() }}
+                    <input type="hidden" name="form_action" id="form_action" value="reset_skip_profile">
+                    <button type="submit" class="c-btn c-btn--primary c-btn--lg" data-action="create-profile">
+                        <i class="ti ti-user-plus c-btn__icon"></i>Create Player Profile
+                    </button>
+                </form>
             </div>
         </div>
     </div>
@@ -135,176 +127,188 @@
     <!-- Upcoming Matches Quick View -->
     <div class="row mb-3">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h4 class="mb-0">Upcoming Matches</h4>
+            <div class="c-section-header" data-component="section-header">
+                <h4 class="c-section-header__title">Upcoming Matches</h4>
                 {% if user_team and user_team|length > 0 %}
-                <div class="nav nav-pills" id="match-tabs" role="tablist">
+                <div class="c-section-header__controls">
+                <div class="c-tabs" id="match-tabs" role="tablist" data-role="tab-navigation" aria-controls="match-tab-content">
                     {% for t in user_team %}
-                        <button class="nav-link {% if loop.first %}active{% endif %}" 
-                                id="team-{{ t.id }}-tab" data-bs-toggle="pill" 
-                                data-bs-target="#team-{{ t.id }}-content" type="button" 
-                                role="tab" aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+                        <button class="c-tabs__item {% if loop.first %}is-active{% endif %}"
+                                id="team-{{ t.id }}-tab"
+                                data-action="switch-tab"
+                                data-bs-toggle="pill"
+                                data-bs-target="#team-{{ t.id }}-content"
+                                type="button"
+                                role="tab"
+                                aria-selected="{% if loop.first %}true{% else %}false{% endif %}"
+                                aria-controls="team-{{ t.id }}-content"
+                                data-team-id="{{ t.id }}">
                             {{ t.name }}
                         </button>
                     {% endfor %}
                 </div>
+                </div>
                 {% endif %}
             </div>
-            
-            <div class="tab-content" id="match-tab-content">
+
+            <div class="tab-content" id="match-tab-content" data-role="tab-content">
                 {% if user_team and user_team|length > 0 %}
                 {% for t in user_team %}
-                <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
-                     id="team-{{ t.id }}-content" role="tabpanel" 
-                     aria-labelledby="team-{{ t.id }}-tab">
-                    
+                <div class="tab-pane fade {% if loop.first %}show active{% endif %}"
+                     id="team-{{ t.id }}-content"
+                     role="tabpanel"
+                     aria-labelledby="team-{{ t.id }}-tab"
+                     data-tab-pane
+                     data-team-id="{{ t.id }}">
+
                     {% set team_next_matches = team_matches.get(t.id, {}).get('next', {}) %}
-                    
+
                     {% if team_next_matches|length > 0 %}
                         {% for date, matches in team_next_matches.items() | sort %}
-                            <div class="card shadow-sm mb-3">
-                                <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                                    <h5 class="card-title mb-0">
-                                        <i class="ti ti-calendar-event me-2"></i>
+                            <div class="c-match-card" data-component="match-card" data-match-date="{{ date }}">
+                                <div class="c-match-card__header">
+                                    <h5 class="c-match-card__header-title">
+                                        <i class="ti ti-calendar-event c-match-card__header-icon"></i>
                                         {{ date.strftime('%A, %B %d, %Y') }}
                                     </h5>
                                     {% if t.league %}
-                                    <span class="badge bg-primary">{{ t.league.name }}</span>
+                                    <span class="c-badge c-badge--primary" data-badge data-league-id="{{ t.league.id }}">{{ t.league.name }}</span>
                                     {% endif %}
                                 </div>
-                                <div class="card-body p-0">
-                                    <div class="list-group list-group-flush">
-                                        {% for match_data in matches %}
-                                        {% set match = match_data['match'] %}
-                                        {% set home_team_name = match_data['home_team_name'] %}
-                                        {% set opponent_team_name = match_data['opponent_name'] %}
-                                        
-                                        {% if match_data['home_team_id'] == t.id %}
-                                            {% set is_home = true %}
-                                            {% set opponent_name = opponent_team_name %}
-                                        {% else %}
-                                            {% set is_home = false %}
-                                            {% set opponent_name = home_team_name %}
-                                        {% endif %}
-                                        
-                                        <div class="list-group-item p-3">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="match-badge {% if is_home %}bg-success{% else %}bg-info{% endif %} me-2">
-                                                            {% if is_home %}H{% else %}A{% endif %}
-                                                        </div>
-                                                        <h6 class="mb-0">
-                                                            {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
-                                                                <span class="badge bg-info">
-                                                                    {% if match.week_type == 'FUN' %}
-                                                                        Fun Week
-                                                                    {% elif match.week_type == 'TST' %}
-                                                                        TST Week
-                                                                    {% elif match.week_type == 'BYE' %}
-                                                                        Bye Week
-                                                                    {% elif match.week_type == 'BONUS' %}
-                                                                        Bonus Week
-                                                                    {% elif match.week_type == 'PLAYOFF' %}
-                                                                        Playoff Week
-                                                                    {% endif %}
-                                                                </span>
-                                                                <span class="text-muted">
-                                                                    {% if match.week_type == 'FUN' %}
-                                                                        - Special activities
-                                                                    {% elif match.week_type == 'TST' %}
-                                                                        - Tournament events
-                                                                    {% elif match.week_type == 'BYE' %}
-                                                                        - Week off
-                                                                    {% elif match.week_type == 'BONUS' %}
-                                                                        - Additional activities
-                                                                    {% elif match.week_type == 'PLAYOFF' %}
-                                                                        {% if match.home_team_id != match.away_team_id %}
-                                                                            - vs {{ opponent_name }}
-                                                                        {% else %}
-                                                                            - TBD
-                                                                        {% endif %}
-                                                                    {% endif %}
-                                                                </span>
-                                                            {% else %}
-                                                                {% if is_home %}
-                                                                    <span class="text-success fw-bold">{{ t.name }}</span> vs {{ opponent_name }}
+                                <div class="c-match-card__body">
+                                    {% for match_data in matches %}
+                                    {% set match = match_data['match'] %}
+                                    {% set home_team_name = match_data['home_team_name'] %}
+                                    {% set opponent_team_name = match_data['opponent_name'] %}
+
+                                    {% if match_data['home_team_id'] == t.id %}
+                                        {% set is_home = true %}
+                                        {% set opponent_name = opponent_team_name %}
+                                    {% else %}
+                                        {% set is_home = false %}
+                                        {% set opponent_name = home_team_name %}
+                                    {% endif %}
+
+                                    <div class="c-match-card__item" data-match-id="{{ match.id }}">
+                                        <div class="c-match-card__info">
+                                            <div class="c-match-card__matchup">
+                                                <div class="c-match-badge c-match-badge--{% if is_home %}home{% else %}away{% endif %}"
+                                                     data-badge
+                                                     data-location-type="{% if is_home %}home{% else %}away{% endif %}">
+                                                    {% if is_home %}H{% else %}A{% endif %}
+                                                </div>
+                                                <h6 class="c-match-card__matchup-text">
+                                                    {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
+                                                        <span class="c-badge c-badge--info" data-badge data-week-type="{{ match.week_type }}">
+                                                            {% if match.week_type == 'FUN' %}
+                                                                Fun Week
+                                                            {% elif match.week_type == 'TST' %}
+                                                                TST Week
+                                                            {% elif match.week_type == 'BYE' %}
+                                                                Bye Week
+                                                            {% elif match.week_type == 'BONUS' %}
+                                                                Bonus Week
+                                                            {% elif match.week_type == 'PLAYOFF' %}
+                                                                Playoff Week
+                                                            {% endif %}
+                                                        </span>
+                                                        <span class="c-match-card__text--muted">
+                                                            {% if match.week_type == 'FUN' %}
+                                                                - Special activities
+                                                            {% elif match.week_type == 'TST' %}
+                                                                - Tournament events
+                                                            {% elif match.week_type == 'BYE' %}
+                                                                - Week off
+                                                            {% elif match.week_type == 'BONUS' %}
+                                                                - Additional activities
+                                                            {% elif match.week_type == 'PLAYOFF' %}
+                                                                {% if match.home_team_id != match.away_team_id %}
+                                                                    - vs {{ opponent_name }}
                                                                 {% else %}
-                                                                    {{ opponent_name }} vs <span class="text-success fw-bold">{{ t.name }}</span>
+                                                                    - TBD
                                                                 {% endif %}
                                                             {% endif %}
-                                                        </h6>
-                                                    </div>
-                                                    <div class="text-muted small mt-1">
-                                                        <i class="ti ti-clock me-1"></i>{{ match.time.strftime('%I:%M %p') }}
-                                                        <i class="ti ti-map-pin ms-2 me-1"></i>{{ match.location }}
-                                                    </div>
-                                                </div>
-                                                <div class="d-flex align-items-center mt-3 mt-md-0">
-                                                    <div class="rsvp-controls me-2">
-                                                        <div class="btn-group" role="group">
-                                                            <input type="radio" class="btn-check rsvp-input" name="response-{{ match.id }}" id="responseYes-{{ match.id }}" value="yes" autocomplete="off">
-                                                            <label class="btn btn-outline-success" for="responseYes-{{ match.id }}" title="I can play">
-                                                                <i class="ti ti-check"></i>
-                                                            </label>
-                                                            
-                                                            <input type="radio" class="btn-check rsvp-input" name="response-{{ match.id }}" id="responseMaybe-{{ match.id }}" value="maybe" autocomplete="off">
-                                                            <label class="btn btn-outline-warning" for="responseMaybe-{{ match.id }}" title="Maybe">
-                                                                <i class="ti ti-question-mark"></i>
-                                                            </label>
-                                                            
-                                                            <input type="radio" class="btn-check rsvp-input" name="response-{{ match.id }}" id="responseNo-{{ match.id }}" value="no" autocomplete="off">
-                                                            <label class="btn btn-outline-danger" for="responseNo-{{ match.id }}" title="Can't play">
-                                                                <i class="ti ti-x"></i>
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        {% if has_permission('view_match_page') %}
-                                                        <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-primary">
-                                                            Details
-                                                        </a>
+                                                        </span>
+                                                    {% else %}
+                                                        {% if is_home %}
+                                                            <span class="c-match-card__team--highlight">{{ t.name }}</span> vs {{ opponent_name }}
+                                                        {% else %}
+                                                            {{ opponent_name }} vs <span class="c-match-card__team--highlight">{{ t.name }}</span>
                                                         {% endif %}
-                                                        {% if has_permission('report_match') %}
-                                                        <button class="btn btn-outline-secondary ms-1 edit-match-btn"
-                                                                data-match-id="{{ match.id }}"
-                                                                type="button">
-                                                            <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %} me-1"></i>
-                                                            <span class="d-none d-sm-inline">{% if match.reported %}Edit Match Report{% else %}Submit Match Report{% endif %}</span>
-                                                            <span class="d-sm-none">{% if match.reported %}Edit Match Report{% else %}Submit Report{% endif %}</span>
-                                                        </button>
-                                                        {% endif %}
-                                                    </div>
-                                                </div>
+                                                    {% endif %}
+                                                </h6>
+                                            </div>
+                                            <div class="c-match-card__details">
+                                                <span class="c-match-card__detail">
+                                                    <i class="ti ti-clock"></i>{{ match.time.strftime('%I:%M %p') }}
+                                                </span>
+                                                <span class="c-match-card__detail">
+                                                    <i class="ti ti-map-pin"></i>{{ match.location }}
+                                                </span>
                                             </div>
                                         </div>
-                                        
-                                        <!-- Modals moved to bottom of page -->
-                                        {% endfor %}
+                                        <div class="c-match-card__actions">
+                                            <div class="c-rsvp" data-component="rsvp-controls" data-match-id="{{ match.id }}">
+                                                <div class="c-rsvp__group" role="group" aria-label="RSVP options">
+                                                    <input type="radio" class="btn-check rsvp-input" name="response-{{ match.id }}" id="responseYes-{{ match.id }}" value="yes" autocomplete="off">
+                                                    <label class="c-rsvp__option c-rsvp__option--yes" for="responseYes-{{ match.id }}" title="I can play" data-rsvp="yes">
+                                                        <i class="ti ti-check"></i>
+                                                    </label>
+
+                                                    <input type="radio" class="btn-check rsvp-input" name="response-{{ match.id }}" id="responseMaybe-{{ match.id }}" value="maybe" autocomplete="off">
+                                                    <label class="c-rsvp__option c-rsvp__option--maybe" for="responseMaybe-{{ match.id }}" title="Maybe" data-rsvp="maybe">
+                                                        <i class="ti ti-question-mark"></i>
+                                                    </label>
+
+                                                    <input type="radio" class="btn-check rsvp-input" name="response-{{ match.id }}" id="responseNo-{{ match.id }}" value="no" autocomplete="off">
+                                                    <label class="c-rsvp__option c-rsvp__option--no" for="responseNo-{{ match.id }}" title="Can't play" data-rsvp="no">
+                                                        <i class="ti ti-x"></i>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                {% if has_permission('view_match_page') %}
+                                                <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}"
+                                                   class="c-btn c-btn--primary"
+                                                   data-action="view-match-details"
+                                                   data-match-id="{{ match.id }}">
+                                                    Details
+                                                </a>
+                                                {% endif %}
+                                                {% if has_permission('report_match') %}
+                                                <button class="c-btn c-btn--outline"
+                                                        data-action="edit-match"
+                                                        data-match-id="{{ match.id }}"
+                                                        data-reported="{{ match.reported | lower }}"
+                                                        type="button">
+                                                    <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %} me-1"></i>
+                                                    <span class="d-none d-sm-inline">{% if match.reported %}Edit Match Report{% else %}Submit Match Report{% endif %}</span>
+                                                    <span class="d-sm-none">{% if match.reported %}Edit{% else %}Report{% endif %}</span>
+                                                </button>
+                                                {% endif %}
+                                            </div>
+                                        </div>
                                     </div>
+                                    {% endfor %}
                                 </div>
                             </div>
                         {% endfor %}
                     {% else %}
-                        <div class="card shadow-sm">
-                            <div class="card-body text-center p-4">
-                                <img src="{{ url_for('static', filename='img/undraw_notify_re_65on.svg') }}"
-                                     alt="No Matches" class="image-150-mb">
-                                <h5>No Upcoming Matches</h5>
-                                <p class="text-muted">There are no upcoming matches scheduled for {{ t.name }}.</p>
-                            </div>
+                        <div class="c-empty-state" data-component="empty-state">
+                            <img src="{{ url_for('static', filename='img/undraw_notify_re_65on.svg') }}"
+                                 alt="No Matches" class="c-empty-state__image">
+                            <h5 class="c-empty-state__title">No Upcoming Matches</h5>
+                            <p class="c-empty-state__text">There are no upcoming matches scheduled for {{ t.name }}.</p>
                         </div>
                     {% endif %}
                 </div>
                 {% endfor %}
                 {% else %}
-                <div class="card shadow-sm">
-                    <div class="card-body text-center p-4">
-                        <img src="{{ url_for('static', filename='img/undraw_notify_re_65on.svg') }}"
-                             alt="No Matches" class="image-150-mb">
-                        <h5>No Upcoming Matches</h5>
-                        <p class="text-muted">You are not currently assigned to any teams.</p>
-                    </div>
+                <div class="c-empty-state" data-component="empty-state">
+                    <img src="{{ url_for('static', filename='img/undraw_notify_re_65on.svg') }}"
+                         alt="No Matches" class="c-empty-state__image">
+                    <h5 class="c-empty-state__title">No Upcoming Matches</h5>
+                    <p class="c-empty-state__text">You are not currently assigned to any teams.</p>
                 </div>
                 {% endif %}
             </div>
@@ -314,40 +318,51 @@
     <!-- Recent Matches -->
     <div class="row">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h4 class="mb-0">Recent Matches</h4>
+            <div class="c-section-header" data-component="section-header">
+                <h4 class="c-section-header__title">Recent Matches</h4>
                 {% if user_team and user_team|length > 0 %}
-                <div class="nav nav-pills" id="recent-match-tabs" role="tablist">
+                <div class="c-section-header__controls">
+                <div class="c-tabs" id="recent-match-tabs" role="tablist" data-role="tab-navigation" aria-controls="recent-match-tab-content">
                     {% for t in user_team %}
-                        <button class="nav-link {% if loop.first %}active{% endif %}" 
-                                id="recent-team-{{ t.id }}-tab" data-bs-toggle="pill" 
-                                data-bs-target="#recent-team-{{ t.id }}-content" type="button" 
-                                role="tab" aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+                        <button class="c-tabs__item {% if loop.first %}is-active{% endif %}"
+                                id="recent-team-{{ t.id }}-tab"
+                                data-action="switch-tab"
+                                data-bs-toggle="pill"
+                                data-bs-target="#recent-team-{{ t.id }}-content"
+                                type="button"
+                                role="tab"
+                                aria-selected="{% if loop.first %}true{% else %}false{% endif %}"
+                                aria-controls="recent-team-{{ t.id }}-content"
+                                data-team-id="{{ t.id }}">
                             {{ t.name }}
                         </button>
                     {% endfor %}
                 </div>
+                </div>
                 {% endif %}
             </div>
-            
-            <div class="tab-content" id="recent-match-tab-content">
+
+            <div class="tab-content" id="recent-match-tab-content" data-role="tab-content">
                 {% if user_team and user_team|length > 0 %}
                 {% for t in user_team %}
-                <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
-                     id="recent-team-{{ t.id }}-content" role="tabpanel" 
-                     aria-labelledby="recent-team-{{ t.id }}-tab">
-                    
+                <div class="tab-pane fade {% if loop.first %}show active{% endif %}"
+                     id="recent-team-{{ t.id }}-content"
+                     role="tabpanel"
+                     aria-labelledby="recent-team-{{ t.id }}-tab"
+                     data-tab-pane
+                     data-team-id="{{ t.id }}">
+
                     {% set team_prev_matches = team_matches.get(t.id, {}).get('prev', {}) %}
-                    
+
                     {% if team_prev_matches|length > 0 %}
-                        <div class="card shadow-sm">
-                            <div class="list-group list-group-flush">
+                        <div class="c-match-card" data-component="match-card" data-match-type="recent">
+                            <div class="c-match-card__body">
                                 {% for date, matches in team_prev_matches.items() | sort(reverse=true) %}
                                     {% for match_data in matches %}
                                     {% set match = match_data['match'] %}
                                     {% set home_team_name = match_data['home_team_name'] %}
                                     {% set opponent_team_name = match_data['opponent_name'] %}
-                                    
+
                                     {% if match_data['home_team_id'] == t.id %}
                                         {% set is_home = true %}
                                         {% set opponent_name = opponent_team_name %}
@@ -355,121 +370,108 @@
                                         {% set is_home = false %}
                                         {% set opponent_name = home_team_name %}
                                     {% endif %}
-                                    
-                                    <div class="list-group-item p-3">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="match-badge {% if is_home %}bg-success{% else %}bg-info{% endif %} text-white me-2">
-                                                        {% if is_home %}H{% else %}A{% endif %}
-                                                    </div>
-                                                    <div>
-                                                        <h6 class="mb-0">
-                                                            {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
-                                                                <span class="badge bg-info">
-                                                                    {% if match.week_type == 'FUN' %}
-                                                                        Fun Week
-                                                                    {% elif match.week_type == 'TST' %}
-                                                                        TST Week
-                                                                    {% elif match.week_type == 'BYE' %}
-                                                                        Bye Week
-                                                                    {% elif match.week_type == 'BONUS' %}
-                                                                        Bonus Week
-                                                                    {% elif match.week_type == 'PLAYOFF' %}
-                                                                        Playoff Week
-                                                                    {% endif %}
-                                                                </span>
-                                                                <span class="text-muted">
-                                                                    {% if match.week_type == 'FUN' %}
-                                                                        - Special activities
-                                                                    {% elif match.week_type == 'TST' %}
-                                                                        - Tournament events
-                                                                    {% elif match.week_type == 'BYE' %}
-                                                                        - Week off
-                                                                    {% elif match.week_type == 'BONUS' %}
-                                                                        - Additional activities
-                                                                    {% elif match.week_type == 'PLAYOFF' %}
-                                                                        {% if match.home_team_id != match.away_team_id %}
-                                                                            - vs {{ opponent_name }}
-                                                                        {% else %}
-                                                                            - TBD
-                                                                        {% endif %}
-                                                                    {% endif %}
-                                                                </span>
-                                                            {% else %}
-                                                                {% if is_home %}
-                                                                    <span class="fw-bold">{{ t.name }}</span> vs {{ opponent_name }}
-                                                                {% else %}
-                                                                    {{ opponent_name }} vs <span class="fw-bold">{{ t.name }}</span>
+
+                                    <div class="c-match-card__item" data-match-id="{{ match.id }}">
+                                        <div class="c-match-card__info">
+                                            <div class="c-match-card__matchup">
+                                                <div class="c-match-badge c-match-badge--{% if is_home %}home{% else %}away{% endif %}"
+                                                     data-badge
+                                                     data-location-type="{% if is_home %}home{% else %}away{% endif %}">
+                                                    {% if is_home %}H{% else %}A{% endif %}
+                                                </div>
+                                                <div>
+                                                    <h6 class="c-match-card__matchup-text">
+                                                        {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
+                                                            <span class="c-badge c-badge--info" data-badge data-week-type="{{ match.week_type }}">
+                                                                {% if match.week_type == 'FUN' %}
+                                                                    Fun Week
+                                                                {% elif match.week_type == 'TST' %}
+                                                                    TST Week
+                                                                {% elif match.week_type == 'BYE' %}
+                                                                    Bye Week
+                                                                {% elif match.week_type == 'BONUS' %}
+                                                                    Bonus Week
+                                                                {% elif match.week_type == 'PLAYOFF' %}
+                                                                    Playoff Week
                                                                 {% endif %}
+                                                            </span>
+                                                            <span class="c-match-card__text--muted">
+                                                                {% if match.week_type == 'FUN' %}
+                                                                    - Special activities
+                                                                {% elif match.week_type == 'TST' %}
+                                                                    - Tournament events
+                                                                {% elif match.week_type == 'BYE' %}
+                                                                    - Week off
+                                                                {% elif match.week_type == 'BONUS' %}
+                                                                    - Additional activities
+                                                                {% elif match.week_type == 'PLAYOFF' %}
+                                                                    {% if match.home_team_id != match.away_team_id %}
+                                                                        - vs {{ opponent_name }}
+                                                                    {% else %}
+                                                                        - TBD
+                                                                    {% endif %}
+                                                                {% endif %}
+                                                            </span>
+                                                        {% else %}
+                                                            {% if is_home %}
+                                                                <span class="c-match-card__team--highlight">{{ t.name }}</span> vs {{ opponent_name }}
+                                                            {% else %}
+                                                                {{ opponent_name }} vs <span class="c-match-card__team--highlight">{{ t.name }}</span>
                                                             {% endif %}
-                                                        </h6>
-                                                        <div class="text-muted small mt-1">
+                                                        {% endif %}
+                                                    </h6>
+                                                    <div class="c-match-card__details">
+                                                        <span class="c-match-card__detail">
                                                             {{ date.strftime('%a, %b %d') }} · {{ match.time.strftime('%I:%M %p') }} · {{ match.location }}
-                                                        </div>
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="mt-3 mt-md-0">
-                                                {% if has_permission('view_match_page') %}
-                                                <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-primary">Details</a>
-                                                {% endif %}
-                                                {% if has_permission('report_match') %}
-                                                <button class="btn btn-outline-secondary ms-1 edit-match-btn"
-                                                        data-match-id="{{ match.id }}"
-                                                        type="button">
-                                                    <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %} me-1"></i>
-                                                    <span class="d-none d-sm-inline">{% if match.reported %}Edit Match Report{% else %}Submit Match Report{% endif %}</span>
-                                                    <span class="d-sm-none">{% if match.reported %}Edit Match Report{% else %}Submit Report{% endif %}</span>
-                                                </button>
-                                                {% endif %}
-                                            </div>
+                                        </div>
+                                        <div class="c-match-card__actions">
+                                            {% if has_permission('view_match_page') %}
+                                            <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}"
+                                               class="c-btn c-btn--primary"
+                                               data-action="view-match-details"
+                                               data-match-id="{{ match.id }}">
+                                                Details
+                                            </a>
+                                            {% endif %}
+                                            {% if has_permission('report_match') %}
+                                            <button class="c-btn c-btn--outline"
+                                                    data-action="edit-match"
+                                                    data-match-id="{{ match.id }}"
+                                                    data-reported="{{ match.reported | lower }}"
+                                                    type="button">
+                                                <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %} me-1"></i>
+                                                <span class="d-none d-sm-inline">{% if match.reported %}Edit Match Report{% else %}Submit Match Report{% endif %}</span>
+                                                <span class="d-sm-none">{% if match.reported %}Edit{% else %}Report{% endif %}</span>
+                                            </button>
+                                            {% endif %}
                                         </div>
                                     </div>
-                                    
-                                    <!-- Modals are loaded via AJAX by base.html -->
                                     {% endfor %}
                                 {% endfor %}
                             </div>
                         </div>
                     {% else %}
-                        <div class="card shadow-sm">
-                            <div class="card-body text-center p-4">
-                                <img src="{{ url_for('static', filename='img/undraw_goal_-0-v5v.svg') }}"
-                                     alt="No Matches" class="image-150-mb">
-                                <h5>No Recent Matches</h5>
-                                <p class="text-muted">There are no recent matches for {{ t.name }}.</p>
-                            </div>
+                        <div class="c-empty-state" data-component="empty-state">
+                            <img src="{{ url_for('static', filename='img/undraw_goal_-0-v5v.svg') }}"
+                                 alt="No Matches" class="c-empty-state__image">
+                            <h5 class="c-empty-state__title">No Recent Matches</h5>
+                            <p class="c-empty-state__text">There are no recent matches for {{ t.name }}.</p>
                         </div>
                     {% endif %}
                 </div>
                 {% endfor %}
                 {% else %}
-                <div class="card shadow-sm">
-                    <div class="card-body text-center p-4">
-                        <img src="{{ url_for('static', filename='img/undraw_goal_-0-v5v.svg') }}"
-                             alt="No Matches" class="image-150-mb">
-                        <h5>No Recent Matches</h5>
-                        <p class="text-muted">You are not currently assigned to any teams.</p>
-                    </div>
+                <div class="c-empty-state" data-component="empty-state">
+                    <img src="{{ url_for('static', filename='img/undraw_goal_-0-v5v.svg') }}"
+                         alt="No Matches" class="c-empty-state__image">
+                    <h5 class="c-empty-state__title">No Recent Matches</h5>
+                    <p class="c-empty-state__text">You are not currently assigned to any teams.</p>
                 </div>
                 {% endif %}
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Admin features - hidden but can be re-enabled if needed -->
-    {% if false and safe_current_user.has_permission('view_match_reporting') %}
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-dark text-white">
-                    <h5 class="card-title mb-0">Debug Information</h5>
-                </div>
-                <div class="card-body">
-                    <!-- Debug content removed -->
-                </div>
             </div>
         </div>
     </div>
@@ -478,169 +480,32 @@
 {% endblock %}
 
 {% block custom_css %}
-<!-- Styles moved to /app/static/css/core/foundation-overrides.css -->
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/home-modern.css') }}">
 {% endblock %}
 
 {% block custom_js %}
 <script>
-    const showTour = {{ show_tour | tojson }};
-    // Make player choices globally available for our fix script
+    // Make show_tour and player_choices globally available
+    window.showTour = {{ show_tour | tojson }};
     window.playerChoices = {{ player_choices | tojson }};
-    const playerChoices = window.playerChoices;
-    
-    // Fix iOS 100vh issue
-    function setViewportHeight() {
-        let vh = window.innerHeight * 0.01;
-        document.documentElement.style.setProperty('--vh', `${vh}px`);
-    }
-    
-    // Initialize and handle mobile-specific behaviors
-    document.addEventListener('DOMContentLoaded', function() {
-        // Set viewport height fix
-        setViewportHeight();
-        window.addEventListener('resize', function() {
-            setViewportHeight();
-        });
-        window.addEventListener('orientationchange', setViewportHeight);
-        
-        // Make tabs touch-friendly - ONLY ON MOBILE
-        const tabContainers = document.querySelectorAll('.nav-pills');
-        tabContainers.forEach(container => {
-            // Only apply mobile enhancements if we're actually on mobile
-            if (window.innerWidth < 768) {
-                container.classList.add('small-tabs', 'overflow-auto', 'flex-nowrap');
-                
-                // Add touch swipe to navigate between tabs on mobile
-                let touchStartX = 0;
-                let touchEndX = 0;
-                const tabPanes = container.closest('.tab-content') || 
-                                 document.querySelector(container.getAttribute('aria-controls')) ||
-                                 document.querySelector('.tab-content');
-                
-                if (tabPanes) {
-                    tabPanes.addEventListener('touchstart', function(e) {
-                        touchStartX = e.changedTouches[0].screenX;
-                    }, {passive: true});
-                    
-                    tabPanes.addEventListener('touchend', function(e) {
-                        touchEndX = e.changedTouches[0].screenX;
-                        handleSwipeNav(container);
-                    }, {passive: true});
-                    
-                    function handleSwipeNav(tabContainer) {
-                        // Get all tabs and find active tab index
-                        const tabs = Array.from(tabContainer.querySelectorAll('.nav-link'));
-                        const activeIndex = tabs.findIndex(tab => tab.classList.contains('active'));
-                        
-                        // Minimum 50px swipe to trigger navigation
-                        if (touchEndX < touchStartX - 50 && activeIndex < tabs.length - 1) {
-                            // Swipe left - go to next tab
-                            tabs[activeIndex + 1].click();
-                        } else if (touchEndX > touchStartX + 50 && activeIndex > 0) {
-                            // Swipe right - go to previous tab
-                            tabs[activeIndex - 1].click();
-                        }
-                    }
-                }
-            }
-        });
-        
-        // Improve lists on mobile
-        if (window.innerWidth < 768) {
-            // Make any button-group controls easier to tap
-            const btnGroups = document.querySelectorAll('.btn-group');
-            btnGroups.forEach(group => {
-                const labels = group.querySelectorAll('label.btn');
-                labels.forEach(label => {
-                    label.style.minHeight = '44px';
-                    label.style.minWidth = '44px';
-                    label.style.display = 'flex';
-                    label.style.alignItems = 'center';
-                    label.style.justifyContent = 'center';
-                });
-            });
-            
-            // Auto-scroll active tabs into view
-            document.querySelectorAll('[data-bs-toggle="pill"]').forEach(tabEl => {
-                tabEl.addEventListener('shown.bs.tab', function() {
-                    // Scroll this tab into view if it's not fully visible
-                    const container = this.closest('.nav-pills');
-                    if (container) {
-                        const tabRect = this.getBoundingClientRect();
-                        const containerRect = container.getBoundingClientRect();
-                        
-                        if (tabRect.right > containerRect.right || tabRect.left < containerRect.left) {
-                            this.scrollIntoView({
-                                behavior: 'smooth',
-                                block: 'nearest',
-                                inline: 'center'
-                            });
-                        }
-                    }
-                });
-            });
-        }
-        
-        // Handle any modals better on mobile
-        const allModals = document.querySelectorAll('.modal');
-        allModals.forEach(modal => {
-            modal.addEventListener('shown.bs.modal', function() {
-                // Fix for iOS scroll issues in modals
-                if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-                    document.body.style.overflow = 'hidden';
-                    document.body.style.position = 'fixed';
-                    document.body.style.width = '100%';
-                }
-            });
-            
-            modal.addEventListener('hidden.bs.modal', function() {
-                if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-                    document.body.style.overflow = '';
-                    document.body.style.position = '';
-                    document.body.style.width = '';
-                }
-            });
-        });
-        
-        // Enable fast click on mobile devices to reduce tap delay
-        if ('ontouchstart' in window) {
-            const buttons = document.querySelectorAll('button, .btn, a');
-            buttons.forEach(button => {
-                button.addEventListener('touchstart', function() {}, {passive: true});
-            });
-        }
-    });
-    
-    // Register service worker if supported by the browser
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-            navigator.serviceWorker.register('/static/js/service-worker.js')
-                .then(function(registration) {
-                    console.log('ServiceWorker registered: ', registration);
-                })
-                .catch(function(error) {
-                    console.log('ServiceWorker registration failed: ', error);
-                });
-        });
-    }
 </script>
 <script src="{{ url_for('static', filename='custom_js/tour.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/report_match.js') }}"></script>
+<script src="{{ url_for('static', filename='custom_js/home.js') }}"></script>
 {% if show_onboarding or session.get('force_onboarding') %}
 <script src="{{ url_for('static', filename='custom_js/onboarding.js') }}"></script>
 <script>
     // Auto-open the onboarding modal when the page loads
     document.addEventListener('DOMContentLoaded', function() {
-        // Check if the modal element exists
         const modalElement = document.getElementById('onboardingSlideModal');
         if (modalElement) {
             console.log("Auto-opening onboarding modal");
             try {
-                const onboardingModal = new bootstrap.Modal(modalElement, {
+                ModalManager.show('onboardingSlideModal', {
                     backdrop: 'static',
                     keyboard: false
                 });
-                onboardingModal.show();
             } catch (error) {
                 console.error("Error auto-opening modal:", error);
             }
@@ -650,78 +515,6 @@
 {% endif %}
 {% if player %}
 <script src="{{ url_for('static', filename='custom_js/rsvp.js') }}"></script>
-
-<!-- Discord Membership Detection for Dashboard -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const playerDiscordId = '{{ player.discord_id }}';
-    
-    if (playerDiscordId && playerDiscordId !== 'None' && playerDiscordId !== '') {
-        // Player has Discord linked - check if they're in the server
-        // This check will be handled by the global Discord membership checker
-        // but we can add dashboard-specific logic here
-        
-        // Check if they've been shown the Discord prompt recently
-        const lastPromptShown = localStorage.getItem('discord_prompt_shown');
-        const now = new Date().getTime();
-        const oneWeek = 7 * 24 * 60 * 60 * 1000; // One week in milliseconds
-        
-        if (!lastPromptShown || (now - parseInt(lastPromptShown)) > oneWeek) {
-            // Show a more subtle reminder on the dashboard
-            setTimeout(() => {
-                // Only show if there are upcoming matches or RSVP opportunities
-                const rsvpButtons = document.querySelectorAll('[data-rsvp]');
-                if (rsvpButtons.length > 0) {
-                    DiscordMembershipChecker.showJoinPrompt({
-                        title: '💡 Stay Connected on Discord',
-                        urgency: 'info',
-                        showUrgentPopup: true
-                    });
-                    
-                    // Mark as shown
-                    localStorage.setItem('discord_prompt_shown', now.toString());
-                }
-            }, 5000); // Show after 5 seconds on dashboard
-        }
-    } else {
-        // Player doesn't have Discord linked at all
-        setTimeout(() => {
-            Swal.fire({
-                title: '🔗 Connect Your Discord Account',
-                html: `
-                    <div class="text-start">
-                        <p><strong>Your Discord account isn't connected yet!</strong></p>
-                        <p>Connecting Discord is important for:</p>
-                        <ul class="text-start ms-3">
-                            <li>🔔 Getting match notifications and updates</li>
-                            <li>💬 Communicating with teammates</li>
-                            <li>📅 Receiving RSVP reminders</li>
-                            <li>🏆 Staying updated on league announcements</li>
-                        </ul>
-                        <p class="mt-3"><strong>Connect now to enhance your experience!</strong></p>
-                    </div>
-                `,
-                icon: 'info',
-                showCancelButton: true,
-                confirmButtonText: '<i class="fab fa-discord me-2"></i>Connect Discord',
-                cancelButtonText: 'Maybe Later',
-                confirmButtonColor: '#5865F2', // Discord brand color
-                cancelButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--ecs-secondary').trim() || '#6c757d'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = '{{ url_for("auth.discord_login") }}';
-                }
-            });
-        }, 10000); // Show after 10 seconds on dashboard for unlinked accounts
-    }
-});
-</script>
-
-<!-- Simple Cropper for Onboarding Modal -->
 <script src="{{ url_for('static', filename='custom_js/simple-cropper.js') }}"></script>
-<script src="{{ url_for('static', filename='custom_js/onboarding.js') }}"></script>
-
 {% endif %}
-
-<!-- Modals are loaded via AJAX by base.html -->
 {% endblock %}

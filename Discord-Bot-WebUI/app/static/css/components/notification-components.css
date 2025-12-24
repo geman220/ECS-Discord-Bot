@@ -1,0 +1,432 @@
+/**
+ * ============================================================================
+ * NOTIFICATION COMPONENTS - Notification & Alert Cards
+ * ============================================================================
+ *
+ * Notification cards, alerts, and messaging components.
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   NOTIFICATION CARD
+   ============================================================================ */
+
+.c-notification-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3, 12px);
+  padding: var(--space-4, 16px);
+  background: var(--color-bg-elevated, #1e293b);
+  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+  border-radius: var(--radius-lg, 12px);
+  margin-bottom: var(--space-3, 12px);
+}
+
+.c-notification-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  margin-bottom: var(--space-2, 8px);
+}
+
+.c-notification-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md, 8px);
+  color: var(--color-text-secondary, #94a3b8);
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.c-notification-card__icon--primary {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--color-primary-light, #60a5fa);
+}
+
+.c-notification-card__icon--success {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--color-success-light, #34d399);
+}
+
+.c-notification-card__icon--discord {
+  background: rgba(88, 101, 242, 0.15);
+  color: #7289da;
+}
+
+.c-notification-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-notification-card__title {
+  margin: 0 0 var(--space-1, 4px);
+  font-size: var(--text-base, 1rem);
+  font-weight: 600;
+  color: var(--color-text-primary, #f8fafc);
+}
+
+.c-notification-card__subtitle {
+  margin: 0;
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-muted, #64748b);
+}
+
+.c-notification-card__text {
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--color-text-secondary, #94a3b8);
+  line-height: 1.5;
+}
+
+.c-notification-card__text--warning {
+  color: var(--color-warning-light, #fbbf24);
+}
+
+/* ============================================================================
+   NOTIFICATION BUTTON
+   ============================================================================ */
+
+.c-notification-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  padding: var(--space-2, 8px) var(--space-4, 16px);
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 500;
+  color: var(--color-text-primary, #f8fafc);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+  transition: all var(--duration-fast, 150ms) ease;
+}
+
+.c-notification-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.c-notification-btn--success {
+  color: #fff;
+  background: var(--color-success, #10b981);
+  border-color: var(--color-success, #10b981);
+}
+
+.c-notification-btn--success:hover {
+  background: var(--color-success-hover, #059669);
+}
+
+.c-notification-btn--danger {
+  color: #fff;
+  background: var(--color-danger, #ef4444);
+  border-color: var(--color-danger, #ef4444);
+}
+
+.c-notification-btn--danger:hover {
+  background: var(--color-danger-hover, #dc2626);
+}
+
+/* ============================================================================
+   NOTIFICATION SWITCH
+   ============================================================================ */
+
+.c-notification-switch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+}
+
+.c-notification-switch__input,
+.c-notification-switch__input.is-valid,
+.c-notification-switch__input.is-invalid {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  /* Use a solid visible color for the toggle track */
+  background: #64748b; /* slate-500 - visible in both light and dark modes */
+  background-image: none !important;
+  border: none !important;
+  border-radius: 12px;
+  cursor: pointer;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  transition: background-color var(--duration-fast, 150ms) ease;
+  padding: 0 !important;
+  margin: 0;
+  flex-shrink: 0; /* Prevent toggle from shrinking */
+}
+
+.c-notification-switch__input::before,
+.c-notification-switch__input.is-valid::before,
+.c-notification-switch__input.is-invalid::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform var(--duration-fast, 150ms) ease;
+}
+
+.c-notification-switch__input:checked,
+.c-notification-switch__input.is-valid:checked {
+  background: #10b981; /* emerald-500 - success green */
+}
+
+.c-notification-switch__input:checked::before,
+.c-notification-switch__input.is-valid:checked::before {
+  transform: translateX(20px);
+}
+
+/* Hide the empty label - switch is self-contained */
+.c-notification-switch__label {
+  display: none;
+}
+
+/* ============================================================================
+   ALERT EXTENSIONS
+   ============================================================================ */
+
+.c-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+  margin-bottom: var(--space-4, 16px);
+}
+
+.c-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3, 12px);
+  padding: var(--space-4, 16px);
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--radius-lg, 12px);
+}
+
+.c-alert--light {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.08));
+}
+
+.c-alert__title {
+  margin: 0 0 var(--space-1, 4px);
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--color-text-primary, #f8fafc);
+}
+
+.c-alert__message {
+  margin: 0;
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--color-text-secondary, #94a3b8);
+}
+
+.c-alert__meta {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-muted, #64748b);
+}
+
+.c-alert__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  color: var(--color-text-muted, #64748b);
+  cursor: pointer;
+  margin-left: auto;
+  transition: all var(--duration-fast, 150ms) ease;
+}
+
+.c-alert__close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-primary, #f8fafc);
+}
+
+/* ============================================================================
+   CONTACT CHANNEL
+   ============================================================================ */
+
+.c-contact-channels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.c-contact-channels__label {
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 600;
+  color: var(--color-text-secondary, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-2, 8px);
+}
+
+.c-contact-channel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  padding: var(--space-3, 12px);
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-md, 8px);
+}
+
+.c-contact-channel__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md, 8px);
+  color: var(--color-text-secondary, #94a3b8);
+  flex-shrink: 0;
+}
+
+.c-contact-channel__icon--email {
+  color: var(--color-primary-light, #60a5fa);
+}
+
+.c-contact-channel__icon--sms {
+  color: var(--color-success-light, #34d399);
+}
+
+.c-contact-channel__icon--discord {
+  color: #7289da;
+}
+
+.c-contact-channel__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-contact-channel__status {
+  font-size: var(--text-xs, 0.75rem);
+  padding: var(--space-1, 4px) var(--space-2, 8px);
+  border-radius: var(--radius-sm, 6px);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.c-contact-channel__status--disabled {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger-light, #f87171);
+}
+
+.c-contact-channel__status--warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--color-warning-light, #fbbf24);
+}
+
+.c-contact-channel__status--error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger-light, #f87171);
+}
+
+.c-contact-channel__status--unavailable {
+  background: rgba(100, 116, 139, 0.1);
+  color: var(--color-text-muted, #64748b);
+}
+
+/* ============================================================================
+   CONTACT RECIPIENT
+   ============================================================================ */
+
+.c-contact-recipient {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  padding: var(--space-3, 12px);
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-md, 8px);
+}
+
+.c-contact-recipient__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.c-contact-recipient__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-contact-recipient__name {
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 500;
+  color: var(--color-text-primary, #f8fafc);
+}
+
+.c-contact-recipient__help {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-muted, #64748b);
+}
+
+/* ============================================================================
+   LIGHT MODE
+   ============================================================================ */
+
+[data-style="light"] .c-notification-card {
+  background: var(--color-bg-primary, #fff);
+  border-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
+}
+
+[data-style="light"] .c-notification-card__icon {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-style="light"] .c-notification-card__title {
+  color: var(--color-text-primary, #1e293b);
+}
+
+[data-style="light"] .c-notification-btn {
+  color: var(--color-text-primary, #1e293b);
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-style="light"] .c-notification-switch__input {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+[data-style="light"] .c-notification-switch__label {
+  color: var(--color-text-primary, #1e293b);
+}
+
+[data-style="light"] .c-alert {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+[data-style="light"] .c-alert--light {
+  background: var(--color-bg-secondary, #f8fafc);
+  border-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
+}
+
+[data-style="light"] .c-alert__title {
+  color: var(--color-text-primary, #1e293b);
+}
+
+[data-style="light"] .c-contact-channel,
+[data-style="light"] .c-contact-recipient {
+  background: var(--color-bg-secondary, #f8fafc);
+}
+
+[data-style="light"] .c-contact-channel__icon {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-style="light"] .c-contact-recipient__name {
+  color: var(--color-text-primary, #1e293b);
+}

@@ -15,60 +15,60 @@
     <!-- Roles & Permissions Overview -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
+            <div class="c-card bg-primary text-white">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title text-white mb-1">{{ roles|length }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Total Roles</p>
+                            <h5 class="c-card__title text-white mb-1">{{ roles|length }}</h5>
+                            <p class="c-card__description small opacity-75 mb-0">Total Roles</p>
                         </div>
                         <div class="card-icon">
-                            <i class="ti ti-shield" style="font-size: 2rem; opacity: 0.5;"></i>
+                            <i class="ti ti-shield card-icon-stat"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
+            <div class="c-card bg-success text-white">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title text-white mb-1">{{ permissions|length }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Total Permissions</p>
+                            <h5 class="c-card__title text-white mb-1">{{ permissions|length }}</h5>
+                            <p class="c-card__description small opacity-75 mb-0">Total Permissions</p>
                         </div>
                         <div class="card-icon">
-                            <i class="ti ti-key" style="font-size: 2rem; opacity: 0.5;"></i>
+                            <i class="ti ti-key card-icon-stat"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
+            <div class="c-card bg-info text-white">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title text-white mb-1">{{ users_with_roles }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Users with Roles</p>
+                            <h5 class="c-card__title text-white mb-1">{{ users_with_roles }}</h5>
+                            <p class="c-card__description small opacity-75 mb-0">Users with Roles</p>
                         </div>
                         <div class="card-icon">
-                            <i class="ti ti-user-cog" style="font-size: 2rem; opacity: 0.5;"></i>
+                            <i class="ti ti-user-cog card-icon-stat"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
+            <div class="c-card bg-warning text-white">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title text-white mb-1">{{ admin_roles }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Admin Roles</p>
+                            <h5 class="c-card__title text-white mb-1">{{ admin_roles }}</h5>
+                            <p class="c-card__description small opacity-75 mb-0">Admin Roles</p>
                         </div>
                         <div class="card-icon">
-                            <i class="ti ti-crown" style="font-size: 2rem; opacity: 0.5;"></i>
+                            <i class="ti ti-crown card-icon-stat"></i>
                         </div>
                     </div>
                 </div>
@@ -79,32 +79,32 @@
     <!-- Role Management -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-shield me-2"></i>System Roles
                     </h5>
                     <div>
-                        <button class="btn btn-outline-secondary me-2" onclick="window.history.back()">
+                        <button class="c-btn c-btn--outline-secondary me-2 js-back-button" data-action="back">
                             <i class="ti ti-arrow-left me-1"></i>Back
                         </button>
-                        <a href="{{ url_for('admin_panel.feature_toggles') }}#roles" class="btn btn-outline-primary">
+                        <a href="{{ url_for('admin_panel.feature_toggles') }}#roles" class="c-btn c-btn--outline-primary">
                             <i class="ti ti-settings me-1"></i>Role Settings
                         </a>
                     </div>
                 </div>
-                <div class="card-body p-0">
+                <div class="c-card__body p-0">
                     {% if roles %}
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
+                    <div class="c-table-wrapper" data-table-responsive>
+                        <table class="c-table c-table--hoverable mb-0" data-table>
+                            <thead class="c-table--light" scope="col">
                                 <tr>
-                                    <th>Role Name</th>
-                                    <th>Description</th>
-                                    <th>Users</th>
-                                    <th>Permissions</th>
-                                    <th>Type</th>
-                                    <th>Actions</th>
+                                    <th scope="col">Role Name</th>
+                                    <th scope="col">Description</th>
+                                    <th scope="col">Users</th>
+                                    <th scope="col">Permissions</th>
+                                    <th scope="col">Type</th>
+                                    <th scope="col">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -120,34 +120,34 @@
                                         <small>{{ role.description or 'No description' }}</small>
                                     </td>
                                     <td>
-                                        <span class="badge bg-info">{{ role.users|length }} users</span>
+                                        <span class="badge bg-info" data-badge>{{ role.users|length }} users</span>
                                     </td>
                                     <td>
-                                        <span class="badge bg-success">{{ role.permissions|length }} permissions</span>
+                                        <span class="badge bg-success" data-badge>{{ role.permissions|length }} permissions</span>
                                     </td>
                                     <td>
                                         {% if 'Admin' in role.name %}
-                                        <span class="badge bg-danger">Admin</span>
+                                        <span class="badge bg-danger" data-badge>Admin</span>
                                         {% elif 'Coach' in role.name %}
-                                        <span class="badge bg-warning">Staff</span>
+                                        <span class="badge bg-warning" data-badge>Staff</span>
                                         {% elif 'pl-' in role.name %}
-                                        <span class="badge bg-primary">League</span>
+                                        <span class="badge bg-primary" data-badge>League</span>
                                         {% else %}
-                                        <span class="badge bg-secondary">Other</span>
+                                        <span class="badge bg-secondary" data-badge>Other</span>
                                         {% endif %}
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-info" 
-                                                    onclick="viewRoleDetails({{ role.id }}, '{{ role.name }}')">
+                                            <button class="c-btn c-btn--outline-info js-view-role"
+                                                    data-action="view-role" data-role-id="{{ role.id }}" data-role-name="{{ role.name }}">
                                                 <i class="ti ti-eye"></i>
                                             </button>
-                                            <button class="btn btn-outline-warning" 
-                                                    onclick="manageRolePermissions({{ role.id }}, '{{ role.name }}')">
+                                            <button class="c-btn c-btn--outline-warning js-manage-permissions"
+                                                    data-action="manage-permissions" data-role-id="{{ role.id }}" data-role-name="{{ role.name }}">
                                                 <i class="ti ti-key"></i>
                                             </button>
-                                            <button class="btn btn-outline-primary" 
-                                                    onclick="viewRoleUsers({{ role.id }}, '{{ role.name }}')">
+                                            <button class="c-btn c-btn--outline-primary js-view-users"
+                                                    data-action="view-users" data-role-id="{{ role.id }}" data-role-name="{{ role.name }}">
                                                 <i class="ti ti-users"></i>
                                             </button>
                                         </div>
@@ -159,7 +159,7 @@
                     </div>
                     {% else %}
                     <div class="text-center py-5">
-                        <i class="ti ti-shield-x text-muted" style="font-size: 4rem;"></i>
+                        <i class="ti ti-shield-x text-muted icon-empty-state"></i>
                         <h5 class="text-muted mt-3">No roles found</h5>
                         <p class="text-muted">No roles are configured in the system.</p>
                     </div>
@@ -172,18 +172,18 @@
     <!-- Quick Actions -->
     <div class="row">
         <div class="col-md-6 mb-3">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-user-plus me-2"></i>Assign User Roles
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <form method="POST" action="{{ url_for('admin_panel.assign_user_roles') }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="mb-3">
                             <label for="user_select" class="form-label">Select User</label>
-                            <select class="form-select" id="user_select" name="user_id" required>
+                            <select class="form-select" id="user_select" name="user_id" required data-form-select>
                                 <option value="">Choose a user...</option>
                                 {% for user in users %}
                                 <option value="{{ user.id }}">{{ user.name or user.username }} ({{ user.email }})</option>
@@ -192,14 +192,14 @@
                         </div>
                         <div class="mb-3">
                             <label for="roles_select" class="form-label">Assign Roles</label>
-                            <select class="form-select" id="roles_select" name="role_ids" multiple>
+                            <select class="form-select" id="roles_select" name="role_ids" multiple data-form-select>
                                 {% for role in roles %}
                                 <option value="{{ role.id }}">{{ role.name }}</option>
                                 {% endfor %}
                             </select>
                             <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple roles</small>
                         </div>
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="c-btn c-btn--primary">
                             <i class="ti ti-check me-1"></i>Assign Roles
                         </button>
                     </form>
@@ -208,25 +208,25 @@
         </div>
 
         <div class="col-md-6 mb-3">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-search me-2"></i>Search Users by Role
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <form method="POST" action="{{ url_for('admin_panel.search_users_by_role') }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="mb-3">
                             <label for="search_role" class="form-label">Select Role</label>
-                            <select class="form-select" id="search_role" name="role_id" required>
+                            <select class="form-select" id="search_role" name="role_id" required data-form-select>
                                 <option value="">Choose a role...</option>
                                 {% for role in roles %}
                                 <option value="{{ role.id }}">{{ role.name }} ({{ role.users|length }} users)</option>
                                 {% endfor %}
                             </select>
                         </div>
-                        <button type="submit" class="btn btn-info">
+                        <button type="submit" class="c-btn c-btn--info">
                             <i class="ti ti-search me-1"></i>Find Users
                         </button>
                     </form>
@@ -244,7 +244,7 @@
                                     </div>
                                     <div>
                                         {% for role in user.roles %}
-                                        <span class="badge bg-secondary me-1">{{ role.name }}</span>
+                                        <span class="badge bg-secondary me-1" data-badge>{{ role.name }}</span>
                                         {% endfor %}
                                     </div>
                                 </div>
@@ -259,18 +259,18 @@
     </div>
 
     <!-- Role Details Modal -->
-    <div class="modal fade" id="roleDetailsModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="role_details_title">Role Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal c-modal fade" id="roleDetailsModal" tabindex="-1" data-modal aria-labelledby="role_details_title">
+        <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+            <div class="modal-content c-modal__content" data-modal-content>
+                <div class="modal-header c-modal__header" data-modal-header>
+                    <h5 class="modal-title c-modal__title" id="role_details_title">Role Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
                 </div>
-                <div class="modal-body" id="role_details_content">
+                <div class="modal-body c-modal__body" id="role_details_content" data-modal data-modal-body aria-labelledby="role_details_contentLabel">
                     <!-- Role details will be loaded here -->
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <div class="modal-footer c-modal__footer" data-modal-footer>
+                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
                 </div>
             </div>
         </div>
@@ -278,6 +278,7 @@
 {% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
 .card-icon {
     display: flex;
@@ -299,14 +300,47 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Event delegation for role actions
+    document.querySelectorAll('.js-back-button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            window.history.back();
+        });
+    });
+
+    document.querySelectorAll('.js-view-role').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const roleId = this.getAttribute('data-role-id');
+            const roleName = this.getAttribute('data-role-name');
+            viewRoleDetails(roleId, roleName);
+        });
+    });
+
+    document.querySelectorAll('.js-manage-permissions').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const roleId = this.getAttribute('data-role-id');
+            const roleName = this.getAttribute('data-role-name');
+            manageRolePermissions(roleId, roleName);
+        });
+    });
+
+    document.querySelectorAll('.js-view-users').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const roleId = this.getAttribute('data-role-id');
+            const roleName = this.getAttribute('data-role-name');
+            viewRoleUsers(roleId, roleName);
+        });
+    });
+});
+
 function viewRoleDetails(roleId, roleName) {
     document.getElementById('role_details_title').textContent = `Details for ${roleName}`;
-    document.getElementById('role_details_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
-    
-    const modal = new bootstrap.Modal(document.getElementById('roleDetailsModal'));
-    modal.show();
-    
+    document.getElementById('role_details_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status" data-spinner></div></div>';
+
+    ModalManager.show('roleDetailsModal');
+
     // Load role details via AJAX
     fetch(`{{ url_for('admin_panel.get_role_details') }}?role_id=${roleId}`)
         .then(response => response.json())
@@ -314,11 +348,11 @@ function viewRoleDetails(roleId, roleName) {
             if (data.success) {
                 document.getElementById('role_details_content').innerHTML = data.html;
             } else {
-                document.getElementById('role_details_content').innerHTML = '<div class="alert alert-danger">Error loading role details</div>';
+                document.getElementById('role_details_content').innerHTML = '<div class="alert alert-danger" data-alert>Error loading role details</div>';
             }
         })
         .catch(error => {
-            document.getElementById('role_details_content').innerHTML = '<div class="alert alert-danger">Error loading role details</div>';
+            document.getElementById('role_details_content').innerHTML = '<div class="alert alert-danger" data-alert>Error loading role details</div>';
         });
 }
 

@@ -703,16 +703,16 @@ def get_message_template_by_key(category: str, key: str):
     """
     try:
         from app.models import MessageTemplate, MessageCategory
-        
+
         template = MessageTemplate.query.join(MessageCategory).filter(
             MessageCategory.name == category,
             MessageTemplate.key == key,
             MessageTemplate.is_active == True
         ).first()
-        
+
         if not template:
             return jsonify({'error': 'Template not found'}), 404
-        
+
         return jsonify({
             'id': template.id,
             'key': template.key,
@@ -721,7 +721,69 @@ def get_message_template_by_key(category: str, key: str):
             'variables': template.variables,
             'category': category
         }), 200
-        
+
     except Exception as e:
         logger.error(f"Error fetching message template {category}/{key}: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@discord_onboarding.route('/league-settings/<league_key>', methods=['GET'])
+@csrf.exempt
+@transactional
+def get_league_settings(league_key: str):
+    """
+    API endpoint to get league-specific settings by key.
+    Used by Discord bot to fetch configurable league information
+    (display name, welcome message, contact info) instead of hardcoded values.
+
+    Args:
+        league_key: The league identifier (e.g., 'pub_league_classic', 'pub_league_premier', 'ecs_fc')
+
+    Returns:
+        JSON with league display_name, welcome_message, contact_info, and emoji
+    """
+    try:
+        from app.models import LeagueSetting
+
+        setting = LeagueSetting.query.filter_by(
+            league_key=league_key,
+            is_active=True
+        ).first()
+
+        if not setting:
+            logger.warning(f"League setting not found for key: {league_key}")
+            return jsonify({'error': 'League not found'}), 404
+
+        return jsonify(setting.to_dict()), 200
+
+    except Exception as e:
+        logger.error(f"Error fetching league settings for {league_key}: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@discord_onboarding.route('/league-settings', methods=['GET'])
+@csrf.exempt
+@transactional
+def get_all_league_settings():
+    """
+    API endpoint to get all active league settings.
+    Used by Discord bot to get all league options for displaying to users.
+
+    Returns:
+        JSON array of all active league settings ordered by sort_order
+    """
+    try:
+        from app.models import LeagueSetting
+
+        settings = LeagueSetting.query.filter_by(is_active=True).order_by(
+            LeagueSetting.sort_order
+        ).all()
+
+        return jsonify({
+            'leagues': [s.to_dict() for s in settings],
+            'count': len(settings)
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error fetching all league settings: {e}")
         return jsonify({'error': 'Internal server error'}), 500

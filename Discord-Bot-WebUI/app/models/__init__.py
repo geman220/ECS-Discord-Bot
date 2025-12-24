@@ -52,6 +52,10 @@ from .push_campaigns import (
     GroupType, CampaignStatus, CampaignPriority, TargetType
 )
 
+from .messages import (
+    DirectMessage, MessagingPermission, MessagingSettings
+)
+
 from .store import (
     StoreItem, StoreOrder
 )
@@ -95,7 +99,7 @@ from .predictions import (
 
 from .league_features import (
     SubRequest, LeaguePoll, LeaguePollResponse, LeaguePollDiscordMessage,
-    DraftOrderHistory, MessageCategory, MessageTemplate
+    DraftOrderHistory, MessageCategory, MessageTemplate, LeagueSetting
 )
 
 from .ispy import (
@@ -205,7 +209,7 @@ __all__ = [
     
     # League features models
     'SubRequest', 'LeaguePoll', 'LeaguePollResponse', 'LeaguePollDiscordMessage',
-    'DraftOrderHistory', 'MessageCategory', 'MessageTemplate',
+    'DraftOrderHistory', 'MessageCategory', 'MessageTemplate', 'LeagueSetting',
     
     # I-Spy models
     'ISpySeason', 'ISpyCategory', 'ISpyShot', 'ISpyShotTarget', 'ISpyCooldown',

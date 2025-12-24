@@ -3,29 +3,50 @@
 
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="fw-bold mb-0">Admin - Help Topics</h4>
-        <div>
-            <a href="{{ url_for('help.bulk_upload_help_topics') }}" class="btn btn-secondary me-2">Bulk Upload</a>
-            <a href="{{ url_for('help.new_help_topic') }}" class="btn btn-primary">Create New Help Topic</a>
+    <div class="c-card-modern__header mb-4">
+        <h4 class="c-card-modern__title">Admin - Help Topics</h4>
+        <div class="c-card-modern__actions">
+            <a href="{{ url_for('help.bulk_upload_help_topics') }}" class="c-btn-modern c-btn-modern--secondary">
+                <i class="ti ti-upload c-btn-modern__icon"></i>
+                Bulk Upload
+            </a>
+            <a href="{{ url_for('help.new_help_topic') }}" class="c-btn-modern c-btn-modern--primary">
+                <i class="ti ti-plus c-btn-modern__icon"></i>
+                Create New Help Topic
+            </a>
         </div>
     </div>
-    <div class="card">
-        <div class="card-body">
-            <ul class="list-group">
+    <div class="c-card-modern">
+        <div class="c-card-modern__body">
+            <ul class="c-list-modern">
                 {% for topic in topics %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <span>{{ topic.title }}</span>
-                    <div>
-                        <a href="{{ url_for('help.edit_help_topic', topic_id=topic.id) }}" class="btn btn-sm btn-warning me-2">Edit</a>
-                        <button class="btn btn-sm btn-danger" onclick="confirmDelete({{ topic.id }})">Delete</button>
-                        <form id="delete-form-{{ topic.id }}" action="{{ url_for('help.delete_help_topic', topic_id=topic.id) }}" method="post" style="display:none;">
+                <li class="c-list-modern__item">
+                    <span class="c-list-modern__title">{{ topic.title }}</span>
+                    <div class="c-list-modern__actions">
+                        <a href="{{ url_for('help.edit_help_topic', topic_id=topic.id) }}"
+                           class="c-btn-modern c-btn-modern--sm c-btn-modern--warning">
+                            <i class="ti ti-edit c-btn-modern__icon"></i>
+                            Edit
+                        </a>
+                        <button class="c-btn-modern c-btn-modern--sm c-btn-modern--danger"
+                                data-action="confirm-delete"
+                                data-topic-id="{{ topic.id }}">
+                            <i class="ti ti-trash c-btn-modern__icon"></i>
+                            Delete
+                        </button>
+                        <form class="js-delete-form"
+                              action="{{ url_for('help.delete_help_topic', topic_id=topic.id) }}"
+                              method="post"
+                              data-form-id="{{ topic.id }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         </form>
                     </div>
                 </li>
                 {% else %}
-                <li class="list-group-item">No help topics found.</li>
+                <li class="c-list-modern__item c-list-modern__item--empty">
+                    <i class="ti ti-info-circle c-list-modern__icon"></i>
+                    No help topics found.
+                </li>
                 {% endfor %}
             </ul>
         </div>
@@ -34,21 +55,30 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
-    function confirmDelete(topicId) {
-        Swal.fire({
-            title: 'Are you sure?',
-            text: "This will permanently delete the help topic.",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-            confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                document.getElementById('delete-form-' + topicId).submit();
-            }
-        });
-    }
+    // Delete confirmation handler using event delegation
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('[data-action="confirm-delete"]')) {
+            e.preventDefault();
+            const btn = e.target.closest('[data-action="confirm-delete"]');
+            const topicId = btn.dataset.topicId;
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This will permanently delete the help topic.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+                cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const form = document.querySelector(`[data-form-id="${topicId}"]`);
+                    if (form) form.submit();
+                }
+            });
+        }
+    });
 </script>
 {% endblock %}

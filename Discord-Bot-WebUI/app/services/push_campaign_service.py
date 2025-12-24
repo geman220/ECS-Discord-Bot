@@ -27,6 +27,67 @@ from app.services.notification_service import notification_service
 logger = logging.getLogger(__name__)
 
 
+def _get_user_ids_for_campaign(campaign, session) -> List[int]:
+    """
+    Get user IDs for a campaign's targeting criteria.
+    Used to create in-app notifications alongside push notifications.
+    """
+    from app.models import UserFCMToken
+
+    target_type = campaign.target_type
+    target_ids = campaign.target_ids or []
+
+    if target_type == TargetType.ALL.value:
+        # Get all users with active FCM tokens
+        result = session.query(UserFCMToken.user_id).filter(
+            UserFCMToken.is_active == True
+        ).distinct().all()
+        return [r[0] for r in result if r[0]]
+
+    elif target_type == TargetType.TEAM.value:
+        from app.models import Team, Player
+        result = session.query(User.id).join(
+            Player, Player.user_id == User.id
+        ).join(
+            Player.teams
+        ).filter(
+            Team.id.in_(target_ids)
+        ).distinct().all()
+        return [r[0] for r in result if r[0]]
+
+    elif target_type == TargetType.LEAGUE.value:
+        result = session.query(User.id).filter(
+            User.league_id.in_(target_ids)
+        ).all()
+        return [r[0] for r in result if r[0]]
+
+    elif target_type == TargetType.ROLE.value:
+        from app.models import Role, user_roles
+        result = session.query(User.id).join(
+            user_roles, user_roles.c.user_id == User.id
+        ).join(
+            Role, Role.id == user_roles.c.role_id
+        ).filter(
+            Role.name.in_(target_ids)
+        ).distinct().all()
+        return [r[0] for r in result if r[0]]
+
+    elif target_type == TargetType.CUSTOM.value:
+        # target_ids are user IDs directly
+        return [int(uid) for uid in target_ids if uid]
+
+    elif target_type == TargetType.GROUP.value:
+        # Get users from notification group
+        from app.models import NotificationGroupMember
+        if campaign.notification_group_id:
+            result = session.query(NotificationGroupMember.user_id).filter(
+                NotificationGroupMember.group_id == campaign.notification_group_id
+            ).all()
+            return [r[0] for r in result if r[0]]
+
+    return []
+
+
 class PushCampaignService:
     """Service for managing push notification campaigns."""
 
@@ -178,7 +239,7 @@ class PushCampaignService:
                 data['action_url'] = campaign.action_url
                 data['deep_link'] = campaign.action_url
 
-            # Send notification
+            # Send push notification
             result = notification_service.send_push_notification(
                 tokens=tokens,
                 title=campaign.title,
@@ -194,8 +255,28 @@ class PushCampaignService:
             campaign.mark_as_sent(sent, delivered, failed)
             self.session.commit()
 
+            # Also create in-app notifications for all targeted users
+            in_app_created = 0
+            try:
+                user_ids = _get_user_ids_for_campaign(campaign, self.session)
+                if user_ids:
+                    from app.services.notification_orchestrator import orchestrator, NotificationPayload, NotificationType
+                    in_app_result = orchestrator.send(NotificationPayload(
+                        notification_type=NotificationType.ADMIN_ANNOUNCEMENT,
+                        title=campaign.title,
+                        message=campaign.body,
+                        user_ids=user_ids,
+                        data={'campaign_id': campaign_id},
+                        force_in_app=True,  # Always create in-app
+                        force_push=False,   # Skip push (already sent above)
+                    ))
+                    in_app_created = in_app_result.get('in_app', {}).get('created', 0)
+                    logger.info(f"Campaign {campaign_id}: Created {in_app_created} in-app notifications")
+            except Exception as e:
+                logger.warning(f"Failed to create in-app notifications for campaign {campaign_id}: {e}")
+
             logger.info(
-                f"Campaign {campaign_id} sent: {delivered} delivered, {failed} failed"
+                f"Campaign {campaign_id} sent: {delivered} push delivered, {failed} failed, {in_app_created} in-app created"
             )
 
             return {
@@ -205,6 +286,7 @@ class PushCampaignService:
                 'delivered_count': delivered,
                 'failed_count': failed,
                 'token_count': len(tokens),
+                'in_app_created': in_app_created,
             }
 
         except Exception as e:

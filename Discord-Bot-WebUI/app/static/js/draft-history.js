@@ -72,8 +72,7 @@ class DraftHistoryManager {
                     
                     // Create custom drag image with better visibility
                     const dragImage = item.cloneNode(true);
-                    dragImage.style.transform = 'rotate(3deg) scale(0.9)';
-                    dragImage.style.opacity = '0.9';
+                    dragImage.classList.add('drag-image-preview');
                     document.body.appendChild(dragImage);
                     e.dataTransfer.setDragImage(dragImage, 100, 50);
                     
@@ -181,9 +180,8 @@ class DraftHistoryManager {
         document.getElementById('editPlayerName').value = playerName;
         document.getElementById('editDraftPosition').value = position;
         document.getElementById('editNotes').value = notes || '';
-        
-        const modal = new bootstrap.Modal(document.getElementById('editDraftPickModal'));
-        modal.show();
+
+        ModalManager.show('editDraftPickModal');
     }
 
     // Handle edit form submission

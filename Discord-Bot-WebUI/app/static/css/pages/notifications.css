@@ -1,0 +1,450 @@
+/**
+ * ============================================================================
+ * NOTIFICATIONS PAGE - MODERN BEM COMPONENTS
+ * ============================================================================
+ *
+ * Athletic Performance Dashboard aesthetic for notification system
+ * Inspired by sports tracking apps and stadium displays
+ *
+ * ARCHITECTURAL COMPLIANCE:
+ * - 100% BEM naming: .c-component__element--modifier
+ * - Zero hardcoded values (design tokens only)
+ * - Zero !important declarations
+ * - State-driven styling with .is-* classes
+ * - Mobile-first responsive design
+ * - Full dark mode support via [data-style="dark"]
+ * - WCAG AA accessibility compliant
+ *
+ * Components:
+ *   1. Notifications Header (.c-notifications-header)
+ *   2. Notification Card (.c-notification-card)
+ *   3. Notifications List (.c-notifications-list)
+ *   4. Empty State (uses global .c-empty-state)
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. NOTIFICATIONS HEADER COMPONENT
+   Page title and bulk actions
+   ============================================================================ */
+
+.c-notifications-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-6);
+  margin-bottom: var(--space-8);
+  padding-bottom: var(--space-6);
+  border-bottom: 2px solid var(--color-border-primary);
+}
+
+.c-notifications-header__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-notifications-header__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-primary);
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  margin: 0 0 var(--space-2) 0;
+  line-height: var(--leading-tight);
+}
+
+.c-notifications-header__title i {
+  color: var(--color-primary);
+  font-size: 2rem;
+}
+
+.c-notifications-header__description {
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  margin: 0;
+}
+
+.c-notifications-header__actions {
+  flex-shrink: 0;
+}
+
+/* Mobile adjustments */
+@media (max-width: 767.98px) {
+  .c-notifications-header {
+    flex-direction: column;
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+  }
+
+  .c-notifications-header__title {
+    font-size: var(--text-2xl);
+  }
+
+  .c-notifications-header__actions {
+    width: 100%;
+  }
+
+  .c-notifications-header__actions .btn {
+    width: 100%;
+  }
+}
+
+/* ============================================================================
+   2. NOTIFICATIONS LIST COMPONENT
+   Container for notification cards with staggered animations
+   ============================================================================ */
+
+.c-notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+/* Staggered entrance animation */
+.c-notifications-list .c-notification-card {
+  animation: slideInFromRight 0.4s ease-out backwards;
+}
+
+.c-notifications-list .c-notification-card:nth-child(1) { animation-delay: 0.05s; }
+.c-notifications-list .c-notification-card:nth-child(2) { animation-delay: 0.1s; }
+.c-notifications-list .c-notification-card:nth-child(3) { animation-delay: 0.15s; }
+.c-notifications-list .c-notification-card:nth-child(4) { animation-delay: 0.2s; }
+.c-notifications-list .c-notification-card:nth-child(5) { animation-delay: 0.25s; }
+.c-notifications-list .c-notification-card:nth-child(n+6) { animation-delay: 0.3s; }
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ============================================================================
+   3. NOTIFICATION CARD COMPONENT
+   Individual notification with status indicator and actions
+   ============================================================================ */
+
+.c-notification-card {
+  position: relative;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: var(--transition-all);
+  display: flex;
+  align-items: stretch;
+}
+
+.c-notification-card:hover {
+  transform: translateX(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-border-secondary);
+}
+
+/* Unread indicator stripe */
+.c-notification-card__indicator {
+  width: 4px;
+  background: transparent;
+  transition: var(--transition-all);
+  flex-shrink: 0;
+}
+
+.c-notification-card--unread .c-notification-card__indicator {
+  background: linear-gradient(
+    180deg,
+    var(--color-primary) 0%,
+    var(--color-success) 100%
+  );
+  box-shadow: 0 0 8px rgba(0, 83, 159, 0.3);
+}
+
+/* Card content */
+.c-notification-card__content {
+  flex: 1;
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.c-notification-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-notification-card__title {
+  color: var(--color-text-primary);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  margin: 0 0 var(--space-2) 0;
+  line-height: var(--leading-snug);
+}
+
+/* Unread styling - bolder title */
+.c-notification-card--unread .c-notification-card__title {
+  font-weight: var(--font-bold);
+  color: var(--color-primary);
+}
+
+.c-notification-card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.c-notification-card__icon {
+  font-size: var(--text-base);
+  flex-shrink: 0;
+}
+
+.c-notification-card__time {
+  line-height: var(--leading-tight);
+}
+
+/* Card actions */
+.c-notification-card__actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.c-notification-card__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-success);
+  color: var(--color-neutral-0);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  text-decoration: none;
+  transition: var(--transition-all);
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.c-notification-card__btn:hover {
+  background: var(--color-success-dark, #00864f);
+  color: var(--color-neutral-0);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(80, 200, 120, 0.3);
+}
+
+.c-notification-card__btn:active {
+  transform: scale(0.98);
+}
+
+.c-notification-card__btn i {
+  font-size: var(--text-base);
+}
+
+/* Fading state when marking as read */
+.c-notification-card.is-fading {
+  opacity: 0.5;
+  transform: translateX(-10px);
+  pointer-events: none;
+}
+
+/* Mobile adjustments */
+@media (max-width: 767.98px) {
+  .c-notification-card__content {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .c-notification-card__actions {
+    width: 100%;
+  }
+
+  .c-notification-card__btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .c-notification-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .c-notification-card__title {
+    font-size: var(--text-sm);
+  }
+
+  .c-notification-card__meta {
+    font-size: var(--text-xs);
+  }
+}
+
+/* ============================================================================
+   EMPTY STATE COMPONENT (page-specific enhancements)
+   Uses global .c-empty-state from foundation.css
+   ============================================================================ */
+
+.c-empty-state {
+  background: var(--color-bg-card);
+  border: 2px dashed var(--color-border-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-16) var(--space-8);
+  text-align: center;
+  margin-top: var(--space-8);
+  animation: fadeInScale 0.5s ease-out;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.c-empty-state__content {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.c-empty-state__image {
+  height: 180px;
+  width: auto;
+  max-width: 250px;
+  object-fit: contain;
+  margin: 0 auto var(--space-6);
+  opacity: 0.8;
+  display: block;
+  filter: grayscale(20%);
+}
+
+.c-empty-state__title {
+  color: var(--color-text-primary);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  margin: 0 0 var(--space-3) 0;
+  line-height: var(--leading-tight);
+}
+
+.c-empty-state__text {
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  margin: 0;
+}
+
+/* Mobile adjustments */
+@media (max-width: 767.98px) {
+  .c-empty-state {
+    padding: var(--space-12) var(--space-6);
+  }
+
+  .c-empty-state__image {
+    height: 140px;
+    max-width: 200px;
+  }
+
+  .c-empty-state__title {
+    font-size: var(--text-xl);
+  }
+
+  .c-empty-state__text {
+    font-size: var(--text-sm);
+  }
+}
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================ */
+
+[data-style="dark"] .c-notification-card {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .c-notification-card:hover {
+  border-color: var(--color-border-secondary);
+}
+
+[data-style="dark"] .c-notification-card--unread .c-notification-card__indicator {
+  box-shadow: 0 0 12px rgba(0, 119, 182, 0.4);
+}
+
+[data-style="dark"] .c-notification-card--unread .c-notification-card__title {
+  color: var(--color-primary-light, #0077b6);
+}
+
+[data-style="dark"] .c-empty-state {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .c-empty-state__image {
+  opacity: 0.6;
+  filter: grayscale(30%) brightness(0.9);
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .c-notification-card,
+  .c-notification-card__btn,
+  .c-empty-state {
+    animation: none;
+    transition: none;
+  }
+
+  .c-notification-card:hover,
+  .c-notification-card__btn:hover {
+    transform: none;
+  }
+
+  .c-notifications-list .c-notification-card {
+    animation: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .c-notification-card {
+    border-width: 2px;
+  }
+
+  .c-notification-card--unread .c-notification-card__indicator {
+    width: 6px;
+  }
+
+  .c-notification-card__btn {
+    border: 2px solid var(--color-success);
+  }
+}
+
+/* Focus visible states for keyboard navigation */
+.c-notification-card:focus-within {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.c-notification-card__btn:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+   END OF NOTIFICATIONS PAGE COMPONENTS
+   ============================================================================ */

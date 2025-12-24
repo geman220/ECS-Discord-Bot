@@ -85,6 +85,27 @@ def _register_utility_processor(app):
         def is_role_impersonation_active():
             return is_impersonation_active()
 
+        # Get available roles for impersonation (only for Global Admins)
+        available_roles = []
+        if 'Global Admin' in user_roles:
+            try:
+                from app.models import Role
+                session_db = getattr(g, 'db_session', None)
+                if session_db:
+                    from sqlalchemy.orm import joinedload
+                    roles = session_db.query(Role).options(
+                        joinedload(Role.permissions)
+                    ).all()
+                    available_roles = [
+                        {
+                            'name': role.name,
+                            'permission_count': len(role.permissions) if role.permissions else 0
+                        }
+                        for role in roles
+                    ]
+            except Exception as e:
+                logger.error(f"Error getting available roles for impersonation: {e}")
+
         return {
             'safe_current_user': safe_current_user,
             'user_roles': user_roles,
@@ -92,7 +113,8 @@ def _register_utility_processor(app):
             'has_role': has_role,
             'is_admin': is_admin,
             'is_role_impersonation_active': is_role_impersonation_active,
-            'admin_settings': admin_settings
+            'admin_settings': admin_settings,
+            'available_roles': available_roles
         }
 
 

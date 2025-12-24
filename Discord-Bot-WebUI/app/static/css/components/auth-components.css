@@ -1,0 +1,272 @@
+/**
+ * ============================================================================
+ * AUTH COMPONENTS - Authentication Page Styling
+ * ============================================================================
+ *
+ * Login, registration, and authentication flow components.
+ * Design: Clean, trustworthy authentication experience.
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   AUTH PANEL
+   ============================================================================ */
+
+.c-auth-panel {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: var(--space-8, 32px);
+  background: var(--color-bg-elevated, #1e293b);
+  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+  border-radius: var(--radius-2xl, 20px);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.c-auth-panel__title {
+  margin: 0 0 var(--space-2, 8px);
+  font-family: var(--font-display, 'Archivo Black', sans-serif);
+  font-size: var(--text-2xl, 1.5rem);
+  font-weight: 700;
+  color: var(--color-text-primary, #f8fafc);
+  text-align: center;
+}
+
+.c-auth-panel__subtitle {
+  margin: 0 0 var(--space-6, 24px);
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--color-text-secondary, #94a3b8);
+  text-align: center;
+}
+
+.c-auth-panel__content {
+  /* Content container */
+}
+
+/* ============================================================================
+   AUTH BRANDING
+   ============================================================================ */
+
+.c-auth-branding {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: var(--space-6, 24px);
+}
+
+.c-auth-branding--desktop {
+  display: none;
+}
+
+@media (min-width: 992px) {
+  .c-auth-branding--desktop {
+    display: flex;
+  }
+}
+
+.c-auth-branding__logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-4, 16px);
+}
+
+.c-auth-branding__logo--primary {
+  width: 80px;
+  height: auto;
+}
+
+.c-auth-branding__logo--secondary {
+  width: 120px;
+  height: auto;
+  opacity: 0.8;
+}
+
+.c-auth-branding__content {
+  text-align: center;
+}
+
+/* ============================================================================
+   AUTH STATUS
+   ============================================================================ */
+
+.c-auth-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4, 16px);
+  padding: var(--space-6, 24px);
+  text-align: center;
+}
+
+.c-auth-status--loading {
+  /* Loading state */
+}
+
+.c-auth-status--success {
+  /* Success state */
+}
+
+.c-auth-status--warning {
+  /* Warning state */
+}
+
+.c-auth-status__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 50%;
+  color: var(--color-primary-light, #60a5fa);
+  font-size: 1.5rem;
+}
+
+.c-auth-status--success .c-auth-status__icon {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--color-success-light, #34d399);
+}
+
+.c-auth-status--warning .c-auth-status__icon {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--color-warning-light, #fbbf24);
+}
+
+.c-auth-status__icon--loading {
+  animation: auth-spin 1s linear infinite;
+}
+
+@keyframes auth-spin {
+  to { transform: rotate(360deg); }
+}
+
+.c-auth-status__title {
+  margin: 0;
+  font-size: var(--text-lg, 1.125rem);
+  font-weight: 600;
+  color: var(--color-text-primary, #f8fafc);
+}
+
+.c-auth-status__description {
+  margin: 0;
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--color-text-secondary, #94a3b8);
+  max-width: 300px;
+}
+
+/* ============================================================================
+   AUTH ACTIONS
+   ============================================================================ */
+
+.c-auth-actions {
+  display: flex;
+  gap: var(--space-3, 12px);
+  margin-top: var(--space-5, 20px);
+}
+
+.c-auth-actions--stack {
+  flex-direction: column;
+}
+
+/* ============================================================================
+   AUTH ALTERNATIVE
+   ============================================================================ */
+
+.c-auth-alternative {
+  margin-top: var(--space-6, 24px);
+  padding-top: var(--space-6, 24px);
+  border-top: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+  text-align: center;
+}
+
+.c-auth-alternative__title {
+  margin: 0 0 var(--space-2, 8px);
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 500;
+  color: var(--color-text-secondary, #94a3b8);
+}
+
+.c-auth-alternative__description {
+  margin: 0;
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--color-text-muted, #64748b);
+}
+
+/* ============================================================================
+   AUTH FOOTER
+   ============================================================================ */
+
+.c-auth-footer {
+  margin-top: var(--space-6, 24px);
+  padding-top: var(--space-4, 16px);
+  border-top: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.04));
+  text-align: center;
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-muted, #64748b);
+}
+
+.c-auth-help-text {
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--color-text-secondary, #94a3b8);
+  text-align: center;
+}
+
+/* ============================================================================
+   2FA SETUP
+   ============================================================================ */
+
+.c-2fa-setup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4, 16px);
+  padding: var(--space-5, 20px);
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-lg, 12px);
+}
+
+.c-2fa-setup__qr {
+  padding: var(--space-4, 16px);
+  background: #fff;
+  border-radius: var(--radius-md, 8px);
+}
+
+/* ============================================================================
+   LIGHT MODE
+   ============================================================================ */
+
+[data-style="light"] .c-auth-panel {
+  background: var(--color-bg-primary, #fff);
+  border-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+[data-style="light"] .c-auth-panel__title,
+[data-style="light"] .c-auth-status__title {
+  color: var(--color-text-primary, #1e293b);
+}
+
+[data-style="light"] .c-auth-alternative {
+  border-top-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
+}
+
+[data-style="light"] .c-auth-footer {
+  border-top-color: var(--color-border-light, rgba(0, 0, 0, 0.06));
+}
+
+[data-style="light"] .c-2fa-setup {
+  background: var(--color-bg-secondary, #f8fafc);
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 480px) {
+  .c-auth-panel {
+    padding: var(--space-6, 24px) var(--space-4, 16px);
+    border-radius: var(--radius-xl, 16px);
+  }
+}

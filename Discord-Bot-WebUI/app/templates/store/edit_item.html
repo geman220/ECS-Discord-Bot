@@ -1,23 +1,25 @@
 {% extends "base.html" %}
 
+{% block page_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/store.css') }}" />
+{% endblock %}
+
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Page Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <h2 class="fw-bold py-3 mb-2">
-                <i class="ti ti-edit me-2 text-primary"></i>Edit Store Item
-            </h2>
-            <div class="text-muted">
-                Update item details and availability
-            </div>
+    <div class="c-admin-header" data-component="admin-header">
+        <div class="c-admin-header__content">
+            <h1 class="c-admin-header__title">
+                <i class="ti ti-edit me-2"></i>Edit Store Item
+            </h1>
+            <p class="c-admin-header__description">Update item details and availability</p>
         </div>
     </div>
 
     <!-- Navigation -->
     <div class="row mb-4">
         <div class="col-12">
-            <a href="{{ url_for('store.admin') }}" class="btn btn-outline-secondary">
+            <a href="{{ url_for('store.admin') }}" class="c-btn c-btn--outline-secondary">
                 <i class="ti ti-arrow-left me-1"></i> Back to Store Admin
             </a>
         </div>
@@ -26,128 +28,128 @@
     <!-- Edit Item Form -->
     <div class="row">
         <div class="col-xl-8 col-lg-10 col-12 mx-auto">
-            <div class="card">
-                <div class="card-header border-bottom">
-                    <h5 class="card-title mb-0">Item Details</h5>
+            <div class="c-card" data-component="store-edit-form">
+                <div class="c-card__header border-bottom">
+                    <h5 class="c-card__title mb-0">Item Details</h5>
                 </div>
-                <div class="card-body">
-                    <form method="POST" action="{{ url_for('store.edit_item', item_id=item.id) }}">
+                <div class="c-card__body">
+                    <form method="POST" action="{{ url_for('store.edit_item', item_id=item.id) }}" data-form="edit-item">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        
+
                         <div class="row">
                             <div class="col-md-8">
                                 <div class="mb-3">
-                                    <label for="name" class="form-label">Item Name *</label>
-                                    <input type="text" class="form-control" id="name" name="name" required 
-                                           value="{{ item.name }}" placeholder="e.g. Team Jersey, Training Bag">
+                                    <label for="store-edit-item-name" class="form-label">Item Name *</label>
+                                    <input type="text" class="form-control" id="store-edit-item-name" name="name" required
+                                           value="{{ item.name }}" placeholder="e.g. Team Jersey, Training Bag" data-form-control>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="price" class="form-label">Price (Admin Only)</label>
-                                    <div class="input-group">
+                                    <div class="input-group" data-input-group>
                                         <span class="input-group-text">$</span>
-                                        <input type="number" class="form-control" id="price" name="price" 
-                                               step="0.01" min="0" value="{{ item.price or '' }}" placeholder="15.00">
+                                        <input type="number" class="form-control" id="price" name="price"
+                                               step="0.01" min="0" value="{{ item.price or '' }}" placeholder="15.00" data-form-control>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="mb-3">
-                            <label for="description" class="form-label">Description</label>
-                            <textarea class="form-control" id="description" name="description" rows="3" 
-                                      placeholder="Describe the item, materials, features, etc.">{{ item.description or '' }}</textarea>
+                            <label for="store-edit-item-description" class="form-label">Description</label>
+                            <textarea class="form-control" id="store-edit-item-description" name="description" rows="3"
+                                      placeholder="Describe the item, materials, features, etc." data-form-control>{{ item.description or '' }}</textarea>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="category" class="form-label">Category</label>
-                            <input type="text" class="form-control" id="category" name="category" 
-                                   value="{{ item.category or '' }}" placeholder="e.g. Apparel, Equipment, Accessories">
+                            <input type="text" class="form-control" id="category" name="category"
+                                   value="{{ item.category or '' }}" placeholder="e.g. Apparel, Equipment, Accessories" data-form-control>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="image_url" class="form-label">Image URL</label>
-                            <input type="url" class="form-control" id="image_url" name="image_url" 
-                                   value="{{ item.image_url or '' }}" placeholder="https://example.com/image.jpg">
+                            <input type="url" class="form-control" id="image_url" name="image_url"
+                                   value="{{ item.image_url or '' }}" placeholder="https://example.com/image.jpg" data-form-control>
                             <div class="form-text">Provide a direct link to an image of the item</div>
                         </div>
-                        
+
                         <div class="mb-3">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
-                                       {% if item.is_active %}checked{% endif %}>
-                                <label class="form-check-label" for="is_active">
+                                <input class="form-check-input" type="checkbox" id="store-edit-item-is_active" name="is_active"
+                                       {% if item.is_active %}checked{% endif %} data-form-control>
+                                <label class="form-check-label" for="store-edit-item-is_active">
                                     Item is active and available for ordering
                                 </label>
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Available Colors</label>
-                                    <div id="colors-container">
+                                    <div id="colors-container" data-container="colors">
                                         {% if item.available_colors %}
                                         {% set colors = item.available_colors | replace("'", '"') | fromjson %}
                                         {% for color in colors %}
-                                        <div class="input-group mb-2">
-                                            <input type="text" class="form-control" name="colors[]" value="{{ color }}" placeholder="e.g. Red, Blue, Green">
-                                            <button type="button" class="btn btn-outline-danger remove-color {% if loop.first and loop.last %}d-none{% endif %}">
+                                        <div class="input-group mb-2" data-input-group>
+                                            <input type="text" class="form-control" name="colors[]" value="{{ color }}" placeholder="e.g. Red, Blue, Green" data-form-control>
+                                            <button type="button" class="c-btn c-btn--outline-danger remove-color {% if loop.first and loop.last %}d-none{% endif %}" data-action="remove-color">
                                                 <i class="ti ti-x"></i>
                                             </button>
                                         </div>
                                         {% endfor %}
                                         {% else %}
-                                        <div class="input-group mb-2">
-                                            <input type="text" class="form-control" name="colors[]" placeholder="e.g. Red, Blue, Green">
-                                            <button type="button" class="btn btn-outline-danger remove-color d-none">
+                                        <div class="input-group mb-2" data-input-group>
+                                            <input type="text" class="form-control" name="colors[]" placeholder="e.g. Red, Blue, Green" data-form-control>
+                                            <button type="button" class="c-btn c-btn--outline-danger remove-color d-none" data-action="remove-color">
                                                 <i class="ti ti-x"></i>
                                             </button>
                                         </div>
                                         {% endif %}
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" id="add-color">
+                                    <button type="button" class="c-btn c-btn--sm c-btn--outline-primary" id="add-color" data-action="add-color">
                                         <i class="ti ti-plus me-1"></i>Add Color
                                     </button>
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Available Sizes</label>
-                                    <div id="sizes-container">
+                                    <div id="sizes-container" data-container="sizes">
                                         {% if item.available_sizes %}
                                         {% set sizes = item.available_sizes | replace("'", '"') | fromjson %}
                                         {% for size in sizes %}
-                                        <div class="input-group mb-2">
-                                            <input type="text" class="form-control" name="sizes[]" value="{{ size }}" placeholder="e.g. S, M, L, XL">
-                                            <button type="button" class="btn btn-outline-danger remove-size {% if loop.first and loop.last %}d-none{% endif %}">
+                                        <div class="input-group mb-2" data-input-group>
+                                            <input type="text" class="form-control" name="sizes[]" value="{{ size }}" placeholder="e.g. S, M, L, XL" data-form-control>
+                                            <button type="button" class="c-btn c-btn--outline-danger remove-size {% if loop.first and loop.last %}d-none{% endif %}" data-action="remove-size">
                                                 <i class="ti ti-x"></i>
                                             </button>
                                         </div>
                                         {% endfor %}
                                         {% else %}
-                                        <div class="input-group mb-2">
-                                            <input type="text" class="form-control" name="sizes[]" placeholder="e.g. S, M, L, XL">
-                                            <button type="button" class="btn btn-outline-danger remove-size d-none">
+                                        <div class="input-group mb-2" data-input-group>
+                                            <input type="text" class="form-control" name="sizes[]" placeholder="e.g. S, M, L, XL" data-form-control>
+                                            <button type="button" class="c-btn c-btn--outline-danger remove-size d-none" data-action="remove-size">
                                                 <i class="ti ti-x"></i>
                                             </button>
                                         </div>
                                         {% endif %}
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" id="add-size">
+                                    <button type="button" class="c-btn c-btn--sm c-btn--outline-primary" id="add-size" data-action="add-size">
                                         <i class="ti ti-plus me-1"></i>Add Size
                                     </button>
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class="d-flex justify-content-end gap-2">
-                            <a href="{{ url_for('store.admin') }}" class="btn btn-outline-secondary">
+
+                        <div class="c-form-actions">
+                            <a href="{{ url_for('store.admin') }}" class="c-btn c-btn--outline-secondary">
                                 <i class="ti ti-x me-1"></i>Cancel
                             </a>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="c-btn c-btn--primary">
                                 <i class="ti ti-device-floppy me-1"></i>Update Item
                             </button>
                         </div>
@@ -160,6 +162,7 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Add color functionality
@@ -167,49 +170,54 @@ document.addEventListener('DOMContentLoaded', function() {
         const container = document.getElementById('colors-container');
         const div = document.createElement('div');
         div.className = 'input-group mb-2';
+        div.setAttribute('data-input-group', '');
         div.innerHTML = `
-            <input type="text" class="form-control" name="colors[]" placeholder="e.g. Red, Blue, Green">
-            <button type="button" class="btn btn-outline-danger remove-color">
+            <input type="text" class="form-control" name="colors[]" placeholder="e.g. Red, Blue, Green" data-form-control>
+            <button type="button" class="c-btn c-btn--outline-danger remove-color" data-action="remove-color">
                 <i class="ti ti-x"></i>
             </button>
         `;
         container.appendChild(div);
         updateRemoveButtons('color');
     });
-    
+
     // Add size functionality
     document.getElementById('add-size').addEventListener('click', function() {
         const container = document.getElementById('sizes-container');
         const div = document.createElement('div');
         div.className = 'input-group mb-2';
+        div.setAttribute('data-input-group', '');
         div.innerHTML = `
-            <input type="text" class="form-control" name="sizes[]" placeholder="e.g. S, M, L, XL">
-            <button type="button" class="btn btn-outline-danger remove-size">
+            <input type="text" class="form-control" name="sizes[]" placeholder="e.g. S, M, L, XL" data-form-control>
+            <button type="button" class="c-btn c-btn--outline-danger remove-size" data-action="remove-size">
                 <i class="ti ti-x"></i>
             </button>
         `;
         container.appendChild(div);
         updateRemoveButtons('size');
     });
-    
-    // Remove color/size functionality
+
+    // Remove color/size functionality using event delegation
     document.addEventListener('click', function(e) {
-        if (e.target.closest('.remove-color')) {
-            e.target.closest('.input-group').remove();
+        const removeColorBtn = e.target.closest('[data-action="remove-color"]');
+        const removeSizeBtn = e.target.closest('[data-action="remove-size"]');
+
+        if (removeColorBtn) {
+            removeColorBtn.closest('.input-group').remove();
             updateRemoveButtons('color');
         }
-        if (e.target.closest('.remove-size')) {
-            e.target.closest('.input-group').remove();
+        if (removeSizeBtn) {
+            removeSizeBtn.closest('.input-group').remove();
             updateRemoveButtons('size');
         }
     });
-    
+
     // Update remove button visibility
     function updateRemoveButtons(type) {
         const container = document.getElementById(`${type}s-container`);
         const groups = container.querySelectorAll('.input-group');
         groups.forEach((group, index) => {
-            const removeBtn = group.querySelector(`.remove-${type}`);
+            const removeBtn = group.querySelector(`[data-action="remove-${type}"]`);
             if (groups.length > 1) {
                 removeBtn.classList.remove('d-none');
             } else {
@@ -217,7 +225,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Initial update
     updateRemoveButtons('color');
     updateRemoveButtons('size');

@@ -8,341 +8,262 @@
 
 {% block panel_content %}
 <!-- Quick Actions Header -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="alert alert-info">
-            <div class="d-flex align-items-center">
-                <i class="ti ti-bolt me-2"></i>
-                <div>
-                    <strong>Quick Actions</strong><br>
-                    Perform common administrative tasks quickly and efficiently. These actions provide shortcuts to frequently used operations across the admin panel.
-                </div>
-            </div>
-        </div>
+<div class="c-quick-actions-header" data-component="quick-actions-header">
+    <div class="c-quick-actions-header__icon">
+        <i class="ti ti-bolt"></i>
+    </div>
+    <div class="c-quick-actions-header__content">
+        <h2 class="c-quick-actions-header__title">Quick Actions</h2>
+        <p class="c-quick-actions-header__description">Perform common administrative tasks quickly and efficiently. These actions provide shortcuts to frequently used operations across the admin panel.</p>
     </div>
 </div>
 
 <!-- System Quick Actions -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-settings me-2"></i>System Operations
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <div class="card border">
-                            <div class="card-body text-center">
-                                <i class="ti ti-refresh text-warning mb-2" style="font-size: 2rem;"></i>
-                                <h6>Clear All Cache</h6>
-                                <p class="small text-muted">Reset all cached data</p>
-                                <button class="btn btn-sm btn-outline-warning" onclick="clearAllCache()">
-                                    Clear Cache
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <div class="card border">
-                            <div class="card-body text-center">
-                                <i class="ti ti-database text-info mb-2" style="font-size: 2rem;"></i>
-                                <h6>DB Health Check</h6>
-                                <p class="small text-muted">Check database status</p>
-                                <button class="btn btn-sm btn-outline-info" onclick="checkDatabaseHealth()">
-                                    Check DB
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <div class="card border">
-                            <div class="card-body text-center">
-                                <i class="ti ti-shield text-success mb-2" style="font-size: 2rem;"></i>
-                                <h6>Initialize Settings</h6>
-                                <p class="small text-muted">Reset admin settings</p>
-                                <button class="btn btn-sm btn-outline-success" onclick="initializeSettings()">
-                                    Initialize
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <div class="card border">
-                            <div class="card-body text-center">
-                                <i class="ti ti-brand-discord text-primary mb-2" style="font-size: 2rem;"></i>
-                                <h6>Restart Bot</h6>
-                                <p class="small text-muted">Restart Discord bot</p>
-                                <button class="btn btn-sm btn-outline-primary" onclick="restartBot()">
-                                    Restart Bot
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="c-action-section" data-component="action-section">
+    <div class="c-action-section__header">
+        <i class="ti ti-settings c-action-section__icon"></i>
+        <h5 class="c-action-section__title">System Operations</h5>
+    </div>
+    <div class="c-action-section__grid">
+        <div class="c-action-card c-action-card--warning" data-component="action-card">
+            <i class="ti ti-refresh c-action-card__icon"></i>
+            <h6 class="c-action-card__title">Clear All Cache</h6>
+            <p class="c-action-card__description">Reset all cached data</p>
+            <button class="c-action-card__button" data-action="clear-cache">
+                Clear Cache
+            </button>
+        </div>
+        <div class="c-action-card c-action-card--info" data-component="action-card">
+            <i class="ti ti-database c-action-card__icon"></i>
+            <h6 class="c-action-card__title">DB Health Check</h6>
+            <p class="c-action-card__description">Check database status</p>
+            <button class="c-action-card__button" data-action="check-db-health">
+                Check DB
+            </button>
+        </div>
+        <div class="c-action-card c-action-card--success" data-component="action-card">
+            <i class="ti ti-shield c-action-card__icon"></i>
+            <h6 class="c-action-card__title">Initialize Settings</h6>
+            <p class="c-action-card__description">Reset admin settings</p>
+            <button class="c-action-card__button" data-action="initialize-settings">
+                Initialize
+            </button>
+        </div>
+        <div class="c-action-card c-action-card--primary" data-component="action-card">
+            <i class="ti ti-brand-discord c-action-card__icon"></i>
+            <h6 class="c-action-card__title">Restart Bot</h6>
+            <p class="c-action-card__description">Restart Discord bot</p>
+            <button class="c-action-card__button" data-action="restart-bot">
+                Restart Bot
+            </button>
         </div>
     </div>
 </div>
 
 <!-- User Management Quick Actions -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-users me-2"></i>User Management
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <div class="card border">
-                            <div class="card-body text-center">
-                                <i class="ti ti-user-check text-success mb-2" style="font-size: 2rem;"></i>
-                                <h6>Approve All Pending</h6>
-                                <p class="small text-muted">Approve all pending user registrations</p>
-                                <button class="btn btn-sm btn-outline-success" onclick="approveAllPending()">
-                                    Approve All
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <div class="card border">
-                            <div class="card-body text-center">
-                                <i class="ti ti-user-plus text-primary mb-2" style="font-size: 2rem;"></i>
-                                <h6>Process Waitlist</h6>
-                                <p class="small text-muted">Process all users from waitlist</p>
-                                <button class="btn btn-sm btn-outline-primary" onclick="processWaitlist()">
-                                    Process All
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <div class="card border">
-                            <div class="card-body text-center">
-                                <i class="ti ti-mail text-info mb-2" style="font-size: 2rem;"></i>
-                                <h6>Send Notifications</h6>
-                                <p class="small text-muted">Send bulk notifications to users</p>
-                                <button class="btn btn-sm btn-outline-info" onclick="sendBulkNotifications()">
-                                    Send Notifications
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="c-action-section" data-component="action-section">
+    <div class="c-action-section__header">
+        <i class="ti ti-users c-action-section__icon"></i>
+        <h5 class="c-action-section__title">User Management</h5>
+    </div>
+    <div class="c-action-section__grid c-action-section__grid--3col">
+        <div class="c-action-card c-action-card--success" data-component="action-card">
+            <i class="ti ti-user-check c-action-card__icon"></i>
+            <h6 class="c-action-card__title">Approve All Pending</h6>
+            <p class="c-action-card__description">Approve all pending user registrations</p>
+            <button class="c-action-card__button" data-action="approve-all-pending">
+                Approve All
+            </button>
+        </div>
+        <div class="c-action-card c-action-card--primary" data-component="action-card">
+            <i class="ti ti-user-plus c-action-card__icon"></i>
+            <h6 class="c-action-card__title">Process Waitlist</h6>
+            <p class="c-action-card__description">Process all users from waitlist</p>
+            <button class="c-action-card__button" data-action="process-waitlist">
+                Process All
+            </button>
+        </div>
+        <div class="c-action-card c-action-card--info" data-component="action-card">
+            <i class="ti ti-mail c-action-card__icon"></i>
+            <h6 class="c-action-card__title">Send Notifications</h6>
+            <p class="c-action-card__description">Send bulk notifications to users</p>
+            <button class="c-action-card__button" data-action="send-bulk-notifications">
+                Send Notifications
+            </button>
         </div>
     </div>
 </div>
 
 <!-- Content Management Quick Actions -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-file-text me-2"></i>Content Management
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <div class="card border">
-                            <div class="card-body text-center">
-                                <i class="ti ti-template text-purple mb-2" style="font-size: 2rem;"></i>
-                                <h6>Sync Templates</h6>
-                                <p class="small text-muted">Synchronize message templates</p>
-                                <button class="btn btn-sm btn-outline-purple" onclick="syncTemplates()">
-                                    Sync Templates
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <div class="card border">
-                            <div class="card-body text-center">
-                                <i class="ti ti-bell text-warning mb-2" style="font-size: 2rem;"></i>
-                                <h6>Test Notifications</h6>
-                                <p class="small text-muted">Send test push notification</p>
-                                <button class="btn btn-sm btn-outline-warning" onclick="testNotifications()">
-                                    Test Push
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <div class="card border">
-                            <div class="card-body text-center">
-                                <i class="ti ti-announcement text-danger mb-2" style="font-size: 2rem;"></i>
-                                <h6>Emergency Alert</h6>
-                                <p class="small text-muted">Send emergency system alert</p>
-                                <button class="btn btn-sm btn-outline-danger" onclick="sendEmergencyAlert()">
-                                    Send Alert
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <div class="card border">
-                            <div class="card-body text-center">
-                                <i class="ti ti-file-export text-secondary mb-2" style="font-size: 2rem;"></i>
-                                <h6>Export Data</h6>
-                                <p class="small text-muted">Export system data</p>
-                                <button class="btn btn-sm btn-outline-secondary" onclick="exportSystemData()">
-                                    Export Data
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="c-action-section" data-component="action-section">
+    <div class="c-action-section__header">
+        <i class="ti ti-file-text c-action-section__icon"></i>
+        <h5 class="c-action-section__title">Content Management</h5>
+    </div>
+    <div class="c-action-section__grid">
+        <div class="c-action-card c-action-card--purple" data-component="action-card">
+            <i class="ti ti-template c-action-card__icon"></i>
+            <h6 class="c-action-card__title">Sync Templates</h6>
+            <p class="c-action-card__description">Synchronize message templates</p>
+            <button class="c-action-card__button" data-action="sync-templates">
+                Sync Templates
+            </button>
+        </div>
+        <div class="c-action-card c-action-card--warning" data-component="action-card">
+            <i class="ti ti-bell c-action-card__icon"></i>
+            <h6 class="c-action-card__title">Test Notifications</h6>
+            <p class="c-action-card__description">Send test push notification</p>
+            <button class="c-action-card__button" data-action="test-notifications">
+                Test Push
+            </button>
+        </div>
+        <div class="c-action-card c-action-card--danger" data-component="action-card">
+            <i class="ti ti-announcement c-action-card__icon"></i>
+            <h6 class="c-action-card__title">Emergency Alert</h6>
+            <p class="c-action-card__description">Send emergency system alert</p>
+            <button class="c-action-card__button" data-action="send-emergency-alert">
+                Send Alert
+            </button>
+        </div>
+        <div class="c-action-card c-action-card--secondary" data-component="action-card">
+            <i class="ti ti-file-export c-action-card__icon"></i>
+            <h6 class="c-action-card__title">Export Data</h6>
+            <p class="c-action-card__description">Export system data</p>
+            <button class="c-action-card__button" data-action="export-system-data">
+                Export Data
+            </button>
         </div>
     </div>
 </div>
 
 <!-- Maintenance Quick Actions -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-tool me-2"></i>Maintenance & Troubleshooting
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <div class="card border">
-                            <div class="card-body text-center">
-                                <i class="ti ti-power text-danger mb-2" style="font-size: 2rem;"></i>
-                                <h6>Maintenance Mode</h6>
-                                <p class="small text-muted">Toggle system maintenance mode</p>
-                                <button class="btn btn-sm btn-outline-danger" onclick="toggleMaintenanceMode()">
-                                    Toggle Mode
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <div class="card border">
-                            <div class="card-body text-center">
-                                <i class="ti ti-file-text text-info mb-2" style="font-size: 2rem;"></i>
-                                <h6>Clear Logs</h6>
-                                <p class="small text-muted">Clear system and error logs</p>
-                                <button class="btn btn-sm btn-outline-info" onclick="clearSystemLogs()">
-                                    Clear Logs
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <div class="card border">
-                            <div class="card-body text-center">
-                                <i class="ti ti-report text-warning mb-2" style="font-size: 2rem;"></i>
-                                <h6>System Report</h6>
-                                <p class="small text-muted">Generate full system report</p>
-                                <button class="btn btn-sm btn-outline-warning" onclick="generateSystemReport()">
-                                    Generate Report
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="c-action-section" data-component="action-section">
+    <div class="c-action-section__header">
+        <i class="ti ti-tool c-action-section__icon"></i>
+        <h5 class="c-action-section__title">Maintenance & Troubleshooting</h5>
+    </div>
+    <div class="c-action-section__grid c-action-section__grid--3col">
+        <div class="c-action-card c-action-card--danger" data-component="action-card">
+            <i class="ti ti-power c-action-card__icon"></i>
+            <h6 class="c-action-card__title">Maintenance Mode</h6>
+            <p class="c-action-card__description">Toggle system maintenance mode</p>
+            <button class="c-action-card__button" data-action="toggle-maintenance-mode">
+                Toggle Mode
+            </button>
+        </div>
+        <div class="c-action-card c-action-card--info" data-component="action-card">
+            <i class="ti ti-file-text c-action-card__icon"></i>
+            <h6 class="c-action-card__title">Clear Logs</h6>
+            <p class="c-action-card__description">Clear system and error logs</p>
+            <button class="c-action-card__button" data-action="clear-system-logs">
+                Clear Logs
+            </button>
+        </div>
+        <div class="c-action-card c-action-card--warning" data-component="action-card">
+            <i class="ti ti-report c-action-card__icon"></i>
+            <h6 class="c-action-card__title">System Report</h6>
+            <p class="c-action-card__description">Generate full system report</p>
+            <button class="c-action-card__button" data-action="generate-system-report">
+                Generate Report
+            </button>
         </div>
     </div>
 </div>
 
 <!-- Custom Quick Actions Form -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-code me-2"></i>Custom Actions
-                </h5>
+<div class="c-custom-actions" data-component="custom-actions">
+    <div class="c-custom-actions__header">
+        <i class="ti ti-code c-custom-actions__header-icon"></i>
+        <h5 class="c-custom-actions__title">Custom Actions</h5>
+    </div>
+    <p class="c-custom-actions__description">Execute custom administrative commands and scripts</p>
+    <form class="c-custom-actions__form">
+        <div class="c-custom-actions__fields">
+            <div class="c-custom-actions__field">
+                <label class="c-custom-actions__label">Action Type</label>
+                <select class="c-custom-actions__select" id="actionType" data-form-select>
+                    <option value="">Select action type...</option>
+                    <option value="database">Database Query</option>
+                    <option value="cache">Cache Operation</option>
+                    <option value="user">User Management</option>
+                    <option value="system">System Command</option>
+                    <option value="notification">Send Notification</option>
+                </select>
             </div>
-            <div class="card-body">
-                <p class="text-muted mb-3">Execute custom administrative commands and scripts</p>
-                <form>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Action Type</label>
-                                <select class="form-select" id="actionType">
-                                    <option value="">Select action type...</option>
-                                    <option value="database">Database Query</option>
-                                    <option value="cache">Cache Operation</option>
-                                    <option value="user">User Management</option>
-                                    <option value="system">System Command</option>
-                                    <option value="notification">Send Notification</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Target</label>
-                                <input type="text" class="form-control" id="actionTarget" placeholder="Target (optional)">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Command/Parameters</label>
-                        <textarea class="form-control" id="actionCommand" rows="3" placeholder="Enter command or parameters..."></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="confirmBeforeExecution">
-                            <label class="form-check-label" for="confirmBeforeExecution">
-                                Require confirmation before execution
-                            </label>
-                        </div>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-primary" onclick="executeCustomAction()">
-                            <i class="ti ti-play me-1"></i>Execute Action
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary" onclick="validateCustomAction()">
-                            <i class="ti ti-check me-1"></i>Validate Only
-                        </button>
-                        <button type="button" class="btn btn-outline-info" onclick="saveCustomAction()">
-                            <i class="ti ti-device-floppy me-1"></i>Save as Template
-                        </button>
-                    </div>
-                </form>
+            <div class="c-custom-actions__field">
+                <label class="c-custom-actions__label">Target</label>
+                <input type="text" class="c-custom-actions__input" id="actionTarget" placeholder="Target (optional)" data-form-control>
             </div>
         </div>
-    </div>
+        <div class="c-custom-actions__field c-custom-actions__field--full">
+            <label class="c-custom-actions__label">Command/Parameters</label>
+            <textarea class="c-custom-actions__textarea" id="actionCommand" rows="3" placeholder="Enter command or parameters..." data-form-control></textarea>
+        </div>
+        <div class="c-custom-actions__field c-custom-actions__field--full">
+            <div class="c-custom-actions__checkbox">
+                <input class="c-custom-actions__checkbox-input" type="checkbox" id="confirmBeforeExecution">
+                <label class="c-custom-actions__checkbox-label" for="confirmBeforeExecution">
+                    Require confirmation before execution
+                </label>
+            </div>
+        </div>
+        <div class="c-custom-actions__buttons">
+            <button type="button" class="c-custom-actions__button c-custom-actions__button--primary" data-action="execute-custom-action">
+                <i class="ti ti-play"></i>
+                <span>Execute Action</span>
+            </button>
+            <button type="button" class="c-custom-actions__button c-custom-actions__button--secondary" data-action="validate-custom-action">
+                <i class="ti ti-check"></i>
+                <span>Validate Only</span>
+            </button>
+            <button type="button" class="c-custom-actions__button c-custom-actions__button--info" data-action="save-custom-action">
+                <i class="ti ti-device-floppy"></i>
+                <span>Save as Template</span>
+            </button>
+        </div>
+    </form>
 </div>
 {% endblock %}
 
 {% block custom_css %}
 {{ super() }}
-<style>
-.btn-outline-purple {
-    color: var(--ecs-primary, #6f42c1);
-    border-color: var(--ecs-primary, #6f42c1);
-}
-
-.btn-outline-purple:hover {
-    color: var(--bs-white, #fff);
-    background-color: var(--ecs-primary, #6f42c1);
-    border-color: var(--ecs-primary, #6f42c1);
-}
-
-.text-purple {
-    color: var(--ecs-primary, #6f42c1) !important;
-}
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin-panel/quick-actions.css') }}" />
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
+// Attach event listeners to all action buttons
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[data-action]').forEach(button => {
+        button.addEventListener('click', function() {
+            const action = this.dataset.action;
+            const actionMap = {
+                'clear-cache': clearAllCache,
+                'check-db-health': checkDatabaseHealth,
+                'initialize-settings': initializeSettings,
+                'restart-bot': restartBot,
+                'approve-all-pending': approveAllPending,
+                'process-waitlist': processWaitlist,
+                'send-bulk-notifications': sendBulkNotifications,
+                'sync-templates': syncTemplates,
+                'test-notifications': testNotifications,
+                'send-emergency-alert': sendEmergencyAlert,
+                'export-system-data': exportSystemData,
+                'toggle-maintenance-mode': toggleMaintenanceMode,
+                'clear-system-logs': clearSystemLogs,
+                'generate-system-report': generateSystemReport,
+                'execute-custom-action': executeCustomAction,
+                'validate-custom-action': validateCustomAction,
+                'save-custom-action': saveCustomAction
+            };
+            if (actionMap[action]) {
+                actionMap[action]();
+            }
+        });
+    });
+});
+
 // System Operations
 function clearAllCache() {
     Swal.fire({
@@ -460,15 +381,15 @@ function sendBulkNotifications() {
         html: `
             <div class="mb-3">
                 <label class="form-label">Notification Title</label>
-                <input type="text" class="form-control" id="notificationTitle" placeholder="Enter notification title">
+                <input type="text" class="form-control" id="notificationTitle" placeholder="Enter notification title" data-form-control>
             </div>
             <div class="mb-3">
                 <label class="form-label">Message</label>
-                <textarea class="form-control" id="notificationMessage" rows="3" placeholder="Enter notification message"></textarea>
+                <textarea class="form-control" id="notificationMessage" rows="3" placeholder="Enter notification message" data-form-control></textarea>
             </div>
             <div class="mb-3">
                 <label class="form-label">Target Audience</label>
-                <select class="form-select" id="notificationTarget">
+                <select class="form-select" id="notificationTarget" data-form-select>
                     <option value="all">All Users</option>
                     <option value="approved">Approved Users Only</option>
                     <option value="pending">Pending Users Only</option>
@@ -533,16 +454,16 @@ function sendEmergencyAlert() {
     Swal.fire({
         title: 'Send Emergency Alert',
         html: `
-            <div class="alert alert-danger mb-3">
+            <div class="alert alert-danger mb-3" data-alert>
                 <strong>Warning:</strong> This will send an emergency alert to all users.
             </div>
             <div class="mb-3">
                 <label class="form-label">Alert Message</label>
-                <textarea class="form-control" id="emergencyMessage" rows="3" placeholder="Enter emergency alert message"></textarea>
+                <textarea class="form-control" id="emergencyMessage" rows="3" placeholder="Enter emergency alert message" data-form-control></textarea>
             </div>
             <div class="mb-3">
                 <label class="form-label">Alert Level</label>
-                <select class="form-select" id="alertLevel">
+                <select class="form-select" id="alertLevel" data-form-select>
                     <option value="info">Info</option>
                     <option value="warning">Warning</option>
                     <option value="critical" selected>Critical</option>
@@ -596,7 +517,7 @@ function exportSystemData() {
             </div>
             <div class="mb-3">
                 <label class="form-label">Export Format</label>
-                <select class="form-select" id="exportFormat">
+                <select class="form-select" id="exportFormat" data-form-select>
                     <option value="json">JSON</option>
                     <option value="csv">CSV</option>
                     <option value="xlsx">Excel</option>
@@ -750,11 +671,11 @@ function saveCustomAction() {
         html: `
             <div class="mb-3">
                 <label class="form-label">Template Name</label>
-                <input type="text" class="form-control" id="templateName" placeholder="Enter template name">
+                <input type="text" class="form-control" id="templateName" placeholder="Enter template name" data-form-control>
             </div>
             <div class="mb-3">
                 <label class="form-label">Description</label>
-                <textarea class="form-control" id="templateDescription" rows="2" placeholder="Template description (optional)"></textarea>
+                <textarea class="form-control" id="templateDescription" rows="2" placeholder="Template description (optional)" data-form-control></textarea>
             </div>
         `,
         showCancelButton: true,

@@ -333,59 +333,59 @@
     }
 
     // Auto-add haptic feedback to common elements
-    document.addEventListener('DOMContentLoaded', () => {
-      // Buttons
-      document.querySelectorAll('.btn:not([data-haptics="false"])').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          // Check button type for appropriate feedback
-          if (btn.classList.contains('btn-success')) {
-            Haptics.success();
-          } else if (btn.classList.contains('btn-danger')) {
-            Haptics.warning();
-          } else {
-            Haptics.medium();
-          }
-        }, { passive: true });
+    // Note: Module-level DOMContentLoaded ensures this runs after DOM is ready
+
+    // Buttons
+    document.querySelectorAll('.btn:not([data-haptics="false"])').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        // Check button type for appropriate feedback
+        if (btn.classList.contains('btn-success')) {
+          Haptics.success();
+        } else if (btn.classList.contains('btn-danger')) {
+          Haptics.warning();
+        } else {
+          Haptics.medium();
+        }
+      }, { passive: true });
+    });
+
+    // Form inputs
+    document.querySelectorAll('.form-control, .form-select').forEach(input => {
+      input.addEventListener('focus', () => {
+        Haptics.inputFocus();
+      }, { passive: true });
+
+      input.addEventListener('invalid', () => {
+        Haptics.validationError();
+      });
+    });
+
+    // Checkboxes and radios
+    document.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(input => {
+      input.addEventListener('change', () => {
+        if (input.checked) {
+          Haptics.selection();
+        } else {
+          Haptics.deselection();
+        }
+      }, { passive: true });
+    });
+
+    // Nav links
+    document.querySelectorAll('.nav-link:not([data-haptics="false"])').forEach(link => {
+      link.addEventListener('click', () => {
+        Haptics.light();
+      }, { passive: true });
+    });
+
+    // Modal events
+    document.querySelectorAll('.modal').forEach(modal => {
+      modal.addEventListener('shown.bs.modal', () => {
+        Haptics.modalOpen();
       });
 
-      // Form inputs
-      document.querySelectorAll('.form-control, .form-select').forEach(input => {
-        input.addEventListener('focus', () => {
-          Haptics.inputFocus();
-        }, { passive: true });
-
-        input.addEventListener('invalid', () => {
-          Haptics.validationError();
-        });
-      });
-
-      // Checkboxes and radios
-      document.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(input => {
-        input.addEventListener('change', () => {
-          if (input.checked) {
-            Haptics.selection();
-          } else {
-            Haptics.deselection();
-          }
-        }, { passive: true });
-      });
-
-      // Nav links
-      document.querySelectorAll('.nav-link:not([data-haptics="false"])').forEach(link => {
-        link.addEventListener('click', () => {
-          Haptics.light();
-        }, { passive: true });
-      });
-
-      // Modal events
-      document.querySelectorAll('.modal').forEach(modal => {
-        modal.addEventListener('shown.bs.modal', () => {
-          Haptics.modalOpen();
-        });
-
-        modal.addEventListener('hidden.bs.modal', () => {
-          Haptics.modalClose();
-        });
+      modal.addEventListener('hidden.bs.modal', () => {
+        Haptics.modalClose();
       });
     });
 

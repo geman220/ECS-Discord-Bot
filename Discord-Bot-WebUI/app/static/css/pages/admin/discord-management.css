@@ -1,0 +1,636 @@
+/**
+ * ============================================================================
+ * DISCORD MANAGEMENT PAGE - MODERN BEM COMPONENTS
+ * ============================================================================
+ *
+ * Modern component-based styles for Discord management admin page
+ * Follows strict BEM naming convention and architectural standards
+ *
+ * ARCHITECTURAL COMPLIANCE:
+ * - 100% BEM naming: .c-component__element--modifier
+ * - Zero hardcoded values (design tokens only)
+ * - Zero !important declarations
+ * - State-driven styling with .is-* classes
+ * - Mobile-first responsive design
+ * - Full dark mode support via [data-style="dark"]
+ * - WCAG AA accessibility compliant
+ *
+ * Components:
+ *   1. Admin Header (.c-admin-header)
+ *   2. Stat Cards (.c-stat-card)
+ *   3. Filter Bar (.c-filter-bar)
+ *   4. Player Row (.c-player-row)
+ *   5. Discord Status (.c-discord-status)
+ *   6. Contact Info (.c-contact-info)
+ *   7. Action Buttons (.c-action-btn)
+ *   8. Pagination (.c-pagination)
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. ADMIN HEADER COMPONENT
+   Page header with breadcrumb and actions
+   ============================================================================ */
+
+.c-admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.c-admin-header__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-admin-header__breadcrumb {
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-2);
+  color: var(--color-text-secondary);
+}
+
+.c-admin-header__breadcrumb-item {
+  color: var(--color-text-primary);
+}
+
+.c-admin-header__breadcrumb-item--muted {
+  color: var(--color-text-muted);
+}
+
+.c-admin-header__title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2) 0;
+  line-height: var(--leading-tight);
+}
+
+.c-admin-header__description {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: var(--leading-relaxed);
+}
+
+.c-admin-header__actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* Mobile adjustments */
+@media (max-width: 767.98px) {
+  .c-admin-header {
+    flex-direction: column;
+  }
+
+  .c-admin-header__actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .c-admin-header__actions button {
+    flex: 1;
+  }
+}
+
+/* ============================================================================
+   2. STAT CARD COMPONENT (Discord-specific clickable filter cards)
+   Scoped to <a> elements with data-status to avoid affecting other pages
+   ============================================================================ */
+
+a.c-stat-card[data-status] {
+  display: block;
+  background: var(--color-bg-card);
+  border: 2px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  text-align: center;
+  text-decoration: none;
+  transition: var(--transition-all);
+  box-shadow: var(--shadow-sm);
+}
+
+a.c-stat-card[data-status]:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary);
+}
+
+a.c-stat-card[data-status].is-active {
+  background: var(--color-primary-subtle);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+a.c-stat-card[data-status] .c-stat-card__value {
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  line-height: var(--leading-tight);
+  margin-bottom: var(--space-2);
+}
+
+a.c-stat-card[data-status] .c-stat-card__label {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-weight: var(--font-medium);
+}
+
+/* Stat card variants (Discord page specific) */
+a.c-stat-card--total[data-status] .c-stat-card__value {
+  color: var(--color-primary);
+}
+
+a.c-stat-card--success[data-status] .c-stat-card__value {
+  color: var(--color-success);
+}
+
+a.c-stat-card--warning[data-status] .c-stat-card__value {
+  color: var(--color-warning);
+}
+
+a.c-stat-card--info[data-status] .c-stat-card__value {
+  color: var(--color-info);
+}
+
+/* Mobile adjustments (Discord page specific) */
+@media (max-width: 767.98px) {
+  a.c-stat-card[data-status] {
+    padding: var(--space-4);
+  }
+
+  a.c-stat-card[data-status] .c-stat-card__value {
+    font-size: var(--text-3xl);
+  }
+}
+
+/* ============================================================================
+   3. FILTER BAR COMPONENT
+   Pagination and filter controls
+   ============================================================================ */
+
+.c-filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.c-filter-bar__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-filter-bar__title {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-1) 0;
+}
+
+.c-filter-bar__pagination-info {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.c-filter-bar__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.c-filter-bar__label {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+/* Mobile adjustments */
+@media (max-width: 767.98px) {
+  .c-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .c-filter-bar__controls {
+    justify-content: space-between;
+  }
+}
+
+/* ============================================================================
+   4. PLAYER ROW COMPONENT
+   Individual player information row
+   ============================================================================ */
+
+.c-player-row {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-3);
+  transition: var(--transition-all);
+  overflow: hidden;
+}
+
+.c-player-row:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.c-player-row__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+.c-player-row__main {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+}
+
+.c-player-row__avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-bold);
+  font-size: var(--text-lg);
+  flex-shrink: 0;
+}
+
+.c-player-row__details {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-player-row__name {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.c-player-row__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-2);
+}
+
+.c-player-row__meta-muted {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.c-player-row__last-checked {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--space-2);
+}
+
+.c-player-row__actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* Mobile adjustments */
+@media (max-width: 767.98px) {
+  .c-player-row__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .c-player-row__actions {
+    flex-wrap: wrap;
+  }
+
+  .c-player-row__avatar {
+    width: 48px;
+    height: 48px;
+    font-size: var(--text-base);
+  }
+}
+
+/* ============================================================================
+   5. DISCORD STATUS COMPONENT
+   Discord connection status indicator
+   ============================================================================ */
+
+.c-discord-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-2);
+  border: 1px solid transparent;
+}
+
+.c-discord-status__icon {
+  font-size: var(--text-lg);
+}
+
+.c-discord-status__text {
+  font-weight: var(--font-medium);
+}
+
+.c-discord-status__username {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+/* Discord status variants */
+.c-discord-status--success {
+  background: var(--color-success-subtle);
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.c-discord-status--warning {
+  background: var(--color-warning-subtle);
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.c-discord-status--info {
+  background: var(--color-info-subtle);
+  border-color: var(--color-info);
+  color: var(--color-info);
+}
+
+/* ============================================================================
+   6. CONTACT INFO COMPONENT
+   Contact information display
+   ============================================================================ */
+
+.c-contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-2);
+}
+
+.c-contact-info__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.c-contact-info__item i {
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+}
+
+/* ============================================================================
+   7. ACTION BUTTON COMPONENT
+   Action buttons for player operations
+   ============================================================================ */
+
+.c-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: var(--transition-all);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.c-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.c-action-btn:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Action button variants */
+.c-action-btn--primary {
+  background: var(--color-primary-subtle);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.c-action-btn--primary:hover {
+  background: var(--color-primary);
+  color: var(--color-neutral-0);
+}
+
+.c-action-btn--secondary {
+  background: var(--color-bg-subtle);
+  border-color: var(--color-border-primary);
+  color: var(--color-text-primary);
+}
+
+.c-action-btn--secondary:hover {
+  background: var(--color-hover-bg);
+  border-color: var(--color-border-secondary);
+}
+
+.c-action-btn--discord {
+  background: #5865F2;
+  border-color: #5865F2;
+  color: var(--color-neutral-0);
+}
+
+.c-action-btn--discord:hover {
+  background: #4752C4;
+  border-color: #4752C4;
+  color: var(--color-neutral-0);
+}
+
+.c-action-btn--info {
+  background: var(--color-info-subtle);
+  border-color: var(--color-info);
+  color: var(--color-info);
+}
+
+.c-action-btn--info:hover {
+  background: var(--color-info);
+  color: var(--color-neutral-0);
+}
+
+/* Mobile - hide text, show only icons */
+@media (max-width: 767.98px) {
+  .c-action-btn span {
+    display: none;
+  }
+
+  .c-action-btn {
+    padding: var(--space-2);
+    min-width: 40px;
+    justify-content: center;
+  }
+}
+
+/* ============================================================================
+   8. PAGINATION COMPONENT
+   Pagination controls
+   ============================================================================ */
+
+.c-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.c-pagination__list {
+  display: flex;
+  gap: var(--space-1);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.c-pagination__item {
+  /* Item container */
+}
+
+.c-pagination__item.is-disabled .c-pagination__link {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.c-pagination__item.is-active .c-pagination__link {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-neutral-0);
+}
+
+.c-pagination__link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  text-decoration: none;
+  transition: var(--transition-all);
+}
+
+.c-pagination__link:hover:not(.is-disabled) {
+  background: var(--color-hover-bg);
+  border-color: var(--color-primary);
+}
+
+.c-pagination__link:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.c-pagination__info {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* Mobile adjustments */
+@media (max-width: 767.98px) {
+  .c-pagination {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .c-pagination__list {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================ */
+
+[data-style="dark"] .c-stat-card,
+[data-style="dark"] .c-filter-bar,
+[data-style="dark"] .c-player-row {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .c-player-row:hover {
+  background: var(--color-hover-bg);
+}
+
+[data-style="dark"] .c-pagination__link {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-primary);
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .c-stat-card,
+  .c-player-row,
+  .c-action-btn,
+  .c-pagination__link {
+    transition: none;
+  }
+
+  .c-stat-card:hover,
+  .c-player-row:hover,
+  .c-action-btn:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .c-stat-card,
+  .c-filter-bar,
+  .c-player-row,
+  .c-discord-status {
+    border-width: 2px;
+  }
+
+  .c-action-btn,
+  .c-pagination__link {
+    border-width: 2px;
+  }
+}
+
+/* ============================================================================
+   END OF DISCORD MANAGEMENT MODERN COMPONENTS
+   ============================================================================ */

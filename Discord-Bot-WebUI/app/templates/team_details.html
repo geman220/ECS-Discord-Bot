@@ -4,156 +4,197 @@
 
 {% block title %}{{ team.name }} - Team Details{% endblock %}
 
+{% block custom_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/team-detail.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/c-schedule.css') }}">
+{% endblock %}
+
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Team Header -->
-    <div class="card bg-primary mb-4">
-        <div class="card-body p-0 position-relative overflow-hidden {% if team.background_image_url %}ecs-card-body{% endif %}">
-            {% if team.background_image_url %}
-            <div class="team-background-overlay" style="background-image: url('{{ team.background_image_url }}'); background-size: {{ team.background_size or 'cover' }}; background-position: {{ team.background_position or 'center' }}; background-repeat: no-repeat;" data-nocache="{{ range(1, 999999) | random }}"></div>
-            {% endif %}
-            <div class="team-header-wrapper{% if team.background_image_url %} team-header-with-background{% endif %}" id="teamHeaderWrapper">
-                <div class="position-absolute top-0 left-0 w-100 h-100 d-flex p-4">
-                    <div class="team-info text-white z-1 p-2">
-                        <h1 class="display-5 fw-bold mb-2">{{ team.name }}</h1>
-                        <div class="hstack gap-2 mb-2">
-                            <div class="badge bg-label-light fs-6">
-                                <i class="ti ti-trophy me-1"></i>Division: {{ league.name }}
-                            </div>
-                            <div class="badge bg-label-light fs-6">
-                                <i class="ti ti-calendar me-1"></i>Season: {{ season.name if season else 'No active season' }}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {% if team.kit_url %}
-                    <div class="team-kit ms-auto">
-                        <img src="{{ team.kit_url }}" alt="Team Kit" class="kit-image rounded shadow-sm">
-                    </div>
-                    {% endif %}
-                </div>
-                
-                <!-- Upload buttons for team kit and background -->
-                {% if can_upload_kit %}
-                <div class="position-absolute top-0 end-0 p-3 upload-buttons-container">
-                    <div class="btn-group-vertical" role="group">
-                        <!-- Team Kit Upload -->
-                        <form action="{{ url_for('teams.upload_team_kit', team_id=team.id) }}"
-                              method="post"
-                              enctype="multipart/form-data" class="mb-2">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="file" name="team_kit" id="team_kit" style="display: none;" onchange="this.form.submit();" accept="image/*">
-                            <button type="button" class="btn btn-light btn-icon" onclick="document.getElementById('team_kit').click();" 
-                                    aria-label="Upload Team Kit" data-bs-toggle="tooltip" data-bs-placement="left" title="Upload Team Kit">
-                                <i class="ti ti-upload"></i>
-                            </button>
-                        </form>
-                        
-                        <!-- Team Background Upload -->
-                        <input type="file" id="team_background" style="display: none;" accept="image/*" onchange="loadImageForCropping(this);">
-                        <button type="button" class="btn btn-light btn-icon" onclick="event.stopPropagation(); document.getElementById('team_background').click();" 
-                                aria-label="Upload Team Background" data-bs-toggle="tooltip" data-bs-placement="left" title="Upload Team Background">
-                            <i class="ti ti-photo"></i>
-                        </button>
-                    </div>
+    <div class="c-team-header" data-component="team-header">
+        {% if team.background_image_url %}
+        <div class="c-team-header__background"
+             data-background-url="{{ team.background_image_url }}"
+             {% if team.background_size %}data-background-size="{{ team.background_size }}"{% endif %}
+             {% if team.background_position %}data-background-position="{{ team.background_position }}"{% endif %}></div>
+        {% else %}
+        <div class="c-team-header__background c-team-header__background--gradient"></div>
+        {% endif %}
+
+        <div class="c-team-header__content">
+            <div class="c-team-header__info">
+                {% if team.kit_url %}
+                <div class="c-team-header__logo">
+                    <img src="{{ team.kit_url }}"
+                         alt="{{ team.name }} kit"
+                         class="c-team-header__logo-image">
                 </div>
                 {% endif %}
+
+                <div class="c-team-header__details">
+                    <h1 class="c-team-header__name">{{ team.name }}</h1>
+                    <div class="c-team-header__meta">
+                        <span class="c-badge c-badge--primary" data-badge>
+                            <i class="ti ti-trophy"></i>{{ league.name }}
+                        </span>
+                        <span class="c-badge c-badge--info" data-badge>
+                            <i class="ti ti-calendar"></i>{{ season.name if season else 'No active season' }}
+                        </span>
+                    </div>
+                </div>
             </div>
-            
+
+            {% if can_upload_kit %}
+            <div class="c-team-header__actions">
+                <!-- Team Kit Upload -->
+                <form action="{{ url_for('teams.upload_team_kit', team_id=team.id) }}"
+                      method="post"
+                      enctype="multipart/form-data"
+                      class="c-upload-form"
+                      data-form="upload-kit">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="file"
+                           name="team_kit"
+                           class="c-upload-form__input u-visually-hidden"
+                           data-action="auto-submit"
+                           data-target="team_kit"
+                           accept="image/*">
+                    <button type="button"
+                            class="c-btn c-btn--outline-primary c-btn--sm"
+                            data-action="trigger-file-input"
+                            data-target="team_kit"
+                            aria-label="Upload Team Kit"
+                            data-bs-toggle="tooltip"
+                            title="Upload Team Kit">
+                        <i class="ti ti-upload"></i>
+                        <span class="c-team-header__action-text">Upload Kit</span>
+                    </button>
+                </form>
+
+                <!-- Team Background Upload -->
+                <input type="file"
+                       class="c-upload-form__input u-visually-hidden"
+                       data-action="load-image-cropping"
+                       data-target="team_background"
+                       accept="image/*">
+                <button type="button"
+                        class="c-btn c-btn--outline-primary c-btn--sm"
+                        data-action="trigger-background-input"
+                        data-target="team_background"
+                        aria-label="Upload Team Background"
+                        data-bs-toggle="tooltip"
+                        title="Upload Team Background">
+                    <i class="ti ti-photo"></i>
+                    <span class="c-team-header__action-text">Upload Background</span>
+                </button>
+            </div>
+            {% endif %}
         </div>
     </div>
 
     <div class="row">
         <!-- Team Members Section -->
         <div class="col-lg-6 col-12 mb-4">
-            <div class="card h-100">
-                <div class="card-header border-bottom">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">Team Members</h5>
-                        <div class="btn-group" role="group">
-                            {% if has_role('Global Admin') or has_role('Pub League Admin') %}
-                            <button class="btn btn-warning btn-sm" id="assignDiscordRolesBtn" data-team-id="{{ team.id }}">
-                                <i class="ti ti-brand-discord me-1"></i>Assign Discord Roles
-                            </button>
-                            <button class="btn btn-info btn-sm" id="refreshDiscordStatusBtn" data-team-id="{{ team.id }}">
-                                <i class="ti ti-refresh me-1"></i>Refresh Discord Status
-                            </button>
-                            {% endif %}
-                            {% if can_add_player %}
-                            <a href="{{ url_for('teams.add_player', team_id=team.id) }}" class="btn btn-primary btn-sm">
-                                <i class="ti ti-plus me-1"></i>Add Player
-                            </a>
-                            {% endif %}
-                        </div>
+            <div class="c-card-modern">
+                <div class="c-card-modern__header">
+                    <h5 class="c-card-modern__title">Team Members</h5>
+                    <div class="c-card-modern__actions">
+                        {% if has_role('Global Admin') or has_role('Pub League Admin') %}
+                        <button class="c-btn c-btn--warning c-btn--sm"
+                                data-action="assign-discord-roles"
+                                data-team-id="{{ team.id }}">
+                            <i class="ti ti-brand-discord"></i>
+                            <span class="c-btn-text">Assign Discord Roles</span>
+                        </button>
+                        <button class="c-btn c-btn--info c-btn--sm"
+                                data-action="refresh-discord-status"
+                                data-team-id="{{ team.id }}">
+                            <i class="ti ti-refresh"></i>
+                            <span class="c-btn-text">Refresh Discord Status</span>
+                        </button>
+                        {% endif %}
+                        {% if can_add_player %}
+                        <a href="{{ url_for('teams.add_player', team_id=team.id) }}"
+                           class="c-btn c-btn--primary c-btn--sm">
+                            <i class="ti ti-plus"></i>
+                            <span class="c-btn-text">Add Player</span>
+                        </a>
+                        {% endif %}
                     </div>
                 </div>
-                <div class="card-body p-0">
-                    <div class="player-list">
+                <div class="c-card-modern__body c-card-modern__body--no-padding">
+                    <div class="c-roster-grid" data-component="roster-grid">
                         {% for player in players %}
-                        <div class="player-item d-flex justify-content-between align-items-center p-3 border-bottom">
-                            <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="d-flex align-items-center text-decoration-none">
-                                <div class="avatar avatar-md me-3">
-                                    <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
-                                         alt="{{ player.name }}" class="rounded-circle">
+                        <div class="c-roster-card" data-player-id="{{ player.id }}">
+                            <a href="{{ url_for('players.player_profile', player_id=player.id) }}"
+                               class="c-roster-card__link">
+                                <div class="c-roster-card__avatar">
+                                    <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
+                                         alt="{{ player.name }}"
+                                         class="c-roster-card__avatar-image">
+                                    {% if player.user_id %}
+                                    <span class="c-online-status c-online-status--sm is-offline"
+                                          data-online-status="{{ player.user_id }}"
+                                          title="Offline"
+                                          aria-label="Online status"></span>
+                                    {% endif %}
                                     {% if player.is_coach %}
-                                    <span class="avatar-status bg-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Coach"></span>
+                                    <span class="c-roster-card__badge c-roster-card__badge--coach"
+                                          data-bs-toggle="tooltip"
+                                          title="Coach">
+                                        <i class="ti ti-trophy"></i>
+                                    </span>
                                     {% endif %}
                                 </div>
-                                <div class="player-details">
-                                    <h6 class="mb-0">{{ player.name }}</h6>
-                                    <small class="text-muted">
-                                        {% if player.favorite_position %}Position: {{ format_position(player.favorite_position) }}{% endif %}
-                                    </small>
+                                <div class="c-roster-card__info">
+                                    <h6 class="c-roster-card__name">{{ player.name }}</h6>
+                                    {% if player.favorite_position %}
+                                    <small class="c-roster-card__position">{{ format_position(player.favorite_position) }}</small>
+                                    {% endif %}
                                 </div>
                             </a>
-                            <div class="player-stats hstack gap-2">
+
+                            <div class="c-roster-card__stats">
                                 {% if can_view_player_stats %}
-                                <div class="stat-badge" data-bs-toggle="tooltip" data-bs-placement="top" title="Goals">
-                                    <i class="ti ti-ball-football text-primary"></i> {{ player.season_goals(season.id) }}
-                                </div>
-                                <div class="stat-badge" data-bs-toggle="tooltip" data-bs-placement="top" title="Assists">
-                                    <i class="ti ti-arrow-big-right-lines text-primary"></i> {{ player.season_assists(season.id) }}
-                                </div>
+                                <span class="c-stat-badge" data-bs-toggle="tooltip" title="Goals">
+                                    <i class="ti ti-ball-football"></i>{{ player.season_goals(season.id) }}
+                                </span>
+                                <span class="c-stat-badge" data-bs-toggle="tooltip" title="Assists">
+                                    <i class="ti ti-arrow-big-right-lines"></i>{{ player.season_assists(season.id) }}
+                                </span>
                                 {% endif %}
-                                
+
                                 {% if can_view_player_cards %}
-                                <div class="stat-badge" data-bs-toggle="tooltip" data-bs-placement="top" title="Yellow Cards">
-                                    <span class="card-indicator card-yellow"></span> {{ player.season_yellow_cards(season.id) }}
-                                </div>
-                                <div class="stat-badge" data-bs-toggle="tooltip" data-bs-placement="top" title="Red Cards">
-                                    <span class="card-indicator card-red"></span> {{ player.season_red_cards(season.id) }}
-                                </div>
+                                <span class="c-stat-badge c-stat-badge--yellow" data-bs-toggle="tooltip" title="Yellow Cards">
+                                    🟨{{ player.season_yellow_cards(season.id) }}
+                                </span>
+                                <span class="c-stat-badge c-stat-badge--red" data-bs-toggle="tooltip" title="Red Cards">
+                                    🟥{{ player.season_red_cards(season.id) }}
+                                </span>
                                 {% endif %}
-                                
+
                                 {% if player.discord_id %}
-                                    {% if has_role('Global Admin') or has_role('Pub League Admin') %}
-                                    <!-- Admin view: Full Discord info with refresh capability -->
-                                    <div class="discord-status-badge clickable-discord-status" 
-                                         data-bs-toggle="tooltip" data-bs-placement="top" 
-                                         data-player-id="{{ player.id }}"
-                                         data-player-name="{{ player.name }}"
-                                         title="Discord: {{ player.discord_username or player.discord_id }}{% if player.discord_in_server is not none %} - {% if player.discord_in_server %}In Server{% else %}Not in Server{% endif %}{% endif %} (Click to refresh)">
-                                        <i class="ti ti-brand-discord {% if player.discord_in_server %}text-success{% elif player.discord_in_server is false %}text-warning{% else %}text-muted{% endif %}"></i>
-                                    </div>
-                                    {% elif has_role('Pub League Coach') %}
-                                    <!-- Coach view: Read-only Discord status -->
-                                    <div class="discord-status-badge" 
-                                         data-bs-toggle="tooltip" data-bs-placement="top" 
-                                         title="Discord Status: {% if player.discord_in_server %}In Server{% elif player.discord_in_server is false %}Not in Server{% else %}Unknown{% endif %}">
-                                        <i class="ti ti-brand-discord {% if player.discord_in_server %}text-success{% elif player.discord_in_server is false %}text-warning{% else %}text-muted{% endif %}"></i>
-                                    </div>
-                                    {% endif %}
+                                <span class="c-discord-badge {% if player.discord_in_server %}c-discord-badge--active{% elif player.discord_in_server is false %}c-discord-badge--inactive{% endif %}"
+                                      data-bs-toggle="tooltip"
+                                      title="Discord: {{ player.discord_username or player.discord_id }}{% if player.discord_in_server is not none %} - {% if player.discord_in_server %}In Server{% else %}Not in Server{% endif %}{% endif %}"
+                                      {% if has_role('Global Admin') or has_role('Pub League Admin') %}
+                                      data-action="refresh-player-discord"
+                                      data-player-id="{{ player.id }}"
+                                      data-player-name="{{ player.name }}"
+                                      {% endif %}>
+                                    <i class="ti ti-brand-discord"></i>
+                                </span>
                                 {% endif %}
                             </div>
                         </div>
                         {% else %}
-                        <div class="p-4 text-center">
-                            <div class="empty-state">
-                                <div class="empty-state-icon mb-3">
-                                    <i class="ti ti-users"></i>
-                                </div>
-                                <p class="empty-state-message">No players have been assigned to this team yet.</p>
+                        <div class="c-empty-state" data-component="empty-state">
+                            <div class="c-empty-state__icon">
+                                <i class="ti ti-users-off"></i>
                             </div>
+                            <p class="c-empty-state__text">No players have been assigned to this team yet.</p>
                         </div>
                         {% endfor %}
                     </div>
@@ -163,331 +204,196 @@
 
         <!-- Team Schedule Section -->
         <div class="col-lg-6 col-12 mb-4">
-            <div class="card h-100">
-                <div class="card-header border-bottom">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">Team Schedule</h5>
+            <div class="c-card-modern">
+                <div class="c-card-modern__header">
+                    <h5 class="c-card-modern__title">Team Schedule</h5>
+                    <div class="c-card-modern__actions">
+                        {% if schedule %}
+                        <div class="c-schedule-controls">
+                            <button type="button"
+                                    class="c-schedule-controls__btn"
+                                    data-action="expand-all-schedule"
+                                    aria-label="Expand all dates">
+                                <i class="ti ti-arrows-maximize"></i>
+                                <span>Expand</span>
+                            </button>
+                            <button type="button"
+                                    class="c-schedule-controls__btn"
+                                    data-action="collapse-all-schedule"
+                                    aria-label="Collapse all dates">
+                                <i class="ti ti-arrows-minimize"></i>
+                                <span>Collapse</span>
+                            </button>
+                        </div>
+                        {% endif %}
                         {% if can_add_match %}
-                        <a href="{{ url_for('matches.add_match', team_id=team.id) }}" class="btn btn-primary btn-sm">
-                            <i class="ti ti-plus me-1"></i>Add Match
+                        <a href="{{ url_for('matches.add_match', team_id=team.id) }}"
+                           class="c-btn c-btn--primary c-btn--sm">
+                            <i class="ti ti-plus"></i>Add Match
                         </a>
                         {% endif %}
                     </div>
                 </div>
-                <div class="card-body p-0">
+                <div class="c-card-modern__body c-card-modern__body--no-padding">
                     {% if schedule %}
-                    <div class="accordion" id="scheduleAccordion">
+                    <div class="c-schedule" data-component="team-schedule">
                         {% for date, matches_on_date in schedule.items() %}
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="heading-{{ loop.index }}">
-                                <button class="accordion-button fw-medium {% if date != next_match_date %}collapsed{% endif %}" 
-                                        type="button" 
-                                        data-bs-toggle="collapse" 
-                                        data-bs-target="#collapse-{{ loop.index }}" 
-                                        aria-expanded="{% if date == next_match_date %}true{% else %}false{% endif %}" 
-                                        aria-controls="collapse-{{ loop.index }}">
-                                    <i class="ti ti-calendar-event me-2"></i>
-                                    {{ date.strftime('%B %d, %Y') }}
-                                    <span class="ms-auto badge bg-label-primary">{{ matches_on_date|length }} match{% if matches_on_date|length != 1 %}es{% endif %}</span>
-                                </button>
-                            </h2>
-                            <div id="collapse-{{ loop.index }}" 
-                                 class="accordion-collapse collapse {% if date == next_match_date %}show{% endif %}" 
-                                 aria-labelledby="heading-{{ loop.index }}" 
-                                 data-bs-parent="#scheduleAccordion">
-                                <div class="accordion-body p-0">
-                                    {% for match in matches_on_date %}
-                                    {% set current_team_id = team.id %}
-
-                                    {# Determine if the current team is the home or away team #}
-                                    {% if match.home_team_id == current_team_id %}
-                                    {% set display_home = match.home_team_name %}
-                                    {% set display_away = match.away_team_name %}
-                                    {% set your_team_score = match.your_team_score %}
-                                    {% set opponent_score = match.opponent_score %}
-                                    {% set result_text = match.result_text %}
-                                    {% set result_class = match.result_class %}
-                                    {% else %}
-                                    {% set display_home = match.away_team_name %}
-                                    {% set display_away = match.home_team_name %}
-                                    {% set your_team_score = match.away_team_score %}
-                                    {% set opponent_score = match.home_team_score %}
-                                    {% set result_text = match.result_text %}
-                                    {% set result_class = match.result_class %}
+                        {% set wins = matches_on_date|selectattr('result_text', 'equalto', 'W')|list|length %}
+                        {% set losses = matches_on_date|selectattr('result_text', 'equalto', 'L')|list|length %}
+                        {% set draws = matches_on_date|selectattr('result_text', 'equalto', 'D')|list|length %}
+                        {% set pending = matches_on_date|rejectattr('reported')|list|length %}
+                        {# Native HTML details/summary - browser handles collapse/expand #}
+                        <details class="c-schedule__week" data-date="{{ date.strftime('%Y-%m-%d') }}">
+                            <summary class="c-schedule__header">
+                                <i class="ti ti-calendar-event c-schedule__icon"></i>
+                                <span class="c-schedule__date">{{ date.strftime('%B %d, %Y') }}</span>
+                                <span class="c-schedule__badges">
+                                    {% if wins > 0 %}
+                                    <span class="c-schedule__badge c-schedule__badge--win" title="{{ wins }} Win{{ 's' if wins > 1 else '' }}">W{{ wins }}</span>
                                     {% endif %}
-                                    
-                                    <div class="match-item border-bottom p-3 {% if match.is_ecs_fc %}ecs-fc-match{% endif %}">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div class="match-details">
-                                                {% if match.is_ecs_fc %}
-                                                <!-- ECS FC Match - no link yet, just display -->
-                                                <div class="d-flex align-items-center">
-                                                    <div class="match-time me-3">
-                                                        <i class="fas fa-futbol text-primary"></i> {{ match.time.strftime('%I:%M %p') }}
-                                                    </div>
-                                                    <div class="match-teams">
-                                                        {% if match.week_type == 'PLAYOFF' and match.home_team_id != match.away_team_id %}
-                                                            {# Confirmed playoff match - show actual matchup #}
-                                                            <h6 class="mb-0">
-                                                                <span class="badge bg-info">Playoff</span>
-                                                                {{ display_home }} vs {{ display_away }}
-                                                            </h6>
-                                                        {% elif match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
-                                                            <h6 class="mb-0">
-                                                                <span class="badge bg-info">
-                                                                    {% if match.week_type == 'FUN' %}
-                                                                        Fun Week
-                                                                    {% elif match.week_type == 'TST' %}
-                                                                        TST Week
-                                                                    {% elif match.week_type == 'BYE' %}
-                                                                        BYE Week
-                                                                    {% elif match.week_type == 'BONUS' %}
-                                                                        Bonus Week
-                                                                    {% elif match.week_type == 'PLAYOFF' %}
-                                                                        Playoff Week
-                                                                    {% endif %}
-                                                                </span>
-                                                            </h6>
-                                                        {% elif match.week_type == 'PRACTICE' or (match.is_practice_game if match.is_practice_game is defined else False) %}
-                                                            <h6 class="mb-0">
-                                                                <span class="badge bg-warning">
-                                                                    PRACTICE
-                                                                </span>
-                                                            </h6>
-                                                        {% else %}
-                                                            <h6 class="mb-0">{{ display_home }} vs {{ display_away }}</h6>
-                                                        {% endif %}
-                                                        <small class="text-muted">
-                                                            <i class="ti ti-map-pin"></i> {{ match.location }}
-                                                            {% if match.field_name %}
-                                                            - {{ match.field_name }}
-                                                            {% endif %}
-                                                        </small>
-                                                    </div>
-                                                </div>
-                                                {% else %}
-                                                <!-- Regular Match -->
-                                                <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="text-decoration-none">
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="match-time me-3">
-                                                            <i class="ti ti-clock"></i> {{ match.time.strftime('%I:%M %p') }}
-                                                        </div>
-                                                        <div class="match-teams">
-                                                            {% if match.week_type == 'PLAYOFF' and match.home_team_id != match.away_team_id %}
-                                                                {# Confirmed playoff match - show actual matchup #}
-                                                                <h6 class="mb-0">
-                                                                    <span class="badge bg-info">Playoff</span>
-                                                                    {{ display_home }} vs {{ display_away }}
-                                                                </h6>
-                                                            {% elif match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
-                                                                <h6 class="mb-0">
-                                                                    <span class="badge bg-info">
-                                                                        {% if match.week_type == 'FUN' %}
-                                                                            Fun Week
-                                                                        {% elif match.week_type == 'TST' %}
-                                                                            TST Week
-                                                                        {% elif match.week_type == 'BYE' %}
-                                                                            BYE Week
-                                                                        {% elif match.week_type == 'BONUS' %}
-                                                                            Bonus Week
-                                                                        {% elif match.week_type == 'PLAYOFF' %}
-                                                                            Playoff Week
-                                                                        {% endif %}
-                                                                    </span>
-                                                                </h6>
-                                                            {% elif match.week_type == 'PRACTICE' or (match.is_practice_game if match.is_practice_game is defined else False) %}
-                                                                <h6 class="mb-0">
-                                                                    <span class="badge bg-warning">
-                                                                        PRACTICE
-                                                                    </span>
-                                                                </h6>
-                                                            {% else %}
-                                                                <h6 class="mb-0">{{ display_home }} vs {{ display_away }}</h6>
-                                                            {% endif %}
-                                                            <small class="text-muted">
-                                                                <i class="ti ti-map-pin"></i> {{ match.location }}
-                                                            </small>
-                                                        </div>
-                                                    </div>
-                                                </a>
-                                                {% endif %}
-                                            </div>
-                                            <div class="d-flex align-items-center">
-                                                {% if match.is_ecs_fc %}
-                                                <!-- ECS FC Match result -->
-                                                <div class="match-result me-2">
-                                                    <span class="badge bg-{{ result_class }}">
-                                                        <i class="fas fa-futbol me-1"></i>{{ result_text }}
-                                                    </span>
-                                                </div>
-                                                {% elif can_view_game_results %}
-                                                <!-- Regular match result -->
-                                                <div class="match-result me-2">
-                                                    <span class="badge bg-{{ result_class }}">
-                                                        {{ result_text }} ({{ match.display_score }})
-                                                    </span>
-                                                </div>
-                                                {% endif %}
-                                                
-                                                {% if match.is_ecs_fc and can_manage_ecs_fc %}
-                                                <!-- ECS FC Match actions -->
-                                                <div class="btn-group btn-group-sm" role="group">
-                                                    <a href="{{ url_for('match_pages.view_match', match_id='ecs_' + match.ecs_fc_match_id|string) }}" 
-                                                       class="btn btn-outline-primary btn-icon btn-sm" 
-                                                       title="View ECS FC Match">
-                                                        <i class="fas fa-eye"></i>
-                                                    </a>
-                                                    <button class="btn btn-outline-warning btn-icon btn-sm edit-match-btn" 
-                                                            title="Edit ECS FC Match"
-                                                            data-match-id="{{ match.ecs_fc_match_id }}"
-                                                            data-is-ecs-fc="true">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <button class="btn btn-outline-danger btn-icon btn-sm delete-ecs-fc-match-btn" 
-                                                            title="Delete ECS FC Match"
-                                                            data-match-id="{{ match.ecs_fc_match_id }}"
-                                                            data-opponent-name="{{ match.opponent_name }}"
-                                                            data-match-date="{{ match.match_date }}">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </div>
-                                                {% elif can_report_match and not match.is_ecs_fc %}
-                                                <!-- Regular match actions -->
-                                                <button class="btn btn-icon btn-sm {% if match.reported %}btn-label-warning{% else %}btn-label-primary{% endif %} edit-match-btn"
-                                                        data-match-id="{{ match.id }}" 
-                                                        aria-label="{{ 'Edit Match' if match.reported else 'Report Match' }}"
-                                                        data-bs-toggle="tooltip" 
-                                                        data-bs-placement="top" 
-                                                        title="{{ 'Edit Match' if match.reported else 'Report Match' }}">
-                                                    <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %}"></i>
-                                                </button>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
+                                    {% if losses > 0 %}
+                                    <span class="c-schedule__badge c-schedule__badge--loss" title="{{ losses }} Loss{{ 'es' if losses > 1 else '' }}">L{{ losses }}</span>
+                                    {% endif %}
+                                    {% if draws > 0 %}
+                                    <span class="c-schedule__badge c-schedule__badge--draw" title="{{ draws }} Draw{{ 's' if draws > 1 else '' }}">D{{ draws }}</span>
+                                    {% endif %}
+                                    {% if pending > 0 %}
+                                    <span class="c-schedule__badge c-schedule__badge--pending" title="{{ pending }} Pending">{{ pending }}</span>
+                                    {% endif %}
+                                </span>
+                                <i class="ti ti-chevron-down c-schedule__chevron"></i>
+                            </summary>
+                            <div class="c-schedule__matches">
+                            {% for match in matches_on_date %}
+                            {% set current_team_id = team.id %}
+                            {% if match.home_team_id == current_team_id %}
+                                {% set display_home = match.home_team_name %}
+                                {% set display_away = match.away_team_name %}
+                                {% set result_class = match.result_class %}
+                                {% set result_text = match.result_text %}
+                            {% else %}
+                                {% set display_home = match.away_team_name %}
+                                {% set display_away = match.home_team_name %}
+                                {% set result_class = match.result_class %}
+                                {% set result_text = match.result_text %}
+                            {% endif %}
+
+                            <div class="c-schedule__match" data-match-id="{{ match.id }}">
+                                <div class="c-schedule__time">
+                                    <i class="ti ti-clock"></i>{{ match.time.strftime('%I:%M %p') }}
                                 </div>
+
+                                <div class="c-schedule__details">
+                                    {% if not match.is_ecs_fc %}
+                                    <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}"
+                                       class="c-schedule__link">
+                                    {% endif %}
+
+                                        <div class="c-schedule__teams">
+                                            {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF', 'PRACTICE'] %}
+                                            <span class="c-badge c-badge--info">{{ match.week_type }}</span>
+                                            {% else %}
+                                            <strong>{{ display_home }}</strong> vs <strong>{{ display_away }}</strong>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="c-schedule__location">
+                                            <i class="ti ti-map-pin"></i>{{ match.location }}
+                                            {% if match.field_name %}- {{ match.field_name }}{% endif %}
+                                        </div>
+
+                                    {% if not match.is_ecs_fc %}
+                                    </a>
+                                    {% endif %}
+                                </div>
+
+                                {% if can_view_game_results and match.reported %}
+                                <div class="c-schedule__result">
+                                    <span class="c-badge c-badge--{{ result_class }}">
+                                        {{ result_text }}
+                                    </span>
+                                </div>
+                                {% endif %}
+
+                                {% if can_report_match %}
+                                <div class="c-schedule__actions">
+                                    <button class="c-btn c-btn--sm c-btn--icon-only {% if match.reported %}btn-warning{% else %}btn-primary{% endif %}"
+                                            data-action="edit-match"
+                                            data-match-id="{{ match.id }}"
+                                            aria-label="{{ 'Edit Match' if match.reported else 'Report Match' }}"
+                                            data-bs-toggle="tooltip"
+                                            title="{{ 'Edit Match' if match.reported else 'Report Match' }}">
+                                        <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %}"></i>
+                                    </button>
+                                </div>
+                                {% endif %}
                             </div>
-                        </div>
+                            {% endfor %}
+                            </div>{# .c-schedule__matches #}
+                        </details>
                         {% endfor %}
                     </div>
                     {% else %}
-                    <div class="p-4 text-center">
-                        <div class="empty-state">
-                            <div class="empty-state-icon mb-3">
-                                <i class="ti ti-calendar-off"></i>
-                            </div>
-                            <p class="empty-state-message">No matches have been scheduled for this team yet.</p>
+                    <div class="c-empty-state" data-component="empty-state">
+                        <div class="c-empty-state__icon">
+                            <i class="ti ti-calendar-off"></i>
                         </div>
+                        <p class="c-empty-state__text">No matches have been scheduled for this team yet.</p>
                     </div>
                     {% endif %}
                 </div>
             </div>
         </div>
-        
-        <!-- Team Information Card (simple version without complex stats) -->
+
+        <!-- Team Information Card -->
         <div class="col-12 mb-4">
-            <div class="card">
-                <div class="card-header border-bottom">
-                    <h5 class="card-title mb-0">Team Information</h5>
+            <div class="c-card-modern">
+                <div class="c-card-modern__header">
+                    <h5 class="c-card-modern__title">Team Information</h5>
                 </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-lg-4 col-md-6">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="avatar avatar-sm me-3 bg-label-primary">
-                                    <i class="ti ti-users"></i>
-                                </div>
-                                <div>
-                                    <h6 class="mb-0">Total Players</h6>
-                                    <span class="text-muted">{{ players|length }}</span>
-                                </div>
+                <div class="c-card-modern__body">
+                    <div class="c-team-stats" data-component="team-stats">
+                        <div class="c-team-stats__item">
+                            <div class="c-team-stats__icon c-team-stats__icon--primary">
+                                <i class="ti ti-users"></i>
+                            </div>
+                            <div class="c-team-stats__content">
+                                <div class="c-team-stats__label">Total Players</div>
+                                <div class="c-team-stats__value">{{ players|length }}</div>
                             </div>
                         </div>
-                        
-                        <div class="col-lg-4 col-md-6">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="avatar avatar-sm me-3 bg-label-success">
-                                    <i class="ti ti-calendar-event"></i>
-                                </div>
-                                <div>
-                                    <h6 class="mb-0">Current Season</h6>
-                                    <span class="text-muted">{{ season.name if season else 'No active season' }}</span>
-                                </div>
+
+                        <div class="c-team-stats__item">
+                            <div class="c-team-stats__icon c-team-stats__icon--success">
+                                <i class="ti ti-calendar-event"></i>
+                            </div>
+                            <div class="c-team-stats__content">
+                                <div class="c-team-stats__label">Current Season</div>
+                                <div class="c-team-stats__value">{{ season.name if season else 'No active season' }}</div>
                             </div>
                         </div>
-                        
-                        <div class="col-lg-4 col-md-6">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="avatar avatar-sm me-3 bg-label-info">
-                                    <i class="ti ti-trophy"></i>
-                                </div>
-                                <div>
-                                    <h6 class="mb-0">Division</h6>
-                                    <span class="text-muted">{{ league.name }}</span>
-                                </div>
+
+                        <div class="c-team-stats__item">
+                            <div class="c-team-stats__icon c-team-stats__icon--info">
+                                <i class="ti ti-trophy"></i>
+                            </div>
+                            <div class="c-team-stats__content">
+                                <div class="c-team-stats__label">Division</div>
+                                <div class="c-team-stats__value">{{ league.name }}</div>
                             </div>
                         </div>
-                        
+
                         {% if next_match %}
-                        <div class="col-12">
-                            <div class="bg-label-primary bg-opacity-10 p-3 rounded-2 mt-3">
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar avatar-sm me-3 bg-primary">
-                                        <i class="ti ti-calendar-time"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-1">Next Match</h6>
-                                        <p class="mb-0">
-                                            {% if next_match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
-                                                <span class="badge bg-info">
-                                                    {% if next_match.week_type == 'FUN' %}
-                                                        Fun Week
-                                                    {% elif next_match.week_type == 'TST' %}
-                                                        TST Week
-                                                    {% elif next_match.week_type == 'BYE' %}
-                                                        Bye Week
-                                                    {% elif next_match.week_type == 'BONUS' %}
-                                                        Bonus Week
-                                                    {% elif next_match.week_type == 'PLAYOFF' %}
-                                                        Playoff Week
-                                                    {% endif %}
-                                                </span>
-                                                <span class="text-muted">
-                                                    {% if next_match.week_type == 'FUN' %}
-                                                        - Special activities
-                                                    {% elif next_match.week_type == 'TST' %}
-                                                        - Tournament events
-                                                    {% elif next_match.week_type == 'BYE' %}
-                                                        - Week off
-                                                    {% elif next_match.week_type == 'BONUS' %}
-                                                        - Additional activities
-                                                    {% elif next_match.week_type == 'PLAYOFF' %}
-                                                        {% if next_match.home_team_id != next_match.away_team_id %}
-                                                            - vs {{ next_match.opponent_name }}
-                                                        {% else %}
-                                                            - TBD
-                                                        {% endif %}
-                                                    {% endif %}
-                                                </span>
-                                            {% elif next_match.week_type == 'PRACTICE' or (next_match.is_practice_game if next_match.is_practice_game is defined else False) %}
-                                                <span class="badge bg-warning">
-                                                    PRACTICE
-                                                </span>
-                                                <span class="text-muted">
-                                                    - All teams practice together
-                                                </span>
-                                            {% else %}
-                                                {{ next_match.home_team_name }} vs {{ next_match.away_team_name }} 
-                                            {% endif %}
-                                            on {{ next_match.date.strftime('%B %d, %Y') }} 
-                                            at {{ next_match.time.strftime('%I:%M %p') }}
-                                            <br>
-                                            <small class="text-muted">
-                                                <i class="ti ti-map-pin me-1"></i>{{ next_match.location }}
-                                            </small>
-                                        </p>
-                                    </div>
+                        <div class="c-team-stats__item c-team-stats__item--wide">
+                            <div class="c-team-stats__icon c-team-stats__icon--warning">
+                                <i class="ti ti-calendar-time"></i>
+                            </div>
+                            <div class="c-team-stats__content">
+                                <div class="c-team-stats__label">Next Match</div>
+                                <div class="c-team-stats__value">
+                                    {{ next_match.date.strftime('%B %d, %Y') }} at {{ next_match.time.strftime('%I:%M %p') }}
+                                    <br>
+                                    <small>{{ next_match.location }}</small>
                                 </div>
                             </div>
                         </div>
@@ -499,55 +405,65 @@
     </div>
 </div>
 
-<!-- Image Modals Container -->
-<div id="imageModals-container" class="modal-container">
-
 <!-- Background Image Cropping Modal -->
-<div class="modal fade" id="cropBackgroundModal" tabindex="-1" aria-labelledby="cropBackgroundModalLabel" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="cropBackgroundModalLabel">Position Team Background Image</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal c-modal fade"
+     id="cropBackgroundModal"
+     tabindex="-1"
+     aria-labelledby="cropBackgroundModalLabel"
+     aria-hidden="true"
+     data-bs-backdrop="static"
+     data-modal="crop-background">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg modal-dialog-centered c-modal__dialog--centered">
+        <div class="modal-content c-modal__content">
+            <div class="modal-header c-modal__header">
+                <h5 class="modal-title c-modal__title" id="cropBackgroundModalLabel">Position Team Background Image</h5>
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"
+                        data-action="close-modal"></button>
             </div>
-            <div class="modal-body">
-                <div class="text-center mb-3">
-                    <p class="text-muted">Position and scale your team photo. The preview below has the exact same aspect ratio as your team header (3.33:1).</p>
-                    <p class="text-success small mb-0"><i class="ti ti-check-circle me-1"></i>What you see is exactly what you get!</p>
-                </div>
-                
-                <!-- Custom image positioning interface -->
-                <div class="image-position-container">
-                    <!-- Preview that matches header exactly -->
-                    <div class="header-preview-container mb-3" style="width: 100%; max-width: 750px; margin: 0 auto;">
-                        <div class="header-preview" id="headerPreview" style="width: 100%; padding-bottom: 30%; height: 0; background-color: var(--ecs-neutral-10, #f0f0f0); border: 2px solid var(--ecs-primary, #0d6efd); border-radius: 8px; overflow: hidden; position: relative;">
-                            <div class="preview-image-wrapper" id="previewImageWrapper" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-size: cover; background-position: center; background-repeat: no-repeat; cursor: move;">
-                                <!-- Overlay showing it's draggable -->
-                                <div class="position-absolute top-50 start-50 translate-middle text-center" style="pointer-events: none; z-index: 10;">
-                                    <p class="text-white bg-dark bg-opacity-75 px-3 py-2 rounded" id="dragHint">
-                                        <i class="ti ti-hand-move me-1"></i>Drag to reposition
-                                    </p>
-                                </div>
+            <div class="modal-body c-modal__body">
+                <p class="text-muted text-center mb-3">
+                    Position and scale your team photo. The preview below has the exact same aspect ratio as your team header (3.33:1).
+                </p>
+
+                <div class="c-image-position" data-component="image-position">
+                    <div class="c-image-position__preview" id="headerPreview">
+                        <div class="c-image-position__wrapper" id="previewImageWrapper">
+                            <div class="c-image-position__hint" id="dragHint">
+                                <i class="ti ti-hand-move"></i>Drag to reposition
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Controls -->
-                    <div class="controls-container">
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label">Zoom Level</label>
-                                <div class="d-flex align-items-center gap-3">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="adjustZoom(-0.1)">
-                                        <i class="ti ti-minus"></i>
-                                    </button>
-                                    <input type="range" class="form-range flex-grow-1" id="zoomSlider" min="1" max="3" step="0.1" value="1">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="adjustZoom(0.1)">
-                                        <i class="ti ti-plus"></i>
-                                    </button>
-                                    <span class="text-muted" id="zoomValue" style="width: 50px; text-align: right;">100%</span>
-                                </div>
+
+                    <div class="c-image-position__controls">
+                        <div class="mb-3">
+                            <label class="form-label">Zoom Level</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <button type="button"
+                                        class="c-btn c-btn--sm c-btn--outline-secondary"
+                                        data-action="adjust-zoom"
+                                        data-delta="-0.1">
+                                    <i class="ti ti-minus"></i>
+                                </button>
+                                <input type="range"
+                                       class="form-range flex-grow-1"
+                                       id="zoomSlider"
+                                       min="1"
+                                       max="3"
+                                       step="0.1"
+                                       value="1">
+                                <button type="button"
+                                        class="c-btn c-btn--sm c-btn--outline-secondary"
+                                        data-action="adjust-zoom"
+                                        data-delta="0.1">
+                                    <i class="ti ti-plus"></i>
+                                </button>
+                                <span class="text-muted" id="zoomValue">100%</span>
                             </div>
+                        </div>
+                        <div class="row">
                             <div class="col-6">
                                 <label class="form-label">Horizontal Position</label>
                                 <input type="range" class="form-range" id="xPosSlider" min="0" max="100" value="50">
@@ -558,1230 +474,63 @@
                             </div>
                         </div>
                         <div class="text-center mt-3">
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetImagePosition()">
-                                <i class="ti ti-refresh me-1"></i>Reset Position
+                            <button type="button"
+                                    class="c-btn c-btn--sm c-btn--outline-secondary"
+                                    data-action="reset-image-position">
+                                <i class="ti ti-refresh"></i>Reset Position
                             </button>
                         </div>
                     </div>
-                    
-                    <!-- Hidden input to store original image -->
+
                     <input type="hidden" id="originalImageData">
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="uploadCroppedImage()">
-                    <i class="ti ti-upload me-1"></i>Upload Background
+            <div class="modal-footer c-modal__footer">
+                <button type="button"
+                        class="c-btn c-btn--secondary"
+                        data-bs-dismiss="modal"
+                        data-action="close-modal">Cancel</button>
+                <button type="button"
+                        class="c-btn c-btn--primary"
+                        data-action="upload-cropped-image">
+                    <i class="ti ti-upload"></i>Upload Background
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Full Size Background Image Modal -->
-{% if team.background_image_url %}
-<div class="modal fade" id="backgroundImageModal" tabindex="-1" aria-labelledby="backgroundImageModalLabel" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
-        <div class="modal-content bg-transparent border-0">
-            <div class="modal-header border-0">
-                <h5 class="modal-title text-white" id="backgroundImageModalLabel">{{ team.name }} - Team Photo</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center p-0">
-                <img src="{{ team.background_image_url }}" class="img-fluid rounded" alt="{{ team.name }} Team Photo">
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-</div>
-<!-- End Image Modals Container -->
-
 <!-- Include ECS FC Schedule Section if applicable -->
 {% include 'ecs_fc_schedule_section.html' %}
 
 {% endblock %}
 
-{% block custom_css %}
-<style>
-    /* Team Header Styling */
-    .team-header-wrapper {
-        position: relative;
-        width: 100%;
-        padding-bottom: 30%;  /* 3.33:1 aspect ratio - good for team photos */
-        height: 0;
-    }
-    
-    .team-background-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 0;
-    }
-    
-    .team-background-overlay::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(135deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%);
-        z-index: 1;
-    }
-    
-    .team-header-with-background {
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-    
-    .team-header-with-background:hover {
-        transform: scale(1.02);
-    }
-    
-    /* Prevent header scaling when hovering over upload buttons */
-    .team-header-with-background.no-scale:hover {
-        transform: none !important;
-    }
-    
-    .crop-container {
-        max-height: 400px;
-        overflow: hidden;
-        border: 2px dashed #ddd;
-        border-radius: 8px;
-        position: relative;
-    }
-    
-    #cropImage {
-        display: block;
-        max-height: 400px;
-        margin: 0 auto;
-    }
-    
-    .kit-image {
-        max-height: 130px;
-        z-index: 2;
-    }
-    
-    /* Upload buttons need to appear above background overlay */
-    .team-header-wrapper .position-absolute {
-        z-index: 10;
-    }
-    
-    .team-header-wrapper .position-absolute .btn-group-vertical {
-        z-index: 10;
-    }
-    
-    /* Ensure upload buttons are always clickable and not affected by parent transform */
-    .team-header-wrapper .position-absolute .btn {
-        z-index: 10;
-        position: relative;
-        transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, border-color 0.2s ease-in-out !important;
-        transform: none !important;
-    }
-    
-    
-    
-    .bg-shape {
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        background-color: rgba(255, 255, 255, 0.1);
-        margin: -30px -10px;
-    }
-    
-    /* Player List Styling */
-    .player-list {
-        max-height: 500px;
-        overflow-y: auto;
-    }
-    
-    /* Cropper container styles */
-    .crop-container {
-        position: relative;
-        display: inline-block;
-        max-width: 100%;
-    }
-    
-    /* Override cropper styles for better visibility */
-    .cropper-crop-box {
-        border-color: var(--ecs-primary, #0d6efd) !important;
-        border-width: 2px !important;
-    }
-
-    .cropper-view-box {
-        outline-color: var(--ecs-primary, #0d6efd) !important;
-    }
-    
-    
-    /* Cropper inside modal should not interfere */
-    #cropBackgroundModal .cropper-container {
-        z-index: auto !important;
-    }
-    
-    .player-item:hover {
-        background-color: var(--bs-body-bg);
-    }
-    
-    .avatar-status {
-        position: absolute;
-        bottom: 0;
-        right: 0;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        border: 2px solid var(--bs-body-bg);
-    }
-    
-    .stat-badge {
-        display: flex;
-        align-items: center;
-        background-color: var(--bs-body-bg);
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.375rem;
-        font-size: 0.75rem;
-    }
-    
-    .discord-status-badge {
-        display: flex;
-        align-items: center;
-        background-color: var(--bs-body-bg);
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.375rem;
-        font-size: 0.875rem;
-    }
-    
-    .clickable-discord-status {
-        cursor: pointer;
-        transition: background-color 0.2s ease, transform 0.1s ease;
-    }
-    
-    .clickable-discord-status:hover {
-        background-color: var(--bs-primary-bg-subtle);
-        transform: scale(1.05);
-    }
-    
-    .clickable-discord-status.checking {
-        opacity: 0.6;
-        pointer-events: none;
-    }
-    
-    .clickable-discord-status.checking i {
-        animation: spin 1s linear infinite;
-    }
-    
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-    
-    .card-indicator {
-        display: inline-block;
-        width: 10px;
-        height: 14px;
-        margin-right: 3px;
-        border-radius: 2px;
-    }
-    
-    .card-yellow {
-        background-color: var(--ecs-warning, #fdac41);
-    }
-
-    .card-red {
-        background-color: var(--ecs-danger, #ff5b5c);
-    }
-    
-    /* Match List Styling */
-    .match-item:hover {
-        background-color: var(--bs-body-bg);
-    }
-    
-    /* ECS FC Match Styling */
-    .ecs-fc-match {
-        border-left: 4px solid var(--ecs-primary, #007bff) !important;
-        background: linear-gradient(90deg, rgba(0,123,255,0.05) 0%, transparent 100%);
-    }
-    
-    .ecs-fc-match:hover {
-        background: linear-gradient(90deg, rgba(0,123,255,0.1) 0%, transparent 100%);
-    }
-    
-    /* Empty State Styling */
-    .empty-state {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        color: var(--bs-secondary);
-    }
-    
-    .empty-state-icon {
-        font-size: 2.5rem;
-        color: var(--bs-secondary);
-    }
-    
-    .empty-state-message {
-        font-size: 0.875rem;
-    }
-    
-    /* Statistics Card Styling */
-    .stat-item {
-        text-align: center;
-        padding: 0.5rem;
-    }
-    
-    /* Responsive Adjustments */
-    @media (max-width: 768px) {
-        .team-header-wrapper {
-            flex-direction: column;
-        }
-        
-        .team-kit {
-            margin-top: 1rem;
-            margin-left: 0 !important;
-        }
-        
-        .kit-image {
-            max-height: 100px;
-        }
-    }
-    
-    @media (max-width: 576px) {
-        .player-stats {
-            flex-wrap: wrap;
-        }
-    }
-</style>
-{% endblock %}
-
 {% block custom_js %}
-<!-- Custom positioning system - no external libraries needed -->
-
 <script>
-    // Image positioning variables
-    let imagePositionData = {
-        zoom: 1,
-        xPos: 50,
-        yPos: 50,
-        originalImage: null,
-        imageWidth: 0,
-        imageHeight: 0
-    };
-    
-    // Drag state
-    let isDragging = false;
-    let dragStartX = 0;
-    let dragStartY = 0;
-    let startXPos = 50;
-    let startYPos = 50;
-    
-    // Initialize tooltips
-    document.addEventListener('DOMContentLoaded', function() {
-        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl, {
-                delay: { show: 500, hide: 100 }
-            });
-        });
-        
-        // Handle upload button hover to prevent parent scaling
-        // This prevents the "bouncing/sliding" effect when hovering over upload buttons
-        // by disabling the parent header's scale transform when buttons are hovered
-        const uploadButtonsContainer = document.querySelector('.upload-buttons-container');
-        const teamHeader = document.querySelector('.team-header-with-background');
-        
-        if (uploadButtonsContainer && teamHeader) {
-            uploadButtonsContainer.addEventListener('mouseenter', function() {
-                teamHeader.classList.add('no-scale');
-            });
-            
-            uploadButtonsContainer.addEventListener('mouseleave', function() {
-                teamHeader.classList.remove('no-scale');
-            });
-            
-            // Prevent upload button clicks from triggering the background modal
-            uploadButtonsContainer.addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
-        }
-        
-        // Handle click on team header to show background image modal
-        const teamHeaderWrapper = document.getElementById('teamHeaderWrapper');
-        {% if team.background_image_url %}
-        if (teamHeaderWrapper) {
-            teamHeaderWrapper.addEventListener('click', function(e) {
-                // Only open modal if not clicking on upload buttons
-                if (!e.target.closest('.upload-buttons-container')) {
-                    const modal = new bootstrap.Modal(document.getElementById('backgroundImageModal'), {
-                        backdrop: 'static',
-                        keyboard: true  // Allow ESC to close this one since it's just viewing
-                    });
-                    modal.show();
-                }
-            });
-        }
-        {% endif %}
-    });
-    
-    // Load image for positioning
-    function loadImageForCropping(input) {
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                // Store the original image data
-                imagePositionData.originalImage = e.target.result;
-                
-                // Load image to get dimensions
-                const img = new Image();
-                img.onload = function() {
-                    imagePositionData.imageWidth = this.width;
-                    imagePositionData.imageHeight = this.height;
-                    
-                    // Reset position
-                    resetImagePosition();
-                    
-                    // Show the modal using Bootstrap's standard approach
-                    const modalElement = document.getElementById('cropBackgroundModal');
-                    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
-                    modal.show();
-                    
-                    // Initialize positioning after modal is shown
-                    setTimeout(() => {
-                        initializeImagePositioning();
-                    }, 100);
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
-    
-    // Initialize image positioning controls
-    function initializeImagePositioning() {
-        const previewWrapper = document.getElementById('previewImageWrapper');
-        const zoomSlider = document.getElementById('zoomSlider');
-        const xPosSlider = document.getElementById('xPosSlider');
-        const yPosSlider = document.getElementById('yPosSlider');
-        const dragHint = document.getElementById('dragHint');
-        
-        // Set initial background
-        updatePreview();
-        
-        // Hide drag hint after first interaction
-        let firstInteraction = true;
-        function hideDragHint() {
-            if (firstInteraction && dragHint) {
-                dragHint.style.display = 'none';
-                firstInteraction = false;
-            }
-        }
-        
-        // Zoom slider
-        zoomSlider.addEventListener('input', function() {
-            imagePositionData.zoom = parseFloat(this.value);
-            updatePreview();
-            hideDragHint();
-        });
-        
-        // Position sliders
-        xPosSlider.addEventListener('input', function() {
-            imagePositionData.xPos = parseFloat(this.value);
-            updatePreview();
-            hideDragHint();
-        });
-        
-        yPosSlider.addEventListener('input', function() {
-            imagePositionData.yPos = parseFloat(this.value);
-            updatePreview();
-            hideDragHint();
-        });
-        
-        // Drag to reposition
-        previewWrapper.addEventListener('mousedown', startDrag);
-        document.addEventListener('mousemove', drag);
-        document.addEventListener('mouseup', endDrag);
-        
-        // Touch support
-        previewWrapper.addEventListener('touchstart', function(e) {
-            const touch = e.touches[0];
-            startDrag({ clientX: touch.clientX, clientY: touch.clientY });
-        });
-        document.addEventListener('touchmove', function(e) {
-            if (isDragging) {
-                const touch = e.touches[0];
-                drag({ clientX: touch.clientX, clientY: touch.clientY });
-            }
-        });
-        document.addEventListener('touchend', endDrag);
-    }
-    
-    function startDrag(e) {
-        isDragging = true;
-        dragStartX = e.clientX;
-        dragStartY = e.clientY;
-        startXPos = imagePositionData.xPos;
-        startYPos = imagePositionData.yPos;
-        document.body.style.cursor = 'move';
-    }
-    
-    function drag(e) {
-        if (!isDragging) return;
-        
-        const deltaX = e.clientX - dragStartX;
-        const deltaY = e.clientY - dragStartY;
-        
-        // Convert pixel movement to percentage
-        const preview = document.getElementById('headerPreview');
-        const containerWidth = preview.offsetWidth;
-        const containerHeight = containerWidth * 0.3; // 30% padding-bottom = 3.33:1 ratio
-        
-        const xPercent = (deltaX / containerWidth) * 100 / imagePositionData.zoom;
-        const yPercent = (deltaY / containerHeight) * 100 / imagePositionData.zoom;
-        
-        // Update position
-        imagePositionData.xPos = Math.max(0, Math.min(100, startXPos - xPercent));
-        imagePositionData.yPos = Math.max(0, Math.min(100, startYPos - yPercent));
-        
-        // Update sliders
-        document.getElementById('xPosSlider').value = imagePositionData.xPos;
-        document.getElementById('yPosSlider').value = imagePositionData.yPos;
-        
-        updatePreview();
-        
-        // Hide hint
-        const dragHint = document.getElementById('dragHint');
-        if (dragHint) dragHint.style.display = 'none';
-    }
-    
-    function endDrag() {
-        isDragging = false;
-        document.body.style.cursor = '';
-    }
-    
-    function updatePreview() {
-        const previewWrapper = document.getElementById('previewImageWrapper');
-        const zoomValue = document.getElementById('zoomValue');
-        
-        if (imagePositionData.originalImage) {
-            // Calculate background size based on zoom
-            const bgSize = imagePositionData.zoom === 1 ? 'cover' : (imagePositionData.zoom * 100) + '%';
-            
-            // Set background properties to match exactly how it will appear
-            previewWrapper.style.backgroundImage = `url(${imagePositionData.originalImage})`;
-            previewWrapper.style.backgroundSize = bgSize;
-            previewWrapper.style.backgroundPosition = `${imagePositionData.xPos}% ${imagePositionData.yPos}%`;
-            
-            // Update zoom display
-            zoomValue.textContent = Math.round(imagePositionData.zoom * 100) + '%';
-        }
-    }
-    
-    function adjustZoom(delta) {
-        const slider = document.getElementById('zoomSlider');
-        const newValue = Math.max(1, Math.min(3, parseFloat(slider.value) + delta));
-        slider.value = newValue;
-        imagePositionData.zoom = newValue;
-        updatePreview();
-    }
-    
-    function resetImagePosition() {
-        imagePositionData.zoom = 1;
-        imagePositionData.xPos = 50;
-        imagePositionData.yPos = 50;
-        
-        // Update controls
-        if (document.getElementById('zoomSlider')) {
-            document.getElementById('zoomSlider').value = 1;
-            document.getElementById('xPosSlider').value = 50;
-            document.getElementById('yPosSlider').value = 50;
-        }
-        
-        updatePreview();
-    }
-    
-    // Upload positioned image
-    function uploadCroppedImage() {
-        if (!imagePositionData.originalImage) return;
-        
-        // Create FormData with image and position data
-        const formData = new FormData();
-        
-        // Convert base64 to blob
-        fetch(imagePositionData.originalImage)
-            .then(res => res.blob())
-            .then(blob => {
-                formData.append('team_background', blob, 'background.jpg');
-                formData.append('csrf_token', '{{ csrf_token() }}');
-                
-                // Add position data as metadata
-                const positionData = {
-                    zoom: imagePositionData.zoom,
-                    xPos: imagePositionData.xPos,
-                    yPos: imagePositionData.yPos,
-                    backgroundSize: imagePositionData.zoom === 1 ? 'cover' : (imagePositionData.zoom * 100) + '%',
-                    backgroundPosition: `${imagePositionData.xPos}% ${imagePositionData.yPos}%`
-                };
-                console.log('Sending position data:', positionData);
-                formData.append('position_data', JSON.stringify(positionData));
-                
-                // Show loading state
-                const uploadBtn = document.querySelector('#cropBackgroundModal .btn-primary');
-                const originalText = uploadBtn.innerHTML;
-                uploadBtn.innerHTML = '<i class="ti ti-loader me-1"></i>Uploading...';
-                uploadBtn.disabled = true;
-                
-                fetch('{{ url_for("teams.upload_team_background", team_id=team.id) }}', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.text())
-                .then(html => {
-                    // Reload the page to show the new background
-                    window.location.reload();
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error uploading image. Please try again.');
-                    uploadBtn.innerHTML = originalText;
-                    uploadBtn.disabled = false;
-                });
-            });
-    }
-    
-    // Make player choices globally available for our fix script
-    window.playerChoices = {{ player_choices | tojson | safe }};
-    var playerChoices = window.playerChoices;
-    
-    // Debug function to analyze modal structure and z-index issues
-    function debugModalStructure(modalId) {
-        console.log('=== MODAL DEBUG INFO FOR:', modalId, '===');
-        
-        const modal = document.getElementById(modalId);
-        const backdrop = document.querySelector('.modal-backdrop');
-        const container = document.getElementById('imageModals-container');
-        const reportContainer = document.getElementById('reportMatchModal-container');
-        
-        if (modal) {
-            const modalStyle = window.getComputedStyle(modal);
-            console.log('Modal element:', modal);
-            console.log('Modal classes:', modal.className);
-            console.log('Modal z-index:', modalStyle.zIndex);
-            console.log('Modal position:', modalStyle.position);
-            console.log('Modal display:', modalStyle.display);
-            console.log('Modal has show class:', modal.classList.contains('show'));
-            console.log('Modal aria-hidden:', modal.getAttribute('aria-hidden'));
-            
-            const dialog = modal.querySelector('.modal-dialog');
-            if (dialog) {
-                const dialogStyle = window.getComputedStyle(dialog);
-                console.log('Dialog z-index:', dialogStyle.zIndex);
-                console.log('Dialog position:', dialogStyle.position);
-            }
-            
-            const content = modal.querySelector('.modal-content');
-            if (content) {
-                const contentStyle = window.getComputedStyle(content);
-                console.log('Content z-index:', contentStyle.zIndex);
-                console.log('Content position:', contentStyle.position);
-            }
-        }
-        
-        if (backdrop) {
-            const backdropStyle = window.getComputedStyle(backdrop);
-            console.log('Backdrop element:', backdrop);
-            console.log('Backdrop classes:', backdrop.className);
-            console.log('Backdrop z-index:', backdropStyle.zIndex);
-            console.log('Backdrop position:', backdropStyle.position);
-        }
-        
-        if (container) {
-            const containerStyle = window.getComputedStyle(container);
-            console.log('Image container z-index:', containerStyle.zIndex);
-            console.log('Image container position:', containerStyle.position);
-        }
-        
-        if (reportContainer) {
-            const reportStyle = window.getComputedStyle(reportContainer);
-            console.log('Report container z-index (for comparison):', reportStyle.zIndex);
-            console.log('Report container position:', reportStyle.position);
-        }
-        
-        // Check all elements with z-index
-        const allElements = document.querySelectorAll('*');
-        const zIndexElements = [];
-        allElements.forEach(el => {
-            const style = window.getComputedStyle(el);
-            if (style.zIndex !== 'auto' && style.zIndex !== '0') {
-                zIndexElements.push({
-                    element: el,
-                    zIndex: style.zIndex,
-                    id: el.id,
-                    classes: el.className
-                });
-            }
-        });
-        
-        zIndexElements.sort((a, b) => parseInt(b.zIndex) - parseInt(a.zIndex));
-        console.log('All elements with z-index (highest first):', zIndexElements);
-        console.log('=== END DEBUG INFO ===');
-    }
-</script>
-<script src="{{ url_for('static', filename='custom_js/report_match.js') }}"></script>
-<script>
-    // Set team names and player options for each match
+// Match data for reporting
+window.TEAM_MATCH_DATA = {
     {% for date, matches_on_date in schedule.items() %}
-        {% for match in matches_on_date %}
-            window.homeTeamName_{{ match.id }} = "{{ match.home_team_name|escape }}";
-            window.awayTeamName_{{ match.id }} = "{{ match.away_team_name|escape }}";
-            window.homeTeamId_{{ match.id }} = "{{ match.home_team_id }}";
-            window.awayTeamId_{{ match.id }} = "{{ match.away_team_id }}";
-
-            window.homeTeamPlayersOptions_{{ match.id }} = `
-                {% for player in match.home_players %}
-                    <option value="{{ player.id }}">{{ player.name|escape }}</option>
-                {% endfor %}
-            `;
-
-            window.awayTeamPlayersOptions_{{ match.id }} = `
-                {% for player in match.away_players %}
-                    <option value="{{ player.id }}">{{ player.name|escape }}</option>
-                {% endfor %}
-            `;
-        {% endfor %}
+    {% for match in matches_on_date %}
+    "{{ match.id }}": {
+        homeTeamName: "{{ match.home_team_name|escape }}",
+        awayTeamName: "{{ match.away_team_name|escape }}",
+        homeTeamId: "{{ match.home_team_id }}",
+        awayTeamId: "{{ match.away_team_id }}",
+        homeTeamPlayers: [
+            {% for player in match.home_players %}
+            {id: "{{ player.id }}", name: "{{ player.name|escape }}"}{{ "," if not loop.last else "" }}
+            {% endfor %}
+        ],
+        awayTeamPlayers: [
+            {% for player in match.away_players %}
+            {id: "{{ player.id }}", name: "{{ player.name|escape }}"}{{ "," if not loop.last else "" }}
+            {% endfor %}
+        ]
+    }{{ "," if not loop.last else "" }}
     {% endfor %}
+    {% endfor %}
+};
 </script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Handle Discord role assignment for team
-    const assignDiscordRolesBtn = document.getElementById('assignDiscordRolesBtn');
-    const refreshDiscordStatusBtn = document.getElementById('refreshDiscordStatusBtn');
-    
-    if (assignDiscordRolesBtn) {
-        assignDiscordRolesBtn.addEventListener('click', function() {
-            const teamId = this.dataset.teamId;
-            const teamName = '{{ team.name|escape }}';
-            
-            // Normalize team name for Discord role display (same as backend normalization)
-            const normalizedTeamName = teamName.trim().toUpperCase().replace(/ /g, '-').replace(/_/g, '-');
-            
-            // Show confirmation dialog
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    title: 'Assign Discord Roles?',
-                    html: `This will assign Discord roles to all players on <strong>${teamName}</strong>.<br><br>` +
-                          `Players will receive:<br>` +
-                          `• <strong>ECS-FC-PL-${normalizedTeamName}-Player</strong> role<br>` +
-                          `• Division role (Premier/Classic) based on their user permissions<br><br>` +
-                          `<small class="text-info">This is a manual fix for the draft role assignment issue.</small>`,
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-warning').trim() || '#ffc107',
-                    cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d',
-                    confirmButtonText: 'Yes, Assign Roles',
-                    cancelButtonText: 'Cancel',
-                    focusCancel: false
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        assignDiscordRolesToTeam(teamId, teamName);
-                    }
-                });
-            } else {
-                // Fallback to native confirm dialog
-                const confirmed = confirm(`Are you sure you want to assign Discord roles to all players on ${teamName}? This will give them their team role and division role.`);
-                if (confirmed) {
-                    assignDiscordRolesToTeam(teamId, teamName);
-                }
-            }
-        });
-    }
-    
-    // Handle Discord status refresh for team
-    if (refreshDiscordStatusBtn) {
-        refreshDiscordStatusBtn.addEventListener('click', function() {
-            const teamId = this.dataset.teamId;
-            const teamName = '{{ team.name|escape }}';
-            
-            // Show confirmation dialog
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    title: 'Refresh Discord Status?',
-                    html: `This will check the current Discord server status for all players on <strong>${teamName}</strong>.<br><br>` +
-                          `This will force-refresh their status regardless of when it was last checked.<br><br>` +
-                          `<small class="text-info">Players not in the server will be checked every 24 hours automatically.<br>` +
-                          `Players in the server will be checked every 30 days automatically.</small>`,
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-info').trim() || '#17a2b8',
-                    cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d',
-                    confirmButtonText: 'Yes, Refresh Status',
-                    cancelButtonText: 'Cancel',
-                    focusCancel: false
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        refreshDiscordStatusForTeam(teamId, teamName);
-                    }
-                });
-            } else {
-                // Fallback to native confirm dialog
-                const confirmed = confirm(`Are you sure you want to refresh Discord status for all players on ${teamName}?`);
-                if (confirmed) {
-                    refreshDiscordStatusForTeam(teamId, teamName);
-                }
-            }
-        });
-    }
-    
-    function refreshDiscordStatusForTeam(teamId, teamName) {
-        // Show loading state
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                title: 'Refreshing Discord Status...',
-                html: `Checking Discord server status for all players on <strong>${teamName}</strong>.<br><br>` +
-                      `This may take a moment to complete.`,
-                icon: 'info',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showConfirmButton: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-        }
-        
-        // Send refresh request
-        fetch(`/teams/${teamId}/refresh-discord-status`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}'
-            }
-        })
-        .then(response => {
-            console.log('Discord status refresh response status:', response.status);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                console.error('Response is not JSON, content-type:', contentType);
-                return response.text().then(text => {
-                    console.error('Response body:', text);
-                    throw new Error('Server returned non-JSON response');
-                });
-            }
-            
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                const processedCount = data.processed_count || 0;
-                const errorCount = data.error_count || 0;
-                const totalPlayers = data.total_players || 0;
-                
-                // Build results summary
-                let resultsSummary = '';
-                if (data.results && data.results.length > 0) {
-                    resultsSummary = '<div class="text-start mt-3"><strong>Status Updates:</strong><ul class="mb-0">';
-                    data.results.forEach(result => {
-                        if (result.status === 'success') {
-                            const statusIcon = result.in_server ? '✅' : '⚠️';
-                            resultsSummary += `<li>${statusIcon} <strong>${result.player_name}</strong>: ${result.status_change}</li>`;
-                        } else {
-                            resultsSummary += `<li>❌ <strong>${result.player_name}</strong>: ${result.error}</li>`;
-                        }
-                    });
-                    resultsSummary += '</ul></div>';
-                }
-                
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Discord Status Refreshed!',
-                        html: `Successfully refreshed Discord status for <strong>${teamName}</strong>.<br><br>` +
-                              `<strong>${processedCount}</strong> players checked successfully<br>` +
-                              (errorCount > 0 ? `<strong class="text-warning">${errorCount}</strong> players had errors<br>` : '') +
-                              resultsSummary,
-                        timer: 8000,
-                        showConfirmButton: true,
-                        confirmButtonText: 'OK',
-                        width: '600px'
-                    }).then(() => {
-                        // Refresh the page to show updated Discord status icons
-                        window.location.reload();
-                    });
-                } else {
-                    alert(`Discord status refreshed successfully for ${teamName}! ${processedCount}/${totalPlayers} players processed.`);
-                    window.location.reload();
-                }
-            } else {
-                throw new Error(data.message || 'Failed to refresh Discord status');
-            }
-        })
-        .catch(error => {
-            console.error('Error refreshing Discord status:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: error.message || 'Failed to refresh Discord status. Please try again.',
-                    confirmButtonText: 'OK'
-                });
-            } else {
-                alert('Error: ' + (error.message || 'Failed to refresh Discord status. Please try again.'));
-            }
-        });
-    }
-    
-    function assignDiscordRolesToTeam(teamId, teamName) {
-        // Show loading state
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                title: 'Assigning Discord Roles...',
-                html: `Processing role assignments for <strong>${teamName}</strong>.<br><br>` +
-                      `This may take a moment to complete.`,
-                icon: 'info',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showConfirmButton: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-        }
-        
-        // Send assignment request
-        fetch(`/teams/${teamId}/assign-discord-roles`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}'
-            }
-        })
-        .then(response => {
-            console.log('Role assignment response status:', response.status);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                console.error('Response is not JSON, content-type:', contentType);
-                return response.text().then(text => {
-                    console.error('Response body:', text);
-                    throw new Error('Server returned non-JSON response');
-                });
-            }
-            
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                const processedCount = data.processed_count || 0;
-                const errorCount = data.error_count || 0;
-                
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Discord Roles Assigned!',
-                        html: `Successfully processed Discord role assignments for <strong>${teamName}</strong>.<br><br>` +
-                              `<strong>${processedCount}</strong> players processed successfully<br>` +
-                              (errorCount > 0 ? `<strong class="text-warning">${errorCount}</strong> players had errors` : ''),
-                        timer: 5000,
-                        showConfirmButton: true,
-                        confirmButtonText: 'OK'
-                    });
-                } else {
-                    alert(`Discord roles assigned successfully to ${teamName}! ${processedCount} players processed.`);
-                }
-            } else {
-                throw new Error(data.message || 'Failed to assign Discord roles');
-            }
-        })
-        .catch(error => {
-            console.error('Error assigning Discord roles:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: error.message || 'Failed to assign Discord roles. Please try again.',
-                    confirmButtonText: 'OK'
-                });
-            } else {
-                alert('Error: ' + (error.message || 'Failed to assign Discord roles. Please try again.'));
-            }
-        });
-    }
-    
-    // Handle individual Discord status refresh
-    const discordStatusBadges = document.querySelectorAll('.clickable-discord-status');
-    
-    discordStatusBadges.forEach(badge => {
-        badge.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const playerId = this.dataset.playerId;
-            const playerName = this.dataset.playerName;
-            
-            // Show confirmation dialog
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    title: 'Refresh Discord Status?',
-                    html: `Check if <strong>${playerName}</strong> has joined the Discord server?<br><br>` +
-                          `<small class="text-info">This will immediately check their current status.</small>`,
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-info').trim() || '#17a2b8',
-                    cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d',
-                    confirmButtonText: 'Yes, Check Now',
-                    cancelButtonText: 'Cancel',
-                    focusCancel: false
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        refreshSinglePlayerDiscordStatus(playerId, playerName, badge);
-                    }
-                });
-            } else {
-                // Fallback to native confirm dialog
-                const confirmed = confirm(`Check Discord status for ${playerName}?`);
-                if (confirmed) {
-                    refreshSinglePlayerDiscordStatus(playerId, playerName, badge);
-                }
-            }
-        });
-    });
-    
-    function refreshSinglePlayerDiscordStatus(playerId, playerName, badgeElement) {
-        // Add checking state
-        badgeElement.classList.add('checking');
-        
-        // Send refresh request
-        fetch(`/teams/player/${playerId}/refresh-discord-status`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}'
-            }
-        })
-        .then(response => {
-            console.log('Player Discord status refresh response status:', response.status);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                console.error('Response is not JSON, content-type:', contentType);
-                return response.text().then(text => {
-                    console.error('Response body:', text);
-                    throw new Error('Server returned non-JSON response');
-                });
-            }
-            
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                // Update the Discord icon based on status
-                const discordIcon = badgeElement.querySelector('i');
-                
-                if (data.in_server === true) {
-                    discordIcon.className = 'ti ti-brand-discord text-success';
-                } else if (data.in_server === false) {
-                    discordIcon.className = 'ti ti-brand-discord text-warning';
-                } else {
-                    discordIcon.className = 'ti ti-brand-discord text-muted';
-                }
-                
-                // Update tooltip
-                let tooltipText = `Discord: ${data.discord_username || 'Unknown'}`;
-                if (data.in_server === true) {
-                    tooltipText += ' - In Server';
-                } else if (data.in_server === false) {
-                    tooltipText += ' - Not in Server';
-                }
-                tooltipText += ' (Click to refresh)';
-                
-                badgeElement.setAttribute('title', tooltipText);
-                badgeElement.setAttribute('data-bs-original-title', tooltipText);
-                
-                // Update tooltip instance if it exists
-                const tooltip = bootstrap.Tooltip.getInstance(badgeElement);
-                if (tooltip) {
-                    tooltip.dispose();
-                    new bootstrap.Tooltip(badgeElement, {
-                        delay: { show: 500, hide: 100 }
-                    });
-                }
-                
-                // Show success message
-                let statusMessage = data.status_change;
-                let usernameMessage = data.username_change ? `<br><small>Username: ${data.username_change}</small>` : '';
-                
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: data.in_server ? 'success' : 'warning',
-                        title: 'Discord Status Updated!',
-                        html: `<strong>${playerName}</strong><br>` +
-                              `Status: ${statusMessage}` + usernameMessage,
-                        timer: 3000,
-                        showConfirmButton: false,
-                        toast: true,
-                        position: 'top-end'
-                    });
-                } else {
-                    alert(`${playerName}: ${statusMessage}`);
-                }
-                
-                console.log(`Discord status updated for ${playerName}: ${statusMessage}`);
-            } else {
-                throw new Error(data.message || 'Failed to refresh Discord status');
-            }
-        })
-        .catch(error => {
-            console.error('Error refreshing Discord status:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: error.message || `Failed to check Discord status for ${playerName}. Please try again.`,
-                    confirmButtonText: 'OK',
-                    toast: true,
-                    position: 'top-end',
-                    timer: 5000
-                });
-            } else {
-                alert('Error: ' + (error.message || `Failed to check Discord status for ${playerName}. Please try again.`));
-            }
-        })
-        .finally(() => {
-            // Remove checking state
-            badgeElement.classList.remove('checking');
-        });
-    }
-
-    // Handle ECS FC match deletion
-    const deleteButtons = document.querySelectorAll('.delete-ecs-fc-match-btn');
-    
-    deleteButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const matchId = this.dataset.matchId;
-            const opponentName = this.dataset.opponentName;
-            const matchDate = this.dataset.matchDate;
-            
-            // Show confirmation dialog
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    title: 'Delete ECS FC Match?',
-                    html: `Are you sure you want to delete the match against <strong>${opponentName}</strong> on <strong>${matchDate}</strong>?<br><br><small class="text-danger">This action cannot be undone.</small>`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-danger').trim() || '#dc3545',
-                    cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d',
-                    confirmButtonText: 'Yes, Delete Match',
-                    cancelButtonText: 'Cancel',
-                    focusCancel: true
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        deleteEcsFcMatch(matchId, opponentName);
-                    }
-                });
-            } else {
-                // Fallback to native confirm dialog
-                const confirmed = confirm(`Are you sure you want to delete the ECS FC match against ${opponentName} on ${matchDate}? This action cannot be undone.`);
-                if (confirmed) {
-                    deleteEcsFcMatch(matchId, opponentName);
-                }
-            }
-        });
-    });
-    
-    function deleteEcsFcMatch(matchId, opponentName) {
-        // Show loading state
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                title: 'Deleting Match...',
-                text: 'Please wait while we delete the match.',
-                icon: 'info',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showConfirmButton: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-        }
-        
-        // Send delete request
-        fetch(`/api/ecs-fc/matches/${matchId}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-            }
-        })
-        .then(response => {
-            console.log('Delete response status:', response.status);
-            console.log('Delete response headers:', [...response.headers.entries()]);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                console.error('Response is not JSON, content-type:', contentType);
-                return response.text().then(text => {
-                    console.error('Response body:', text);
-                    throw new Error('Server returned non-JSON response');
-                });
-            }
-            
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Match Deleted!',
-                        text: `The match against ${opponentName} has been successfully deleted.`,
-                        timer: 3000,
-                        showConfirmButton: false
-                    });
-                } else {
-                    alert(`Match against ${opponentName} deleted successfully!`);
-                }
-                
-                // Refresh the page to update the schedule
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
-            } else {
-                throw new Error(data.message || 'Failed to delete match');
-            }
-        })
-        .catch(error => {
-            console.error('Error deleting match:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: error.message || 'Failed to delete match. Please try again.',
-                    confirmButtonText: 'OK'
-                });
-            } else {
-                alert('Error: ' + (error.message || 'Failed to delete match. Please try again.'));
-            }
-        });
-    }
-});
-</script>
+<script src="{{ url_for('static', filename='custom_js/team-detail.js') }}"></script>
+<script src="{{ url_for('static', filename='custom_js/report_match.js') }}"></script>
 {% endblock %}

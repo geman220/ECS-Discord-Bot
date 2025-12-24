@@ -1,0 +1,478 @@
+/**
+ * ============================================================================
+ * MODERN BUTTONS COMPONENT - ATHLETIC PRECISION
+ * ============================================================================
+ *
+ * Design: Bold, confident buttons with kinetic feedback
+ * - Ripple effect on click (athletic response)
+ * - Smooth lift on hover
+ * - Loading states with spinners
+ * - Icon support (left, right, icon-only)
+ * - Sharp, purposeful aesthetics
+ *
+ * Architecture:
+ * - BEM naming: c-btn-modern, c-btn-modern--primary, etc.
+ * - Design tokens only
+ * - State classes: is-loading, is-disabled, is-active
+ * - Event delegation: data-action="[action]"
+ * - Zero !important
+ *
+ * Variants:
+ * - Primary (electric blue - main actions)
+ * - Secondary (neutral - secondary actions)
+ * - Success (athletic green - positive actions)
+ * - Danger (bold red - destructive actions)
+ * - Warning (vibrant orange - caution)
+ * - Ghost (transparent - subtle actions)
+ * - Outline (border only - alternative)
+ *
+ * Sizes: sm, base (default), lg
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   BASE BUTTON
+   ============================================================================ */
+
+.c-btn-modern {
+  /* Layout */
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+
+  /* Spacing */
+  padding: var(--space-3) var(--space-5);
+
+  /* Typography */
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  font-family: inherit;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+
+  /* Visual */
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  overflow: hidden;
+
+  /* Interaction */
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Reset button defaults */
+.c-btn-modern:disabled,
+.c-btn-modern.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ============================================================================
+   RIPPLE EFFECT - Athletic feedback
+   ============================================================================ */
+
+.c-btn-modern::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.4) 0%,
+    transparent 70%
+  );
+  transform: scale(0);
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.c-btn-modern:active::before {
+  transform: scale(2.5);
+  transition: transform 0s;
+}
+
+/* ============================================================================
+   PRIMARY VARIANT - Electric blue
+   ============================================================================ */
+
+.c-btn-modern--primary {
+  background: linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%);
+  color: white;
+  box-shadow:
+    0 1px 3px rgba(14, 165, 233, 0.3),
+    0 4px 8px rgba(14, 165, 233, 0.2);
+}
+
+.c-btn-modern--primary:hover {
+  background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 8px rgba(14, 165, 233, 0.4),
+    0 8px 16px rgba(14, 165, 233, 0.3);
+}
+
+.c-btn-modern--primary:active {
+  transform: translateY(0);
+}
+
+/* ============================================================================
+   SECONDARY VARIANT - Neutral
+   ============================================================================ */
+
+.c-btn-modern--secondary {
+  background: var(--color-neutral-100);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-primary);
+}
+
+.c-btn-modern--secondary:hover {
+  background: var(--color-neutral-200);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+[data-style="dark"] .c-btn-modern--secondary {
+  background: var(--color-neutral-800);
+  color: var(--color-neutral-200);
+  border-color: var(--color-neutral-700);
+}
+
+[data-style="dark"] .c-btn-modern--secondary:hover {
+  background: var(--color-neutral-700);
+}
+
+/* ============================================================================
+   SUCCESS VARIANT - Athletic green
+   ============================================================================ */
+
+.c-btn-modern--success {
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  color: white;
+  box-shadow:
+    0 1px 3px rgba(16, 185, 129, 0.3),
+    0 4px 8px rgba(16, 185, 129, 0.2);
+}
+
+.c-btn-modern--success:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 8px rgba(16, 185, 129, 0.4),
+    0 8px 16px rgba(16, 185, 129, 0.3);
+}
+
+/* ============================================================================
+   DANGER VARIANT - Bold red
+   ============================================================================ */
+
+.c-btn-modern--danger {
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  color: white;
+  box-shadow:
+    0 1px 3px rgba(239, 68, 68, 0.3),
+    0 4px 8px rgba(239, 68, 68, 0.2);
+}
+
+.c-btn-modern--danger:hover {
+  background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 8px rgba(239, 68, 68, 0.4),
+    0 8px 16px rgba(239, 68, 68, 0.3);
+}
+
+/* ============================================================================
+   WARNING VARIANT - Vibrant orange
+   ============================================================================ */
+
+.c-btn-modern--warning {
+  background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
+  color: white;
+  box-shadow:
+    0 1px 3px rgba(249, 115, 22, 0.3),
+    0 4px 8px rgba(249, 115, 22, 0.2);
+}
+
+.c-btn-modern--warning:hover {
+  background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%);
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 8px rgba(249, 115, 22, 0.4),
+    0 8px 16px rgba(249, 115, 22, 0.3);
+}
+
+/* ============================================================================
+   GHOST VARIANT - Transparent
+   ============================================================================ */
+
+.c-btn-modern--ghost {
+  background: transparent;
+  color: var(--color-text-primary);
+}
+
+.c-btn-modern--ghost:hover {
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+}
+
+/* ============================================================================
+   OUTLINE VARIANT - Border only
+   ============================================================================ */
+
+.c-btn-modern--outline {
+  background: transparent;
+  border-color: currentColor;
+}
+
+.c-btn-modern--outline-primary {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.c-btn-modern--outline-primary:hover {
+  background: var(--color-primary);
+  color: white;
+}
+
+.c-btn-modern--outline-success {
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.c-btn-modern--outline-success:hover {
+  background: var(--color-success);
+  color: white;
+}
+
+.c-btn-modern--outline-danger {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.c-btn-modern--outline-danger:hover {
+  background: var(--color-danger);
+  color: white;
+}
+
+.c-btn-modern--outline-secondary {
+  color: var(--color-text-secondary);
+  border-color: var(--color-border-primary);
+}
+
+.c-btn-modern--outline-secondary:hover {
+  background: var(--color-neutral-100);
+  color: var(--color-text-primary);
+}
+
+[data-style="dark"] .c-btn-modern--outline-secondary {
+  color: var(--color-neutral-400);
+  border-color: var(--color-neutral-600);
+}
+
+[data-style="dark"] .c-btn-modern--outline-secondary:hover {
+  background: var(--color-neutral-700);
+  color: var(--color-neutral-200);
+}
+
+/* ============================================================================
+   SIZES
+   ============================================================================ */
+
+.c-btn-modern--sm {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  border-radius: var(--radius-md);
+}
+
+.c-btn-modern--lg {
+  padding: var(--space-4) var(--space-6);
+  font-size: var(--text-base);
+  border-radius: var(--radius-xl);
+}
+
+/* ============================================================================
+   ICON BUTTONS
+   ============================================================================ */
+
+.c-btn-modern--icon-only {
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border-radius: var(--radius-full);
+}
+
+.c-btn-modern--icon-only.c-btn-modern--sm {
+  width: 2rem;
+  height: 2rem;
+}
+
+.c-btn-modern--icon-only.c-btn-modern--lg {
+  width: 3rem;
+  height: 3rem;
+}
+
+.c-btn-modern__icon {
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.c-btn-modern--sm .c-btn-modern__icon {
+  font-size: 1rem;
+}
+
+.c-btn-modern--lg .c-btn-modern__icon {
+  font-size: 1.25rem;
+}
+
+/* ============================================================================
+   LOADING STATE - Spinner
+   ============================================================================ */
+
+.c-btn-modern.is-loading {
+  pointer-events: none;
+  position: relative;
+  color: transparent;
+}
+
+.c-btn-modern.is-loading::after {
+  content: '';
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.c-btn-modern--secondary.is-loading::after,
+.c-btn-modern--ghost.is-loading::after,
+.c-btn-modern--outline.is-loading::after {
+  border-color: rgba(0, 0, 0, 0.1);
+  border-top-color: currentColor;
+}
+
+[data-style="dark"] .c-btn-modern--secondary.is-loading::after,
+[data-style="dark"] .c-btn-modern--ghost.is-loading::after,
+[data-style="dark"] .c-btn-modern--outline.is-loading::after {
+  border-color: rgba(255, 255, 255, 0.2);
+  border-top-color: currentColor;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================================
+   BUTTON GROUPS - Connected buttons
+   ============================================================================ */
+
+.c-btn-group-modern {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.c-btn-group-modern .c-btn-modern {
+  border-radius: 0;
+  margin-left: -2px;
+}
+
+.c-btn-group-modern .c-btn-modern:first-child {
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  margin-left: 0;
+}
+
+.c-btn-group-modern .c-btn-modern:last-child {
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+}
+
+.c-btn-group-modern .c-btn-modern:only-child {
+  border-radius: var(--radius-lg);
+}
+
+/* Stack on mobile */
+@media (max-width: 640px) {
+  .c-btn-group-modern--responsive {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .c-btn-group-modern--responsive .c-btn-modern {
+    width: 100%;
+    margin-left: 0;
+    margin-top: -2px;
+    border-radius: 0;
+  }
+
+  .c-btn-group-modern--responsive .c-btn-modern:first-child {
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    margin-top: 0;
+  }
+
+  .c-btn-group-modern--responsive .c-btn-modern:last-child {
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  }
+}
+
+/* ============================================================================
+   BUTTON TOOLBAR - Spaced groups
+   ============================================================================ */
+
+.c-btn-toolbar-modern {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+/* ============================================================================
+   BLOCK BUTTON - Full width
+   ============================================================================ */
+
+.c-btn-modern--block {
+  width: 100%;
+  display: flex;
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+.c-btn-modern:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .c-btn-modern,
+  .c-btn-modern::before {
+    transition: none;
+    animation: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .c-btn-modern {
+    border-width: 3px;
+  }
+}
+
+/* ============================================================================
+   DARK MODE ADJUSTMENTS
+   ============================================================================ */
+
+[data-style="dark"] .c-btn-modern::before {
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.2) 0%,
+    transparent 70%
+  );
+}

@@ -10,60 +10,60 @@
 <!-- Cache Status Cards -->
 <div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-{% if stats.redis_status == 'connected' %}success{% else %}danger{% endif %} text-white">
-            <div class="card-body">
+        <div class="c-card bg-{% if stats.redis_status == 'connected' %}success{% else %}danger{% endif %} text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.redis_status.title() }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Redis Status</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.redis_status.title() }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Redis Status</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-database" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-database icon-2xl opacity-50"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
+        <div class="c-card bg-info text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.total_keys or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Total Keys</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.total_keys or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Total Keys</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-key" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-key icon-2xl opacity-50"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
+        <div class="c-card bg-warning text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.memory_usage or '0MB' }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Memory Usage</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.memory_usage or '0MB' }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Memory Usage</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-device-desktop" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-device-desktop icon-2xl opacity-50"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
+        <div class="c-card bg-primary text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.hit_rate or '0%' }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Hit Rate</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.hit_rate or '0%' }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Hit Rate</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-target" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-target icon-2xl opacity-50"></i>
                     </div>
                 </div>
             </div>
@@ -74,16 +74,16 @@
 <!-- Cache Operations -->
 <div class="row mb-4">
     <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card h-100">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-settings me-2"></i>Cache Operations
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <p>Manage cache keys, clear specific caches, and perform maintenance</p>
                 <div class="list-group list-group-flush">
-                    <button class="list-group-item list-group-item-action" onclick="clearAllCache()">
+                    <button class="list-group-item list-group-item-action" data-action="clear-all-cache">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <i class="ti ti-trash me-2 text-danger"></i>Clear All Cache
@@ -91,7 +91,7 @@
                             <i class="ti ti-alert-triangle text-warning"></i>
                         </div>
                     </button>
-                    <button class="list-group-item list-group-item-action" onclick="clearUserCache()">
+                    <button class="list-group-item list-group-item-action" data-action="clear-user-cache">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <i class="ti ti-users me-2"></i>Clear User Cache
@@ -99,7 +99,7 @@
                             <i class="ti ti-chevron-right"></i>
                         </div>
                     </button>
-                    <button class="list-group-item list-group-item-action" onclick="clearSessionCache()">
+                    <button class="list-group-item list-group-item-action" data-action="clear-session-cache">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <i class="ti ti-key me-2"></i>Clear Session Cache
@@ -107,7 +107,7 @@
                             <i class="ti ti-chevron-right"></i>
                         </div>
                     </button>
-                    <button class="list-group-item list-group-item-action" onclick="refreshCacheStats()">
+                    <button class="list-group-item list-group-item-action" data-action="refresh-cache-stats">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <i class="ti ti-refresh me-2 text-success"></i>Refresh Statistics
@@ -121,39 +121,39 @@
     </div>
     
     <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card h-100">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-chart-bar me-2"></i>Cache Analytics
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <p>Monitor cache performance and usage patterns</p>
                 <div class="row">
                     <div class="col-sm-6">
-                        <div class="d-flex justify-content-between py-2 border-bottom">
+                        <div class="analytics-stat-row">
                             <span class="fw-medium">Operations Today:</span>
                             <span>{{ stats.cache_operations_today or 0 }}</span>
                         </div>
-                        <div class="d-flex justify-content-between py-2 border-bottom">
+                        <div class="analytics-stat-row">
                             <span class="fw-medium">Hit Rate:</span>
                             <span class="text-success">{{ stats.hit_rate or '0%' }}</span>
                         </div>
-                        <div class="d-flex justify-content-between py-2">
+                        <div class="analytics-stat-row-last">
                             <span class="fw-medium">Miss Rate:</span>
                             <span class="text-warning">{{ (100 - (stats.hit_rate|replace('%', '')|int if stats.hit_rate else 0))|string + '%' }}</span>
                         </div>
                     </div>
                     <div class="col-sm-6">
-                        <div class="d-flex justify-content-between py-2 border-bottom">
+                        <div class="analytics-stat-row">
                             <span class="fw-medium">Memory Used:</span>
                             <span>{{ stats.memory_usage or '0MB' }}</span>
                         </div>
-                        <div class="d-flex justify-content-between py-2 border-bottom">
+                        <div class="analytics-stat-row">
                             <span class="fw-medium">Connections:</span>
                             <span>{{ stats.active_connections or 1 }}</span>
                         </div>
-                        <div class="d-flex justify-content-between py-2">
+                        <div class="analytics-stat-row-last">
                             <span class="fw-medium">Uptime:</span>
                             <span class="text-success">{{ stats.uptime or '99.9%' }}</span>
                         </div>
@@ -167,24 +167,24 @@
 <!-- Cache Configuration -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-tool me-2"></i>Cache Configuration
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-4">
                         <div class="mb-3">
                             <label class="form-label">Default TTL (seconds)</label>
-                            <input type="number" class="form-control" value="3600" id="defaultTTL">
+                            <input type="number" class="form-control" value="3600" id="defaultTTL" data-form-control>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="mb-3">
                             <label class="form-label">Max Memory Policy</label>
-                            <select class="form-select" id="maxMemoryPolicy">
+                            <select class="form-select" id="maxMemoryPolicy" data-form-select>
                                 <option value="allkeys-lru">All Keys LRU</option>
                                 <option value="volatile-lru">Volatile LRU</option>
                                 <option value="allkeys-random">All Keys Random</option>
@@ -205,10 +205,10 @@
                 </div>
                 <div class="row">
                     <div class="col-12">
-                        <button class="btn btn-primary" onclick="updateCacheConfig()">
+                        <button class="c-btn c-btn--primary" data-action="update-cache-config">
                             <i class="ti ti-device-floppy me-1"></i>Save Configuration
                         </button>
-                        <button class="btn btn-outline-secondary ms-2" onclick="resetCacheConfig()">
+                        <button class="c-btn c-btn--outline-secondary ms-2" data-action="reset-cache-config">
                             <i class="ti ti-refresh me-1"></i>Reset to Defaults
                         </button>
                     </div>
@@ -221,7 +221,7 @@
 <!-- Cache Status Alert -->
 <div class="row mt-4">
     <div class="col-12">
-        <div class="alert alert-{% if stats.redis_status == 'connected' %}success{% else %}danger{% endif %}">
+        <div class="alert alert-{% if stats.redis_status == 'connected' %}success{% else %}danger{% endif %}" data-alert>
             <div class="d-flex align-items-center">
                 <i class="ti ti-{% if stats.redis_status == 'connected' %}check-circle{% else %}alert-circle{% endif %} me-2"></i>
                 <div>
@@ -239,7 +239,38 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
+// Event delegation for cache management actions
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        switch(action) {
+            case 'clear-all-cache':
+                clearAllCache();
+                break;
+            case 'clear-user-cache':
+                clearUserCache();
+                break;
+            case 'clear-session-cache':
+                clearSessionCache();
+                break;
+            case 'refresh-cache-stats':
+                refreshCacheStats();
+                break;
+            case 'update-cache-config':
+                updateCacheConfig();
+                break;
+            case 'reset-cache-config':
+                resetCacheConfig();
+                break;
+        }
+    });
+});
+
 const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
 async function clearCacheByType(cacheType, title) {

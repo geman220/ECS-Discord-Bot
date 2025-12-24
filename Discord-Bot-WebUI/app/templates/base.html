@@ -79,12 +79,36 @@
          10. Page CSS - Page-specific styles (via blocks)
          ============================================ -->
 
+    <!-- ============================================
+         PRODUCTION vs DEVELOPMENT ASSET LOADING
+         ============================================
+
+         PRODUCTION MODE (FLASK_ENV=production):
+         - Single minified CSS bundle (production.min.css)
+         - Single minified JS bundle (production.min.js)
+         - Optimal performance, minimal HTTP requests
+
+         DEVELOPMENT MODE (default):
+         - Individual modular bundles for easier debugging
+         - 8 separate CSS bundles + vendor CSS
+         - Multiple JS files with source maps
+         ============================================ -->
+
+    {% if config.get('ASSETS_PRODUCTION_MODE') %}
+    <!-- PRODUCTION MODE: Single Bundle -->
+    {% assets "production_css" %}
+        <link rel="stylesheet" href="{{ ASSET_URL }}" />
+    {% endassets %}
+    {% else %}
+    <!-- DEVELOPMENT MODE: Modular Bundles -->
+
     <!-- 1. CORE TOKENS (CRITICAL - Load first)
          Design system foundation: CSS variables for colors, spacing, typography
          These variables are used by ALL subsequent CSS layers -->
     {% assets "core_tokens" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
+    {% endif %}
 
     <!-- 2. ADMIN CUSTOM COLORS (Dynamic injection)
          Administrator-configured color overrides from Appearance Manager
@@ -220,6 +244,7 @@
     </style>
     {% endif %}
 
+    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
     <!-- 3. FOUNDATION (Bootstrap + ECS Core)
          Base framework styles: Bootstrap 5.3.3 + vendor overrides
          Establishes grid, typography, form controls, and base components -->
@@ -227,33 +252,95 @@
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
 
-    <!-- 3. COMPONENTS (UI Building Blocks)
+    <!-- 4. COMPONENTS (UI Building Blocks)
          Reusable interface components: cards, buttons, modals, etc.
          Built using core tokens for consistent theming -->
     {% assets "components_css" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
 
-    <!-- 4. UTILITIES (Helper Classes)
+    <!-- 5. UTILITIES (Helper Classes)
          Utility classes: spacing helpers, text utilities, display utilities
          Provides quick styling options without custom CSS -->
     {% assets "utilities_css" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
+    {% endif %}
 
     <!-- 4B. MODAL HELPERS (Component CSS)
          CSS support for modal-helpers.js - replaces inline styles from fix scripts
          Provides transform fixes, z-index management, and modal utilities -->
     <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/modal-helpers.css') }}" />
 
-    <!-- 5. LAYOUT & MOBILE (Responsive Structure)
+    <!-- 4C. MODERN CORE COMPONENTS (Phase 2 Component Library)
+         Complete UI component system with athletic precision
+         Glass-morphism, smooth animations, responsive design, dark mode support -->
+
+    <!-- Cards - Glass-morphism cards with variants (stat, match, clickable) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/cards-modern.css') }}" />
+
+    <!-- Buttons - Athletic buttons with ripple effects and loading states -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/buttons-modern.css') }}" />
+
+    <!-- Forms - Floating labels, glowing focus, validation states -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/forms-modern.css') }}" />
+
+    <!-- Tables - Responsive tables with card view for mobile -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tables-modern.css') }}" />
+
+    <!-- NOTE: modals-modern.css and dropdowns-modern.css were DELETED (0 template uses)
+         Modal styles are in css/components/modals.css and css/components/c-modal.css
+         Dropdown styles are in css/components/dropdowns.css and css/components/c-dropdown.css -->
+
+    <!-- Toasts - Slide-in notifications with auto-dismiss -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/toasts-modern.css') }}" />
+
+    <!-- Tooltips - Floating tooltips with arrow indicators -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tooltips-modern.css') }}" />
+
+    <!-- Loaders - Skeleton screens, spinners, progress bars -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/loaders-modern.css') }}" />
+
+    <!-- Empty States - Illustrated empty states with CTAs -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/empty-states-modern.css') }}" />
+
+    <!-- SweetAlert Integration - Custom SweetAlert2 styling -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/sweetalert-modern.css') }}" />
+
+    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
+    <!-- 6. LAYOUT & MOBILE (Responsive Structure)
          Layout system: responsive grid, mobile optimizations, navigation
          Ensures proper display across all device sizes -->
     {% assets "layout_css" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
 
-    <!-- 6. VENDOR CDN CSS (Third-party Libraries)
+    <!-- 6B. MOBILE BUNDLE (Critical for Responsive Navigation)
+         Mobile-responsive styles: navigation, forms, tables
+         Contains admin nav, mobile menu, and responsive components -->
+    {% assets "mobile_css" %}
+        <link rel="stylesheet" href="{{ ASSET_URL }}" />
+    {% endassets %}
+    {% endif %}
+
+    <!-- 7. MODERN NAVBAR (Loads LAST to Override Layout Defaults)
+         Modern navbar with glass-morphism, smooth animations, and responsive design
+         Refined Sports Tech aesthetic - must load after layout_css bundle -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/navbar-modern.css') }}" />
+
+    <!-- 7b. ONLINE STATUS INDICATOR
+         Shows user online/offline status with animated indicators -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/online-status.css') }}" />
+
+    <!-- 7c. ONLINE USERS WIDGET
+         Compact sidebar widget showing currently online users -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/online-users-widget.css') }}" />
+
+    <!-- 7d. CHAT WIDGET
+         Floating chat widget for direct messaging -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/c-chat-widget.css') }}" />
+
+    <!-- 8. VENDOR CDN CSS (Third-party Libraries)
          External library styles loaded via CDN
          Placed here so our theme CSS can override their defaults -->
 
@@ -282,14 +369,28 @@
     <!-- Shepherd.js - Guided tours -->
     <link rel="stylesheet" href="{{ url_for('static', filename='assets/vendor/libs/shepherd/shepherd.css') }}">
 
-    <!-- 7. THEME VARIANT (Modern Theme Only)
+    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
+    <!-- 7. FEATURES (Feature-Specific Styles)
+         Feature-specific CSS: draft, pitch view, profiles, playoffs, etc.
+         Commonly used features across the application -->
+    {% assets "features_css" %}
+        <link rel="stylesheet" href="{{ ASSET_URL }}" />
+    {% endassets %}
+
+    <!-- 8. PAGES (Page-Specific Styles)
+         Page-specific CSS including admin panel (26 admin/*.css files)
+         Loaded for all pages to ensure admin panel styling works -->
+    {% assets "pages_css" %}
+        <link rel="stylesheet" href="{{ ASSET_URL }}" />
+    {% endassets %}
+
+    <!-- 9. THEME VARIANT (Modern Theme Only)
          Theme-specific styling with bold, contemporary design
          Uses Archivo Black for display and Barlow for body text -->
-
-    <!-- Modern Theme - Bold, contemporary design with Archivo Black + Barlow -->
     {% assets "theme_modern" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
+    {% endif %}
 
     <!-- 8. ADMIN CUSTOM COLORS (Dynamic Overrides)
          Administrator-configured color overrides from Appearance Manager
@@ -455,8 +556,8 @@
         });
     </script>
 
-    <!-- Helpers and Misc Scripts -->
-    <script src="{{ url_for('static', filename='vendor/js/helpers.js') }}"></script>
+    <!-- Minimal Helpers (replaces Sneat helpers.js - NO layout manipulation) -->
+    <script src="{{ url_for('static', filename='js/helpers-minimal.js') }}"></script>
     <!-- Simple theme switcher (replaces TemplateCustomizer) -->
     <script src="{{ asset_version('js/simple-theme-switcher.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/config.js') }}"></script>
@@ -470,97 +571,119 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </head>
 
-<body>
+<body class="c-base-layout" data-component="base-layout">
+    <!-- Skip to main content link -->
+    <a href="#main-content" class="c-base-layout__skip-link">Skip to main content</a>
+
     <!-- Layout wrapper -->
-    <div class="layout-wrapper layout-content-navbar">
-        <div class="layout-container">
+    <div class="layout-wrapper layout-content-navbar c-base-layout__wrapper" data-component="layout-wrapper">
+        <div class="layout-container c-base-layout__container">
             <!-- Sidebar Menu -->
             {% if safe_current_user.is_authenticated %}
             {% include 'sidebar.html' %}
             {% endif %}
             <!-- / Sidebar Menu -->
-            <!-- Layout container -->
-            <div class="layout-page">
-                <!-- Navbar -->
+            <!-- Layout page -->
+            <div class="layout-page c-base-layout__page">
+                <!-- Navbar - Modern Design -->
                 {% if safe_current_user.is_authenticated %}
-                {% include 'navbar.html' %}
+                {% include '_navbar_modern.html' %}
                 {% endif %}
                 <!-- / Navbar -->
                 <!-- Content wrapper -->
-                <div class="content-wrapper">
+                <div class="content-wrapper c-base-layout__content">
                     <!-- Role Impersonation Banner -->
                     {% if is_role_impersonation_active() %}
-                    <div class="role-impersonation-banner alert alert-dismissible" role="alert">
-                        <div class="role-banner-content">
-                            <i class="ti ti-eye role-banner-icon"></i>
-                            <div class="role-banner-text">
-                                <div class="role-banner-title">Role Impersonation Active</div>
-                                <div class="role-banner-description">
+                    <div class="c-role-banner alert alert-dismissible" role="alert" data-component="role-banner" data-alert>
+                        <div class="c-role-banner__content">
+                            <i class="ti ti-eye c-role-banner__icon" aria-hidden="true"></i>
+                            <div class="c-role-banner__text">
+                                <div class="c-role-banner__title">Role Impersonation Active</div>
+                                <div class="c-role-banner__description">
                                     You are viewing the application as:
-                                    <span class="role-banner-roles">{{ ', '.join(user_roles) }}</span>
+                                    <span class="c-role-banner__roles">{{ ', '.join(user_roles) }}</span>
                                 </div>
                             </div>
-                            <form action="{{ url_for('role_impersonation.stop_impersonation_form') }}" method="post" class="role-banner-button">
+                            <form action="{{ url_for('role_impersonation.stop_impersonation_form') }}" method="post" class="c-role-banner__form">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-sm btn-outline-warning">
-                                    <i class="ti ti-x me-1"></i> Stop Viewing As
+                                <button type="submit" class="c-btn c-btn--sm c-btn--outline-warning" data-action="stop-impersonation">
+                                    <i class="ti ti-x me-1" aria-hidden="true"></i> Stop Viewing As
                                 </button>
                             </form>
                         </div>
                     </div>
                     {% endif %}
                     <!-- Content -->
-                    <div class="container-fluid flex-grow-1 container-p-y">
-                        {% block main_content %}
-                        <!-- Page-specific content will be injected here -->
-                        {% endblock %}
-                    </div>
+                    <main id="main-content" class="c-base-layout__main" tabindex="-1">
+                        <div class="container-fluid flex-grow-1 container-p-y">
+                            {% block main_content %}
+                            <!-- Page-specific content will be injected here -->
+                            {% endblock %}
+                        </div>
+                    </main>
                     <!-- / Content -->
                     <!-- Footer -->
-                    <footer class="content-footer footer bg-footer-theme">
-                        <div class="container-fluid">
-                            <div class="footer-container d-flex align-items-center justify-content-between py-4 flex-md-row flex-column">
-                                <div class="text-body">
+                    <footer class="content-footer footer bg-footer-theme c-base-layout__footer" data-component="footer">
+                        <div class="container-fluid c-base-layout__footer-container">
+                            <div class="c-base-layout__footer-content">
+                                <div class="c-base-layout__footer-copyright">
                                     ©
                                     <script>document.write(new Date().getFullYear());</script>, made with ❤️ by
-                                    <a href="https://gronix.dev/" target="_blank" rel="noopener noreferrer">George</a>
+                                    <a href="https://gronix.dev/" target="_blank" rel="noopener noreferrer" class="c-base-layout__footer-link">George</a>
                                 </div>
-                                <div class="d-none d-lg-inline-block">
-                                    <a href="https://github.com/geman220/ECS-Discord-Bot" target="_blank" class="footer-link me-4">Github</a>
+                                <div class="c-base-layout__footer-links">
+                                    <a href="https://github.com/geman220/ECS-Discord-Bot" target="_blank" rel="noopener noreferrer" class="c-base-layout__footer-link">Github</a>
                                 </div>
                             </div>
                         </div>
                     </footer>
                     <!-- / Footer -->
 
-                    <div class="content-backdrop fade"></div>
+                    <div class="content-backdrop fade c-base-layout__backdrop"></div>
                 </div>
                 <!-- / Content wrapper -->
             </div>
-            <!-- / Layout container -->
+            <!-- / Layout page -->
         </div>
 
         <!-- Overlay -->
-        <div class="layout-overlay layout-menu-toggle"></div>
+        <div class="layout-overlay layout-menu-toggle c-base-layout__overlay" data-action="close-menu"></div>
     </div>
     <!-- / Layout wrapper -->
+
+    <!-- ============================================
+         JAVASCRIPT LOADING: Production vs Development
+         ============================================ -->
+
+    {% if config.get('ASSETS_PRODUCTION_MODE') %}
+    <!-- PRODUCTION MODE: Single minified bundle -->
+    {% assets "production_js" %}
+        <script src="{{ ASSET_URL }}"></script>
+    {% endassets %}
+    {% else %}
+    <!-- DEVELOPMENT MODE: Individual files -->
     <!-- Core JS -->
     <script src="{{ url_for('static', filename='vendor/libs/jquery/jquery.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/libs/popper/popper.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/js/bootstrap.js') }}"></script>
+    <!-- Bootstrap UMD version (fixes "_element is not defined" error) -->
+    <script src="{{ url_for('static', filename='vendor/js/bootstrap.bundle.js') }}"></script>
+
+    <!-- ModalManager - Centralized modal management (Best Practice 2025) -->
+    <!-- MUST load after Bootstrap, before any code that uses modals -->
+    <script src="{{ url_for('static', filename='js/modal-manager.js') }}"></script>
+
     <!-- Waves library for ripple effects (logic only, styling via CSS) -->
     <script src="{{ url_for('static', filename='vendor/libs/node-waves/node-waves.js') }}"></script>
+    {% endif %}
+    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
     <!-- DISABLED: waves-css-override.js - Waves.Effect is not exposed in node-waves API -->
     {# <script src="{{ url_for('static', filename='custom_js/waves-css-override.js') }}"></script> #}
-    <!-- SweetAlert2 for nice notifications -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
+
     <!-- Discord Membership Check - Global -->
     <script src="{{ url_for('static', filename='custom_js/discord-membership-check.js') }}"></script>
-    
-    <script src="{{ url_for('static', filename='vendor/libs/perfect-scrollbar/perfect-scrollbar.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/libs/hammer/hammer.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/js/menu.js') }}"></script>
+
+    <!-- Sidebar Interactions (replaces Sneat menu.js - no layout manipulation) -->
+    <script src="{{ url_for('static', filename='js/sidebar-interactions.js') }}"></script>
 
     <!-- Mobile Enhancement System (Phase 2) -->
     <script src="{{ url_for('static', filename='js/mobile-haptics.js') }}"></script>
@@ -568,6 +691,10 @@
     <script src="{{ url_for('static', filename='js/mobile-keyboard.js') }}"></script>
     <script src="{{ url_for('static', filename='js/mobile-forms.js') }}"></script>
     <script src="{{ url_for('static', filename='js/profile-verification.js') }}"></script>
+    {% endif %}
+
+    <!-- SweetAlert2 for nice notifications (CDN - loaded in both modes) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- SweetAlert Notification Handler -->
     <script>
@@ -607,28 +734,57 @@
         });
     </script>
 
+    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
     <!-- Unified Responsive System JS - replacing all previous mobile helpers -->
     <script src="{{ url_for('static', filename='js/responsive-system.js') }}"></script>
-    
+
     <!-- Responsive Tables JS - for mobile card views -->
     <script src="{{ url_for('static', filename='js/responsive-tables.js') }}"></script>
-    
+
     <!-- ECS Design System JS -->
     <script src="{{ url_for('static', filename='js/design-system.js') }}"></script>
-    
+
+    <!-- BEM Tabs Controller - Pure JS tab system without Bootstrap dependency -->
+    <script src="{{ url_for('static', filename='js/components/tabs-controller.js') }}"></script>
+
+    <!-- Modern Navbar Controller - Event delegation and smooth interactions -->
+    <script src="{{ url_for('static', filename='js/navbar-modern.js') }}"></script>
+
+    <!-- Online Status Manager - Real-time user presence indicators -->
+    <script src="{{ url_for('static', filename='js/online-status.js') }}"></script>
+
+    <!-- Chat Widget - Floating direct messaging interface -->
+    <script src="{{ url_for('static', filename='js/chat-widget.js') }}"></script>
+
+    <!-- Messenger Widget - Sidebar integrated messaging (replaces floating chat) -->
+    <script src="{{ url_for('static', filename='js/messenger-widget.js') }}"></script>
+
+    <!-- Modern Components Controller - Unified controller for all modern UI components
+         Handles modals, toasts, tooltips, dropdowns, tables, forms with event delegation
+         Phase 2-4 complete implementation -->
+    <script src="{{ url_for('static', filename='js/components-modern.js') }}"></script>
+
     <!-- Report Match JS - Consolidated functionality -->
     <script src="{{ url_for('static', filename='custom_js/report_match.js') }}"></script>
 
+    <!-- Event Delegation System - Centralized event handling for data-action attributes -->
+    <!-- CRITICAL: Must load after report_match.js which defines handleEditButtonClick -->
+    <script src="{{ url_for('static', filename='js/event-delegation.js') }}"></script>
+
     <!-- Modal Helpers - Consolidated modal utilities (replaces simple-modal-fix.js + simple-report-fix.js) -->
     <script src="{{ url_for('static', filename='custom_js/modal-helpers.js') }}"></script>
+
+    <!-- UI Enhancements - Feather icons, collapsible sections, dropdown fixes -->
+    <script src="{{ url_for('static', filename='js/ui-enhancements.js') }}"></script>
 
     <!-- DISABLED: These scripts inject inline styles that conflict with CSS refactoring -->
     {# <script src="{{ url_for('static', filename='custom_js/modal-repair.js') }}"></script> #}
     {# <script src="{{ url_for('static', filename='custom_js/button-diagnostic.js') }}"></script> #}
     {# <script src="{{ url_for('static', filename='custom_js/button-mouseup-fix.js') }}"></script> #}
-    
+
     <!-- SMS Verification functionality -->
     <script src="{{ url_for('static', filename='custom_js/sms-verification.js') }}"></script>
+    {% endif %}
     
     <!-- Load modals via AJAX (after jQuery is loaded) -->
     <script>
@@ -752,43 +908,9 @@
                 });
             });
 
-            // Sidebar and menu logic (if applicable)
-            const layoutMenu = document.querySelector('#layout-menu');
-            if (layoutMenu) {
-                new Menu(layoutMenu);
-            }
-
-            const layoutMenuToggle = document.querySelector('.layout-menu-toggle');
-            const layoutContainer = document.querySelector('.layout-container');
-            const overlay = document.querySelector('.layout-overlay');
-            const hamburgerIcon = document.querySelector('.menu-toggle-icon');
-            const closeIcon = document.querySelector('#close-icon');
-
-            function toggleMenu() {
-                layoutContainer.classList.toggle('layout-menu-expanded');
-                hamburgerIcon.classList.toggle('d-none');
-                closeIcon.classList.toggle('d-none');
-                if (overlay) {
-                    overlay.classList.toggle('show');
-                }
-            }
-
-            if (layoutMenuToggle) {
-                layoutMenuToggle.addEventListener('click', toggleMenu);
-            }
-
-            if (closeIcon) {
-                closeIcon.addEventListener('click', toggleMenu);
-            }
-
-            if (overlay) {
-                overlay.addEventListener('click', function () {
-                    layoutContainer.classList.remove('layout-menu-expanded');
-                    hamburgerIcon.classList.remove('d-none');
-                    closeIcon.classList.add('d-none');
-                    overlay.classList.remove('show');
-                });
-            }
+            // Sidebar and menu logic
+            // Note: Menu initialization is handled by main.js - do NOT duplicate here
+            // PerfectScrollbar is configured with suppressScrollX: true in menu.js
 
             // Feather Icons Initialization - restored for data-feather attributes
             if (typeof feather !== 'undefined') {
@@ -863,7 +985,7 @@
             var $li = $("<li>");
             var $div = $("<div>").addClass("ui-menu-item-wrapper");
             if(item.profile_picture_url) {
-                $div.append("<img src='" + item.profile_picture_url + "' class='autocomplete-profile-img' />");
+                $div.append("<img src='" + item.profile_picture_url + "' alt='" + item.label + "' class='autocomplete-profile-img' />");
             }
             $div.append("<span>" + item.label + "</span>");
             return $li.append($div).appendTo(ul);
@@ -878,6 +1000,12 @@
                     window.location.href = playerProfileBaseUrl + playerId;
                 }
             }
+        });
+
+        // Prevent form submission for autocomplete search (moved from inline onsubmit)
+        $('[data-action="prevent-submit"]').on('submit', function(e) {
+            e.preventDefault();
+            return false;
         });
     });
     </script>
@@ -938,6 +1066,11 @@
             cleanupBackdrops();
         });
     </script>
+
+    {# Floating Chat Widget - Facebook Messenger style #}
+    {% if safe_current_user.is_authenticated %}
+    {% include 'components/_chat_widget.html' %}
+    {% endif %}
 
     <!-- Mobile Bottom Navigation (Phase 3) -->
     {% include 'mobile_bottom_nav.html' %}

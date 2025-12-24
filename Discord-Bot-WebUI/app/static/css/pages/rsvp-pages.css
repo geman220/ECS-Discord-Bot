@@ -1,0 +1,502 @@
+/**
+ * RSVP Pages Styles (rsvp_success.html and sms_rsvp_form.html)
+ * Modern, sports-focused design with BEM methodology
+ * Migration Date: 2025-12-18
+ */
+
+/* ========================================
+   CSS Variables for Design Tokens
+   ======================================== */
+:root {
+    --bs-body-bg: var(--ecs-dark-bg-body, #0f172a);
+    --bs-body-color: var(--ecs-dark-text-primary, #e2e8f0);
+    --bs-primary: var(--ecs-primary, #3b82f6);
+    --bs-primary-rgb: var(--ecs-primary-rgb, 59, 130, 246);
+}
+
+/* ========================================
+   RSVP Page Component
+   ======================================== */
+.c-rsvp-page {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: var(--bs-body-color);
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 1.5rem;
+}
+
+/* ========================================
+   RSVP Card Component
+   ======================================== */
+.c-rsvp-card {
+    background: var(--ecs-dark-bg-card, #1e293b);
+    border: 1px solid var(--ecs-dark-border, #334155);
+    border-radius: 1rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 100%;
+}
+
+.c-rsvp-card__body {
+    padding: 3rem 2rem;
+    text-align: center;
+}
+
+.c-rsvp-card__title {
+    color: var(--ecs-dark-text-heading, #f8fafc);
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 1.5rem 0 1rem;
+    letter-spacing: -0.02em;
+}
+
+.c-rsvp-card__text {
+    color: var(--bs-body-color, #e2e8f0);
+    font-size: 1.125rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.c-rsvp-card__info {
+    color: var(--bs-secondary-color, #94a3b8);
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.c-rsvp-card__countdown-text {
+    color: var(--bs-secondary-color, #94a3b8);
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+/* ========================================
+   RSVP Success Icon
+   ======================================== */
+.c-rsvp-success-icon {
+    font-size: 5rem;
+    color: #10b981;
+    display: block;
+    margin-bottom: 1rem;
+    animation: success-bounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes success-bounce {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* ========================================
+   RSVP Countdown Component
+   ======================================== */
+.c-rsvp-countdown {
+    display: inline-block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--bs-primary);
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    padding: 0 0.5rem;
+    animation: countdown-pulse 1s ease-in-out infinite;
+}
+
+@keyframes countdown-pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+/* ========================================
+   RSVP Form Page
+   ======================================== */
+.c-rsvp-form {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: var(--bs-body-color);
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    padding: 2rem 0;
+}
+
+.c-rsvp-form__card {
+    background: var(--ecs-dark-bg-card, #1e293b);
+    border: 1px solid var(--ecs-dark-border, #334155);
+    margin-bottom: 1.5rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.c-rsvp-form__title {
+    color: var(--ecs-dark-text-heading, #f8fafc);
+    font-weight: 600;
+}
+
+.c-rsvp-form__button {
+    background: linear-gradient(135deg, var(--bs-primary) 0%, #2563eb 100%);
+    border: none;
+    font-weight: 600;
+    padding: 0.875rem 2rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.c-rsvp-form__button:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.c-rsvp-form__radio:checked {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+.c-rsvp-form__container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* ========================================
+   Substitute RSVP Component
+   ======================================== */
+.c-substitute-rsvp {
+    padding: 2rem 0;
+}
+
+.c-substitute-rsvp__container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+.c-substitute-rsvp__content {
+    display: flex;
+    justify-content: center;
+}
+
+.c-substitute-rsvp__card {
+    background: var(--bs-card-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 800px;
+}
+
+.c-substitute-rsvp__header {
+    background: var(--bs-primary);
+    color: white;
+    padding: 1.5rem;
+    border-top-left-radius: var(--bs-border-radius-lg);
+    border-top-right-radius: var(--bs-border-radius-lg);
+}
+
+.c-substitute-rsvp__title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: white;
+}
+
+.c-substitute-rsvp__body {
+    padding: 2rem;
+}
+
+.c-substitute-rsvp__alert {
+    padding: 1rem;
+    border-radius: var(--bs-border-radius);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: start;
+    gap: 0.5rem;
+}
+
+.c-substitute-rsvp__alert--error {
+    background: var(--bs-danger-bg-subtle);
+    border: 1px solid var(--bs-danger-border-subtle);
+    color: var(--bs-danger-text-emphasis);
+}
+
+.c-substitute-rsvp__alert--info {
+    background: var(--bs-info-bg-subtle);
+    border: 1px solid var(--bs-info-border-subtle);
+    color: var(--bs-info-text-emphasis);
+    margin-top: 1.5rem;
+    margin-bottom: 0;
+}
+
+.c-substitute-rsvp__response {
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.c-substitute-rsvp__icon {
+    margin-bottom: 1.5rem;
+}
+
+.c-substitute-rsvp__avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 5rem;
+    height: 5rem;
+    border-radius: 50%;
+    font-size: 2.5rem;
+}
+
+.c-substitute-rsvp__avatar--success {
+    background: var(--bs-success-bg-subtle);
+    color: var(--bs-success);
+}
+
+.c-substitute-rsvp__avatar--unavailable {
+    background: var(--bs-danger-bg-subtle);
+    color: var(--bs-danger);
+}
+
+.c-substitute-rsvp__status {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.c-substitute-rsvp__status--success {
+    color: var(--bs-success);
+}
+
+.c-substitute-rsvp__status--unavailable {
+    color: var(--bs-danger);
+}
+
+.c-substitute-rsvp__message {
+    color: var(--bs-secondary-color);
+    margin-bottom: 0;
+}
+
+.c-substitute-rsvp__note {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: var(--bs-tertiary-bg);
+    border-radius: var(--bs-border-radius);
+}
+
+.c-substitute-rsvp__note-label {
+    color: var(--bs-secondary-color);
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.c-substitute-rsvp__note-text {
+    margin: 0;
+    color: var(--bs-body-color);
+}
+
+.c-substitute-rsvp__divider {
+    margin: 2rem 0;
+    border-color: var(--bs-border-color);
+}
+
+.c-substitute-rsvp__section-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: var(--bs-heading-color);
+}
+
+.c-substitute-rsvp__intro {
+    margin-bottom: 2rem;
+    color: var(--bs-body-color);
+}
+
+.c-substitute-rsvp__details {
+    margin-bottom: 1.5rem;
+}
+
+.c-substitute-rsvp__table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.c-substitute-rsvp__detail-row {
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.c-substitute-rsvp__detail-row:last-child {
+    border-bottom: none;
+}
+
+.c-substitute-rsvp__detail-label {
+    color: var(--bs-secondary-color);
+    padding: 0.75rem 0.5rem 0.75rem 0;
+    width: 120px;
+    vertical-align: top;
+}
+
+.c-substitute-rsvp__detail-value {
+    padding: 0.75rem 0;
+    color: var(--bs-body-color);
+}
+
+.c-substitute-rsvp__form-group {
+    margin-bottom: 1.5rem;
+}
+
+.c-substitute-rsvp__form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--bs-body-color);
+}
+
+.c-substitute-rsvp__form-textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    font-family: inherit;
+    font-size: 1rem;
+    resize: vertical;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.c-substitute-rsvp__form-textarea:focus {
+    outline: 0;
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+.c-substitute-rsvp__actions {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.c-substitute-rsvp__button {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    border: none;
+    border-radius: var(--bs-border-radius);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.c-substitute-rsvp__button--yes {
+    background: var(--bs-success);
+    color: white;
+}
+
+.c-substitute-rsvp__button--yes:hover {
+    background: var(--bs-success-hover, #198754);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(25, 135, 84, 0.3);
+}
+
+.c-substitute-rsvp__button--no {
+    background: transparent;
+    color: var(--bs-danger);
+    border: 2px solid var(--bs-danger);
+}
+
+.c-substitute-rsvp__button--no:hover {
+    background: var(--bs-danger);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.c-substitute-rsvp__footer {
+    padding: 1rem 2rem;
+    text-align: center;
+    border-top: 1px solid var(--bs-border-color);
+    background: var(--bs-tertiary-bg);
+    border-bottom-left-radius: var(--bs-border-radius-lg);
+    border-bottom-right-radius: var(--bs-border-radius-lg);
+}
+
+.c-substitute-rsvp__footer-text {
+    color: var(--bs-secondary-color);
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+@media (max-width: 576px) {
+    .c-rsvp-page {
+        padding: 1rem;
+    }
+
+    .c-rsvp-card__body {
+        padding: 2rem 1.5rem;
+    }
+
+    .c-rsvp-card__title {
+        font-size: 1.5rem;
+    }
+
+    .c-rsvp-success-icon {
+        font-size: 4rem;
+    }
+
+    .c-rsvp-countdown {
+        font-size: 1.25rem;
+    }
+
+    /* Substitute RSVP Mobile */
+    .c-substitute-rsvp__container {
+        padding: 0 1rem;
+    }
+
+    .c-substitute-rsvp__body {
+        padding: 1.5rem;
+    }
+
+    .c-substitute-rsvp__header {
+        padding: 1rem;
+    }
+
+    .c-substitute-rsvp__title {
+        font-size: 1.125rem;
+    }
+
+    .c-substitute-rsvp__avatar {
+        width: 4rem;
+        height: 4rem;
+        font-size: 2rem;
+    }
+
+    .c-substitute-rsvp__status {
+        font-size: 1.25rem;
+    }
+
+    .c-substitute-rsvp__detail-label {
+        width: 100px;
+        font-size: 0.875rem;
+    }
+
+    .c-substitute-rsvp__footer {
+        padding: 0.75rem 1rem;
+    }
+}

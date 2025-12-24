@@ -1,0 +1,473 @@
+{# ============================================================================
+   ADMIN PANEL NAVIGATION - CONSOLIDATED (7 items)
+   ============================================================================
+   Reorganized navigation: Dashboard | League Ops | MLS | Members | Comms | Users | Admin
+   ============================================================================ #}
+
+<nav class="c-admin-nav" data-controller="admin-nav" aria-label="Admin Panel Navigation">
+    {# Skip link for accessibility - hidden until keyboard focus #}
+    <a href="#main-content" class="c-admin-nav__skip">Skip to main content</a>
+
+    <ul class="c-admin-nav__list" role="menubar">
+        {# Dashboard #}
+        <li class="c-admin-nav__item" role="none">
+            <a href="{{ url_for('admin_panel.dashboard') }}"
+               class="c-admin-nav__link {% if request.endpoint == 'admin_panel.dashboard' %}is-active{% endif %}"
+               data-action="navigate"
+               role="menuitem">
+                <i class="c-admin-nav__icon ti ti-dashboard" aria-hidden="true"></i>
+                <span class="c-admin-nav__text">Dashboard</span>
+            </a>
+        </li>
+
+        {# League Operations (Pub League) #}
+        <li class="c-admin-nav__item" data-dropdown role="none">
+            <button class="c-admin-nav__link c-admin-nav__dropdown-toggle"
+                    data-action="toggle-dropdown"
+                    aria-expanded="false"
+                    aria-haspopup="true"
+                    role="menuitem">
+                <i class="c-admin-nav__icon ti ti-tournament" aria-hidden="true"></i>
+                <span class="c-admin-nav__text">League Ops</span>
+            </button>
+            <ul class="c-admin-nav__dropdown c-admin-nav__dropdown--wide" role="menu" aria-hidden="true">
+                {# League Management Hub Section #}
+                <li class="c-admin-nav__dropdown-header">League Management</li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.league_management_dashboard') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-layout-dashboard" aria-hidden="true"></i>
+                        <span>League Hub</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.season_wizard') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-wand" aria-hidden="true"></i>
+                        <span>Season Wizard</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.league_management_seasons') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-calendar-stats" aria-hidden="true"></i>
+                        <span>All Seasons</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.league_management_teams') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-shirt-sport" aria-hidden="true"></i>
+                        <span>All Teams</span>
+                    </a>
+                </li>
+
+                {# Match Management Section #}
+                <li class="c-admin-nav__dropdown-header">Match Management</li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.match_operations') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-dashboard" aria-hidden="true"></i>
+                        <span>Match Dashboard</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.manage_leagues') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-trophy" aria-hidden="true"></i>
+                        <span>Leagues</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.match_verification') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-check" aria-hidden="true"></i>
+                        <span>Match Verification</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.live_reporting_dashboard') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-live-view" aria-hidden="true"></i>
+                        <span>Live Reporting</span>
+                    </a>
+                </li>
+
+                {# Substitutes Section #}
+                <li class="c-admin-nav__dropdown-header">Substitutes</li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.substitute_management') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-user-plus" aria-hidden="true"></i>
+                        <span>Manage Substitutes</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.substitute_pools') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-users" aria-hidden="true"></i>
+                        <span>Substitute Pools</span>
+                    </a>
+                </li>
+
+                {# Draft Section #}
+                <li class="c-admin-nav__dropdown-header">Draft</li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.draft_overview') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-layout-grid" aria-hidden="true"></i>
+                        <span>Draft Overview</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.draft_history') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-history" aria-hidden="true"></i>
+                        <span>Draft History</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('draft_predictions.admin_dashboard') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-chart-dots" aria-hidden="true"></i>
+                        <span>Draft Predictions</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        {# MLS (Separate from Pub League) #}
+        <li class="c-admin-nav__item" data-dropdown role="none">
+            <button class="c-admin-nav__link c-admin-nav__dropdown-toggle"
+                    data-action="toggle-dropdown"
+                    aria-expanded="false"
+                    aria-haspopup="true"
+                    role="menuitem">
+                <i class="c-admin-nav__icon ti ti-soccer-field" aria-hidden="true"></i>
+                <span class="c-admin-nav__text">MLS</span>
+            </button>
+            <ul class="c-admin-nav__dropdown" role="menu" aria-hidden="true">
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.mls_overview') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-dashboard" aria-hidden="true"></i>
+                        <span>MLS Overview</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.mls_matches') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-list" aria-hidden="true"></i>
+                        <span>MLS Matches</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.mls_task_monitoring') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-list-check" aria-hidden="true"></i>
+                        <span>Task Monitoring</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        {# Members (Discord + Mobile + Store) #}
+        <li class="c-admin-nav__item" data-dropdown role="none">
+            <button class="c-admin-nav__link c-admin-nav__dropdown-toggle"
+                    data-action="toggle-dropdown"
+                    aria-expanded="false"
+                    aria-haspopup="true"
+                    role="menuitem">
+                <i class="c-admin-nav__icon ti ti-heart-handshake" aria-hidden="true"></i>
+                <span class="c-admin-nav__text">Members</span>
+            </button>
+            <ul class="c-admin-nav__dropdown c-admin-nav__dropdown--wide" role="menu" aria-hidden="true">
+                {# Discord Section #}
+                <li class="c-admin-nav__dropdown-header">Discord</li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.discord_overview') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-brand-discord" aria-hidden="true"></i>
+                        <span>Discord Overview</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.discord_players') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-users" aria-hidden="true"></i>
+                        <span>Discord Players</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.discord_roles') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-shield" aria-hidden="true"></i>
+                        <span>Discord Roles</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.discord_onboarding') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-user-plus" aria-hidden="true"></i>
+                        <span>Onboarding</span>
+                    </a>
+                </li>
+
+                {# Mobile Section #}
+                <li class="c-admin-nav__dropdown-header">Mobile App</li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.mobile_features') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-device-mobile" aria-hidden="true"></i>
+                        <span>Mobile Features</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.mobile_analytics') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-chart-line" aria-hidden="true"></i>
+                        <span>Mobile Analytics</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.mobile_users') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-users" aria-hidden="true"></i>
+                        <span>Mobile Users</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.mobile_error_analytics') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-bug" aria-hidden="true"></i>
+                        <span>Error Analytics</span>
+                    </a>
+                </li>
+
+                {# Store Section #}
+                <li class="c-admin-nav__dropdown-header">Store</li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.store_management') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-shopping-cart" aria-hidden="true"></i>
+                        <span>Store Management</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.store_items') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-package" aria-hidden="true"></i>
+                        <span>Items</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.store_orders') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-list" aria-hidden="true"></i>
+                        <span>Orders</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.store_analytics') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-chart-bar" aria-hidden="true"></i>
+                        <span>Store Analytics</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        {# Communication #}
+        <li class="c-admin-nav__item" data-dropdown role="none">
+            <button class="c-admin-nav__link c-admin-nav__dropdown-toggle"
+                    data-action="toggle-dropdown"
+                    aria-expanded="false"
+                    aria-haspopup="true"
+                    role="menuitem">
+                <i class="c-admin-nav__icon ti ti-message-circle" aria-hidden="true"></i>
+                <span class="c-admin-nav__text">Comms</span>
+            </button>
+            <ul class="c-admin-nav__dropdown" role="menu" aria-hidden="true">
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.communication_hub') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-message-circle" aria-hidden="true"></i>
+                        <span>Communication Hub</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.message_templates') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-template" aria-hidden="true"></i>
+                        <span>Message Templates</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.push_notifications') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-bell" aria-hidden="true"></i>
+                        <span>Push Notifications</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.announcements') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-speakerphone" aria-hidden="true"></i>
+                        <span>Announcements</span>
+                    </a>
+                </li>
+                <li role="separator"><hr class="c-admin-nav__dropdown-divider"></li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.scheduled_messages_queue') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-clock" aria-hidden="true"></i>
+                        <span>Scheduled Messages</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.campaigns_list') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-broadcast" aria-hidden="true"></i>
+                        <span>Campaigns</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.notification_groups_list') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-users-group" aria-hidden="true"></i>
+                        <span>Notification Groups</span>
+                    </a>
+                </li>
+                <li role="separator"><hr class="c-admin-nav__dropdown-divider"></li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.messaging_settings') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-settings" aria-hidden="true"></i>
+                        <span>Messaging Settings</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        {# Users & Roles #}
+        <li class="c-admin-nav__item" data-dropdown role="none">
+            <button class="c-admin-nav__link c-admin-nav__dropdown-toggle"
+                    data-action="toggle-dropdown"
+                    aria-expanded="false"
+                    aria-haspopup="true"
+                    role="menuitem">
+                <i class="c-admin-nav__icon ti ti-users" aria-hidden="true"></i>
+                <span class="c-admin-nav__text">Users</span>
+            </button>
+            <ul class="c-admin-nav__dropdown" role="menu" aria-hidden="true">
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.user_management') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-users" aria-hidden="true"></i>
+                        <span>User Management</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.users_comprehensive') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-user-search" aria-hidden="true"></i>
+                        <span>User Search</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.user_approvals') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-user-check" aria-hidden="true"></i>
+                        <span>User Approvals</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.user_waitlist') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-user-plus" aria-hidden="true"></i>
+                        <span>Waitlist</span>
+                    </a>
+                </li>
+                <li role="separator"><hr class="c-admin-nav__dropdown-divider"></li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.roles_comprehensive') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-shield" aria-hidden="true"></i>
+                        <span>Roles Management</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.bulk_operations') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-list" aria-hidden="true"></i>
+                        <span>Bulk Operations</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        {# Admin (System + Reports + Appearance) #}
+        <li class="c-admin-nav__item" data-dropdown role="none">
+            <button class="c-admin-nav__link c-admin-nav__dropdown-toggle"
+                    data-action="toggle-dropdown"
+                    aria-expanded="false"
+                    aria-haspopup="true"
+                    role="menuitem">
+                <i class="c-admin-nav__icon ti ti-settings" aria-hidden="true"></i>
+                <span class="c-admin-nav__text">Admin</span>
+            </button>
+            <ul class="c-admin-nav__dropdown c-admin-nav__dropdown--wide" role="menu" aria-hidden="true">
+                {# Reports Section #}
+                <li class="c-admin-nav__dropdown-header">Reports</li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.reports_dashboard') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-file-analytics" aria-hidden="true"></i>
+                        <span>Reports Dashboard</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.feedback_list') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-message" aria-hidden="true"></i>
+                        <span>Feedback</span>
+                    </a>
+                </li>
+
+                {# Appearance Section #}
+                <li class="c-admin-nav__dropdown-header">Appearance</li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.appearance') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-palette" aria-hidden="true"></i>
+                        <span>Theme Settings</span>
+                    </a>
+                </li>
+
+                {# System Section #}
+                <li class="c-admin-nav__dropdown-header">System</li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.feature_toggles') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-toggle-left" aria-hidden="true"></i>
+                        <span>Feature Toggles</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.system_monitoring') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-activity" aria-hidden="true"></i>
+                        <span>System Monitoring</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.cache_management') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-database" aria-hidden="true"></i>
+                        <span>Cache Management</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.api_management') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-api" aria-hidden="true"></i>
+                        <span>API Management</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.health_dashboard') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-heartbeat" aria-hidden="true"></i>
+                        <span>System Health</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.redis_management') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-database" aria-hidden="true"></i>
+                        <span>Redis Management</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.docker_management') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-box" aria-hidden="true"></i>
+                        <span>Docker Management</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.performance_monitoring') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-chart-line" aria-hidden="true"></i>
+                        <span>Performance Monitor</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.security_dashboard') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-shield-check" aria-hidden="true"></i>
+                        <span>Security Dashboard</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.task_monitoring_page') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-list-check" aria-hidden="true"></i>
+                        <span>Task Monitor</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.audit_logs') }}" class="c-admin-nav__dropdown-item" data-action="navigate" role="menuitem">
+                        <i class="ti ti-file-text" aria-hidden="true"></i>
+                        <span>Audit Logs</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+    </ul>
+</nav>

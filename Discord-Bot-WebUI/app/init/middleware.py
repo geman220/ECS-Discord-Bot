@@ -104,8 +104,15 @@ def _init_rate_limiting(app):
         from flask_limiter import Limiter
 
         def get_client_ip():
-            """Get real client IP from proxy headers."""
+            """
+            Get real client IP, with security considerations.
+
+            IMPORTANT: This relies on the reverse proxy (Traefik/nginx) being
+            configured to set X-Forwarded-For correctly and strip any client-provided
+            X-Forwarded-For headers. ProxyFix is applied in apply_middleware().
+            """
             if request.headers.get('X-Forwarded-For'):
+                # First IP in chain is the original client (set by trusted proxy)
                 client_ip = request.headers.get('X-Forwarded-For').split(',')[0].strip()
             elif request.headers.get('X-Real-IP'):
                 client_ip = request.headers.get('X-Real-IP')
@@ -113,17 +120,43 @@ def _init_rate_limiting(app):
                 client_ip = request.headers.get('CF-Connecting-IP')
             else:
                 client_ip = request.remote_addr or 'unknown'
-
-            # Exempt local and Docker network traffic from rate limiting
-            local_networks = ['127.0.0.1', '172.18.0.1', 'host.docker.internal']
-
-            if (client_ip.startswith('172.') or
-                client_ip.startswith('192.168.') or
-                client_ip.startswith('10.') or
-                client_ip in local_networks):
-                return 'local_exempted'
-
             return client_ip
+
+        def is_internal_request():
+            """
+            Check if request is internal (container-to-container, not through proxy).
+
+            Logic:
+            - External requests come through reverse proxy (Traefik) which sets
+              X-Forwarded-For header with the real client IP
+            - Internal container-to-container calls don't go through proxy,
+              so they won't have X-Forwarded-For set by the proxy
+
+            Security model:
+            - If X-Forwarded-For exists → came through proxy → external → rate limit
+            - If no X-Forwarded-For AND remote_addr is Docker network → internal → exempt
+            - Localhost always exempt (health checks, CLI tools)
+            """
+            peer_ip = request.remote_addr or ''
+
+            # Localhost is always internal (health checks, CLI)
+            if peer_ip in ('127.0.0.1', '::1'):
+                return True
+
+            # If request has X-Forwarded-For, it came through the reverse proxy
+            # This means it's external traffic (user → Traefik → app)
+            if request.headers.get('X-Forwarded-For'):
+                return False
+
+            # No X-Forwarded-For + private network IP = internal/local call
+            # (e.g., Celery worker, local dev machine, another microservice)
+            # RFC 1918 private ranges: 10.x, 172.16-31.x, 192.168.x
+            if (peer_ip.startswith('172.') or
+                peer_ip.startswith('10.') or
+                peer_ip.startswith('192.168.')):
+                return True
+
+            return False
 
         redis_url = app.config.get('REDIS_URL', 'redis://redis:6379/0')
 
@@ -135,6 +168,32 @@ def _init_rate_limiting(app):
             headers_enabled=True,
             strategy="fixed-window"
         )
+
+        # Exempt truly internal traffic (Docker containers, localhost)
+        # External traffic through reverse proxy will still be rate limited
+        @limiter.request_filter
+        def skip_internal_traffic():
+            return is_internal_request()
+
+        # Exempt background polling endpoints from rate limiting
+        # These are legitimate automated requests that run on every page, not abuse
+        # Admin-specific polling endpoints are NOT exempt (fewer users, opt-in)
+        @limiter.request_filter
+        def skip_polling_endpoints():
+            exempt_paths = [
+                # Health checks
+                '/api/health/',
+
+                # Presence/online status (polls every 30-120s on every page)
+                '/api/notifications/presence/',
+
+                # Notification counts (polls every 60s on every page)
+                '/api/notifications/count',
+
+                # Message unread counts (polls every 60s on every page)
+                '/api/messages/unread-count',
+            ]
+            return any(request.path.startswith(path) for path in exempt_paths)
 
         app.limiter = limiter
         logger.info("Rate limiting initialized with Redis backend")

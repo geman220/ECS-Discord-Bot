@@ -1,26 +1,27 @@
 /**
  * ============================================================================
- * MODAL HELPERS - Consolidated Modal Management
+ * MODAL HELPERS - Consolidated Modal Lifecycle Management
  * ============================================================================
  *
- * Unified modal helper script that handles:
- * - Modal initialization and lifecycle
+ * Complementary to ModalManager - handles modal lifecycle events:
+ * - Modal initialization and lifecycle events
  * - Backdrop cleanup
  * - iOS-specific fixes
  * - Mobile viewport adjustments
- * - Button transform prevention (using CSS classes)
+ * - Button transform prevention (via CSS classes)
  *
- * Consolidates functionality from:
- * - simple-modal-fix.js
- * - simple-report-fix.js
+ * RELATIONSHIP TO MODAL MANAGER:
+ * - ModalManager: instance management, show/hide, caching
+ * - ModalHelpers: lifecycle events, cleanup, iOS fixes, mobile viewport
  *
  * NO INLINE STYLES - Uses CSS classes and data attributes instead
  *
+ * InitSystem Registration: Priority 25 (after ModalManager at 20)
+ *
  * Dependencies:
  * - Bootstrap 5.x
+ * - ModalManager
  * - /css/components/modals.css
- * - /css/utilities/transform-utils.css
- * - /css/utilities/mobile-utils.css
  *
  * ============================================================================
  */
@@ -36,435 +37,400 @@
         BACKDROP_TRANSITION_MS: 300,
         RIPPLE_CLEANUP_DELAY_MS: 10,
         BUTTON_FIX_RETRY_DELAY_MS: 500,
-        MODAL_DIALOG_SELECTORS: '.modal-dialog, .modal-content, .modal-header, .modal-body, .modal-footer',
-        BUTTON_SELECTORS: '.btn, .ecs-btn, button[class*="btn-"], button[class*="ecs-btn-"], .waves-effect',
-        MODAL_SELECTORS: '.modal',
-        BACKDROP_SELECTORS: '.modal-backdrop'
+        // Data attribute selectors (primary)
+        MODAL_SELECTORS: '[data-modal], .modal',
+        MODAL_BODY_SELECTORS: '[data-modal-body], .modal-body',
+        BACKDROP_SELECTORS: '.modal-backdrop',
+        BUTTON_SELECTORS: '[data-action], .btn, .c-btn, button[class*="btn-"]'
     };
 
     const CSS_CLASSES = {
         MODAL_OPEN: 'modal-open',
         MODAL_SHOW: 'show',
-        MODAL_HIDE: 'hide',
-        MODAL_FADE: 'fade',
+        MODAL_ACTIVE: 'modal-active',
         BACKDROP_SHOW: 'show',
         BACKDROP_HIDE: 'hide',
-        TRANSFORM_NONE: 'transform-none',
-        TRANSITION_COLORS: 'transition-colors',
-        NO_TRANSFORM: 'no-transform',
         IOS_SCROLL: 'ios-scroll',
-        PREVENT_OVERSCROLL: 'prevent-overscroll'
+        IOS_MODAL_OPEN: 'ios-modal-open',
+        DISPLAY_NONE: 'd-none'
     };
 
     // ========================================================================
-    // DEVICE DETECTION
+    // MODAL HELPERS CONTROLLER
     // ========================================================================
 
-    /**
-     * Detects if the current device is running iOS
-     * @returns {boolean} True if iOS device
-     */
-    function isIOS() {
-        const iosDevices = [
-            'iPad Simulator',
-            'iPhone Simulator',
-            'iPod Simulator',
-            'iPad',
-            'iPhone',
-            'iPod'
-        ];
+    const ModalHelpers = {
+        // State tracking
+        _initialized: false,
 
-        return iosDevices.includes(navigator.platform) ||
-               (navigator.userAgent.includes("Mac") && "ontouchend" in document);
-    }
+        /**
+         * Initialize all modal helpers
+         * @param {Element} context - Optional context element (defaults to document)
+         */
+        init: function(context) {
+            context = context || document;
 
-    /**
-     * Detects if the current device is mobile (screen width based)
-     * @returns {boolean} True if mobile device
-     */
-    function isMobile() {
-        return window.innerWidth <= 767;
-    }
-
-    // ========================================================================
-    // MODAL UTILITY FUNCTIONS
-    // ========================================================================
-
-    /**
-     * Ensures a Bootstrap modal is properly initialized
-     * @param {string} modalId - The ID of the modal element
-     * @returns {bootstrap.Modal|null} Modal instance or null if not found
-     */
-    function ensureModalInitialized(modalId) {
-        const modalElement = document.getElementById(modalId);
-        if (!modalElement) {
-            console.warn(`[Modal Helpers] Modal element #${modalId} not found`);
-            return null;
-        }
-
-        return bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
-    }
-
-    /**
-     * Loads modals dynamically if needed (AJAX-based modal loading)
-     * @returns {Promise<boolean>} Promise that resolves when modals are loaded
-     */
-    function loadModalsIfNotFound() {
-        return new Promise((resolve, reject) => {
-            if (!window.jQuery) {
-                console.warn('[Modal Helpers] jQuery not available for modal loading');
-                reject(new Error('jQuery not available'));
+            // For full document init, only run once
+            if (context === document && this._initialized) {
                 return;
             }
 
-            jQuery.ajax({
-                url: '/modals/render_modals',
-                method: 'GET',
-                success: function(modalContent) {
-                    jQuery('body').append(modalContent);
-                    console.log('[Modal Helpers] Modals loaded dynamically');
-                    resolve(true);
-                },
-                error: function(err) {
-                    console.error('[Modal Helpers] Failed to load modals:', err);
-                    reject(err);
-                }
-            });
-        });
-    }
+            console.log('[Modal Helpers] Initializing...');
 
-    // ========================================================================
-    // BACKDROP CLEANUP
-    // ========================================================================
+            // Initialize mobile viewport fix
+            this.initMobileViewportFix();
 
-    /**
-     * Thoroughly cleans up modal backdrops and resets body state
-     * - Removes all backdrop elements
-     * - Removes body classes
-     * - Clears body inline styles
-     * - Closes any orphaned modals
-     */
-    function cleanupModalBackdrop() {
-        // Remove all backdrop elements with proper transition
-        const backdrops = document.querySelectorAll(CONFIG.BACKDROP_SELECTORS);
-        backdrops.forEach(backdrop => {
-            backdrop.classList.remove(CSS_CLASSES.BACKDROP_SHOW);
-            backdrop.classList.add(CSS_CLASSES.BACKDROP_HIDE);
-
-            // Remove after transition completes
-            setTimeout(() => {
-                if (backdrop.parentNode) {
-                    backdrop.parentNode.removeChild(backdrop);
-                }
-            }, CONFIG.BACKDROP_TRANSITION_MS);
-        });
-
-        // Clean up body state - remove classes and inline styles
-        document.body.classList.remove(CSS_CLASSES.MODAL_OPEN);
-        document.body.style.overflow = '';
-        document.body.style.paddingRight = '';
-
-        // Close any orphaned modals
-        const openModals = document.querySelectorAll(`${CONFIG.MODAL_SELECTORS}.${CSS_CLASSES.MODAL_SHOW}`);
-        openModals.forEach(modal => {
-            try {
-                const modalInstance = bootstrap.Modal.getInstance(modal);
-                if (modalInstance) {
-                    modalInstance.hide();
-                } else {
-                    // Manual cleanup if no instance found
-                    modal.classList.remove(CSS_CLASSES.MODAL_SHOW);
-                    modal.setAttribute('aria-hidden', 'true');
-                    modal.style.display = 'none';
-                }
-            } catch (e) {
-                console.error('[Modal Helpers] Error closing modal:', e);
+            // Register Bootstrap modal event handlers (only once for document)
+            if (context === document) {
+                this.registerModalEventHandlers();
+                this._initialized = true;
             }
-        });
 
-        console.log('[Modal Helpers] Backdrop cleanup complete');
-    }
+            console.log('[Modal Helpers] Initialization complete');
+            console.log('[Modal Helpers] iOS device:', this.isIOS());
+            console.log('[Modal Helpers] Mobile device:', this.isMobile());
+        },
 
-    // ========================================================================
-    // iOS SCROLLING FIXES
-    // ========================================================================
+        // ========================================================================
+        // DEVICE DETECTION
+        // ========================================================================
 
-    /**
-     * Disables body scrolling for iOS when modal is open
-     * Prevents background scroll on iOS devices
-     */
-    function disableIOSScrolling() {
-        if (!isIOS()) return;
+        /**
+         * Detects if the current device is running iOS
+         * @returns {boolean} True if iOS device
+         */
+        isIOS: function() {
+            const iosDevices = [
+                'iPad Simulator',
+                'iPhone Simulator',
+                'iPod Simulator',
+                'iPad',
+                'iPhone',
+                'iPod'
+            ];
 
-        // Save current scroll position
-        const scrollY = window.scrollY;
-        document.body.dataset.scrollPosition = scrollY.toString();
+            return iosDevices.includes(navigator.platform) ||
+                   (navigator.userAgent.includes("Mac") && "ontouchend" in document);
+        },
 
-        // Add CSS classes instead of inline styles
-        document.body.classList.add('modal-open');
-        document.body.style.position = 'fixed';
-        document.body.style.top = `-${scrollY}px`;
-        document.body.style.width = '100%';
+        /**
+         * Detects if the current device is mobile (screen width based)
+         * @returns {boolean} True if mobile device
+         */
+        isMobile: function() {
+            return window.innerWidth <= 767;
+        },
 
-        console.log('[Modal Helpers] iOS scrolling disabled');
-    }
+        // ========================================================================
+        // MODAL UTILITY FUNCTIONS
+        // ========================================================================
 
-    /**
-     * Re-enables body scrolling for iOS after modal is closed
-     * Restores previous scroll position
-     */
-    function enableIOSScrolling() {
-        if (!isIOS()) return;
-
-        // Restore previous scroll position
-        const scrollY = parseInt(document.body.dataset.scrollPosition || '0', 10);
-
-        document.body.classList.remove('modal-open');
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-
-        window.scrollTo(0, scrollY);
-        delete document.body.dataset.scrollPosition;
-
-        console.log('[Modal Helpers] iOS scrolling enabled');
-    }
-
-    // ========================================================================
-    // MOBILE VIEWPORT HEIGHT FIX
-    // ========================================================================
-
-    /**
-     * Fixes mobile viewport height issues (address bar problems)
-     * Sets CSS custom property --vh for reliable mobile heights
-     */
-    function updateMobileViewportHeight() {
-        const vh = window.innerHeight * 0.01;
-        document.documentElement.style.setProperty('--vh', `${vh}px`);
-    }
-
-    /**
-     * Initializes mobile viewport height fix
-     * Sets up resize listener for dynamic updates
-     */
-    function initMobileViewportFix() {
-        updateMobileViewportHeight();
-
-        // Update on resize (throttled for performance)
-        let resizeTimeout;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(updateMobileViewportHeight, 100);
-        });
-
-        console.log('[Modal Helpers] Mobile viewport height fix initialized');
-    }
-
-    // ========================================================================
-    // BUTTON TRANSFORM FIX (CLASS-BASED)
-    // ========================================================================
-
-    /**
-     * Applies transform-none class to buttons to prevent scaling
-     * Uses CSS classes instead of inline styles for maintainability
-     *
-     * @param {Element} container - Container element to search for buttons
-     */
-    function applyButtonTransformFix(container = document) {
-        const buttons = container.querySelectorAll(CONFIG.BUTTON_SELECTORS);
-
-        buttons.forEach(button => {
-            // Add CSS classes instead of inline styles
-            button.classList.add(CSS_CLASSES.TRANSFORM_NONE);
-            button.classList.add(CSS_CLASSES.TRANSITION_COLORS);
-
-            // Ensure pointer cursor is set for non-disabled buttons
-            if (!button.disabled && !button.classList.contains('disabled')) {
-                button.style.cursor = 'pointer';
+        /**
+         * Ensures a Bootstrap modal is properly initialized
+         * Delegates to ModalManager if available
+         * @param {string} modalId - The ID of the modal element
+         * @returns {bootstrap.Modal|null} Modal instance or null if not found
+         */
+        ensureModalInitialized: function(modalId) {
+            const modalElement = document.getElementById(modalId);
+            if (!modalElement) {
+                console.warn(`[Modal Helpers] Modal element #${modalId} not found`);
+                return null;
             }
-        });
 
-        console.log(`[Modal Helpers] Transform fix applied to ${buttons.length} buttons`);
-    }
+            // Use ModalManager if available
+            if (typeof ModalManager !== 'undefined') {
+                return ModalManager.getInstance(modalElement.id);
+            }
 
-    /**
-     * Initializes button transform fix with MutationObserver
-     * Watches for dynamically added buttons
-     */
-    function initButtonTransformFix() {
-        // Apply fix immediately
-        applyButtonTransformFix();
+            // Fallback to direct Bootstrap instance
+            return bootstrap.Modal.getInstance(modalElement);
+        },
 
-        // Apply fix again after short delay to catch dynamic buttons
-        setTimeout(() => applyButtonTransformFix(), CONFIG.BUTTON_FIX_RETRY_DELAY_MS);
+        /**
+         * Loads modals dynamically if needed (AJAX-based modal loading)
+         * @returns {Promise<boolean>} Promise that resolves when modals are loaded
+         */
+        loadModalsIfNotFound: function() {
+            return new Promise((resolve, reject) => {
+                if (!window.jQuery) {
+                    console.warn('[Modal Helpers] jQuery not available for modal loading');
+                    reject(new Error('jQuery not available'));
+                    return;
+                }
 
-        // Set up MutationObserver to watch for new buttons
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.addedNodes && mutation.addedNodes.length > 0) {
-                    mutation.addedNodes.forEach((node) => {
-                        if (node.nodeType === Node.ELEMENT_NODE) {
-                            // Check if node is a button or contains buttons
-                            if (node.matches && node.matches(CONFIG.BUTTON_SELECTORS)) {
-                                node.classList.add(CSS_CLASSES.TRANSFORM_NONE);
-                                node.classList.add(CSS_CLASSES.TRANSITION_COLORS);
-                            }
+                jQuery.ajax({
+                    url: '/modals/render_modals',
+                    method: 'GET',
+                    success: function(modalContent) {
+                        jQuery('body').append(modalContent);
+                        console.log('[Modal Helpers] Modals loaded dynamically');
 
-                            // Check for buttons within the added node
-                            const childButtons = node.querySelectorAll(CONFIG.BUTTON_SELECTORS);
-                            childButtons.forEach(button => {
-                                button.classList.add(CSS_CLASSES.TRANSFORM_NONE);
-                                button.classList.add(CSS_CLASSES.TRANSITION_COLORS);
-                            });
+                        // Reinitialize ModalManager if available
+                        if (typeof ModalManager !== 'undefined') {
+                            ModalManager.reinit();
                         }
-                    });
+
+                        resolve(true);
+                    },
+                    error: function(err) {
+                        console.error('[Modal Helpers] Failed to load modals:', err);
+                        reject(err);
+                    }
+                });
+            });
+        },
+
+        // ========================================================================
+        // BACKDROP CLEANUP
+        // ========================================================================
+
+        /**
+         * Thoroughly cleans up modal backdrops and resets body state
+         */
+        cleanupModalBackdrop: function() {
+            // Remove all backdrop elements with proper transition
+            const backdrops = document.querySelectorAll(CONFIG.BACKDROP_SELECTORS);
+            backdrops.forEach(backdrop => {
+                backdrop.classList.remove(CSS_CLASSES.BACKDROP_SHOW);
+                backdrop.classList.add(CSS_CLASSES.BACKDROP_HIDE);
+
+                // Remove after transition completes
+                setTimeout(() => {
+                    if (backdrop.parentNode) {
+                        backdrop.parentNode.removeChild(backdrop);
+                    }
+                }, CONFIG.BACKDROP_TRANSITION_MS);
+            });
+
+            // Clean up body state
+            document.body.classList.remove(CSS_CLASSES.MODAL_OPEN);
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
+
+            // Close any orphaned modals
+            const openModals = document.querySelectorAll(`${CONFIG.MODAL_SELECTORS}.${CSS_CLASSES.MODAL_SHOW}`);
+            openModals.forEach(modal => {
+                try {
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    } else {
+                        // Manual cleanup if no instance found
+                        modal.classList.remove(CSS_CLASSES.MODAL_SHOW);
+                        modal.setAttribute('aria-hidden', 'true');
+                        modal.classList.add(CSS_CLASSES.DISPLAY_NONE);
+                    }
+                } catch (e) {
+                    console.error('[Modal Helpers] Error closing modal:', e);
                 }
             });
-        });
 
-        // Start observing with specific configuration
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
+            console.log('[Modal Helpers] Backdrop cleanup complete');
+        },
 
-        console.log('[Modal Helpers] Button transform fix observer initialized');
-    }
+        // ========================================================================
+        // iOS SCROLLING FIXES
+        // ========================================================================
 
-    // ========================================================================
-    // MODAL EVENT HANDLERS
-    // ========================================================================
+        /**
+         * Disables body scrolling for iOS when modal is open
+         */
+        disableIOSScrolling: function() {
+            if (!this.isIOS()) return;
 
-    /**
-     * Handler for modal show event (before modal is shown)
-     * @param {Event} event - Bootstrap modal show event
-     */
-    function handleModalShow(event) {
-        const modal = event.target;
+            // Save current scroll position
+            const scrollY = window.scrollY;
+            document.body.dataset.scrollPosition = scrollY.toString();
 
-        // Apply CSS classes for z-index management (handled by CSS now)
-        modal.classList.add('modal-active');
+            // Add CSS classes
+            document.body.classList.add(CSS_CLASSES.MODAL_OPEN, CSS_CLASSES.IOS_MODAL_OPEN);
+            // Use CSS custom property for scroll position
+            document.body.style.setProperty('--scroll-y', `${scrollY}px`);
 
-        // For iOS devices, fix scrolling
-        if (isIOS()) {
-            disableIOSScrolling();
+            console.log('[Modal Helpers] iOS scrolling disabled');
+        },
+
+        /**
+         * Re-enables body scrolling for iOS after modal is closed
+         */
+        enableIOSScrolling: function() {
+            if (!this.isIOS()) return;
+
+            // Restore previous scroll position
+            const scrollY = parseInt(document.body.dataset.scrollPosition || '0', 10);
+
+            document.body.classList.remove(CSS_CLASSES.MODAL_OPEN, CSS_CLASSES.IOS_MODAL_OPEN);
+            document.body.style.removeProperty('--scroll-y');
+
+            window.scrollTo(0, scrollY);
+            delete document.body.dataset.scrollPosition;
+
+            console.log('[Modal Helpers] iOS scrolling enabled');
+        },
+
+        // ========================================================================
+        // MOBILE VIEWPORT HEIGHT FIX
+        // ========================================================================
+
+        /**
+         * Updates mobile viewport height CSS custom property
+         */
+        updateMobileViewportHeight: function() {
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        },
+
+        /**
+         * Initializes mobile viewport height fix
+         */
+        initMobileViewportFix: function() {
+            this.updateMobileViewportHeight();
+
+            // Avoid duplicate listeners
+            if (this._viewportFixSetup) return;
+            this._viewportFixSetup = true;
+
+            // Update on resize (throttled)
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => this.updateMobileViewportHeight(), 100);
+            });
+
+            console.log('[Modal Helpers] Mobile viewport height fix initialized');
+        },
+
+        // ========================================================================
+        // BUTTON TRANSFORM FIX (CLASS-BASED)
+        // ========================================================================
+
+        /**
+         * Applies transform-none class to buttons to prevent scaling
+         * @param {Element} container - Container element to search for buttons
+         */
+        applyButtonTransformFix: function(container) {
+            container = container || document;
+
+            const buttons = container.querySelectorAll(CONFIG.BUTTON_SELECTORS);
+
+            buttons.forEach(button => {
+                // Skip if already enhanced
+                if (button.dataset.transformFixed === 'true') return;
+                button.dataset.transformFixed = 'true';
+
+                // Add CSS classes instead of inline styles
+                button.classList.add('transform-none', 'transition-colors');
+
+                // Ensure pointer cursor for non-disabled buttons
+                if (!button.disabled && !button.classList.contains('disabled')) {
+                    button.classList.add('cursor-pointer');
+                }
+            });
+
+            console.log(`[Modal Helpers] Transform fix applied to ${buttons.length} buttons`);
+        },
+
+        // ========================================================================
+        // MODAL EVENT HANDLERS
+        // ========================================================================
+
+        /**
+         * Registers Bootstrap modal event handlers
+         */
+        registerModalEventHandlers: function() {
+            const self = this;
+
+            // Handler for modal show event (before modal is shown)
+            document.addEventListener('show.bs.modal', function(event) {
+                const modal = event.target;
+
+                // Add active class for z-index management
+                modal.classList.add(CSS_CLASSES.MODAL_ACTIVE);
+
+                // For iOS devices, fix scrolling
+                if (self.isIOS()) {
+                    self.disableIOSScrolling();
+                }
+
+                // Ensure buttons in modal have transform fix
+                self.applyButtonTransformFix(modal);
+
+                console.log('[Modal Helpers] Modal show handler executed');
+            });
+
+            // Handler for modal shown event (after modal is visible)
+            document.addEventListener('shown.bs.modal', function(event) {
+                const modal = event.target;
+
+                // Apply iOS scroll fix to modal body
+                if (self.isIOS()) {
+                    const modalBody = modal.querySelector(CONFIG.MODAL_BODY_SELECTORS);
+                    if (modalBody) {
+                        modalBody.classList.add(CSS_CLASSES.IOS_SCROLL);
+                    }
+                }
+
+                console.log('[Modal Helpers] Modal shown handler executed');
+            });
+
+            // Handler for modal hide event (before modal is hidden)
+            document.addEventListener('hide.bs.modal', function(event) {
+                const modal = event.target;
+                modal.classList.remove(CSS_CLASSES.MODAL_ACTIVE);
+
+                console.log('[Modal Helpers] Modal hide handler executed');
+            });
+
+            // Handler for modal hidden event (after modal is closed)
+            document.addEventListener('hidden.bs.modal', function(event) {
+                // Clean up backdrops and body state
+                self.cleanupModalBackdrop();
+
+                // Re-enable scrolling on iOS
+                if (self.isIOS()) {
+                    self.enableIOSScrolling();
+                }
+
+                console.log('[Modal Helpers] Modal hidden handler executed');
+            });
+
+            // Handler for ESC key press
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape' && document.querySelector(`${CONFIG.MODAL_SELECTORS}.${CSS_CLASSES.MODAL_SHOW}`)) {
+                    // Bootstrap will handle closing, we just clean up after
+                    setTimeout(() => self.cleanupModalBackdrop(), CONFIG.BACKDROP_TRANSITION_MS);
+                }
+            });
+
+            console.log('[Modal Helpers] Event handlers registered');
         }
-
-        // Ensure buttons in modal have transform fix
-        applyButtonTransformFix(modal);
-
-        console.log('[Modal Helpers] Modal show handler executed');
-    }
-
-    /**
-     * Handler for modal shown event (after modal is visible)
-     * @param {Event} event - Bootstrap modal shown event
-     */
-    function handleModalShown(event) {
-        const modal = event.target;
-
-        // Apply iOS scroll fix to modal body
-        if (isIOS()) {
-            const modalBody = modal.querySelector('.modal-body');
-            if (modalBody) {
-                modalBody.classList.add(CSS_CLASSES.IOS_SCROLL);
-            }
-        }
-
-        console.log('[Modal Helpers] Modal shown handler executed');
-    }
-
-    /**
-     * Handler for modal hide event (before modal is hidden)
-     * @param {Event} event - Bootstrap modal hide event
-     */
-    function handleModalHide(event) {
-        const modal = event.target;
-        modal.classList.remove('modal-active');
-
-        console.log('[Modal Helpers] Modal hide handler executed');
-    }
-
-    /**
-     * Handler for modal hidden event (after modal is closed)
-     * @param {Event} event - Bootstrap modal hidden event
-     */
-    function handleModalHidden(event) {
-        // Clean up backdrops and body state
-        cleanupModalBackdrop();
-
-        // Re-enable scrolling on iOS
-        if (isIOS()) {
-            enableIOSScrolling();
-        }
-
-        console.log('[Modal Helpers] Modal hidden handler executed');
-    }
-
-    /**
-     * Handler for ESC key press
-     * @param {KeyboardEvent} event - Keyboard event
-     */
-    function handleEscapeKey(event) {
-        if (event.key === 'Escape' && document.querySelector(`${CONFIG.MODAL_SELECTORS}.${CSS_CLASSES.MODAL_SHOW}`)) {
-            // Bootstrap will handle closing, we just clean up after
-            setTimeout(cleanupModalBackdrop, CONFIG.BACKDROP_TRANSITION_MS);
-        }
-    }
+    };
 
     // ========================================================================
     // INITIALIZATION
     // ========================================================================
 
-    /**
-     * Initializes all modal helpers and event listeners
-     */
-    function init() {
-        console.log('[Modal Helpers] Initializing...');
-
-        // Initialize mobile viewport fix
-        initMobileViewportFix();
-
-        // DISABLED: Button transform fix now handled entirely by CSS (scoped to .modal context)
-        // CSS in modal-helpers.css applies transform: none !important to .modal buttons only
-        // initButtonTransformFix();
-
-        // Register Bootstrap modal event handlers
-        document.addEventListener('show.bs.modal', handleModalShow);
-        document.addEventListener('shown.bs.modal', handleModalShown);
-        document.addEventListener('hide.bs.modal', handleModalHide);
-        document.addEventListener('hidden.bs.modal', handleModalHidden);
-
-        // Register ESC key handler
-        document.addEventListener('keydown', handleEscapeKey);
-
-        console.log('[Modal Helpers] Initialization complete');
-        console.log('[Modal Helpers] Using CSS classes for styling (no inline styles)');
-        console.log('[Modal Helpers] iOS device:', isIOS());
-        console.log('[Modal Helpers] Mobile device:', isMobile());
-    }
-
-    // ========================================================================
-    // DOM READY & PUBLIC API
-    // ========================================================================
-
-    // Initialize when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+    // Register with InitSystem if available
+    if (typeof window.InitSystem !== 'undefined') {
+        window.InitSystem.register('ModalHelpers', {
+            priority: 25, // After ModalManager (20)
+            init: function(context) {
+                ModalHelpers.init(context);
+            }
+        });
     } else {
-        // DOM already loaded, initialize immediately
-        init();
+        // Fallback to DOMContentLoaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                ModalHelpers.init(document);
+            });
+        } else {
+            ModalHelpers.init(document);
+        }
     }
 
     // Expose public API for external use
-    window.ModalHelpers = {
-        version: '1.0.0',
-        cleanupModalBackdrop,
-        ensureModalInitialized,
-        loadModalsIfNotFound,
-        applyButtonTransformFix,
-        isIOS,
-        isMobile
-    };
+    window.ModalHelpers = ModalHelpers;
 
 })();

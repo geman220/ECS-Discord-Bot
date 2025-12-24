@@ -13,25 +13,25 @@
         </div>
         <div class="d-flex align-items-center gap-2">
             <div class="d-flex align-items-center gap-2 text-muted">
-                <div class="spinner-border spinner-border-sm text-primary" id="refreshSpinner" role="status" style="display: none;"></div>
+                <div class="spinner-border spinner-border-sm text-primary spinner-container hidden" id="refreshSpinner" role="status" data-spinner></div>
                 <span class="small">Last updated: <span id="lastUpdated" class="fw-medium">{{ current_time.strftime('%I:%M %p') }}</span></span>
             </div>
             <div class="btn-group">
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMatchModal">
+                <button class="c-btn c-btn--primary" data-bs-toggle="modal" data-bs-target="#addMatchModal">
                     <i class="ti ti-plus me-1"></i>Add Match
                 </button>
-                <button class="btn btn-outline-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown">
+                <button class="c-btn c-btn--outline-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" data-dropdown-toggle>
                     <span class="visually-hidden">More Actions</span>
                 </button>
-                <ul class="dropdown-menu">
+                <ul class="dropdown-menu" data-dropdown-menu>
                     <li><a class="dropdown-item" href="{{ url_for('admin_live.dashboard') }}"><i class="ti ti-broadcast me-2"></i>Live Reporting Dashboard</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" onclick="fetchAllFromESPN()"><i class="ti ti-download me-2"></i>Fetch from ESPN</a></li>
-                    <li><a class="dropdown-item" onclick="scheduleAllMatches()"><i class="ti ti-calendar-check me-2"></i>Schedule All</a></li>
+                    <li><a class="dropdown-item" data-action="fetch-all-from-e-s-p-n" class="js-fetch-all-from-e-s-p-n"><i class="ti ti-download me-2"></i>Fetch from ESPN</a></li>
+                    <li><a class="dropdown-item" data-action="schedule-all-matches" class="js-schedule-all-matches"><i class="ti ti-calendar-check me-2"></i>Schedule All</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" onclick="showQueueStatus()"><i class="ti ti-list-details me-2"></i>Queue Status</a></li>
-                    <li><a class="dropdown-item" onclick="showCacheStatus()"><i class="ti ti-database me-2"></i>Cache Status</a></li>
-                    <li><a class="dropdown-item" onclick="refreshStatuses()"><i class="ti ti-refresh me-2"></i>Refresh Data</a></li>
+                    <li><a class="dropdown-item" data-action="show-queue-status" class="js-show-queue-status"><i class="ti ti-list-details me-2"></i>Queue Status</a></li>
+                    <li><a class="dropdown-item" data-action="show-cache-status" class="js-show-cache-status"><i class="ti ti-database me-2"></i>Cache Status</a></li>
+                    <li><a class="dropdown-item" data-action="refresh-statuses" class="js-refresh-statuses"><i class="ti ti-refresh me-2"></i>Refresh Data</a></li>
                 </ul>
             </div>
         </div>
@@ -40,11 +40,11 @@
     <!-- Quick Stats Overview -->
     <div class="row mb-4">
         <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
-            <div class="card h-100">
-                <div class="card-body">
+            <div class="c-card h-100" data-component="worker-stats-card" data-worker="total-matches">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="card-info">
-                            <h6 class="card-title mb-2 text-nowrap">Total Matches</h6>
+                            <h6 class="c-card__title mb-2 text-nowrap">Total Matches</h6>
                             <div class="d-flex align-items-center">
                                 <h3 class="mb-0" id="totalMatches">{{ matches|length }}</h3>
                                 <small class="text-muted ms-2">scheduled</small>
@@ -61,13 +61,13 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
-            <div class="card h-100">
-                <div class="card-body">
+            <div class="c-card h-100" data-component="worker-stats-card" data-worker="active-threads">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="card-info">
-                            <h6 class="card-title mb-2 text-nowrap">Active Threads</h6>
+                            <h6 class="c-card__title mb-2 text-nowrap">Active Threads</h6>
                             <div class="d-flex align-items-center">
                                 <h3 class="mb-0" id="activeThreads">--</h3>
                                 <small class="text-muted ms-2">created</small>
@@ -84,13 +84,13 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
-            <div class="card h-100 card-hover">
-                <div class="card-body">
+            <div class="c-card h-100 card-hover" data-component="worker-stats-card" data-worker="live-reporting">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="card-info">
-                            <h6 class="card-title mb-2 text-nowrap">Live Reporting</h6>
+                            <h6 class="c-card__title mb-2 text-nowrap">Live Reporting</h6>
                             <div class="d-flex align-items-center">
                                 <h3 class="mb-0" id="liveReporting">--</h3>
                                 <small class="text-muted ms-2">active</small>
@@ -99,7 +99,7 @@
                                 <!-- Will be populated with active match details -->
                             </div>
                             <div class="mt-3">
-                                <a href="{{ url_for('admin_live.dashboard') }}" class="btn btn-sm btn-label-info">
+                                <a href="{{ url_for('admin_live.dashboard') }}" class="c-btn c-btn--sm btn-label-info">
                                     <i class="ti ti-dashboard me-1"></i>Dashboard
                                 </a>
                             </div>
@@ -115,13 +115,13 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
-            <div class="card h-100">
-                <div class="card-body">
+            <div class="c-card h-100" data-component="worker-stats-card" data-worker="system-health">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="card-info">
-                            <h6 class="card-title mb-2 text-nowrap">System Health</h6>
+                            <h6 class="c-card__title mb-2 text-nowrap">System Health</h6>
                             <div class="d-flex align-items-center">
                                 <h3 class="mb-0" id="systemHealth">--</h3>
                                 <small class="text-muted ms-2">status</small>
@@ -143,17 +143,17 @@
     <!-- Filter and Search Bar -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-body py-3">
+            <div class="c-card">
+                <div class="c-card__body py-3">
                     <div class="row align-items-center">
-                        <div class="col-md-4">
-                            <div class="input-group">
+                        <div class="col-md-4" data-form-group>
+                            <div class="input-group" data-input-group>
                                 <span class="input-group-text"><i class="ti ti-search"></i></span>
-                                <input type="text" class="form-control" id="matchSearch" placeholder="Search matches...">
+                                <input type="text" class="form-control" id="matchSearch" placeholder="Search matches..." data-form-control>
                             </div>
                         </div>
-                        <div class="col-md-2">
-                            <select class="form-select" id="competitionFilter">
+                        <div class="col-md-2" data-form-group>
+                            <select class="form-select" id="competitionFilter" data-form-select>
                                 <option value="">All Competitions</option>
                                 <option value="MLS">MLS</option>
                                 <option value="US Open Cup">US Open Cup</option>
@@ -161,30 +161,30 @@
                                 <option value="Leagues Cup">Leagues Cup</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <select class="form-select" id="timeFilter">
+                        <div class="col-md-2" data-form-group>
+                            <select class="form-select" id="timeFilter" data-form-select>
                                 <option value="relevant">Relevant Only</option>
                                 <option value="all">All Matches</option>
                                 <option value="upcoming">Upcoming Only</option>
                                 <option value="previous">Previous Only</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <select class="form-select" id="statusFilter">
+                        <div class="col-md-2" data-form-group>
+                            <select class="form-select" id="statusFilter" data-form-select>
                                 <option value="">All Status</option>
                                 <option value="scheduled">Scheduled</option>
                                 <option value="running">Running</option>
                                 <option value="completed">Completed</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <select class="form-select" id="viewMode">
+                        <div class="col-md-2" data-form-group>
+                            <select class="form-select" id="viewMode" data-form-select>
                                 <option value="cards">Card View</option>
                                 <option value="table">Table View</option>
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                            <button class="c-btn c-btn--outline-secondary w-100" data-action="clear-filters" class="js-clear-filters">
                                 <i class="ti ti-filter-x me-1"></i>Clear
                             </button>
                         </div>
@@ -195,13 +195,14 @@
     </div>
 
     <!-- Match Cards View -->
-    <div id="matchCardsContainer">
+    <div id="matchCardsContainer" class="match-cards-container">
         <div class="row" id="matchCardsRow">
             {% for match in matches %}
-            <div class="col-xl-6 col-lg-12 mb-4 match-card-wrapper" data-match-id="{{ match.id }}" 
-                 data-competition="{{ match.competition }}" data-status="{{ match.live_reporting_status }}">
-                <div class="card match-card h-100">
-                    <div class="card-body">
+            <div class="col-xl-6 col-lg-12 mb-4 match-card-wrapper" data-match-id="{{ match.id }}"
+                 data-match-type="current" data-competition="{{ match.competition }}" data-status="{{ match.live_reporting_status }}"
+                 data-component="match-card">
+                <div class="c-card match-card h-100">
+                    <div class="c-card__body">
                         <!-- Match Header -->
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <div class="d-flex align-items-center">
@@ -219,23 +220,23 @@
                                         {% endif %}
                                     </h5>
                                     <div class="d-flex align-items-center gap-2">
-                                        <span class="badge bg-light text-dark">{{ match.competition }}</span>
+                                        <span class="badge bg-light text-dark" data-badge>{{ match.competition }}</span>
                                         <small class="text-muted">{{ match.venue or 'TBD' }}</small>
                                     </div>
                                 </div>
                             </div>
                             <div class="dropdown">
-                                <button class="btn btn-sm btn-icon btn-outline-secondary dropdown-toggle hide-arrow" 
-                                        data-bs-toggle="dropdown">
+                                <button class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary dropdown-toggle hide-arrow" 
+                                        data-bs-toggle="dropdown" data-dropdown-toggle>
                                     <i class="ti ti-dots-vertical"></i>
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item" onclick="editMatch('{{ match.id }}')">
+                                <ul class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
+                                    <li><a class="dropdown-item" data-action="edit-match" data-value="{{ match.id }}" class="js-edit-match">
                                         <i class="ti ti-edit me-2"></i>Edit Match</a></li>
-                                    <li><a class="dropdown-item" onclick="debugMatchTasks('{{ match.id }}')">
+                                    <li><a class="dropdown-item" data-action="debug-match-tasks" data-value="{{ match.id }}" class="js-debug-match-tasks">
                                         <i class="ti ti-bug me-2"></i>Debug Tasks</a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-danger" onclick="removeMatch('{{ match.id }}')">
+                                    <li><a class="dropdown-item text-danger" data-action="remove-match" data-value="{{ match.id }}" class="js-remove-match">
                                         <i class="ti ti-trash me-2"></i>Remove</a></li>
                                 </ul>
                             </div>
@@ -250,20 +251,20 @@
                                 </div>
                                 <div class="d-flex align-items-center">
                                     <i class="ti ti-clock me-2 text-muted"></i>
-                                    <span class="small">{{ match.date_time.strftime('%I:%M %p PT') }}</span>
+                                    <span class="small scheduled-time" data-time data-component="scheduled-time">{{ match.date_time.strftime('%I:%M %p PT') }}</span>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="text-end">
                                     <div class="mb-2">
-                                        <span class="badge bg-{{ match.status_color }}" id="status-{{ match.id }}">
+                                        <span class="badge bg-{{ match.status_color }}" id="status-{{ match.id }}" data-badge>
                                             <i class="ti {{ match.status_icon }}"></i>
                                             {{ match.status_display }}
                                         </span>
                                     </div>
                                     {% if match.discord_thread_id %}
                                     <a href="https://discord.com/channels/{{ config.SERVER_ID }}/{{ config.MATCH_CHANNEL_ID }}/{{ match.discord_thread_id }}" 
-                                       class="btn btn-sm btn-outline-primary" target="_blank">
+                                       class="c-btn c-btn--sm c-btn--outline-primary" target="_blank">
                                         <i class="ti ti-brand-discord me-1"></i>View Thread
                                     </a>
                                     {% endif %}
@@ -316,7 +317,7 @@
                             <div class="task-details-container" id="task-details-{{ match.id }}">
                                 <!-- Loading state -->
                                 <div class="text-center py-2">
-                                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status" data-spinner></div>
                                     <small class="text-muted d-block mt-1">Loading task info...</small>
                                 </div>
                             </div>
@@ -326,27 +327,27 @@
                         <div class="d-flex flex-wrap gap-2">
                             <!-- Thread Actions -->
                             {% if not match.thread_created %}
-                            <button class="btn btn-outline-primary btn-sm" onclick="scheduleMatch('{{ match.id }}')">
+                            <button class="c-btn c-btn--outline-primary c-btn--sm" data-action="schedule-match" data-value="{{ match.id }}" class="js-schedule-match">
                                 <i class="ti ti-calendar-plus me-1"></i>Schedule Thread
                             </button>
-                            <button class="btn btn-success btn-sm" onclick="createThreadNow('{{ match.id }}')">
+                            <button class="c-btn c-btn--success c-btn--sm" data-action="create-thread-now" data-value="{{ match.id }}" class="js-create-thread-now">
                                 <i class="ti ti-plus me-1"></i>Create Now
                             </button>
                             {% endif %}
                             
                             <!-- Live Reporting Actions -->
                             {% if match.live_reporting_status in ['not_started', 'scheduled', 'stopped'] %}
-                            <button class="btn btn-warning btn-sm" onclick="startLiveReporting('{{ match.id }}')">
+                            <button class="c-btn c-btn--warning c-btn--sm" data-action="start-live-reporting" data-value="{{ match.id }}" class="js-start-live-reporting">
                                 <i class="ti ti-play me-1"></i>Start Reporting
                             </button>
                             {% elif match.live_reporting_status == 'running' %}
-                            <button class="btn btn-danger btn-sm" onclick="stopLiveReporting('{{ match.id }}')">
+                            <button class="c-btn c-btn--danger c-btn--sm" data-action="stop-live-reporting" data-value="{{ match.id }}" class="js-stop-live-reporting">
                                 <i class="ti ti-stop me-1"></i>Stop Reporting
                             </button>
                             {% endif %}
                             
                             <!-- Force Actions -->
-                            <button class="btn btn-outline-warning btn-sm" onclick="forceScheduleMatch('{{ match.id }}')">
+                            <button class="c-btn c-btn--outline-warning c-btn--sm" data-action="force-schedule-match" data-value="{{ match.id }}" class="js-force-schedule-match">
                                 <i class="ti ti-refresh me-1"></i>Force Schedule
                             </button>
                         </div>
@@ -360,9 +361,9 @@
         {% if historical_count > 0 %}
         <div class="row mt-4">
             <div class="col-12">
-                <div class="card">
-                    <div class="card-body py-3">
-                        <button class="btn btn-outline-secondary btn-sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#historicalMatches" aria-expanded="false" aria-controls="historicalMatches">
+                <div class="c-card">
+                    <div class="c-card__body py-3">
+                        <button class="c-btn c-btn--outline-secondary c-btn--sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#historicalMatches" aria-expanded="false" aria-controls="historicalMatches" data-collapse-toggle>
                             <i class="ti ti-history me-2"></i>
                             Show Historical Matches ({{ historical_count }} older matches)
                             <i class="ti ti-chevron-down ms-2" id="historicalToggleIcon"></i>
@@ -375,10 +376,11 @@
         <div class="collapse" id="historicalMatches">
             <div class="row mt-3" id="historicalMatchesRow">
                 {% for match in historical_matches %}
-                <div class="col-xl-6 col-lg-12 mb-4 match-card-wrapper historical-match" data-match-id="{{ match.id }}" 
-                     data-competition="{{ match.competition }}" data-status="{{ match.live_reporting_status }}">
-                    <div class="card match-card h-100 opacity-75">
-                        <div class="card-body">
+                <div class="col-xl-6 col-lg-12 mb-4 match-card-wrapper historical-match" data-match-id="{{ match.id }}"
+                     data-match-type="historical" data-competition="{{ match.competition }}" data-status="{{ match.live_reporting_status }}"
+                     data-component="match-card">
+                    <div class="c-card match-card h-100 opacity-75">
+                        <div class="c-card__body">
                             <!-- Match Header -->
                             <div class="d-flex justify-content-between align-items-start mb-3">
                                 <div class="d-flex align-items-center">
@@ -396,7 +398,7 @@
                                             {% endif %}
                                         </h5>
                                         <div class="d-flex align-items-center gap-2">
-                                            <span class="badge bg-light text-dark">{{ match.competition }}</span>
+                                            <span class="badge bg-light text-dark" data-badge>{{ match.competition }}</span>
                                             <small class="text-muted">{{ match.venue or 'TBD' }}</small>
                                         </div>
                                     </div>
@@ -419,9 +421,9 @@
                                         <h6 class="mb-1 text-muted">THREAD STATUS</h6>
                                         <p class="mb-0">
                                             {% if match.discord_thread_id %}
-                                            <span class="badge bg-success">Created</span>
+                                            <span class="badge bg-success" data-badge>Created</span>
                                             {% else %}
-                                            <span class="badge bg-secondary">Not Created</span>
+                                            <span class="badge bg-secondary" data-badge>Not Created</span>
                                             {% endif %}
                                         </p>
                                     </div>
@@ -435,7 +437,7 @@
                                         </div>
                                         <h6 class="mb-1 text-muted">LIVE REPORTING</h6>
                                         <p class="mb-0">
-                                            <span class="badge bg-label-{{ match.status_color }}">{{ match.status_display }}</span>
+                                            <span class="badge bg-label-{{ match.status_color }}" data-badge>{{ match.status_display }}</span>
                                         </p>
                                     </div>
                                 </div>
@@ -473,25 +475,25 @@
     </div>
 
     <!-- Table View (Hidden by default) -->
-    <div id="matchTableContainer" style="display: none;">
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover" id="matchesTable">
-                        <thead class="table-light">
+    <div id="matchTableContainer" class="match-table-container">
+        <div class="c-card">
+            <div class="c-card__body">
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" id="matchesTable" data-table>
+                        <thead class="c-table--light" scope="col">
                             <tr>
-                                <th>Match</th>
-                                <th>Date & Time</th>
-                                <th>Competition</th>
-                                <th>Thread</th>
-                                <th>Reporting</th>
-                                <th>Tasks</th>
-                                <th class="text-center">Actions</th>
+                                <th scope="col">Match</th>
+                                <th scope="col">Date & Time</th>
+                                <th scope="col">Competition</th>
+                                <th scope="col">Thread</th>
+                                <th scope="col">Reporting</th>
+                                <th scope="col">Tasks</th>
+                                <th class="text-center" scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for match in matches %}
-                            <tr id="match-row-{{ match.id }}" data-match-id="{{ match.id }}">
+                            <tr id="match-row-{{ match.id }}" data-match-id="{{ match.id }}" data-match-type="current">
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <div class="avatar me-2">
@@ -516,17 +518,17 @@
                                     <small class="text-muted">{{ match.date_time.strftime('%I:%M %p PT') }}</small>
                                 </td>
                                 <td>
-                                    <span class="badge bg-light text-dark">{{ match.competition }}</span>
+                                    <span class="badge bg-light text-dark" data-badge>{{ match.competition }}</span>
                                 </td>
                                 <td>
                                     {% if match.thread_created %}
-                                    <span class="badge bg-success">Created</span>
+                                    <span class="badge bg-success" data-badge>Created</span>
                                     {% else %}
-                                    <span class="badge bg-warning">Pending</span>
+                                    <span class="badge bg-warning" data-badge>Pending</span>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <span class="badge bg-{{ match.status_color }}">{{ match.status_display }}</span>
+                                    <span class="badge bg-{{ match.status_color }}" data-badge>{{ match.status_display }}</span>
                                 </td>
                                 <td>
                                     <div id="table-task-details-{{ match.id }}">
@@ -536,20 +538,20 @@
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
                                         {% if not match.thread_created %}
-                                        <button class="btn btn-outline-primary" onclick="scheduleMatch('{{ match.id }}')" title="Schedule">
+                                        <button class="c-btn c-btn--outline-primary" data-action="schedule-match" data-value="{{ match.id }}" class="js-schedule-match" title="Schedule">
                                             <i class="ti ti-calendar-plus"></i>
                                         </button>
                                         {% endif %}
                                         {% if match.live_reporting_status in ['not_started', 'scheduled', 'stopped'] %}
-                                        <button class="btn btn-outline-warning" onclick="startLiveReporting('{{ match.id }}')" title="Start Reporting">
+                                        <button class="c-btn c-btn--outline-warning" data-action="start-live-reporting" data-value="{{ match.id }}" class="js-start-live-reporting" title="Start Reporting">
                                             <i class="ti ti-play"></i>
                                         </button>
                                         {% elif match.live_reporting_status == 'running' %}
-                                        <button class="btn btn-outline-danger" onclick="stopLiveReporting('{{ match.id }}')" title="Stop Reporting">
+                                        <button class="c-btn c-btn--outline-danger" data-action="stop-live-reporting" data-value="{{ match.id }}" class="js-stop-live-reporting" title="Stop Reporting">
                                             <i class="ti ti-stop"></i>
                                         </button>
                                         {% endif %}
-                                        <button class="btn btn-outline-secondary" onclick="editMatch('{{ match.id }}')" title="Edit">
+                                        <button class="c-btn c-btn--outline-secondary" data-action="edit-match" data-value="{{ match.id }}" class="js-edit-match" title="Edit">
                                             <i class="ti ti-edit"></i>
                                         </button>
                                     </div>
@@ -565,17 +567,17 @@
 </div>
 
 <!-- Add Match Modal -->
-<div class="modal fade" id="addMatchModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
+<div class="modal c-modal fade" data-modal id="addMatchModal" tabindex="-1" aria-labelledby="addMatchModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="addMatchModalLabel">
                     <i class="ti ti-plus me-2"></i>Add New Match
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body">
-                <div class="alert alert-info">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
+                <div class="alert alert-info" data-alert>
                     <i class="ti ti-info-circle me-2"></i>
                     Enter a date and competition to fetch Seattle Sounders match information from ESPN automatically.
                 </div>
@@ -584,12 +586,12 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="matchDate" class="form-label">Match Date</label>
-                            <input type="date" class="form-control" id="matchDate" name="date" required>
+                            <input type="date" class="form-control" id="matchDate" name="date" required data-form-control>
                             <div class="form-text">System will search ESPN for matches on this date</div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="matchCompetition" class="form-label">Competition</label>
-                            <select class="form-select" id="matchCompetition" name="competition" required>
+                            <select class="form-select" id="matchCompetition" name="competition" required data-form-select>
                                 <option value="MLS">MLS</option>
                                 <option value="US Open Cup">US Open Cup</option>
                                 <option value="Concacaf Champions League">Concacaf Champions League</option>
@@ -601,9 +603,9 @@
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="addMatchByDate()">
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--primary" data-action="add-match-by-date" class="js-add-match-by-date">
                     <i class="ti ti-download me-1"></i>Fetch Match from ESPN
                 </button>
             </div>
@@ -612,26 +614,26 @@
 </div>
 
 <!-- Queue Status Modal -->
-<div class="modal fade" id="queueStatusModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
+<div class="modal c-modal fade" data-modal id="queueStatusModal" tabindex="-1" aria-labelledby="queueStatusModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-xl c-modal__dialog--xl" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="queueStatusModalLabel">
                     <i class="ti ti-list-details me-2"></i>System Queue Status
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <div id="queueStatusContent">
                     <div class="text-center py-4">
-                        <div class="spinner-border" role="status"></div>
+                        <div class="spinner-border" role="status" data-spinner></div>
                         <p class="text-muted mt-2">Loading queue status...</p>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" onclick="refreshQueueStatus()">
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
+                <button type="button" class="c-btn c-btn--primary" data-action="refresh-queue-status" class="js-refresh-queue-status">
                     <i class="ti ti-refresh me-1"></i>Refresh
                 </button>
             </div>
@@ -642,765 +644,11 @@
 {% endblock %}
 
 {% block custom_css %}
-<style>
-/* Modern Match Management Styles */
-.match-card {
-    border: 1px solid rgba(67, 89, 113, 0.1);
-    border-radius: 1rem;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.match-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 30px rgba(67, 89, 113, 0.15);
-    border-color: rgba(102, 108, 255, 0.3);
-}
-
-.match-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(135deg, var(--ecs-primary, #666CFF) 0%, var(--ecs-primary-dark, #4C63D2) 100%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.match-card:hover::before {
-    opacity: 1;
-}
-
-.status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.6; }
-    100% { opacity: 1; }
-}
-
-.status-section {
-    background: rgba(67, 89, 113, 0.03);
-    padding: 0.75rem;
-    border-radius: 0.5rem;
-    border: 1px solid rgba(67, 89, 113, 0.05);
-}
-
-.task-details-container {
-    background: rgba(67, 89, 113, 0.02);
-    border: 1px solid rgba(67, 89, 113, 0.08);
-    border-radius: 0.5rem;
-    padding: 0.75rem;
-    min-height: 60px;
-}
-
-.task-card {
-    background: #fff;
-    border: 1px solid rgba(67, 89, 113, 0.1);
-    border-radius: 0.5rem;
-    padding: 0.75rem;
-    margin-bottom: 0.5rem;
-    transition: all 0.2s ease;
-    border-left: 4px solid transparent;
-}
-
-.task-card:hover {
-    background: rgba(67, 89, 113, 0.02);
-    border-left-color: var(--ecs-primary, #666CFF);
-}
-
-.task-card.thread {
-    border-left-color: var(--ecs-success, #28c76f);
-}
-
-.task-card.reporting {
-    border-left-color: var(--ecs-warning, #ff9f43);
-}
-
-.no-task-card {
-    background: rgba(67, 89, 113, 0.02);
-    border: 1px dashed rgba(67, 89, 113, 0.15);
-    border-radius: 0.5rem;
-    padding: 0.5rem;
-    margin-bottom: 0.25rem;
-    color: rgba(67, 89, 113, 0.6);
-}
-
-.avatar {
-    width: 2.375rem;
-    height: 2.375rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.avatar-initial {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.125rem;
-    width: 100%;
-    height: 100%;
-}
-
-/* Filter and search bar */
-.card-body .input-group {
-    transition: all 0.2s ease;
-}
-
-.card-body .input-group:focus-within {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 15px rgba(67, 89, 113, 0.1);
-}
-
-/* Table view enhancements */
-.table > tbody > tr:hover {
-    background-color: rgba(67, 89, 113, 0.02);
-    transform: translateX(2px);
-    transition: all 0.2s ease;
-}
-
-.table th {
-    font-weight: 600;
-    color: var(--ecs-neutral-50, #5a6c7d);
-    border-bottom: 2px solid rgba(67, 89, 113, 0.1);
-}
-
-/* Mobile responsive */
-@media (max-width: 768px) {
-    .match-card .row {
-        margin: 0;
-    }
-    
-    .match-card .col-6 {
-        padding: 0 0.5rem;
-    }
-    
-    .d-flex.flex-wrap.gap-2 {
-        gap: 0.5rem !important;
-    }
-    
-    .btn-sm {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
-    }
-}
-
-/* Loading and empty states */
-.spinner-border-sm {
-    width: 1rem;
-    height: 1rem;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 3rem 1rem;
-    color: rgba(67, 89, 113, 0.6);
-}
-
-.empty-state i {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-    opacity: 0.5;
-}
-
-/* Filter active states */
-.form-select:focus,
-.form-control:focus {
-    border-color: var(--ecs-primary, #666CFF);
-    box-shadow: 0 0 0 0.2rem rgba(102, 108, 255, 0.15);
-}
-
-/* Action buttons */
-.btn-group-sm > .btn {
-    transition: all 0.2s ease;
-}
-
-.btn-group-sm > .btn:hover {
-    transform: translateY(-1px);
-}
-
-/* Dark mode support */
-[data-theme="dark"] .match-card {
-    background-color: var(--ecs-dark-bg-card, #2b2c40);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="dark"] .status-section {
-    background: rgba(255, 255, 255, 0.03);
-    border-color: rgba(255, 255, 255, 0.05);
-}
-
-[data-theme="dark"] .task-details-container {
-    background: rgba(255, 255, 255, 0.02);
-    border-color: rgba(255, 255, 255, 0.08);
-}
-
-[data-theme="dark"] .task-card {
-    background: rgba(255, 255, 255, 0.02);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-/* Animation classes */
-.fade-in {
-    animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.slide-up {
-    animation: slideUp 0.3s ease-out;
-}
-
-@keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-</style>
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/match-management.css') }}?v={{ current_time.timestamp() }}">
 {% endblock %}
 
 {% block custom_js %}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="{{ url_for('static', filename='custom_js/match-management.js') }}?v={{ current_time.timestamp() }}"></script>
-
-<script>
-// Modern Match Management Enhancement
-class MatchManagementDashboard {
-    constructor() {
-        this.currentView = 'cards';
-        this.filters = {
-            search: '',
-            competition: '',
-            status: ''
-        };
-        this.matches = [];
-        
-        this.init();
-    }
-    
-    init() {
-        this.setupEventListeners();
-        this.loadInitialStats();
-        this.setupFilters();
-        this.loadAllTaskDetails();
-    }
-    
-    setupEventListeners() {
-        // Search functionality
-        document.getElementById('matchSearch').addEventListener('input', (e) => {
-            this.filters.search = e.target.value.toLowerCase();
-            this.applyFilters();
-        });
-        
-        // Filter dropdowns
-        document.getElementById('competitionFilter').addEventListener('change', (e) => {
-            this.filters.competition = e.target.value;
-            this.applyFilters();
-        });
-        
-        document.getElementById('statusFilter').addEventListener('change', (e) => {
-            this.filters.status = e.target.value;
-            this.applyFilters();
-        });
-        
-        document.getElementById('timeFilter').addEventListener('change', (e) => {
-            this.filters.timeFilter = e.target.value;
-            this.applyFilters();
-        });
-        
-        // View mode toggle
-        document.getElementById('viewMode').addEventListener('change', (e) => {
-            this.toggleView(e.target.value);
-        });
-    }
-    
-    loadInitialStats() {
-        // Count active threads
-        const threadCreated = document.querySelectorAll('[data-match-id]').length;
-        const activeThreads = document.querySelectorAll('.badge.bg-success').length;
-        
-        // Find specific live reporting matches
-        const activeReportingMatches = [];
-        document.querySelectorAll('[data-match-id]').forEach(matchElement => {
-            const matchId = matchElement.getAttribute('data-match-id');
-            const reportingBadge = matchElement.querySelector('.badge.bg-info, .badge.bg-warning');
-            
-            if (reportingBadge && (reportingBadge.textContent.includes('running') || reportingBadge.textContent.includes('active'))) {
-                // Try to extract match info from different possible locations
-                let opponent = 'Unknown';
-                let competition = 'Unknown';
-                let isHome = false;
-                
-                // Look for opponent in various places
-                const opponentElement = matchElement.querySelector('.match-opponent, .fw-medium, h6');
-                if (opponentElement) {
-                    opponent = opponentElement.textContent.trim();
-                }
-                
-                // Look for competition
-                const competitionElement = matchElement.querySelector('.badge:not(.bg-info):not(.bg-warning):not(.bg-success):not(.bg-danger)');
-                if (competitionElement) {
-                    competition = competitionElement.textContent.trim();
-                }
-                
-                // Check if home game
-                const locationElement = matchElement.querySelector('.text-muted');
-                if (locationElement && locationElement.textContent.includes('Home')) {
-                    isHome = true;
-                }
-                
-                activeReportingMatches.push({
-                    matchId,
-                    opponent,
-                    competition,
-                    isHome,
-                    status: reportingBadge.textContent.trim()
-                });
-            }
-        });
-        
-        const liveReporting = activeReportingMatches.length;
-        document.getElementById('activeThreads').textContent = activeThreads;
-        document.getElementById('liveReporting').textContent = liveReporting;
-        
-        // Update live reporting details
-        const liveReportingDetails = document.getElementById('liveReportingDetails');
-        if (liveReporting === 0) {
-            liveReportingDetails.innerHTML = '<span class="text-success">No active sessions</span>';
-        } else if (liveReporting === 1) {
-            const match = activeReportingMatches[0];
-            liveReportingDetails.innerHTML = `
-                <div class="d-flex align-items-center">
-                    <i class="ti ti-broadcast me-1"></i>
-                    <span>${match.opponent} ${match.isHome ? '(H)' : '(A)'}</span>
-                </div>
-                <div class="small">${match.competition} • ${match.status}</div>
-            `;
-        } else {
-            liveReportingDetails.innerHTML = `
-                <div><strong>${liveReporting} active sessions:</strong></div>
-                ${activeReportingMatches.slice(0, 2).map(match => 
-                    `<div class="small">• ${match.opponent} ${match.isHome ? '(H)' : '(A)'}</div>`
-                ).join('')}
-                ${liveReporting > 2 ? `<div class="small text-muted">+${liveReporting - 2} more...</div>` : ''}
-            `;
-        }
-        
-        document.getElementById('systemHealth').textContent = 'Good';
-    }
-    
-    setupFilters() {
-        // Initialize filter state from URL params if needed
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('competition')) {
-            this.filters.competition = urlParams.get('competition');
-            document.getElementById('competitionFilter').value = this.filters.competition;
-        }
-        
-        // Default time filter to 'relevant' (upcoming + last previous)
-        this.filters.timeFilter = 'relevant';
-        document.getElementById('timeFilter').value = 'relevant';
-        
-        this.applyFilters();
-    }
-    
-    applyFilters() {
-        const matchCards = document.querySelectorAll('.match-card-wrapper');
-        const tableRows = document.querySelectorAll('#matchesTable tbody tr');
-        
-        matchCards.forEach(card => {
-            const shouldShow = this.shouldShowMatch(card);
-            card.style.display = shouldShow ? 'block' : 'none';
-            
-            if (shouldShow) {
-                card.classList.add('fade-in');
-            }
-        });
-        
-        tableRows.forEach(row => {
-            const shouldShow = this.shouldShowMatch(row);
-            row.style.display = shouldShow ? 'table-row' : 'none';
-        });
-        
-        this.updateFilteredCount();
-    }
-    
-    shouldShowMatch(element) {
-        const matchId = element.getAttribute('data-match-id');
-        const competition = element.getAttribute('data-competition') || '';
-        const status = element.getAttribute('data-status') || '';
-        const matchDateStr = element.getAttribute('data-match-date') || '';
-        
-        // Search filter (match opponent name or venue)
-        if (this.filters.search) {
-            const matchText = element.textContent.toLowerCase();
-            if (!matchText.includes(this.filters.search)) {
-                return false;
-            }
-        }
-        
-        // Competition filter
-        if (this.filters.competition && competition !== this.filters.competition) {
-            return false;
-        }
-        
-        // Status filter  
-        if (this.filters.status && status !== this.filters.status) {
-            return false;
-        }
-        
-        // Time filter
-        if (this.filters.timeFilter && this.filters.timeFilter !== 'all') {
-            if (!this.passesTimeFilter(matchDateStr, this.filters.timeFilter)) {
-                return false;
-            }
-        }
-        
-        return true;
-    }
-    
-    passesTimeFilter(matchDateStr, timeFilter) {
-        if (!matchDateStr) return true; // Show matches without dates
-        
-        const matchDate = new Date(matchDateStr);
-        const now = new Date();
-        const isUpcoming = matchDate > now;
-        
-        switch (timeFilter) {
-            case 'upcoming':
-                return isUpcoming;
-            case 'previous':
-                return !isUpcoming;
-            case 'relevant':
-                // Show all upcoming matches + last previous match
-                if (isUpcoming) return true;
-                
-                // For previous matches, find the most recent one
-                const allPreviousMatches = Array.from(document.querySelectorAll('[data-match-date]'))
-                    .map(el => ({
-                        element: el,
-                        date: new Date(el.getAttribute('data-match-date'))
-                    }))
-                    .filter(match => match.date <= now)
-                    .sort((a, b) => b.date - a.date);
-                
-                // Show only the most recent previous match
-                return allPreviousMatches.length > 0 && 
-                       allPreviousMatches[0].element.getAttribute('data-match-date') === matchDateStr;
-            default:
-                return true;
-        }
-    }
-    
-    updateFilteredCount() {
-        const visible = document.querySelectorAll('.match-card-wrapper:not([style*="display: none"])').length;
-        const total = document.querySelectorAll('.match-card-wrapper').length;
-        
-        // Update total matches counter if needed
-        if (visible !== total) {
-            document.getElementById('totalMatches').innerHTML = `${visible} <small class="text-muted">of ${total}</small>`;
-        } else {
-            document.getElementById('totalMatches').textContent = total;
-        }
-    }
-    
-    toggleView(viewMode) {
-        const cardsContainer = document.getElementById('matchCardsContainer');
-        const tableContainer = document.getElementById('matchTableContainer');
-        
-        if (viewMode === 'table') {
-            cardsContainer.style.display = 'none';
-            tableContainer.style.display = 'block';
-            this.loadTableTaskDetails();
-        } else {
-            cardsContainer.style.display = 'block';
-            tableContainer.style.display = 'none';
-        }
-        
-        this.currentView = viewMode;
-        this.applyFilters();
-    }
-    
-    loadAllTaskDetails() {
-        // Load task details for card view
-        const matchCards = document.querySelectorAll('[data-match-id]');
-        matchCards.forEach(card => {
-            const matchId = card.getAttribute('data-match-id');
-            if (matchId) {
-                this.loadMatchTaskDetails(matchId);
-            }
-        });
-    }
-    
-    loadTableTaskDetails() {
-        // Load task details for table view
-        const tableRows = document.querySelectorAll('#matchesTable tbody tr[data-match-id]');
-        tableRows.forEach(row => {
-            const matchId = row.getAttribute('data-match-id');
-            if (matchId) {
-                this.loadTableTaskDetail(matchId);
-            }
-        });
-    }
-    
-    loadMatchTaskDetails(matchId) {
-        fetch(`/admin/match_management/match-tasks/${matchId}`)
-            .then(response => response.json())
-            .then(data => {
-                this.updateTaskDetails(matchId, data);
-            })
-            .catch(error => {
-                console.error(`Error loading task details for match ${matchId}:`, error);
-                this.showTaskError(matchId, 'Failed to load task details');
-            });
-    }
-    
-    loadTableTaskDetail(matchId) {
-        fetch(`/admin/match_management/match-tasks/${matchId}`)
-            .then(response => response.json())
-            .then(data => {
-                this.updateTableTaskDetails(matchId, data);
-            })
-            .catch(error => {
-                console.error(`Error loading table task details for match ${matchId}:`, error);
-            });
-    }
-    
-    updateTaskDetails(matchId, data) {
-        const container = document.getElementById(`task-details-${matchId}`);
-        if (!container) return;
-        
-        if (!data.success) {
-            this.showTaskError(matchId, data.error);
-            return;
-        }
-        
-        const tasks = data.tasks || {};
-        let html = '';
-        
-        // Thread Creation Task
-        if (tasks.thread) {
-            html += this.createTaskCard('thread', tasks.thread, matchId);
-        } else {
-            html += this.createNoTaskCard('Thread Creation', 'No thread task scheduled');
-        }
-        
-        // Live Reporting Task
-        if (tasks.reporting) {
-            html += this.createTaskCard('reporting', tasks.reporting, matchId);
-        } else {
-            html += this.createNoTaskCard('Live Reporting', 'No reporting task scheduled');
-        }
-        
-        if (!html) {
-            html = '<div class="text-muted small">No tasks scheduled</div>';
-        }
-        
-        container.innerHTML = html;
-        container.classList.add('slide-up');
-    }
-    
-    updateTableTaskDetails(matchId, data) {
-        const container = document.getElementById(`table-task-details-${matchId}`);
-        if (!container) return;
-        
-        if (!data.success) {
-            container.innerHTML = `<small class="text-danger">${data.error}</small>`;
-            return;
-        }
-        
-        const tasks = data.tasks || {};
-        let summary = [];
-        
-        if (tasks.thread) {
-            summary.push(`Thread: ${tasks.thread.status}`);
-        }
-        if (tasks.reporting) {
-            summary.push(`Report: ${tasks.reporting.status}`);
-        }
-        
-        container.innerHTML = summary.length > 0 ? 
-            `<small class="text-muted">${summary.join(', ')}</small>` :
-            '<small class="text-muted">No tasks</small>';
-    }
-    
-    getMatchInfo(matchId) {
-        // Find match data from the page
-        const matchCard = document.querySelector(`[data-match-id="${matchId}"]`);
-        if (!matchCard) return null;
-        
-        const opponent = matchCard.querySelector('.match-opponent')?.textContent?.trim();
-        const homeGame = matchCard.querySelector('.match-location')?.textContent?.includes('Home');
-        const dateTime = matchCard.querySelector('.match-date')?.textContent?.trim();
-        
-        return {
-            opponent: opponent || 'Unknown',
-            isHome: homeGame || false,
-            dateTime: dateTime || 'Unknown'
-        };
-    }
-    
-    createTaskCard(taskType, task, matchId) {
-        const statusColor = this.getStatusColor(task.status);
-        const statusIcon = this.getStatusIcon(task.status);
-        const typeName = taskType === 'thread' ? 'Thread Creation' : 'Live Reporting';
-        const typeIcon = taskType === 'thread' ? 'ti-messages' : 'ti-broadcast';
-        
-        // Get match info for better display
-        const matchInfo = this.getMatchInfo(matchId);
-        
-        // Format countdown
-        let countdown = 'N/A';
-        if (task.ttl && task.ttl > 0) {
-            countdown = this.formatDuration(task.ttl);
-        } else if (task.eta) {
-            const etaTime = new Date(task.eta);
-            const now = new Date();
-            const diff = Math.max(0, Math.floor((etaTime - now) / 1000));
-            countdown = diff > 0 ? this.formatDuration(diff) : 'Due now';
-        }
-        
-        return `
-            <div class="task-card ${taskType}">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <div class="d-flex align-items-center">
-                        <i class="ti ${typeIcon} me-2 text-primary"></i>
-                        <span class="small fw-medium">${typeName}</span>
-                    </div>
-                    <span class="badge bg-${statusColor}">
-                        <i class="ti ${statusIcon} me-1"></i>${task.status}
-                    </span>
-                </div>
-                <div class="mb-2">
-                    <small class="text-muted d-block">Match: ${matchInfo ? `${matchInfo.opponent} ${matchInfo.isHome ? '(Home)' : '(Away)'}` : 'Unknown'}</small>
-                    <small class="text-muted d-block">Task ID: <code>${task.task_id ? task.task_id.substring(0, 8) + '...' : 'N/A'}</code></small>
-                    <small class="text-muted d-block">ETA: ${countdown}</small>
-                    ${task.eta ? `<small class="text-muted d-block">Scheduled: ${new Date(task.eta).toLocaleString()}</small>` : ''}
-                </div>
-                <div class="d-flex justify-content-between align-items-center">
-                    <small class="text-muted">${task.error ? `Error: ${task.error}` : 'Status: Active'}</small>
-                    <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-info btn-xs" onclick="showTaskInfo('${task.task_id}', '${typeName}', ${JSON.stringify(task).replace(/"/g, '&quot;')})" title="Info">
-                            <i class="ti ti-info-circle"></i>
-                        </button>
-                        <button class="btn btn-outline-danger btn-xs" onclick="revokeTask('${task.task_id}', '${matchId}', '${taskType}')" title="Cancel">
-                            <i class="ti ti-x"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    createNoTaskCard(taskName, message) {
-        const typeIcon = taskName.includes('Thread') ? 'ti-messages' : 'ti-broadcast';
-        return `
-            <div class="no-task-card">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center">
-                        <i class="ti ${typeIcon} me-2"></i>
-                        <div>
-                            <div class="small fw-medium">${taskName}</div>
-                            <div class="small">${message}</div>
-                        </div>
-                    </div>
-                    <span class="badge bg-secondary">Not Scheduled</span>
-                </div>
-            </div>
-        `;
-    }
-    
-    showTaskError(matchId, error) {
-        const container = document.getElementById(`task-details-${matchId}`);
-        if (!container) return;
-        
-        if (error.includes('Redis')) {
-            container.innerHTML = `
-                <div class="text-center py-2">
-                    <i class="ti ti-database text-warning"></i>
-                    <small class="text-muted d-block">Task system unavailable</small>
-                    <small class="text-muted">Redis connection needed</small>
-                </div>
-            `;
-        } else {
-            container.innerHTML = `
-                <div class="alert alert-danger alert-sm p-2 mb-0">
-                    <small><i class="ti ti-alert-triangle me-1"></i>${error}</small>
-                </div>
-            `;
-        }
-    }
-    
-    getStatusColor(status) {
-        const statusColors = {
-            'PENDING': 'warning',
-            'STARTED': 'info',
-            'SUCCESS': 'success',
-            'FAILURE': 'danger',
-            'RETRY': 'warning',
-            'REVOKED': 'secondary'
-        };
-        return statusColors[status] || 'secondary';
-    }
-    
-    getStatusIcon(status) {
-        const statusIcons = {
-            'PENDING': 'ti-clock',
-            'STARTED': 'ti-play',
-            'SUCCESS': 'ti-check',
-            'FAILURE': 'ti-x',
-            'RETRY': 'ti-refresh',
-            'REVOKED': 'ti-ban'
-        };
-        return statusIcons[status] || 'ti-help';
-    }
-    
-    formatDuration(seconds) {
-        if (seconds < 60) return `${seconds}s`;
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds % 60;
-        if (minutes < 60) return `${minutes}m ${remainingSeconds}s`;
-        const hours = Math.floor(minutes / 60);
-        const remainingMinutes = minutes % 60;
-        return `${hours}h ${remainingMinutes}m`;
-    }
-}
-
-// Global functions for buttons
-function clearFilters() {
-    document.getElementById('matchSearch').value = '';
-    document.getElementById('competitionFilter').value = '';
-    document.getElementById('statusFilter').value = '';
-    
-    window.matchDashboard.filters = { search: '', competition: '', status: '' };
-    window.matchDashboard.applyFilters();
-}
-
-function refreshStatuses() {
-    window.matchDashboard.loadAllTaskDetails();
-    window.matchDashboard.loadInitialStats();
-    
-    // Update last updated time
-    document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
-}
-
-// Initialize dashboard
-document.addEventListener('DOMContentLoaded', function() {
-    window.matchDashboard = new MatchManagementDashboard();
-    
-    console.log('Modern match management dashboard loaded');
-});
-</script>
 {% endblock %}

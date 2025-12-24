@@ -1,0 +1,543 @@
+/**
+ * ============================================================================
+ * MODERN LOADERS COMPONENT - ATHLETIC PRECISION
+ * ============================================================================
+ *
+ * Design: Loading states with athletic motion
+ * - Skeleton screens for content loading
+ * - Spinner variants with smooth rotation
+ * - Progress bars with kinetic energy
+ * - Lazy load placeholders
+ * - Success/error state animations
+ *
+ * Architecture:
+ * - BEM naming: c-loader-modern, c-skeleton-modern, etc.
+ * - Design tokens only
+ * - State classes: is-loading, is-success, is-error
+ * - Zero !important
+ *
+ * Features:
+ * - Spinners (circle, dots, bars)
+ * - Skeleton screens
+ * - Progress bars
+ * - Inline loaders
+ * - Full-page overlays
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   SPINNER - Circle
+   ============================================================================ */
+
+.c-loader-modern__spinner {
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid rgba(14, 165, 233, 0.2);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Size variants */
+.c-loader-modern__spinner--sm {
+  width: 1rem;
+  height: 1rem;
+  border-width: 2px;
+}
+
+.c-loader-modern__spinner--lg {
+  width: 3rem;
+  height: 3rem;
+  border-width: 4px;
+}
+
+.c-loader-modern__spinner--xl {
+  width: 4rem;
+  height: 4rem;
+  border-width: 5px;
+}
+
+/* Color variants */
+.c-loader-modern__spinner--white {
+  border-color: rgba(255, 255, 255, 0.2);
+  border-top-color: white;
+}
+
+.c-loader-modern__spinner--success {
+  border-color: rgba(16, 185, 129, 0.2);
+  border-top-color: var(--color-success);
+}
+
+.c-loader-modern__spinner--danger {
+  border-color: rgba(239, 68, 68, 0.2);
+  border-top-color: var(--color-danger);
+}
+
+/* ============================================================================
+   SPINNER - Dots
+   ============================================================================ */
+
+.c-loader-modern__dots {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.c-loader-modern__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--color-primary);
+  border-radius: 50%;
+  animation: dotPulse 1.4s ease-in-out infinite;
+}
+
+.c-loader-modern__dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.c-loader-modern__dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.c-loader-modern__dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dotPulse {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* ============================================================================
+   SPINNER - Bars
+   ============================================================================ */
+
+.c-loader-modern__bars {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 1.5rem;
+}
+
+.c-loader-modern__bar {
+  width: 4px;
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  animation: barPulse 1.2s ease-in-out infinite;
+}
+
+.c-loader-modern__bar:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.c-loader-modern__bar:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.c-loader-modern__bar:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.c-loader-modern__bar:nth-child(4) {
+  animation-delay: 0.45s;
+}
+
+@keyframes barPulse {
+  0%, 100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* ============================================================================
+   SKELETON SCREEN - Shimmer effect
+   ============================================================================ */
+
+.c-skeleton-modern {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.06) 0%,
+    rgba(0, 0, 0, 0.12) 50%,
+    rgba(0, 0, 0, 0.06) 100%
+  );
+  background-size: 200% 100%;
+  border-radius: var(--radius-md);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+[data-style="dark"] .c-skeleton-modern {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+}
+
+/* Skeleton variants */
+.c-skeleton-modern--text {
+  height: 1rem;
+  margin-bottom: var(--space-2);
+}
+
+.c-skeleton-modern--text-sm {
+  height: 0.75rem;
+}
+
+.c-skeleton-modern--text-lg {
+  height: 1.25rem;
+}
+
+.c-skeleton-modern--title {
+  height: 1.5rem;
+  width: 60%;
+  margin-bottom: var(--space-3);
+}
+
+.c-skeleton-modern--avatar {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+}
+
+.c-skeleton-modern--avatar-sm {
+  width: 2rem;
+  height: 2rem;
+}
+
+.c-skeleton-modern--avatar-lg {
+  width: 4rem;
+  height: 4rem;
+}
+
+.c-skeleton-modern--button {
+  height: 2.5rem;
+  width: 100px;
+  border-radius: var(--radius-lg);
+}
+
+.c-skeleton-modern--card {
+  height: 200px;
+  border-radius: var(--radius-xl);
+}
+
+.c-skeleton-modern--image {
+  width: 100%;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  border-radius: var(--radius-lg);
+}
+
+/* ============================================================================
+   PROGRESS BAR - Linear
+   ============================================================================ */
+
+.c-progress-modern {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+[data-style="dark"] .c-progress-modern {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.c-progress-modern__bar {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--color-primary) 0%,
+    var(--color-primary-400) 100%
+  );
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
+}
+
+/* Indeterminate progress */
+.c-progress-modern--indeterminate .c-progress-modern__bar {
+  width: 40%;
+  animation: progressSlide 2s ease-in-out infinite;
+}
+
+@keyframes progressSlide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+/* Color variants */
+.c-progress-modern--success .c-progress-modern__bar {
+  background: linear-gradient(
+    90deg,
+    var(--color-success) 0%,
+    #10B981 100%
+  );
+}
+
+.c-progress-modern--danger .c-progress-modern__bar {
+  background: linear-gradient(
+    90deg,
+    var(--color-danger) 0%,
+    #EF4444 100%
+  );
+}
+
+.c-progress-modern--warning .c-progress-modern__bar {
+  background: linear-gradient(
+    90deg,
+    var(--color-warning) 0%,
+    #F59E0B 100%
+  );
+}
+
+/* Size variants */
+.c-progress-modern--sm {
+  height: 4px;
+}
+
+.c-progress-modern--lg {
+  height: 12px;
+}
+
+/* ============================================================================
+   PROGRESS - Circular
+   ============================================================================ */
+
+.c-progress-modern__circle {
+  position: relative;
+  width: 4rem;
+  height: 4rem;
+}
+
+.c-progress-modern__circle-svg {
+  transform: rotate(-90deg);
+}
+
+.c-progress-modern__circle-track {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.08);
+  stroke-width: 4;
+}
+
+[data-style="dark"] .c-progress-modern__circle-track {
+  stroke: rgba(255, 255, 255, 0.1);
+}
+
+.c-progress-modern__circle-bar {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+.c-progress-modern__circle-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+/* ============================================================================
+   FULL-PAGE LOADER OVERLAY
+   ============================================================================ */
+
+.c-loader-modern__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.c-loader-modern__overlay.is-visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+[data-style="dark"] .c-loader-modern__overlay {
+  background: rgba(0, 0, 0, 0.95);
+}
+
+.c-loader-modern__overlay-text {
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+}
+
+/* ============================================================================
+   INLINE LOADER - For buttons, inputs, etc.
+   ============================================================================ */
+
+.c-loader-modern__inline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.c-loader-modern__inline-spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  opacity: 0.5;
+  animation: spin 0.6s linear infinite;
+}
+
+.c-loader-modern__inline-text {
+  font-size: inherit;
+  color: inherit;
+}
+
+/* ============================================================================
+   SUCCESS/ERROR STATES - Animated checkmark/X
+   ============================================================================ */
+
+.c-loader-modern__result {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  font-size: 2rem;
+}
+
+.c-loader-modern__result--success {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--color-success);
+  animation: scaleIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.c-loader-modern__result--error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger);
+  animation: scaleIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ============================================================================
+   LAZY LOAD PLACEHOLDER
+   ============================================================================ */
+
+.c-loader-modern__lazy {
+  position: relative;
+  background: rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+[data-style="dark"] .c-loader-modern__lazy {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.c-loader-modern__lazy::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+  animation: shimmer 2s infinite;
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+.c-loader-modern__spinner[aria-label],
+.c-loader-modern__dots[aria-label],
+.c-loader-modern__bars[aria-label] {
+  /* Ensure loaders have accessible labels */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .c-loader-modern__spinner,
+  .c-loader-modern__dot,
+  .c-loader-modern__bar,
+  .c-skeleton-modern,
+  .c-progress-modern__bar,
+  .c-loader-modern__result {
+    animation: none;
+    transition: none;
+  }
+
+  .c-skeleton-modern {
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  [data-style="dark"] .c-skeleton-modern {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* ============================================================================
+   CONTENT LOADING CONTAINER
+   ============================================================================ */
+
+.c-loader-modern__container {
+  position: relative;
+  min-height: 200px;
+}
+
+.c-loader-modern__container.is-loading {
+  pointer-events: none;
+}
+
+.c-loader-modern__container-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}

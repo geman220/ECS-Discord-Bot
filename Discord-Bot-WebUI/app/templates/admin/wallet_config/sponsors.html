@@ -2,6 +2,7 @@
 {% block title %}Wallet Pass Sponsors{% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
     .sponsor-card {
         transition: all 0.2s;
@@ -27,17 +28,17 @@
             <p class="text-muted mb-0">Manage sponsors displayed on wallet passes</p>
         </div>
         <div>
-            <a href="{{ url_for('wallet_admin.wallet_management') }}" class="btn btn-outline-secondary me-2">
+            <a href="{{ url_for('wallet_admin.wallet_management') }}" class="c-btn c-btn--outline-secondary me-2">
                 <i class="ti ti-arrow-left me-1"></i> Back
             </a>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSponsorModal">
+            <button class="c-btn c-btn--primary" data-bs-toggle="modal" data-bs-target="#addSponsorModal">
                 <i class="ti ti-plus me-1"></i> Add Sponsor
             </button>
         </div>
     </div>
 
     <!-- Info Alert -->
-    <div class="alert alert-info mb-4">
+    <div class="alert alert-info mb-4" data-alert>
         <div class="d-flex">
             <i class="ti ti-info-circle me-2 fs-4"></i>
             <div>
@@ -50,8 +51,8 @@
     <!-- Stats -->
     <div class="row mb-4">
         <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
+            <div class="c-card">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-lg bg-label-primary me-3">
                             <span class="avatar-initial"><i class="ti ti-building-store"></i></span>
@@ -65,8 +66,8 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
+            <div class="c-card">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-lg bg-label-success me-3">
                             <span class="avatar-initial"><i class="ti ti-check"></i></span>
@@ -80,8 +81,8 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
+            <div class="c-card">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-lg bg-label-warning me-3">
                             <span class="avatar-initial"><i class="ti ti-star"></i></span>
@@ -97,23 +98,23 @@
     </div>
 
     <!-- Sponsors List -->
-    <div class="card">
-        <div class="card-header">
+    <div class="c-card">
+        <div class="c-card__header">
             <h5 class="mb-0">All Sponsors</h5>
         </div>
-        <div class="card-body">
+        <div class="c-card__body">
             {% if sponsors %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Name</th>
-                                <th>Display Name</th>
-                                <th>Type</th>
-                                <th>Applies To</th>
-                                <th>Location</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th scope="col">Name</th>
+                                <th scope="col">Display Name</th>
+                                <th scope="col">Type</th>
+                                <th scope="col">Applies To</th>
+                                <th scope="col">Location</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -122,42 +123,42 @@
                                 <td><strong>{{ sponsor.name }}</strong></td>
                                 <td>{{ sponsor.display_name }}</td>
                                 <td>
-                                    <span class="badge bg-label-{% if sponsor.sponsor_type == 'presenting' %}warning{% elif sponsor.sponsor_type == 'venue' %}info{% else %}secondary{% endif %}">
+                                    <span class="badge bg-label-{% if sponsor.sponsor_type == 'presenting' %}warning{% elif sponsor.sponsor_type == 'venue' %}info{% else %}secondary{% endif %}" data-badge>
                                         {{ sponsor.sponsor_type|title }}
                                     </span>
                                 </td>
                                 <td>
                                     {% if sponsor.applies_to == 'all' %}
-                                        <span class="badge bg-label-primary">All Passes</span>
+                                        <span class="badge bg-label-primary" data-badge>All Passes</span>
                                     {% elif sponsor.applies_to == 'ecs_membership' %}
-                                        <span class="badge bg-label-success">ECS Only</span>
+                                        <span class="badge bg-label-success" data-badge>ECS Only</span>
                                     {% else %}
-                                        <span class="badge bg-label-info">Pub League</span>
+                                        <span class="badge bg-label-info" data-badge>Pub League</span>
                                     {% endif %}
                                 </td>
                                 <td>{{ sponsor.display_location|title }}</td>
                                 <td>
                                     {% if sponsor.is_active %}
-                                        <span class="badge bg-success">Active</span>
+                                        <span class="badge bg-success" data-badge>Active</span>
                                     {% else %}
-                                        <span class="badge bg-secondary">Inactive</span>
+                                        <span class="badge bg-secondary" data-badge>Inactive</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button type="button" class="btn btn-outline-primary"
+                                        <button type="button" class="c-btn c-btn--outline-primary"
                                                 data-bs-toggle="modal" data-bs-target="#editSponsorModal"
                                                 data-sponsor='{{ sponsor.to_dict()|tojson }}'>
                                             <i class="ti ti-edit"></i>
                                         </button>
                                         <form action="{{ url_for('wallet_config.toggle_sponsor', sponsor_id=sponsor.id) }}" method="post" class="d-inline">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-outline-{% if sponsor.is_active %}warning{% else %}success{% endif %}">
+                                            <button type="submit" class="c-btn btn-outline-{% if sponsor.is_active %}warning{% else %}success{% endif %}">
                                                 <i class="ti ti-{% if sponsor.is_active %}eye-off{% else %}eye{% endif %}"></i>
                                             </button>
                                         </form>
-                                        <button type="button" class="btn btn-outline-danger"
-                                                onclick="deleteSponsor({{ sponsor.id }}, '{{ sponsor.name }}')">
+                                        <button type="button" class="c-btn c-btn--outline-danger js-delete-sponsor"
+                                                data-action="delete-sponsor" data-id="{{ sponsor.id }}" data-name="{{ sponsor.name }}">
                                             <i class="ti ti-trash"></i>
                                         </button>
                                     </div>
@@ -171,7 +172,7 @@
                 <div class="text-center py-5">
                     <i class="ti ti-building-store fs-1 text-muted"></i>
                     <p class="mt-3 text-muted">No sponsors configured yet.</p>
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSponsorModal">
+                    <button class="c-btn c-btn--primary" data-bs-toggle="modal" data-bs-target="#addSponsorModal">
                         <i class="ti ti-plus me-1"></i> Add First Sponsor
                     </button>
                 </div>
@@ -181,36 +182,36 @@
 </div>
 
 <!-- Add Sponsor Modal -->
-<div class="modal fade" id="addSponsorModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
+<div class="modal c-modal fade" id="addSponsorModal" tabindex="-1" data-modal aria-labelledby="addSponsorModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
             <form action="{{ url_for('wallet_config.add_sponsor') }}" method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add Sponsor</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="modal-header c-modal__header" data-modal-header>
+                    <h5 class="modal-title c-modal__title" id="addSponsorModalLabel">Add Sponsor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body c-modal__body" data-modal-body>
                     <div class="mb-3">
                         <label class="form-label">Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" name="name" required>
+                        <input type="text" class="form-control" name="name" required data-form-control>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Display Name</label>
-                        <input type="text" class="form-control" name="display_name" placeholder="Shown on pass">
+                        <input type="text" class="form-control" name="display_name" placeholder="Shown on pass" data-form-control>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Description</label>
-                        <textarea class="form-control" name="description" rows="2"></textarea>
+                        <textarea class="form-control" name="description" rows="2" data-form-control></textarea>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Website URL</label>
-                        <input type="url" class="form-control" name="website_url" placeholder="https://...">
+                        <input type="url" class="form-control" name="website_url" placeholder="https://..." data-form-control>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Sponsor Type</label>
-                            <select class="form-select" name="sponsor_type">
+                            <select class="form-select" name="sponsor_type" data-form-select>
                                 <option value="partner">Partner</option>
                                 <option value="presenting">Presenting</option>
                                 <option value="venue">Venue</option>
@@ -218,7 +219,7 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Applies To</label>
-                            <select class="form-select" name="applies_to">
+                            <select class="form-select" name="applies_to" data-form-select>
                                 <option value="all">All Passes</option>
                                 <option value="ecs_membership">ECS Membership Only</option>
                                 <option value="pub_league">Pub League Only</option>
@@ -227,7 +228,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Display Location</label>
-                        <select class="form-select" name="display_location">
+                        <select class="form-select" name="display_location" data-form-select>
                             <option value="back">Back of Pass</option>
                             <option value="auxiliary">Auxiliary Field</option>
                         </select>
@@ -237,9 +238,9 @@
                         <label class="form-check-label" for="addIsActive">Active</label>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Sponsor</button>
+                <div class="modal-footer c-modal__footer" data-modal-footer>
+                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                    <button type="submit" class="c-btn c-btn--primary">Add Sponsor</button>
                 </div>
             </form>
         </div>
@@ -247,36 +248,36 @@
 </div>
 
 <!-- Edit Sponsor Modal -->
-<div class="modal fade" id="editSponsorModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
+<div class="modal c-modal fade" id="editSponsorModal" tabindex="-1" data-modal aria-labelledby="editSponsorModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
             <form id="editSponsorForm" method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit Sponsor</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="modal-header c-modal__header" data-modal-header>
+                    <h5 class="modal-title c-modal__title" id="editSponsorModalLabel">Edit Sponsor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body c-modal__body" data-modal-body>
                     <div class="mb-3">
                         <label class="form-label">Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" name="name" id="editName" required>
+                        <input type="text" class="form-control" name="name" id="editName" required data-form-control>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Display Name</label>
-                        <input type="text" class="form-control" name="display_name" id="editDisplayName">
+                        <input type="text" class="form-control" name="display_name" id="editDisplayName" data-form-control>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Description</label>
-                        <textarea class="form-control" name="description" id="editDescription" rows="2"></textarea>
+                        <textarea class="form-control" name="description" id="editDescription" rows="2" data-form-control></textarea>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Website URL</label>
-                        <input type="url" class="form-control" name="website_url" id="editWebsite">
+                        <input type="url" class="form-control" name="website_url" id="editWebsite" data-form-control>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Sponsor Type</label>
-                            <select class="form-select" name="sponsor_type" id="editType">
+                            <select class="form-select" name="sponsor_type" id="editType" data-form-select>
                                 <option value="partner">Partner</option>
                                 <option value="presenting">Presenting</option>
                                 <option value="venue">Venue</option>
@@ -284,7 +285,7 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Applies To</label>
-                            <select class="form-select" name="applies_to" id="editAppliesTo">
+                            <select class="form-select" name="applies_to" id="editAppliesTo" data-form-select>
                                 <option value="all">All Passes</option>
                                 <option value="ecs_membership">ECS Membership Only</option>
                                 <option value="pub_league">Pub League Only</option>
@@ -293,7 +294,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Display Location</label>
-                        <select class="form-select" name="display_location" id="editLocation">
+                        <select class="form-select" name="display_location" id="editLocation" data-form-select>
                             <option value="back">Back of Pass</option>
                             <option value="auxiliary">Auxiliary Field</option>
                         </select>
@@ -303,9 +304,9 @@
                         <label class="form-check-label" for="editIsActive">Active</label>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                <div class="modal-footer c-modal__footer" data-modal-footer>
+                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                    <button type="submit" class="c-btn c-btn--primary">Save Changes</button>
                 </div>
             </form>
         </div>
@@ -334,6 +335,15 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('editIsActive').checked = sponsor.is_active;
         });
     }
+
+    // Delete sponsor button handlers
+    document.querySelectorAll('.js-delete-sponsor').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const name = this.dataset.name;
+            deleteSponsor(id, name);
+        });
+    });
 });
 
 function deleteSponsor(id, name) {

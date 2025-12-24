@@ -2,6 +2,7 @@
 {% block title %}Pass Details - {{ wallet_pass.member_name }}{% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
     /* Pass detail - Theme-aware styling */
     .detail-table td {
@@ -44,11 +45,11 @@
                 </div>
                 <div>
                     {% if wallet_pass.pass_type and wallet_pass.pass_type.code == 'ecs_membership' %}
-                    <a href="{{ url_for('wallet_admin.passes_list', tab='ecs') }}" class="btn btn-outline-secondary">
+                    <a href="{{ url_for('wallet_admin.passes_list', tab='ecs') }}" class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-arrow-left me-1"></i>Back to ECS Passes
                     </a>
                     {% else %}
-                    <a href="{{ url_for('wallet_admin.passes_list', tab='pub_league') }}" class="btn btn-outline-secondary">
+                    <a href="{{ url_for('wallet_admin.passes_list', tab='pub_league') }}" class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-arrow-left me-1"></i>Back to Pub League Passes
                     </a>
                     {% endif %}
@@ -93,22 +94,22 @@
     <div class="row">
         <!-- Pass Details -->
         <div class="col-lg-8">
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="c-card mb-4">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <i class="ti ti-user me-2"></i>{{ wallet_pass.member_name }}
                     </h5>
-                    <span class="badge bg-label-{{ 'primary' if wallet_pass.pass_type and wallet_pass.pass_type.code == 'ecs_membership' else 'warning' }}">
+                    <span class="badge bg-label-{{ 'primary' if wallet_pass.pass_type and wallet_pass.pass_type.code == 'ecs_membership' else 'warning' }}" data-badge>
                         {{ wallet_pass.pass_type.name if wallet_pass.pass_type else 'Unknown Type' }}
                     </span>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <div class="row">
                         <div class="col-md-6">
                             <h6 class="text-muted mb-3">
                                 <i class="ti ti-user me-1"></i>Member Information
                             </h6>
-                            <table class="table detail-table table-sm">
+                            <table class="c-table detail-table c-table--compact" data-table>
                                 <tr>
                                     <td>Name</td>
                                     <td class="fw-semibold">{{ wallet_pass.member_name }}</td>
@@ -120,7 +121,7 @@
                                 {% if wallet_pass.team_name %}
                                 <tr>
                                     <td>Team</td>
-                                    <td><span class="badge bg-label-info">{{ wallet_pass.team_name }}</span></td>
+                                    <td><span class="badge bg-label-info" data-badge>{{ wallet_pass.team_name }}</span></td>
                                 </tr>
                                 {% endif %}
                                 {% if wallet_pass.player_id %}
@@ -135,7 +136,7 @@
                             <h6 class="text-muted mb-3">
                                 <i class="ti ti-calendar me-1"></i>Pass Validity
                             </h6>
-                            <table class="table detail-table table-sm">
+                            <table class="c-table detail-table c-table--compact" data-table>
                                 <tr>
                                     <td>Validity Period</td>
                                     <td class="fw-semibold">{{ wallet_pass.display_validity }}</td>
@@ -150,7 +151,7 @@
                                 </tr>
                                 <tr>
                                     <td>Downloads</td>
-                                    <td><span class="badge bg-label-info">{{ wallet_pass.download_count }}</span></td>
+                                    <td><span class="badge bg-label-info" data-badge>{{ wallet_pass.download_count }}</span></td>
                                 </tr>
                             </table>
                         </div>
@@ -163,7 +164,7 @@
                             <h6 class="text-muted mb-3">
                                 <i class="ti ti-database me-1"></i>System Information
                             </h6>
-                            <table class="table detail-table table-sm">
+                            <table class="c-table detail-table c-table--compact" data-table>
                                 <tr>
                                     <td>Pass ID</td>
                                     <td><code class="small">{{ wallet_pass.id }}</code></td>
@@ -190,7 +191,7 @@
                             <h6 class="text-muted mb-3">
                                 <i class="ti ti-shopping-cart me-1"></i>WooCommerce
                             </h6>
-                            <table class="table detail-table table-sm">
+                            <table class="c-table detail-table c-table--compact" data-table>
                                 <tr>
                                     <td>Order ID</td>
                                     <td>{{ wallet_pass.woo_order_id or '-' }}</td>
@@ -211,7 +212,7 @@
                             <h6 class="text-muted mb-3 mt-4">
                                 <i class="ti ti-ban me-1"></i>Void Information
                             </h6>
-                            <table class="table detail-table table-sm">
+                            <table class="c-table detail-table c-table--compact" data-table>
                                 <tr>
                                     <td>Voided At</td>
                                     <td>{{ wallet_pass.voided_at.strftime('%b %d, %Y %H:%M') }}</td>
@@ -228,25 +229,25 @@
             </div>
 
             <!-- Check-in History -->
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="c-card">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <i class="ti ti-history me-2"></i>Check-in History
                     </h5>
                     {% if checkins %}
-                    <span class="badge bg-label-primary">{{ checkins|length }} check-ins</span>
+                    <span class="badge bg-label-primary" data-badge>{{ checkins|length }} check-ins</span>
                     {% endif %}
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     {% if checkins %}
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover">
-                            <thead class="table-light">
+                    <div class="c-table-wrapper" data-table-responsive>
+                        <table class="c-table c-table--compact c-table--hoverable" data-table>
+                            <thead class="c-table--light" scope="col">
                                 <tr>
-                                    <th>Date/Time</th>
-                                    <th>Event</th>
-                                    <th>Location</th>
-                                    <th>Type</th>
+                                    <th scope="col">Date/Time</th>
+                                    <th scope="col">Event</th>
+                                    <th scope="col">Location</th>
+                                    <th scope="col">Type</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -258,7 +259,7 @@
                                     <td>{{ checkin.event_name or '-' }}</td>
                                     <td>{{ checkin.location or '-' }}</td>
                                     <td>
-                                        <span class="badge bg-label-info">
+                                        <span class="badge bg-label-info" data-badge>
                                             {{ checkin.check_in_type.value.replace('_', ' ').title() if checkin.check_in_type else 'Unknown' }}
                                         </span>
                                     </td>
@@ -269,7 +270,7 @@
                     </div>
                     {% else %}
                     <div class="text-center text-muted py-4">
-                        <i class="ti ti-calendar-off mb-2" style="font-size: 2rem;"></i>
+                        <i class="ti ti-calendar-off mb-2" class="u-icon-xl"></i>
                         <p class="mb-0">No check-ins recorded for this pass</p>
                     </div>
                     {% endif %}
@@ -280,25 +281,25 @@
         <!-- Sidebar -->
         <div class="col-lg-4">
             <!-- Actions Card -->
-            <div class="card mb-4">
-                <div class="card-header">
+            <div class="c-card mb-4">
+                <div class="c-card__header">
                     <h6 class="mb-0">
                         <i class="ti ti-settings me-1"></i>Actions
                     </h6>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <div class="d-grid gap-2">
                         <a href="{{ url_for('wallet_admin.download_pass', pass_id=wallet_pass.id, platform='apple') }}"
-                           class="btn btn-dark">
+                           class="c-btn c-btn--dark">
                             <i class="ti ti-brand-apple me-1"></i>Download Apple Pass
                         </a>
 
                         {% if wallet_pass.status == 'active' %}
-                        <button type="button" class="btn btn-outline-danger" onclick="voidPass()">
+                        <button type="button" class="c-btn c-btn--outline-danger js-void-pass" data-action="void-pass">
                             <i class="ti ti-ban me-1"></i>Void Pass
                         </button>
                         {% else %}
-                        <button type="button" class="btn btn-outline-success" onclick="reactivatePass()">
+                        <button type="button" class="c-btn c-btn--outline-success js-reactivate-pass" data-action="reactivate-pass">
                             <i class="ti ti-refresh me-1"></i>Reactivate Pass
                         </button>
                         {% endif %}
@@ -307,13 +308,13 @@
             </div>
 
             <!-- QR Code Preview -->
-            <div class="card mb-4">
-                <div class="card-header">
+            <div class="c-card mb-4">
+                <div class="c-card__header">
                     <h6 class="mb-0">
                         <i class="ti ti-qrcode me-1"></i>Pass QR Code
                     </h6>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <div class="qr-container text-center">
                         <div id="qrcode" class="mb-3"></div>
                         <code class="small text-break">{{ wallet_pass.barcode_data }}</code>
@@ -323,19 +324,19 @@
 
             <!-- Download Link -->
             {% if wallet_pass.download_token %}
-            <div class="card">
-                <div class="card-header">
+            <div class="c-card">
+                <div class="c-card__header">
                     <h6 class="mb-0">
                         <i class="ti ti-link me-1"></i>Public Download Link
                     </h6>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <p class="small text-muted mb-2">Share this link with the member to download their pass:</p>
-                    <div class="input-group">
+                    <div class="input-group" data-input-group>
                         <input type="text" class="form-control form-control-sm" id="download-link"
                                value="{{ url_for('public_wallet.pass_info', token=wallet_pass.download_token, _external=True) }}"
-                               readonly>
-                        <button class="btn btn-outline-primary btn-sm" onclick="copyLink()">
+                               readonly data-form-control>
+                        <button class="c-btn c-btn--outline-primary c-btn--sm js-copy-link" data-action="copy-link">
                             <i class="ti ti-copy"></i>
                         </button>
                     </div>
@@ -361,12 +362,30 @@ document.addEventListener('DOMContentLoaded', function() {
         qr.make();
         document.getElementById('qrcode').innerHTML = qr.createSvgTag(4, 0);
     }
+
+    // Void pass button
+    const voidBtn = document.querySelector('.js-void-pass');
+    if (voidBtn) {
+        voidBtn.addEventListener('click', voidPass);
+    }
+
+    // Reactivate pass button
+    const reactivateBtn = document.querySelector('.js-reactivate-pass');
+    if (reactivateBtn) {
+        reactivateBtn.addEventListener('click', reactivatePass);
+    }
+
+    // Copy link button
+    const copyLinkBtn = document.querySelector('.js-copy-link');
+    if (copyLinkBtn) {
+        copyLinkBtn.addEventListener('click', copyLink);
+    }
 });
 
 function voidPass() {
     Swal.fire({
         title: 'Void This Pass?',
-        html: '<p class="mb-3">The member will no longer be able to use this pass for check-ins.</p><input id="void-reason" class="form-control" placeholder="Reason for voiding (optional)">',
+        html: '<p class="mb-3">The member will no longer be able to use this pass for check-ins.</p><input id="void-reason" class="form-control" placeholder="Reason for voiding (optional)" data-form-control>',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',

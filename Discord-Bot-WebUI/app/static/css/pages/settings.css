@@ -1,0 +1,1262 @@
+/**
+ * ============================================================================
+ * SETTINGS PAGE
+ * ============================================================================
+ *
+ * BEM Component: c-settings-*
+ * Purpose: Account settings, security, appearance, notifications, integrations
+ *
+ * Design: Professional dashboard with card-based layout
+ *
+ * Structure:
+ *   .c-settings-page         - Page container
+ *   .c-settings-header       - Page title section
+ *   .c-settings-tabs         - Tab navigation
+ *   .c-settings-tab          - Tab content panes
+ *   .c-settings-card         - Card container
+ *   .c-settings-field        - Form field wrapper
+ *   .c-settings-btn          - Action buttons
+ *   .c-settings-sidebar      - Quick actions sidebar
+ *
+ * ============================================================================
+ */
+
+/* =============================================================================
+   Design Tokens - Scoped to Settings
+   ============================================================================ */
+
+.c-settings-page,
+.c-settings-tab {
+  --settings-bg-page: var(--color-bg-primary, #f8fafc);
+  --settings-bg-card: var(--color-bg-card, #ffffff);
+  --settings-bg-elevated: var(--color-bg-elevated, #f1f5f9);
+  --settings-bg-input: var(--color-bg-primary, #ffffff);
+
+  --settings-border: var(--color-border-primary, rgba(0, 0, 0, 0.08));
+  --settings-border-focus: var(--color-primary, #2563EB);
+
+  --settings-text-primary: var(--color-text-primary, #1e293b);
+  --settings-text-secondary: var(--color-text-secondary, #475569);
+  --settings-text-muted: var(--color-text-muted, #94a3b8);
+
+  --settings-primary: var(--color-primary, #2563EB);
+  --settings-primary-subtle: rgba(37, 99, 235, 0.08);
+  --settings-success: var(--color-success, #22c55e);
+  --settings-success-subtle: rgba(34, 197, 94, 0.08);
+  --settings-warning: var(--color-warning, #f59e0b);
+  --settings-warning-subtle: rgba(245, 158, 11, 0.08);
+  --settings-danger: var(--color-danger, #ef4444);
+  --settings-danger-subtle: rgba(239, 68, 68, 0.08);
+  --settings-info: var(--color-info, #3b82f6);
+  --settings-info-subtle: rgba(59, 130, 246, 0.08);
+  --settings-discord: #5865F2;
+  --settings-discord-subtle: rgba(88, 101, 242, 0.08);
+
+  --settings-radius: 8px;
+  --settings-radius-lg: 12px;
+  --settings-radius-xl: 16px;
+
+  --settings-space-xs: 0.25rem;
+  --settings-space-sm: 0.5rem;
+  --settings-space-md: 1rem;
+  --settings-space-lg: 1.5rem;
+  --settings-space-xl: 2rem;
+
+  --settings-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --settings-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --settings-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode token overrides */
+[data-style="dark"] .c-settings-page,
+[data-style="dark"] .c-settings-tab {
+  --settings-bg-page: #0f172a;
+  --settings-bg-card: #1e293b;
+  --settings-bg-elevated: #334155;
+  --settings-bg-input: #1e293b;
+
+  --settings-border: rgba(148, 163, 184, 0.12);
+
+  --settings-text-primary: #f1f5f9;
+  --settings-text-secondary: #cbd5e1;
+  --settings-text-muted: #94a3b8;
+
+  --settings-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --settings-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  --settings-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+}
+
+/* =============================================================================
+   Page Header
+   ============================================================================ */
+
+.c-settings-header {
+  margin-bottom: var(--settings-space-lg);
+}
+
+.c-settings-header__title {
+  display: flex;
+  align-items: center;
+  gap: var(--settings-space-sm);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--settings-text-primary);
+  margin: 0 0 var(--settings-space-xs) 0;
+}
+
+.c-settings-header__icon {
+  color: var(--settings-primary);
+}
+
+.c-settings-header__breadcrumb {
+  color: var(--settings-text-muted);
+  font-weight: 400;
+}
+
+.c-settings-header__subtitle {
+  font-size: 0.9375rem;
+  color: var(--settings-text-secondary);
+  margin: 0;
+}
+
+/* =============================================================================
+   Tab Navigation
+   ============================================================================ */
+
+.c-settings-tabs {
+  margin-bottom: var(--settings-space-lg);
+}
+
+.c-settings-tabs__container {
+  background: var(--settings-bg-card);
+  border: 1px solid var(--settings-border);
+  border-radius: var(--settings-radius-lg);
+  overflow: hidden;
+}
+
+.c-settings-tabs__scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.c-settings-tabs__list {
+  display: flex;
+  flex-wrap: nowrap;
+  list-style: none;
+  margin: 0;
+  padding: var(--settings-space-sm);
+  gap: var(--settings-space-xs);
+  min-width: max-content;
+}
+
+.c-settings-tabs__item {
+  flex-shrink: 0;
+}
+
+.c-settings-tabs__trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--settings-space-sm);
+  padding: var(--settings-space-sm) var(--settings-space-md);
+  background: transparent;
+  border: none;
+  border-radius: var(--settings-radius);
+  color: var(--settings-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.c-settings-tabs__trigger:hover {
+  background: var(--settings-primary-subtle);
+  color: var(--settings-text-primary);
+}
+
+.c-settings-tabs__trigger.is-active {
+  background: var(--settings-primary);
+  color: white;
+}
+
+.c-settings-tabs__trigger i {
+  font-size: 1.125rem;
+}
+
+/* =============================================================================
+   Tab Panes
+   ============================================================================ */
+
+.c-settings-tab {
+  display: none;
+}
+
+.c-settings-tab--active,
+.c-settings-tab.is-active {
+  display: block;
+  animation: settingsFadeIn 0.3s ease;
+}
+
+@keyframes settingsFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =============================================================================
+   Settings Card
+   ============================================================================ */
+
+.c-settings-card {
+  background: var(--settings-bg-card);
+  border: 1px solid var(--settings-border);
+  border-radius: var(--settings-radius-xl);
+  margin-bottom: var(--settings-space-lg);
+  transition: box-shadow 0.2s ease;
+}
+
+.c-settings-card:hover {
+  box-shadow: var(--settings-shadow-md);
+}
+
+.c-settings-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--settings-space-md);
+  padding: var(--settings-space-lg);
+  border-bottom: 1px solid var(--settings-border);
+}
+
+.c-settings-card__icon {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--settings-radius-lg);
+  font-size: 1.25rem;
+}
+
+.c-settings-card__icon--primary {
+  background: var(--settings-primary-subtle);
+  color: var(--settings-primary);
+}
+
+.c-settings-card__icon--success {
+  background: var(--settings-success-subtle);
+  color: var(--settings-success);
+}
+
+.c-settings-card__icon--warning {
+  background: var(--settings-warning-subtle);
+  color: var(--settings-warning);
+}
+
+.c-settings-card__icon--danger {
+  background: var(--settings-danger-subtle);
+  color: var(--settings-danger);
+}
+
+.c-settings-card__icon--info {
+  background: var(--settings-info-subtle);
+  color: var(--settings-info);
+}
+
+.c-settings-card__icon--discord {
+  background: var(--settings-discord-subtle);
+  color: var(--settings-discord);
+}
+
+.c-settings-card__icon--dark {
+  background: rgba(100, 116, 139, 0.1);
+  color: var(--settings-text-secondary);
+}
+
+.c-settings-card__header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-settings-card__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--settings-text-primary);
+  margin: 0 0 var(--settings-space-xs) 0;
+}
+
+.c-settings-card__subtitle {
+  font-size: 0.8125rem;
+  color: var(--settings-text-muted);
+}
+
+.c-settings-card__body {
+  padding: var(--settings-space-lg);
+}
+
+.c-settings-card__body--centered {
+  text-align: center;
+}
+
+/* =============================================================================
+   Form Fields
+   ============================================================================ */
+
+.c-settings-field {
+  margin-bottom: var(--settings-space-md);
+}
+
+.c-settings-field__label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--settings-text-primary);
+  margin-bottom: var(--settings-space-sm);
+}
+
+.c-settings-field__input,
+.c-settings-field__select {
+  width: 100%;
+  padding: 0.625rem var(--settings-space-md);
+  font-size: 0.9375rem;
+  color: var(--settings-text-primary);
+  background: var(--settings-bg-input);
+  border: 1px solid var(--settings-border);
+  border-radius: var(--settings-radius);
+  transition: all 0.2s ease;
+}
+
+.c-settings-field__input::placeholder {
+  color: var(--settings-text-muted);
+}
+
+.c-settings-field__input:focus,
+.c-settings-field__select:focus {
+  outline: none;
+  border-color: var(--settings-border-focus);
+  box-shadow: 0 0 0 3px var(--settings-primary-subtle);
+}
+
+.c-settings-field__help {
+  font-size: 0.75rem;
+  color: var(--settings-text-muted);
+  margin-top: var(--settings-space-xs);
+}
+
+/* =============================================================================
+   Buttons
+   ============================================================================ */
+
+.c-settings-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--settings-space-sm);
+  padding: 0.625rem var(--settings-space-lg);
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--settings-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.c-settings-btn i {
+  font-size: 1rem;
+}
+
+.c-settings-btn--primary {
+  background: var(--settings-primary);
+  color: white;
+}
+
+.c-settings-btn--primary:hover {
+  background: color-mix(in srgb, var(--settings-primary) 85%, black);
+  color: white;
+}
+
+.c-settings-btn--secondary {
+  background: var(--settings-bg-elevated);
+  color: var(--settings-text-secondary);
+  border: 1px solid var(--settings-border);
+}
+
+.c-settings-btn--secondary:hover {
+  background: var(--settings-border);
+  color: var(--settings-text-primary);
+}
+
+.c-settings-btn--danger {
+  background: var(--settings-danger);
+  color: white;
+}
+
+.c-settings-btn--danger:hover {
+  background: color-mix(in srgb, var(--settings-danger) 85%, black);
+}
+
+.c-settings-btn--outline {
+  background: transparent;
+  color: var(--settings-text-secondary);
+  border: 1px solid var(--settings-border);
+}
+
+.c-settings-btn--outline:hover {
+  background: var(--settings-bg-elevated);
+  color: var(--settings-text-primary);
+}
+
+.c-settings-btn--outline-primary {
+  background: transparent;
+  color: var(--settings-primary);
+  border: 1px solid var(--settings-primary);
+}
+
+.c-settings-btn--outline-primary:hover {
+  background: var(--settings-primary);
+  color: white;
+}
+
+.c-settings-btn--outline-danger {
+  background: transparent;
+  color: var(--settings-danger);
+  border: 1px solid var(--settings-danger);
+}
+
+.c-settings-btn--outline-danger:hover {
+  background: var(--settings-danger);
+  color: white;
+}
+
+.c-settings-btn--block {
+  width: 100%;
+}
+
+.c-settings-btn--sm {
+  padding: 0.375rem var(--settings-space-md);
+  font-size: 0.8125rem;
+}
+
+/* =============================================================================
+   Stat Box
+   ============================================================================ */
+
+.c-stat-box {
+  background: var(--settings-bg-elevated);
+  border-radius: var(--settings-radius);
+  padding: var(--settings-space-md);
+  text-align: center;
+}
+
+.c-stat-box__label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--settings-text-muted);
+  margin-bottom: var(--settings-space-xs);
+}
+
+.c-stat-box__value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--settings-text-primary);
+}
+
+.c-stat-box__value--muted {
+  color: var(--settings-text-muted);
+  font-weight: 400;
+}
+
+/* =============================================================================
+   Badge
+   ============================================================================ */
+
+.c-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+}
+
+.c-badge--primary {
+  background: var(--settings-primary-subtle);
+  color: var(--settings-primary);
+}
+
+.c-badge--success {
+  background: var(--settings-success-subtle);
+  color: var(--settings-success);
+}
+
+.c-badge--warning {
+  background: var(--settings-warning-subtle);
+  color: var(--settings-warning);
+}
+
+.c-badge--danger {
+  background: var(--settings-danger-subtle);
+  color: var(--settings-danger);
+}
+
+.c-badge--secondary {
+  background: rgba(100, 116, 139, 0.1);
+  color: var(--settings-text-muted);
+}
+
+/* =============================================================================
+   Sidebar
+   ============================================================================ */
+
+.c-settings-sidebar {
+  position: sticky;
+  top: var(--settings-space-lg);
+}
+
+.c-settings-sidebar__content {
+  background: var(--settings-bg-card);
+  border: 1px solid var(--settings-border);
+  border-radius: var(--settings-radius-lg);
+  padding: var(--settings-space-lg);
+}
+
+.c-settings-sidebar__title {
+  display: flex;
+  align-items: center;
+  gap: var(--settings-space-sm);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--settings-text-primary);
+  margin: 0 0 var(--settings-space-md) 0;
+}
+
+.c-settings-sidebar__icon {
+  color: var(--settings-warning);
+}
+
+.c-settings-sidebar__text {
+  font-size: 0.8125rem;
+  color: var(--settings-text-secondary);
+  line-height: 1.5;
+  margin: 0 0 var(--settings-space-md) 0;
+}
+
+.c-settings-sidebar__section-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--settings-text-primary);
+  margin: var(--settings-space-md) 0 var(--settings-space-sm) 0;
+}
+
+.c-settings-sidebar__list {
+  font-size: 0.8125rem;
+  color: var(--settings-text-secondary);
+  padding-left: var(--settings-space-lg);
+  margin: 0;
+}
+
+.c-settings-sidebar__list li {
+  margin-bottom: var(--settings-space-xs);
+}
+
+.c-settings-sidebar__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--settings-space-sm);
+}
+
+.c-settings-sidebar__action {
+  display: flex;
+  align-items: center;
+  gap: var(--settings-space-sm);
+  padding: var(--settings-space-sm) var(--settings-space-md);
+  font-size: 0.875rem;
+  color: var(--settings-text-secondary);
+  background: var(--settings-bg-elevated);
+  border-radius: var(--settings-radius);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.c-settings-sidebar__action:hover {
+  background: var(--settings-primary-subtle);
+  color: var(--settings-primary);
+}
+
+.c-settings-sidebar__action.is-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* =============================================================================
+   Teams List
+   ============================================================================ */
+
+.c-settings-teams {
+  margin-top: var(--settings-space-md);
+}
+
+.c-settings-teams__label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--settings-text-muted);
+  margin-bottom: var(--settings-space-sm);
+}
+
+.c-settings-teams__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--settings-space-sm);
+}
+
+/* =============================================================================
+   Status Circle (for 2FA, Discord status)
+   ============================================================================ */
+
+.c-status-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--settings-space-md);
+}
+
+.c-status-circle i {
+  font-size: 2.5rem;
+}
+
+.c-status-circle--success {
+  background: var(--settings-success-subtle);
+  color: var(--settings-success);
+}
+
+.c-status-circle--warning {
+  background: var(--settings-warning-subtle);
+  color: var(--settings-warning);
+}
+
+.c-status-circle--discord {
+  background: var(--settings-discord-subtle);
+  color: var(--settings-discord);
+}
+
+.c-status-circle--muted {
+  background: var(--settings-bg-elevated);
+  color: var(--settings-text-muted);
+}
+
+/* =============================================================================
+   Status Text
+   ============================================================================ */
+
+.c-status-text {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 var(--settings-space-xs) 0;
+}
+
+.c-status-text--success {
+  color: var(--settings-success);
+}
+
+.c-status-text--warning {
+  color: var(--settings-warning);
+}
+
+.c-status-text--muted {
+  color: var(--settings-text-muted);
+}
+
+.c-status-description {
+  font-size: 0.8125rem;
+  color: var(--settings-text-muted);
+  margin: 0;
+}
+
+/* =============================================================================
+   Info Box
+   ============================================================================ */
+
+.c-info-box {
+  background: var(--settings-bg-elevated);
+  border-radius: var(--settings-radius);
+  padding: var(--settings-space-md);
+}
+
+.c-info-box--primary {
+  background: var(--settings-primary-subtle);
+  border: 1px solid rgba(37, 99, 235, 0.15);
+}
+
+.c-info-box--warning {
+  background: var(--settings-warning-subtle);
+  border: 1px solid rgba(245, 158, 11, 0.15);
+}
+
+.c-info-box__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--settings-text-primary);
+  margin: 0 0 var(--settings-space-sm) 0;
+}
+
+.c-info-box__list {
+  font-size: 0.8125rem;
+  color: var(--settings-text-secondary);
+  padding-left: var(--settings-space-lg);
+  margin: 0;
+}
+
+.c-info-box__list li {
+  margin-bottom: var(--settings-space-xs);
+}
+
+/* =============================================================================
+   Tips Box
+   ============================================================================ */
+
+.c-tips-box {
+  background: var(--settings-bg-elevated);
+  border-radius: var(--settings-radius-lg);
+  padding: var(--settings-space-lg);
+}
+
+.c-tips-box__title {
+  display: flex;
+  align-items: center;
+  gap: var(--settings-space-sm);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--settings-text-primary);
+  margin: 0 0 var(--settings-space-md) 0;
+}
+
+.c-tips-box__title i {
+  color: var(--settings-warning);
+}
+
+.c-tips-box__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--settings-space-md);
+}
+
+.c-tips-box__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--settings-space-sm);
+}
+
+.c-tips-box__item i {
+  color: var(--settings-success);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.c-tips-box__item-text {
+  font-size: 0.8125rem;
+  color: var(--settings-text-secondary);
+}
+
+/* =============================================================================
+   Theme Preview (for appearance tab)
+   ============================================================================ */
+
+.c-theme-card {
+  cursor: pointer;
+  background: var(--settings-bg-card);
+  border: 2px solid var(--settings-border);
+  border-radius: var(--settings-radius-lg);
+  padding: var(--settings-space-md);
+  transition: all 0.2s ease;
+}
+
+.c-theme-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--settings-shadow-md);
+}
+
+.c-theme-card.is-active {
+  border-color: var(--settings-primary);
+}
+
+.c-theme-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--settings-space-md);
+}
+
+.c-theme-card__name {
+  display: flex;
+  align-items: center;
+  gap: var(--settings-space-sm);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--settings-text-primary);
+  margin: 0 0 var(--settings-space-xs) 0;
+}
+
+.c-theme-card__preview {
+  height: 120px;
+  border-radius: var(--settings-radius);
+  overflow: hidden;
+  margin-bottom: var(--settings-space-md);
+  background: linear-gradient(135deg, var(--settings-primary) 0%, #5b21b6 100%);
+  position: relative;
+}
+
+.c-theme-card__preview-nav {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: var(--settings-radius-sm, 4px);
+}
+
+.c-theme-card__preview-sidebar {
+  position: absolute;
+  top: 40px;
+  left: 10px;
+  width: 40px;
+  height: 70px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: var(--settings-radius-sm, 4px);
+}
+
+.c-theme-card__preview-content {
+  position: absolute;
+  top: 40px;
+  left: 60px;
+  right: 10px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: var(--settings-radius-sm, 4px);
+}
+
+.c-theme-card__preview-button {
+  position: absolute;
+  bottom: 10px;
+  left: 60px;
+  right: 10px;
+  height: 25px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: var(--settings-radius-sm, 4px);
+}
+
+.c-theme-card__description {
+  font-size: 0.8125rem;
+  color: var(--settings-text-muted);
+  margin: 0;
+}
+
+/* =============================================================================
+   Color Mode Buttons
+   ============================================================================ */
+
+.c-color-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--settings-space-md);
+}
+
+.c-color-mode__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--settings-space-sm);
+  padding: var(--settings-space-sm) var(--settings-space-lg);
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: var(--settings-bg-elevated);
+  border: 1px solid var(--settings-border);
+  border-radius: var(--settings-radius);
+  color: var(--settings-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.c-color-mode__btn:hover {
+  background: var(--settings-primary-subtle);
+  color: var(--settings-primary);
+}
+
+.c-color-mode__btn.is-active {
+  background: var(--settings-primary);
+  border-color: var(--settings-primary);
+  color: white;
+}
+
+/* =============================================================================
+   Wallet Badge
+   ============================================================================ */
+
+.c-wallet-badge {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.c-wallet-badge:hover {
+  transform: scale(1.05);
+}
+
+.c-wallet-badge svg {
+  border-radius: var(--settings-radius-lg);
+  box-shadow: var(--settings-shadow-sm);
+}
+
+/* =============================================================================
+   Notification Cards (same as _notifications_tab uses)
+   ============================================================================ */
+
+.c-notification-card {
+  background: var(--settings-bg-card);
+  border: 1px solid var(--settings-border);
+  border-radius: var(--settings-radius-lg);
+  margin-bottom: var(--settings-space-md);
+  transition: box-shadow 0.2s ease;
+}
+
+.c-notification-card:hover {
+  box-shadow: var(--settings-shadow-sm);
+}
+
+.c-notification-card__content {
+  display: flex;
+  gap: var(--settings-space-md);
+  padding: var(--settings-space-lg);
+}
+
+.c-notification-card__icon {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--settings-radius-lg);
+  font-size: 1.5rem;
+}
+
+.c-notification-card__icon--primary {
+  background: var(--settings-primary-subtle);
+  color: var(--settings-primary);
+}
+
+.c-notification-card__icon--success {
+  background: var(--settings-success-subtle);
+  color: var(--settings-success);
+}
+
+.c-notification-card__icon--discord {
+  background: var(--settings-discord-subtle);
+  color: var(--settings-discord);
+}
+
+.c-notification-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-notification-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--settings-space-sm);
+}
+
+.c-notification-card__info {
+  flex: 1;
+}
+
+.c-notification-card__title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--settings-text-primary);
+  margin: 0 0 var(--settings-space-xs) 0;
+}
+
+.c-notification-card__subtitle {
+  font-size: 0.75rem;
+  color: var(--settings-text-muted);
+}
+
+.c-notification-card__text {
+  font-size: 0.8125rem;
+  color: var(--settings-text-secondary);
+  margin: 0;
+}
+
+.c-notification-card__text--warning {
+  color: var(--settings-warning);
+}
+
+.c-notification-card__text--warning i {
+  margin-right: var(--settings-space-xs);
+}
+
+/* Notification Switch */
+.c-notification-switch {
+  position: relative;
+}
+
+.c-notification-switch__input,
+.c-notification-switch__input.is-valid,
+.c-notification-switch__input.is-invalid {
+  width: 44px;
+  height: 24px;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background: #64748b; /* slate-500 - toggle track off state */
+  background-image: none !important;
+  border: none !important;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  position: relative;
+  padding: 0 !important;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.c-notification-switch__input::before,
+.c-notification-switch__input.is-valid::before,
+.c-notification-switch__input.is-invalid::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+  box-shadow: var(--settings-shadow-sm);
+}
+
+.c-notification-switch__input:checked,
+.c-notification-switch__input.is-valid:checked {
+  background: #10b981; /* emerald-500 - success green */
+}
+
+.c-notification-switch__input:checked::before,
+.c-notification-switch__input.is-valid:checked::before {
+  transform: translateX(20px);
+}
+
+/* Hide the label since switch is self-contained */
+.c-notification-switch__label {
+  display: none;
+}
+
+/* Notification Button */
+.c-notification-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--settings-space-sm);
+  padding: var(--settings-space-sm) var(--settings-space-md);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--settings-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: var(--settings-space-md);
+}
+
+.c-notification-btn--success {
+  background: var(--settings-success-subtle);
+  color: var(--settings-success);
+}
+
+.c-notification-btn--success:hover {
+  background: var(--settings-success);
+  color: white;
+}
+
+.c-notification-btn--danger {
+  background: var(--settings-danger-subtle);
+  color: var(--settings-danger);
+}
+
+.c-notification-btn--danger:hover {
+  background: var(--settings-danger);
+  color: white;
+}
+
+/* =============================================================================
+   Input Group (for calendar subscription)
+   ============================================================================ */
+
+.c-input-group {
+  display: flex;
+}
+
+.c-input-group__input {
+  flex: 1;
+  padding: var(--settings-space-sm) var(--settings-space-md);
+  font-size: 0.875rem;
+  background: var(--settings-bg-input);
+  border: 1px solid var(--settings-border);
+  border-right: none;
+  border-radius: var(--settings-radius) 0 0 var(--settings-radius);
+  color: var(--settings-text-primary);
+}
+
+.c-input-group__btn {
+  padding: var(--settings-space-sm) var(--settings-space-md);
+  background: var(--settings-bg-elevated);
+  border: 1px solid var(--settings-border);
+  border-radius: 0 var(--settings-radius) var(--settings-radius) 0;
+  color: var(--settings-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.c-input-group__btn:hover {
+  background: var(--settings-primary);
+  color: white;
+}
+
+/* =============================================================================
+   Button Group
+   ============================================================================ */
+
+.c-btn-group {
+  display: flex;
+  gap: var(--settings-space-sm);
+}
+
+.c-btn-group--stacked {
+  flex-direction: column;
+}
+
+.c-btn-group--fill > * {
+  flex: 1;
+}
+
+/* =============================================================================
+   Responsive Adjustments
+   ============================================================================ */
+
+@media (max-width: 991.98px) {
+  .c-settings-sidebar {
+    position: static;
+    margin-top: var(--settings-space-lg);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .c-settings-tabs__trigger span {
+    display: none;
+  }
+
+  .c-settings-tabs__trigger i {
+    font-size: 1.25rem;
+  }
+
+  .c-settings-card__header {
+    padding: var(--settings-space-md);
+  }
+
+  .c-settings-card__body {
+    padding: var(--settings-space-md);
+  }
+
+  .c-settings-card__icon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    font-size: 1.1rem;
+  }
+
+  .c-tips-box__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .c-notification-card__content {
+    flex-direction: column;
+  }
+}
+
+/* =============================================================================
+   Accessibility
+   ============================================================================ */
+
+.c-settings-tabs__trigger:focus-visible,
+.c-settings-btn:focus-visible,
+.c-settings-field__input:focus-visible,
+.c-color-mode__btn:focus-visible {
+  outline: 2px solid var(--settings-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .c-settings-tab--active {
+    animation: none;
+  }
+}
+
+/* =============================================================================
+   Select Dropdown Fix (remove duplicate arrows)
+   ============================================================================ */
+
+.c-settings-field__select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M4 6l4 4 4-4'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+  padding-right: 2.5rem;
+  cursor: pointer;
+}
+
+[data-style="dark"] .c-settings-field__select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M4 6l4 4 4-4'/%3e%3c/svg%3e");
+}
+
+/* Remove any native select indicators */
+.c-settings-field__select::-ms-expand {
+  display: none;
+}
+
+/* =============================================================================
+   2FA Setup Section
+   ============================================================================ */
+
+.c-2fa-setup {
+  text-align: center;
+}
+
+.c-2fa-setup__qr {
+  margin-bottom: var(--settings-space-lg);
+}
+
+.c-2fa-setup__qr img,
+.c-2fa-setup__qr canvas {
+  max-width: 200px;
+  height: auto;
+  border-radius: var(--settings-radius);
+}
+
+/* =============================================================================
+   SMS Setup Section
+   ============================================================================ */
+
+.c-sms-setup.is-hidden {
+  display: none;
+}

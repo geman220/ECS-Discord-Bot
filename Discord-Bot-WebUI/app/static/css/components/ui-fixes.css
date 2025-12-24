@@ -1,0 +1,439 @@
+/**
+ * ============================================================================
+ * UI FIXES - Comprehensive UI Bug Fixes
+ * ============================================================================
+ *
+ * This file contains targeted fixes for common UI issues across the application.
+ * Each section addresses a specific reported bug.
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. STATS GRID - Display stats inline, not one per line
+   ============================================================================ */
+
+.c-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3, 12px);
+}
+
+/* Responsive stats grid */
+@media (max-width: 768px) {
+  .c-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .c-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-2, 8px);
+  }
+}
+
+/* Compact stat item styling */
+.c-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-3, 12px);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-md, 8px);
+  gap: var(--space-1, 4px);
+}
+
+.c-stat__icon {
+  font-size: 1.25rem;
+  margin-bottom: var(--space-1, 4px);
+}
+
+.c-stat__value {
+  font-size: var(--text-xl, 1.25rem);
+  font-weight: 700;
+  color: var(--color-text-primary, #f8fafc);
+  line-height: 1;
+}
+
+.c-stat__label {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-muted, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* ============================================================================
+   2. TAB/PILL BOOTSTRAP COMPATIBILITY
+   Bootstrap uses .active class, our BEM uses .is-active
+   ============================================================================ */
+
+/* Support Bootstrap .active class alongside .is-active */
+.c-nav-modern__link.active,
+.c-nav-modern__link--active {
+  color: var(--color-primary, #2563EB);
+  background: var(--color-primary-soft, rgba(37, 99, 235, 0.1));
+  font-weight: var(--font-semibold, 600);
+}
+
+.c-nav-modern__link.active i,
+.c-nav-modern__link--active i {
+  opacity: 1;
+}
+
+/* Pills variant with Bootstrap active */
+.c-nav-modern--pills .c-nav-modern__link.active,
+.c-nav-modern--pills .c-nav-modern__link--active {
+  color: #fff;
+  background: var(--color-primary, #2563EB);
+}
+
+/* Dark mode for Bootstrap active class */
+[data-style="dark"] .c-nav-modern__link.active,
+[data-style="dark"] .c-nav-modern__link--active {
+  color: var(--color-primary-light, #60A5FA);
+  background: rgba(37, 99, 235, 0.15);
+}
+
+[data-style="dark"] .c-nav-modern--pills .c-nav-modern__link.active,
+[data-style="dark"] .c-nav-modern--pills .c-nav-modern__link--active {
+  color: #fff;
+  background: var(--color-primary, #2563EB);
+}
+
+/* Tab pane Bootstrap compatibility - CRITICAL FIX
+   The base rule MUST be included here because ui-fixes.css loads after
+   navigation-modern.css and CSS cascade order matters */
+
+/* BASE STATE: All tab panes hidden by default */
+.c-tab-pane-modern {
+  display: none;
+}
+
+/* ACTIVE STATE: Only show panes with active/show classes */
+.c-tab-pane-modern.active,
+.c-tab-pane-modern.show,
+.c-tab-pane-modern.show.active {
+  display: block;
+}
+
+/* Tab content container */
+.c-tab-content-modern {
+  margin-top: var(--space-4, 16px);
+}
+
+/* Remove bullets from nav list */
+.c-nav-modern,
+.c-nav-modern ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.c-nav-modern__item {
+  list-style: none;
+}
+
+/* ============================================================================
+   3. DROPDOWN Z-INDEX AND POSITIONING FIXES
+   ============================================================================ */
+
+/* Navbar dropdown z-index fix */
+.c-navbar-modern__dropdown {
+  z-index: var(--z-dropdown, 1000);
+  position: absolute;
+  top: 100%;
+  right: 0;
+  min-width: 280px;
+  background: var(--color-bg-elevated, #1e293b);
+  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition: all var(--duration-fast, 150ms) ease;
+}
+
+.c-navbar-modern__dropdown.is-open,
+.c-navbar-modern__dropdown[aria-hidden="false"] {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* Ensure action buttons have relative positioning for dropdown context */
+.c-navbar-modern__actions > li {
+  position: relative;
+}
+
+/* ============================================================================
+   4. SETTINGS PAGE FIXES
+   ============================================================================ */
+
+/* SMS Modal/Form positioning */
+.c-form-modern {
+  position: relative;
+  background: var(--color-bg-card, #1e293b);
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--space-4, 16px);
+}
+
+/* Ensure form is not floating */
+#smsOptInForm {
+  position: relative !important;
+  z-index: 1;
+}
+
+/* Theme picker card separation */
+.theme-selection-card {
+  position: relative;
+  background: var(--color-bg-card, #1e293b);
+  transition: all var(--duration-fast, 150ms) ease;
+}
+
+.theme-selection-card:not(:last-child) {
+  margin-bottom: var(--space-3, 12px);
+}
+
+/* Ensure theme cards don't overlap */
+[data-action="select-theme-variant"] {
+  position: relative;
+  z-index: 1;
+}
+
+/* Fix stat box text size in settings */
+.c-stat-box__value {
+  font-size: var(--text-base, 1rem);
+  font-weight: 600;
+  color: var(--color-text-primary, #f8fafc);
+}
+
+.c-stat-box__label {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-muted, #64748b);
+  display: block;
+  margin-bottom: var(--space-1, 4px);
+}
+
+.c-stat-box {
+  padding: var(--space-2, 8px);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-md, 8px);
+}
+
+/* Settings card text sizing */
+.c-settings-card__title {
+  font-size: var(--text-lg, 1.125rem);
+  font-weight: 600;
+  margin: 0;
+}
+
+.c-settings-card__subtitle {
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--color-text-muted, #64748b);
+}
+
+/* ============================================================================
+   5. DRAFT PLAYER CARDS - Reduce size for better density
+   ============================================================================ */
+
+/* Smaller card images for draft */
+.draft-player-card-header {
+  height: 120px;
+  overflow: hidden;
+}
+
+.draft-player-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+}
+
+/* Compact card body */
+.draft-player-card .card-body {
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+}
+
+/* Smaller stats in draft cards */
+.draft-stat-avg-small {
+  font-size: 0.65rem;
+  opacity: 0.8;
+}
+
+/* Make draft grid denser */
+.draft-available-container .col-xl-3 {
+  flex: 0 0 20%;
+  max-width: 20%;
+}
+
+@media (max-width: 1400px) {
+  .draft-available-container .col-xl-3 {
+    flex: 0 0 25%;
+    max-width: 25%;
+  }
+}
+
+@media (max-width: 992px) {
+  .draft-available-container .col-xl-3,
+  .draft-available-container .col-lg-4 {
+    flex: 0 0 33.333%;
+    max-width: 33.333%;
+  }
+}
+
+@media (max-width: 768px) {
+  .draft-available-container .col-xl-3,
+  .draft-available-container .col-lg-4,
+  .draft-available-container .col-md-6 {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+}
+
+/* Experience badge smaller */
+.experience-corner-tag {
+  padding: var(--space-1, 4px) var(--space-2, 8px);
+  font-size: var(--text-xs, 0.75rem);
+}
+
+/* ============================================================================
+   6. SIDEBAR ICONS FIX
+   Feather icons need to be initialized by JS - add fallback styling
+   ============================================================================ */
+
+.c-sidebar__icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.c-sidebar__icon[data-feather] {
+  opacity: 0.7;
+}
+
+/* Tabler icons in sidebar */
+.c-sidebar__icon.ti {
+  font-size: 1.125rem;
+}
+
+/* Submenu items without icons need indent */
+.c-sidebar__submenu .c-sidebar__link {
+  padding-left: calc(var(--space-4, 16px) + 28px);
+}
+
+.c-sidebar__submenu .c-sidebar__link .c-sidebar__icon {
+  margin-left: calc(-28px);
+}
+
+/* ============================================================================
+   7. MATCH HISTORY COLLAPSIBLE WEEKS
+   NOTE: Main styles moved to team-detail.css. Only keeping light mode overrides.
+   ============================================================================ */
+
+/* ============================================================================
+   8. TEAM CARDS FIX
+   ============================================================================ */
+
+.c-card-modern--team {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.c-card-modern--team .c-card-modern__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.c-card-modern--team .c-card-modern__meta {
+  flex: 1;
+}
+
+.c-card-modern--team .c-btn-modern {
+  margin-top: auto;
+}
+
+/* Team avatar styling */
+.c-team-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md, 8px);
+  flex-shrink: 0;
+}
+
+.c-team-avatar--md {
+  width: 48px;
+  height: 48px;
+}
+
+.c-team-avatar--fallback {
+  font-size: var(--text-lg, 1.125rem);
+  font-weight: 700;
+}
+
+.c-team-avatar__initial {
+  text-transform: uppercase;
+}
+
+/* ============================================================================
+   9. ICON MODERN SIZING
+   ============================================================================ */
+
+.c-icon-modern {
+  font-size: 1rem;
+  opacity: 0.7;
+}
+
+.c-icon-modern--small {
+  font-size: 0.875rem;
+}
+
+/* ============================================================================
+   10. PERFECTSCROLLBAR ERROR FIX
+   Prevent error when element doesn't exist
+   ============================================================================ */
+
+/* Add fallback styling for when PerfectScrollbar fails */
+.ps {
+  overflow: auto !important;
+}
+
+.ps:not(.ps--active-x):not(.ps--active-y) {
+  overflow: auto;
+}
+
+/* ============================================================================
+   11. LIGHT MODE OVERRIDES
+   ============================================================================ */
+
+[data-style="light"] .c-stat {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+[data-style="light"] .c-stat__value {
+  color: var(--color-text-primary, #1e293b);
+}
+
+[data-style="light"] .c-stat-box {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+[data-style="light"] .c-stat-box__value {
+  color: var(--color-text-primary, #1e293b);
+}
+
+[data-style="light"] .theme-selection-card {
+  background: var(--color-bg-primary, #fff);
+}
+
+[data-style="light"] .c-form-modern {
+  background: var(--color-bg-primary, #fff);
+}

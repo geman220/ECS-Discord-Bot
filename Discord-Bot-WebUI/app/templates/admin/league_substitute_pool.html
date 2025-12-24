@@ -3,414 +3,50 @@
 {% block title %}{{ league_config.name }} Substitute Pool{% endblock %}
 
 {% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/league-substitute-pool.css') }}">
 <style>
-    .league-header {
-        background: {{ league_config.color }};
-        color: white;
-        padding: 30px;
-        border-radius: 10px;
-        margin-bottom: 30px;
-    }
-    
-    .stats-dashboard {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 20px;
-        margin-bottom: 30px;
-    }
-    
-    .stat-card {
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        text-align: center;
-        border-left: 4px solid {{ league_config.color }};
-    }
-    
-    .stat-card .stat-number {
-        font-size: 2.5em;
-        font-weight: bold;
-        color: {{ league_config.color }};
-        margin-bottom: 10px;
-    }
-    
-    .stat-card .stat-label {
-        color: var(--ecs-neutral-50, #666);
-        font-size: 0.9em;
-    }
-    
-    .pool-management-grid {
-        display: grid;
-        grid-template-columns: 2fr 1fr;
-        gap: 30px;
-        margin-bottom: 30px;
-    }
-    
-    .pool-section {
-        background: white;
-        border-radius: 10px;
-        padding: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    
-    .pool-section h3 {
-        margin-bottom: 20px;
-        padding-bottom: 10px;
-        border-bottom: 2px solid #eee;
-    }
-    
-    .player-grid {
-        display: grid;
-        gap: 15px;
-    }
-    
-    .player-card {
-        background: var(--ecs-neutral-5, #f8f9fa);
-        border: 1px solid var(--ecs-neutral-20, #ddd);
-        border-radius: 8px;
-        padding: 15px;
-        transition: all 0.3s ease;
-    }
-    
-    .player-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-    
-    .player-card.dragging {
-        opacity: 0.6;
-        transform: rotate(3deg);
-    }
-    
-    .player-info {
-        display: flex;
-        justify-content: between;
-        align-items: flex-start;
-        margin-bottom: 10px;
-    }
-    
-    .player-details {
-        flex: 1;
-    }
-    
-    .player-name {
-        font-weight: bold;
-        font-size: 1.1em;
-        margin-bottom: 5px;
-    }
-    
-    .player-meta {
-        font-size: 0.9em;
-        color: #666;
-    }
-    
-    .player-stats {
-        display: flex;
-        gap: 15px;
-        margin: 10px 0;
-    }
-    
-    .player-stat {
-        text-align: center;
-        background: white;
-        padding: 8px 12px;
-        border-radius: 6px;
-        border: 1px solid #ddd;
-    }
-    
-    .player-stat .stat-value {
-        font-weight: bold;
-        color: {{ league_config.color }};
-    }
-    
-    .player-stat .stat-label {
-        font-size: 0.8em;
-        color: #666;
-    }
-    
-    .player-actions {
-        display: flex;
-        gap: 8px;
-        margin-top: 10px;
-    }
-    
-    .notification-preferences {
-        display: flex;
-        gap: 5px;
-        margin-top: 8px;
-    }
-    
-    .notification-badge {
-        padding: 3px 8px;
-        border-radius: 12px;
-        font-size: 0.8em;
-        font-weight: bold;
-    }
-    
-    .notification-badge.sms {
-        background: var(--ecs-success, #28a745);
-        color: white;
+    /* Dynamic league color theming - cannot be extracted to CSS as it's server-side generated */
+    :root {
+        --league-color: {{ league_config.color }};
     }
 
-    .notification-badge.discord {
-        background: #7289da; /* Discord brand color - intentional */
-        color: white;
+    .league-pool-header {
+        background: var(--league-color);
     }
 
-    .notification-badge.email {
-        background: var(--ecs-info, #17a2b8);
-        color: white;
+    .league-pool-stat-card {
+        border-left-color: var(--league-color);
     }
-    
-    .drag-zone {
-        min-height: 200px;
-        border: 2px dashed var(--ecs-neutral-20, #ddd);
-        border-radius: 8px;
-        padding: 20px;
-        text-align: center;
-        color: var(--ecs-neutral-50, #666);
-        background: var(--ecs-neutral-5, #f9f9f9);
-        transition: all 0.3s ease;
+
+    .league-pool-stat-number,
+    .league-pool-stat-value {
+        color: var(--league-color);
     }
-    
-    .drag-zone.drag-over {
-        border-color: {{ league_config.color }};
-        background: {{ league_config.color }}15;
+
+    .league-pool-drag-zone.league-pool-drag-over {
+        border-color: var(--league-color);
+        background: color-mix(in srgb, var(--league-color) 8%, transparent);
     }
-    
-    .drag-zone.has-players {
-        border-style: solid;
-        border-color: #ddd;
+
+    .league-pool-activity-action {
+        color: var(--league-color);
     }
-    
-    .empty-state {
-        text-align: center;
-        padding: 40px;
-        color: #999;
+
+    [data-style="dark"] .league-pool-header {
+        background: var(--league-color);
     }
-    
-    .empty-state i {
-        font-size: 3em;
-        margin-bottom: 20px;
-        color: #ddd;
+
+    [data-style="dark"] .league-pool-stat-card {
+        border-left-color: var(--league-color);
     }
-    
-    .activity-feed {
-        max-height: 400px;
-        overflow-y: auto;
+
+    [data-style="dark"] .league-pool-stat-number,
+    [data-style="dark"] .league-pool-stat-value {
+        color: var(--league-color);
     }
-    
-    .activity-item {
-        padding: 10px 0;
-        border-bottom: 1px solid #eee;
-    }
-    
-    .activity-item:last-child {
-        border-bottom: none;
-    }
-    
-    .activity-action {
-        font-weight: bold;
-        color: {{ league_config.color }};
-    }
-    
-    .activity-time {
-        font-size: 0.9em;
-        color: #666;
-    }
-    
-    .search-add-section {
-        background: var(--ecs-neutral-5, #f8f9fa);
-        border-radius: 8px;
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-    
-    .search-results {
-        max-height: 300px;
-        overflow-y: auto;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        background: white;
-        margin-top: 10px;
-        display: none;
-    }
-    
-    .search-result-item {
-        padding: 12px;
-        border-bottom: 1px solid #eee;
-        cursor: pointer;
-        transition: background 0.2s;
-    }
-    
-    .search-result-item:hover {
-        background: var(--ecs-neutral-5, #f8f9fa);
-    }
-    
-    .search-result-item:last-child {
-        border-bottom: none;
-    }
-    
-    .breadcrumb {
-        background: transparent;
-        padding: 0;
-        margin-bottom: 20px;
-    }
-    
-    .breadcrumb-item + .breadcrumb-item::before {
-        content: ">";
-        color: #666;
-    }
-    
-    .performance-chart {
-        height: 300px;
-        margin-top: 20px;
-    }
-    
-    @media (max-width: 768px) {
-        .pool-management-grid {
-            grid-template-columns: 1fr;
-        }
-        
-        .stats-dashboard {
-            grid-template-columns: repeat(2, 1fr);
-        }
-        
-        .player-stats {
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .player-actions {
-            flex-direction: column;
-        }
-    }
-    
-    /* Dark mode styling */
-    [data-bs-theme="dark"] .league-header,
-    html[data-style="dark"] .league-header {
-        background: {{ league_config.color }} !important;
-        color: var(--ecs-neutral-10) !important;
-    }
-    
-    [data-bs-theme="dark"] .stat-card,
-    html[data-style="dark"] .stat-card {
-        background: var(--ecs-bg-section) !important;
-        color: var(--ecs-text-primary) !important;
-        border-left-color: {{ league_config.color }} !important;
-    }
-    
-    [data-bs-theme="dark"] .stat-card .stat-number,
-    html[data-style="dark"] .stat-card .stat-number {
-        color: {{ league_config.color }} !important;
-    }
-    
-    [data-bs-theme="dark"] .stat-card .stat-label,
-    html[data-style="dark"] .stat-card .stat-label {
-        color: var(--ecs-text-secondary) !important;
-    }
-    
-    [data-bs-theme="dark"] .pool-section,
-    html[data-style="dark"] .pool-section {
-        background: var(--ecs-bg-section) !important;
-        color: var(--ecs-text-primary) !important;
-    }
-    
-    [data-bs-theme="dark"] .pool-section h3,
-    html[data-style="dark"] .pool-section h3 {
-        color: var(--ecs-text-primary) !important;
-        border-bottom-color: var(--ecs-border-color) !important;
-    }
-    
-    [data-bs-theme="dark"] .player-card,
-    html[data-style="dark"] .player-card {
-        background: var(--ecs-bg-card) !important;
-        border-color: var(--ecs-border-color) !important;
-        color: var(--ecs-text-primary) !important;
-    }
-    
-    [data-bs-theme="dark"] .player-name,
-    html[data-style="dark"] .player-name {
-        color: var(--ecs-text-primary) !important;
-    }
-    
-    [data-bs-theme="dark"] .player-meta,
-    html[data-style="dark"] .player-meta {
-        color: var(--ecs-text-secondary) !important;
-    }
-    
-    [data-bs-theme="dark"] .player-stat,
-    html[data-style="dark"] .player-stat {
-        background: var(--ecs-bg-light) !important;
-        border-color: var(--ecs-border-color) !important;
-        color: var(--ecs-text-primary) !important;
-    }
-    
-    [data-bs-theme="dark"] .player-stat .stat-value,
-    html[data-style="dark"] .player-stat .stat-value {
-        color: {{ league_config.color }} !important;
-    }
-    
-    [data-bs-theme="dark"] .player-stat .stat-label,
-    html[data-style="dark"] .player-stat .stat-label {
-        color: var(--ecs-text-secondary) !important;
-    }
-    
-    [data-bs-theme="dark"] .drag-zone,
-    html[data-style="dark"] .drag-zone {
-        background: var(--ecs-bg-light) !important;
-        border-color: var(--ecs-border-color) !important;
-        color: var(--ecs-text-secondary) !important;
-    }
-    
-    [data-bs-theme="dark"] .search-add-section,
-    html[data-style="dark"] .search-add-section {
-        background: var(--ecs-bg-light) !important;
-        color: var(--ecs-text-primary) !important;
-    }
-    
-    [data-bs-theme="dark"] .search-results,
-    html[data-style="dark"] .search-results {
-        background: var(--ecs-bg-section) !important;
-        border-color: var(--ecs-border-color) !important;
-    }
-    
-    [data-bs-theme="dark"] .search-result-item,
-    html[data-style="dark"] .search-result-item {
-        color: var(--ecs-text-primary) !important;
-        border-bottom-color: var(--ecs-border-color) !important;
-    }
-    
-    [data-bs-theme="dark"] .search-result-item:hover,
-    html[data-style="dark"] .search-result-item:hover {
-        background: var(--ecs-bg-hover) !important;
-    }
-    
-    [data-bs-theme="dark"] .activity-item,
-    html[data-style="dark"] .activity-item {
-        color: var(--ecs-text-primary) !important;
-        border-bottom-color: var(--ecs-border-color) !important;
-    }
-    
-    [data-bs-theme="dark"] .activity-action,
-    html[data-style="dark"] .activity-action {
-        color: {{ league_config.color }} !important;
-    }
-    
-    [data-bs-theme="dark"] .activity-time,
-    html[data-style="dark"] .activity-time {
-        color: var(--ecs-text-secondary) !important;
-    }
-    
-    [data-bs-theme="dark"] .empty-state,
-    html[data-style="dark"] .empty-state {
-        color: var(--ecs-text-muted) !important;
-    }
-    
-    [data-bs-theme="dark"] .empty-state i,
-    html[data-style="dark"] .empty-state i {
-        color: var(--ecs-text-muted) !important;
+
+    [data-style="dark"] .league-pool-activity-action {
+        color: var(--league-color);
     }
 </style>
 {% endblock %}
@@ -419,92 +55,92 @@
 <div class="container-fluid">
     <!-- Breadcrumb -->
     <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
+        <ol class="breadcrumb league-pool-breadcrumb">
+            <li class="breadcrumb-item league-pool-breadcrumb-item">
                 <a href="{{ url_for('admin.substitute_pool.manage_substitute_pools') }}">Substitute Pools</a>
             </li>
-            <li class="breadcrumb-item active">{{ league_config.name }}</li>
+            <li class="breadcrumb-item league-pool-breadcrumb-item active">{{ league_config.name }}</li>
         </ol>
     </nav>
-    
+
     <!-- League Header -->
-    <div class="league-header">
+    <div class="league-pool-header">
         <div class="row align-items-center">
             <div class="col-md-8">
                 <h1><i class="{{ league_config.icon }}"></i> {{ league_config.name }} Substitute Pool</h1>
                 <p class="mb-0">Manage substitute players for {{ league_config.name }} matches</p>
             </div>
             <div class="col-md-4 text-right">
-                <button class="btn btn-light btn-lg" id="refreshPool">
+                <button class="c-btn c-btn--light c-btn--lg" id="refreshPool">
                     <i class="fas fa-sync"></i> Refresh
                 </button>
             </div>
         </div>
     </div>
-    
+
     <!-- Statistics Dashboard -->
-    <div class="stats-dashboard">
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.total_active }}</div>
-            <div class="stat-label">Active Substitutes</div>
+    <div class="league-pool-stats">
+        <div class="league-pool-stat-card">
+            <div class="league-pool-stat-number">{{ stats.total_active }}</div>
+            <div class="league-pool-stat-label">Active Substitutes</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.pending_approval }}</div>
-            <div class="stat-label">Pending Approval</div>
+        <div class="league-pool-stat-card">
+            <div class="league-pool-stat-number">{{ stats.pending_approval }}</div>
+            <div class="league-pool-stat-label">Pending Approval</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.total_requests_sent }}</div>
-            <div class="stat-label">Total Requests Sent</div>
+        <div class="league-pool-stat-card">
+            <div class="league-pool-stat-number">{{ stats.total_requests_sent }}</div>
+            <div class="league-pool-stat-label">Total Requests Sent</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.total_matches_played }}</div>
-            <div class="stat-label">Matches Played</div>
+        <div class="league-pool-stat-card">
+            <div class="league-pool-stat-number">{{ stats.total_matches_played }}</div>
+            <div class="league-pool-stat-label">Matches Played</div>
         </div>
     </div>
-    
+
     <!-- Pool Management Grid -->
-    <div class="pool-management-grid">
+    <div class="league-pool-grid">
         <!-- Main Pool Management -->
-        <div class="pool-section">
+        <div class="league-pool-section">
             <h3><i class="fas fa-users"></i> Pool Management</h3>
-            
+
             <!-- Search and Add Players -->
-            <div class="search-add-section">
+            <div class="league-pool-search-section">
                 <h5>Add Players to Pool</h5>
                 <div class="row">
                     <div class="col-md-8">
                         <input type="text" id="playerSearch" class="form-control" 
                                placeholder="Search players by name, email, or Discord ID..."
-                               data-league="{{ league_type }}">
+                               data-league="{{ league_type }}" data-form-control>
                     </div>
                     <div class="col-md-4">
-                        <button class="btn btn-primary btn-block" id="searchPlayers">
+                        <button class="c-btn c-btn--primary c-btn--block" id="searchPlayers">
                             <i class="fas fa-search"></i> Search
                         </button>
                     </div>
                 </div>
-                <div id="searchResults" class="search-results"></div>
+                <div id="searchResults" class="league-pool-search-results"></div>
             </div>
-            
+
             <!-- Available Players (Pending Approval) -->
             <div class="mb-4">
                 <h5>
                     <i class="fas fa-clock text-warning"></i> 
                     Pending Approval ({{ available_players|length }})
                 </h5>
-                
-                <div class="drag-zone pending-zone" data-status="pending">
+
+                <div class="league-pool-drag-zone pending-zone" data-status="pending">
                     {% if available_players %}
-                        <div class="player-grid">
+                        <div class="league-pool-player-grid">
                             {% for player in available_players %}
-                            <div class="player-card" 
+                            <div class="league-pool-player-card"
                                  draggable="true"
                                  data-player-id="{{ player.id }}"
                                  data-player-name="{{ player.name }}">
-                                <div class="player-info">
-                                    <div class="player-details">
-                                        <div class="player-name">{{ player.name }}</div>
-                                        <div class="player-meta">
+                                <div class="league-pool-player-info">
+                                    <div class="league-pool-player-details">
+                                        <div class="league-pool-player-name">{{ player.name }}</div>
+                                        <div class="league-pool-player-meta">
                                             <i class="fas fa-envelope"></i> {{ player.user.email if player.user else 'No email' }}
                                             {% if player.discord_id %}
                                             <br><i class="fab fa-discord"></i> {{ player.discord_id }}
@@ -514,15 +150,18 @@
                                             {% endif %}
                                         </div>
                                     </div>
-                                    <span class="badge badge-warning">Pending</span>
+                                    <span class="badge badge-warning" data-badge>Pending</span>
                                 </div>
-                                
-                                <div class="player-actions">
-                                    <button class="btn btn-success btn-sm approve-player" 
-                                            data-player-id="{{ player.id }}">
+
+                                <div class="league-pool-player-actions">
+                                    <button class="c-btn c-btn--success c-btn--sm"
+                                            data-action="approve-pool-player"
+                                            data-player-id="{{ player.id }}"
+                                            data-league="{{ league_type }}">
                                         <i class="fas fa-check"></i> Approve
                                     </button>
-                                    <button class="btn btn-info btn-sm player-details" 
+                                    <button class="c-btn c-btn--info c-btn--sm"
+                                            data-action="view-pool-player-details"
                                             data-player-id="{{ player.id }}">
                                         <i class="fas fa-info"></i> Details
                                     </button>
@@ -531,7 +170,7 @@
                             {% endfor %}
                         </div>
                     {% else %}
-                        <div class="empty-state">
+                        <div class="league-pool-empty">
                             <i class="fas fa-user-plus"></i>
                             <p>No players pending approval</p>
                             <small>Players with the "{{ league_config.role }}" role will appear here</small>
@@ -546,19 +185,19 @@
                     <i class="fas fa-check-circle text-success"></i> 
                     Active Pool ({{ active_pools|length }})
                 </h5>
-                
-                <div class="drag-zone active-zone" data-status="active">
+
+                <div class="league-pool-drag-zone active-zone" data-status="active">
                     {% if active_pools %}
-                        <div class="player-grid">
+                        <div class="league-pool-player-grid">
                             {% for pool in active_pools %}
-                            <div class="player-card" 
+                            <div class="league-pool-player-card"
                                  draggable="true"
                                  data-player-id="{{ pool.player_id }}"
                                  data-player-name="{{ pool.player.name }}">
-                                <div class="player-info">
-                                    <div class="player-details">
-                                        <div class="player-name">{{ pool.player.name }}</div>
-                                        <div class="player-meta">
+                                <div class="league-pool-player-info">
+                                    <div class="league-pool-player-details">
+                                        <div class="league-pool-player-name">{{ pool.player.name }}</div>
+                                        <div class="league-pool-player-meta">
                                             <i class="fas fa-envelope"></i> {{ pool.player.user.email if pool.player.user else 'No email' }}
                                             {% if pool.preferred_positions %}
                                             <br><i class="fas fa-running"></i> {{ pool.preferred_positions }}
@@ -568,43 +207,47 @@
                                             {% endif %}
                                         </div>
                                     </div>
-                                    <span class="badge badge-success">Active</span>
+                                    <span class="badge badge-success" data-badge>Active</span>
                                 </div>
-                                
-                                <div class="player-stats">
-                                    <div class="player-stat">
-                                        <div class="stat-value">{{ pool.requests_received }}</div>
-                                        <div class="stat-label">Requests</div>
+
+                                <div class="league-pool-player-stats">
+                                    <div class="league-pool-player-stat">
+                                        <div class="league-pool-stat-value">{{ pool.requests_received }}</div>
+                                        <div class="league-pool-stat-value-label">Requests</div>
                                     </div>
-                                    <div class="player-stat">
-                                        <div class="stat-value">{{ pool.matches_played }}</div>
-                                        <div class="stat-label">Matches</div>
+                                    <div class="league-pool-player-stat">
+                                        <div class="league-pool-stat-value">{{ pool.matches_played }}</div>
+                                        <div class="league-pool-stat-value-label">Matches</div>
                                     </div>
-                                    <div class="player-stat">
-                                        <div class="stat-value">{{ "%.0f"|format(pool.acceptance_rate) }}%</div>
-                                        <div class="stat-label">Accept Rate</div>
+                                    <div class="league-pool-player-stat">
+                                        <div class="league-pool-stat-value">{{ "%.0f"|format(pool.acceptance_rate) }}%</div>
+                                        <div class="league-pool-stat-value-label">Accept Rate</div>
                                     </div>
                                 </div>
-                                
-                                <div class="notification-preferences">
+
+                                <div class="league-pool-notification-prefs">
                                     {% if pool.sms_for_sub_requests %}
-                                    <span class="notification-badge sms">SMS</span>
+                                    <span class="league-pool-notification-badge league-pool-notification-sms" data-badge>SMS</span>
                                     {% endif %}
                                     {% if pool.discord_for_sub_requests %}
-                                    <span class="notification-badge discord">Discord</span>
+                                    <span class="league-pool-notification-badge league-pool-notification-discord" data-badge>Discord</span>
                                     {% endif %}
                                     {% if pool.email_for_sub_requests %}
-                                    <span class="notification-badge email">Email</span>
+                                    <span class="league-pool-notification-badge league-pool-notification-email" data-badge>Email</span>
                                     {% endif %}
                                 </div>
-                                
-                                <div class="player-actions">
-                                    <button class="btn btn-warning btn-sm remove-player" 
-                                            data-player-id="{{ pool.player_id }}">
+
+                                <div class="league-pool-player-actions">
+                                    <button class="c-btn c-btn--warning c-btn--sm"
+                                            data-action="remove-pool-player"
+                                            data-player-id="{{ pool.player_id }}"
+                                            data-league="{{ league_type }}">
                                         <i class="fas fa-times"></i> Remove
                                     </button>
-                                    <button class="btn btn-info btn-sm edit-preferences" 
-                                            data-player-id="{{ pool.player_id }}">
+                                    <button class="c-btn c-btn--info c-btn--sm"
+                                            data-action="edit-pool-preferences"
+                                            data-player-id="{{ pool.player_id }}"
+                                            data-league="{{ league_type }}">
                                         <i class="fas fa-edit"></i> Edit
                                     </button>
                                 </div>
@@ -612,7 +255,7 @@
                             {% endfor %}
                         </div>
                     {% else %}
-                        <div class="empty-state">
+                        <div class="league-pool-empty">
                             <i class="fas fa-users"></i>
                             <p>No active substitutes</p>
                             <small>Drag players from the pending section to activate them</small>
@@ -621,29 +264,29 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Sidebar -->
-        <div class="pool-section">
+        <div class="league-pool-section">
             <h3><i class="fas fa-chart-line"></i> Analytics & Activity</h3>
-            
+
             <!-- Performance Chart -->
-            <div class="performance-chart">
+            <div class="league-pool-chart">
                 <canvas id="performanceChart"></canvas>
             </div>
-            
+
             <!-- Recent Activity -->
             <div class="mt-4">
                 <h5><i class="fas fa-history"></i> Recent Activity</h5>
-                <div class="activity-feed">
+                <div class="league-pool-activity-feed">
                     {% if recent_activity %}
                         {% for activity in recent_activity %}
-                        <div class="activity-item">
-                            <div class="activity-action">{{ activity.action }}</div>
+                        <div class="league-pool-activity-item">
+                            <div class="league-pool-activity-action">{{ activity.action }}</div>
                             <div>{{ activity.pool.player.name if activity.pool and activity.pool.player else 'Unknown Player' }}</div>
                             {% if activity.notes %}
                             <div class="text-muted">{{ activity.notes }}</div>
                             {% endif %}
-                            <div class="activity-time">
+                            <div class="league-pool-activity-time">
                                 {{ activity.performed_at.strftime('%b %d, %Y at %I:%M %p') }}
                                 {% if activity.performer %}
                                 by {{ activity.performer.display_name }}
@@ -652,7 +295,7 @@
                         </div>
                         {% endfor %}
                     {% else %}
-                        <div class="empty-state">
+                        <div class="league-pool-empty">
                             <i class="fas fa-history"></i>
                             <p>No recent activity</p>
                         </div>
@@ -664,13 +307,13 @@
             <div class="mt-4">
                 <h5><i class="fas fa-bolt"></i> Quick Actions</h5>
                 <div class="d-grid gap-2">
-                    <button class="btn btn-outline-primary" id="exportPoolData">
+                    <button class="c-btn c-btn--outline-primary" id="exportPoolData">
                         <i class="fas fa-download"></i> Export Pool Data
                     </button>
-                    <button class="btn btn-outline-info" id="sendPoolReminder">
+                    <button class="c-btn c-btn--outline-info" id="sendPoolReminder">
                         <i class="fas fa-bell"></i> Send Pool Reminder
                     </button>
-                    <button class="btn btn-outline-warning" id="viewPoolHistory">
+                    <button class="c-btn c-btn--outline-warning" id="viewPoolHistory">
                         <i class="fas fa-history"></i> View Full History
                     </button>
                 </div>
@@ -680,29 +323,29 @@
 </div>
 
 <!-- Edit Preferences Modal -->
-<div class="modal fade" id="editPreferencesModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Edit Substitute Preferences</h5>
+<div class="modal c-modal fade" data-modal id="league-sub-pool-editPreferencesModal" tabindex="-1" aria-labelledby="league-sub-pool-editPreferencesModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="league-sub-pool-editPreferencesModalLabel">Edit Substitute Preferences</h5>
                 <button type="button" class="close" data-dismiss="modal">
                     <span>&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <form id="preferencesForm">
                     <input type="hidden" id="editPlayerId" name="player_id">
                     
                     <div class="form-group">
                         <label>Preferred Positions</label>
                         <input type="text" class="form-control" id="editPositions" name="preferred_positions" 
-                               placeholder="e.g., Forward, Midfielder">
+                               placeholder="e.g., Forward, Midfielder" data-form-control>
                     </div>
                     
                     <div class="form-group">
                         <label>Max Matches Per Week</label>
                         <input type="number" class="form-control" id="editMaxMatches" name="max_matches_per_week" 
-                               min="1" max="10" value="3">
+                               min="1" max="10" value="3" data-form-control>
                     </div>
                     
                     <div class="form-group">
@@ -730,29 +373,29 @@
                     <div class="form-group">
                         <label>Notes</label>
                         <textarea class="form-control" id="editNotes" name="notes" rows="3" 
-                                  placeholder="Any additional notes about this substitute..."></textarea>
+                                  placeholder="Any additional notes about this substitute..." data-form-control></textarea>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="savePreferences">Save Changes</button>
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="c-btn c-btn--primary" data-action="save-pool-preferences">Save Changes</button>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Player Details Modal -->
-<div class="modal fade" id="playerDetailsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Player Details</h5>
+<div class="modal c-modal fade" data-modal id="playerDetailsModal" tabindex="-1" aria-labelledby="playerDetailsModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="playerDetailsModalLabel">Player Details</h5>
                 <button type="button" class="close" data-dismiss="modal">
                     <span>&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <div id="playerDetailsContent">
                     <!-- Content will be loaded via AJAX -->
                 </div>
@@ -763,349 +406,47 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-$(document).ready(function() {
-    // Initialize the page
-    initializeDragAndDrop();
-    initializeEventHandlers();
-    initializeChart();
-    
-    // Page-specific variables
-    const leagueType = '{{ league_type }}';
-    const leagueColor = '{{ league_config.color }}';
-});
-
-function initializeDragAndDrop() {
-    // Make player cards draggable
-    $('.player-card').each(function() {
-        $(this).on('dragstart', function(e) {
-            $(this).addClass('dragging');
-            e.originalEvent.dataTransfer.setData('text/plain', JSON.stringify({
-                playerId: $(this).data('player-id'),
-                playerName: $(this).data('player-name')
-            }));
-        });
-        
-        $(this).on('dragend', function(e) {
-            $(this).removeClass('dragging');
-        });
-    });
-    
-    // Make zones droppable
-    $('.drag-zone').each(function() {
-        $(this).on('dragover', function(e) {
-            e.preventDefault();
-            $(this).addClass('drag-over');
-        });
-        
-        $(this).on('dragleave', function(e) {
-            $(this).removeClass('drag-over');
-        });
-        
-        $(this).on('drop', function(e) {
-            e.preventDefault();
-            $(this).removeClass('drag-over');
-            
-            const data = JSON.parse(e.originalEvent.dataTransfer.getData('text/plain'));
-            const targetStatus = $(this).data('status');
-            
-            if (targetStatus === 'active') {
-                approvePlayer(data.playerId);
-            } else if (targetStatus === 'pending') {
-                removePlayer(data.playerId);
-            }
-        });
-    });
-}
-
-function initializeEventHandlers() {
-    // Approve player
-    $(document).on('click', '.approve-player', function() {
-        const playerId = $(this).data('player-id');
-        approvePlayer(playerId);
-    });
-    
-    // Remove player
-    $(document).on('click', '.remove-player', function() {
-        const playerId = $(this).data('player-id');
-        if (confirm('Are you sure you want to remove this player from the substitute pool?')) {
-            removePlayer(playerId);
-        }
-    });
-    
-    // Edit preferences
-    $(document).on('click', '.edit-preferences', function() {
-        const playerId = $(this).data('player-id');
-        openEditPreferencesModal(playerId);
-    });
-    
-    // Player details
-    $(document).on('click', '.player-details', function() {
-        const playerId = $(this).data('player-id');
-        openPlayerDetailsModal(playerId);
-    });
-    
-    // Search players
-    $('#searchPlayers').on('click', function() {
-        performSearch();
-    });
-    
-    $('#playerSearch').on('keypress', function(e) {
-        if (e.which === 13) {
-            performSearch();
-        }
-    });
-    
-    // Save preferences
-    $('#savePreferences').on('click', function() {
-        savePreferences();
-    });
-    
-    // Quick actions
-    $('#refreshPool').on('click', function() {
-        location.reload();
-    });
-    
-    $('#exportPoolData').on('click', function() {
-        exportPoolData();
-    });
-    
-    $('#sendPoolReminder').on('click', function() {
-        sendPoolReminder();
-    });
-    
-    $('#viewPoolHistory').on('click', function() {
-        viewPoolHistory();
-    });
-}
-
-function initializeChart() {
-    const ctx = document.getElementById('performanceChart').getContext('2d');
-    
-    // Sample data - in real implementation, this would come from the server
-    const chartData = {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-        datasets: [{
-            label: 'Substitute Requests',
-            data: [12, 19, 3, 5, 2, 3],
-            backgroundColor: 'rgba(52, 152, 219, 0.1)',
-            borderColor: '{{ league_config.color }}',
-            borderWidth: 2,
-            fill: true
-        }]
+    // Page-specific configuration passed to substitute-pool-management.js
+    window.LEAGUE_CONFIG = {
+        leagueType: '{{ league_type }}',
+        leagueColor: '{{ league_config.color }}'
     };
-    
-    new Chart(ctx, {
-        type: 'line',
-        data: chartData,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true
+</script>
+<script src="{{ url_for('static', filename='custom_js/substitute-pool-management.js') }}"></script>
+<script>
+    // Initialize chart with league-specific data
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('performanceChart');
+        if (ctx) {
+            const chartData = {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Substitute Requests',
+                    data: [12, 19, 3, 5, 2, 3],
+                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    borderColor: '{{ league_config.color }}',
+                    borderWidth: 2,
+                    fill: true
+                }]
+            };
+
+            new Chart(ctx.getContext('2d'), {
+                type: 'line',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
                 }
-            }
+            });
         }
     });
-}
-
-function performSearch() {
-    const query = $('#playerSearch').val().trim();
-    
-    if (query.length < 2) {
-        showAlert('error', 'Please enter at least 2 characters to search');
-        return;
-    }
-    
-    $.ajax({
-        url: '/api/substitute-pools/player-search',
-        method: 'GET',
-        data: {
-            q: query,
-            league_type: '{{ league_type }}'
-        },
-        success: function(response) {
-            if (response.success) {
-                displaySearchResults(response.players);
-            } else {
-                showAlert('error', response.message);
-            }
-        },
-        error: function() {
-            showAlert('error', 'Search failed. Please try again.');
-        }
-    });
-}
-
-function displaySearchResults(players) {
-    const resultsContainer = $('#searchResults');
-    resultsContainer.empty();
-    
-    if (players.length === 0) {
-        resultsContainer.html('<div class="search-result-item">No players found</div>');
-    } else {
-        players.forEach(function(player) {
-            const canAdd = player.can_add_to.includes('{{ league_type }}');
-            const item = $(`
-                <div class="search-result-item">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>${player.name}</strong>
-                            <br><small class="text-muted">${player.email || 'No email'}</small>
-                        </div>
-                        <div>
-                            ${canAdd ? 
-                                `<button class="btn btn-sm btn-success add-player" data-player-id="${player.id}">
-                                    <i class="fas fa-plus"></i> Add to Pool
-                                 </button>` : 
-                                '<small class="text-muted">Already in pool</small>'
-                            }
-                        </div>
-                    </div>
-                </div>
-            `);
-            
-            resultsContainer.append(item);
-        });
-    }
-    
-    resultsContainer.show();
-}
-
-function approvePlayer(playerId) {
-    $.ajax({
-        url: `/admin/substitute-pools/{{ league_type }}/add-player`,
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({
-            player_id: playerId,
-            sms_notifications: true,
-            discord_notifications: true,
-            email_notifications: true
-        }),
-        success: function(response) {
-            if (response.success) {
-                showAlert('success', response.message);
-                setTimeout(function() {
-                    location.reload();
-                }, 1500);
-            } else {
-                showAlert('error', response.message);
-            }
-        },
-        error: function() {
-            showAlert('error', 'Failed to approve player. Please try again.');
-        }
-    });
-}
-
-function removePlayer(playerId) {
-    $.ajax({
-        url: `/admin/substitute-pools/{{ league_type }}/remove-player`,
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({
-            player_id: playerId
-        }),
-        success: function(response) {
-            if (response.success) {
-                showAlert('success', response.message);
-                setTimeout(function() {
-                    location.reload();
-                }, 1500);
-            } else {
-                showAlert('error', response.message);
-            }
-        },
-        error: function() {
-            showAlert('error', 'Failed to remove player. Please try again.');
-        }
-    });
-}
-
-function openEditPreferencesModal(playerId) {
-    $('#editPlayerId').val(playerId);
-    $('#editPreferencesModal').modal('show');
-}
-
-function openPlayerDetailsModal(playerId) {
-    $('#playerDetailsContent').html('<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>');
-    $('#playerDetailsModal').modal('show');
-}
-
-function savePreferences() {
-    const formData = {
-        player_id: $('#editPlayerId').val(),
-        preferred_positions: $('#editPositions').val(),
-        max_matches_per_week: $('#editMaxMatches').val(),
-        sms_notifications: $('#editSmsNotifications').is(':checked'),
-        discord_notifications: $('#editDiscordNotifications').is(':checked'),
-        email_notifications: $('#editEmailNotifications').is(':checked'),
-        notes: $('#editNotes').val()
-    };
-    
-    $.ajax({
-        url: `/admin/substitute-pools/{{ league_type }}/update-preferences`,
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify(formData),
-        success: function(response) {
-            if (response.success) {
-                showAlert('success', response.message);
-                $('#editPreferencesModal').modal('hide');
-                setTimeout(function() {
-                    location.reload();
-                }, 1500);
-            } else {
-                showAlert('error', response.message);
-            }
-        },
-        error: function() {
-            showAlert('error', 'Failed to save preferences. Please try again.');
-        }
-    });
-}
-
-function exportPoolData() {
-    // Implementation for exporting pool data
-    showAlert('info', 'Export functionality coming soon!');
-}
-
-function sendPoolReminder() {
-    // Implementation for sending pool reminder
-    showAlert('info', 'Pool reminder functionality coming soon!');
-}
-
-function viewPoolHistory() {
-    // Implementation for viewing pool history
-    showAlert('info', 'Full history view coming soon!');
-}
-
-// Add player from search results
-$(document).on('click', '.add-player', function() {
-    const playerId = $(this).data('player-id');
-    approvePlayer(playerId);
-});
-
-function showAlert(type, message) {
-    const alertClass = type === 'error' ? 'alert-danger' : `alert-${type}`;
-    const alertHtml = `
-        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
-            ${message}
-            <button type="button" class="close" data-dismiss="alert">
-                <span>&times;</span>
-            </button>
-        </div>
-    `;
-    
-    $('.alert').remove();
-    $('body').prepend(alertHtml);
-    
-    setTimeout(function() {
-        $('.alert').alert('close');
-    }, 5000);
-}
 </script>
 {% endblock %}

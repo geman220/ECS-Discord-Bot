@@ -1,0 +1,2072 @@
+/**
+ * ============================================================================
+ * ECS NAVIGATION COMPONENTS - Complete Navigation System
+ * ============================================================================
+ *
+ * Comprehensive navigation component library providing consistent navigation
+ * patterns across the application. Includes navbar, breadcrumbs, tabs,
+ * pagination, and sidebar navigation with full responsive support.
+ *
+ * FEATURES:
+ *   - Mobile-first responsive design
+ *   - WCAG AA accessibility compliance
+ *   - Touch-friendly targets (44px minimum)
+ *   - Smooth transitions and animations
+ *   - Dark mode support
+ *   - Bootstrap class compatibility
+ *   - Zero !important declarations
+ *
+ * COMPONENTS:
+ *   1. Navbar (Primary navigation bar)
+ *   2. Breadcrumbs (Hierarchical navigation)
+ *   3. Tabs (Horizontal and vertical)
+ *   4. Pagination (Page navigation)
+ *   5. Sidebar Navigation (Collapsible menus)
+ *   6. Mobile Navigation (Responsive patterns)
+ *
+ * TOKEN USAGE:
+ *   - Colors: --color-*, --border-color-*, --color-bg-*, --color-text-*
+ *   - Spacing: --space-*, --space-stack-*, --space-inline-*
+ *   - Borders: --radius-*, --border-width
+ *   - Shadows: --shadow-*, --shadow-focus
+ *   - Transitions: --duration-*, --ease-*
+ *   - Typography: --text-*, --font-*, --leading-*
+ *
+ * ACCESSIBILITY:
+ *   - Keyboard navigation support
+ *   - Focus-visible states
+ *   - ARIA-compatible structure
+ *   - Screen reader optimized
+ *   - Touch target compliance
+ *
+ * BROWSER SUPPORT:
+ *   - Modern browsers (Chrome, Firefox, Safari, Edge)
+ *   - Mobile browsers (iOS Safari, Chrome Mobile)
+ *   - Progressive enhancement approach
+ *
+ * ============================================================================
+ */
+
+
+/* ============================================================================
+   1. NAVBAR - Primary Navigation Bar
+   Top-level navigation component with responsive collapse
+   ============================================================================ */
+
+/* --------------------------------------------------------------------------
+   1.1 Base Navbar Structure
+   -------------------------------------------------------------------------- */
+
+.navbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-bg-primary);
+  border-bottom: var(--border-width) solid var(--border-color-primary);
+  position: relative;
+  z-index: var(--z-navbar, 1025);
+  transition: background-color var(--duration-normal) var(--ease-smooth),
+              border-color var(--duration-normal) var(--ease-smooth),
+              box-shadow var(--duration-normal) var(--ease-smooth);
+}
+
+/* Navbar Brand */
+.navbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  margin-right: var(--space-6);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  line-height: var(--leading-tight);
+  white-space: nowrap;
+  transition: color var(--duration-fast) var(--ease-smooth),
+              opacity var(--duration-fast) var(--ease-smooth);
+}
+
+.navbar-brand:hover {
+  color: var(--color-primary);
+  opacity: 0.9;
+}
+
+.navbar-brand:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.navbar-brand img,
+.navbar-brand svg {
+  height: 2rem;
+  width: auto;
+}
+
+/* Navbar Toggle Button (Mobile) */
+.navbar-toggler {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  background-color: transparent;
+  border: var(--border-width) solid var(--border-color-primary);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+  transition: background-color var(--duration-fast) var(--ease-smooth),
+              border-color var(--duration-fast) var(--ease-smooth),
+              color var(--duration-fast) var(--ease-smooth);
+}
+
+.navbar-toggler:hover {
+  background-color: var(--color-neutral-100);
+  border-color: var(--border-color-secondary);
+}
+
+.navbar-toggler:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.navbar-toggler:active {
+  transform: scale(0.96);
+}
+
+.navbar-toggler-icon {
+  display: block;
+  width: 1.5rem;
+  height: 1.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cline x1='3' y1='6' x2='21' y2='6'/%3E%3Cline x1='3' y1='12' x2='21' y2='12'/%3E%3Cline x1='3' y1='18' x2='21' y2='18'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100%;
+}
+
+/* Navbar Collapse Container */
+.navbar-collapse {
+  display: flex;
+  flex-basis: auto;
+  flex-grow: 1;
+  align-items: center;
+}
+
+/* Navbar Navigation List */
+.navbar-nav {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-1);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Navbar Item */
+.nav-item {
+  position: relative;
+}
+
+/* Navbar Link */
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+  min-height: 40px;
+  transition: color var(--duration-fast) var(--ease-smooth),
+              background-color var(--duration-fast) var(--ease-smooth);
+}
+
+.nav-link:hover {
+  color: var(--color-text-primary);
+  background-color: var(--color-neutral-100);
+}
+
+.nav-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  color: var(--color-text-primary);
+}
+
+.nav-link.active,
+.nav-link[aria-current="page"] {
+  color: var(--color-primary);
+  background-color: var(--color-primary-50);
+  font-weight: var(--font-semibold);
+}
+
+.nav-link.disabled {
+  color: var(--color-text-disabled);
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* Navbar Icon Support */
+.nav-link .nav-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  opacity: 0.8;
+}
+
+.nav-link:hover .nav-icon,
+.nav-link.active .nav-icon {
+  opacity: 1;
+}
+
+/* --------------------------------------------------------------------------
+   1.2 Navbar Variants
+   -------------------------------------------------------------------------- */
+
+/* Light Navbar */
+.navbar-light {
+  background-color: var(--color-neutral-0);
+  border-bottom-color: var(--color-neutral-200);
+}
+
+.navbar-light .navbar-brand {
+  color: var(--color-neutral-900);
+}
+
+.navbar-light .nav-link {
+  color: var(--color-neutral-600);
+}
+
+.navbar-light .nav-link:hover {
+  color: var(--color-neutral-900);
+  background-color: var(--color-neutral-100);
+}
+
+.navbar-light .nav-link.active {
+  color: var(--color-primary);
+  background-color: var(--color-primary-50);
+}
+
+/* Dark Navbar */
+.navbar-dark {
+  background-color: var(--color-neutral-900);
+  border-bottom-color: var(--color-neutral-800);
+}
+
+.navbar-dark .navbar-brand {
+  color: var(--color-neutral-0);
+}
+
+.navbar-dark .nav-link {
+  color: var(--color-neutral-300);
+}
+
+.navbar-dark .nav-link:hover {
+  color: var(--color-neutral-0);
+  background-color: var(--color-neutral-800);
+}
+
+.navbar-dark .nav-link.active {
+  color: var(--color-primary-300);
+  background-color: rgba(37, 99, 235, 0.15);
+}
+
+.navbar-dark .navbar-toggler {
+  border-color: var(--color-neutral-700);
+  color: var(--color-neutral-300);
+}
+
+.navbar-dark .navbar-toggler:hover {
+  background-color: var(--color-neutral-800);
+}
+
+/* Transparent Navbar (for overlays) */
+.navbar-transparent {
+  background-color: transparent;
+  border-bottom-color: transparent;
+}
+
+.navbar-transparent.navbar-scrolled {
+  background-color: var(--color-bg-primary);
+  border-bottom-color: var(--border-color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Primary Navbar (brand color background) */
+.navbar-primary {
+  background-color: var(--color-primary);
+  border-bottom-color: var(--color-primary-700);
+}
+
+.navbar-primary .navbar-brand,
+.navbar-primary .nav-link {
+  color: var(--color-neutral-0);
+}
+
+.navbar-primary .nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.navbar-primary .nav-link.active {
+  background-color: rgba(255, 255, 255, 0.2);
+  font-weight: var(--font-bold);
+}
+
+/* --------------------------------------------------------------------------
+   1.3 Navbar Positioning
+   -------------------------------------------------------------------------- */
+
+.navbar-fixed-top {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: var(--z-navbar, 1025);
+}
+
+.navbar-sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-navbar, 1025);
+}
+
+/* Add padding to body when using fixed navbar */
+body.has-fixed-navbar {
+  padding-top: 4rem;
+}
+
+/* --------------------------------------------------------------------------
+   1.4 Navbar Utilities
+   -------------------------------------------------------------------------- */
+
+/* Navbar Text (for non-link content) */
+.navbar-text {
+  display: flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+/* Navbar Divider */
+.navbar-divider {
+  width: 1px;
+  height: 1.5rem;
+  margin: 0 var(--space-2);
+  background-color: var(--border-color-primary);
+  align-self: center;
+}
+
+/* Align navbar elements */
+.navbar-nav-left {
+  margin-right: auto;
+}
+
+.navbar-nav-right {
+  margin-left: auto;
+}
+
+.navbar-nav-center {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+
+/* ============================================================================
+   2. BREADCRUMBS - Hierarchical Navigation
+   Shows the current page location within the site hierarchy
+   ============================================================================ */
+
+/* --------------------------------------------------------------------------
+   2.1 Base Breadcrumb Structure
+   -------------------------------------------------------------------------- */
+
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  margin: 0;
+  list-style: none;
+  background-color: transparent;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+}
+
+.breadcrumb-item a {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: color var(--duration-fast) var(--ease-smooth),
+              background-color var(--duration-fast) var(--ease-smooth);
+}
+
+.breadcrumb-item a:hover {
+  color: var(--color-primary);
+  background-color: var(--color-neutral-100);
+}
+
+.breadcrumb-item a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Active breadcrumb item */
+.breadcrumb-item.active,
+.breadcrumb-item[aria-current="page"] {
+  color: var(--color-text-primary);
+  font-weight: var(--font-medium);
+}
+
+/* --------------------------------------------------------------------------
+   2.2 Breadcrumb Separators
+   -------------------------------------------------------------------------- */
+
+.breadcrumb-item + .breadcrumb-item::before {
+  content: "/";
+  color: var(--color-text-muted);
+  margin-right: var(--space-2);
+  user-select: none;
+}
+
+/* Chevron separator */
+.breadcrumb-chevron .breadcrumb-item + .breadcrumb-item::before {
+  content: "›";
+  font-size: 1.25em;
+}
+
+/* Arrow separator */
+.breadcrumb-arrow .breadcrumb-item + .breadcrumb-item::before {
+  content: "→";
+}
+
+/* Dot separator */
+.breadcrumb-dot .breadcrumb-item + .breadcrumb-item::before {
+  content: "•";
+}
+
+/* Icon separator (requires inline SVG or icon font) */
+.breadcrumb-icon .breadcrumb-item + .breadcrumb-item::before {
+  content: "";
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='9 18 15 12 9 6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+/* --------------------------------------------------------------------------
+   2.3 Breadcrumb Variants
+   -------------------------------------------------------------------------- */
+
+/* Breadcrumb with background */
+.breadcrumb-card {
+  background-color: var(--color-bg-card);
+  border: var(--border-width) solid var(--border-color-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+}
+
+/* Compact breadcrumb */
+.breadcrumb-sm {
+  font-size: var(--text-xs);
+  padding: var(--space-2) var(--space-3);
+  gap: var(--space-1);
+}
+
+.breadcrumb-sm .breadcrumb-item + .breadcrumb-item::before {
+  margin-right: var(--space-1);
+}
+
+/* Large breadcrumb */
+.breadcrumb-lg {
+  font-size: var(--text-base);
+  padding: var(--space-4) var(--space-5);
+  gap: var(--space-3);
+}
+
+
+/* ============================================================================
+   3. TABS - Horizontal and Vertical Tab Navigation
+   Content organization with tab-based switching
+   ============================================================================ */
+
+/* --------------------------------------------------------------------------
+   3.1 Base Tab Structure (Horizontal)
+   -------------------------------------------------------------------------- */
+
+.nav-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  border-bottom: 2px solid var(--border-color-primary);
+  position: relative;
+}
+
+.nav-tabs .nav-item {
+  margin-bottom: -2px;
+}
+
+.nav-tabs .nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  border: 2px solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background-color: transparent;
+  cursor: pointer;
+  min-height: 44px;
+  white-space: nowrap;
+  position: relative;
+  transition: color var(--duration-fast) var(--ease-smooth),
+              background-color var(--duration-fast) var(--ease-smooth),
+              border-color var(--duration-fast) var(--ease-smooth);
+}
+
+.nav-tabs .nav-link:hover {
+  color: var(--color-text-primary);
+  background-color: var(--color-neutral-50);
+  border-color: var(--border-color-secondary);
+}
+
+.nav-tabs .nav-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  z-index: 1;
+}
+
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-link[aria-selected="true"] {
+  color: var(--color-primary);
+  background-color: var(--color-bg-primary);
+  border-color: var(--border-color-primary) var(--border-color-primary) var(--color-bg-primary);
+  font-weight: var(--font-semibold);
+  position: relative;
+}
+
+.nav-tabs .nav-link.active::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--color-primary);
+}
+
+.nav-tabs .nav-link.disabled {
+  color: var(--color-text-disabled);
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* Tab icon support */
+.nav-tabs .nav-link .tab-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  opacity: 0.7;
+}
+
+.nav-tabs .nav-link:hover .tab-icon,
+.nav-tabs .nav-link.active .tab-icon {
+  opacity: 1;
+}
+
+/* Tab badge support */
+.nav-tabs .nav-link .badge {
+  margin-left: var(--space-1);
+}
+
+/* --------------------------------------------------------------------------
+   3.2 Tab Variants - Underline Style
+   -------------------------------------------------------------------------- */
+
+.nav-tabs-underline {
+  border-bottom: 2px solid var(--border-color-primary);
+  gap: var(--space-4);
+}
+
+.nav-tabs-underline .nav-item {
+  margin-bottom: 0;
+}
+
+.nav-tabs-underline .nav-link {
+  padding: var(--space-2) var(--space-1);
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+  position: relative;
+}
+
+.nav-tabs-underline .nav-link::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: transparent;
+  transition: background-color var(--duration-fast) var(--ease-smooth);
+}
+
+.nav-tabs-underline .nav-link:hover {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+.nav-tabs-underline .nav-link:hover::after {
+  background-color: var(--color-neutral-400);
+}
+
+.nav-tabs-underline .nav-link.active,
+.nav-tabs-underline .nav-link[aria-selected="true"] {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+.nav-tabs-underline .nav-link.active::after,
+.nav-tabs-underline .nav-link[aria-selected="true"]::after {
+  background-color: var(--color-primary);
+}
+
+/* --------------------------------------------------------------------------
+   3.3 Tab Variants - Pills Style
+   -------------------------------------------------------------------------- */
+
+.nav-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.nav-pills .nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  border-radius: var(--radius-full);
+  background-color: transparent;
+  cursor: pointer;
+  min-height: 40px;
+  white-space: nowrap;
+  border: var(--border-width) solid transparent;
+  transition: color var(--duration-fast) var(--ease-smooth),
+              background-color var(--duration-fast) var(--ease-smooth),
+              border-color var(--duration-fast) var(--ease-smooth);
+}
+
+.nav-pills .nav-link:hover {
+  color: var(--color-text-primary);
+  background-color: var(--color-neutral-100);
+}
+
+.nav-pills .nav-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.nav-pills .nav-link.active,
+.nav-pills .nav-link[aria-selected="true"] {
+  color: var(--color-neutral-0);
+  background-color: var(--color-primary);
+  font-weight: var(--font-semibold);
+}
+
+.nav-pills .nav-link.disabled {
+  color: var(--color-text-disabled);
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* --------------------------------------------------------------------------
+   3.4 Vertical Tabs
+   -------------------------------------------------------------------------- */
+
+.nav-tabs-vertical {
+  flex-direction: column;
+  border-bottom: none;
+  border-right: 2px solid var(--border-color-primary);
+  gap: var(--space-1);
+}
+
+.nav-tabs-vertical .nav-item {
+  margin-bottom: 0;
+  margin-right: -2px;
+}
+
+.nav-tabs-vertical .nav-link {
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  border-bottom: 2px solid transparent;
+  border-right: none;
+  text-align: left;
+  justify-content: flex-start;
+}
+
+.nav-tabs-vertical .nav-link.active::after {
+  bottom: auto;
+  top: 0;
+  left: auto;
+  right: -2px;
+  width: 2px;
+  height: 100%;
+}
+
+.nav-pills-vertical {
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.nav-pills-vertical .nav-link {
+  border-radius: var(--radius-md);
+  text-align: left;
+  justify-content: flex-start;
+}
+
+/* --------------------------------------------------------------------------
+   3.5 Tab Sizes
+   -------------------------------------------------------------------------- */
+
+/* Small tabs */
+.nav-tabs-sm .nav-link,
+.nav-pills-sm .nav-link {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-xs);
+  min-height: 36px;
+}
+
+/* Large tabs */
+.nav-tabs-lg .nav-link,
+.nav-pills-lg .nav-link {
+  padding: var(--space-4) var(--space-6);
+  font-size: var(--text-base);
+  min-height: 48px;
+}
+
+/* --------------------------------------------------------------------------
+   3.6 Tab Content
+   -------------------------------------------------------------------------- */
+
+.tab-content {
+  padding: var(--space-4) 0;
+}
+
+.tab-pane {
+  display: none;
+}
+
+.tab-pane.active {
+  display: block;
+  animation: fadeIn var(--duration-normal) var(--ease-smooth);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* ============================================================================
+   4. PAGINATION - Page Navigation
+   Navigate through paginated content
+   ============================================================================ */
+
+/* --------------------------------------------------------------------------
+   4.1 Base Pagination Structure
+   -------------------------------------------------------------------------- */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.page-item {
+  display: flex;
+}
+
+.page-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  background-color: var(--color-bg-primary);
+  border: var(--border-width) solid var(--border-color-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-smooth),
+              background-color var(--duration-fast) var(--ease-smooth),
+              border-color var(--duration-fast) var(--ease-smooth),
+              transform var(--duration-fast) var(--ease-smooth);
+}
+
+.page-link:hover {
+  color: var(--color-text-primary);
+  background-color: var(--color-neutral-100);
+  border-color: var(--border-color-secondary);
+}
+
+.page-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  z-index: 1;
+}
+
+.page-link:active {
+  transform: scale(0.95);
+}
+
+/* Active page */
+.page-item.active .page-link,
+.page-link[aria-current="page"] {
+  color: var(--color-neutral-0);
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  font-weight: var(--font-semibold);
+  pointer-events: none;
+}
+
+/* Disabled state */
+.page-item.disabled .page-link {
+  color: var(--color-text-disabled);
+  background-color: var(--color-neutral-50);
+  border-color: var(--border-color-primary);
+  pointer-events: none;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --------------------------------------------------------------------------
+   4.2 Pagination Navigation Elements
+   -------------------------------------------------------------------------- */
+
+/* Previous/Next buttons */
+.page-item-prev .page-link,
+.page-item-next .page-link {
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
+}
+
+.page-item-prev .page-link::before {
+  content: "‹";
+  font-size: 1.25em;
+  margin-right: var(--space-1);
+}
+
+.page-item-next .page-link::after {
+  content: "›";
+  font-size: 1.25em;
+  margin-left: var(--space-1);
+}
+
+/* First/Last buttons */
+.page-item-first .page-link::before {
+  content: "«";
+  font-size: 1.25em;
+  margin-right: var(--space-1);
+}
+
+.page-item-last .page-link::after {
+  content: "»";
+  font-size: 1.25em;
+  margin-left: var(--space-1);
+}
+
+/* Ellipsis */
+.page-item-ellipsis .page-link {
+  pointer-events: none;
+  border-color: transparent;
+  background-color: transparent;
+}
+
+.page-item-ellipsis .page-link::before {
+  content: "...";
+}
+
+/* --------------------------------------------------------------------------
+   4.3 Pagination Variants
+   -------------------------------------------------------------------------- */
+
+/* Rounded pagination */
+.pagination-rounded .page-link {
+  border-radius: var(--radius-full);
+}
+
+/* Bordered pagination (connected) */
+.pagination-bordered {
+  gap: 0;
+}
+
+.pagination-bordered .page-link {
+  border-radius: 0;
+  margin-left: calc(-1 * var(--border-width));
+}
+
+.pagination-bordered .page-item:first-child .page-link {
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  margin-left: 0;
+}
+
+.pagination-bordered .page-item:last-child .page-link {
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+
+/* Minimal pagination (no borders) */
+.pagination-minimal .page-link {
+  border: none;
+  background-color: transparent;
+}
+
+.pagination-minimal .page-link:hover {
+  background-color: var(--color-neutral-100);
+}
+
+.pagination-minimal .page-item.active .page-link {
+  background-color: var(--color-primary);
+  color: var(--color-neutral-0);
+}
+
+/* --------------------------------------------------------------------------
+   4.4 Pagination Sizes
+   -------------------------------------------------------------------------- */
+
+/* Small pagination */
+.pagination-sm .page-link {
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+}
+
+/* Large pagination */
+.pagination-lg .page-link {
+  min-width: 3rem;
+  min-height: 3rem;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-base);
+}
+
+/* --------------------------------------------------------------------------
+   4.5 Pagination Alignment
+   -------------------------------------------------------------------------- */
+
+.pagination-center {
+  justify-content: center;
+}
+
+.pagination-right {
+  justify-content: flex-end;
+}
+
+/* --------------------------------------------------------------------------
+   4.6 Pagination Info Text
+   -------------------------------------------------------------------------- */
+
+.pagination-info {
+  display: flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+
+/* ============================================================================
+   5. SIDEBAR NAVIGATION - Collapsible Vertical Navigation
+   Vertical navigation menu with hierarchical support
+   ============================================================================ */
+
+/* --------------------------------------------------------------------------
+   5.1 Base Sidebar Structure
+   -------------------------------------------------------------------------- */
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  background-color: var(--color-bg-card);
+  border-right: var(--border-width) solid var(--border-color-primary);
+  min-width: 16rem;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.sidebar-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Sidebar Header */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  border-bottom: var(--border-width) solid var(--border-color-primary);
+}
+
+/* Sidebar Section */
+.sidebar-section {
+  margin-bottom: var(--space-4);
+}
+
+.sidebar-section-title {
+  display: flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Sidebar Item */
+.sidebar-item {
+  position: relative;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  border-radius: var(--radius-md);
+  min-height: 44px;
+  position: relative;
+  transition: color var(--duration-fast) var(--ease-smooth),
+              background-color var(--duration-fast) var(--ease-smooth);
+}
+
+.sidebar-link:hover {
+  color: var(--color-text-primary);
+  background-color: var(--color-neutral-100);
+}
+
+.sidebar-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.sidebar-link.active,
+.sidebar-link[aria-current="page"] {
+  color: var(--color-primary);
+  background-color: var(--color-primary-50);
+  font-weight: var(--font-semibold);
+}
+
+.sidebar-link.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: var(--color-primary);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+/* Sidebar Icon */
+.sidebar-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.sidebar-link:hover .sidebar-icon,
+.sidebar-link.active .sidebar-icon {
+  opacity: 1;
+}
+
+/* Sidebar Badge */
+.sidebar-badge {
+  margin-left: auto;
+  font-size: var(--text-xs);
+}
+
+/* --------------------------------------------------------------------------
+   5.2 Nested/Collapsible Sidebar Items
+   -------------------------------------------------------------------------- */
+
+.sidebar-item-collapsible {
+  position: relative;
+}
+
+.sidebar-link-toggle {
+  cursor: pointer;
+}
+
+.sidebar-link-toggle::after {
+  content: "";
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin-left: auto;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpolyline points='9 18 15 12 9 6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  transition: transform var(--duration-normal) var(--ease-smooth);
+}
+
+.sidebar-link-toggle[aria-expanded="true"]::after {
+  transform: rotate(90deg);
+}
+
+/* Nested sidebar menu */
+.sidebar-submenu {
+  display: none;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-left: var(--space-6);
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+  list-style: none;
+}
+
+.sidebar-submenu.show,
+.sidebar-item-collapsible[aria-expanded="true"] .sidebar-submenu {
+  display: flex;
+  animation: slideDown var(--duration-normal) var(--ease-smooth);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+
+.sidebar-submenu .sidebar-link {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+  min-height: 36px;
+}
+
+/* --------------------------------------------------------------------------
+   5.3 Sidebar Variants
+   -------------------------------------------------------------------------- */
+
+/* Compact sidebar */
+.sidebar-nav-compact {
+  min-width: 5rem;
+  padding: var(--space-2);
+}
+
+.sidebar-nav-compact .sidebar-link {
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  text-align: center;
+  font-size: var(--text-xs);
+}
+
+.sidebar-nav-compact .sidebar-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.sidebar-nav-compact .sidebar-badge {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  margin-left: 0;
+}
+
+/* Dark sidebar */
+.sidebar-nav-dark {
+  background-color: var(--color-neutral-900);
+  border-right-color: var(--color-neutral-800);
+}
+
+.sidebar-nav-dark .sidebar-header {
+  color: var(--color-neutral-0);
+  border-bottom-color: var(--color-neutral-800);
+}
+
+.sidebar-nav-dark .sidebar-section-title {
+  color: var(--color-neutral-400);
+}
+
+.sidebar-nav-dark .sidebar-link {
+  color: var(--color-neutral-300);
+}
+
+.sidebar-nav-dark .sidebar-link:hover {
+  color: var(--color-neutral-0);
+  background-color: var(--color-neutral-800);
+}
+
+.sidebar-nav-dark .sidebar-link.active {
+  color: var(--color-primary-300);
+  background-color: rgba(37, 99, 235, 0.15);
+}
+
+
+/* ============================================================================
+   6. MOBILE NAVIGATION PATTERNS
+   Responsive navigation for mobile devices
+   ============================================================================ */
+
+/* --------------------------------------------------------------------------
+   6.1 Mobile Navbar Collapse
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 768px) {
+  .navbar-toggler {
+    display: flex;
+  }
+
+  .navbar-collapse {
+    display: none;
+    flex-basis: 100%;
+    flex-grow: 1;
+    align-items: flex-start;
+  }
+
+  .navbar-collapse.show {
+    display: flex;
+    animation: slideDown var(--duration-normal) var(--ease-smooth);
+  }
+
+  .navbar-nav {
+    flex-direction: column;
+    width: 100%;
+    gap: var(--space-1);
+    padding-top: var(--space-3);
+  }
+
+  .nav-link {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .navbar-divider {
+    width: 100%;
+    height: 1px;
+    margin: var(--space-2) 0;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   6.2 Mobile Bottom Navigation
+   -------------------------------------------------------------------------- */
+
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-navbar, 1025);
+  background-color: var(--color-bg-primary);
+  border-top: var(--border-width) solid var(--border-color-primary);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.bottom-nav-list {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.bottom-nav-item {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.bottom-nav-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  min-height: 64px;
+  min-width: 64px;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  text-align: center;
+  position: relative;
+  transition: color var(--duration-fast) var(--ease-smooth);
+}
+
+.bottom-nav-link:active {
+  transform: scale(0.95);
+}
+
+.bottom-nav-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  opacity: 0.7;
+}
+
+.bottom-nav-link.active {
+  color: var(--color-primary);
+}
+
+.bottom-nav-link.active .bottom-nav-icon {
+  opacity: 1;
+}
+
+.bottom-nav-link.active::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2rem;
+  height: 3px;
+  background-color: var(--color-primary);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+
+.bottom-nav-badge {
+  position: absolute;
+  top: var(--space-2);
+  right: calc(50% - 1.5rem);
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 768px) {
+  .bottom-nav {
+    display: block;
+  }
+
+  body.has-bottom-nav {
+    padding-bottom: 4rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   6.3 Mobile Sidebar Drawer
+   -------------------------------------------------------------------------- */
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: var(--z-overlay, 1040);
+  opacity: 0;
+  transition: opacity var(--duration-normal) var(--ease-smooth);
+}
+
+.sidebar-overlay.show {
+  display: block;
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .sidebar-nav {
+    position: fixed;
+    top: 0;
+    left: -100%;
+    bottom: 0;
+    z-index: var(--z-modal, 1050);
+    width: 280px;
+    max-width: 85vw;
+    border-right: none;
+    box-shadow: var(--shadow-xl);
+    transition: left var(--duration-normal) var(--ease-smooth);
+  }
+
+  .sidebar-nav.show {
+    left: 0;
+  }
+
+  .sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-2);
+    background-color: transparent;
+    border: var(--border-width) solid var(--border-color-primary);
+    border-radius: var(--radius-md);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+@media (min-width: 769px) {
+  .sidebar-toggle {
+    display: none;
+  }
+}
+
+
+/* ============================================================================
+   7. RESPONSIVE ADJUSTMENTS
+   Mobile-first responsive design patterns
+   ============================================================================ */
+
+/* --------------------------------------------------------------------------
+   7.1 Tablet and Below (768px)
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 768px) {
+  /* Breadcrumbs */
+  .breadcrumb {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-xs);
+  }
+
+  .breadcrumb-item a {
+    padding: var(--space-1);
+  }
+
+  /* Tabs */
+  .nav-tabs {
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    scrollbar-width: thin;
+  }
+
+  .nav-tabs::-webkit-scrollbar {
+    height: 3px;
+  }
+
+  .nav-tabs::-webkit-scrollbar-track {
+    background: var(--color-neutral-100);
+  }
+
+  .nav-tabs::-webkit-scrollbar-thumb {
+    background: var(--color-neutral-400);
+    border-radius: var(--radius-full);
+  }
+
+  .nav-tabs .nav-link,
+  .nav-pills .nav-link {
+    font-size: var(--text-xs);
+  }
+
+  /* Pagination */
+  .pagination {
+    gap: var(--space-1);
+  }
+
+  .page-link {
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--text-xs);
+  }
+
+  .pagination-info {
+    font-size: var(--text-xs);
+    padding: var(--space-1) var(--space-2);
+  }
+
+  /* Hide page numbers on very small screens, keep only prev/next */
+  .pagination-mobile-minimal .page-item:not(.page-item-prev):not(.page-item-next):not(.active) {
+    display: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   7.2 Mobile Devices (576px)
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 576px) {
+  /* Navbar */
+  .navbar {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .navbar-brand {
+    font-size: var(--text-base);
+    margin-right: var(--space-4);
+  }
+
+  .navbar-brand img,
+  .navbar-brand svg {
+    height: 1.5rem;
+  }
+
+  /* Breadcrumbs - collapse to only show last 2 items */
+  .breadcrumb-mobile-minimal .breadcrumb-item:not(:nth-last-child(-n+2)) {
+    display: none;
+  }
+
+  /* Tabs - smaller padding */
+  .nav-tabs .nav-link,
+  .nav-pills .nav-link {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  /* Pagination - extra compact */
+  .page-link {
+    min-width: 2rem;
+    min-height: 2rem;
+    padding: var(--space-1);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   7.3 Desktop and Above (769px)
+   -------------------------------------------------------------------------- */
+
+@media (min-width: 769px) {
+  /* Show full breadcrumbs */
+  .breadcrumb {
+    padding: var(--space-4);
+  }
+
+  /* Better tab spacing */
+  .nav-tabs .nav-link {
+    padding: var(--space-3) var(--space-5);
+  }
+
+  /* Larger pagination */
+  .page-link {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+}
+
+
+/* ============================================================================
+   8. DARK MODE SUPPORT
+   Dark theme overrides using [data-style="dark"] selector
+   ============================================================================ */
+
+[data-style="dark"] {
+  /* --------------------------------------------------------------------------
+     8.1 Navbar Dark Mode
+     -------------------------------------------------------------------------- */
+
+  .navbar {
+    background-color: var(--color-bg-primary);
+    border-bottom-color: var(--border-color-primary);
+  }
+
+  .navbar-light {
+    background-color: var(--color-neutral-900);
+    border-bottom-color: var(--color-neutral-800);
+  }
+
+  .navbar-light .navbar-brand {
+    color: var(--color-neutral-0);
+  }
+
+  .navbar-light .nav-link {
+    color: var(--color-neutral-300);
+  }
+
+  .navbar-light .nav-link:hover {
+    color: var(--color-neutral-0);
+    background-color: var(--color-neutral-800);
+  }
+
+  .navbar-light .nav-link.active {
+    color: var(--color-primary-300);
+    background-color: rgba(37, 99, 235, 0.15);
+  }
+
+  .navbar-toggler {
+    border-color: var(--border-color-primary);
+    color: var(--color-text-secondary);
+  }
+
+  .navbar-toggler:hover {
+    background-color: var(--color-neutral-800);
+  }
+
+  /* --------------------------------------------------------------------------
+     8.2 Breadcrumbs Dark Mode
+     -------------------------------------------------------------------------- */
+
+  .breadcrumb-card {
+    background-color: var(--color-bg-card);
+    border-color: var(--border-color-primary);
+  }
+
+  .breadcrumb-item a:hover {
+    background-color: var(--color-neutral-800);
+  }
+
+  /* --------------------------------------------------------------------------
+     8.3 Tabs Dark Mode
+     -------------------------------------------------------------------------- */
+
+  .nav-tabs {
+    border-bottom-color: var(--border-color-primary);
+  }
+
+  .nav-tabs .nav-link:hover,
+  .nav-pills .nav-link:hover {
+    background-color: var(--color-neutral-800);
+  }
+
+  .nav-tabs .nav-link.active {
+    background-color: var(--color-bg-primary);
+    border-color: var(--border-color-primary) var(--border-color-primary) var(--color-bg-primary);
+  }
+
+  .nav-tabs-underline .nav-link:hover::after {
+    background-color: var(--color-neutral-500);
+  }
+
+  /* --------------------------------------------------------------------------
+     8.4 Pagination Dark Mode
+     -------------------------------------------------------------------------- */
+
+  .page-link {
+    background-color: var(--color-bg-card);
+    border-color: var(--border-color-primary);
+    color: var(--color-text-secondary);
+  }
+
+  .page-link:hover {
+    background-color: var(--color-neutral-800);
+    border-color: var(--border-color-secondary);
+  }
+
+  .page-item.disabled .page-link {
+    background-color: var(--color-neutral-900);
+    border-color: var(--border-color-primary);
+  }
+
+  .pagination-minimal .page-link {
+    background-color: transparent;
+  }
+
+  .pagination-minimal .page-link:hover {
+    background-color: var(--color-neutral-800);
+  }
+
+  /* --------------------------------------------------------------------------
+     8.5 Sidebar Dark Mode
+     -------------------------------------------------------------------------- */
+
+  .sidebar-nav {
+    background-color: var(--color-bg-card);
+    border-right-color: var(--border-color-primary);
+  }
+
+  .sidebar-header {
+    border-bottom-color: var(--border-color-primary);
+  }
+
+  .sidebar-link:hover {
+    background-color: var(--color-neutral-800);
+  }
+
+  .sidebar-link.active {
+    background-color: rgba(37, 99, 235, 0.15);
+  }
+
+  /* --------------------------------------------------------------------------
+     8.6 Mobile Navigation Dark Mode
+     -------------------------------------------------------------------------- */
+
+  .bottom-nav {
+    background-color: var(--color-bg-primary);
+    border-top-color: var(--border-color-primary);
+  }
+
+  .sidebar-overlay {
+    background-color: rgba(0, 0, 0, 0.7);
+  }
+}
+
+
+/* ============================================================================
+   9. ACCESSIBILITY ENHANCEMENTS
+   Additional accessibility features for navigation
+   ============================================================================ */
+
+/* --------------------------------------------------------------------------
+   9.1 Screen Reader Only Content
+   -------------------------------------------------------------------------- */
+
+.nav-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* --------------------------------------------------------------------------
+   9.2 Skip Navigation Link
+   -------------------------------------------------------------------------- */
+
+.skip-nav {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: 9999;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-primary);
+  color: var(--color-neutral-0);
+  text-decoration: none;
+  font-weight: var(--font-semibold);
+  border-radius: 0 0 var(--radius-md) 0;
+  transition: top var(--duration-fast) var(--ease-smooth);
+}
+
+.skip-nav:focus {
+  top: 0;
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   9.3 High Contrast Mode Support
+   -------------------------------------------------------------------------- */
+
+@media (prefers-contrast: more) {
+  .navbar,
+  .breadcrumb-card,
+  .nav-tabs,
+  .pagination,
+  .sidebar-nav {
+    border-width: 2px;
+  }
+
+  .nav-link,
+  .page-link,
+  .sidebar-link {
+    border-width: 2px;
+  }
+
+  .nav-link:focus-visible,
+  .page-link:focus-visible,
+  .sidebar-link:focus-visible {
+    outline-width: 3px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   9.4 Reduced Motion Support
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .navbar,
+  .nav-link,
+  .page-link,
+  .sidebar-link,
+  .sidebar-submenu,
+  .tab-pane,
+  .bottom-nav-link,
+  .sidebar-nav,
+  .sidebar-overlay,
+  .navbar-collapse {
+    transition: none;
+    animation: none;
+  }
+
+  .sidebar-link-toggle::after {
+    transition: none;
+  }
+}
+
+
+/* ============================================================================
+   10. UTILITY CLASSES
+   Helper classes for navigation components
+   ============================================================================ */
+
+/* --------------------------------------------------------------------------
+   10.1 Spacing Utilities
+   -------------------------------------------------------------------------- */
+
+.nav-gap-none {
+  gap: 0;
+}
+
+.nav-gap-sm {
+  gap: var(--space-1);
+}
+
+.nav-gap-md {
+  gap: var(--space-2);
+}
+
+.nav-gap-lg {
+  gap: var(--space-4);
+}
+
+/* --------------------------------------------------------------------------
+   10.2 Direction Utilities
+   -------------------------------------------------------------------------- */
+
+.nav-horizontal {
+  flex-direction: row;
+}
+
+.nav-vertical {
+  flex-direction: column;
+}
+
+/* --------------------------------------------------------------------------
+   10.3 Alignment Utilities
+   -------------------------------------------------------------------------- */
+
+.nav-align-start {
+  justify-content: flex-start;
+}
+
+.nav-align-center {
+  justify-content: center;
+}
+
+.nav-align-end {
+  justify-content: flex-end;
+}
+
+.nav-align-between {
+  justify-content: space-between;
+}
+
+/* --------------------------------------------------------------------------
+   10.4 Fill/Justify Utilities
+   -------------------------------------------------------------------------- */
+
+.nav-fill .nav-item,
+.nav-fill .page-item {
+  flex: 1 1 auto;
+  text-align: center;
+}
+
+.nav-justified .nav-item,
+.nav-justified .page-item {
+  flex-basis: 0;
+  flex-grow: 1;
+  text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   10.5 Display Utilities
+   -------------------------------------------------------------------------- */
+
+.nav-hide-mobile {
+  display: flex;
+}
+
+@media (max-width: 768px) {
+  .nav-hide-mobile {
+    display: none;
+  }
+}
+
+.nav-show-mobile {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .nav-show-mobile {
+    display: flex;
+  }
+}
+
+
+/* ============================================================================
+   11. COMPONENT STATES
+   Visual feedback for interactive states
+   ============================================================================ */
+
+/* --------------------------------------------------------------------------
+   11.1 Loading State
+   -------------------------------------------------------------------------- */
+
+.nav-loading {
+  pointer-events: none;
+  opacity: 0.6;
+  position: relative;
+}
+
+.nav-loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--color-primary);
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   11.2 Error State
+   -------------------------------------------------------------------------- */
+
+.nav-error .nav-link,
+.nav-error .page-link,
+.nav-error .sidebar-link {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+/* --------------------------------------------------------------------------
+   11.3 Success State
+   -------------------------------------------------------------------------- */
+
+.nav-success .nav-link,
+.nav-success .page-link,
+.nav-success .sidebar-link {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+
+/* ============================================================================
+   END OF NAVIGATION COMPONENTS
+   ============================================================================
+
+   USAGE EXAMPLES:
+
+   Basic Navbar:
+   <nav class="navbar navbar-light">
+     <a class="navbar-brand" href="#">Brand</a>
+     <button class="navbar-toggler">
+       <span class="navbar-toggler-icon"></span>
+     </button>
+     <div class="navbar-collapse">
+       <ul class="navbar-nav">
+         <li class="nav-item"><a class="nav-link active" href="#">Home</a></li>
+         <li class="nav-item"><a class="nav-link" href="#">About</a></li>
+       </ul>
+     </div>
+   </nav>
+
+   Breadcrumbs:
+   <nav aria-label="breadcrumb">
+     <ol class="breadcrumb">
+       <li class="breadcrumb-item"><a href="#">Home</a></li>
+       <li class="breadcrumb-item"><a href="#">Category</a></li>
+       <li class="breadcrumb-item active" aria-current="page">Page</li>
+     </ol>
+   </nav>
+
+   Tabs:
+   <ul class="nav nav-tabs">
+     <li class="nav-item">
+       <a class="nav-link active" href="#">Tab 1</a>
+     </li>
+     <li class="nav-item">
+       <a class="nav-link" href="#">Tab 2</a>
+     </li>
+   </ul>
+
+   Pagination:
+   <nav aria-label="pagination">
+     <ul class="pagination">
+       <li class="page-item page-item-prev">
+         <a class="page-link" href="#">Previous</a>
+       </li>
+       <li class="page-item active"><a class="page-link" href="#">1</a></li>
+       <li class="page-item"><a class="page-link" href="#">2</a></li>
+       <li class="page-item page-item-next">
+         <a class="page-link" href="#">Next</a>
+       </li>
+     </ul>
+   </nav>
+
+   Sidebar:
+   <nav class="sidebar-nav">
+     <div class="sidebar-header">Menu</div>
+     <ul>
+       <li class="sidebar-item">
+         <a class="sidebar-link active" href="#">
+           <span class="sidebar-icon">🏠</span>
+           Dashboard
+         </a>
+       </li>
+     </ul>
+   </nav>
+
+   ============================================================================
+ */

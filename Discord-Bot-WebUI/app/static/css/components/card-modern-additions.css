@@ -1,0 +1,213 @@
+/**
+ * ============================================================================
+ * CARD MODERN ADDITIONS - Extended Card Variants
+ * ============================================================================
+ *
+ * Additional card variants and modifiers for the modern card system.
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   CARD MODERN VARIANTS
+   ============================================================================ */
+
+.c-card-modern--primary {
+  border-left: 3px solid var(--color-primary, #2563EB);
+}
+
+.c-card-modern--alternative {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(139, 92, 246, 0.08));
+}
+
+.c-card-modern--selectable {
+  cursor: pointer;
+  transition: all var(--duration-fast, 150ms) ease;
+}
+
+.c-card-modern--selectable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.c-card-modern--team {
+  border-left: 3px solid var(--color-success, #10b981);
+}
+
+.c-card-modern--full-height {
+  height: 100%;
+}
+
+/* ============================================================================
+   CARD MODERN BODY VARIANTS
+   ============================================================================ */
+
+.c-card-modern__body--center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.c-card-modern__body--padded {
+  padding: var(--space-6, 24px);
+}
+
+/* ============================================================================
+   CARD MODERN HEADER EXTENSIONS
+   ============================================================================ */
+
+.c-card-modern__header-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+}
+
+.c-card-modern__header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-card-modern__help-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: var(--color-text-muted, #64748b);
+  cursor: help;
+}
+
+/* ============================================================================
+   CARD MODERN ICON
+   ============================================================================ */
+
+.c-card-modern__icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-lg, 12px);
+  flex-shrink: 0;
+}
+
+.c-card-modern__icon-wrapper--primary {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--color-primary-light, #60a5fa);
+}
+
+.c-card-modern__icon {
+  font-size: 1.5rem;
+  color: var(--color-text-secondary, #94a3b8);
+}
+
+/* ============================================================================
+   CARD MODERN CONTENT
+   ============================================================================ */
+
+.c-card-modern__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-card-modern__title--primary {
+  color: var(--color-primary-light, #60a5fa);
+}
+
+.c-card-modern__label {
+  display: block;
+  margin-bottom: var(--space-1, 4px);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 600;
+  color: var(--color-text-secondary, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ============================================================================
+   CARD MODERN META
+   ============================================================================ */
+
+.c-card-modern__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-muted, #64748b);
+}
+
+.c-card-modern__meta-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3, 12px);
+}
+
+.c-card-modern__meta-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+}
+
+/* ============================================================================
+   CARD MODERN STATS
+   ============================================================================ */
+
+.c-card-modern__stat-number {
+  font-size: var(--text-3xl, 1.875rem);
+  font-weight: 700;
+  color: var(--color-text-primary, #f8fafc);
+  line-height: 1.2;
+}
+
+.c-card-modern__stat-sublabel {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-secondary, #94a3b8);
+}
+
+.c-card-modern__stat-sublabel--primary {
+  color: var(--color-primary-light, #60a5fa);
+}
+
+.c-card-modern__stat-sublabel--info {
+  color: var(--color-info-light, #22d3ee);
+}
+
+.c-card-modern__stat-sublabel--danger {
+  color: var(--color-danger-light, #f87171);
+}
+
+/* ============================================================================
+   CARD MODERN FOOTER
+   ============================================================================ */
+
+.c-card-modern__footer--center {
+  justify-content: center;
+}
+
+/* ============================================================================
+   LIGHT MODE
+   ============================================================================ */
+
+[data-style="light"] .c-card-modern--alternative {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.04), rgba(139, 92, 246, 0.04));
+}
+
+[data-style="light"] .c-card-modern__icon-wrapper {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-style="light"] .c-card-modern__icon-wrapper--primary {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--color-primary, #2563EB);
+}
+
+[data-style="light"] .c-card-modern__stat-number {
+  color: var(--color-text-primary, #1e293b);
+}
+
+[data-style="light"] .c-card-modern__title--primary {
+  color: var(--color-primary, #2563EB);
+}

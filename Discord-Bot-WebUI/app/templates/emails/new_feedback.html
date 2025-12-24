@@ -6,12 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>New Feedback Submitted</title>
 </head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-    <div style="width: 100%; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background-color: #007bff; color: #ffffff; padding: 10px; text-align: center;">
-            <h1 style="margin: 0;">New Feedback</h1>
+<body class="u-font-arial u-lh-16 u-text-dark u-m-0 u-p-0 u-bg-light">
+    <div class="u-w-full u-max-w-600 u-mx-auto u-p-5">
+        <div class="u-bg-primary u-text-white u-p-3 text-center">
+            <h1 class="u-m-0">New Feedback</h1>
         </div>
-        <div class="content">
+        <div class="content u-bg-white u-p-5">
             <p>Dear Admin,</p>
             <p>A new feedback has been submitted with the following details:</p>
             <ul>
@@ -23,11 +23,11 @@
             <h3>Feedback Description:</h3>
             <p>{{ feedback.description }}</p>
             <p>Please review this feedback at your earliest convenience.</p>
-            <p style="text-align: center;">
-                <a href="{{ url_for('feedback.view_feedback', feedback_id=feedback.id, _external=True) }}" class="button">View Feedback</a>
+            <p class="text-center">
+                <a href="{{ url_for('feedback.view_feedback', feedback_id=feedback.id, _external=True) }}" class="button u-d-inline-block u-p-3 u-bg-primary u-text-white u-text-decoration-none u-br-1 u-mt-5">View Feedback</a>
             </p>
         </div>
-        <div class="footer">
+        <div class="footer text-center u-mt-5 u-fs-sm u-text-muted u-p-3 u-bg-light">
             <p>This is an automated message. Please do not reply to this email.</p>
         </div>
     </div>

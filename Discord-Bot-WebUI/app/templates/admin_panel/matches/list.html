@@ -13,28 +13,28 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="mb-0">All Matches</h4>
     <div class="btn-group">
-        <a href="{{ url_for('admin_panel.create_match') }}" class="btn btn-primary">
+        <a href="{{ url_for('admin_panel.create_match') }}" class="c-btn c-btn--primary">
             <i class="ti ti-plus me-2"></i>Create Match
         </a>
-        <button type="button" class="btn btn-outline-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown">
+        <button type="button" class="c-btn c-btn--outline-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" data-dropdown-toggle>
             <span class="visually-hidden">Toggle Dropdown</span>
         </button>
-        <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#" onclick="bulkActions()"><i class="ti ti-check-circle me-2"></i>Bulk Actions</a></li>
-            <li><a class="dropdown-item" href="#" onclick="exportMatches()"><i class="ti ti-download me-2"></i>Export Matches</a></li>
+        <ul class="dropdown-menu" data-dropdown-menu>
+            <li><a class="dropdown-item js-bulk-actions" href="#" data-action="bulk-actions"><i class="ti ti-check-circle me-2"></i>Bulk Actions</a></li>
+            <li><a class="dropdown-item js-export-matches" href="#" data-action="export-matches"><i class="ti ti-download me-2"></i>Export Matches</a></li>
             <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="#" onclick="bulkScheduleMatches()"><i class="ti ti-calendar-plus me-2"></i>Bulk Schedule</a></li>
+            <li><a class="dropdown-item js-bulk-schedule" href="#" data-action="bulk-schedule"><i class="ti ti-calendar-plus me-2"></i>Bulk Schedule</a></li>
         </ul>
     </div>
 </div>
 
 <!-- Filters -->
-<div class="card mb-4">
-    <div class="card-body">
+<div class="c-card mb-4">
+    <div class="c-card__body">
         <form method="GET" class="row g-3">
             <div class="col-md-2">
                 <label class="form-label">League</label>
-                <select name="league" class="form-select">
+                <select name="league" class="form-select" data-form-select>
                     <option value="all" {% if current_filters.league == 'all' %}selected{% endif %}>All Leagues</option>
                     {% for league in leagues %}
                     <option value="{{ league }}" {% if current_filters.league == league %}selected{% endif %}>
@@ -45,7 +45,7 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">Season</label>
-                <select name="season" class="form-select">
+                <select name="season" class="form-select" data-form-select>
                     <option value="all" {% if current_filters.season == 'all' %}selected{% endif %}>All Seasons</option>
                     {% for season in seasons %}
                     <option value="{{ season.id }}" {% if current_filters.season == season.id|string %}selected{% endif %}>
@@ -56,7 +56,7 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">Status</label>
-                <select name="status" class="form-select">
+                <select name="status" class="form-select" data-form-select>
                     <option value="all" {% if current_filters.status == 'all' %}selected{% endif %}>All Status</option>
                     <option value="upcoming" {% if current_filters.status == 'upcoming' %}selected{% endif %}>Upcoming</option>
                     <option value="today" {% if current_filters.status == 'today' %}selected{% endif %}>Today</option>
@@ -70,7 +70,7 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">Team</label>
-                <select name="team" class="form-select">
+                <select name="team" class="form-select" data-form-select>
                     <option value="all" {% if current_filters.team == 'all' %}selected{% endif %}>All Teams</option>
                     {% for team in teams %}
                     <option value="{{ team.id }}" {% if current_filters.team == team.id|string %}selected{% endif %}>
@@ -81,26 +81,26 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">From Date</label>
-                <input type="date" name="date_from" class="form-control" value="{{ current_filters.date_from }}">
+                <input type="date" name="date_from" class="form-control" value="{{ current_filters.date_from }}" data-form-control>
             </div>
             <div class="col-md-2">
                 <label class="form-label">To Date</label>
-                <input type="date" name="date_to" class="form-control" value="{{ current_filters.date_to }}">
+                <input type="date" name="date_to" class="form-control" value="{{ current_filters.date_to }}" data-form-control>
             </div>
             <div class="col-md-8">
                 <label class="form-label">Search</label>
-                <div class="input-group">
-                    <input type="text" name="search" class="form-control" placeholder="Search teams, location..." value="{{ current_filters.search }}">
-                    <button type="submit" class="btn btn-outline-primary">
+                <div class="input-group" data-input-group>
+                    <input type="text" name="search" class="form-control" placeholder="Search teams, location..." value="{{ current_filters.search }}" data-form-control>
+                    <button type="submit" class="c-btn c-btn--outline-primary">
                         <i class="ti ti-search"></i>
                     </button>
                 </div>
             </div>
             <div class="col-md-4 d-flex align-items-end">
-                <a href="{{ url_for('admin_panel.match_list') }}" class="btn btn-outline-secondary me-2" title="Clear filters">
+                <a href="{{ url_for('admin_panel.match_list') }}" class="c-btn c-btn--outline-secondary me-2" title="Clear filters">
                     <i class="ti ti-x"></i> Clear
                 </a>
-                <button type="button" class="btn btn-info" onclick="location.reload()" title="Refresh">
+                <button type="button" class="c-btn c-btn--info js-refresh" data-action="refresh" title="Refresh">
                     <i class="ti ti-refresh"></i> Refresh
                 </button>
             </div>
@@ -109,25 +109,25 @@
 </div>
 
 <!-- Matches Table -->
-<div class="card">
-    <div class="card-body p-0">
+<div class="c-card">
+    <div class="c-card__body p-0">
         {% if matches.items %}
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
+        <div class="c-table-wrapper" data-table-responsive>
+            <table class="c-table c-table--hoverable mb-0" data-table>
+                <thead class="c-table--light" scope="col">
                     <tr>
-                        <th width="50">
+                        <th width="50" scope="col">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                                <input class="form-check-input js-select-all" type="checkbox" id="matches-selectAll" data-action="toggle-select-all">
                             </div>
                         </th>
-                        <th>Match</th>
-                        <th>Date & Time</th>
-                        <th>League</th>
-                        <th>Location</th>
-                        <th>Status</th>
-                        <th>RSVPs</th>
-                        <th>Actions</th>
+                        <th scope="col">Match</th>
+                        <th scope="col">Date & Time</th>
+                        <th scope="col">League</th>
+                        <th scope="col">Location</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">RSVPs</th>
+                        <th scope="col">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -157,7 +157,7 @@
                         </td>
                         <td>
                             {% if match.season and match.season.league %}
-                            <span class="badge bg-secondary">{{ match.season.league.name }}</span>
+                            <span class="badge bg-secondary" data-badge>{{ match.season.league.name }}</span>
                             <br><small class="text-muted">{{ match.season.year }}</small>
                             {% else %}
                             <span class="text-muted">Unknown</span>
@@ -168,19 +168,19 @@
                         </td>
                         <td>
                             {% if hasattr(match, 'status') and match.status %}
-                            <span class="badge bg-{% if match.status == 'completed' %}success{% elif match.status == 'live' %}warning{% elif match.status == 'cancelled' %}danger{% elif match.status == 'postponed' %}secondary{% else %}primary{% endif %}">
+                            <span class="badge bg-{% if match.status == 'completed' %}success{% elif match.status == 'live' %}warning{% elif match.status == 'cancelled' %}danger{% elif match.status == 'postponed' %}secondary{% else %}primary{% endif %}" data-badge>
                                 {{ match.status.title() }}
                             </span>
                             {% elif match.date %}
                                 {% if match.date > date.today() %}
-                                <span class="badge bg-primary">Scheduled</span>
+                                <span class="badge bg-primary" data-badge>Scheduled</span>
                                 {% elif match.date == date.today() %}
-                                <span class="badge bg-warning">Today</span>
+                                <span class="badge bg-warning" data-badge>Today</span>
                                 {% else %}
-                                <span class="badge bg-success">Completed</span>
+                                <span class="badge bg-success" data-badge>Completed</span>
                                 {% endif %}
                             {% else %}
-                            <span class="badge bg-secondary">TBD</span>
+                            <span class="badge bg-secondary" data-badge>TBD</span>
                             {% endif %}
                         </td>
                         <td>
@@ -191,36 +191,36 @@
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <button type="button" class="btn btn-outline-info" 
-                                        onclick="viewMatchDetails({{ match.id }})" title="View Details">
+                                <button type="button" class="c-btn c-btn--outline-info js-view-details"
+                                        data-action="view-match" data-match-id="{{ match.id }}" title="View Details">
                                     <i class="ti ti-eye"></i>
                                 </button>
                                 <a href="{{ url_for('admin_panel.edit_match', match_id=match.id) }}" 
-                                   class="btn btn-outline-primary" title="Edit">
+                                   class="c-btn c-btn--outline-primary" title="Edit">
                                     <i class="ti ti-edit"></i>
                                 </a>
                                 <div class="dropdown">
-                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <button class="c-btn c-btn--outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-dropdown-toggle>
                                         <i class="ti ti-dots"></i>
                                     </button>
-                                    <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" href="#" onclick="duplicateMatch({{ match.id }})">
+                                    <ul class="dropdown-menu" data-dropdown-menu>
+                                        <li><a class="dropdown-item js-duplicate-match" href="#" data-action="duplicate-match" data-match-id="{{ match.id }}">
                                             <i class="ti ti-copy me-2"></i>Duplicate
                                         </a></li>
-                                        <li><a class="dropdown-item" href="#" onclick="scheduleMatch({{ match.id }})">
+                                        <li><a class="dropdown-item js-schedule-match" href="#" data-action="schedule-match" data-match-id="{{ match.id }}">
                                             <i class="ti ti-calendar me-2"></i>Schedule
                                         </a></li>
                                         {% if hasattr(match, 'status') and match.status != 'cancelled' %}
                                         <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item text-warning" href="#" onclick="postponeMatch({{ match.id }})">
+                                        <li><a class="dropdown-item text-warning js-postpone-match" href="#" data-action="postpone-match" data-match-id="{{ match.id }}">
                                             <i class="ti ti-clock me-2"></i>Postpone
                                         </a></li>
-                                        <li><a class="dropdown-item text-danger" href="#" onclick="cancelMatch({{ match.id }})">
+                                        <li><a class="dropdown-item text-danger js-cancel-match" href="#" data-action="cancel-match" data-match-id="{{ match.id }}">
                                             <i class="ti ti-x me-2"></i>Cancel
                                         </a></li>
                                         {% endif %}
                                         <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item text-danger" href="#" onclick="deleteMatch({{ match.id }}, '{{ match.home_team.name }} vs {{ match.away_team.name }}')">
+                                        <li><a class="dropdown-item text-danger js-delete-match" href="#" data-action="delete-match" data-match-id="{{ match.id }}" data-match-name="{{ match.home_team.name }} vs {{ match.away_team.name }}">
                                             <i class="ti ti-trash me-2"></i>Delete
                                         </a></li>
                                     </ul>
@@ -235,11 +235,11 @@
         
         <!-- Pagination -->
         {% if matches.pages > 1 %}
-        <div class="card-footer">
+        <div class="c-card__footer">
             <nav aria-label="Page navigation">
-                <ul class="pagination justify-content-center mb-0">
+                <ul class="pagination justify-content-center mb-0" data-pagination>
                     {% if matches.has_prev %}
-                    <li class="page-item">
+                    <li class="page-item" data-page-item>
                         <a class="page-link" href="{{ url_for('admin_panel.match_list', page=matches.prev_num, **current_filters) }}">Previous</a>
                     </li>
                     {% endif %}
@@ -247,23 +247,23 @@
                     {% for page_num in matches.iter_pages() %}
                         {% if page_num %}
                             {% if page_num != matches.page %}
-                            <li class="page-item">
+                            <li class="page-item" data-page-item>
                                 <a class="page-link" href="{{ url_for('admin_panel.match_list', page=page_num, **current_filters) }}">{{ page_num }}</a>
                             </li>
                             {% else %}
-                            <li class="page-item active">
+                            <li class="page-item active" data-page-item data-page-active>
                                 <span class="page-link">{{ page_num }}</span>
                             </li>
                             {% endif %}
                         {% else %}
-                        <li class="page-item disabled">
+                        <li class="page-item disabled" data-page-item data-page-disabled>
                             <span class="page-link">…</span>
                         </li>
                         {% endif %}
                     {% endfor %}
                     
                     {% if matches.has_next %}
-                    <li class="page-item">
+                    <li class="page-item" data-page-item>
                         <a class="page-link" href="{{ url_for('admin_panel.match_list', page=matches.next_num, **current_filters) }}">Next</a>
                     </li>
                     {% endif %}
@@ -274,10 +274,10 @@
         
         {% else %}
         <div class="text-center py-5">
-            <i class="ti ti-trophy text-muted" style="font-size: 4rem;"></i>
+            <i class="ti ti-trophy text-muted icon-empty-state"></i>
             <h5 class="text-muted mt-3">No Matches Found</h5>
             <p class="text-muted">No matches match your current filters.</p>
-            <a href="{{ url_for('admin_panel.create_match') }}" class="btn btn-primary">
+            <a href="{{ url_for('admin_panel.create_match') }}" class="c-btn c-btn--primary">
                 <i class="ti ti-plus me-2"></i>Create First Match
             </a>
         </div>
@@ -289,38 +289,38 @@
 {% if matches.items %}
 <div class="row mt-4">
     <div class="col-md-3">
-        <div class="card bg-light">
-            <div class="card-body text-center">
-                <i class="ti ti-trophy text-primary" style="font-size: 2rem;"></i>
-                <h6 class="card-title mt-2">{{ matches.total }}</h6>
-                <p class="card-text small text-muted">Total Matches</p>
+        <div class="c-card bg-light">
+            <div class="c-card__body text-center">
+                <i class="ti ti-trophy text-primary card-icon-stat"></i>
+                <h6 class="c-card__title mt-2">{{ matches.total }}</h6>
+                <p class="c-card__description small text-muted">Total Matches</p>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card bg-light">
-            <div class="card-body text-center">
-                <i class="ti ti-calendar text-success" style="font-size: 2rem;"></i>
-                <h6 class="card-title mt-2">{{ matches.items | selectattr('date') | selectattr('date', 'ge', date.today()) | list | length }}</h6>
-                <p class="card-text small text-muted">Upcoming</p>
+        <div class="c-card bg-light">
+            <div class="c-card__body text-center">
+                <i class="ti ti-calendar text-success card-icon-stat"></i>
+                <h6 class="c-card__title mt-2">{{ matches.items | selectattr('date') | selectattr('date', 'ge', date.today()) | list | length }}</h6>
+                <p class="c-card__description small text-muted">Upcoming</p>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card bg-light">
-            <div class="card-body text-center">
-                <i class="ti ti-clock text-warning" style="font-size: 2rem;"></i>
-                <h6 class="card-title mt-2">{{ matches.items | selectattr('date', 'equalto', date.today()) | list | length }}</h6>
-                <p class="card-text small text-muted">Today</p>
+        <div class="c-card bg-light">
+            <div class="c-card__body text-center">
+                <i class="ti ti-clock text-warning card-icon-stat"></i>
+                <h6 class="c-card__title mt-2">{{ matches.items | selectattr('date', 'equalto', date.today()) | list | length }}</h6>
+                <p class="c-card__description small text-muted">Today</p>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card bg-light">
-            <div class="card-body text-center">
-                <i class="ti ti-check-circle text-info" style="font-size: 2rem;"></i>
-                <h6 class="card-title mt-2">{{ matches.items | selectattr('date', 'lt', date.today()) | list | length }}</h6>
-                <p class="card-text small text-muted">Completed</p>
+        <div class="c-card bg-light">
+            <div class="c-card__body text-center">
+                <i class="ti ti-check-circle text-info card-icon-stat"></i>
+                <h6 class="c-card__title mt-2">{{ matches.items | selectattr('date', 'lt', date.today()) | list | length }}</h6>
+                <p class="c-card__description small text-muted">Completed</p>
             </div>
         </div>
     </div>
@@ -330,7 +330,104 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
+// Event delegation for match actions
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle select all checkbox
+    const selectAllCheckbox = document.querySelector('.js-select-all');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', toggleSelectAll);
+    }
+
+    // Handle refresh button
+    const refreshBtn = document.querySelector('.js-refresh');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            location.reload();
+        });
+    }
+
+    // Handle bulk actions
+    const bulkActionsBtn = document.querySelector('.js-bulk-actions');
+    if (bulkActionsBtn) {
+        bulkActionsBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            bulkActions();
+        });
+    }
+
+    const exportBtn = document.querySelector('.js-export-matches');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            exportMatches();
+        });
+    }
+
+    const bulkScheduleBtn = document.querySelector('.js-bulk-schedule');
+    if (bulkScheduleBtn) {
+        bulkScheduleBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            bulkScheduleMatches();
+        });
+    }
+
+    // Handle view details buttons
+    document.querySelectorAll('.js-view-details').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const matchId = this.dataset.matchId;
+            viewMatchDetails(matchId);
+        });
+    });
+
+    // Handle delete match buttons
+    document.querySelectorAll('.js-delete-match').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const matchId = this.dataset.matchId;
+            const matchName = this.dataset.matchName;
+            deleteMatch(matchId, matchName);
+        });
+    });
+
+    // Handle duplicate match buttons
+    document.querySelectorAll('.js-duplicate-match').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const matchId = this.dataset.matchId;
+            duplicateMatch(matchId);
+        });
+    });
+
+    // Handle schedule match buttons
+    document.querySelectorAll('.js-schedule-match').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const matchId = this.dataset.matchId;
+            scheduleMatch(matchId);
+        });
+    });
+
+    // Handle postpone match buttons
+    document.querySelectorAll('.js-postpone-match').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const matchId = this.dataset.matchId;
+            postponeMatch(matchId);
+        });
+    });
+
+    // Handle cancel match buttons
+    document.querySelectorAll('.js-cancel-match').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const matchId = this.dataset.matchId;
+            cancelMatch(matchId);
+        });
+    });
+});
+
 function toggleSelectAll() {
     const selectAll = document.getElementById('selectAll');
     const checkboxes = document.querySelectorAll('.match-checkbox');
@@ -359,7 +456,7 @@ function viewMatchDetails(matchId) {
                             <p><strong>Date:</strong> ${match.date || 'TBD'}</p>
                             <p><strong>Time:</strong> ${match.time || 'TBD'}</p>
                             <p><strong>Location:</strong> ${match.location}</p>
-                            <p><strong>Status:</strong> <span class="badge bg-primary">${match.status}</span></p>
+                            <p><strong>Status:</strong> <span class="badge bg-primary" data-badge>${match.status}</span></p>
                         </div>
                         <div class="col-md-6">
                             <h6>League & Season</h6>
@@ -376,7 +473,7 @@ function viewMatchDetails(matchId) {
                                 <h6>RSVP Information</h6>
                                 <p><strong>Total RSVPs:</strong> ${match.rsvp_data.total}</p>
                                 ${match.rsvp_data.status_breakdown ? Object.entries(match.rsvp_data.status_breakdown).map(([status, count]) => 
-                                    `<span class="badge bg-secondary me-1">${status}: ${count}</span>`
+                                    `<span class="badge bg-secondary me-1" data-badge>${status}: ${count}</span>`
                                 ).join('') : ''}
                             </div>
                         </div>
@@ -388,9 +485,9 @@ function viewMatchDetails(matchId) {
                         <div class="row mt-3">
                             <div class="col-12">
                                 <h6>Recent Head-to-Head</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-sm">
-                                        <thead><tr><th>Date</th><th>Match</th><th>Status</th></tr></thead>
+                                <div class="c-table-wrapper" data-table-responsive>
+                                    <table class="c-table c-table--compact" data-table>
+                                        <thead scope="col"><tr><th scope="col">Date</th><th scope="col">Match</th><th scope="col">Status</th></tr></thead>
                                         <tbody>
                                             ${match.team_history.map(h => 
                                                 `<tr><td>${h.date}</td><td>${h.home_team} vs ${h.away_team}</td><td>${h.status}</td></tr>`

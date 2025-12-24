@@ -1,0 +1,302 @@
+/* ============================================================================
+   C-DROPDOWN COMPONENT
+   ============================================================================
+   BEM dropdown menu component with proper dark mode support.
+   No !important needed - uses proper specificity and CSS custom properties.
+
+   USAGE:
+   <div class="c-dropdown" data-dropdown>
+     <button class="c-dropdown__trigger" data-dropdown-trigger>
+       Actions <i class="ti ti-chevron-down"></i>
+     </button>
+     <div class="c-dropdown__menu" data-dropdown-menu>
+       <a href="#" class="c-dropdown__item">Edit</a>
+       <a href="#" class="c-dropdown__item">View</a>
+       <div class="c-dropdown__divider"></div>
+       <a href="#" class="c-dropdown__item c-dropdown__item--danger">Delete</a>
+     </div>
+   </div>
+
+   WITH BOOTSTRAP (hybrid approach):
+   <div class="dropdown">
+     <button class="btn dropdown-toggle" data-bs-toggle="dropdown">Actions</button>
+     <div class="dropdown-menu c-dropdown__menu">
+       <a class="dropdown-item c-dropdown__item" href="#">Edit</a>
+     </div>
+   </div>
+   ============================================================================ */
+
+/* ----------------------------------------------------------------------------
+   CSS Custom Properties - Single source of truth for theming
+   ---------------------------------------------------------------------------- */
+.c-dropdown,
+[data-dropdown] {
+  /* Light mode defaults */
+  --dropdown-bg: #ffffff;
+  --dropdown-border: #e4e4e7;
+  --dropdown-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                     0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --dropdown-radius: 0.5rem;
+
+  /* Item colors */
+  --dropdown-item-color: #27272a;
+  --dropdown-item-hover-bg: rgba(0, 0, 0, 0.04);
+  --dropdown-item-active-bg: rgba(0, 0, 0, 0.08);
+
+  /* Semantic colors */
+  --dropdown-item-danger: #dc2626;
+  --dropdown-item-danger-hover-bg: rgba(220, 38, 38, 0.08);
+  --dropdown-item-warning: #d97706;
+  --dropdown-item-warning-hover-bg: rgba(217, 119, 6, 0.08);
+  --dropdown-item-success: #16a34a;
+  --dropdown-item-success-hover-bg: rgba(22, 163, 74, 0.08);
+
+  /* Divider */
+  --dropdown-divider: #e4e4e7;
+
+  /* Icon colors */
+  --dropdown-icon-color: #71717a;
+
+  position: relative;
+}
+
+/* Dark mode - scoped to component using semantic tokens - Slate palette */
+[data-style="dark"] .c-dropdown,
+[data-style="dark"] [data-dropdown],
+.c-dropdown[data-theme="dark"],
+[data-dropdown][data-theme="dark"] {
+  /* Use semantic tokens that resolve correctly in dark mode */
+  --dropdown-bg: var(--color-bg-elevated, #334155);           /* Slate-800 */
+  --dropdown-border: var(--color-border-primary, #475569);    /* Slate-700 */
+  --dropdown-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3),
+                     0 10px 15px -3px rgba(0, 0, 0, 0.4);
+
+  --dropdown-item-color: var(--color-text-primary, #f8fafc);  /* Slate-50 */
+  --dropdown-item-hover-bg: var(--color-hover-bg, rgba(255, 255, 255, 0.06));
+  --dropdown-item-active-bg: var(--color-active-bg, rgba(255, 255, 255, 0.1));
+
+  --dropdown-item-danger: var(--color-danger-600, #f87171);
+  --dropdown-item-danger-hover-bg: var(--color-danger-subtle, rgba(248, 113, 113, 0.12));
+  --dropdown-item-warning: var(--color-warning-600, #fbbf24);
+  --dropdown-item-warning-hover-bg: var(--color-warning-subtle, rgba(251, 191, 36, 0.12));
+  --dropdown-item-success: var(--color-success-600, #4ade80);
+  --dropdown-item-success-hover-bg: var(--color-success-subtle, rgba(74, 222, 128, 0.12));
+
+  --dropdown-divider: var(--color-border-secondary, #475569); /* Slate-700 */
+  --dropdown-icon-color: var(--color-text-muted, #94a3b8);    /* Slate-400 */
+}
+
+/* ----------------------------------------------------------------------------
+   Dropdown Menu
+   ---------------------------------------------------------------------------- */
+.c-dropdown__menu,
+.dropdown-menu.c-dropdown__menu {
+  min-width: 200px;
+  padding: 0.5rem 0;
+  background-color: var(--dropdown-bg);
+  border: 1px solid var(--dropdown-border);
+  border-radius: var(--dropdown-radius);
+  box-shadow: var(--dropdown-shadow);
+
+  /* Ensure solid background - no transparency */
+  background: var(--dropdown-bg);
+}
+
+/* When used with Bootstrap dropdown */
+.dropdown-menu.c-dropdown__menu {
+  /* Override any Bootstrap transparency */
+  background-color: var(--dropdown-bg);
+  background: var(--dropdown-bg);
+}
+
+/* ----------------------------------------------------------------------------
+   Dropdown Items
+   ---------------------------------------------------------------------------- */
+.c-dropdown__item,
+.dropdown-item.c-dropdown__item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem;
+  color: var(--dropdown-item-color);
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.c-dropdown__item:hover,
+.c-dropdown__item:focus,
+.dropdown-item.c-dropdown__item:hover,
+.dropdown-item.c-dropdown__item:focus {
+  background-color: var(--dropdown-item-hover-bg);
+  color: var(--dropdown-item-color);
+  text-decoration: none;
+}
+
+.c-dropdown__item:active,
+.dropdown-item.c-dropdown__item:active {
+  background-color: var(--dropdown-item-active-bg);
+}
+
+/* Item icon */
+.c-dropdown__item-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--dropdown-icon-color);
+  flex-shrink: 0;
+}
+
+.c-dropdown__item:hover .c-dropdown__item-icon {
+  color: var(--dropdown-item-color);
+}
+
+/* ----------------------------------------------------------------------------
+   Item Variants
+   ---------------------------------------------------------------------------- */
+
+/* Danger variant */
+.c-dropdown__item--danger,
+.dropdown-item.c-dropdown__item--danger,
+.c-dropdown__item.text-danger,
+.dropdown-item.c-dropdown__item.text-danger {
+  color: var(--dropdown-item-danger);
+}
+
+.c-dropdown__item--danger:hover,
+.c-dropdown__item--danger:focus,
+.dropdown-item.c-dropdown__item--danger:hover,
+.c-dropdown__item.text-danger:hover {
+  background-color: var(--dropdown-item-danger-hover-bg);
+  color: var(--dropdown-item-danger);
+}
+
+.c-dropdown__item--danger .c-dropdown__item-icon {
+  color: var(--dropdown-item-danger);
+}
+
+/* Warning variant */
+.c-dropdown__item--warning,
+.dropdown-item.c-dropdown__item--warning,
+.c-dropdown__item.text-warning,
+.dropdown-item.c-dropdown__item.text-warning {
+  color: var(--dropdown-item-warning);
+}
+
+.c-dropdown__item--warning:hover,
+.c-dropdown__item--warning:focus,
+.dropdown-item.c-dropdown__item--warning:hover,
+.c-dropdown__item.text-warning:hover {
+  background-color: var(--dropdown-item-warning-hover-bg);
+  color: var(--dropdown-item-warning);
+}
+
+/* Success variant */
+.c-dropdown__item--success,
+.dropdown-item.c-dropdown__item--success,
+.c-dropdown__item.text-success,
+.dropdown-item.c-dropdown__item.text-success {
+  color: var(--dropdown-item-success);
+}
+
+.c-dropdown__item--success:hover,
+.c-dropdown__item--success:focus,
+.dropdown-item.c-dropdown__item--success:hover,
+.c-dropdown__item.text-success:hover {
+  background-color: var(--dropdown-item-success-hover-bg);
+  color: var(--dropdown-item-success);
+}
+
+/* ----------------------------------------------------------------------------
+   Divider
+   ---------------------------------------------------------------------------- */
+.c-dropdown__divider,
+.dropdown-divider.c-dropdown__divider {
+  height: 0;
+  margin: 0.5rem 0;
+  overflow: hidden;
+  border: none;
+  border-top: 1px solid var(--dropdown-divider);
+}
+
+/* ----------------------------------------------------------------------------
+   Dropdown Header
+   ---------------------------------------------------------------------------- */
+.c-dropdown__header {
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--dropdown-icon-color);
+}
+
+/* ----------------------------------------------------------------------------
+   Disabled State
+   ---------------------------------------------------------------------------- */
+.c-dropdown__item--disabled,
+.c-dropdown__item[disabled],
+.dropdown-item.c-dropdown__item.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+/* ----------------------------------------------------------------------------
+   Size Variants
+   ---------------------------------------------------------------------------- */
+
+/* Small dropdown */
+.c-dropdown__menu--sm {
+  min-width: 160px;
+  padding: 0.375rem 0;
+}
+
+.c-dropdown__menu--sm .c-dropdown__item {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+/* Large dropdown */
+.c-dropdown__menu--lg {
+  min-width: 280px;
+  padding: 0.625rem 0;
+}
+
+.c-dropdown__menu--lg .c-dropdown__item {
+  padding: 0.75rem 1.25rem;
+  font-size: 0.9375rem;
+}
+
+/* ----------------------------------------------------------------------------
+   Alignment Variants
+   ---------------------------------------------------------------------------- */
+.c-dropdown__menu--end {
+  right: 0;
+  left: auto;
+}
+
+.c-dropdown__menu--center {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* ----------------------------------------------------------------------------
+   Animation
+   ---------------------------------------------------------------------------- */
+.c-dropdown__menu[data-animate] {
+  opacity: 0;
+  transform: translateY(-0.5rem);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.c-dropdown__menu[data-animate].is-open,
+.c-dropdown__menu[data-animate].show {
+  opacity: 1;
+  transform: translateY(0);
+}

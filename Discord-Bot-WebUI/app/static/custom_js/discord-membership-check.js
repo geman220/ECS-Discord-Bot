@@ -243,11 +243,8 @@ class DiscordMembershipChecker {
         }
         if (elements.button) {
             elements.button.innerHTML = '<i class="ti ti-brand-discord me-2"></i>Join Discord Now - Don\'t Miss Out!';
-            elements.button.className = 'btn btn-warning btn-lg';
+            elements.button.className = 'btn btn-warning btn-lg btn-pulse-warning';
             elements.button.href = this.options.discordInviteUrl;
-            
-            // Add pulsing animation
-            elements.button.style.animation = 'discord-pulse 2s infinite';
         }
     }
     
@@ -262,15 +259,9 @@ class DiscordMembershipChecker {
     }
 }
 
-// Add CSS for animations
+// Add CSS for SweetAlert styling (animation moved to interaction-utils.css)
 const discordStyles = document.createElement('style');
 discordStyles.textContent = `
-    @keyframes discord-pulse {
-        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(var(--ecs-warning-rgb, 245, 158, 11), 0.7); }
-        50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(var(--ecs-warning-rgb, 245, 158, 11), 0); }
-        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(var(--ecs-warning-rgb, 245, 158, 11), 0); }
-    }
-
     .swal2-discord-popup .swal2-html-container {
         text-align: left !important;
     }

@@ -13,32 +13,32 @@
 <div class="row">
     <!-- Stats -->
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-body text-center py-3">
+        <div class="c-card h-100">
+            <div class="c-card__body text-center py-3">
                 <h4 class="mb-0 text-primary">{{ stats.total }}</h4>
                 <small class="text-muted">Total</small>
             </div>
         </div>
     </div>
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-body text-center py-3">
+        <div class="c-card h-100">
+            <div class="c-card__body text-center py-3">
                 <h4 class="mb-0 text-warning">{{ stats.open }}</h4>
                 <small class="text-muted">Open</small>
             </div>
         </div>
     </div>
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-body text-center py-3">
+        <div class="c-card h-100">
+            <div class="c-card__body text-center py-3">
                 <h4 class="mb-0 text-info">{{ stats.in_progress }}</h4>
                 <small class="text-muted">In Progress</small>
             </div>
         </div>
     </div>
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-body text-center py-3">
+        <div class="c-card h-100">
+            <div class="c-card__body text-center py-3">
                 <h4 class="mb-0 text-success">{{ stats.closed }}</h4>
                 <small class="text-muted">Closed</small>
             </div>
@@ -47,19 +47,19 @@
 
     <!-- Filters -->
     <div class="col-12 mb-3">
-        <div class="card">
-            <div class="card-body">
+        <div class="c-card">
+            <div class="c-card__body">
                 <div class="row align-items-center">
                     <div class="col-md-8 mb-2 mb-md-0">
                         <div class="btn-group" role="group">
-                            <a href="{{ url_for('admin_panel.feedback_list') }}" class="btn btn-{{ 'primary' if not status_filter else 'outline-primary' }}">All</a>
-                            <a href="{{ url_for('admin_panel.feedback_list', status='Open') }}" class="btn btn-{{ 'warning' if status_filter == 'Open' else 'outline-warning' }}">Open</a>
-                            <a href="{{ url_for('admin_panel.feedback_list', status='In Progress') }}" class="btn btn-{{ 'info' if status_filter == 'In Progress' else 'outline-info' }}">In Progress</a>
-                            <a href="{{ url_for('admin_panel.feedback_list', status='Closed') }}" class="btn btn-{{ 'success' if status_filter == 'Closed' else 'outline-success' }}">Closed</a>
+                            <a href="{{ url_for('admin_panel.feedback_list') }}" class="c-btn btn-{{ 'primary' if not status_filter else 'outline-primary' }}">All</a>
+                            <a href="{{ url_for('admin_panel.feedback_list', status='Open') }}" class="c-btn btn-{{ 'warning' if status_filter == 'Open' else 'outline-warning' }}">Open</a>
+                            <a href="{{ url_for('admin_panel.feedback_list', status='In Progress') }}" class="c-btn btn-{{ 'info' if status_filter == 'In Progress' else 'outline-info' }}">In Progress</a>
+                            <a href="{{ url_for('admin_panel.feedback_list', status='Closed') }}" class="c-btn btn-{{ 'success' if status_filter == 'Closed' else 'outline-success' }}">Closed</a>
                         </div>
                     </div>
                     <div class="col-md-4 text-md-end">
-                        <select id="priority-filter" class="form-select form-select-sm d-inline-block w-auto">
+                        <select id="priority-filter" class="form-select form-select-sm d-inline-block w-auto" data-form-select>
                             <option value="">All Priorities</option>
                             <option value="High" {{ 'selected' if priority_filter == 'High' }}>High</option>
                             <option value="Medium" {{ 'selected' if priority_filter == 'Medium' }}>Medium</option>
@@ -73,24 +73,24 @@
 
     <!-- Feedback List -->
     <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="ti ti-message-circle me-2"></i>Feedback Items</h5>
-                <span class="badge bg-secondary">{{ pagination.total }} items</span>
+                <span class="badge bg-secondary" data-badge>{{ pagination.total }} items</span>
             </div>
-            <div class="card-body p-0">
+            <div class="c-card__body p-0">
                 {% if feedbacks %}
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable mb-0" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>ID</th>
-                                <th>Subject</th>
-                                <th>User</th>
-                                <th>Status</th>
-                                <th>Priority</th>
-                                <th>Created</th>
-                                <th>Actions</th>
+                                <th scope="col">ID</th>
+                                <th scope="col">Subject</th>
+                                <th scope="col">User</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Priority</th>
+                                <th scope="col">Created</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -105,36 +105,36 @@
                                 <td>{{ feedback.user.username if feedback.user else 'Anonymous' }}</td>
                                 <td>
                                     {% if feedback.status == 'Open' %}
-                                    <span class="badge bg-warning">Open</span>
+                                    <span class="badge bg-warning" data-badge>Open</span>
                                     {% elif feedback.status == 'In Progress' %}
-                                    <span class="badge bg-info">In Progress</span>
+                                    <span class="badge bg-info" data-badge>In Progress</span>
                                     {% elif feedback.status == 'Closed' %}
-                                    <span class="badge bg-success">Closed</span>
+                                    <span class="badge bg-success" data-badge>Closed</span>
                                     {% else %}
-                                    <span class="badge bg-secondary">{{ feedback.status }}</span>
+                                    <span class="badge bg-secondary" data-badge>{{ feedback.status }}</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if feedback.priority == 'High' %}
-                                    <span class="badge bg-danger">High</span>
+                                    <span class="badge bg-danger" data-badge>High</span>
                                     {% elif feedback.priority == 'Medium' %}
-                                    <span class="badge bg-warning">Medium</span>
+                                    <span class="badge bg-warning" data-badge>Medium</span>
                                     {% else %}
-                                    <span class="badge bg-secondary">Low</span>
+                                    <span class="badge bg-secondary" data-badge>Low</span>
                                     {% endif %}
                                 </td>
                                 <td>{{ feedback.created_at.strftime('%b %d, %Y') if feedback.created_at else 'N/A' }}</td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <a href="{{ url_for('admin_panel.view_feedback', feedback_id=feedback.id) }}" class="btn btn-outline-primary" title="View">
+                                        <a href="{{ url_for('admin_panel.view_feedback', feedback_id=feedback.id) }}" class="c-btn c-btn--outline-primary" title="View">
                                             <i class="ti ti-eye"></i>
                                         </a>
                                         {% if feedback.status != 'Closed' %}
-                                        <button class="btn btn-outline-success" onclick="closeFeedback({{ feedback.id }})" title="Close">
+                                        <button class="c-btn c-btn--outline-success js-close-feedback" data-action="close-feedback" data-feedback-id="{{ feedback.id }}" title="Close">
                                             <i class="ti ti-check"></i>
                                         </button>
                                         {% endif %}
-                                        <button class="btn btn-outline-danger" onclick="deleteFeedback({{ feedback.id }})" title="Delete">
+                                        <button class="c-btn c-btn--outline-danger js-delete-feedback" data-action="delete-feedback" data-feedback-id="{{ feedback.id }}" title="Delete">
                                             <i class="ti ti-trash"></i>
                                         </button>
                                     </div>
@@ -146,31 +146,31 @@
                 </div>
                 {% else %}
                 <div class="text-center py-5">
-                    <i class="ti ti-message-off fs-1 text-muted mb-3"></i>
+                    <i class="ti ti-message-off icon-empty-state mb-3"></i>
                     <p class="text-muted">No feedback found with current filters.</p>
                 </div>
                 {% endif %}
             </div>
             {% if pagination.pages > 1 %}
-            <div class="card-footer">
+            <div class="c-card__footer">
                 <nav>
-                    <ul class="pagination pagination-sm mb-0 justify-content-center">
+                    <ul class="pagination pagination-sm mb-0 justify-content-center" data-pagination>
                         {% if pagination.has_prev %}
-                        <li class="page-item">
+                        <li class="page-item" data-page-item>
                             <a class="page-link" href="{{ url_for('admin_panel.feedback_list', page=pagination.prev_num, status=status_filter, priority=priority_filter) }}">&laquo;</a>
                         </li>
                         {% endif %}
 
                         {% for p in range(1, pagination.pages + 1) %}
                             {% if p >= pagination.page - 2 and p <= pagination.page + 2 %}
-                            <li class="page-item {{ 'active' if p == pagination.page }}">
+                            <li class="page-item {{ 'active' if p == pagination.page }}" data-page-item data-page-active>
                                 <a class="page-link" href="{{ url_for('admin_panel.feedback_list', page=p, status=status_filter, priority=priority_filter) }}">{{ p }}</a>
                             </li>
                             {% endif %}
                         {% endfor %}
 
                         {% if pagination.has_next %}
-                        <li class="page-item">
+                        <li class="page-item" data-page-item>
                             <a class="page-link" href="{{ url_for('admin_panel.feedback_list', page=pagination.next_num, status=status_filter, priority=priority_filter) }}">&raquo;</a>
                         </li>
                         {% endif %}
@@ -186,6 +186,27 @@
 {% block custom_js %}
 {{ super() }}
 <script>
+// Event delegation for feedback actions
+document.addEventListener('DOMContentLoaded', function() {
+    // Close Feedback button delegation
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.js-close-feedback')) {
+            const btn = e.target.closest('.js-close-feedback');
+            const feedbackId = btn.dataset.feedbackId;
+            closeFeedback(feedbackId);
+        }
+    });
+
+    // Delete Feedback button delegation
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.js-delete-feedback')) {
+            const btn = e.target.closest('.js-delete-feedback');
+            const feedbackId = btn.dataset.feedbackId;
+            deleteFeedback(feedbackId);
+        }
+    });
+});
+
 document.getElementById('priority-filter').addEventListener('change', function() {
     const priority = this.value;
     const url = new URL(window.location.href);

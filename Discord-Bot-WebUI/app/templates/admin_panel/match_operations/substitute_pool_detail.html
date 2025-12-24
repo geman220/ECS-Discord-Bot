@@ -2,6 +2,18 @@
 
 {% block title %}{{ league_config.name }} Substitute Pool - Admin Panel{% endblock %}
 
+{% block custom_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/substitute-pool.css') }}">
+<style>
+/* Dynamic league color from backend */
+:root {
+    --league-color: {{ league_config.color }};
+    --league-color-light: {{ league_config.color }}15;
+}
+</style>
+{% endblock %}
+
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{{ url_for('admin_panel.match_operations') }}">Match Operations</a></li>
 <li class="breadcrumb-item"><a href="{{ url_for('admin_panel.substitute_pools') }}">Substitute Pools</a></li>
@@ -12,17 +24,17 @@
 <!-- League Header -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card" style="border-left: 4px solid {{ league_config.color }};">
-            <div class="card-body">
+        <div class="c-card league-header">
+            <div class="c-card__body">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
-                        <i class="{{ league_config.icon }} me-3" style="font-size: 2.5rem; color: {{ league_config.color }};"></i>
+                        <i class="{{ league_config.icon }} me-3 league-icon"></i>
                         <div>
-                            <h4 class="mb-0" style="color: {{ league_config.color }};">{{ league_config.name }} Substitute Pool</h4>
-                            <p class="text-muted mb-0">Manage substitute players for {{ league_config.name }}</p>
+                            <h4 class="league-title">{{ league_config.name }} Substitute Pool</h4>
+                            <p class="league-subtitle">Manage substitute players for {{ league_config.name }}</p>
                         </div>
                     </div>
-                    <button class="btn btn-primary" onclick="showAddPlayerModal()">
+                    <button class="c-btn c-btn--primary js-add-player" data-action="add-player">
                         <i class="ti ti-user-plus me-1"></i>Add Player
                     </button>
                 </div>
@@ -34,52 +46,40 @@
 <!-- Statistics Cards -->
 <div class="row mb-4">
     <div class="col-md-2 col-sm-4 mb-3">
-        <div class="card text-center">
-            <div class="card-body py-3">
-                <div class="h3 mb-0 text-primary">{{ stats.total_active }}</div>
-                <small class="text-muted">Active Subs</small>
-            </div>
+        <div class="stat-card stat-primary">
+            <div class="stat-value">{{ stats.total_active }}</div>
+            <div class="stat-label">Active Subs</div>
         </div>
     </div>
     <div class="col-md-2 col-sm-4 mb-3">
-        <div class="card text-center">
-            <div class="card-body py-3">
-                <div class="h3 mb-0 text-success">{{ stats.total_eligible }}</div>
-                <small class="text-muted">Eligible</small>
-            </div>
+        <div class="stat-card stat-success">
+            <div class="stat-value">{{ stats.total_eligible }}</div>
+            <div class="stat-label">Eligible</div>
         </div>
     </div>
     <div class="col-md-2 col-sm-4 mb-3">
-        <div class="card text-center">
-            <div class="card-body py-3">
-                <div class="h3 mb-0 text-info">{{ stats.total_requests_sent }}</div>
-                <small class="text-muted">Requests</small>
-            </div>
+        <div class="stat-card stat-info">
+            <div class="stat-value">{{ stats.total_requests_sent }}</div>
+            <div class="stat-label">Requests</div>
         </div>
     </div>
     <div class="col-md-2 col-sm-4 mb-3">
-        <div class="card text-center">
-            <div class="card-body py-3">
-                <div class="h3 mb-0 text-warning">{{ stats.total_matches_played }}</div>
-                <small class="text-muted">Matches</small>
-            </div>
+        <div class="stat-card stat-warning">
+            <div class="stat-value">{{ stats.total_matches_played }}</div>
+            <div class="stat-label">Matches</div>
         </div>
     </div>
     <div class="col-md-2 col-sm-4 mb-3">
-        <div class="card text-center">
-            <div class="card-body py-3">
-                <div class="h3 mb-0 text-secondary">{{ stats.pending_approval }}</div>
-                <small class="text-muted">Available</small>
-            </div>
+        <div class="stat-card stat-secondary">
+            <div class="stat-value">{{ stats.pending_approval }}</div>
+            <div class="stat-label">Available</div>
         </div>
     </div>
     <div class="col-md-2 col-sm-4 mb-3">
-        <div class="card text-center bg-light">
-            <div class="card-body py-3">
-                <button class="btn btn-sm btn-outline-primary" onclick="loadStatistics()">
-                    <i class="ti ti-refresh me-1"></i>Stats
-                </button>
-            </div>
+        <div class="stat-card stat-action">
+            <button class="c-btn c-btn--sm c-btn--outline-primary js-load-stats" data-action="load-stats">
+                <i class="ti ti-refresh me-1"></i>Stats
+            </button>
         </div>
     </div>
 </div>
@@ -87,25 +87,25 @@
 <div class="row">
     <!-- Active Substitutes -->
     <div class="col-lg-8 mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-users me-2"></i>Active Substitutes
                 </h5>
-                <span class="badge" style="background: {{ league_config.color }};">{{ active_pools|length }} Players</span>
+                <span class="pool-badge" data-badge>{{ active_pools|length }} Players</span>
             </div>
-            <div class="card-body p-0">
+            <div class="c-card__body p-0">
                 {% if active_pools %}
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable mb-0" data-table>
+                        <thead class="c-table--light" scope="col">
                             <tr>
-                                <th>Player</th>
-                                <th class="text-center">Matches</th>
-                                <th class="text-center">Requests</th>
-                                <th class="text-center">Acceptance</th>
-                                <th class="text-center">Notifications</th>
-                                <th>Actions</th>
+                                <th scope="col">Player</th>
+                                <th class="text-center" scope="col">Matches</th>
+                                <th class="text-center" scope="col">Requests</th>
+                                <th class="text-center" scope="col">Acceptance</th>
+                                <th class="text-center" scope="col">Notifications</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -113,46 +113,45 @@
                             <tr>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        <div class="avatar avatar-sm me-2" style="background: {{ league_config.color }}15;">
-                                            <span style="color: {{ league_config.color }};">{{ pool.player.name[0] if pool.player else '?' }}</span>
+                                        <div class="player-avatar me-2">
+                                            <span>{{ pool.player.name[0] if pool.player else '?' }}</span>
                                         </div>
                                         <div>
-                                            <strong>{{ pool.player.name if pool.player else 'Unknown' }}</strong>
-                                            <br>
-                                            <small class="text-muted">
+                                            <div class="player-name">{{ pool.player.name if pool.player else 'Unknown' }}</div>
+                                            <div class="player-contact-info">
                                                 {% if pool.player.phone %}
-                                                <i class="ti ti-phone me-1"></i>
+                                                <i class="ti ti-phone contact-icon phone"></i>
                                                 {% endif %}
                                                 {% if pool.player.discord_id %}
-                                                <i class="ti ti-brand-discord me-1"></i>
+                                                <i class="ti ti-brand-discord contact-icon discord"></i>
                                                 {% endif %}
                                                 {% if pool.player.user and pool.player.user.email %}
-                                                <i class="ti ti-mail"></i>
+                                                <i class="ti ti-mail contact-icon email"></i>
                                                 {% endif %}
-                                            </small>
+                                            </div>
                                         </div>
                                     </div>
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge bg-info">{{ pool.matches_played }}</span>
+                                    <span class="badge bg-info" data-badge>{{ pool.matches_played }}</span>
                                 </td>
                                 <td class="text-center">
                                     {{ pool.requests_received }}
                                 </td>
                                 <td class="text-center">
-                                    <div class="progress" style="height: 8px; width: 60px; display: inline-block;">
-                                        <div class="progress-bar bg-success" style="width: {{ pool.acceptance_rate }}%;"></div>
+                                    <div class="acceptance-progress">
+                                        <div class="acceptance-progress-bar" data-width="{{ pool.acceptance_rate }}"></div>
                                     </div>
-                                    <small class="d-block">{{ pool.acceptance_rate|round(1) }}%</small>
+                                    <small class="acceptance-rate-text">{{ pool.acceptance_rate|round(1) }}%</small>
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge {{ 'bg-success' if pool.sms_for_sub_requests else 'bg-secondary' }}" title="SMS">S</span>
-                                    <span class="badge {{ 'bg-success' if pool.discord_for_sub_requests else 'bg-secondary' }}" title="Discord">D</span>
-                                    <span class="badge {{ 'bg-success' if pool.email_for_sub_requests else 'bg-secondary' }}" title="Email">E</span>
+                                    <span class="notification-badge {{ 'enabled' if pool.sms_for_sub_requests else 'disabled' }}" title="SMS" data-badge>S</span>
+                                    <span class="notification-badge {{ 'enabled' if pool.discord_for_sub_requests else 'disabled' }}" title="Discord" data-badge>D</span>
+                                    <span class="notification-badge {{ 'enabled' if pool.email_for_sub_requests else 'disabled' }}" title="Email" data-badge>E</span>
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-danger" onclick="removeFromPool({{ pool.player_id }}, '{{ pool.player.name if pool.player else 'Unknown' }}')" title="Remove from pool">
+                                        <button class="c-btn c-btn--outline-danger js-remove-player" data-action="remove-player" data-player-id="{{ pool.player_id }}" data-player-name="{{ pool.player.name if pool.player else 'Unknown' }}" title="Remove from pool">
                                             <i class="ti ti-trash"></i>
                                         </button>
                                     </div>
@@ -163,11 +162,11 @@
                     </table>
                 </div>
                 {% else %}
-                <div class="text-center py-5">
-                    <i class="ti ti-users-group text-muted" style="font-size: 3rem;"></i>
-                    <h5 class="text-muted mt-3">No Active Substitutes</h5>
-                    <p class="text-muted">Add players to this substitute pool to get started.</p>
-                    <button class="btn btn-primary" onclick="showAddPlayerModal()">
+                <div class="empty-state">
+                    <i class="ti ti-users-group empty-state-icon"></i>
+                    <h5 class="empty-state-title">No Active Substitutes</h5>
+                    <p class="empty-state-description">Add players to this substitute pool to get started.</p>
+                    <button class="c-btn c-btn--primary js-add-player" data-action="add-player">
                         <i class="ti ti-user-plus me-1"></i>Add First Player
                     </button>
                 </div>
@@ -179,30 +178,29 @@
     <!-- Sidebar -->
     <div class="col-lg-4">
         <!-- Available Players -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h6 class="card-title mb-0">
+        <div class="c-card mb-4">
+            <div class="c-card__header">
+                <h6 class="c-card__title mb-0">
                     <i class="ti ti-user-check me-2"></i>Available to Add
                 </h6>
             </div>
-            <div class="card-body p-0">
+            <div class="c-card__body p-0">
                 {% if available_players %}
-                <div class="list-group list-group-flush" style="max-height: 250px; overflow-y: auto;">
+                <div class="list-group list-group-flush available-players-list">
                     {% for player in available_players[:10] %}
                     <div class="list-group-item d-flex justify-content-between align-items-center available-player-item" id="available-player-{{ player.id }}">
                         <div>
-                            <strong>{{ player.name }}</strong>
-                            <br>
-                            <small class="text-muted">
-                                {% if player.phone %}<i class="ti ti-phone me-1"></i>{% endif %}
-                                {% if player.discord_id %}<i class="ti ti-brand-discord me-1"></i>{% endif %}
-                            </small>
+                            <div class="player-name">{{ player.name }}</div>
+                            <div class="player-contact-info">
+                                {% if player.phone %}<i class="ti ti-phone contact-icon phone"></i>{% endif %}
+                                {% if player.discord_id %}<i class="ti ti-brand-discord contact-icon discord"></i>{% endif %}
+                            </div>
                         </div>
                         <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-success" onclick="addToPool({{ player.id }})" title="Add to pool">
+                            <button class="c-btn c-btn--outline-success js-add-to-pool" data-action="add-to-pool" data-player-id="{{ player.id }}" title="Add to pool">
                                 <i class="ti ti-check"></i>
                             </button>
-                            <button class="btn btn-outline-danger" onclick="rejectPlayer({{ player.id }}, '{{ player.name }}')" title="Reject">
+                            <button class="c-btn c-btn--outline-danger js-reject-player" data-action="reject-player" data-player-id="{{ player.id }}" data-player-name="{{ player.name }}" title="Reject">
                                 <i class="ti ti-x"></i>
                             </button>
                         </div>
@@ -210,7 +208,7 @@
                     {% endfor %}
                 </div>
                 {% if available_players|length > 10 %}
-                <div class="card-footer text-center">
+                <div class="c-card__footer text-center">
                     <small class="text-muted">+{{ available_players|length - 10 }} more eligible players</small>
                 </div>
                 {% endif %}
@@ -223,29 +221,29 @@
         </div>
 
         <!-- Recent Activity -->
-        <div class="card">
-            <div class="card-header">
-                <h6 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h6 class="c-card__title mb-0">
                     <i class="ti ti-history me-2"></i>Recent Activity
                 </h6>
             </div>
-            <div class="card-body p-0">
+            <div class="c-card__body p-0">
                 {% if recent_activity %}
-                <div class="list-group list-group-flush" style="max-height: 300px; overflow-y: auto;">
+                <div class="list-group list-group-flush recent-activity-list">
                     {% for activity in recent_activity %}
-                    <div class="list-group-item">
+                    <div class="list-group-item activity-item">
                         <div class="d-flex justify-content-between">
                             <small class="text-muted">
                                 {{ activity.performed_at.strftime('%m/%d %H:%M') if activity.performed_at else '' }}
                             </small>
-                            <span class="badge {% if activity.action == 'ADDED' %}bg-success{% elif activity.action == 'REMOVED' %}bg-danger{% else %}bg-info{% endif %}">
+                            <span class="badge {% if activity.action == 'ADDED' %}bg-success{% elif activity.action == 'REMOVED' %}bg-danger{% else %}bg-info{% endif %}" data-badge>
                                 {{ activity.action }}
                             </span>
                         </div>
                         <div class="mt-1">
-                            <strong>{{ activity.player.name if activity.player else 'Unknown' }}</strong>
+                            <div class="player-name">{{ activity.player.name if activity.player else 'Unknown' }}</div>
                             {% if activity.performer %}
-                            <br><small class="text-muted">by {{ activity.performer.username }}</small>
+                            <small class="text-muted">by {{ activity.performer.username }}</small>
                             {% endif %}
                         </div>
                     </div>
@@ -262,20 +260,20 @@
 </div>
 
 <!-- Add Player Modal -->
-<div class="modal fade" id="addPlayerModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
+<div class="modal c-modal fade" data-modal id="addPlayerModal" tabindex="-1" aria-labelledby="addPlayerModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="addPlayerModalLabel">
                     <i class="ti ti-user-plus me-2"></i>Add Player to {{ league_config.name }} Pool
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <div class="mb-3">
                     <label class="form-label">Search Player</label>
                     <input type="text" class="form-control" id="playerSearchInput"
-                           placeholder="Type player name or email...">
+                           placeholder="Type player name or email..." data-form-control>
                 </div>
                 <div id="playerSearchResults"></div>
             </div>
@@ -284,18 +282,18 @@
 </div>
 
 <!-- Statistics Modal -->
-<div class="modal fade" id="statisticsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
+<div class="modal c-modal fade" data-modal id="statisticsModal" tabindex="-1" aria-labelledby="statisticsModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="statisticsModalLabel">
                     <i class="ti ti-chart-bar me-2"></i>{{ league_config.name }} Pool Statistics
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body" id="statisticsContent">
+            <div class="modal-body c-modal__body" data-modal-body id="statisticsContent" data-modal-body aria-labelledby="statisticsContentLabel">
                 <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status">
+                    <div class="spinner-border text-primary" role="status" data-spinner>
                         <span class="visually-hidden">Loading...</span>
                     </div>
                 </div>
@@ -305,18 +303,92 @@
 </div>
 {% endblock %}
 
-{% block extra_js %}
+{% block custom_js %}
+{{ super() }}
 <script>
 const leagueType = '{{ league_type }}';
 const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
+// Initialize dynamic progress bar widths from data-width attributes
+// NOTE: Event delegation is now handled by the centralized EventDelegation system
+// See: /app/static/js/event-delegation.js
+// Actions registered: add-player, load-stats, remove-player, add-to-pool, reject-player
+document.addEventListener('DOMContentLoaded', function() {
+    // All click event delegation is now handled by EventDelegation system
+    // The following inline event listeners have been removed as they're redundant:
+    // - .js-add-player → data-action="add-player"
+    // - .js-load-stats → data-action="load-stats"
+    // - .js-remove-player → data-action="remove-player"
+    // - .js-add-to-pool → data-action="add-to-pool"
+    // - .js-reject-player → data-action="reject-player"
+
+    // Legacy event handlers kept for reference (commented out):
+    /*
+    document.querySelectorAll('.js-add-player').forEach(btn => {
+        btn.addEventListener('click', showAddPlayerModal);
+    });
+
+    document.querySelectorAll('.js-load-stats').forEach(btn => {
+        btn.addEventListener('click', loadStatistics);
+    });
+
+    document.querySelectorAll('.js-remove-player').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const playerId = this.dataset.playerId;
+            const playerName = this.dataset.playerName;
+            removeFromPool(playerId, playerName);
+        });
+    });
+
+    document.querySelectorAll('.js-add-to-pool').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const playerId = this.dataset.playerId;
+            addToPool(playerId);
+        });
+    });
+
+    document.querySelectorAll('.js-reject-player').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const playerId = this.dataset.playerId;
+            const playerName = this.dataset.playerName;
+            rejectPlayer(playerId, playerName);
+        });
+    });
+    */
+
+    // Set acceptance progress bar widths
+    document.querySelectorAll('.acceptance-progress-bar[data-width]').forEach(bar => {
+        const width = bar.getAttribute('data-width');
+        bar.style.setProperty('--progress-width', width + '%');
+    });
+
+    // Set stats progress bar widths (will be set dynamically when modal loads)
+    document.querySelectorAll('.stats-progress-bar[data-width]').forEach(bar => {
+        const width = bar.getAttribute('data-width');
+        bar.style.setProperty('--progress-width', width + '%');
+    });
+});
+
 function showAddPlayerModal() {
-    const modal = new bootstrap.Modal(document.getElementById('addPlayerModal'));
-    modal.show();
+    ModalManager.show('addPlayerModal');
     document.getElementById('playerSearchInput').value = '';
     document.getElementById('playerSearchResults').innerHTML = '';
     setTimeout(() => document.getElementById('playerSearchInput').focus(), 300);
 }
+
+// Event delegation for dynamically added search result buttons
+// NOTE: This is now handled by the centralized EventDelegation system
+// All elements with data-action="add-to-pool" are automatically handled
+// Legacy handler kept for reference (commented out):
+/*
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('[data-action="add-to-pool"]');
+    if (btn && btn.classList.contains('js-search-result-add')) {
+        const playerId = btn.dataset.playerId;
+        addToPool(playerId);
+    }
+});
+*/
 
 // Player search
 let searchTimeout;
@@ -349,8 +421,8 @@ document.getElementById('playerSearchInput').addEventListener('input', function(
                                     ${player.discord_id ? '<i class="ti ti-brand-discord ms-1 text-primary"></i>' : ''}
                                 </div>
                                 ${inPool ?
-                                    '<span class="badge bg-secondary">Already in pool</span>' :
-                                    `<button class="btn btn-sm btn-success" onclick="addToPool(${player.id})">
+                                    '<span class="badge bg-secondary" data-badge>Already in pool</span>' :
+                                    `<button class="c-btn c-btn--sm c-btn--success js-search-result-add" data-action="add-to-pool" data-player-id="${player.id}">
                                         <i class="ti ti-plus me-1"></i>Add
                                     </button>`
                                 }
@@ -491,8 +563,7 @@ async function rejectPlayer(playerId, playerName) {
 }
 
 async function loadStatistics() {
-    const modal = new bootstrap.Modal(document.getElementById('statisticsModal'));
-    modal.show();
+    ModalManager.show('statisticsModal');
 
     try {
         const response = await fetch(`/admin-panel/substitute-pools/${encodeURIComponent(leagueType)}/statistics`);
@@ -523,22 +594,22 @@ async function loadStatistics() {
                 <h6>Notification Preferences</h6>
                 <div class="row mb-4">
                     <div class="col-md-4">
-                        <div class="progress" style="height: 25px;">
-                            <div class="progress-bar bg-success" style="width: ${(stats.notification_preferences.sms_enabled / stats.total_active * 100).toFixed(0)}%">
+                        <div class="stats-progress">
+                            <div class="stats-progress-bar bg-success" data-width="${(stats.notification_preferences.sms_enabled / stats.total_active * 100).toFixed(0)}">
                                 SMS: ${stats.notification_preferences.sms_enabled}
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="progress" style="height: 25px;">
-                            <div class="progress-bar bg-primary" style="width: ${(stats.notification_preferences.discord_enabled / stats.total_active * 100).toFixed(0)}%">
+                        <div class="stats-progress">
+                            <div class="stats-progress-bar bg-primary" data-width="${(stats.notification_preferences.discord_enabled / stats.total_active * 100).toFixed(0)}">
                                 Discord: ${stats.notification_preferences.discord_enabled}
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="progress" style="height: 25px;">
-                            <div class="progress-bar bg-info" style="width: ${(stats.notification_preferences.email_enabled / stats.total_active * 100).toFixed(0)}%">
+                        <div class="stats-progress">
+                            <div class="stats-progress-bar bg-info" data-width="${(stats.notification_preferences.email_enabled / stats.total_active * 100).toFixed(0)}">
                                 Email: ${stats.notification_preferences.email_enabled}
                             </div>
                         </div>
@@ -547,12 +618,12 @@ async function loadStatistics() {
 
                 ${stats.top_performers.length > 0 ? `
                 <h6>Top Performers</h6>
-                <table class="table table-sm">
-                    <thead>
+                <table class="c-table c-table--compact" data-table>
+                    <thead scope="col">
                         <tr>
-                            <th>Player</th>
-                            <th class="text-center">Matches</th>
-                            <th class="text-center">Acceptance</th>
+                            <th scope="col">Player</th>
+                            <th class="text-center" scope="col">Matches</th>
+                            <th class="text-center" scope="col">Acceptance</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -568,13 +639,19 @@ async function loadStatistics() {
                 ` : '<p class="text-muted">No performance data yet</p>'}
             `;
             document.getElementById('statisticsContent').innerHTML = html;
+
+            // Initialize progress bar widths after content is loaded
+            document.querySelectorAll('.stats-progress-bar[data-width]').forEach(bar => {
+                const width = bar.getAttribute('data-width');
+                bar.style.setProperty('--progress-width', width + '%');
+            });
         } else {
             document.getElementById('statisticsContent').innerHTML =
-                '<div class="alert alert-danger">Failed to load statistics</div>';
+                '<div class="alert alert-danger" data-alert>Failed to load statistics</div>';
         }
     } catch (error) {
         document.getElementById('statisticsContent').innerHTML =
-            '<div class="alert alert-danger">Error loading statistics</div>';
+            '<div class="alert alert-danger" data-alert>Error loading statistics</div>';
     }
 }
 </script>

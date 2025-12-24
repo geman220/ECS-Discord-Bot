@@ -2,181 +2,109 @@
 
 {% block title %}Join the Waitlist - ECS FC Pub League{% endblock %}
 
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/authentication.css') }}" />
+{% endblock %}
+
 {% block main_content %}
-<style>
-    /* Match login page design language */
-    html, body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        background-color: var(--sounders-blue, #00539F); /* Sounders Blue */
-    }
+<div class="c-auth-wrapper c-auth-wrapper--wide" data-component="auth-wrapper">
+    <!-- Logo Section -->
+    <div class="c-auth-logo" data-component="auth-logo">
+        <img src="{{ url_for('static', filename='img/ecs_logo.png') }}"
+             alt="ECS Logo"
+             class="c-auth-logo__image">
+        <div class="c-auth-logo__divider"></div>
+        <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}"
+             alt="ECS FC Pub League Logo"
+             class="c-auth-logo__image">
+    </div>
 
-    .authentication-wrapper {
-        height: 100%;
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .authentication-inner {
-        width: 100%;
-        max-width: 900px;
-        background-color: white;
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        border-radius: 8px;
-        margin: 1rem;
-    }
-
-    /* Mobile responsive */
-    @media (max-width: 991px) {
-        .authentication-inner {
-            flex-direction: column;
-            max-width: 500px;
-        }
-        
-        .logo-section {
-            padding: 2rem 1rem 1rem 1rem !important;
-        }
-        
-        .form-section {
-            padding: 1rem 2rem 2rem 2rem !important;
-        }
-    }
-
-    .btn-discord {
-        background-color: var(--discord-blurple, #7289DA);
-        border-color: var(--discord-blurple, #7289DA);
-        color: var(--ecs-neutral-0, #ffffff);
-    }
-
-    .btn-discord:hover {
-        background-color: var(--discord-blurple-dark, #6a7dd1);
-        border-color: var(--discord-blurple-dark, #6a7dd1);
-    }
-
-    .btn-waitlist {
-        background-color: var(--ecs-warning, #ffc107);
-        border-color: var(--ecs-warning, #ffc107);
-        color: var(--ecs-neutral-90, #212529);
-    }
-
-    .btn-waitlist:hover {
-        background-color: var(--ecs-warning-dark, #e0a800);
-        border-color: var(--ecs-warning-dark, #d39e00);
-    }
-</style>
-
-<div class="authentication-wrapper">
-    <div class="authentication-inner">
-        <!-- ECS Logos -->
-        <div class="d-none d-lg-flex col-lg-5 align-items-center justify-content-center p-5 logo-section">
-            <div class="text-center">
-                <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS Logo" class="img-fluid mb-4" style="max-height: 180px; width: auto;">
-                <br>
-                <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="ECS FC Pub League Logo" class="img-fluid" style="max-height: 180px; width: auto;">
-            </div>
+    <!-- Waitlist Content -->
+    <div class="c-auth-form" data-component="auth-form">
+        <div class="c-auth-form__header">
+            <h1 class="c-auth-form__title">Join the Waitlist</h1>
+            <p class="c-auth-form__subtitle">Season is full, but you can join our waitlist!</p>
         </div>
 
-        <!-- Mobile Logo -->
-        <div class="d-flex d-lg-none col-12 align-items-center justify-content-center py-3 logo-section">
-            <div class="text-center">
-                <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="ECS FC Pub League Logo" class="img-fluid" style="max-height: 60px;">
+        <div class="c-auth-form__body">
+            <!-- Season Full Alert -->
+            <div class="c-auth-alert c-auth-alert--warning" data-alert>
+                <h6 class="c-auth-alert__title">
+                    <i class="ti ti-clock"></i>
+                    Season Full
+                </h6>
+                <p class="c-auth-alert__text">
+                    All spots are filled. Join our waitlist to be first in line for future openings!
+                </p>
             </div>
-        </div>
 
-        <!-- Waitlist Form -->
-        <div class="col-12 col-lg-7 d-flex align-items-center p-4 bg-white rounded-end form-section">
-            <div style="width: 100%; max-width: 400px; text-align: center;">
-                <h4 class="mb-1 text-primary">Join the Waitlist</h4>
-                <p class="mb-4 text-muted">Season is full, but you can join our waitlist!</p>
+            <!-- Existing User Section -->
+            <div class="c-auth-help-text" data-component="help-text">
+                <p class="c-auth-help-text__content">
+                    <strong>Already have an account?</strong> Login with Discord to join the waitlist.
+                </p>
+            </div>
 
-                <!-- Season Full Alert -->
-                <div class="alert alert-warning mb-4">
-                    <h6 class="alert-heading mb-1">
-                        <i class="ti ti-clock me-2"></i>
-                        Season Full
-                    </h6>
-                    <p class="mb-0">All spots are filled. Join our waitlist to be first in line for future openings!</p>
-                </div>
+            <a href="{{ url_for('auth.waitlist_discord_login') }}"
+               class="c-auth-btn c-auth-btn--discord"
+               data-action="discord-login">
+                <i class="ti ti-brand-discord c-auth-btn__icon"></i>
+                Login with Discord
+            </a>
 
-                <!-- Login/Register Options -->
-                <div class="text-center">
-                    <!-- Existing User - Login -->
-                    <div class="mb-3">
-                        <h6 class="mb-3">
-                            <i class="ti ti-user me-2"></i>
-                            Played with us before?
-                        </h6>
-                        <p class="text-muted mb-3">If you already have a portal account, login to join the waitlist.</p>
-                        <a href="{{ url_for('auth.waitlist_discord_login') }}" class="btn btn-primary btn-block mb-2 d-flex align-items-center justify-content-center" style="background-color: var(--discord-blurple, #7289DA); border-color: var(--discord-blurple, #7289DA);">
-                            <i class="ti ti-brand-discord me-2"></i>
-                            Login with Discord
-                        </a>
+            <!-- Divider -->
+            <div class="c-auth-divider">
+                <span class="c-auth-divider__text">New to Pub League?</span>
+            </div>
+
+            <!-- New User Section -->
+            <p class="c-auth-form__note">
+                Create a new account with Discord to join the waitlist.
+            </p>
+
+            <a href="{{ url_for('auth.waitlist_discord_register') }}"
+               class="c-auth-btn c-auth-btn--outline"
+               data-action="discord-register">
+                <i class="ti ti-user-plus c-auth-btn__icon"></i>
+                Register with Discord
+            </a>
+
+            <!-- Info Note -->
+            <div class="c-auth-alert c-auth-alert--info" data-alert>
+                <h6 class="c-auth-alert__title">
+                    <i class="ti ti-info-circle"></i>
+                    Why Discord?
+                </h6>
+                <p class="c-auth-alert__text">
+                    Discord registration is required for all members. It helps us manage teams, communicate, and organize matches effectively.
+                </p>
+            </div>
+
+            <!-- Benefits Section -->
+            <div class="c-auth-benefits" data-component="benefits">
+                <h3 class="c-auth-benefits__title">Benefits of Joining</h3>
+                <div class="c-auth-benefits__grid">
+                    <div class="c-auth-benefits__item">
+                        <i class="ti ti-bell c-auth-benefits__icon"></i>
+                        <p class="c-auth-benefits__text">Priority notifications when spots open</p>
                     </div>
-
-                    <!-- Divider -->
-                    <div class="divider my-4">
-                        <span class="divider-text text-muted">or</span>
+                    <div class="c-auth-benefits__item">
+                        <i class="ti ti-calendar c-auth-benefits__icon"></i>
+                        <p class="c-auth-benefits__text">Early access to more information</p>
                     </div>
-
-                    <!-- New User - Register -->
-                    <div class="mb-3">
-                        <h6 class="mb-3">
-                            <i class="ti ti-user-plus me-2"></i>
-                            New to Pub League?
-                        </h6>
-                        <p class="text-muted mb-3">Create a new account with Discord and join the waitlist.</p>
-                        
-                        <!-- Discord Registration Only -->
-                        <a href="{{ url_for('auth.waitlist_discord_register') }}" class="btn btn-primary btn-block mb-2 d-flex align-items-center justify-content-center" style="background-color: var(--discord-blurple, #7289DA); border-color: var(--discord-blurple, #7289DA);">
-                            <i class="ti ti-brand-discord me-2"></i>
-                            Register with Discord
-                        </a>
-                        
-                        <div class="alert alert-info mt-3 mb-0">
-                            <small>
-                                <i class="ti ti-info-circle me-1"></i>
-                                Discord registration is required for all new members. This helps us manage teams, communicate, and organize matches effectively.
-                            </small>
-                        </div>
-                    </div>
-                </div>
-
-
-                <!-- Benefits Section -->
-                <div class="text-center mt-4">
-                    <div class="divider my-4">
-                        <div class="divider-text">Benefits of Joining</div>
-                    </div>
-                    <div class="row text-center">
-                        <div class="col-4 mb-3">
-                            <i class="ti ti-bell text-primary" style="font-size: 1.5rem;"></i>
-                            <p class="small mb-0">Priority notifications</p>
-                        </div>
-                        <div class="col-4 mb-3">
-                            <i class="ti ti-calendar text-primary" style="font-size: 1.5rem;"></i>
-                            <p class="small mb-0">Early access to more information</p>
-                        </div>
-                        <div class="col-4 mb-3">
-                            <i class="ti ti-users text-primary" style="font-size: 1.5rem;"></i>
-                            <p class="small mb-0">Sub opportunities</p>
-                        </div>
+                    <div class="c-auth-benefits__item">
+                        <i class="ti ti-users c-auth-benefits__icon"></i>
+                        <p class="c-auth-benefits__text">Sub opportunities for matches</p>
                     </div>
                 </div>
+            </div>
 
-                <!-- Footer Links -->
-                <div class="text-center mt-4">
-                    <a href="{{ url_for('auth.login') }}" class="d-flex align-items-center justify-content-center text-muted">
-                        <i class="ti ti-chevron-left me-1"></i>
-                        Back to login
-                    </a>
-                </div>
+            <!-- Footer Links -->
+            <div class="c-auth-form__footer">
+                <a href="{{ url_for('auth.login') }}" class="c-auth-link" data-action="back-to-login">
+                    <i class="ti ti-chevron-left"></i>
+                    Back to login
+                </a>
             </div>
         </div>
     </div>
@@ -184,24 +112,7 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Auto-focus on Discord registration button
-        const discordBtn = document.querySelector('a[href*="waitlist_discord_register"]');
-        if (discordBtn) {
-            discordBtn.focus();
-        }
-        
-        // Handle SweetAlert messages
-        {% if session.sweet_alert %}
-        Swal.fire({
-            title: '{{ session.sweet_alert.title }}',
-            text: '{{ session.sweet_alert.text }}',
-            icon: '{{ session.sweet_alert.icon }}',
-            confirmButtonText: 'OK'
-        });
-        {% endif %}
-    });
-</script>
+<script src="{{ url_for('static', filename='custom_js/discord-membership-check.js') }}"></script>
 {% endblock %}

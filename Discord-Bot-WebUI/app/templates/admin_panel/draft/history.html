@@ -13,8 +13,8 @@
     <!-- Stats Cards -->
     {% if stats %}
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-primary bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-primary bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-list-numbers fs-1 text-primary mb-2"></i>
                 <h3 class="mb-0">{{ stats.total_picks }}</h3>
                 <small class="text-muted">Total All-Time Picks</small>
@@ -22,8 +22,8 @@
         </div>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-success bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-success bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-calendar fs-1 text-success mb-2"></i>
                 <h3 class="mb-0">{{ stats.current_season_picks }}</h3>
                 <small class="text-muted">Current Season Picks</small>
@@ -31,8 +31,8 @@
         </div>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-info bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-info bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-filter fs-1 text-info mb-2"></i>
                 <h3 class="mb-0">{{ stats.filtered_picks }}</h3>
                 <small class="text-muted">Showing (Filtered)</small>
@@ -40,9 +40,9 @@
         </div>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100">
-            <div class="card-body text-center d-flex flex-column justify-content-center">
-                <a href="{{ url_for('draft_predictions.admin_dashboard') }}" class="btn btn-outline-primary mb-2">
+        <div class="c-card h-100">
+            <div class="c-card__body text-center d-flex flex-column justify-content-center">
+                <a href="{{ url_for('draft_predictions.admin_dashboard') }}" class="c-btn c-btn--outline-primary mb-2">
                     <i class="ti ti-chart-bar me-2"></i>Draft Predictions
                 </a>
                 <small class="text-muted">View predictions &amp; analytics</small>
@@ -53,12 +53,12 @@
 
     <!-- Filters -->
     <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-body">
+        <div class="c-card">
+            <div class="c-card__body">
                 <form method="get" class="row align-items-end">
                     <div class="col-md-4 mb-2 mb-md-0">
                         <label class="form-label">Season</label>
-                        <select name="season" class="form-select" onchange="this.form.submit()">
+                        <select name="season" class="form-select js-auto-submit" data-action="filter-season" data-form-select>
                             <option value="">All Seasons</option>
                             {% for season in seasons %}
                             <option value="{{ season.id }}" {{ 'selected' if current_season_filter == season.id }}>
@@ -69,7 +69,7 @@
                     </div>
                     <div class="col-md-4 mb-2 mb-md-0">
                         <label class="form-label">League</label>
-                        <select name="league" class="form-select" onchange="this.form.submit()">
+                        <select name="league" class="form-select js-auto-submit" data-action="filter-league" data-form-select>
                             <option value="">All Leagues</option>
                             {% for league in leagues %}
                             <option value="{{ league.id }}" {{ 'selected' if current_league_filter|string == league.id|string }}>
@@ -79,7 +79,7 @@
                         </select>
                     </div>
                     <div class="col-md-4 text-md-end">
-                        <span class="badge bg-primary fs-6">{{ total_picks }} picks showing</span>
+                        <span class="badge bg-primary fs-6" data-badge>{{ total_picks }} picks showing</span>
                     </div>
                 </form>
             </div>
@@ -90,38 +90,38 @@
     {% if draft_history %}
         {% for season_name, leagues_data in draft_history.items() %}
         <div class="col-12 mb-4">
-            <div class="card">
-                <div class="card-header bg-primary bg-opacity-10">
+            <div class="c-card">
+                <div class="c-card__header bg-primary bg-opacity-10">
                     <h5 class="mb-0"><i class="ti ti-calendar me-2"></i>{{ season_name }}</h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     {% for league_name, picks in leagues_data.items() %}
                     <div class="mb-4">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h6 class="mb-0"><i class="ti ti-trophy me-2"></i>{{ league_name }}</h6>
                             <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-secondary" onclick="normalizePositions({{ picks[0].season_id }}, {{ picks[0].league_id }})">
+                                <button class="c-btn c-btn--outline-secondary js-normalize-positions" data-action="normalize-positions" data-season-id="{{ picks[0].season_id }}" data-league-id="{{ picks[0].league_id }}">
                                     <i class="ti ti-sort-ascending-numbers me-1"></i>Normalize
                                 </button>
                             </div>
                         </div>
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover">
-                                <thead>
+                        <div class="c-table-wrapper" data-table-responsive>
+                            <table class="c-table c-table--compact c-table--hoverable" data-table>
+                                <thead scope="col">
                                     <tr>
-                                        <th style="width: 60px;">Pick #</th>
-                                        <th>Player</th>
-                                        <th>Team</th>
-                                        <th>Drafted By</th>
-                                        <th>Notes</th>
-                                        <th style="width: 120px;">Actions</th>
+                                        <th class="u-w-60" scope="col">Pick #</th>
+                                        <th scope="col">Player</th>
+                                        <th scope="col">Team</th>
+                                        <th scope="col">Drafted By</th>
+                                        <th scope="col">Notes</th>
+                                        <th class="u-w-100" scope="col">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for pick in picks %}
                                     <tr id="pick-row-{{ pick.id }}">
                                         <td>
-                                            <span class="badge bg-primary">{{ pick.draft_position }}</span>
+                                            <span class="badge bg-primary" data-badge>{{ pick.draft_position }}</span>
                                         </td>
                                         <td>
                                             <strong>{{ pick.player.name if pick.player else 'Unknown' }}</strong>
@@ -135,10 +135,10 @@
                                         </td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary" onclick="editPick({{ pick.id }}, {{ pick.draft_position }})" title="Edit Position">
+                                                <button class="c-btn c-btn--outline-primary js-edit-pick" data-action="edit-pick" data-pick-id="{{ pick.id }}" data-position="{{ pick.draft_position }}" title="Edit Position">
                                                     <i class="ti ti-edit"></i>
                                                 </button>
-                                                <button class="btn btn-outline-danger" onclick="deletePick({{ pick.id }})" title="Delete">
+                                                <button class="c-btn c-btn--outline-danger js-delete-pick" data-action="delete-pick" data-pick-id="{{ pick.id }}" title="Delete">
                                                     <i class="ti ti-trash"></i>
                                                 </button>
                                             </div>
@@ -156,8 +156,8 @@
         {% endfor %}
     {% else %}
     <div class="col-12">
-        <div class="card">
-            <div class="card-body text-center py-5">
+        <div class="c-card">
+            <div class="c-card__body text-center py-5">
                 <i class="ti ti-list-search fs-1 text-muted mb-3"></i>
                 <p class="text-muted">No draft history found. Select a season or league to view draft picks.</p>
             </div>
@@ -167,22 +167,22 @@
 </div>
 
 <!-- Edit Pick Modal -->
-<div class="modal fade" id="editPickModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Edit Draft Pick</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal c-modal fade" id="editPickModal" tabindex="-1" data-modal aria-labelledby="editPickModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="editPickModalLabel">Edit Draft Pick</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body>
                 <input type="hidden" id="edit-pick-id">
                 <div class="mb-3">
                     <label class="form-label">New Position</label>
-                    <input type="number" class="form-control" id="edit-position" min="1">
+                    <input type="number" class="form-control" id="edit-position" min="1" data-form-control>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Position Mode</label>
-                    <select class="form-select" id="edit-mode">
+                    <select class="form-select" id="edit-mode" data-form-select>
                         <option value="cascading">Cascading (shift others down)</option>
                         <option value="smart">Smart (automatic)</option>
                         <option value="absolute">Absolute (no shift)</option>
@@ -191,12 +191,12 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Notes</label>
-                    <textarea class="form-control" id="edit-notes" rows="2"></textarea>
+                    <textarea class="form-control" id="edit-notes" rows="2" data-form-control></textarea>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="savePick()">Save Changes</button>
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--primary js-save-pick" data-action="save-pick">Save Changes</button>
             </div>
         </div>
     </div>
@@ -209,7 +209,46 @@
 let editModal;
 
 document.addEventListener('DOMContentLoaded', function() {
-    editModal = new bootstrap.Modal(document.getElementById('editPickModal'));
+    editModal = ModalManager.getInstance('editPickModal');
+
+    // Auto-submit form filters
+    document.querySelectorAll('.js-auto-submit').forEach(select => {
+        select.addEventListener('change', function() {
+            this.form.submit();
+        });
+    });
+
+    // Edit pick buttons
+    document.querySelectorAll('.js-edit-pick').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const pickId = this.dataset.pickId;
+            const currentPosition = this.dataset.position;
+            editPick(pickId, currentPosition);
+        });
+    });
+
+    // Delete pick buttons
+    document.querySelectorAll('.js-delete-pick').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const pickId = this.dataset.pickId;
+            deletePick(pickId);
+        });
+    });
+
+    // Normalize positions buttons
+    document.querySelectorAll('.js-normalize-positions').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const seasonId = this.dataset.seasonId;
+            const leagueId = this.dataset.leagueId;
+            normalizePositions(seasonId, leagueId);
+        });
+    });
+
+    // Save pick button
+    const saveBtn = document.querySelector('.js-save-pick');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', savePick);
+    }
 });
 
 function editPick(pickId, currentPosition) {

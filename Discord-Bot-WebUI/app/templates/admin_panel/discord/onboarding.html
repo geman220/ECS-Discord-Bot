@@ -11,187 +11,203 @@
 
 {% block panel_content %}
 {% if error %}
-<div class="alert alert-danger alert-dismissible fade show" role="alert">
-    <i class="ti ti-alert-circle me-2"></i>
-    <strong>Error loading onboarding data:</strong> {{ error }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<div class="c-alert c-alert--danger" role="alert" data-alert>
+    <i class="ti ti-alert-circle c-alert__icon"></i>
+    <div class="c-alert__content">
+        <strong>Error loading onboarding data:</strong> {{ error }}
+    </div>
+    <button type="button" class="c-alert__close" data-bs-dismiss="alert" aria-label="Close"></button>
 </div>
 {% endif %}
 
-<div class="row">
+<div class="l-grid l-grid--responsive">
     <!-- Summary Stats Cards -->
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="mb-1">{{ stats.completed }}</h4>
-                        <small class="opacity-75">Completed</small>
-                    </div>
-                    <i class="ti ti-circle-check fs-1 opacity-50"></i>
+    <div class="l-grid__item l-grid__item--xl-3 l-grid__item--md-6">
+        <div class="c-stat-card c-stat-card--success">
+            <div class="c-stat-card__body">
+                <div class="c-stat-card__content">
+                    <h4 class="c-stat-card__value">{{ stats.completed }}</h4>
+                    <small class="c-stat-card__label">Completed</small>
                 </div>
+                <i class="ti ti-circle-check c-stat-card__icon"></i>
             </div>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="mb-1">{{ stats.pending_discord }}</h4>
-                        <small class="opacity-75">Pending Discord</small>
-                    </div>
-                    <i class="ti ti-brand-discord fs-1 opacity-50"></i>
+
+    <div class="l-grid__item l-grid__item--xl-3 l-grid__item--md-6">
+        <div class="c-stat-card c-stat-card--warning">
+            <div class="c-stat-card__body">
+                <div class="c-stat-card__content">
+                    <h4 class="c-stat-card__value">{{ stats.pending_discord }}</h4>
+                    <small class="c-stat-card__label">Pending Discord</small>
                 </div>
+                <i class="ti ti-brand-discord c-stat-card__icon"></i>
             </div>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card bg-info text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="mb-1">{{ stats.pending_approval }}</h4>
-                        <small class="opacity-75">Pending Approval</small>
-                    </div>
-                    <i class="ti ti-user-question fs-1 opacity-50"></i>
+
+    <div class="l-grid__item l-grid__item--xl-3 l-grid__item--md-6">
+        <div class="c-stat-card c-stat-card--info">
+            <div class="c-stat-card__body">
+                <div class="c-stat-card__content">
+                    <h4 class="c-stat-card__value">{{ stats.pending_approval }}</h4>
+                    <small class="c-stat-card__label">Pending Approval</small>
                 </div>
+                <i class="ti ti-user-question c-stat-card__icon"></i>
             </div>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="mb-1">{{ overview_data|length }}</h4>
-                        <small class="opacity-75">Total Users</small>
-                    </div>
-                    <i class="ti ti-users fs-1 opacity-50"></i>
+
+    <div class="l-grid__item l-grid__item--xl-3 l-grid__item--md-6">
+        <div class="c-stat-card c-stat-card--primary">
+            <div class="c-stat-card__body">
+                <div class="c-stat-card__content">
+                    <h4 class="c-stat-card__value">{{ overview_data|length }}</h4>
+                    <small class="c-stat-card__label">Total Users</small>
                 </div>
+                <i class="ti ti-users c-stat-card__icon"></i>
             </div>
         </div>
     </div>
 
     <!-- Info Cards -->
-    <div class="col-md-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="ti ti-user-plus me-2"></i>Onboarding Overview</h5>
+    <div class="l-grid__item l-grid__item--md-6">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title">
+                    <i class="ti ti-user-plus c-card__icon"></i>Onboarding Overview
+                </h5>
             </div>
-            <div class="card-body">
-                <p class="text-muted">View and manage user onboarding status for Discord verification.</p>
-                <div class="d-grid gap-2">
-                    <button id="refresh-overview-btn" class="btn btn-primary">
-                        <i class="ti ti-refresh me-2"></i>Refresh Onboarding Data
+            <div class="c-card__body">
+                <p class="u-text-muted">View and manage user onboarding status for Discord verification.</p>
+                <div class="c-button-group c-button-group--vertical">
+                    <button class="c-button c-button--primary" data-action="refresh-overview">
+                        <i class="ti ti-refresh c-button__icon"></i>Refresh Onboarding Data
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="col-md-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="ti ti-info-circle me-2"></i>Status Legend</h5>
+    <div class="l-grid__item l-grid__item--md-6">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title">
+                    <i class="ti ti-info-circle c-card__icon"></i>Status Legend
+                </h5>
             </div>
-            <div class="card-body">
-                <ul class="list-unstyled small mb-0">
-                    <li class="mb-2"><span class="badge bg-success me-2">Completed</span> Discord linked + Approved</li>
-                    <li class="mb-2"><span class="badge bg-warning me-2">Pending Discord</span> No Discord ID linked</li>
-                    <li class="mb-2"><span class="badge bg-info me-2">Pending Approval</span> Discord linked, awaiting approval</li>
+            <div class="c-card__body">
+                <ul class="c-list c-list--unstyled">
+                    <li class="c-list__item">
+                        <span class="c-badge c-badge--success" data-badge>Completed</span> Discord linked + Approved
+                    </li>
+                    <li class="c-list__item">
+                        <span class="c-badge c-badge--warning" data-badge>Pending Discord</span> No Discord ID linked
+                    </li>
+                    <li class="c-list__item">
+                        <span class="c-badge c-badge--info" data-badge>Pending Approval</span> Discord linked, awaiting approval
+                    </li>
                 </ul>
             </div>
         </div>
     </div>
 
     <!-- Onboarding Status Table -->
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="ti ti-list me-2"></i>Recent Onboarding Activity</h5>
-                <span class="badge bg-primary">{{ overview_data|length }} users</span>
+    <div class="l-grid__item l-grid__item--12">
+        <div class="c-card">
+            <div class="c-card__header c-card__header--split">
+                <h5 class="c-card__title">
+                    <i class="ti ti-list c-card__icon"></i>Recent Onboarding Activity
+                </h5>
+                <span class="c-badge c-badge--primary" data-badge>{{ overview_data|length }} users</span>
             </div>
-            <div class="card-body p-0">
+            <div class="c-card__body c-card__body--flush">
                 {% if overview_data %}
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th>User</th>
-                                <th>Discord</th>
-                                <th>Status</th>
-                                <th>Approval</th>
-                                <th>Roles</th>
-                                <th>Registered</th>
-                                <th>Actions</th>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hover" data-table>
+                        <thead class="c-table__head">
+                            <tr class="c-table__row">
+                                <th class="c-table__header" scope="col">User</th>
+                                <th class="c-table__header" scope="col">Discord</th>
+                                <th class="c-table__header" scope="col">Status</th>
+                                <th class="c-table__header" scope="col">Approval</th>
+                                <th class="c-table__header" scope="col">Roles</th>
+                                <th class="c-table__header" scope="col">Registered</th>
+                                <th class="c-table__header" scope="col">Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="c-table__body">
                             {% for user in overview_data %}
-                            <tr>
-                                <td>
+                            <tr class="c-table__row">
+                                <td class="c-table__cell">
                                     <strong>{{ user.username }}</strong>
-                                    <br><small class="text-muted">{{ user.email }}</small>
+                                    <br><small class="u-text-muted">{{ user.email }}</small>
                                     {% if user.player_name %}
-                                    <br><small class="text-primary">{{ user.player_name }}</small>
+                                    <br><small class="u-text-primary">{{ user.player_name }}</small>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td class="c-table__cell">
                                     {% if user.discord_id %}
-                                    <span class="badge bg-success"><i class="ti ti-check me-1"></i>Linked</span>
-                                    <br><code class="small">{{ user.discord_id }}</code>
+                                    <span class="c-badge c-badge--success" data-badge>
+                                        <i class="ti ti-check c-badge__icon"></i>Linked
+                                    </span>
+                                    <br><code class="c-code">{{ user.discord_id }}</code>
                                     {% else %}
-                                    <span class="badge bg-warning">Not Linked</span>
+                                    <span class="c-badge c-badge--warning" data-badge>Not Linked</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td class="c-table__cell">
                                     {% if user.onboarding_status == 'completed' %}
-                                    <span class="badge bg-success">Completed</span>
+                                    <span class="c-badge c-badge--success" data-badge>Completed</span>
                                     {% elif user.onboarding_status == 'pending_discord' %}
-                                    <span class="badge bg-warning">Pending Discord</span>
+                                    <span class="c-badge c-badge--warning" data-badge>Pending Discord</span>
                                     {% elif user.onboarding_status == 'pending_approval' %}
-                                    <span class="badge bg-info">Pending Approval</span>
+                                    <span class="c-badge c-badge--info" data-badge>Pending Approval</span>
                                     {% else %}
-                                    <span class="badge bg-secondary">Unknown</span>
+                                    <span class="c-badge c-badge--secondary" data-badge>Unknown</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td class="c-table__cell">
                                     {% if user.approval_status == 'approved' %}
-                                    <span class="badge bg-success">Approved</span>
+                                    <span class="c-badge c-badge--success" data-badge>Approved</span>
                                     {% elif user.approval_status == 'denied' %}
-                                    <span class="badge bg-danger">Denied</span>
+                                    <span class="c-badge c-badge--danger" data-badge>Denied</span>
                                     {% else %}
-                                    <span class="badge bg-secondary">Pending</span>
+                                    <span class="c-badge c-badge--secondary" data-badge>Pending</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td class="c-table__cell">
                                     {% if user.roles %}
                                     {% for role in user.roles[:3] %}
-                                    <span class="badge bg-label-primary me-1 mb-1">{{ role }}</span>
+                                    <span class="c-badge c-badge--label-primary" data-badge>{{ role }}</span>
                                     {% endfor %}
                                     {% if user.roles|length > 3 %}
-                                    <span class="badge bg-label-secondary">+{{ user.roles|length - 3 }}</span>
+                                    <span class="c-badge c-badge--label-secondary" data-badge>+{{ user.roles|length - 3 }}</span>
                                     {% endif %}
                                     {% else %}
-                                    <span class="text-muted">No roles</span>
+                                    <span class="u-text-muted">No roles</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td class="c-table__cell">
                                     {% if user.created_at %}
                                     <small>{{ user.created_at[:10] }}</small>
                                     {% else %}
-                                    <small class="text-muted">N/A</small>
+                                    <small class="u-text-muted">N/A</small>
                                     {% endif %}
                                 </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
+                                <td class="c-table__cell">
+                                    <div class="c-button-group c-button-group--sm">
                                         {% if user.bot_interaction_status in ['not_contacted', 'failed', None] %}
-                                        <button class="btn btn-outline-primary" onclick="retryContact({{ user.id }})" title="Retry Contact">
+                                        <button class="c-button c-button--outline-primary"
+                                                data-action="retry-contact"
+                                                data-user-id="{{ user.id }}"
+                                                title="Retry Contact">
                                             <i class="ti ti-refresh"></i>
                                         </button>
                                         {% endif %}
-                                        <a href="{{ url_for('admin_panel.user_approvals') }}?search={{ user.username }}" class="btn btn-outline-secondary" title="View in Approvals">
+                                        <a href="{{ url_for('admin_panel.user_approvals') }}?search={{ user.username }}"
+                                           class="c-button c-button--outline-secondary"
+                                           title="View in Approvals">
                                             <i class="ti ti-eye"></i>
                                         </a>
                                     </div>
@@ -202,11 +218,11 @@
                     </table>
                 </div>
                 {% else %}
-                <div class="text-center py-5">
-                    <i class="ti ti-user-plus fs-1 text-muted mb-3"></i>
-                    <p class="text-muted">No onboarding data available.</p>
-                    <button id="refresh-empty-btn" class="btn btn-primary">
-                        <i class="ti ti-refresh me-2"></i>Load Onboarding Data
+                <div class="c-empty-state">
+                    <i class="ti ti-user-plus c-empty-state__icon"></i>
+                    <p class="c-empty-state__text">No onboarding data available.</p>
+                    <button class="c-button c-button--primary" data-action="refresh-empty">
+                        <i class="ti ti-refresh c-button__icon"></i>Load Onboarding Data
                     </button>
                 </div>
                 {% endif %}
@@ -219,6 +235,23 @@
 {% block custom_js %}
 {{ super() }}
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Event delegation for retry contact
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('[data-action="retry-contact"]');
+        if (btn) {
+            const userId = btn.dataset.userId;
+            retryContact(userId);
+        }
+    });
+
+    const refreshBtn = document.querySelector('[data-action="refresh-overview"]');
+    if (refreshBtn) refreshBtn.addEventListener('click', refreshOverview);
+
+    const emptyBtn = document.querySelector('[data-action="refresh-empty"]');
+    if (emptyBtn) emptyBtn.addEventListener('click', refreshOverview);
+});
+
 function refreshOverview() {
     location.reload();
 }
@@ -240,10 +273,5 @@ function retryContact(userId) {
             AdminPanel.showMobileToast('Error retrying contact', 'danger');
         });
 }
-
-document.getElementById('refresh-overview-btn').addEventListener('click', refreshOverview);
-
-const emptyBtn = document.getElementById('refresh-empty-btn');
-if (emptyBtn) emptyBtn.addEventListener('click', refreshOverview);
 </script>
 {% endblock %}

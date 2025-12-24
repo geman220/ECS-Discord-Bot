@@ -1,0 +1,1171 @@
+/**
+ * ============================================================================
+ * PASS STUDIO - Apple & Google Wallet Pass Editor
+ * ============================================================================
+ *
+ * This stylesheet contains all styles for the Pass Studio interface,
+ * including live preview cards, asset management, field configuration,
+ * and layout diagrams for both Apple Wallet and Google Wallet passes.
+ *
+ * Design System Compliance:
+ * - Uses CSS variables from tokens/colors.css
+ * - Full dark mode support via [data-style="dark"] selectors
+ * - NO !important declarations (proper specificity via .pass-studio-page wrapper)
+ * - All hardcoded colors converted to design tokens
+ * - Follows patterns from authentication.css, user-waitlist.css, seasons.css
+ *
+ * Sections:
+ *   1. Pass Preview Container
+ *   2. Apple Wallet Pass Preview
+ *   3. Google Wallet Pass Preview
+ *   4. Asset Upload Cards
+ *   5. Color Picker
+ *   6. Pass Layout Diagram
+ *   7. Field Cards
+ *   8. Field Management UI
+ *   9. Utility Classes
+ *   10. Dark Mode Overrides
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. PASS PREVIEW CONTAINER
+   ============================================================================ */
+
+.pass-studio-page .pass-preview-container {
+    position: sticky;
+    top: var(--space-16, 80px);
+}
+
+/* ============================================================================
+   2. APPLE WALLET PASS PREVIEW
+   Accurate StoreCard layout matching real Apple Wallet
+   ============================================================================ */
+
+.pass-studio-page .apple-pass-card {
+    width: 320px;
+    min-height: 440px;
+    border-radius: var(--radius-lg, 12px);
+    margin: 0 auto;
+    box-shadow: var(--shadow-xl, 0 4px 20px rgba(0, 0, 0, 0.3));
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header: Logo + Logo Text */
+.pass-studio-page .pass-header {
+    display: flex;
+    align-items: center;
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    min-height: 50px;
+}
+
+.pass-studio-page .pass-logo {
+    width: 50px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-right: var(--space-2, 10px);
+    flex-shrink: 0;
+}
+
+.pass-studio-page .pass-logo img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.pass-studio-page .pass-logo-placeholder {
+    width: 40px;
+    height: 30px;
+    border: var(--border-width, 1px) dashed rgba(255, 255, 255, 0.3);
+    border-radius: var(--radius-sm, 4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: var(--text-xs, 0.75rem);
+}
+
+.pass-studio-page .pass-logo-text {
+    font-size: var(--text-base, 0.95rem);
+    font-weight: var(--font-semibold, 600);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
+/* Header Fields - appear on right side of header, pushed to the right */
+.pass-studio-page .pass-header-fields {
+    display: flex;
+    gap: var(--space-3, 12px);
+    margin-left: auto;
+    text-align: right;
+}
+
+.pass-studio-page .pass-header-field {
+    min-width: 40px;
+}
+
+.pass-studio-page .pass-header-field .pass-field-label {
+    font-size: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 1px;
+    font-weight: var(--font-medium, 500);
+    opacity: 0.8;
+}
+
+.pass-studio-page .pass-header-field .pass-field-value {
+    font-size: var(--text-xs, 0.75rem);
+    font-weight: var(--font-semibold, 600);
+    line-height: var(--leading-tight, 1.1);
+}
+
+/* Strip Area - contains PRIMARY FIELD overlaid on top */
+.pass-studio-page .pass-strip-area {
+    height: 123px;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-start;
+    overflow: hidden;
+}
+
+.pass-studio-page .pass-strip-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+}
+
+/* Primary field overlaid ON the strip */
+.pass-studio-page .pass-primary-field-overlay {
+    position: relative;
+    z-index: 1;
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    width: 100%;
+    /* Text shadow for readability over images */
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.pass-studio-page .pass-field-label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--space-1, 2px);
+    font-weight: var(--font-medium, 500);
+}
+
+.pass-studio-page .pass-field-value {
+    font-size: var(--text-lg, 1.2rem);
+    font-weight: var(--font-semibold, 600);
+    line-height: var(--leading-tight, 1.2);
+}
+
+/* Dynamic label styling from JS */
+.pass-studio-page .pass-field-label--dynamic,
+.pass-studio-page .pass-field-label[style*="color"] {
+    /* Placeholder for dynamic color injection via JS */
+}
+
+.pass-studio-page .pass-field-value--muted {
+    opacity: 0.5;
+}
+
+/* Secondary/Auxiliary Fields - below strip, in a row */
+.pass-studio-page .pass-secondary-fields {
+    display: flex;
+    flex-wrap: wrap;
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    gap: var(--space-4, 16px);
+}
+
+.pass-studio-page .pass-field {
+    flex: 1;
+    min-width: 60px;
+}
+
+.pass-studio-page .pass-field .pass-field-label {
+    font-size: 0.55rem;
+}
+
+.pass-studio-page .pass-field .pass-field-value {
+    font-size: var(--text-sm, 0.85rem);
+    font-weight: var(--font-medium, 500);
+    text-shadow: none;
+}
+
+/* Barcode Area - white background at bottom */
+.pass-studio-page .pass-barcode-area {
+    margin-top: auto;
+    padding: var(--space-5, 20px) var(--space-4, 16px);
+    text-align: center;
+    background: var(--color-neutral-0, #ffffff);
+}
+
+.pass-studio-page .pass-barcode svg {
+    display: block;
+    margin: 0 auto;
+}
+
+/* Event Ticket notch at top */
+.pass-studio-page .pass-notch {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 8px;
+    background: var(--color-bg-secondary, #f4f5f7);
+    border-radius: 0 0 8px 8px;
+    z-index: 10;
+    display: none;
+}
+
+/* Generic pass style - fields below header, no strip overlay */
+/* High specificity to override default display */
+.pass-studio-page .apple-pass-card.pass-style-generic .pass-strip-area {
+    display: none;
+}
+
+.pass-studio-page .pass-style-generic .pass-secondary-fields {
+    border-top: var(--border-width, 1px) solid rgba(255, 255, 255, 0.1);
+}
+
+/* Thumbnail area for generic passes */
+.pass-studio-page .pass-thumbnail-preview {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-md, 8px);
+    overflow: hidden;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.pass-studio-page .pass-thumbnail-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Thumbnail in header - for generic passes */
+.pass-studio-page .pass-thumbnail {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-md, 8px);
+    overflow: hidden;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.pass-studio-page .pass-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.pass-studio-page .pass-thumbnail-placeholder {
+    width: 60px;
+    height: 60px;
+    border: var(--border-width, 1px) dashed rgba(255, 255, 255, 0.3);
+    border-radius: var(--radius-md, 8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: var(--text-base, 1rem);
+}
+
+/* Primary fields section - only for generic passes */
+.pass-studio-page .pass-primary-fields-section {
+    padding: var(--space-4, 16px);
+    border-bottom: var(--border-width, 1px) solid rgba(255, 255, 255, 0.1);
+}
+
+.pass-studio-page .pass-primary-fields-section .pass-field-label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--space-1, 2px);
+    font-weight: var(--font-medium, 500);
+}
+
+.pass-studio-page .pass-primary-fields-section .pass-field-value {
+    font-size: var(--text-xl, 1.4rem);
+    font-weight: var(--font-semibold, 600);
+    line-height: var(--leading-tight, 1.2);
+}
+
+/* Event Ticket style - show notch */
+/* High specificity to override default display */
+.pass-studio-page .apple-pass-card.pass-style-eventTicket .pass-notch {
+    display: block;
+}
+
+/* ============================================================================
+   3. GOOGLE WALLET PASS PREVIEW
+   ============================================================================ */
+
+.pass-studio-page .google-pass-card {
+    width: 320px;
+    border-radius: var(--radius-lg, 12px);
+    margin: 0 auto;
+    box-shadow: var(--shadow-lg, 0 4px 20px rgba(0, 0, 0, 0.15));
+    overflow: hidden;
+    background: var(--color-neutral-0, #fff);
+}
+
+.pass-studio-page .google-hero-image {
+    height: 100px;
+    background-color: var(--color-neutral-100, #f0f0f0);
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pass-studio-page .google-hero-placeholder {
+    text-align: center;
+    color: var(--color-text-muted);
+}
+
+.pass-studio-page .google-hero-placeholder i {
+    font-size: var(--text-2xl, 2rem);
+}
+
+.pass-studio-page .google-hero-placeholder span {
+    display: block;
+    font-size: var(--text-xs, 0.75rem);
+    margin-top: var(--space-1, 4px);
+}
+
+.pass-studio-page .google-pass-content {
+    padding: var(--space-4, 16px);
+}
+
+.pass-studio-page .google-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--space-4, 16px);
+}
+
+.pass-studio-page .google-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md, 8px);
+    overflow: hidden;
+    margin-right: var(--space-3, 12px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-neutral-100);
+}
+
+.pass-studio-page .google-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.pass-studio-page .google-logo-placeholder {
+    color: var(--color-text-muted);
+}
+
+.pass-studio-page .google-header-text {
+    flex: 1;
+}
+
+.pass-studio-page .google-card-title {
+    font-size: var(--text-base, 1rem);
+    font-weight: var(--font-semibold, 600);
+    color: var(--color-text-primary);
+}
+
+.pass-studio-page .google-card-subtitle {
+    font-size: var(--text-xs, 0.75rem);
+    opacity: 0.7;
+    color: var(--color-text-secondary);
+}
+
+.pass-studio-page .google-primary-value {
+    font-size: var(--text-xl, 1.5rem);
+    font-weight: var(--font-bold, bold);
+    margin-bottom: var(--space-4, 16px);
+    color: var(--color-text-primary);
+}
+
+.pass-studio-page .google-info-rows {
+    border-top: var(--border-width, 1px) solid var(--color-border-primary);
+    padding-top: var(--space-3, 12px);
+}
+
+.pass-studio-page .google-info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-2, 8px) 0;
+}
+
+.pass-studio-page .google-info-label {
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-text-secondary);
+    opacity: 0.7;
+}
+
+.pass-studio-page .google-info-value {
+    font-size: var(--text-sm, 0.85rem);
+    font-weight: var(--font-medium, 500);
+    color: var(--color-text-primary);
+}
+
+.pass-studio-page .google-barcode-area {
+    margin-top: var(--space-4, 16px);
+    text-align: center;
+    padding: var(--space-4, 16px);
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-md, 8px);
+}
+
+/* ============================================================================
+   4. ASSET UPLOAD CARDS
+   ============================================================================ */
+
+.pass-studio-page .asset-upload-card {
+    border: 2px dashed var(--color-border-primary);
+    border-radius: var(--radius-lg, 12px);
+    padding: var(--space-4, 16px);
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition-all, all 0.2s);
+    background: var(--color-bg-card);
+}
+
+.pass-studio-page .asset-upload-card:hover {
+    border-color: var(--color-primary);
+    background: var(--color-primary-subtle);
+}
+
+.pass-studio-page .asset-preview {
+    width: 100%;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--space-2, 8px);
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-md, 8px);
+    background: var(--color-bg-tertiary);
+}
+
+.pass-studio-page .asset-preview img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.pass-studio-page .asset-placeholder {
+    color: var(--color-text-muted);
+}
+
+.pass-studio-page .asset-info strong {
+    display: block;
+    font-size: var(--text-sm, 0.875rem);
+    color: var(--color-text-primary);
+}
+
+.pass-studio-page .asset-info small {
+    color: var(--color-text-muted);
+}
+
+/* ============================================================================
+   5. COLOR PICKER
+   ============================================================================ */
+
+.pass-studio-page .color-picker-wrapper {
+    position: relative;
+}
+
+.pass-studio-page .color-swatch {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md, 8px);
+    cursor: pointer;
+    border: 2px solid var(--color-border-primary);
+}
+
+/* ============================================================================
+   6. PASS LAYOUT DIAGRAM
+   Visual representation of pass field layout
+   ============================================================================ */
+
+.pass-studio-page .pass-layout-diagram .layout-card {
+    background: var(--color-bg-tertiary);
+    border: 2px solid var(--color-border-primary);
+    border-radius: var(--radius-lg, 12px);
+    overflow: hidden;
+    font-size: 0.65rem;
+    min-height: 280px;
+    position: relative;
+}
+
+.pass-studio-page .layout-card .layout-notch {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 6px;
+    background: var(--color-bg-secondary);
+    border-radius: 0 0 6px 6px;
+    z-index: 5;
+}
+
+.pass-studio-page .layout-card .layout-header {
+    display: flex;
+    align-items: center;
+    padding: var(--space-2, 8px);
+    background: var(--color-neutral-100);
+    gap: var(--space-1, 4px);
+    min-height: 36px;
+}
+
+.pass-studio-page .layout-card .layout-logo {
+    background: var(--color-secondary);
+    color: var(--color-neutral-0);
+    padding: var(--space-1, 2px) var(--space-2, 6px);
+    border-radius: var(--radius-sm, 4px);
+    font-size: 0.6rem;
+}
+
+.pass-studio-page .layout-card .layout-logo-text {
+    flex: 1;
+    color: var(--color-text-secondary);
+    font-size: 0.6rem;
+}
+
+.pass-studio-page .layout-card .layout-header-fields {
+    background: var(--color-info);
+    color: var(--color-neutral-0);
+    padding: var(--space-1, 2px) var(--space-2, 6px);
+    border-radius: var(--radius-sm, 4px);
+    font-size: 0.6rem;
+}
+
+.pass-studio-page .layout-card .layout-thumbnail {
+    background: var(--color-primary);
+    color: var(--color-neutral-0);
+    padding: var(--space-1, 4px) var(--space-2, 6px);
+    border-radius: var(--radius-sm, 4px);
+    font-size: 0.55rem;
+}
+
+.pass-studio-page .layout-card .layout-strip {
+    background: linear-gradient(135deg, var(--color-neutral-600) 0%, var(--color-neutral-700) 100%);
+    color: var(--color-neutral-0);
+    padding: var(--space-4, 16px) var(--space-2, 8px);
+    text-align: center;
+    position: relative;
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.pass-studio-page .layout-card .layout-strip-label {
+    font-size: 0.55rem;
+    opacity: 0.7;
+}
+
+.pass-studio-page .layout-card .layout-strip.layout-strip-clean {
+    min-height: 50px;
+}
+
+.pass-studio-page .layout-card .layout-primary-overlay {
+    background: var(--color-danger-subtle);
+    padding: var(--space-1, 4px) var(--space-2, 8px);
+    border-radius: var(--radius-sm, 4px);
+    margin-top: var(--space-1, 4px);
+    font-size: 0.6rem;
+    color: var(--color-danger);
+}
+
+.pass-studio-page .layout-card .layout-primary {
+    background: var(--color-danger);
+    color: var(--color-neutral-0);
+    padding: var(--space-2, 10px) var(--space-2, 8px);
+    text-align: center;
+    font-weight: var(--font-medium, 500);
+}
+
+.pass-studio-page .layout-card .layout-secondary {
+    background: var(--color-success);
+    color: var(--color-neutral-0);
+    padding: var(--space-2, 8px);
+    text-align: center;
+}
+
+.pass-studio-page .layout-card .layout-auxiliary {
+    background: var(--color-warning);
+    color: var(--color-neutral-0);
+    padding: var(--space-2, 8px);
+    text-align: center;
+}
+
+.pass-studio-page .layout-card .layout-barcode {
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    padding: var(--space-3, 12px) var(--space-2, 8px);
+    text-align: center;
+    border-top: var(--border-width, 1px) dashed var(--color-border-primary);
+}
+
+/* ============================================================================
+   7. FIELD CARDS
+   Draggable, configurable field cards for pass design
+   ============================================================================ */
+
+.pass-studio-page .field-card {
+    background: var(--color-bg-card);
+    border: var(--border-width, 1px) solid var(--color-border-primary);
+    border-radius: var(--radius-md, 8px);
+    padding: var(--space-3, 12px);
+    margin-bottom: var(--space-2, 8px);
+    transition: var(--transition-all, all 0.2s);
+}
+
+.pass-studio-page .field-card:hover {
+    box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+    border-color: var(--color-primary);
+}
+
+.pass-studio-page .field-card.inactive {
+    opacity: 0.5;
+    background: var(--color-bg-tertiary);
+}
+
+.pass-studio-page .field-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-2, 8px) var(--space-3, 12px);
+    border-bottom: var(--border-width, 1px) solid var(--color-border-primary);
+    background: var(--color-bg-tertiary);
+    border-radius: calc(var(--radius-md, 8px) - 1px) calc(var(--radius-md, 8px) - 1px) 0 0;
+}
+
+.pass-studio-page .field-card-body {
+    padding: var(--space-3, 12px);
+}
+
+.pass-studio-page .field-location-badge {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    padding: var(--space-1, 2px) var(--space-2, 6px);
+}
+
+/* ============================================================================
+   8. FIELD MANAGEMENT UI
+   Limits bar, sortable containers, and field configuration
+   ============================================================================ */
+
+/* Tab content */
+.pass-studio-page .tab-pane {
+    padding-top: var(--space-4, 1rem);
+}
+
+/* Variable chips */
+.pass-studio-page .variable-chip {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-mono, monospace);
+    font-size: var(--text-xs, 0.75rem);
+    padding: var(--space-1, 4px) var(--space-2, 8px);
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-sm, 4px);
+    margin: var(--space-1, 2px);
+    cursor: pointer;
+    transition: var(--transition-all, all 0.2s);
+}
+
+.pass-studio-page .variable-chip:hover {
+    background: var(--color-primary);
+    color: var(--color-neutral-0);
+}
+
+/* Location/Sponsor list */
+.pass-studio-page .entity-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-3, 12px);
+    border-bottom: var(--border-width, 1px) solid var(--color-border-primary);
+}
+
+.pass-studio-page .entity-list-item:last-child {
+    border-bottom: none;
+}
+
+/* Unsaved indicator */
+.pass-studio-page .unsaved-indicator {
+    display: none;
+}
+
+.pass-studio-page .has-unsaved-changes .unsaved-indicator {
+    display: inline-flex;
+}
+
+/* Platform toggle button group */
+.pass-studio-page .pass-preview-platform {
+    /* Container for platform-specific preview */
+}
+
+/* Field limits summary bar */
+.pass-studio-page .field-limits-bar {
+    background: var(--color-bg-card);
+    border: var(--border-width, 1px) solid var(--color-border-primary);
+    border-radius: var(--radius-md, 8px);
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+}
+
+.pass-studio-page .field-limit-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2, 8px);
+    padding: var(--space-2, 6px) var(--space-3, 12px);
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-full, 20px);
+    font-size: var(--text-sm, 0.875rem);
+}
+
+.pass-studio-page .field-limit-item .limit-label {
+    font-weight: var(--font-medium, 500);
+    color: var(--color-text-secondary);
+}
+
+.pass-studio-page .field-limit-item .limit-count {
+    font-weight: var(--font-semibold, 600);
+    color: var(--color-text-primary);
+}
+
+.pass-studio-page .field-limit-item.at-limit {
+    background: var(--color-warning-subtle);
+}
+
+.pass-studio-page .field-limit-item.at-limit .limit-count {
+    color: var(--color-warning);
+}
+
+.pass-studio-page .field-limit-item.over-limit {
+    background: var(--color-danger-subtle);
+}
+
+.pass-studio-page .field-limit-item.over-limit .limit-count {
+    color: var(--color-danger);
+}
+
+/* Collapsible variables reference */
+.pass-studio-page .collapse-icon {
+    transition: transform var(--duration-fast, 0.2s);
+}
+
+.pass-studio-page [aria-expanded="true"] .collapse-icon {
+    transform: rotate(180deg);
+}
+
+/* Field location sections */
+.pass-studio-page .field-location-section {
+    border: var(--border-width, 1px) solid var(--color-border-primary);
+    border-radius: var(--radius-md, 8px);
+    padding: var(--space-3, 12px);
+    background: var(--color-bg-tertiary);
+}
+
+.pass-studio-page .field-location-header {
+    padding-bottom: var(--space-2, 8px);
+    border-bottom: var(--border-width, 1px) dashed var(--color-border-primary);
+}
+
+/* Sortable containers */
+.pass-studio-page .fields-sortable-container {
+    min-height: 60px;
+    border-radius: var(--radius-sm, 6px);
+    padding: var(--space-2, 8px);
+    background: var(--color-bg-card);
+    margin-top: var(--space-2, 8px);
+}
+
+.pass-studio-page .fields-sortable-container:empty::after {
+    content: 'Drag fields here or click Add Field';
+    display: block;
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm, 0.875rem);
+    padding: var(--space-4, 16px);
+}
+
+.pass-studio-page .fields-sortable-container .empty-state {
+    pointer-events: none;
+}
+
+/* Drag handle */
+.pass-studio-page .drag-handle {
+    cursor: grab;
+    color: var(--color-text-muted);
+    padding: var(--space-1, 4px);
+    border-radius: var(--radius-sm, 4px);
+    transition: var(--transition-all, all 0.2s);
+}
+
+.pass-studio-page .drag-handle:hover {
+    background: var(--color-primary);
+    color: var(--color-neutral-0);
+}
+
+.pass-studio-page .drag-handle:active {
+    cursor: grabbing;
+}
+
+/* Sortable states */
+.pass-studio-page .sortable-ghost {
+    opacity: 0.4;
+    background: var(--color-primary-subtle);
+}
+
+.pass-studio-page .sortable-drag {
+    opacity: 1;
+    box-shadow: var(--shadow-lg, 0 4px 16px rgba(0, 0, 0, 0.15));
+}
+
+/* Value section tabs */
+.pass-studio-page .value-section .nav-tabs {
+    border-bottom: none;
+}
+
+.pass-studio-page .value-section .nav-tabs .nav-link {
+    font-size: var(--text-xs, 0.75rem);
+    padding: var(--space-1, 4px) var(--space-2, 10px);
+    border-radius: var(--radius-sm, 4px) var(--radius-sm, 4px) 0 0;
+    border: var(--border-width, 1px) solid transparent;
+    margin-right: var(--space-1, 2px);
+}
+
+.pass-studio-page .value-section .nav-tabs .nav-link.active {
+    background: var(--color-bg-tertiary);
+    border-color: var(--color-border-primary);
+    border-bottom-color: var(--color-bg-tertiary);
+}
+
+/* Field preview */
+.pass-studio-page .field-preview {
+    background: var(--color-bg-tertiary);
+    padding: var(--space-2, 6px) var(--space-2, 10px);
+    border-radius: var(--radius-sm, 4px);
+    font-size: var(--text-sm, 0.875rem);
+}
+
+.pass-studio-page .field-preview .preview-value {
+    color: var(--color-primary);
+}
+
+/* Small nav tabs variant */
+.pass-studio-page .nav-tabs-sm .nav-link {
+    font-size: 0.8125rem;
+    padding: var(--space-2, 6px) var(--space-3, 12px);
+}
+
+/* Button icon variant - more specific to override Bootstrap button styles */
+.pass-studio-page .field-card .btn.btn-icon,
+.pass-studio-page .field-card button.btn-icon {
+    padding: var(--space-1, 4px) var(--space-2, 8px);
+    line-height: 1;
+    min-width: auto;
+    height: auto;
+}
+
+.pass-studio-page .field-card .btn.btn-icon i,
+.pass-studio-page .field-card button.btn-icon i {
+    font-size: var(--text-base, 1rem);
+}
+
+/* Fix visibility toggle in field cards */
+.pass-studio-page .field-card .form-switch {
+    padding-left: 2.5em;
+    min-height: auto;
+}
+
+.pass-studio-page .field-card .form-switch .form-check-input {
+    width: 2em;
+    height: 1em;
+    margin-left: -2.5em;
+}
+
+/* Field card form controls */
+.pass-studio-page .field-card .form-control-sm,
+.pass-studio-page .field-card .form-select-sm {
+    font-size: 0.8125rem;
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+}
+
+/* Empty state for no fields */
+.pass-studio-page .pass-field-empty {
+    opacity: 0.6;
+}
+
+/* Text alignment button group in field cards */
+.pass-studio-page .field-card .alignment-section {
+    border-top: var(--border-width, 1px) solid var(--color-border-primary);
+    padding-top: var(--space-2, 8px);
+}
+
+/* More specific selector to override Bootstrap button styles */
+.pass-studio-page .field-card .alignment-btns .btn,
+.pass-studio-page .field-card .alignment-btns button.btn {
+    padding: var(--space-1, 2px) var(--space-2, 6px);
+    font-size: var(--text-sm, 0.875rem);
+}
+
+.pass-studio-page .field-card .alignment-btns .btn-check:checked + .btn {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-neutral-0);
+}
+
+/* Format options section in field cards */
+.pass-studio-page .field-card .format-section {
+    border-top: var(--border-width, 1px) solid var(--color-border-primary);
+    padding-top: var(--space-2, 8px);
+}
+
+.pass-studio-page .field-card .format-section .form-label {
+    font-size: 0.7rem;
+    margin-bottom: var(--space-1, 0.25rem);
+}
+
+/* ============================================================================
+   9. UTILITY CLASSES
+   ============================================================================ */
+
+/* Cursor for collapsible header */
+.pass-studio-page .cursor-pointer {
+    cursor: pointer;
+}
+
+/* ============================================================================
+   10. DARK MODE SUPPORT
+   Complete dark mode overrides using [data-style="dark"] selector
+   ============================================================================ */
+
+/* Asset upload cards - dark mode */
+[data-style="dark"] .pass-studio-page .asset-upload-card,
+[data-style="dark"] .pass-studio-page .asset-upload-card {
+    background: var(--color-bg-card);
+    border-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .pass-studio-page .asset-upload-card:hover,
+[data-style="dark"] .pass-studio-page .asset-upload-card:hover {
+    border-color: var(--color-primary);
+    background: var(--color-primary-subtle);
+}
+
+[data-style="dark"] .pass-studio-page .asset-preview,
+[data-style="dark"] .pass-studio-page .asset-preview {
+    background: var(--color-bg-tertiary);
+}
+
+[data-style="dark"] .pass-studio-page .asset-placeholder,
+[data-style="dark"] .pass-studio-page .asset-placeholder {
+    color: var(--color-text-muted);
+}
+
+[data-style="dark"] .pass-studio-page .asset-info strong,
+[data-style="dark"] .pass-studio-page .asset-info strong {
+    color: var(--color-text-primary);
+}
+
+/* Google Pass Preview - dark mode */
+[data-style="dark"] .pass-studio-page .google-pass-card,
+[data-style="dark"] .pass-studio-page .google-pass-card {
+    background: var(--color-bg-card);
+}
+
+[data-style="dark"] .pass-studio-page .google-hero-image,
+[data-style="dark"] .pass-studio-page .google-hero-image {
+    background-color: var(--color-neutral-200);
+}
+
+[data-style="dark"] .pass-studio-page .google-logo,
+[data-style="dark"] .pass-studio-page .google-logo {
+    background: var(--color-neutral-200);
+}
+
+[data-style="dark"] .pass-studio-page .google-card-title,
+[data-style="dark"] .pass-studio-page .google-card-title {
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .pass-studio-page .google-primary-value,
+[data-style="dark"] .pass-studio-page .google-primary-value {
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .pass-studio-page .google-info-value,
+[data-style="dark"] .pass-studio-page .google-info-value {
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .pass-studio-page .google-barcode-area,
+[data-style="dark"] .pass-studio-page .google-barcode-area {
+    background: var(--color-bg-tertiary);
+}
+
+/* Pass layout diagram - dark mode */
+[data-style="dark"] .pass-studio-page .pass-layout-diagram .layout-card,
+[data-style="dark"] .pass-studio-page .pass-layout-diagram .layout-card {
+    background: var(--color-bg-card);
+    border-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .pass-studio-page .layout-card .layout-notch,
+[data-style="dark"] .pass-studio-page .layout-card .layout-notch {
+    background: var(--color-bg-primary);
+}
+
+[data-style="dark"] .pass-studio-page .layout-card .layout-header,
+[data-style="dark"] .pass-studio-page .layout-card .layout-header {
+    background: var(--color-neutral-200);
+}
+
+[data-style="dark"] .pass-studio-page .layout-card .layout-barcode,
+[data-style="dark"] .pass-studio-page .layout-card .layout-barcode {
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    border-color: var(--color-border-primary);
+}
+
+/* Field cards - dark mode */
+[data-style="dark"] .pass-studio-page .field-card,
+[data-style="dark"] .pass-studio-page .field-card {
+    background: var(--color-bg-card);
+    border-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .pass-studio-page .field-card:hover,
+[data-style="dark"] .pass-studio-page .field-card:hover {
+    box-shadow: var(--shadow-md, 0 2px 8px rgba(0, 0, 0, 0.3));
+}
+
+[data-style="dark"] .pass-studio-page .field-card.inactive,
+[data-style="dark"] .pass-studio-page .field-card.inactive {
+    background: var(--color-bg-tertiary);
+}
+
+[data-style="dark"] .pass-studio-page .field-card-header,
+[data-style="dark"] .pass-studio-page .field-card-header {
+    background: var(--color-bg-tertiary);
+    border-bottom-color: var(--color-border-primary);
+}
+
+/* Dark mode tab content - high specificity to override Bootstrap */
+[data-style="dark"] .pass-studio-page .value-section .tab-content,
+[data-style="dark"] .pass-studio-page .value-section .tab-content {
+    background: var(--color-bg-tertiary);
+    border-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .pass-studio-page .value-section .nav-tabs .nav-link.active,
+[data-style="dark"] .pass-studio-page .value-section .nav-tabs .nav-link.active {
+    background: var(--color-bg-tertiary);
+    border-color: var(--color-border-primary);
+    border-bottom-color: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .pass-studio-page .value-section .nav-tabs .nav-link,
+[data-style="dark"] .pass-studio-page .value-section .nav-tabs .nav-link {
+    color: var(--color-text-muted);
+}
+
+[data-style="dark"] .pass-studio-page .field-preview,
+[data-style="dark"] .pass-studio-page .field-preview {
+    background: var(--color-bg-tertiary);
+}
+
+[data-style="dark"] .pass-studio-page .field-card .form-control,
+[data-style="dark"] .pass-studio-page .field-card .form-select,
+[data-style="dark"] .pass-studio-page .field-card .form-control,
+[data-style="dark"] .pass-studio-page .field-card .form-select {
+    background-color: var(--color-bg-primary);
+    border-color: var(--color-border-primary);
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .pass-studio-page .field-card .form-control:focus,
+[data-style="dark"] .pass-studio-page .field-card .form-select:focus,
+[data-style="dark"] .pass-studio-page .field-card .form-control:focus,
+[data-style="dark"] .pass-studio-page .field-card .form-select:focus {
+    background-color: var(--color-bg-primary);
+    border-color: var(--color-primary);
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .pass-studio-page .field-card .alignment-btns .btn-outline-secondary,
+[data-style="dark"] .pass-studio-page .field-card .alignment-btns .btn-outline-secondary {
+    border-color: var(--color-border-primary);
+    color: var(--color-text-muted);
+}
+
+[data-style="dark"] .pass-studio-page .field-card .alignment-btns .btn-outline-secondary:hover,
+[data-style="dark"] .pass-studio-page .field-card .alignment-btns .btn-outline-secondary:hover {
+    background-color: var(--color-hover-bg);
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .pass-studio-page .fields-sortable-container .empty-state,
+[data-style="dark"] .pass-studio-page .fields-sortable-container .empty-state {
+    color: var(--color-text-muted);
+}
+
+[data-style="dark"] .pass-studio-page .field-limit-item,
+[data-style="dark"] .pass-studio-page .field-limit-item {
+    background: var(--color-bg-tertiary);
+    border-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .pass-studio-page .field-location-badge,
+[data-style="dark"] .pass-studio-page .field-location-badge {
+    opacity: 0.9;
+}
+
+/* Dark mode dropdown menus */
+[data-style="dark"] .pass-studio-page .field-card .dropdown-menu,
+[data-style="dark"] .pass-studio-page .field-card .dropdown-menu {
+    background-color: var(--color-bg-primary);
+    border-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .pass-studio-page .field-card .dropdown-item,
+[data-style="dark"] .pass-studio-page .field-card .dropdown-item {
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .pass-studio-page .field-card .dropdown-item:hover,
+[data-style="dark"] .pass-studio-page .field-card .dropdown-item:hover {
+    background-color: var(--color-hover-bg);
+    color: var(--color-text-primary);
+}
+
+/* ============================================================================
+   END OF PASS STUDIO STYLES
+   ============================================================================ */

@@ -3,6 +3,9 @@
  *
  * A comprehensive responsive management system that handles device detection,
  * responsive behavior, and UI enhancements across all screen sizes and devices.
+ *
+ * REFACTORED: All inline style manipulations replaced with CSS class-based approach
+ * for better maintainability, performance, and separation of concerns.
  */
 (function () {
   'use strict';
@@ -36,7 +39,7 @@
       this.monitorNetworkStatus();
       this.attachEventListeners();
       this.setupMutationObserver();
-      
+
       // Log initialization
       // console.log('ResponsiveSystem initialized', this.device);
     },
@@ -93,10 +96,12 @@
 
     /**
      * Fix iOS 100vh issue with CSS custom property
+     * REFACTORED: Using CSS custom property instead of inline styles
      */
     fixIOSViewportHeight: function () {
       const setVh = () => {
         const vh = window.innerHeight * 0.01;
+        // CSS custom property - this is acceptable as it's dynamic viewport calculation
         document.documentElement.style.setProperty('--vh', `${vh}px`);
       };
 
@@ -116,7 +121,7 @@
           if (input.type === 'checkbox' || input.type === 'radio') {
             return;
           }
-          
+
           // Add class when keyboard is visible
           input.addEventListener('focus', () => {
             document.documentElement.classList.add('keyboard-visible');
@@ -155,12 +160,13 @@
 
     /**
      * Enhance modal behavior on mobile devices
+     * REFACTORED: Replaced inline styles with CSS classes
      */
     enhanceModals: function () {
-      const modals = document.querySelectorAll('.modal');
+      const modals = document.querySelectorAll('[data-modal]');
 
       modals.forEach(modal => {
-        const modalDialog = modal.querySelector('.modal-dialog');
+        const modalDialog = modal.querySelector('[data-modal-dialog]');
 
         // Auto-convert modals to bottom sheets on mobile (unless explicitly disabled)
         if (this.device.isMobile && !modal.hasAttribute('data-no-bottom-sheet') && modalDialog) {
@@ -184,9 +190,9 @@
           }
 
           // Prevent body scroll on iOS
+          // REFACTORED: Using CSS class instead of inline styles
           if (this.device.isIOS) {
-            document.body.style.position = 'fixed';
-            document.body.style.width = '100%';
+            document.body.classList.add('scroll-locked');
           }
 
           // Focus first interactive element
@@ -196,21 +202,20 @@
           }
 
           // iOS-specific modal fixes
+          // REFACTORED: Using CSS class instead of inline styles
           if (this.device.isIOS) {
-            const modalBody = modal.querySelector('.modal-body');
+            const modalBody = modal.querySelector('[data-modal-body]');
             if (modalBody) {
-              modalBody.style.maxHeight = `calc(85vh - 120px)`;
-              modalBody.style.overflowY = 'auto';
-              modalBody.style.webkitOverflowScrolling = 'touch';
+              modalBody.classList.add('modal-body-scrollable');
             }
           }
 
           // Mobile optimization for bottom sheets
+          // REFACTORED: Using CSS class instead of inline styles
           if (this.device.isMobile) {
-            const modalContent = modal.querySelector('.modal-content');
+            const modalContent = modal.querySelector('[data-modal-content]');
             if (modalContent && !modalDialog.classList.contains('modal-keep-centered')) {
-              modalContent.style.maxHeight = `85vh`;
-              modalContent.style.borderRadius = '16px 16px 0 0';
+              modalContent.classList.add('modal-content-mobile');
             }
           }
 
@@ -226,13 +231,25 @@
           }
 
           // Restore body scroll on iOS
+          // REFACTORED: Using CSS class removal instead of inline style removal
           if (this.device.isIOS) {
-            document.body.style.position = '';
-            document.body.style.width = '';
+            document.body.classList.remove('scroll-locked');
           }
 
           // Remove keyboard open class
           document.body.classList.remove('keyboard-open');
+
+          // Cleanup modal body scrollable class
+          const modalBody = modal.querySelector('[data-modal-body]');
+          if (modalBody) {
+            modalBody.classList.remove('modal-body-scrollable');
+          }
+
+          // Cleanup modal content mobile class
+          const modalContent = modal.querySelector('[data-modal-content]');
+          if (modalContent) {
+            modalContent.classList.remove('modal-content-mobile');
+          }
 
           this.cleanupModalBackdrops();
         });
@@ -251,12 +268,13 @@
 
     /**
      * Setup swipe-to-dismiss functionality for mobile modals
+     * REFACTORED: Replaced inline styles with CSS classes
      */
     setupModalSwipeDismiss: function (modal) {
       if (!this.device.isMobile) return;
 
-      const modalDialog = modal.querySelector('.modal-dialog');
-      const modalHeader = modal.querySelector('.modal-header');
+      const modalDialog = modal.querySelector('[data-modal-dialog]');
+      const modalHeader = modal.querySelector('[data-modal-header]');
 
       if (!modalDialog || !modalHeader) return;
 
@@ -279,10 +297,13 @@
         const deltaY = currentY - startY;
 
         // Only allow downward swipe
+        // REFACTORED: Using CSS custom property for dynamic transform
         if (deltaY > 0) {
           e.preventDefault();
-          modalDialog.style.transform = `translateY(${deltaY}px)`;
-          modalDialog.style.transition = 'none';
+          // Use CSS custom property for dynamic transform value
+          modalDialog.style.setProperty('--swipe-offset', `${deltaY}px`);
+          modalDialog.style.transform = `translateY(var(--swipe-offset))`;
+          modalDialog.classList.add('transition-none');
         }
       });
 
@@ -303,8 +324,9 @@
           }
 
           // Animate out
-          modalDialog.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-          modalDialog.style.transform = 'translateY(100%)';
+          // REFACTORED: Using CSS classes for animation
+          modalDialog.classList.remove('transition-none');
+          modalDialog.classList.add('swipe-animating', 'swipe-dismiss');
 
           setTimeout(() => {
             const bsModal = bootstrap.Modal.getInstance(modal);
@@ -312,13 +334,22 @@
               bsModal.hide();
             }
             // Reset transform
-            modalDialog.style.transform = '';
-            modalDialog.style.transition = '';
+            // REFACTORED: Using CSS classes instead of inline styles
+            modalDialog.classList.remove('swipe-animating', 'swipe-dismiss');
+            modalDialog.style.removeProperty('--swipe-offset');
+            modalDialog.style.removeProperty('transform');
           }, 300);
         } else {
           // Snap back
-          modalDialog.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-          modalDialog.style.transform = '';
+          // REFACTORED: Using CSS classes for animation
+          modalDialog.classList.remove('transition-none');
+          modalDialog.classList.add('swipe-animating', 'swipe-reset');
+
+          setTimeout(() => {
+            modalDialog.classList.remove('swipe-animating', 'swipe-reset');
+            modalDialog.style.removeProperty('--swipe-offset');
+            modalDialog.style.removeProperty('transform');
+          }, 300);
         }
 
         currentY = 0;
@@ -362,21 +393,23 @@
 
     /**
      * Enhance form controls for better mobile experience
+     * REFACTORED: Replaced inline styles with CSS classes
      */
     enhanceFormControls: function () {
       // Enhance standard form controls
       if (this.device.isMobile || this.device.isTablet) {
-        const formControls = document.querySelectorAll('.form-control, .form-select');
+        const formControls = document.querySelectorAll('[data-form-control], [data-form-select]');
         formControls.forEach(control => {
           // Ensure minimum touch target size
+          // REFACTORED: Using CSS class instead of inline style
           if (control.offsetHeight < 44) {
-            control.style.minHeight = 'var(--input-height)';
+            control.classList.add('form-control-touch-target');
           }
 
           // iOS date input fixes
+          // REFACTORED: Using CSS class instead of inline styles
           if (this.device.isIOS && (control.type === 'date' || control.type === 'time' || control.type === 'datetime-local')) {
-            control.style.minHeight = 'var(--input-height)';
-            control.style.paddingRight = '0.75rem';
+            control.classList.add('form-control-ios-date');
           }
         });
       }
@@ -398,7 +431,7 @@
                 };
 
                 // Set appropriate placeholder
-                config.placeholder = selectElement.data('placeholder') || 
+                config.placeholder = selectElement.data('placeholder') ||
                   (selectElement.is('[multiple]') ? 'Select multiple options' : 'Select an option');
 
                 // Initialize Select2
@@ -414,38 +447,34 @@
 
     /**
      * Enhance tables for better mobile experience
+     * REFACTORED: Replaced inline styles with CSS classes
      */
     enhanceTables: function () {
-      const tables = document.querySelectorAll('.table-responsive');
-      
+      const tables = document.querySelectorAll('[data-table-responsive]');
+
       tables.forEach(table => {
         // Ensure touch scrolling works well
-        table.style.webkitOverflowScrolling = 'touch';
-        
+        // REFACTORED: Using CSS class instead of inline style
+        table.classList.add('table-responsive-touch');
+
         // Add faded edge indicators for scrollable tables on mobile
         if (this.device.isMobile && !table.querySelector('.table-scroll-hint')) {
           const tableWidth = table.scrollWidth;
           const containerWidth = table.clientWidth;
-          
+
           if (tableWidth > containerWidth) {
             // Add scroll hint indicator
             const scrollHint = document.createElement('div');
             scrollHint.className = 'table-scroll-hint';
             scrollHint.innerHTML = '<small class="text-muted"><i class="ti ti-arrows-horizontal me-1"></i>swipe to see more</small>';
-            scrollHint.style.textAlign = 'center';
-            scrollHint.style.fontSize = '0.7rem';
-            scrollHint.style.marginTop = '0.25rem';
-            scrollHint.style.opacity = '0.7';
-            
+
             table.parentNode.insertBefore(scrollHint, table.nextSibling);
-            
+
             // Hide hint when user has scrolled
+            // REFACTORED: Using CSS classes instead of inline styles
             table.addEventListener('scroll', function() {
               if (this.scrollLeft > 20) {
-                scrollHint.style.opacity = '0';
-                setTimeout(() => {
-                  scrollHint.style.display = 'none';
-                }, 300);
+                scrollHint.classList.add('hidden');
               }
             });
           }
@@ -455,36 +484,31 @@
 
     /**
      * Enhance navigation elements for touch devices
+     * REFACTORED: Replaced inline styles with CSS classes
      */
     enhanceNavigation: function () {
       // Make tabs scrollable on mobile
-      const tabContainers = document.querySelectorAll('.nav-tabs, .nav-pills');
-      
+      const tabContainers = document.querySelectorAll('[data-tabs], .js-tabs');
+
       tabContainers.forEach(container => {
         // Check prerequisites first
         const tabs = container.querySelectorAll('.nav-link');
         const isOnMobile = window.innerWidth < 768;
         const hasMultipleTabs = tabs.length > 1;
         const hasOverflow = container.scrollWidth > container.clientWidth;
-        
+
         // Only show on mobile with multiple tabs that actually overflow
         if (isOnMobile && hasMultipleTabs && hasOverflow) {
           // Apply scrolling styles
+          // REFACTORED: Using CSS class instead of inline styles
           container.classList.add('scrollable-tabs');
-          container.style.overflowX = 'auto';
-          container.style.flexWrap = 'nowrap';
-          container.style.webkitOverflowScrolling = 'touch';
-          
+
           // Add scroll indicator if not present
           if (!container.nextElementSibling || !container.nextElementSibling.classList.contains('tabs-scroll-hint')) {
             const scrollHint = document.createElement('div');
             scrollHint.className = 'tabs-scroll-hint';
             scrollHint.innerHTML = '<small class="text-muted"><i class="ti ti-arrows-horizontal me-1"></i>swipe</small>';
-            scrollHint.style.textAlign = 'center';
-            scrollHint.style.fontSize = '0.7rem';
-            scrollHint.style.marginTop = '0.25rem';
-            scrollHint.style.opacity = '0.7';
-            
+
             container.parentNode.insertBefore(scrollHint, container.nextSibling);
           }
         } else {
@@ -495,25 +519,27 @@
           }
         }
       });
-      
+
       // Enhance sidebar menu on mobile
       const sidebarMenu = document.querySelector('.layout-menu');
       if (sidebarMenu && (this.device.isMobile || this.device.isTablet)) {
         const menuItems = sidebarMenu.querySelectorAll('.menu-item');
-        
+
         menuItems.forEach(item => {
           // Make dropdown toggles more touch-friendly
+          // REFACTORED: Using CSS class instead of inline style
           if (item.classList.contains('menu-item-has-children')) {
             const toggle = item.querySelector('.menu-toggle');
             if (toggle) {
-              toggle.style.minHeight = 'var(--touch-target-size)';
+              toggle.classList.add('menu-toggle-touch');
             }
           }
-          
+
           // Make all menu links more touch-friendly
+          // REFACTORED: Using CSS class instead of inline style
           const link = item.querySelector('.menu-link');
           if (link) {
-            link.style.minHeight = 'var(--touch-target-size)';
+            link.classList.add('menu-link-touch');
           }
         });
       }
@@ -529,11 +555,11 @@
           anchor.addEventListener('click', function(e) {
             const targetId = this.getAttribute('href');
             if (targetId === '#' || !targetId) return;
-            
+
             const targetElement = document.querySelector(targetId);
             if (targetElement) {
               e.preventDefault();
-              
+
               // Scroll smoothly to target
               targetElement.scrollIntoView({
                 behavior: 'smooth',
@@ -552,7 +578,7 @@
       window.addEventListener('online', () => {
         this.showNetworkStatus(true);
       });
-      
+
       window.addEventListener('offline', () => {
         this.showNetworkStatus(false);
       });
@@ -560,42 +586,32 @@
 
     /**
      * Show network status toast notification
+     * REFACTORED: Replaced inline styles with CSS classes
      */
     showNetworkStatus: function (isOnline) {
       const statusDiv = document.createElement('div');
       statusDiv.className = 'network-status-indicator';
-      statusDiv.style.position = 'fixed';
-      statusDiv.style.bottom = '20px';
-      statusDiv.style.left = '50%';
-      statusDiv.style.transform = 'translateX(-50%)';
-      statusDiv.style.padding = '0.75rem 1rem';
-      statusDiv.style.borderRadius = 'var(--border-radius)';
-      statusDiv.style.color = 'white';
-      statusDiv.style.fontWeight = 'bold';
-      statusDiv.style.zIndex = '9999';
-      statusDiv.style.opacity = '0';
-      statusDiv.style.transition = 'opacity 0.3s ease';
-      statusDiv.style.boxShadow = '0 0.25rem 0.75rem rgba(0, 0, 0, 0.15)';
-      
+
       if (isOnline) {
-        statusDiv.style.backgroundColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#198754';
+        statusDiv.classList.add('online');
         statusDiv.innerHTML = '<i class="ti ti-wifi me-2"></i> Connected';
       } else {
-        statusDiv.style.backgroundColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545';
+        statusDiv.classList.add('offline');
         statusDiv.innerHTML = '<i class="ti ti-wifi-off me-2"></i> Disconnected';
       }
-      
+
       document.body.appendChild(statusDiv);
-      
+
       // Animate in
+      // REFACTORED: Using CSS class instead of inline style
       setTimeout(() => {
-        statusDiv.style.opacity = '1';
+        statusDiv.classList.add('visible');
       }, 10);
-      
+
       // Hide after delay
       setTimeout(() => {
-        statusDiv.style.opacity = '0';
-        
+        statusDiv.classList.remove('visible');
+
         setTimeout(() => {
           if (statusDiv.parentNode) {
             document.body.removeChild(statusDiv);
@@ -614,12 +630,12 @@
         setTimeout(() => {
           this.fixIOSViewportHeight();
           this.enhanceNavigation();
-          
+
           // Dispatch custom event for other components
           document.dispatchEvent(new CustomEvent('app:orientationchange'));
         }, 200);
       });
-      
+
       // Handle resize (debounced)
       let resizeTimer;
       window.addEventListener('resize', () => {
@@ -629,21 +645,21 @@
           this.detectDevice();
           this.applyDeviceClasses();
           this.fixIOSViewportHeight();
-          
+
           // Re-enhance components after resize
           this.enhanceNavigation();
           this.enhanceTables();
-          
+
           // Notify other components
           document.dispatchEvent(new CustomEvent('app:resize'));
         }, 250);
       });
-      
+
       // Fix modal backdrop issues
       document.addEventListener('click', () => {
         setTimeout(this.cleanupModalBackdrops.bind(this), 300);
       });
-      
+
       // Fix iOS tab bar hiding issue
       if (this.device.isIOS) {
         window.addEventListener('scroll', () => {
@@ -656,11 +672,12 @@
 
     /**
      * Clean up any stray modal backdrops
+     * REFACTORED: Using removeProperty instead of direct style manipulation
      */
     cleanupModalBackdrops: function () {
       const openModals = document.querySelectorAll('.modal.show');
       const modalBackdrops = document.querySelectorAll('.modal-backdrop');
-      
+
       // If there are no open modals but we have backdrops, clean them up
       if (openModals.length === 0 && modalBackdrops.length > 0) {
         modalBackdrops.forEach(backdrop => {
@@ -668,8 +685,9 @@
             backdrop.parentNode.removeChild(backdrop);
           }
         });
-        
+
         // Fix body classes and styles
+        // REFACTORED: Using removeProperty instead of setting empty string
         document.body.classList.remove('modal-open');
         document.body.style.removeProperty('overflow');
         document.body.style.removeProperty('padding-right');
@@ -683,7 +701,7 @@
       // Create MutationObserver instance
       const observer = new MutationObserver((mutations) => {
         let shouldEnhance = false;
-        
+
         // Check if we need to enhance elements
         mutations.forEach(mutation => {
           if (mutation.addedNodes.length) {
@@ -692,26 +710,26 @@
               const node = mutation.addedNodes[i];
               if (node.nodeType === 1) { // Only element nodes
                 if (
-                  node.classList && (
-                    node.classList.contains('modal') ||
-                    node.classList.contains('form-control') ||
-                    node.classList.contains('btn') ||
-                    node.classList.contains('nav-tabs') ||
-                    node.classList.contains('table-responsive')
+                  node.hasAttribute && (
+                    node.hasAttribute('data-modal') ||
+                    node.hasAttribute('data-form-control') ||
+                    node.hasAttribute('data-form-select') ||
+                    node.hasAttribute('data-tabs') ||
+                    node.hasAttribute('data-table-responsive')
                   )
                 ) {
                   shouldEnhance = true;
                   break;
                 }
-                
+
                 // Check if added node contains elements we care about
                 if (
                   node.querySelector && (
-                    node.querySelector('.modal') ||
-                    node.querySelector('.form-control') ||
-                    node.querySelector('.btn') ||
-                    node.querySelector('.nav-tabs') ||
-                    node.querySelector('.table-responsive')
+                    node.querySelector('[data-modal]') ||
+                    node.querySelector('[data-form-control]') ||
+                    node.querySelector('[data-form-select]') ||
+                    node.querySelector('[data-tabs], .js-tabs') ||
+                    node.querySelector('[data-table-responsive]')
                   )
                 ) {
                   shouldEnhance = true;
@@ -721,7 +739,7 @@
             }
           }
         });
-        
+
         // Enhance new elements if needed
         if (shouldEnhance) {
           setTimeout(() => {
@@ -729,7 +747,7 @@
           }, 100);
         }
       });
-      
+
       // Start observing the document
       observer.observe(document.body, {
         childList: true,
@@ -749,11 +767,22 @@
     }
   };
 
-  // Initialize when DOM is ready
-  document.addEventListener('DOMContentLoaded', function () {
-    ResponsiveSystem.init();
-  });
-
   // Make available globally
   window.ResponsiveSystem = ResponsiveSystem;
+
+  // Register with InitSystem if available
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('responsive-system', function() {
+      ResponsiveSystem.init();
+    }, {
+      priority: 85,
+      description: 'Responsive system (mobile detection, touch feedback, form/table/modal enhancements)',
+      reinitializable: true
+    });
+  } else {
+    // Fallback: Initialize when DOM is ready
+    document.addEventListener('DOMContentLoaded', function () {
+      ResponsiveSystem.init();
+    });
+  }
 })();

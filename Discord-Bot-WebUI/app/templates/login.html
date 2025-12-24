@@ -1,137 +1,144 @@
 {% extends "base_unauthenticated.html" %}
 
 {% block page_css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/authentication.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/authentication.css') }}" />
 {% endblock %}
 
-{% block body_class %}auth-page{% endblock %}
-
 {% block main_content %}
+<div class="c-auth-wrapper" data-component="auth-wrapper">
+    <!-- Logo Section -->
+    <div class="c-auth-logo" data-component="auth-logo">
+        <img src="{{ url_for('static', filename='img/ecs_logo.png') }}"
+             alt="ECS Logo"
+             class="c-auth-logo__image">
+        <div class="c-auth-logo__divider"></div>
+        <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}"
+             alt="ECS FC Pub League Logo"
+             class="c-auth-logo__image">
+    </div>
 
-<div class="authentication-wrapper">
-    <div class="authentication-inner">
-        <!-- ECS Logos -->
-        <div class="d-none d-lg-flex col-lg-6 align-items-center justify-content-center p-5">
-            <div class="text-center">
-                <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS Logo" class="img-fluid mb-4" style="max-height: 180px; width: auto;">
-                <br>
-                <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="ECS FC Pub League Logo" class="img-fluid" style="max-height: 180px; width: auto;">
-            </div>
+    <!-- Login Form -->
+    <div class="c-auth-form" data-component="auth-form">
+        <div class="c-auth-form__header">
+            <h1 class="c-auth-form__title">Welcome Back</h1>
+            <p class="c-auth-form__subtitle">Sign in to access your ECS FC account</p>
         </div>
 
-        <!-- Login Form -->
-        <div class="col-12 col-lg-6 d-flex align-items-center justify-content-center p-4 bg-white rounded-end">
-            <div style="width: 100%; max-width: 320px; text-align: center; margin: 0 auto;">
-                <h4 class="mb-1 text-primary">Welcome to the ECS FC and Pub League</h4>
-                <p class="mb-4 text-muted">Login or register to join the league.</p>
+        <div class="c-auth-form__body">
+            <!-- Discord Login - Primary Action -->
+            <a href="{{ url_for('auth.discord_login') }}"
+               class="c-auth-btn c-auth-btn--discord"
+               data-action="discord-login">
+                <i class="ti ti-brand-discord c-auth-btn__icon"></i>
+                Sign In with Discord
+            </a>
 
-                <!-- Discord Login Button -->
-                <a href="{{ url_for('auth.discord_login') }}" class="btn btn-primary btn-block mb-2 d-flex align-items-center justify-content-center" style="background-color: #7289DA; border-color: #7289DA;">
-                    <span class="discord-img"></span>
-                    Login with Discord
-                </a>
-                
-                <!-- Discord Registration Button -->
-                <a href="{{ url_for('auth.discord_register') }}" class="btn btn-outline-primary btn-block mb-2 d-flex align-items-center justify-content-center" style="border-color: #7289DA; color: #7289DA;">
-                    <span class="discord-img"></span>
-                    Register with Discord
-                </a>
-                
-                <!-- Waitlist Registration Button -->
-                <a href="{{ url_for('auth.waitlist_register') }}" class="btn btn-outline-warning btn-block mb-3 d-flex align-items-center justify-content-center">
-                    <i class="ti ti-clock me-2"></i>
-                    Join the Waitlist
-                </a>
+            {% if safe_current_user.is_anonymous %}
+            <!-- Discord Registration - Secondary Action -->
+            <a href="{{ url_for('auth.discord_register') }}"
+               class="c-auth-btn c-auth-btn--outline"
+               data-action="discord-register">
+                <i class="ti ti-user-plus c-auth-btn__icon"></i>
+                New? Register with Discord
+            </a>
 
-                {% if safe_current_user.is_anonymous %}
-                <!-- Divider Line with More Options -->
-                <div class="divider my-4">
-                    <span class="divider-text text-muted" id="toggle-more-options" style="cursor: pointer;">More Options</span>
-                </div>
+            <!-- Waitlist Registration -->
+            <a href="{{ url_for('auth.waitlist_register') }}"
+               class="c-auth-btn c-auth-btn--warning"
+               data-action="waitlist-register">
+                <i class="ti ti-clock c-auth-btn__icon"></i>
+                Join the Waitlist
+            </a>
 
-                <!-- Email Login Form -->
-                <form method="POST" action="{{ url_for('auth.login') }}" id="email-login-form" style="display: none;">
-                    {{ form.hidden_tag() }}
-                    <div class="mb-3">
-                        {{ form.email(class="form-control form-control-lg", placeholder="Enter Email Address...") }}
-                    </div>
-                    <div class="mb-3 form-password-toggle">
-                        <div class="input-group input-group-merge">
-                            {{ form.password(class="form-control form-control-lg", placeholder="Password") }}
-                            <span class="input-group-text cursor-pointer" id="toggle-password"><i class="ti ti-eye-off"></i></span>
-                        </div>
-                    </div>
-                    <div class="mb-3 d-flex justify-content-between">
-                        <div class="form-check">
-                            {{ form.remember(class="form-check-input", id="remember-me") }}
-                            {{ form.remember.label(class="form-check-label", for="remember-me") }}
-                        </div>
-                        <!-- Forgot Password Link -->
-                        <a href="{{ url_for('auth.forgot_password') }}" class="text-muted">Forgot Password?</a>
-                    </div>
-                    <div class="d-grid gap-2">
-                        <input type="submit" class="btn waves-button-input" value="Sign In">
-                    </div>
-                </form>
-
-                <p class="text-center mt-3">
-                    <span>Need help?</span>
-                    <a href="{{ url_for('auth.forgot_password') }}" class="text-primary">
-                        <span>Forgot Password</span>
-                    </a>
-                </p>
-                
-                {% if session.get('waitlist_intent') %}
-                <div class="alert alert-warning mt-3 text-left">
-                    <h6 class="alert-heading fw-bold mb-1">Join the Waitlist</h6>
-                    <p class="mb-0 small">
-                        Login to join the waitlist for the current season. You'll be notified when spots become available or for substitute opportunities.
-                    </p>
-                </div>
-                {% else %}
-                <div class="alert alert-info mt-3 text-left">
-                    <h6 class="alert-heading fw-bold mb-1">New Here?</h6>
-                    <p class="mb-0 small">
-                        If you have a Discord account and haven't registered with us, click Register with Discord above. If you've already registered with us, select Login with Discord.
-                    </p>
-                </div>
-                {% endif %}
-                {% endif %}
+            <!-- More Options Toggle (for email login) -->
+            <div class="c-auth-divider">
+                <span class="c-auth-divider__text" data-action="toggle-options">More Options</span>
             </div>
+
+            <!-- Hidden Email Login Section -->
+            <div id="additional-options" class="is-hidden" data-container="additional-options">
+                <!-- Email Login Form -->
+                <form method="POST"
+                      action="{{ url_for('auth.login') }}"
+                      class="c-auth-email-form"
+                      data-form="email-login">
+                    {{ form.hidden_tag() }}
+
+                    <div class="c-auth-input-group">
+                        {{ form.email(class="c-auth-input", placeholder="Email address", **{"data-input": "email"}) }}
+                    </div>
+
+                    <div class="c-auth-input-group c-auth-input-group--password">
+                        {{ form.password(class="c-auth-input", placeholder="Password", **{"data-input": "password"}) }}
+                        <button type="button"
+                                class="c-auth-password-toggle"
+                                data-action="toggle-password"
+                                aria-label="Toggle password visibility">
+                            <i class="ti ti-eye-off"></i>
+                        </button>
+                    </div>
+
+                    <div class="c-auth-form-row">
+                        <div class="c-auth-checkbox">
+                            {{ form.remember(class="c-auth-checkbox__input", id="remember-me") }}
+                            {{ form.remember.label(class="c-auth-checkbox__label", for="remember-me") }}
+                        </div>
+                        <a href="{{ url_for('auth.forgot_password') }}" class="c-auth-link">Forgot Password?</a>
+                    </div>
+
+                    <button type="submit" class="c-auth-btn c-auth-btn--primary">Sign In with Email</button>
+                </form>
+            </div>
+
+            <!-- Info Alert -->
+            {% if session.get('waitlist_intent') %}
+            <div class="c-auth-alert c-auth-alert--warning" data-alert>
+                <h6 class="c-auth-alert__title">Join the Waitlist</h6>
+                <p class="c-auth-alert__text">
+                    Login to join the waitlist for the current season. You'll be notified when spots become available.
+                </p>
+            </div>
+            {% endif %}
+            {% endif %}
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        var toggleButton = document.getElementById('toggle-more-options');
-        var emailLoginForm = document.getElementById('email-login-form');
-        var togglePassword = document.getElementById('toggle-password');
-        var passwordField = document.querySelector('input[name="password"]');
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
 
-        // Check if elements exist before adding event listeners
-        if (toggleButton && emailLoginForm) {
-            toggleButton.addEventListener('click', function () {
-                if (emailLoginForm.style.display === 'none' || emailLoginForm.style.display === '') {
-                    emailLoginForm.style.display = 'block';
-                    toggleButton.textContent = 'Hide Options';
-                } else {
-                    emailLoginForm.style.display = 'none';
-                    toggleButton.textContent = 'More Options';
+        const action = target.dataset.action;
+
+        switch(action) {
+            case 'toggle-options':
+                const container = document.getElementById('additional-options');
+                if (container) {
+                    const isHidden = container.classList.contains('is-hidden');
+                    container.classList.toggle('is-hidden', !isHidden);
+                    target.textContent = isHidden ? 'Hide Email Login' : 'More Options';
                 }
-            });
-        }
+                break;
 
-        if (togglePassword && passwordField) {
-            togglePassword.addEventListener('click', function () {
-                const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
-                passwordField.setAttribute('type', type);
-                this.querySelector('i').classList.toggle('ti-eye');
-                this.querySelector('i').classList.toggle('ti-eye-off');
-            });
+            case 'toggle-password':
+                const passwordField = document.querySelector('input[name="password"]');
+                if (passwordField) {
+                    const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passwordField.setAttribute('type', type);
+                    const icon = target.querySelector('i');
+                    if (icon) {
+                        icon.classList.toggle('ti-eye');
+                        icon.classList.toggle('ti-eye-off');
+                    }
+                }
+                break;
         }
     });
+});
 </script>
 {% endblock %}

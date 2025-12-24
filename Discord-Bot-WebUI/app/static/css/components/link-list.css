@@ -1,0 +1,225 @@
+/**
+ * ============================================================================
+ * LINK LIST - Navigation List Component
+ * ============================================================================
+ *
+ * Vertical navigation links used inside cards and panels.
+ * Design: Clean, scannable list with hover feedback.
+ *
+ * Components:
+ *   .c-link-list                        - Container
+ *   .c-link-list__item                  - Individual link
+ *   .c-link-list__content               - Text/icon content
+ *   .c-link-list__icon                  - Leading icon
+ *   .c-link-list__text                  - Link text
+ *   .c-link-list__meta                  - Right-side metadata
+ *   .c-link-list__arrow                 - Chevron arrow
+ *
+ * Status Indicator:
+ *   .c-status-indicator                 - Status dot
+ *   .c-status-indicator--active         - Active/online state
+ *   .c-status-indicator--warning        - Warning state
+ *   .c-status-indicator--danger         - Error state
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   LINK LIST CONTAINER
+   ============================================================================ */
+
+.c-link-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ============================================================================
+   LINK LIST ITEM
+   ============================================================================ */
+
+.c-link-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  margin: 0 calc(var(--space-4, 16px) * -1);
+  color: var(--color-text-primary, #f8fafc);
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+  transition: all var(--duration-fast, 150ms) ease;
+  width: calc(100% + var(--space-4, 16px) * 2);
+  text-align: left;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.c-link-list__item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.c-link-list__item:active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Focus state for accessibility */
+.c-link-list__item:focus-visible {
+  outline: 2px solid var(--color-primary, #2563EB);
+  outline-offset: -2px;
+}
+
+/* ============================================================================
+   CONTENT AREA
+   ============================================================================ */
+
+.c-link-list__content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  flex: 1;
+  min-width: 0;
+}
+
+.c-link-list__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md, 8px);
+  color: var(--color-text-secondary, #94a3b8);
+  font-size: 1rem;
+  flex-shrink: 0;
+  transition: all var(--duration-fast, 150ms) ease;
+}
+
+.c-link-list__item:hover .c-link-list__icon {
+  background: var(--color-primary, #2563EB);
+  color: #fff;
+}
+
+.c-link-list__text {
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 500;
+  color: var(--color-text-primary, #f8fafc);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================================================
+   METADATA AREA
+   ============================================================================ */
+
+.c-link-list__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  flex-shrink: 0;
+}
+
+.c-link-list__arrow {
+  color: var(--color-text-muted, #64748b);
+  font-size: 1rem;
+  transition: transform var(--duration-fast, 150ms) ease;
+}
+
+.c-link-list__item:hover .c-link-list__arrow {
+  transform: translateX(4px);
+  color: var(--color-primary-light, #60a5fa);
+}
+
+/* ============================================================================
+   STATUS INDICATOR
+   ============================================================================ */
+
+.c-status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-text-muted, #64748b);
+  flex-shrink: 0;
+}
+
+.c-status-indicator--active {
+  background: var(--color-success, #10b981);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.c-status-indicator--warning {
+  background: var(--color-warning, #f59e0b);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+}
+
+.c-status-indicator--danger {
+  background: var(--color-danger, #ef4444);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.7);
+  }
+}
+
+/* ============================================================================
+   LIGHT MODE
+   ============================================================================ */
+
+[data-style="light"] .c-link-list__item {
+  color: var(--color-text-primary, #1e293b);
+}
+
+[data-style="light"] .c-link-list__item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-style="light"] .c-link-list__item:active {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+[data-style="light"] .c-link-list__icon {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--color-text-secondary, #64748b);
+}
+
+[data-style="light"] .c-link-list__text {
+  color: var(--color-text-primary, #1e293b);
+}
+
+[data-style="light"] .c-link-list__item:hover .c-link-list__arrow {
+  color: var(--color-primary, #2563EB);
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .c-link-list__item {
+    padding: var(--space-3, 12px);
+  }
+
+  .c-link-list__icon {
+    width: 28px;
+    height: 28px;
+    font-size: 0.875rem;
+  }
+
+  .c-link-list__text {
+    font-size: var(--text-xs, 0.75rem);
+  }
+}

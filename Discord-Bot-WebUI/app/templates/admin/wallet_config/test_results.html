@@ -2,6 +2,7 @@
 {% block title %}Wallet Configuration Test Results{% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
     /* Test Results - Theme-aware styling */
     .test-result {
@@ -52,10 +53,10 @@
                     <p class="text-muted mb-0">Test results for your wallet pass configuration</p>
                 </div>
                 <div>
-                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="btn btn-outline-secondary">
+                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-arrow-left me-1"></i> Back to Dashboard
                     </a>
-                    <button onclick="window.print()" class="btn btn-outline-primary ms-2">
+                    <button class="c-btn c-btn--outline-primary ms-2 js-print-results" data-action="print-results">
                         <i class="ti ti-printer me-1"></i> Print Results
                     </button>
                 </div>
@@ -64,21 +65,21 @@
     </div>
     
     <!-- Overall Results Card -->
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="c-card mb-4">
+        <div class="c-card__header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Overall Configuration Status</h5>
             <div>
                 {% if test_results.configuration.configured %}
-                    <span class="badge bg-label-success">Configuration Complete</span>
+                    <span class="badge bg-label-success" data-badge>Configuration Complete</span>
                 {% else %}
-                    <span class="badge bg-label-warning">Issues Found</span>
+                    <span class="badge bg-label-warning" data-badge>Issues Found</span>
                 {% endif %}
             </div>
         </div>
-        <div class="card-body">
+        <div class="c-card__body">
             <div class="mb-4">
                 {% if test_results.configuration.configured %}
-                    <div class="alert alert-success d-flex">
+                    <div class="alert alert-success d-flex" data-alert>
                         <i class="ti ti-circle-check me-3 fs-4"></i>
                         <div>
                             <strong>Wallet pass system is properly configured!</strong>
@@ -86,7 +87,7 @@
                         </div>
                     </div>
                 {% else %}
-                    <div class="alert alert-warning d-flex">
+                    <div class="alert alert-warning d-flex" data-alert>
                         <i class="ti ti-alert-triangle me-3 fs-4"></i>
                         <div>
                             <strong>Configuration issues detected</strong>
@@ -99,12 +100,12 @@
             <div class="row mb-4">
                 <div class="col-md-6">
                     <h6>Test Summary</h6>
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
+                    <div class="c-table-wrapper" data-table-responsive>
+                        <table class="c-table" data-table>
+                            <thead scope="col">
                                 <tr>
-                                    <th>Category</th>
-                                    <th>Status</th>
+                                    <th scope="col">Category</th>
+                                    <th scope="col">Status</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -112,9 +113,9 @@
                                     <td>Required Files</td>
                                     <td>
                                         {% if not test_results.configuration.issues %}
-                                            <span class="badge bg-label-success">All Present</span>
+                                            <span class="badge bg-label-success" data-badge>All Present</span>
                                         {% else %}
-                                            <span class="badge bg-label-danger">Missing Files</span>
+                                            <span class="badge bg-label-danger" data-badge>Missing Files</span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -122,7 +123,7 @@
                                 <tr>
                                     <td>{{ test.name }}</td>
                                     <td>
-                                        <span class="badge bg-label-{{ test.status == 'passed' and 'success' or test.status == 'skipped' and 'warning' or 'danger' }}">
+                                        <span class="badge bg-label-{{ test.status == 'passed' and 'success' or test.status == 'skipped' and 'warning' or 'danger' }}" data-badge>
                                             {{ test.status|capitalize }}
                                         </span>
                                     </td>
@@ -135,22 +136,22 @@
                 
                 <div class="col-md-6">
                     <h6>System Information</h6>
-                    <div class="table-responsive">
-                        <table class="table">
+                    <div class="c-table-wrapper" data-table-responsive>
+                        <table class="c-table" data-table>
                             <tbody>
                                 <tr>
-                                    <th>Test Date/Time</th>
+                                    <th scope="row">Test Date/Time</th>
                                     <td>{{ now|default('N/A') }} UTC</td>
                                 </tr>
                                 <tr>
-                                    <th>Pass Types</th>
+                                    <th scope="row">Pass Types</th>
                                     <td>
                                         {% set pass_types_found = false %}
                                         {% for test in test_results.tests %}
                                             {% if test.name == 'Asset Configuration' and test.status == 'passed' %}
                                                 {% set pass_types_found = true %}
-                                                <span class="badge bg-label-primary me-1">ECS Membership</span>
-                                                <span class="badge bg-label-primary">Pub League</span>
+                                                <span class="badge bg-label-primary me-1" data-badge>ECS Membership</span>
+                                                <span class="badge bg-label-primary" data-badge>Pub League</span>
                                             {% endif %}
                                         {% endfor %}
                                         {% if not pass_types_found %}
@@ -159,10 +160,10 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <th>Certificate Platform</th>
+                                    <th scope="row">Certificate Platform</th>
                                     <td>
-                                        <span class="badge bg-label-secondary me-1">Apple</span>
-                                        <span class="badge bg-label-secondary">Google (Optional)</span>
+                                        <span class="badge bg-label-secondary me-1" data-badge>Apple</span>
+                                        <span class="badge bg-label-secondary" data-badge>Google (Optional)</span>
                                     </td>
                                 </tr>
                             </tbody>
@@ -186,16 +187,16 @@
     </div>
     
     <!-- Detailed Test Results -->
-    <div class="card mb-4">
-        <div class="card-header">
+    <div class="c-card mb-4">
+        <div class="c-card__header">
             <h5 class="mb-0">Detailed Test Results</h5>
         </div>
-        <div class="card-body">
+        <div class="c-card__body">
             {% for test in test_results.tests %}
                 <div class="test-result {{ test.status }}">
                     <div class="d-flex justify-content-between mb-2">
                         <h6 class="mb-0">{{ test.name }}</h6>
-                        <span class="badge bg-label-{{ test.status == 'passed' and 'success' or test.status == 'skipped' and 'warning' or 'danger' }}">
+                        <span class="badge bg-label-{{ test.status == 'passed' and 'success' or test.status == 'skipped' and 'warning' or 'danger' }}" data-badge>
                             {{ test.status|capitalize }}
                         </span>
                     </div>
@@ -206,11 +207,11 @@
     </div>
     
     <!-- Next Steps -->
-    <div class="card mb-4">
-        <div class="card-header">
+    <div class="c-card mb-4">
+        <div class="c-card__header">
             <h5 class="mb-0">Next Steps</h5>
         </div>
-        <div class="card-body">
+        <div class="c-card__body">
             {% if test_results.configuration.configured %}
                 <div class="next-steps bg-body-tertiary">
                     <h6><i class="ti ti-circle-check text-success me-1"></i> Configuration Complete</h6>
@@ -223,12 +224,12 @@
                     </ul>
                     <div class="row mt-3">
                         <div class="col-md-6">
-                            <a href="{{ url_for('wallet_admin.passes_list') }}" class="btn btn-primary btn-sm w-100">
+                            <a href="{{ url_for('wallet_admin.passes_list') }}" class="c-btn c-btn--primary c-btn--sm w-100">
                                 <i class="ti ti-ticket me-1"></i> Manage Passes
                             </a>
                         </div>
                         <div class="col-md-6">
-                            <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="btn btn-success btn-sm w-100">
+                            <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="c-btn c-btn--success c-btn--sm w-100">
                                 <i class="ti ti-plus me-1"></i> Create New Pass
                             </a>
                         </div>
@@ -260,12 +261,12 @@
                     </ul>
                     <div class="row mt-3">
                         <div class="col-md-6">
-                            <a href="{{ url_for('wallet_config.setup_wizard') }}" class="btn btn-primary btn-sm w-100">
+                            <a href="{{ url_for('wallet_config.setup_wizard') }}" class="c-btn c-btn--primary c-btn--sm w-100">
                                 <i class="ti ti-wand me-1"></i> Continue Setup Wizard
                             </a>
                         </div>
                         <div class="col-md-6">
-                            <a href="{{ url_for('wallet_config.help_page') }}" class="btn btn-info btn-sm w-100">
+                            <a href="{{ url_for('wallet_config.help_page') }}" class="c-btn c-btn--info c-btn--sm w-100">
                                 <i class="ti ti-help me-1"></i> View Help Documentation
                             </a>
                         </div>
@@ -276,11 +277,11 @@
     </div>
     
     <!-- Troubleshooting Tips -->
-    <div class="card">
-        <div class="card-header">
+    <div class="c-card">
+        <div class="c-card__header">
             <h5 class="mb-0">Troubleshooting Tips</h5>
         </div>
-        <div class="card-body">
+        <div class="c-card__body">
             <div class="row">
                 <div class="col-md-4">
                     <h6><i class="ti ti-certificate me-1"></i> Certificate Issues</h6>
@@ -313,4 +314,19 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Print results button
+    const printBtn = document.querySelector('.js-print-results');
+    if (printBtn) {
+        printBtn.addEventListener('click', function() {
+            window.print();
+        });
+    }
+});
+</script>
 {% endblock %}

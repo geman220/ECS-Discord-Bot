@@ -9,16 +9,16 @@
 
 {# Example: Mobile-Optimized Table Structure #}
 {# For manage_users.html and similar tables #}
-<div class="table-responsive table-responsive-mobile">
-    <table class="table" id="user-table">
-        <thead>
+<div class="c-table-wrapper table-responsive-mobile" data-table-responsive>
+    <table class="c-table" id="user-table" data-table>
+        <thead scope="col">
             <tr>
-                <th>Username</th>
-                <th>Roles</th>
-                <th>Teams</th>
-                <th>Leagues</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th scope="col">Username</th>
+                <th scope="col">Roles</th>
+                <th scope="col">Teams</th>
+                <th scope="col">Leagues</th>
+                <th scope="col">Status</th>
+                <th scope="col">Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -27,30 +27,30 @@
                 <td data-label="Username">{{ user.username }}</td>
                 <td data-label="Roles">
                     {% for role in user.roles %}
-                        <span class="badge bg-label-primary">{{ role }}</span>
+                        <span class="badge bg-label-primary" data-badge>{{ role }}</span>
                     {% endfor %}
                 </td>
                 <td data-label="Teams">
                     {% for team in user.teams %}
-                        <span class="badge bg-label-info">{{ team }}</span>
+                        <span class="badge bg-label-info" data-badge>{{ team }}</span>
                     {% endfor %}
                 </td>
                 <td data-label="Leagues">
                     {% for league in user.leagues %}
-                        <span class="badge bg-label-success">{{ league }}</span>
+                        <span class="badge bg-label-success" data-badge>{{ league }}</span>
                     {% endfor %}
                 </td>
                 <td data-label="Status">
-                    <span class="badge bg-label-{{ 'success' if user.active else 'secondary' }}">
+                    <span class="badge bg-label-{{ 'success' if user.active else 'secondary' }}" data-badge>
                         {{ 'Active' if user.active else 'Inactive' }}
                     </span>
                 </td>
                 <td data-label="Actions">
                     <div class="dropdown">
-                        <button class="btn btn-sm btn-icon dropdown-toggle" data-bs-toggle="dropdown">
+                        <button class="c-btn c-btn--sm c-btn--icon-only dropdown-toggle" data-bs-toggle="dropdown" data-dropdown-toggle>
                             <i class="ti ti-dots-vertical"></i>
                         </button>
-                        <div class="dropdown-menu">
+                        <div class="dropdown-menu" data-dropdown-menu>
                             <a class="dropdown-item" href="{{ url_for('edit_user', id=user.id) }}">
                                 <i class="ti ti-edit"></i> Edit
                             </a>
@@ -72,18 +72,18 @@
     <div class="mobile-summary-card">
         <div class="summary-header">{{ user.username }}</div>
         <div class="summary-meta">
-            <span class="badge bg-label-{{ 'success' if user.active else 'secondary' }}">
+            <span class="badge bg-label-{{ 'success' if user.active else 'secondary' }}" data-badge>
                 {{ 'Active' if user.active else 'Inactive' }}
             </span>
             {% for role in user.roles %}
-                <span class="badge bg-label-primary">{{ role }}</span>
+                <span class="badge bg-label-primary" data-badge>{{ role }}</span>
             {% endfor %}
         </div>
         <div class="summary-actions">
-            <a href="{{ url_for('edit_user', id=user.id) }}" class="btn btn-sm btn-primary">
+            <a href="{{ url_for('edit_user', id=user.id) }}" class="c-btn c-btn--sm c-btn--primary">
                 Edit
             </a>
-            <a href="{{ url_for('view_user', id=user.id) }}" class="btn btn-sm btn-info">
+            <a href="{{ url_for('view_user', id=user.id) }}" class="c-btn c-btn--sm c-btn--info">
                 View
             </a>
         </div>

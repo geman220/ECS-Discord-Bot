@@ -6,24 +6,23 @@
 
 {% block main_content %}
 
-<div class="authentication-wrapper">
-    <div class="authentication-inner">
+<div class="c-auth-wrapper">
+    <div class="c-auth-inner">
         <!-- ECS Logos -->
-        <div class="d-none d-lg-flex col-lg-6 align-items-center justify-content-center p-5">
-            <div class="text-center">
-                <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS Logo" class="img-fluid mb-4" style="max-height: 180px; width: auto;">
-                <br>
-                <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="ECS FC Pub League Logo" class="img-fluid" style="max-height: 180px; width: auto;">
+        <div class="c-auth-branding c-auth-branding--desktop">
+            <div class="c-auth-branding__content">
+                <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS Logo" class="c-auth-branding__logo c-auth-branding__logo--primary">
+                <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="ECS FC Pub League Logo" class="c-auth-branding__logo c-auth-branding__logo--secondary">
             </div>
         </div>
 
         <!-- Duplicate Check Form -->
-        <div class="col-12 col-lg-6 d-flex align-items-start p-4 bg-white rounded-end">
-            <div style="width: 100%; max-width: 500px;">
-                <h4 class="mb-2 text-primary">Is This You?</h4>
-                <p class="mb-4 text-muted">We found existing profiles that might belong to you. Please review them carefully.</p>
+        <div class="c-auth-panel">
+            <div class="c-auth-panel__content">
+                <h1 class="c-auth-panel__title">Is This You?</h1>
+                <p class="c-auth-panel__subtitle">We found existing profiles that might belong to you. Please review them carefully.</p>
 
-                <form method="POST" id="duplicate-check-form">
+                <form method="POST" id="duplicate-check-form" data-form="duplicate-check">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" id="player_id" name="player_id" value="">
                     <input type="hidden" id="action" name="action" value="">
@@ -31,26 +30,35 @@
                     <!-- Potential Duplicates -->
                     {% if duplicates %}
                         {% for dup in duplicates %}
-                        <div class="card shadow-sm mb-3 duplicate-option" data-player-id="{{ dup.id }}">
-                            <div class="card-body">
-                                <div class="row align-items-center">
-                                    <div class="col-md-8">
-                                        <h6 class="card-title mb-1 text-dark">{{ dup.name }}</h6>
-                                        <p class="card-text text-muted mb-0">
-                                            <small>
-                                                <i class="ti ti-mail me-1"></i>{{ dup.email }}<br>
-                                                <i class="ti ti-target me-1"></i>Match reason: {{ dup.reason.replace('_', ' ').title() }}<br>
-                                                <i class="ti ti-percentage me-1"></i>Confidence: {{ (dup.confidence * 100)|round }}%
-                                            </small>
-                                        </p>
+                        <div class="c-card-modern c-card-modern--selectable" data-player-id="{{ dup.id }}">
+                            <div class="c-card-modern__body">
+                                <div class="c-duplicate-profile">
+                                    <div class="c-duplicate-profile__info">
+                                        <h6 class="c-duplicate-profile__name">{{ dup.name }}</h6>
+                                        <div class="c-duplicate-profile__meta">
+                                            <div class="c-duplicate-profile__meta-item">
+                                                <i class="ti ti-mail"></i>
+                                                <span>{{ dup.email }}</span>
+                                            </div>
+                                            <div class="c-duplicate-profile__meta-item">
+                                                <i class="ti ti-target"></i>
+                                                <span>Match reason: {{ dup.reason.replace('_', ' ').title() }}</span>
+                                            </div>
+                                            <div class="c-duplicate-profile__meta-item">
+                                                <i class="ti ti-percentage"></i>
+                                                <span>Confidence: {{ (dup.confidence * 100)|round }}%</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="col-md-4 text-end">
-                                        <button type="button" 
-                                                class="btn btn-primary btn-sm claim-account-btn"
+                                    <div class="c-duplicate-profile__action">
+                                        <button type="button"
+                                                class="c-btn-modern c-btn-modern--primary c-btn-modern--sm js-claim-account"
+                                                data-action="claim-account"
                                                 data-player-id="{{ dup.id }}"
                                                 data-player-name="{{ dup.name }}"
                                                 data-player-email="{{ dup.email }}">
-                                            <i class="ti ti-check me-1"></i>Yes, this is me
+                                            <i class="ti ti-check"></i>
+                                            <span>Yes, this is me</span>
                                         </button>
                                     </div>
                                 </div>
@@ -60,38 +68,47 @@
                     {% endif %}
 
                     <!-- None of these options -->
-                    <div class="card shadow-sm mb-4 border-secondary">
-                        <div class="card-body text-center">
-                            <h6 class="card-title text-secondary mb-2">
-                                <i class="ti ti-user-plus me-2"></i>None of these are me
-                            </h6>
-                            <p class="card-text text-muted mb-3">Create a brand new account instead.</p>
-                            <button type="button" 
-                                    class="btn btn-outline-secondary"
-                                    id="create-new-btn">
-                                <i class="ti ti-plus me-1"></i>Create New Account
-                            </button>
+                    <div class="c-card-modern c-card-modern--alternative">
+                        <div class="c-card-modern__body">
+                            <div class="c-auth-alternative">
+                                <h6 class="c-auth-alternative__title">
+                                    <i class="ti ti-user-plus"></i>
+                                    <span>None of these are me</span>
+                                </h6>
+                                <p class="c-auth-alternative__description">Create a brand new account instead.</p>
+                                <button type="button"
+                                        class="c-btn-modern c-btn-modern--secondary js-create-new"
+                                        id="create-new-btn"
+                                        data-action="create-new-account">
+                                    <i class="ti ti-plus"></i>
+                                    <span>Create New Account</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </form>
 
                 <!-- Help Text -->
-                <div class="alert alert-info">
-                    <h6 class="alert-heading fw-bold mb-1">
-                        <i class="ti ti-info-circle me-1"></i>Why are we asking?
-                    </h6>
-                    <p class="mb-0 small">
-                        We want to prevent duplicate accounts and ensure you don't lose your player history. 
-                        If you claim an existing account, we'll send a verification email to the old address to confirm it's really you.
-                    </p>
+                <div class="c-alert c-alert--info" role="alert" data-alert>
+                    <div class="c-alert__icon">
+                        <i class="ti ti-info-circle"></i>
+                    </div>
+                    <div class="c-alert__content">
+                        <h6 class="c-alert__title">Why are we asking?</h6>
+                        <p class="c-alert__message">
+                            We want to prevent duplicate accounts and ensure you don't lose your player history.
+                            If you claim an existing account, we'll send a verification email to the old address to confirm it's really you.
+                        </p>
+                    </div>
                 </div>
 
                 <!-- Back to login -->
-                <p class="text-center mt-3">
-                    <a href="{{ url_for('auth.login') }}" class="text-muted">
-                        <i class="ti ti-arrow-left me-1"></i>Back to Login
+                <div class="c-auth-footer">
+                    <a href="{{ url_for('auth.login') }}" class="c-link" data-action="back-to-login">
+                        <i class="ti ti-arrow-left"></i>
+                        <span>Back to Login</span>
                     </a>
-                </p>
+                </div>
             </div>
         </div>
     </div>
@@ -99,110 +116,6 @@
 {% endblock %}
 
 {% block custom_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const form = document.getElementById('duplicate-check-form');
-        const playerIdField = document.getElementById('player_id');
-        const actionField = document.getElementById('action');
-
-        // Handle claim account buttons
-        document.querySelectorAll('.claim-account-btn').forEach(button => {
-            button.addEventListener('click', function () {
-                const playerId = this.getAttribute('data-player-id');
-                const playerName = this.getAttribute('data-player-name');
-                const playerEmail = this.getAttribute('data-player-email');
-
-                // Show confirmation with SweetAlert
-                Swal.fire({
-                    title: 'Claim This Account?',
-                    html: `
-                        <p class="mb-2">You're claiming the account for:</p>
-                        <div class="text-start border rounded p-3 bg-light">
-                            <strong>${playerName}</strong><br>
-                            <small class="text-muted">${playerEmail}</small>
-                        </div>
-                        <p class="mt-3 mb-0 small text-muted">
-                            We'll send a verification email to <strong>${playerEmail}</strong> to confirm this is your account.
-                        </p>
-                    `,
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : 'var(--ecs-primary)',
-                    cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-                    confirmButtonText: '<i class="ti ti-mail me-1"></i>Send Verification Email',
-                    cancelButtonText: 'Cancel',
-                    customClass: {
-                        popup: 'text-start'
-                    }
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Set form values and submit
-                        playerIdField.value = playerId;
-                        actionField.value = 'claim';
-                        
-                        // Show loading state
-                        Swal.fire({
-                            title: 'Sending Verification Email...',
-                            text: 'Please wait while we process your request.',
-                            icon: 'info',
-                            allowOutsideClick: false,
-                            showConfirmButton: false,
-                            didOpen: () => {
-                                Swal.showLoading();
-                            }
-                        });
-                        
-                        form.submit();
-                    }
-                });
-            });
-        });
-
-        // Handle create new account button
-        document.getElementById('create-new-btn').addEventListener('click', function () {
-            Swal.fire({
-                title: 'Create New Account?',
-                text: 'This will create a brand new profile for you. Are you sure none of the existing profiles are yours?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : 'var(--ecs-success)',
-                cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-                confirmButtonText: '<i class="ti ti-user-plus me-1"></i>Yes, Create New Account',
-                cancelButtonText: 'Let me check again'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Set form values and submit
-                    playerIdField.value = '';
-                    actionField.value = 'new';
-                    
-                    // Show loading state
-                    Swal.fire({
-                        title: 'Creating Your Account...',
-                        text: 'Please wait while we set up your new profile.',
-                        icon: 'info',
-                        allowOutsideClick: false,
-                        showConfirmButton: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
-                    
-                    form.submit();
-                }
-            });
-        });
-
-        // Add hover effects to duplicate cards
-        document.querySelectorAll('.duplicate-option').forEach(card => {
-            card.addEventListener('mouseenter', function () {
-                this.style.transform = 'translateY(-2px)';
-                this.style.transition = 'transform 0.2s ease';
-            });
-            
-            card.addEventListener('mouseleave', function () {
-                this.style.transform = 'translateY(0)';
-            });
-        });
-    });
-</script>
+{{ super() }}
+<script src="{{ url_for('static', filename='custom_js/check-duplicate.js') }}"></script>
 {% endblock %}

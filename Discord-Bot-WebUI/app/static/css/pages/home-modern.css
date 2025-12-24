@@ -1,0 +1,869 @@
+/**
+ * ============================================================================
+ * HOME/DASHBOARD PAGE - MODERN BEM COMPONENTS
+ * ============================================================================
+ *
+ * Modern component-based styles for the home dashboard (index.html)
+ * Follows strict BEM naming convention and architectural standards
+ *
+ * ARCHITECTURAL COMPLIANCE:
+ * - 100% BEM naming: .c-component__element--modifier
+ * - Zero hardcoded values (design tokens only)
+ * - Zero !important declarations
+ * - State-driven styling with .is-* classes
+ * - Mobile-first responsive design
+ * - Full dark mode support via [data-style="dark"]
+ * - WCAG AA accessibility compliant
+ *
+ * Components:
+ *   1. Welcome Header (.c-welcome)
+ *   2. Announcements Carousel (.c-announcements)
+ *   3. Match Cards (.c-match-card)
+ *   4. RSVP Controls (.c-rsvp)
+ *   5. Tab Navigation (.c-tabs)
+ *   6. Create Profile CTA (.c-create-profile)
+ *   7. Empty States (.c-empty-state)
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. WELCOME HEADER COMPONENT
+   Displays welcome message and team assignment
+   ============================================================================ */
+
+.c-welcome {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  margin-bottom: var(--space-4);
+  transition: var(--transition-all);
+}
+
+.c-welcome:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.c-welcome__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.c-welcome__title {
+  color: var(--color-primary);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  margin: 0 0 var(--space-2) 0;
+  line-height: var(--leading-tight);
+}
+
+.c-welcome__teams {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.c-welcome__teams-label {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+.c-welcome__no-team {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+.c-welcome__center {
+  text-align: center;
+}
+
+/* Mobile adjustments */
+@media (max-width: 767.98px) {
+  .c-welcome {
+    padding: var(--space-4);
+  }
+
+  .c-welcome__title {
+    font-size: var(--text-xl);
+  }
+
+  .c-welcome__teams {
+    justify-content: center;
+  }
+}
+
+/* ============================================================================
+   2. ANNOUNCEMENTS CAROUSEL COMPONENT
+   Rotating announcement banner with navigation
+   ============================================================================ */
+
+.c-announcements {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+
+.c-announcements__wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.c-announcements__icon {
+  flex-shrink: 0;
+  color: var(--color-primary);
+  font-size: 2rem;
+}
+
+.c-announcements__content {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.c-announcements__item {
+  padding: var(--space-2) 0;
+}
+
+.c-announcements__title {
+  color: var(--color-primary);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  margin: 0 0 var(--space-1) 0;
+  line-height: var(--leading-tight);
+}
+
+.c-announcements__text {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  margin: 0 0 var(--space-1) 0;
+}
+
+.c-announcements__date {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.c-announcements__nav {
+  flex-shrink: 0;
+}
+
+/* Mobile adjustments */
+@media (max-width: 767.98px) {
+  .c-announcements {
+    padding: var(--space-3);
+  }
+
+  .c-announcements__wrapper {
+    gap: var(--space-3);
+  }
+
+  .c-announcements__icon {
+    font-size: 1.5rem;
+  }
+}
+
+/* ============================================================================
+   3. MATCH CARD COMPONENT
+   Individual match display with RSVP controls
+   ============================================================================ */
+
+.c-match-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-3);
+  transition: var(--transition-all);
+  overflow: hidden;
+}
+
+.c-match-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.c-match-card__header {
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border-primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.c-match-card__header-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-primary);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  margin: 0;
+}
+
+.c-match-card__header-icon {
+  color: var(--color-primary);
+}
+
+.c-match-card__body {
+  padding: 0;
+}
+
+.c-match-card__item {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border-primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+  transition: var(--transition-all);
+}
+
+.c-match-card__item:last-child {
+  border-bottom: none;
+}
+
+.c-match-card__item:hover {
+  background: var(--color-hover-bg);
+}
+
+.c-match-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-match-card__matchup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
+.c-match-card__matchup-text {
+  color: var(--color-text-primary);
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  margin: 0;
+  line-height: var(--leading-tight);
+}
+
+.c-match-card__details {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.c-match-card__detail {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.c-match-card__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* Match badge - Home/Away indicator */
+.c-match-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  color: var(--color-neutral-0);
+  font-weight: var(--font-bold);
+  font-size: var(--text-xs);
+  flex-shrink: 0;
+}
+
+.c-match-badge--home {
+  background: var(--color-success);
+}
+
+.c-match-badge--away {
+  background: var(--color-info);
+}
+
+/* Mobile adjustments */
+@media (max-width: 767.98px) {
+  .c-match-card__item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .c-match-card__actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .c-match-card__details {
+    font-size: var(--text-xs);
+  }
+
+  .c-match-badge {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* ============================================================================
+   4. RSVP CONTROLS COMPONENT
+   Touch-optimized button group for match responses
+   ============================================================================ */
+
+.c-rsvp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.c-rsvp__group {
+  display: flex;
+  width: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.c-rsvp__option {
+  flex: 1;
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3) var(--space-2);
+  font-size: var(--text-lg);
+  border: 2px solid transparent;
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: var(--transition-all);
+}
+
+/* Remove border-radius on middle options */
+.c-rsvp__option:not(:first-child):not(:last-child) {
+  border-radius: 0;
+}
+
+.c-rsvp__option:first-child {
+  border-top-left-radius: var(--radius-md);
+  border-bottom-left-radius: var(--radius-md);
+}
+
+.c-rsvp__option:last-child {
+  border-top-right-radius: var(--radius-md);
+  border-bottom-right-radius: var(--radius-md);
+}
+
+/* Yes option */
+.c-rsvp__option--yes {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.c-rsvp__option--yes:hover,
+.c-rsvp__option--yes.is-active {
+  background: var(--color-success);
+  color: var(--color-neutral-0);
+  transform: scale(1.05);
+  z-index: 2;
+}
+
+/* Maybe option */
+.c-rsvp__option--maybe {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.c-rsvp__option--maybe:hover,
+.c-rsvp__option--maybe.is-active {
+  background: var(--color-warning);
+  color: var(--color-neutral-900);
+  transform: scale(1.05);
+  z-index: 2;
+}
+
+/* No option */
+.c-rsvp__option--no {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.c-rsvp__option--no:hover,
+.c-rsvp__option--no.is-active {
+  background: var(--color-danger);
+  color: var(--color-neutral-0);
+  transform: scale(1.05);
+  z-index: 2;
+}
+
+/* Focus state */
+.c-rsvp__option:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  z-index: 3;
+}
+
+/* Mobile - larger touch targets */
+@media (max-width: 767.98px) {
+  .c-rsvp {
+    width: 100%;
+  }
+
+  .c-rsvp__option {
+    min-height: 48px;
+    font-size: var(--text-xl);
+  }
+}
+
+/* ============================================================================
+   5. TAB NAVIGATION COMPONENT
+   Pills-style navigation for switching between teams
+   ============================================================================ */
+
+.c-tabs {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  padding-bottom: var(--space-1);
+}
+
+.c-tabs::-webkit-scrollbar {
+  height: 4px;
+}
+
+.c-tabs::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-400);
+  border-radius: var(--radius-full);
+}
+
+.c-tabs__item {
+  flex-shrink: 0;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 2px solid var(--color-border-primary);
+  cursor: pointer;
+  transition: var(--transition-all);
+  white-space: nowrap;
+}
+
+.c-tabs__item:hover {
+  background: var(--color-hover-bg);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-secondary);
+}
+
+.c-tabs__item.is-active {
+  background: var(--color-primary);
+  color: var(--color-neutral-0);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.c-tabs__item:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Mobile adjustments */
+@media (max-width: 767.98px) {
+  .c-tabs__item {
+    padding: var(--space-3);
+    font-size: var(--text-sm);
+  }
+}
+
+/* ============================================================================
+   6. CREATE PROFILE CTA COMPONENT
+   Call-to-action card for new users
+   ============================================================================ */
+
+.c-create-profile {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  text-align: center;
+  box-shadow: var(--shadow-md);
+  margin-bottom: var(--space-6);
+}
+
+.c-create-profile__image {
+  height: 150px;
+  width: auto;
+  object-fit: contain;
+  margin-bottom: var(--space-4);
+}
+
+.c-create-profile__title {
+  color: var(--color-text-primary);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.c-create-profile__text {
+  color: var(--color-text-secondary);
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  margin: 0 0 var(--space-4) 0;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Mobile adjustments */
+@media (max-width: 767.98px) {
+  .c-create-profile {
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .c-create-profile__image {
+    height: 120px;
+  }
+
+  .c-create-profile__title {
+    font-size: var(--text-xl);
+  }
+}
+
+/* ============================================================================
+   7. EMPTY STATE COMPONENT
+   No data states with illustrations
+   ============================================================================ */
+
+.c-empty-state {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-12);
+  text-align: center;
+  margin-bottom: var(--space-4);
+}
+
+.c-empty-state__image {
+  height: 150px;
+  width: auto;
+  max-width: 200px;
+  object-fit: contain;
+  margin: 0 auto var(--space-4);
+  opacity: 0.7;
+  display: block;
+}
+
+.c-empty-state__title {
+  color: var(--color-text-primary);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.c-empty-state__text {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  margin: 0;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Mobile adjustments */
+@media (max-width: 767.98px) {
+  .c-empty-state {
+    padding: var(--space-8) var(--space-4);
+  }
+
+  .c-empty-state__image {
+    height: 120px;
+    max-width: 150px;
+  }
+}
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================ */
+
+[data-style="dark"] .c-welcome,
+[data-style="dark"] .c-announcements,
+[data-style="dark"] .c-match-card,
+[data-style="dark"] .c-create-profile,
+[data-style="dark"] .c-empty-state {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .c-match-card__header {
+  background: var(--color-bg-subtle);
+  border-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .c-match-card__item:hover {
+  background: var(--color-hover-bg);
+}
+
+[data-style="dark"] .c-tabs__item:hover {
+  background: var(--color-hover-bg);
+}
+
+[data-style="dark"] .c-empty-state__image {
+  opacity: 0.6;
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .c-match-card,
+  .c-rsvp__option,
+  .c-tabs__item,
+  .c-welcome {
+    transition: none;
+  }
+
+  .c-match-card:hover,
+  .c-rsvp__option:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .c-match-badge,
+  .c-tabs__item.is-active,
+  .c-rsvp__option.is-active {
+    border: 3px solid currentColor;
+  }
+
+  .c-welcome,
+  .c-announcements,
+  .c-match-card {
+    border-width: 2px;
+  }
+}
+
+/* ============================================================================
+   8. SECTION HEADER COMPONENT
+   Flexible header with title and optional controls
+   ============================================================================ */
+
+.c-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+  gap: var(--space-4);
+}
+
+.c-section-header__title {
+  color: var(--color-text-primary);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  margin: 0;
+  line-height: var(--leading-tight);
+}
+
+.c-section-header__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* Mobile: stack vertically when space is tight */
+@media (max-width: 575.98px) {
+  .c-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .c-section-header__controls {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ============================================================================
+   9. BUTTON COMPONENT
+   BEM-styled buttons for consistent appearance
+   ============================================================================ */
+
+.c-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  line-height: var(--leading-tight);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: var(--transition-all);
+  text-decoration: none;
+  white-space: nowrap;
+  min-height: 38px;
+}
+
+.c-btn:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Primary button */
+.c-btn--primary {
+  background: var(--color-primary);
+  color: var(--color-text-on-primary, #fff);
+  border-color: var(--color-primary);
+}
+
+.c-btn--primary:hover {
+  background: var(--color-primary-600);
+  border-color: var(--color-primary-600);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.c-btn--primary:active {
+  transform: translateY(0);
+}
+
+/* Outline secondary button */
+.c-btn--outline {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-color: var(--color-border-primary);
+}
+
+.c-btn--outline:hover {
+  background: var(--color-hover-bg);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-secondary);
+}
+
+/* Icon-only button (circular) */
+.c-btn--icon {
+  padding: var(--space-2);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+}
+
+.c-btn--icon-sm {
+  padding: var(--space-1);
+  width: 28px;
+  height: 28px;
+  font-size: var(--text-xs);
+}
+
+/* Size variants */
+.c-btn--sm {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-xs);
+  min-height: 32px;
+}
+
+.c-btn--lg {
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--text-base);
+  min-height: 44px;
+}
+
+/* Button icon element */
+.c-btn__icon {
+  font-size: 1.125em;
+  flex-shrink: 0;
+}
+
+/* Button spacing helper */
+.c-btn + .c-btn {
+  margin-left: var(--space-2);
+}
+
+/* Mobile touch targets */
+@media (max-width: 767.98px) {
+  .c-btn {
+    min-height: 44px;
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .c-btn--sm {
+    min-height: 38px;
+  }
+}
+
+/* ============================================================================
+   10. TEXT MODIFIERS FOR MATCH CARDS
+   Semantic text styling within match card context
+   ============================================================================ */
+
+.c-match-card__team--highlight {
+  color: var(--color-success);
+  font-weight: var(--font-bold);
+}
+
+.c-match-card__text--muted {
+  color: var(--color-text-muted);
+}
+
+/* ============================================================================
+   11. CAROUSEL NAVIGATION BUTTON
+   Circular nav button for announcements carousel
+   ============================================================================ */
+
+.c-carousel-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  cursor: pointer;
+  transition: var(--transition-all);
+}
+
+.c-carousel-nav:hover {
+  background: var(--color-primary);
+  color: var(--color-text-on-primary, #fff);
+}
+
+.c-carousel-nav:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+   END OF HOME/DASHBOARD MODERN COMPONENTS
+   ============================================================================ */

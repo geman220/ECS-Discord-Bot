@@ -13,8 +13,8 @@
 <div class="row">
     <!-- Stats Cards -->
     <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
-        <div class="card h-100 bg-info bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-info bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-clock fs-1 text-info mb-2"></i>
                 <h3 class="mb-0">{{ stats.total_scheduled }}</h3>
                 <small class="text-muted">Scheduled</small>
@@ -22,8 +22,8 @@
         </div>
     </div>
     <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
-        <div class="card h-100 bg-primary bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-primary bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-player-play fs-1 text-primary mb-2"></i>
                 <h3 class="mb-0">{{ stats.total_running }}</h3>
                 <small class="text-muted">Running</small>
@@ -31,8 +31,8 @@
         </div>
     </div>
     <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
-        <div class="card h-100 bg-danger bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-danger bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-alert-circle fs-1 text-danger mb-2"></i>
                 <h3 class="mb-0">{{ stats.total_failed }}</h3>
                 <small class="text-muted">Failed (24h)</small>
@@ -40,8 +40,8 @@
         </div>
     </div>
     <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
-        <div class="card h-100 bg-warning bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-warning bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-clock-exclamation fs-1 text-warning mb-2"></i>
                 <h3 class="mb-0">{{ stats.overdue_tasks }}</h3>
                 <small class="text-muted">Overdue</small>
@@ -51,18 +51,18 @@
 
     <!-- Filters -->
     <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="ti ti-filter me-2"></i>Filters</h5>
-                <a href="{{ url_for('admin_panel.mls_task_monitoring') }}" class="btn btn-sm btn-outline-secondary">
+                <a href="{{ url_for('admin_panel.mls_task_monitoring') }}" class="c-btn c-btn--sm c-btn--outline-secondary">
                     <i class="ti ti-reload me-1"></i>Reset
                 </a>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <form method="get" action="{{ url_for('admin_panel.mls_task_monitoring') }}" class="row g-3">
                     <div class="col-md-3">
                         <label for="task_type" class="form-label">Task Type</label>
-                        <select name="task_type" id="task_type" class="form-select">
+                        <select name="task_type" id="task_type" class="form-select" data-form-select>
                             <option value="all" {% if current_filters.task_type == 'all' %}selected{% endif %}>All Types</option>
                             {% for task_type in task_types %}
                             <option value="{{ task_type }}" {% if current_filters.task_type == task_type %}selected{% endif %}>
@@ -75,7 +75,7 @@
                     </div>
                     <div class="col-md-3">
                         <label for="state" class="form-label">State</label>
-                        <select name="state" id="state" class="form-select">
+                        <select name="state" id="state" class="form-select" data-form-select>
                             <option value="all" {% if current_filters.state == 'all' %}selected{% endif %}>All States</option>
                             {% for state in task_states %}
                             <option value="{{ state }}" {% if current_filters.state == state %}selected{% endif %}>
@@ -86,7 +86,7 @@
                     </div>
                     <div class="col-md-3">
                         <label for="days" class="form-label">Time Range</label>
-                        <select name="days" id="days" class="form-select">
+                        <select name="days" id="days" class="form-select" data-form-select>
                             <option value="1" {% if current_filters.days == 1 %}selected{% endif %}>Last 24 Hours</option>
                             <option value="3" {% if current_filters.days == 3 %}selected{% endif %}>Last 3 Days</option>
                             <option value="7" {% if current_filters.days == 7 %}selected{% endif %}>Last 7 Days</option>
@@ -95,7 +95,7 @@
                         </select>
                     </div>
                     <div class="col-md-3 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">
+                        <button type="submit" class="c-btn c-btn--primary w-100">
                             <i class="ti ti-search me-1"></i>Apply Filters
                         </button>
                     </div>
@@ -106,36 +106,36 @@
 
     <!-- Tasks Table -->
     <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="ti ti-list-check me-2"></i>Scheduled Tasks ({{ tasks|length }})</h5>
                 <div>
-                    <span class="badge bg-secondary me-2" id="auto-refresh-status">Auto-refresh: ON</span>
-                    <button id="manual-refresh-btn" class="btn btn-sm btn-outline-primary">
+                    <span class="badge bg-secondary me-2" id="auto-refresh-status" data-badge>Auto-refresh: ON</span>
+                    <button id="manual-refresh-btn" class="c-btn c-btn--sm c-btn--outline-primary">
                         <i class="ti ti-reload"></i> Refresh
                     </button>
                 </div>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if tasks %}
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable c-table--compact" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>ID</th>
-                                <th>Type</th>
-                                <th>Match</th>
-                                <th>Scheduled Time</th>
-                                <th>State</th>
-                                <th>Retry Count</th>
-                                <th>Last Error</th>
-                                <th>Actions</th>
+                                <th scope="col">ID</th>
+                                <th scope="col">Type</th>
+                                <th scope="col">Match</th>
+                                <th scope="col">Scheduled Time</th>
+                                <th scope="col">State</th>
+                                <th scope="col">Retry Count</th>
+                                <th scope="col">Last Error</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="tasks-table-body">
                             {% for task in tasks %}
                             <tr class="task-row {% if task.is_overdue %}table-warning{% endif %}" data-task-id="{{ task.id }}">
-                                <td><span class="badge bg-secondary">#{{ task.id }}</span></td>
+                                <td><span class="badge bg-secondary" data-badge>#{{ task.id }}</span></td>
                                 <td>
                                     {% if task.task_type == 'thread_creation' %}
                                     <i class="ti ti-message-circle text-info me-1"></i>Thread
@@ -160,27 +160,27 @@
                                 <td>
                                     <span class="text-nowrap">{{ task.scheduled_time | replace('T', ' ') | replace('Z', '') | truncate(16, True, '') }}</span>
                                     {% if task.is_overdue %}
-                                    <br><span class="badge bg-warning text-dark"><i class="ti ti-clock-exclamation"></i> Overdue</span>
+                                    <br><span class="badge bg-warning text-dark" data-badge><i class="ti ti-clock-exclamation"></i> Overdue</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if task.state == 'scheduled' %}
-                                    <span class="badge bg-info"><i class="ti ti-clock"></i> Scheduled</span>
+                                    <span class="badge bg-info" data-badge><i class="ti ti-clock"></i> Scheduled</span>
                                     {% elif task.state == 'running' %}
-                                    <span class="badge bg-primary"><i class="ti ti-player-play"></i> Running</span>
+                                    <span class="badge bg-primary" data-badge><i class="ti ti-player-play"></i> Running</span>
                                     {% elif task.state == 'completed' %}
-                                    <span class="badge bg-success"><i class="ti ti-check"></i> Completed</span>
+                                    <span class="badge bg-success" data-badge><i class="ti ti-check"></i> Completed</span>
                                     {% elif task.state == 'failed' %}
-                                    <span class="badge bg-danger"><i class="ti ti-x"></i> Failed</span>
+                                    <span class="badge bg-danger" data-badge><i class="ti ti-x"></i> Failed</span>
                                     {% elif task.state == 'expired' %}
-                                    <span class="badge bg-secondary"><i class="ti ti-clock-off"></i> Expired</span>
+                                    <span class="badge bg-secondary" data-badge><i class="ti ti-clock-off"></i> Expired</span>
                                     {% else %}
-                                    <span class="badge bg-secondary">{{ task.state }}</span>
+                                    <span class="badge bg-secondary" data-badge>{{ task.state }}</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if task.retry_count > 0 %}
-                                    <span class="badge bg-warning text-dark">{{ task.retry_count }}</span>
+                                    <span class="badge bg-warning text-dark" data-badge>{{ task.retry_count }}</span>
                                     {% else %}
                                     <span class="text-muted">0</span>
                                     {% endif %}
@@ -197,16 +197,16 @@
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
                                         {% if task.state in ['failed', 'expired'] %}
-                                        <button type="button" class="btn btn-outline-primary retry-task-btn" data-task-id="{{ task.id }}" title="Retry Task">
+                                        <button type="button" class="c-btn c-btn--outline-primary retry-task-btn" data-task-id="{{ task.id }}" title="Retry Task">
                                             <i class="ti ti-reload"></i>
                                         </button>
                                         {% endif %}
                                         {% if task.state in ['scheduled', 'failed'] %}
-                                        <button type="button" class="btn btn-outline-secondary expire-task-btn" data-task-id="{{ task.id }}" title="Expire Task">
+                                        <button type="button" class="c-btn c-btn--outline-secondary expire-task-btn" data-task-id="{{ task.id }}" title="Expire Task">
                                             <i class="ti ti-clock-off"></i>
                                         </button>
                                         {% endif %}
-                                        <a href="{{ url_for('admin_panel.match_debug', match_id=task.match_id) }}" class="btn btn-outline-info" title="Debug Match" target="_blank">
+                                        <a href="{{ url_for('admin_panel.match_debug', match_id=task.match_id) }}" class="c-btn c-btn--outline-info" title="Debug Match" target="_blank">
                                             <i class="ti ti-bug"></i>
                                         </a>
                                     </div>
@@ -220,7 +220,7 @@
                 <div class="text-center py-5 text-muted">
                     <i class="ti ti-list-check fs-1 mb-3"></i>
                     <p>No tasks found matching the current filters.</p>
-                    <a href="{{ url_for('admin_panel.mls_task_monitoring') }}" class="btn btn-outline-primary">Reset Filters</a>
+                    <a href="{{ url_for('admin_panel.mls_task_monitoring') }}" class="c-btn c-btn--outline-primary">Reset Filters</a>
                 </div>
                 {% endif %}
             </div>
@@ -229,7 +229,7 @@
 </div>
 
 <!-- Toast Container for Notifications -->
-<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 11000;">
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
     <div id="actionToast" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true">
         <div class="d-flex">
             <div class="toast-body" id="toastMessage"></div>

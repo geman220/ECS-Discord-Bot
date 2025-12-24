@@ -15,60 +15,60 @@
     <!-- Task Monitor Overview -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
+            <div class="c-card bg-success text-white">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title text-white mb-1">{{ running_tasks or 0 }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Running Tasks</p>
+                            <h5 class="c-card__title text-white mb-1">{{ running_tasks or 0 }}</h5>
+                            <p class="c-card__description small opacity-75 mb-0">Running Tasks</p>
                         </div>
-                        <div class="card-icon">
-                            <i class="ti ti-play" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <div class="card-icon icon-overlay">
+                            <i class="ti ti-play"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
+            <div class="c-card bg-warning text-white">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title text-white mb-1">{{ queued_tasks or 0 }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Queued Tasks</p>
+                            <h5 class="c-card__title text-white mb-1">{{ queued_tasks or 0 }}</h5>
+                            <p class="c-card__description small opacity-75 mb-0">Queued Tasks</p>
                         </div>
-                        <div class="card-icon">
-                            <i class="ti ti-clock-pause" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <div class="card-icon icon-overlay">
+                            <i class="ti ti-clock-pause"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
+            <div class="c-card bg-info text-white">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title text-white mb-1">{{ completed_today or 0 }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Completed Today</p>
+                            <h5 class="c-card__title text-white mb-1">{{ completed_today or 0 }}</h5>
+                            <p class="c-card__description small opacity-75 mb-0">Completed Today</p>
                         </div>
-                        <div class="card-icon">
-                            <i class="ti ti-check-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <div class="card-icon icon-overlay">
+                            <i class="ti ti-check-circle"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-danger text-white">
-                <div class="card-body">
+            <div class="c-card bg-danger text-white">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title text-white mb-1">{{ failed_tasks or 0 }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Failed Tasks</p>
+                            <h5 class="c-card__title text-white mb-1">{{ failed_tasks or 0 }}</h5>
+                            <p class="c-card__description small opacity-75 mb-0">Failed Tasks</p>
                         </div>
-                        <div class="card-icon">
-                            <i class="ti ti-alert-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <div class="card-icon icon-overlay">
+                            <i class="ti ti-alert-circle"></i>
                         </div>
                     </div>
                 </div>
@@ -79,28 +79,28 @@
     <!-- Active Tasks -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-activity me-2"></i>Active Tasks
                     </h5>
-                    <button class="btn btn-outline-primary btn-sm" onclick="refreshTasks()">
+                    <button class="c-btn c-btn--outline-primary c-btn--sm" data-action="refresh-tasks">
                         <i class="ti ti-refresh me-1"></i>Refresh
                     </button>
                 </div>
-                <div class="card-body p-0">
+                <div class="c-card__body p-0">
                     {% if active_tasks %}
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
+                    <div class="c-table-wrapper" data-table-responsive>
+                        <table class="c-table c-table--hoverable mb-0" data-table>
+                            <thead class="c-table--light" scope="col">
                                 <tr>
-                                    <th>Task ID</th>
-                                    <th>Name</th>
-                                    <th>Status</th>
-                                    <th>Started</th>
-                                    <th>Duration</th>
-                                    <th>Progress</th>
-                                    <th>Actions</th>
+                                    <th scope="col">Task ID</th>
+                                    <th scope="col">Name</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col">Started</th>
+                                    <th scope="col">Duration</th>
+                                    <th scope="col">Progress</th>
+                                    <th scope="col">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -116,7 +116,7 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <span class="badge bg-{% if task.status == 'running' %}success{% elif task.status == 'queued' %}warning{% elif task.status == 'failed' %}danger{% else %}secondary{% endif %}">
+                                        <span class="badge bg-{% if task.status == 'running' %}success{% elif task.status == 'queued' %}warning{% elif task.status == 'failed' %}danger{% else %}secondary{% endif %}" data-badge>
                                             {{ task.status|title }}
                                         </span>
                                     </td>
@@ -133,10 +133,10 @@
                                     </td>
                                     <td>
                                         {% if task.progress is not none %}
-                                        <div class="progress" style="height: 20px;">
-                                            <div class="progress-bar" role="progressbar" 
-                                                 style="width: {{ task.progress }}%" 
-                                                 aria-valuenow="{{ task.progress }}" 
+                                        <div class="progress u-progress-md">
+                                            <div class="progress-bar" role="progressbar"
+                                                 data-width="{{ task.progress }}"
+                                                 aria-valuenow="{{ task.progress }}"
                                                  aria-valuemin="0" aria-valuemax="100">
                                                 {{ task.progress }}%
                                             </div>
@@ -147,18 +147,24 @@
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-info" 
-                                                    onclick="viewTaskDetails('{{ task.id }}', '{{ task.name }}')">
+                                            <button class="c-btn c-btn--outline-info"
+                                                    data-action="view-task-details"
+                                                    data-task-id="{{ task.id }}"
+                                                    data-task-name="{{ task.name }}">
                                                 <i class="ti ti-eye"></i>
                                             </button>
                                             {% if task.status in ['running', 'queued'] %}
-                                            <button class="btn btn-outline-danger" 
-                                                    onclick="cancelTask('{{ task.id }}', '{{ task.name }}')">
+                                            <button class="c-btn c-btn--outline-danger"
+                                                    data-action="cancel-task"
+                                                    data-task-id="{{ task.id }}"
+                                                    data-task-name="{{ task.name }}">
                                                 <i class="ti ti-x"></i>
                                             </button>
                                             {% endif %}
-                                            <button class="btn btn-outline-secondary" 
-                                                    onclick="viewTaskLogs('{{ task.id }}', '{{ task.name }}')">
+                                            <button class="c-btn c-btn--outline-secondary"
+                                                    data-action="view-task-logs"
+                                                    data-task-id="{{ task.id }}"
+                                                    data-task-name="{{ task.name }}">
                                                 <i class="ti ti-file-text"></i>
                                             </button>
                                         </div>
@@ -170,7 +176,7 @@
                     </div>
                     {% else %}
                     <div class="text-center py-5">
-                        <i class="ti ti-clock-pause text-muted" style="font-size: 4rem;"></i>
+                        <i class="ti ti-clock-pause text-muted u-text-4xl"></i>
                         <h5 class="text-muted mt-3">No active tasks</h5>
                         <p class="text-muted">All background tasks are currently idle.</p>
                     </div>
@@ -183,13 +189,13 @@
     <!-- Task Queue & History -->
     <div class="row">
         <div class="col-md-6 mb-3">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-list me-2"></i>Task Queue
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     {% if queued_tasks_list %}
                     <div class="list-group list-group-flush">
                         {% for task in queued_tasks_list[:5] %}
@@ -199,7 +205,7 @@
                                     <strong>{{ task.name }}</strong>
                                     <br><small class="text-muted">Queued {{ task.queued_at.strftime('%H:%M:%S') if task.queued_at else 'Unknown' }}</small>
                                 </div>
-                                <span class="badge bg-warning">Queued</span>
+                                <span class="badge bg-warning" data-badge>Queued</span>
                             </div>
                         </div>
                         {% endfor %}
@@ -211,7 +217,7 @@
                     </div>
                     {% else %}
                     <div class="text-center py-4">
-                        <i class="ti ti-list-x text-muted" style="font-size: 3rem;"></i>
+                        <i class="ti ti-list-x text-muted u-text-4xl"></i>
                         <p class="text-muted mt-2">No tasks in queue</p>
                     </div>
                     {% endif %}
@@ -220,16 +226,16 @@
         </div>
         
         <div class="col-md-6 mb-3">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-history me-2"></i>Recent Completed
                     </h5>
-                    <a href="{{ url_for('admin_panel.task_history') }}" class="btn btn-sm btn-outline-primary">
+                    <a href="{{ url_for('admin_panel.task_history') }}" class="c-btn c-btn--sm c-btn--outline-primary">
                         View All
                     </a>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     {% if recent_completed %}
                     <div class="list-group list-group-flush">
                         {% for task in recent_completed[:5] %}
@@ -244,7 +250,7 @@
                                         {% endif %}
                                     </small>
                                 </div>
-                                <span class="badge bg-{% if task.status == 'completed' %}success{% elif task.status == 'failed' %}danger{% else %}secondary{% endif %}">
+                                <span class="badge bg-{% if task.status == 'completed' %}success{% elif task.status == 'failed' %}danger{% else %}secondary{% endif %}" data-badge>
                                     {{ task.status|title }}
                                 </span>
                             </div>
@@ -253,7 +259,7 @@
                     </div>
                     {% else %}
                     <div class="text-center py-4">
-                        <i class="ti ti-history-off text-muted" style="font-size: 3rem;"></i>
+                        <i class="ti ti-history-off text-muted u-text-4xl"></i>
                         <p class="text-muted mt-2">No recent tasks</p>
                     </div>
                     {% endif %}
@@ -265,13 +271,13 @@
     <!-- Task Statistics -->
     <div class="row mt-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-chart-bar me-2"></i>Task Statistics (Last 24 Hours)
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <div class="row">
                         <div class="col-md-2">
                             <div class="text-center p-3 border-end">
@@ -316,36 +322,36 @@
     </div>
 
     <!-- Task Details Modal -->
-    <div class="modal fade" id="taskDetailsModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="task_details_title">Task Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal c-modal fade" id="taskDetailsModal" tabindex="-1" data-modal aria-labelledby="task_details_title">
+        <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+            <div class="modal-content c-modal__content" data-modal-content>
+                <div class="modal-header c-modal__header" data-modal-header>
+                    <h5 class="modal-title c-modal__title" id="task_details_title">Task Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
                 </div>
-                <div class="modal-body" id="task_details_content">
+                <div class="modal-body c-modal__body" id="task_details_content" data-modal data-modal-body aria-labelledby="task_logs_title">
                     <!-- Task details will be loaded here -->
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <div class="modal-footer c-modal__footer" data-modal-footer>
+                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Task Logs Modal -->
-    <div class="modal fade" id="taskLogsModal" tabindex="-1">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="task_logs_title">Task Logs</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal c-modal fade" id="taskLogsModal" tabindex="-1" data-modal aria-labelledby="task_logs_title">
+        <div class="modal-dialog c-modal__dialog modal-xl c-modal__dialog--xl" data-modal-dialog>
+            <div class="modal-content c-modal__content" data-modal-content>
+                <div class="modal-header c-modal__header" data-modal-header>
+                    <h5 class="modal-title c-modal__title" id="task_logs_title">Task Logs</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
                 </div>
-                <div class="modal-body" id="task_logs_content">
+                <div class="modal-body c-modal__body" id="task_logs_content" data-modal data-modal-body aria-labelledby="task_logs_contentLabel">
                     <!-- Task logs will be loaded here -->
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <div class="modal-footer c-modal__footer" data-modal-footer>
+                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
                 </div>
             </div>
         </div>
@@ -353,7 +359,13 @@
 {% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
+.icon-overlay i {
+    font-size: 2rem;
+    opacity: 0.5;
+}
+
 .card-icon {
     display: flex;
     align-items: center;
@@ -369,7 +381,7 @@
         padding: 0.25rem 0.4rem;
         font-size: 0.75rem;
     }
-    
+
     .table-responsive {
         font-size: 0.875rem;
     }
@@ -383,14 +395,41 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
-function refreshTasks() {
+document.addEventListener('DOMContentLoaded', function() {
+    // Event delegation for all task monitor actions
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        const taskId = target.dataset.taskId;
+        const taskName = target.dataset.taskName;
+
+        switch(action) {
+            case 'refresh-tasks':
+                refreshTasks(target);
+                break;
+            case 'view-task-details':
+                viewTaskDetails(taskId, taskName);
+                break;
+            case 'view-task-logs':
+                viewTaskLogs(taskId, taskName);
+                break;
+            case 'cancel-task':
+                cancelTask(taskId, taskName);
+                break;
+        }
+    });
+});
+
+function refreshTasks(button) {
     // Show loading state
-    const refreshBtn = document.querySelector('button[onclick="refreshTasks()"]');
-    const originalText = refreshBtn.innerHTML;
-    refreshBtn.innerHTML = '<i class="ti ti-loader me-1"></i>Refreshing...';
-    refreshBtn.disabled = true;
-    
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="ti ti-loader me-1"></i>Refreshing...';
+    button.disabled = true;
+
     // Simulate refresh (in real implementation, this would be an AJAX call)
     setTimeout(() => {
         window.location.reload();
@@ -399,10 +438,9 @@ function refreshTasks() {
 
 function viewTaskDetails(taskId, taskName) {
     document.getElementById('task_details_title').textContent = `Details for ${taskName}`;
-    document.getElementById('task_details_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
-    
-    const modal = new bootstrap.Modal(document.getElementById('taskDetailsModal'));
-    modal.show();
+    document.getElementById('task_details_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status" data-spinner></div></div>';
+
+    ModalManager.show('taskDetailsModal');
     
     // Load task details via AJAX
     fetch(`{{ url_for('admin_panel.get_task_details') }}?task_id=${taskId}`)
@@ -411,20 +449,19 @@ function viewTaskDetails(taskId, taskName) {
             if (data.success) {
                 document.getElementById('task_details_content').innerHTML = data.html;
             } else {
-                document.getElementById('task_details_content').innerHTML = '<div class="alert alert-danger">Error loading task details</div>';
+                document.getElementById('task_details_content').innerHTML = '<div class="alert alert-danger" data-alert>Error loading task details</div>';
             }
         })
         .catch(error => {
-            document.getElementById('task_details_content').innerHTML = '<div class="alert alert-danger">Error loading task details</div>';
+            document.getElementById('task_details_content').innerHTML = '<div class="alert alert-danger" data-alert>Error loading task details</div>';
         });
 }
 
 function viewTaskLogs(taskId, taskName) {
     document.getElementById('task_logs_title').textContent = `Logs for ${taskName}`;
-    document.getElementById('task_logs_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
-    
-    const modal = new bootstrap.Modal(document.getElementById('taskLogsModal'));
-    modal.show();
+    document.getElementById('task_logs_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status" data-spinner></div></div>';
+
+    ModalManager.show('taskLogsModal');
     
     // Load task logs via AJAX
     fetch(`{{ url_for('admin_panel.get_task_logs') }}?task_id=${taskId}`)
@@ -433,11 +470,11 @@ function viewTaskLogs(taskId, taskName) {
             if (data.success) {
                 document.getElementById('task_logs_content').innerHTML = `<pre class="bg-dark text-light p-3 rounded">${data.logs}</pre>`;
             } else {
-                document.getElementById('task_logs_content').innerHTML = '<div class="alert alert-danger">Error loading task logs</div>';
+                document.getElementById('task_logs_content').innerHTML = '<div class="alert alert-danger" data-alert>Error loading task logs</div>';
             }
         })
         .catch(error => {
-            document.getElementById('task_logs_content').innerHTML = '<div class="alert alert-danger">Error loading task logs</div>';
+            document.getElementById('task_logs_content').innerHTML = '<div class="alert alert-danger" data-alert>Error loading task logs</div>';
         });
 }
 

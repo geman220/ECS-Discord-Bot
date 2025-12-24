@@ -1,21 +1,37 @@
 /**
- * SMS Verification 
+ * SMS Verification
  */
 
 // Create global functions directly
 function toggleSmsConsent(show) {
     // console.log("Toggle SMS consent:", show);
-    document.getElementById('smsOptInSection').style.display = show ? 'block' : 'none';
-    
+    const smsOptInSection = document.getElementById('smsOptInSection');
+    if (show) {
+        smsOptInSection.classList.remove('d-none');
+        smsOptInSection.classList.add('d-block');
+    } else {
+        smsOptInSection.classList.remove('d-block');
+        smsOptInSection.classList.add('d-none');
+    }
+
     // If SMS is disabled, also hide verification
     if (!show) {
-        document.getElementById('smsVerificationSection').style.display = 'none';
+        const smsVerificationSection = document.getElementById('smsVerificationSection');
+        smsVerificationSection.classList.remove('d-block');
+        smsVerificationSection.classList.add('d-none');
     }
 }
 
 function toggleSmsVerification(show) {
-    // console.log("Toggle SMS verification:", show); 
-    document.getElementById('smsVerificationSection').style.display = show ? 'block' : 'none';
+    // console.log("Toggle SMS verification:", show);
+    const smsVerificationSection = document.getElementById('smsVerificationSection');
+    if (show) {
+        smsVerificationSection.classList.remove('d-none');
+        smsVerificationSection.classList.add('d-block');
+    } else {
+        smsVerificationSection.classList.remove('d-block');
+        smsVerificationSection.classList.add('d-none');
+    }
 }
 
 function sendVerificationCode() {
@@ -23,7 +39,7 @@ function sendVerificationCode() {
     var phoneInput = document.querySelector('input[name="phone"]');
     var sendButton = document.getElementById('sendVerificationBtn');
     var verificationCodeInput = document.getElementById('verificationCodeInput');
-    
+
     if (!phoneInput || !phoneInput.value.trim()) {
         Swal.fire({
             icon: 'warning',
@@ -33,11 +49,11 @@ function sendVerificationCode() {
         });
         return;
     }
-    
+
     // Disable button during request
     sendButton.disabled = true;
     sendButton.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i> Sending...';
-    
+
     // Save phone and send code
     fetch('/save_phone_for_verification', {
         method: 'POST',
@@ -60,18 +76,19 @@ function sendVerificationCode() {
             body: JSON.stringify({ phone: phoneInput.value.trim() })
         });
     })
-    .then(function(response) { 
+    .then(function(response) {
         if (!response.ok) {
             throw new Error('Failed to send verification code');
         }
-        return response.json(); 
+        return response.json();
     })
     .then(function(data) {
         sendButton.disabled = false;
         sendButton.innerHTML = '<i class="ti ti-send me-1"></i> Send Verification Code';
-        
+
         if (data.success) {
-            verificationCodeInput.style.display = 'block';
+            verificationCodeInput.classList.remove('d-none');
+            verificationCodeInput.classList.add('d-block');
             Swal.fire({
                 icon: 'success',
                 title: 'Code Sent!',
@@ -107,7 +124,7 @@ function verifyCode() {
     var verificationCodeInput = document.getElementById('verificationCodeInput');
     var sendButton = document.getElementById('sendVerificationBtn');
     var verifiedFlagInput = document.getElementById('smsVerified');
-    
+
     if (!codeInput || !codeInput.value.trim()) {
         Swal.fire({
             icon: 'warning',
@@ -117,11 +134,11 @@ function verifyCode() {
         });
         return;
     }
-    
+
     // Disable button during request
     verifyButton.disabled = true;
     verifyButton.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i> Verifying...';
-    
+
     fetch('/verify_sms_code', {
         method: 'POST',
         headers: {
@@ -137,26 +154,26 @@ function verifyCode() {
     .then(function(data) {
         verifyButton.disabled = false;
         verifyButton.innerHTML = '<i class="ti ti-check me-1"></i> Verify Code';
-        
+
         if (data.success) {
             // Mark as verified in hidden input
             verifiedFlagInput.value = 'true';
-            
+
             // Show success message
             verificationCodeInput.innerHTML = '<div class="alert alert-success"><i class="ti ti-check-circle me-2"></i>Phone number verified successfully!</div>';
-            
+
             // Update send button to show verified state
             sendButton.disabled = true;
             sendButton.classList.remove('btn-primary');
             sendButton.classList.add('btn-success');
             sendButton.innerHTML = '<i class="ti ti-check me-1"></i> Verified';
-            
+
             // Hide warning alert if present
             var warningAlert = document.getElementById('verificationRequiredAlert');
             if (warningAlert) {
-                warningAlert.style.display = 'none';
+                warningAlert.classList.add('d-none');
             }
-            
+
             Swal.fire({
                 icon: 'success',
                 title: 'Phone Verified!',
@@ -192,12 +209,12 @@ window.adminSetVerificationCode = function() {
     if (confirm("ADMIN ONLY: Are you sure you want to generate a manual verification code?")) {
         var phoneInput = document.querySelector('input[name="phone"]');
         var verificationCodeInput = document.getElementById('verificationCodeInput');
-        
+
         if (!phoneInput || !phoneInput.value.trim()) {
             // console.error("Phone number is required");
             return;
         }
-        
+
         // Make API call to generate and set a code
         fetch('/set_verification_code', {
             method: 'POST',
@@ -212,8 +229,9 @@ window.adminSetVerificationCode = function() {
         })
         .then(function(data) {
             if (data.success) {
-                // Show the verification code input 
-                verificationCodeInput.style.display = 'block';
+                // Show the verification code input
+                verificationCodeInput.classList.remove('d-none');
+                verificationCodeInput.classList.add('d-block');
                 // console.log("Admin generated verification code:", data.code);
                 alert("Verification code: " + data.code);
             } else {
@@ -231,17 +249,17 @@ window.adminSetVerificationCode = function() {
 // Initialize when page loads - using a light initialization that respects existing inline handlers
 document.addEventListener('DOMContentLoaded', function() {
     // Silently initialize without console logs
-    
+
     // Get initial state
     var smsToggle = document.getElementById('smsNotifications');
     var smsConsent = document.getElementById('smsConsent');
-    
+
     if (smsToggle && smsConsent) {
         // Setup initial state if elements exist
         // Note: We don't add event listeners here since they are already set with inline onchange/onclick
         if (smsToggle.checked) {
             toggleSmsConsent(true);
-            
+
             if (smsConsent.checked) {
                 toggleSmsVerification(true);
             }

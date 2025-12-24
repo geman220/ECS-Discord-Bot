@@ -2,6 +2,7 @@
 {% block title %}Wallet Configuration Diagnostics{% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
     /* Diagnostics - Theme-aware styling */
     .code-block {
@@ -56,10 +57,10 @@
                     <p class="text-muted mb-0">Detailed diagnostic information about your wallet pass configuration</p>
                 </div>
                 <div>
-                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="btn btn-outline-secondary">
+                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-arrow-left me-1"></i> Back to Dashboard
                     </a>
-                    <button onclick="window.print()" class="btn btn-outline-primary ms-2">
+                    <button class="c-btn c-btn--outline-primary ms-2" data-action="print-report" class="js-print-report">
                         <i class="ti ti-printer me-1"></i> Print Report
                     </button>
                 </div>
@@ -70,21 +71,21 @@
     <!-- Configuration Summary -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="c-card mb-4">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Configuration Summary</h5>
                     <div>
                         {% if diagnostics.config_status.configured %}
-                            <span class="badge bg-label-success">Valid Configuration</span>
+                            <span class="badge bg-label-success" data-badge>Valid Configuration</span>
                         {% else %}
-                            <span class="badge bg-label-warning">Issues Found</span>
+                            <span class="badge bg-label-warning" data-badge>Issues Found</span>
                         {% endif %}
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <div class="mb-4">
                         {% if diagnostics.config_status.configured %}
-                            <div class="alert alert-success d-flex">
+                            <div class="alert alert-success d-flex" data-alert>
                                 <i class="ti ti-circle-check me-3 fs-4"></i>
                                 <div>
                                     <strong>Wallet pass system is properly configured</strong>
@@ -92,7 +93,7 @@
                                 </div>
                             </div>
                         {% else %}
-                            <div class="alert alert-warning d-flex">
+                            <div class="alert alert-warning d-flex" data-alert>
                                 <i class="ti ti-alert-triangle me-3 fs-4"></i>
                                 <div>
                                     <strong>Configuration issues detected</strong>
@@ -106,31 +107,31 @@
                         <!-- Left Column -->
                         <div class="col-md-6">
                             <h6>System Information</h6>
-                            <div class="table-responsive">
-                                <table class="table table-sm">
+                            <div class="c-table-wrapper" data-table-responsive>
+                                <table class="c-table c-table--compact" data-table>
                                     <tbody>
                                         <tr>
-                                            <th>App Path</th>
+                                            <th scope="row">App Path</th>
                                             <td>{{ diagnostics.system_info.app_path }}</td>
                                         </tr>
                                         <tr>
-                                            <th>Asset Path</th>
+                                            <th scope="row">Asset Path</th>
                                             <td>{{ diagnostics.system_info.asset_path }}</td>
                                         </tr>
                                         <tr>
-                                            <th>Certificate Path</th>
+                                            <th scope="row">Certificate Path</th>
                                             <td>{{ diagnostics.system_info.cert_path }}</td>
                                         </tr>
                                         <tr>
-                                            <th>Template Path</th>
+                                            <th scope="row">Template Path</th>
                                             <td>{{ diagnostics.system_info.template_path }}</td>
                                         </tr>
                                         <tr>
-                                            <th>Pass Type ID</th>
+                                            <th scope="row">Pass Type ID</th>
                                             <td>{{ diagnostics.system_info.pass_type_id or 'Not configured' }}</td>
                                         </tr>
                                         <tr>
-                                            <th>Team ID</th>
+                                            <th scope="row">Team ID</th>
                                             <td>{{ diagnostics.system_info.team_id or 'Not configured' }}</td>
                                         </tr>
                                     </tbody>
@@ -141,13 +142,13 @@
                         <!-- Right Column -->
                         <div class="col-md-6">
                             <h6>Directory Status</h6>
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
+                            <div class="c-table-wrapper" data-table-responsive>
+                                <table class="c-table c-table--compact" data-table>
+                                    <thead scope="col">
                                         <tr>
-                                            <th>Directory</th>
-                                            <th>Status</th>
-                                            <th>Permissions</th>
+                                            <th scope="col">Directory</th>
+                                            <th scope="col">Status</th>
+                                            <th scope="col">Permissions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -196,57 +197,57 @@
     <!-- Database Configuration -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
+            <div class="c-card">
+                <div class="c-card__header">
                     <h5 class="mb-0">Database Configuration</h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <!-- Pass Types -->
                     <h6 class="mb-3">Pass Types</h6>
                     {% if diagnostics.database_checks and diagnostics.database_checks['Pass Types'] %}
                         <div class="row mb-3">
                             <!-- ECS Pass Type -->
                             <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                <div class="c-card">
+                                    <div class="c-card__header d-flex justify-content-between align-items-center">
                                         <h6 class="mb-0">ECS Membership Pass Type</h6>
                                         {% if diagnostics.database_checks['Pass Types'].ecs_type.exists %}
-                                            <span class="badge bg-label-success">Found</span>
+                                            <span class="badge bg-label-success" data-badge>Found</span>
                                         {% else %}
-                                            <span class="badge bg-label-danger">Missing</span>
+                                            <span class="badge bg-label-danger" data-badge>Missing</span>
                                         {% endif %}
                                     </div>
                                     {% if diagnostics.database_checks['Pass Types'].ecs_type.exists %}
-                                        <div class="card-body">
-                                            <div class="detail-toggle" onclick="toggleDetail('ecs-details')">
+                                        <div class="c-card__body">
+                                            <div class="detail-toggle" data-action="toggle-detail" data-value="ecs-details" class="js-toggle-detail">
                                                 <i class="ti ti-chevron-down me-1"></i> View Details
                                             </div>
                                             <div id="ecs-details" class="detail-content d-none">
-                                                <table class="table table-sm">
+                                                <table class="c-table c-table--compact" data-table>
                                                     <tbody>
                                                         <tr>
-                                                            <th>Code</th>
+                                                            <th scope="row">Code</th>
                                                             <td>{{ diagnostics.database_checks['Pass Types'].ecs_type.details.code }}</td>
                                                         </tr>
                                                         <tr>
-                                                            <th>Name</th>
+                                                            <th scope="row">Name</th>
                                                             <td>{{ diagnostics.database_checks['Pass Types'].ecs_type.details.name }}</td>
                                                         </tr>
                                                         <tr>
-                                                            <th>Description</th>
+                                                            <th scope="row">Description</th>
                                                             <td>{{ diagnostics.database_checks['Pass Types'].ecs_type.details.description }}</td>
                                                         </tr>
                                                         <tr>
-                                                            <th>Background Color</th>
+                                                            <th scope="row">Background Color</th>
                                                             <td>
                                                                 <div class="d-flex align-items-center">
-                                                                    <div style="width: 20px; height: 20px; background-color: {{ diagnostics.database_checks['Pass Types'].ecs_type.details.background_color }}; margin-right: 5px; border: 1px solid #ddd;"></div>
+                                                                    <div></div>
                                                                     {{ diagnostics.database_checks['Pass Types'].ecs_type.details.background_color }}
                                                                 </div>
                                                             </td>
                                                         </tr>
                                                         <tr>
-                                                            <th>Active</th>
+                                                            <th scope="row">Active</th>
                                                             <td>{{ diagnostics.database_checks['Pass Types'].ecs_type.details.is_active }}</td>
                                                         </tr>
                                                     </tbody>
@@ -254,7 +255,7 @@
                                             </div>
                                         </div>
                                     {% else %}
-                                        <div class="card-body">
+                                        <div class="c-card__body">
                                             <p class="mb-0 text-danger">ECS Membership pass type is not defined in the database.</p>
                                             <p class="small text-muted">Run <code>flask wallet init_types</code> to initialize.</p>
                                         </div>
@@ -264,46 +265,46 @@
 
                             <!-- Pub League Pass Type -->
                             <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                <div class="c-card">
+                                    <div class="c-card__header d-flex justify-content-between align-items-center">
                                         <h6 class="mb-0">Pub League Pass Type</h6>
                                         {% if diagnostics.database_checks['Pass Types'].pub_type.exists %}
-                                            <span class="badge bg-label-success">Found</span>
+                                            <span class="badge bg-label-success" data-badge>Found</span>
                                         {% else %}
-                                            <span class="badge bg-label-danger">Missing</span>
+                                            <span class="badge bg-label-danger" data-badge>Missing</span>
                                         {% endif %}
                                     </div>
                                     {% if diagnostics.database_checks['Pass Types'].pub_type.exists %}
-                                        <div class="card-body">
-                                            <div class="detail-toggle" onclick="toggleDetail('pub-details')">
+                                        <div class="c-card__body">
+                                            <div class="detail-toggle" data-action="toggle-detail" data-value="pub-details" class="js-toggle-detail">
                                                 <i class="ti ti-chevron-down me-1"></i> View Details
                                             </div>
                                             <div id="pub-details" class="detail-content d-none">
-                                                <table class="table table-sm">
+                                                <table class="c-table c-table--compact" data-table>
                                                     <tbody>
                                                         <tr>
-                                                            <th>Code</th>
+                                                            <th scope="row">Code</th>
                                                             <td>{{ diagnostics.database_checks['Pass Types'].pub_type.details.code }}</td>
                                                         </tr>
                                                         <tr>
-                                                            <th>Name</th>
+                                                            <th scope="row">Name</th>
                                                             <td>{{ diagnostics.database_checks['Pass Types'].pub_type.details.name }}</td>
                                                         </tr>
                                                         <tr>
-                                                            <th>Description</th>
+                                                            <th scope="row">Description</th>
                                                             <td>{{ diagnostics.database_checks['Pass Types'].pub_type.details.description }}</td>
                                                         </tr>
                                                         <tr>
-                                                            <th>Background Color</th>
+                                                            <th scope="row">Background Color</th>
                                                             <td>
                                                                 <div class="d-flex align-items-center">
-                                                                    <div style="width: 20px; height: 20px; background-color: {{ diagnostics.database_checks['Pass Types'].pub_type.details.background_color }}; margin-right: 5px; border: 1px solid #ddd;"></div>
+                                                                    <div></div>
                                                                     {{ diagnostics.database_checks['Pass Types'].pub_type.details.background_color }}
                                                                 </div>
                                                             </td>
                                                         </tr>
                                                         <tr>
-                                                            <th>Active</th>
+                                                            <th scope="row">Active</th>
                                                             <td>{{ diagnostics.database_checks['Pass Types'].pub_type.details.is_active }}</td>
                                                         </tr>
                                                     </tbody>
@@ -311,7 +312,7 @@
                                             </div>
                                         </div>
                                     {% else %}
-                                        <div class="card-body">
+                                        <div class="c-card__body">
                                             <p class="mb-0 text-danger">Pub League pass type is not defined in the database.</p>
                                             <p class="small text-muted">Run <code>flask wallet init_types</code> to initialize.</p>
                                         </div>
@@ -320,7 +321,7 @@
                             </div>
                         </div>
                     {% else %}
-                        <div class="alert alert-danger">
+                        <div class="alert alert-danger" data-alert>
                             <i class="ti ti-alert-circle me-2"></i> 
                             No pass types found. Run <code>flask wallet init_types</code> to initialize them.
                         </div>
@@ -329,30 +330,30 @@
                     <!-- Certificates -->
                     <h6 class="mb-3 mt-4">Certificates</h6>
                     {% if diagnostics.database_checks and diagnostics.database_checks['Certificates'] %}
-                        <div class="card mb-3">
-                            <div class="card-header d-flex justify-content-between align-items-center">
+                        <div class="c-card mb-3">
+                            <div class="c-card__header d-flex justify-content-between align-items-center">
                                 <h6 class="mb-0">Apple Wallet Certificates</h6>
                                 <div>
                                     {% if diagnostics.database_checks['Certificates'].complete %}
-                                        <span class="badge bg-label-success">Complete</span>
+                                        <span class="badge bg-label-success" data-badge>Complete</span>
                                     {% else %}
-                                        <span class="badge bg-label-warning">Incomplete</span>
+                                        <span class="badge bg-label-warning" data-badge>Incomplete</span>
                                     {% endif %}
                                 </div>
                             </div>
-                            <div class="card-body">
+                            <div class="c-card__body">
                                 {% if diagnostics.database_checks['Certificates'].apple %}
-                                    <div class="detail-toggle" onclick="toggleDetail('cert-details')">
+                                    <div class="detail-toggle" data-action="toggle-detail" data-value="cert-details" class="js-toggle-detail">
                                         <i class="ti ti-chevron-down me-1"></i> View Certificate Details
                                     </div>
                                     <div id="cert-details" class="detail-content d-none">
-                                        <table class="table table-sm">
-                                            <thead>
+                                        <table class="c-table c-table--compact" data-table>
+                                            <thead scope="col">
                                                 <tr>
-                                                    <th>Type</th>
-                                                    <th>Name</th>
-                                                    <th>File</th>
-                                                    <th>Status</th>
+                                                    <th scope="col">Type</th>
+                                                    <th scope="col">Name</th>
+                                                    <th scope="col">File</th>
+                                                    <th scope="col">Status</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -383,14 +384,14 @@
                                     </div>
                                 {% else %}
                                     <p class="mb-0 text-warning">No Apple certificates have been uploaded yet.</p>
-                                    <a href="{{ url_for('wallet_config.certificates') }}" class="btn btn-sm btn-outline-primary mt-2">
+                                    <a href="{{ url_for('wallet_config.certificates') }}" class="c-btn c-btn--sm c-btn--outline-primary mt-2">
                                         Upload Certificates
                                     </a>
                                 {% endif %}
                             </div>
                         </div>
                     {% else %}
-                        <div class="alert alert-warning">
+                        <div class="alert alert-warning" data-alert>
                             <i class="ti ti-alert-triangle me-2"></i>
                             No certificate information available.
                         </div>
@@ -402,21 +403,21 @@
                         <div class="row mb-3">
                             <!-- ECS Assets -->
                             <div class="col-md-6">
-                                <div class="card h-100">
-                                    <div class="card-header">
+                                <div class="c-card h-100">
+                                    <div class="c-card__header">
                                         <h6 class="mb-0">ECS Membership Assets</h6>
                                     </div>
-                                    <div class="card-body">
+                                    <div class="c-card__body">
                                         {% if diagnostics.database_checks['Assets'].ecs_assets %}
-                                            <div class="detail-toggle" onclick="toggleDetail('ecs-assets-details')">
+                                            <div class="detail-toggle" data-action="toggle-detail" data-value="ecs-assets-details" class="js-toggle-detail">
                                                 <i class="ti ti-chevron-down me-1"></i> View Asset Details
                                             </div>
                                             <div id="ecs-assets-details" class="detail-content d-none">
-                                                <table class="table table-sm">
-                                                    <thead>
+                                                <table class="c-table c-table--compact" data-table>
+                                                    <thead scope="col">
                                                         <tr>
-                                                            <th>Asset</th>
-                                                            <th>File</th>
+                                                            <th scope="col">Asset</th>
+                                                            <th scope="col">File</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -445,7 +446,7 @@
                                             </div>
                                         {% else %}
                                             <p class="mb-0 text-warning">No ECS Membership assets have been uploaded yet.</p>
-                                            <a href="{{ url_for('wallet_config.assets') }}" class="btn btn-sm btn-outline-primary mt-2">
+                                            <a href="{{ url_for('wallet_config.assets') }}" class="c-btn c-btn--sm c-btn--outline-primary mt-2">
                                                 Upload Assets
                                             </a>
                                         {% endif %}
@@ -455,21 +456,21 @@
                             
                             <!-- Pub League Assets -->
                             <div class="col-md-6">
-                                <div class="card h-100">
-                                    <div class="card-header">
+                                <div class="c-card h-100">
+                                    <div class="c-card__header">
                                         <h6 class="mb-0">Pub League Assets</h6>
                                     </div>
-                                    <div class="card-body">
+                                    <div class="c-card__body">
                                         {% if diagnostics.database_checks['Assets'].pub_assets %}
-                                            <div class="detail-toggle" onclick="toggleDetail('pub-assets-details')">
+                                            <div class="detail-toggle" data-action="toggle-detail" data-value="pub-assets-details" class="js-toggle-detail">
                                                 <i class="ti ti-chevron-down me-1"></i> View Asset Details
                                             </div>
                                             <div id="pub-assets-details" class="detail-content d-none">
-                                                <table class="table table-sm">
-                                                    <thead>
+                                                <table class="c-table c-table--compact" data-table>
+                                                    <thead scope="col">
                                                         <tr>
-                                                            <th>Asset</th>
-                                                            <th>File</th>
+                                                            <th scope="col">Asset</th>
+                                                            <th scope="col">File</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -498,7 +499,7 @@
                                             </div>
                                         {% else %}
                                             <p class="mb-0 text-warning">No Pub League assets have been uploaded yet.</p>
-                                            <a href="{{ url_for('wallet_config.assets') }}" class="btn btn-sm btn-outline-primary mt-2">
+                                            <a href="{{ url_for('wallet_config.assets') }}" class="c-btn c-btn--sm c-btn--outline-primary mt-2">
                                                 Upload Assets
                                             </a>
                                         {% endif %}
@@ -507,7 +508,7 @@
                             </div>
                         </div>
                     {% else %}
-                        <div class="alert alert-warning">
+                        <div class="alert alert-warning" data-alert>
                             <i class="ti ti-alert-triangle me-2"></i>
                             No asset information available.
                         </div>
@@ -519,22 +520,22 @@
                         <div class="row mb-3">
                             <!-- ECS Templates -->
                             <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header">
+                                <div class="c-card">
+                                    <div class="c-card__header">
                                         <h6 class="mb-0">ECS Membership Templates</h6>
                                     </div>
-                                    <div class="card-body">
+                                    <div class="c-card__body">
                                         {% if diagnostics.database_checks['Templates'].ecs_templates %}
-                                            <div class="detail-toggle" onclick="toggleDetail('ecs-templates-list')">
+                                            <div class="detail-toggle" data-action="toggle-detail" data-value="ecs-templates-list" class="js-toggle-detail">
                                                 <i class="ti ti-chevron-down me-1"></i> View Templates ({{ diagnostics.database_checks['Templates'].ecs_templates|length }})
                                             </div>
                                             <div id="ecs-templates-list" class="detail-content d-none">
-                                                <table class="table table-sm">
-                                                    <thead>
+                                                <table class="c-table c-table--compact" data-table>
+                                                    <thead scope="col">
                                                         <tr>
-                                                            <th>Name</th>
-                                                            <th>Platform</th>
-                                                            <th>Default</th>
+                                                            <th scope="col">Name</th>
+                                                            <th scope="col">Platform</th>
+                                                            <th scope="col">Default</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -544,7 +545,7 @@
                                                             <td>{{ template.platform }}</td>
                                                             <td>
                                                                 {% if template.is_default %}
-                                                                    <span class="badge bg-label-success">Default</span>
+                                                                    <span class="badge bg-label-success" data-badge>Default</span>
                                                                 {% endif %}
                                                             </td>
                                                         </tr>
@@ -572,7 +573,7 @@
                                             </div>
                                         {% else %}
                                             <p class="mb-0 text-warning">No ECS Membership templates have been created yet.</p>
-                                            <a href="{{ url_for('wallet_config.templates') }}" class="btn btn-sm btn-outline-primary mt-2">
+                                            <a href="{{ url_for('wallet_config.templates') }}" class="c-btn c-btn--sm c-btn--outline-primary mt-2">
                                                 Create Templates
                                             </a>
                                         {% endif %}
@@ -582,22 +583,22 @@
                             
                             <!-- Pub League Templates -->
                             <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header">
+                                <div class="c-card">
+                                    <div class="c-card__header">
                                         <h6 class="mb-0">Pub League Templates</h6>
                                     </div>
-                                    <div class="card-body">
+                                    <div class="c-card__body">
                                         {% if diagnostics.database_checks['Templates'].pub_templates %}
-                                            <div class="detail-toggle" onclick="toggleDetail('pub-templates-list')">
+                                            <div class="detail-toggle" data-action="toggle-detail" data-value="pub-templates-list" class="js-toggle-detail">
                                                 <i class="ti ti-chevron-down me-1"></i> View Templates ({{ diagnostics.database_checks['Templates'].pub_templates|length }})
                                             </div>
                                             <div id="pub-templates-list" class="detail-content d-none">
-                                                <table class="table table-sm">
-                                                    <thead>
+                                                <table class="c-table c-table--compact" data-table>
+                                                    <thead scope="col">
                                                         <tr>
-                                                            <th>Name</th>
-                                                            <th>Platform</th>
-                                                            <th>Default</th>
+                                                            <th scope="col">Name</th>
+                                                            <th scope="col">Platform</th>
+                                                            <th scope="col">Default</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -607,7 +608,7 @@
                                                             <td>{{ template.platform }}</td>
                                                             <td>
                                                                 {% if template.is_default %}
-                                                                    <span class="badge bg-label-success">Default</span>
+                                                                    <span class="badge bg-label-success" data-badge>Default</span>
                                                                 {% endif %}
                                                             </td>
                                                         </tr>
@@ -635,7 +636,7 @@
                                             </div>
                                         {% else %}
                                             <p class="mb-0 text-warning">No Pub League templates have been created yet.</p>
-                                            <a href="{{ url_for('wallet_config.templates') }}" class="btn btn-sm btn-outline-primary mt-2">
+                                            <a href="{{ url_for('wallet_config.templates') }}" class="c-btn c-btn--sm c-btn--outline-primary mt-2">
                                                 Create Templates
                                             </a>
                                         {% endif %}
@@ -644,7 +645,7 @@
                             </div>
                         </div>
                     {% else %}
-                        <div class="alert alert-warning">
+                        <div class="alert alert-warning" data-alert>
                             <i class="ti ti-alert-triangle me-2"></i>
                             No template information available.
                         </div>
@@ -655,20 +656,20 @@
     </div>
 
     <!-- Troubleshooting Actions -->
-    <div class="card mb-4">
-        <div class="card-header">
+    <div class="c-card mb-4">
+        <div class="c-card__header">
             <h5 class="mb-0">Troubleshooting Actions</h5>
         </div>
-        <div class="card-body">
+        <div class="c-card__body">
             <div class="row">
                 <div class="col-md-4">
-                    <div class="card mb-3">
-                        <div class="card-body text-center">
+                    <div class="c-card mb-3">
+                        <div class="c-card__body text-center">
                             <i class="ti ti-refresh fs-1 mb-3 text-primary"></i>
                             <h5>Reinitialize Pass Types</h5>
                             <p class="small mb-3">Recreate the basic pass type configuration if it's missing or corrupted.</p>
                             <div class="d-grid">
-                                <button class="btn btn-primary" onclick="runCommand('flask wallet init_types')">
+                                <button class="c-btn c-btn--primary" data-action="run-command" data-value="flask wallet init_types" class="js-run-command">
                                     Run Command
                                 </button>
                             </div>
@@ -677,13 +678,13 @@
                 </div>
                 
                 <div class="col-md-4">
-                    <div class="card mb-3">
-                        <div class="card-body text-center">
+                    <div class="c-card mb-3">
+                        <div class="c-card__body text-center">
                             <i class="ti ti-bug fs-1 mb-3 text-warning"></i>
                             <h5>Test Configuration</h5>
                             <p class="small mb-3">Run comprehensive tests on your wallet pass configuration.</p>
                             <div class="d-grid">
-                                <a href="{{ url_for('wallet_config.test_config') }}" class="btn btn-warning">
+                                <a href="{{ url_for('wallet_config.test_config') }}" class="c-btn c-btn--warning">
                                     Run Tests
                                 </a>
                             </div>
@@ -692,13 +693,13 @@
                 </div>
                 
                 <div class="col-md-4">
-                    <div class="card mb-3">
-                        <div class="card-body text-center">
+                    <div class="c-card mb-3">
+                        <div class="c-card__body text-center">
                             <i class="ti ti-wand fs-1 mb-3 text-info"></i>
                             <h5>Setup Wizard</h5>
                             <p class="small mb-3">Restart the setup wizard to guide you through configuration.</p>
                             <div class="d-grid">
-                                <a href="{{ url_for('wallet_config.setup_wizard') }}" class="btn btn-info">
+                                <a href="{{ url_for('wallet_config.setup_wizard') }}" class="c-btn c-btn--info">
                                     Start Wizard
                                 </a>
                             </div>
@@ -711,14 +712,14 @@
 </div>
 
 <!-- Command Modal -->
-<div class="modal fade" id="commandModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Run Command</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal c-modal fade" id="commandModal" tabindex="-1" data-modal aria-labelledby="commandModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="commandModalLabel">Run Command</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body>
                 <p>To run this command, open a terminal in your project directory and execute:</p>
                 <div class="code-block">
                     <code id="commandText"></code>
@@ -728,8 +729,8 @@
                     This action must be performed by a system administrator on the server.
                 </p>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
             </div>
         </div>
     </div>
@@ -757,7 +758,14 @@ function toggleDetail(id) {
 // Show command modal
 function runCommand(command) {
     document.getElementById('commandText').textContent = command;
-    new bootstrap.Modal(document.getElementById('commandModal')).show();
+    ModalManager.show('commandModal');
 }
+
+// Event delegation for print report
+document.addEventListener('click', function(e) {
+    if (e.target.closest('[data-action="print-report"]')) {
+        window.print();
+    }
+});
 </script>
 {% endblock %}

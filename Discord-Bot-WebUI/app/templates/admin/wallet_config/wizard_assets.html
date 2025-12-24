@@ -2,7 +2,7 @@
 
 {% if step_data.pass_types_missing %}
 <!-- Pass Types Not Initialized -->
-<div class="alert alert-warning">
+<div class="alert alert-warning" data-alert>
     <div class="d-flex align-items-center">
         <div class="me-3">
             <i class="ti ti-alert-triangle fs-3"></i>
@@ -14,7 +14,7 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="is_wizard" value="true">
                 <input type="hidden" name="next_step" value="assets">
-                <button type="submit" class="btn btn-warning">
+                <button type="submit" class="c-btn c-btn--warning">
                     <i class="ti ti-database-plus me-1"></i> Initialize Pass Types
                 </button>
             </form>
@@ -22,7 +22,7 @@
     </div>
 </div>
 {% else %}
-<div class="alert alert-info">
+<div class="alert alert-info" data-alert>
     <div class="d-flex">
         <div class="me-3">
             <i class="ti ti-info-circle fs-3"></i>
@@ -36,7 +36,7 @@
 {% endif %}
 
 {% if not step_data.pass_types_missing %}
-<div class="alert bg-body-tertiary border-start border-primary border-4 mb-4">
+<div class="alert bg-body-tertiary border-start border-primary border-4 mb-4" data-alert>
     <div class="d-flex align-items-center">
         <i class="ti ti-device-mobile me-3 fs-3 text-primary"></i>
         <div>
@@ -53,8 +53,8 @@
     <div class="row">
         <!-- ECS Membership Assets -->
         <div class="col-md-6">
-            <div class="card mb-3">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="c-card mb-3">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">ECS Membership Assets</h6>
                     <div>
                         {% set required_assets = ['icon', 'logo'] %}
@@ -66,13 +66,13 @@
                         {% endfor %}
                         
                         {% if has_all_required %}
-                            <span class="badge bg-label-success">Complete</span>
+                            <span class="badge bg-label-success" data-badge>Complete</span>
                         {% else %}
-                            <span class="badge bg-label-warning">Incomplete</span>
+                            <span class="badge bg-label-warning" data-badge>Incomplete</span>
                         {% endif %}
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <ul class="list-group list-group-flush">
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <div>
@@ -80,9 +80,9 @@
                                 <small class="d-block text-muted">Primary pass icon</small>
                             </div>
                             {% if 'icon' in step_data.ecs_assets %}
-                                <span class="badge bg-label-success rounded-pill"><i class="ti ti-check"></i></span>
+                                <span class="badge bg-label-success rounded-pill" data-badge><i class="ti ti-check"></i></span>
                             {% else %}
-                                <span class="badge bg-label-warning rounded-pill"><i class="ti ti-x"></i></span>
+                                <span class="badge bg-label-warning rounded-pill" data-badge><i class="ti ti-x"></i></span>
                             {% endif %}
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -91,9 +91,9 @@
                                 <small class="d-block text-muted">Organization logo</small>
                             </div>
                             {% if 'logo' in step_data.ecs_assets %}
-                                <span class="badge bg-label-success rounded-pill"><i class="ti ti-check"></i></span>
+                                <span class="badge bg-label-success rounded-pill" data-badge><i class="ti ti-check"></i></span>
                             {% else %}
-                                <span class="badge bg-label-warning rounded-pill"><i class="ti ti-x"></i></span>
+                                <span class="badge bg-label-warning rounded-pill" data-badge><i class="ti ti-x"></i></span>
                             {% endif %}
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -102,9 +102,9 @@
                                 <small class="d-block text-muted">Optional background image</small>
                             </div>
                             {% if 'background' in step_data.ecs_assets %}
-                                <span class="badge bg-label-success rounded-pill"><i class="ti ti-check"></i></span>
+                                <span class="badge bg-label-success rounded-pill" data-badge><i class="ti ti-check"></i></span>
                             {% else %}
-                                <span class="badge bg-label-secondary rounded-pill"><i class="ti ti-x"></i></span>
+                                <span class="badge bg-label-secondary rounded-pill" data-badge><i class="ti ti-x"></i></span>
                             {% endif %}
                         </li>
                     </ul>
@@ -114,8 +114,8 @@
         
         <!-- Pub League Assets -->
         <div class="col-md-6">
-            <div class="card mb-3">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="c-card mb-3">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">Pub League Assets</h6>
                     <div>
                         {% set required_assets = ['icon', 'logo'] %}
@@ -127,13 +127,13 @@
                         {% endfor %}
                         
                         {% if has_all_required %}
-                            <span class="badge bg-label-success">Complete</span>
+                            <span class="badge bg-label-success" data-badge>Complete</span>
                         {% else %}
-                            <span class="badge bg-label-warning">Incomplete</span>
+                            <span class="badge bg-label-warning" data-badge>Incomplete</span>
                         {% endif %}
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <ul class="list-group list-group-flush">
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <div>
@@ -141,9 +141,9 @@
                                 <small class="d-block text-muted">Primary pass icon</small>
                             </div>
                             {% if 'icon' in step_data.pub_assets %}
-                                <span class="badge bg-label-success rounded-pill"><i class="ti ti-check"></i></span>
+                                <span class="badge bg-label-success rounded-pill" data-badge><i class="ti ti-check"></i></span>
                             {% else %}
-                                <span class="badge bg-label-warning rounded-pill"><i class="ti ti-x"></i></span>
+                                <span class="badge bg-label-warning rounded-pill" data-badge><i class="ti ti-x"></i></span>
                             {% endif %}
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -152,9 +152,9 @@
                                 <small class="d-block text-muted">Organization logo</small>
                             </div>
                             {% if 'logo' in step_data.pub_assets %}
-                                <span class="badge bg-label-success rounded-pill"><i class="ti ti-check"></i></span>
+                                <span class="badge bg-label-success rounded-pill" data-badge><i class="ti ti-check"></i></span>
                             {% else %}
-                                <span class="badge bg-label-warning rounded-pill"><i class="ti ti-x"></i></span>
+                                <span class="badge bg-label-warning rounded-pill" data-badge><i class="ti ti-x"></i></span>
                             {% endif %}
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -163,9 +163,9 @@
                                 <small class="d-block text-muted">Optional background image</small>
                             </div>
                             {% if 'background' in step_data.pub_assets %}
-                                <span class="badge bg-label-success rounded-pill"><i class="ti ti-check"></i></span>
+                                <span class="badge bg-label-success rounded-pill" data-badge><i class="ti ti-check"></i></span>
                             {% else %}
-                                <span class="badge bg-label-secondary rounded-pill"><i class="ti ti-x"></i></span>
+                                <span class="badge bg-label-secondary rounded-pill" data-badge><i class="ti ti-x"></i></span>
                             {% endif %}
                         </li>
                     </ul>
@@ -180,7 +180,7 @@
     <h6>Upload Assets</h6>
     
     <!-- Asset Upload Tabs -->
-    <ul class="nav nav-tabs mb-3" role="tablist">
+    <ul class="nav nav-tabs mb-3" role="tablist" data-tabs>
         <li class="nav-item">
             <button class="nav-link active" id="ecs-tab" data-bs-toggle="tab" data-bs-target="#ecs-assets" type="button" role="tab">
                 ECS Membership
@@ -196,13 +196,13 @@
     <!-- Tab Content -->
     <div class="tab-content">
         <!-- ECS Assets Tab -->
-        <div class="tab-pane fade show active" id="ecs-assets" role="tabpanel">
+        <div class="tab-pane fade show active" id="ecs-assets" role="tabpanel" data-tab-pane>
             <div class="row">
                 <div class="col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h6 class="card-title">Asset Requirements</h6>
-                            <div class="alert bg-body-tertiary border small">
+                    <div class="c-card h-100">
+                        <div class="c-card__body">
+                            <h6 class="c-card__title">Asset Requirements</h6>
+                            <div class="alert bg-body-tertiary border small" data-alert>
                                 <p class="mb-2"><strong>Required Assets:</strong></p>
                                 <ul class="mb-2">
                                     <li><strong>icon.png</strong> - 29×29 pixels (PNG)</li>
@@ -221,9 +221,9 @@
                 </div>
                 
                 <div class="col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h6 class="card-title">Upload ECS Assets</h6>
+                    <div class="c-card h-100">
+                        <div class="c-card__body">
+                            <h6 class="c-card__title">Upload ECS Assets</h6>
                             
                             <form action="{{ url_for('wallet_config.upload_asset') }}" method="post" enctype="multipart/form-data">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -232,7 +232,7 @@
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Asset Type</label>
-                                    <select name="asset_type" class="form-select" required>
+                                    <select name="asset_type" class="form-select" required data-form-select>
                                         <option value="">Select type...</option>
                                         {% for asset_type, details in step_data.asset_types.items() %}
                                         <option value="{{ asset_type }}">{{ details.description }} ({{ details.dimensions }})</option>
@@ -242,8 +242,8 @@
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Asset File</label>
-                                    <div class="input-group">
-                                        <input type="file" class="form-control asset-file-input" name="asset_file" data-preview="ecs-asset-preview" required>
+                                    <div class="input-group" data-input-group>
+                                        <input type="file" class="form-control asset-file-input" name="asset_file" data-preview="ecs-asset-preview" required data-form-control>
                                         <label class="input-group-text">Choose file</label>
                                     </div>
                                     <div class="form-text">
@@ -253,10 +253,10 @@
                                 
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div class="asset-preview" id="ecs-asset-preview">
-                                        <i class="ti ti-photo text-muted" style="font-size: 2rem;"></i>
+                                        <i class="ti ti-photo text-muted" class="u-icon-xl"></i>
                                     </div>
                                     <div>
-                                        <button type="submit" class="btn btn-primary">
+                                        <button type="submit" class="c-btn c-btn--primary">
                                             <i class="ti ti-upload me-1"></i> Upload Asset
                                         </button>
                                     </div>
@@ -276,11 +276,11 @@
                 
                 {% for asset_type, asset in step_data.ecs_assets.items() %}
                 <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="card h-100">
-                        <div class="card-body text-center">
-                            <div class="mb-2" style="height: 100px; display: flex; align-items: center; justify-content: center;">
+                    <div class="c-card h-100">
+                        <div class="c-card__body text-center">
+                            <div class="mb-2" class="u-h-100 u-flex-center">
                                 <img src="{{ url_for('wallet_config.get_asset', asset_id=asset.id) }}" alt="{{ asset_type }}" 
-                                     class="img-fluid" style="max-height: 100%; max-width: 100%;">
+                                     class="img-fluid" class="u-max-h-100-percent u-max-w-100-percent">
                             </div>
                             <h6 class="mb-0">{{ asset_type }}</h6>
                             <div class="small text-muted">{{ asset.file_name }}</div>
@@ -289,7 +289,7 @@
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="asset_name" value="{{ asset_type }}">
                                 <input type="hidden" name="is_wizard" value="true">
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <button type="submit" class="c-btn c-btn--sm c-btn--outline-danger">
                                     <i class="ti ti-trash"></i> Remove
                                 </button>
                             </form>
@@ -302,13 +302,13 @@
         </div>
 
         <!-- Pub League Assets Tab -->
-        <div class="tab-pane fade" id="publeague-assets" role="tabpanel">
+        <div class="tab-pane fade" id="publeague-assets" role="tabpanel" data-tab-pane>
             <div class="row">
                 <div class="col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h6 class="card-title">Asset Requirements</h6>
-                            <div class="alert bg-body-tertiary border small">
+                    <div class="c-card h-100">
+                        <div class="c-card__body">
+                            <h6 class="c-card__title">Asset Requirements</h6>
+                            <div class="alert bg-body-tertiary border small" data-alert>
                                 <p class="mb-2"><strong>Required Assets:</strong></p>
                                 <ul class="mb-2">
                                     <li><strong>icon.png</strong> - 29×29 pixels (PNG)</li>
@@ -327,9 +327,9 @@
                 </div>
                 
                 <div class="col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h6 class="card-title">Upload Pub League Assets</h6>
+                    <div class="c-card h-100">
+                        <div class="c-card__body">
+                            <h6 class="c-card__title">Upload Pub League Assets</h6>
                             
                             <form action="{{ url_for('wallet_config.upload_asset') }}" method="post" enctype="multipart/form-data">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -338,7 +338,7 @@
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Asset Type</label>
-                                    <select name="asset_type" class="form-select" required>
+                                    <select name="asset_type" class="form-select" required data-form-select>
                                         <option value="">Select type...</option>
                                         {% for asset_type, details in step_data.asset_types.items() %}
                                         <option value="{{ asset_type }}">{{ details.description }} ({{ details.dimensions }})</option>
@@ -348,8 +348,8 @@
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Asset File</label>
-                                    <div class="input-group">
-                                        <input type="file" class="form-control asset-file-input" name="asset_file" data-preview="pub-asset-preview" required>
+                                    <div class="input-group" data-input-group>
+                                        <input type="file" class="form-control asset-file-input" name="asset_file" data-preview="pub-asset-preview" required data-form-control>
                                         <label class="input-group-text">Choose file</label>
                                     </div>
                                     <div class="form-text">
@@ -359,10 +359,10 @@
                                 
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div class="asset-preview" id="pub-asset-preview">
-                                        <i class="ti ti-photo text-muted" style="font-size: 2rem;"></i>
+                                        <i class="ti ti-photo text-muted" class="u-icon-xl"></i>
                                     </div>
                                     <div>
-                                        <button type="submit" class="btn btn-primary">
+                                        <button type="submit" class="c-btn c-btn--primary">
                                             <i class="ti ti-upload me-1"></i> Upload Asset
                                         </button>
                                     </div>
@@ -382,11 +382,11 @@
                 
                 {% for asset_type, asset in step_data.pub_assets.items() %}
                 <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="card h-100">
-                        <div class="card-body text-center">
-                            <div class="mb-2" style="height: 100px; display: flex; align-items: center; justify-content: center;">
+                    <div class="c-card h-100">
+                        <div class="c-card__body text-center">
+                            <div class="mb-2" class="u-h-100 u-flex-center">
                                 <img src="{{ url_for('wallet_config.get_asset', asset_id=asset.id) }}" alt="{{ asset_type }}" 
-                                     class="img-fluid" style="max-height: 100%; max-width: 100%;">
+                                     class="img-fluid" class="u-max-h-100-percent u-max-w-100-percent">
                             </div>
                             <h6 class="mb-0">{{ asset_type }}</h6>
                             <div class="small text-muted">{{ asset.file_name }}</div>
@@ -395,7 +395,7 @@
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="asset_name" value="{{ asset_type }}">
                                 <input type="hidden" name="is_wizard" value="true">
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <button type="submit" class="c-btn c-btn--sm c-btn--outline-danger">
                                     <i class="ti ti-trash"></i> Remove
                                 </button>
                             </form>
@@ -410,11 +410,11 @@
 </div>
 
 <!-- Asset Design Tips -->
-<div class="card">
-    <div class="card-header">
+<div class="c-card">
+    <div class="c-card__header">
         <h6 class="mb-0"><i class="ti ti-bulb me-2"></i>Design Tips</h6>
     </div>
-    <div class="card-body">
+    <div class="c-card__body">
         <div class="row">
             <div class="col-md-6">
                 <h6>Best Practices</h6>

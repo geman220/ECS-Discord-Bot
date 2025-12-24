@@ -14,60 +14,60 @@
 <!-- Log Level Statistics -->
 <div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-danger text-white">
-            <div class="card-body">
+        <div class="c-card bg-danger text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ current_filters.error_count or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Error Logs</p>
+                        <h5 class="c-card__title text-white mb-1">{{ current_filters.error_count or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Error Logs</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-alert-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-alert-circle card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
+        <div class="c-card bg-warning text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ current_filters.warning_count or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Warning Logs</p>
+                        <h5 class="c-card__title text-white mb-1">{{ current_filters.warning_count or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Warning Logs</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-alert-triangle" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-alert-triangle card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
+        <div class="c-card bg-info text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ current_filters.info_count or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Info Logs</p>
+                        <h5 class="c-card__title text-white mb-1">{{ current_filters.info_count or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Info Logs</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-info-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-info-circle card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-secondary text-white">
-            <div class="card-body">
+        <div class="c-card bg-secondary text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ current_filters.debug_count or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Debug Logs</p>
+                        <h5 class="c-card__title text-white mb-1">{{ current_filters.debug_count or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Debug Logs</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-bug" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-bug card-icon-stat"></i>
                     </div>
                 </div>
             </div>
@@ -78,17 +78,17 @@
 <!-- Log Filters -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-filter me-2"></i>Log Filters
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <form method="GET" class="row g-3">
                     <div class="col-md-2">
                         <label class="form-label">Log Level</label>
-                        <select name="level" class="form-select">
+                        <select name="level" class="form-select" data-form-select>
                             <option value="">All Levels</option>
                             <option value="ERROR" {{ 'selected' if request.args.get('level') == 'ERROR' }}>Error</option>
                             <option value="WARNING" {{ 'selected' if request.args.get('level') == 'WARNING' }}>Warning</option>
@@ -98,7 +98,7 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Component</label>
-                        <select name="component" class="form-select">
+                        <select name="component" class="form-select" data-form-select>
                             <option value="">All Components</option>
                             <option value="app" {{ 'selected' if request.args.get('component') == 'app' }}>Application</option>
                             <option value="discord" {{ 'selected' if request.args.get('component') == 'discord' }}>Discord Bot</option>
@@ -108,20 +108,20 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Search Text</label>
-                        <input type="text" name="search" class="form-control" placeholder="Search log messages..." value="{{ request.args.get('search', '') }}">
+                        <input type="text" name="search" class="form-control" placeholder="Search log messages..." value="{{ request.args.get('search', '') }}" data-form-control>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">From Date</label>
-                        <input type="datetime-local" name="date_from" class="form-control" value="{{ request.args.get('date_from', '') }}">
+                        <input type="datetime-local" name="date_from" class="form-control" value="{{ request.args.get('date_from', '') }}" data-form-control>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">To Date</label>
-                        <input type="datetime-local" name="date_to" class="form-control" value="{{ request.args.get('date_to', '') }}">
+                        <input type="datetime-local" name="date_to" class="form-control" value="{{ request.args.get('date_to', '') }}" data-form-control>
                     </div>
                     <div class="col-md-1">
                         <label class="form-label">&nbsp;</label>
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="c-btn c-btn--primary">
                                 <i class="ti ti-search"></i>
                             </button>
                         </div>
@@ -135,24 +135,24 @@
 <!-- Quick Actions -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-body">
+        <div class="c-card">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="mb-0">Log Management</h6>
                         <small class="text-muted">Showing {{ logs|length }} log entries</small>
                     </div>
                     <div class="btn-group">
-                        <button class="btn btn-outline-primary" onclick="refreshLogs()">
+                        <button class="c-btn c-btn--outline-primary js-refresh-logs" data-action="refresh-logs">
                             <i class="ti ti-refresh me-1"></i>Refresh
                         </button>
-                        <button class="btn btn-outline-info" onclick="exportLogs()">
+                        <button class="c-btn c-btn--outline-info js-export-logs" data-action="export-logs">
                             <i class="ti ti-download me-1"></i>Export
                         </button>
-                        <button class="btn btn-outline-warning" onclick="clearOldLogs()">
+                        <button class="c-btn c-btn--outline-warning js-clear-old-logs" data-action="clear-old-logs">
                             <i class="ti ti-trash me-1"></i>Clear Old
                         </button>
-                        <button class="btn btn-outline-success" onclick="startTail()">
+                        <button class="c-btn c-btn--outline-success js-start-tail" data-action="start-tail">
                             <i class="ti ti-eye me-1"></i>Live Tail
                         </button>
                     </div>
@@ -165,23 +165,23 @@
 <!-- Log Entries -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-file-text me-2"></i>Log Entries
                 </h5>
             </div>
-            <div class="card-body p-0">
+            <div class="c-card__body p-0">
                 {% if logs %}
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable mb-0" data-table>
+                        <thead class="c-table--light" scope="col">
                             <tr>
-                                <th width="140">Timestamp</th>
-                                <th width="80">Level</th>
-                                <th width="120">Component</th>
-                                <th>Message</th>
-                                <th width="80">Actions</th>
+                                <th width="140" scope="col">Timestamp</th>
+                                <th width="80" scope="col">Level</th>
+                                <th width="120" scope="col">Component</th>
+                                <th scope="col">Message</th>
+                                <th width="80" scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -192,15 +192,15 @@
                                 </td>
                                 <td>
                                     {% if log.level == 'ERROR' %}
-                                        <span class="badge bg-danger">ERROR</span>
+                                        <span class="badge bg-danger" data-badge>ERROR</span>
                                     {% elif log.level == 'WARNING' %}
-                                        <span class="badge bg-warning">WARN</span>
+                                        <span class="badge bg-warning" data-badge>WARN</span>
                                     {% elif log.level == 'INFO' %}
-                                        <span class="badge bg-info">INFO</span>
+                                        <span class="badge bg-info" data-badge>INFO</span>
                                     {% elif log.level == 'DEBUG' %}
-                                        <span class="badge bg-secondary">DEBUG</span>
+                                        <span class="badge bg-secondary" data-badge>DEBUG</span>
                                     {% else %}
-                                        <span class="badge bg-light text-dark">{{ log.level }}</span>
+                                        <span class="badge bg-light text-dark" data-badge>{{ log.level }}</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -215,7 +215,7 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-info" onclick="viewLogDetails({{ log.id }})">
+                                    <button class="c-btn c-btn--sm c-btn--outline-info js-view-log-details" data-action="view-log-details" data-log-id="{{ log.id }}">
                                         <i class="ti ti-eye"></i>
                                     </button>
                                 </td>
@@ -226,20 +226,20 @@
                 </div>
                 
                 <!-- Live Tail Area (hidden by default) -->
-                <div id="liveTailArea" class="p-3 bg-dark text-light font-monospace" style="display: none; height: 300px; overflow-y: auto;">
+                <div id="liveTailArea" class="p-3 bg-dark text-light font-monospace u-hidden u-h-300 u-overflow-y-auto">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <small class="text-success">● Live tail active</small>
-                        <button class="btn btn-sm btn-outline-light" onclick="stopTail()">Stop</button>
+                        <button class="c-btn c-btn--sm c-btn--outline-light js-stop-tail" data-action="stop-tail">Stop</button>
                     </div>
                     <div id="liveTailContent"></div>
                 </div>
                 
                 {% else %}
                 <div class="text-center py-5">
-                    <i class="ti ti-file-x text-muted" style="font-size: 4rem;"></i>
+                    <i class="ti ti-file-x text-muted icon-empty-state"></i>
                     <h5 class="text-muted mt-3">No Log Entries</h5>
                     <p class="text-muted">No log entries match the current filter criteria.</p>
-                    <a href="{{ url_for('admin_panel.system_logs') }}" class="btn btn-outline-primary">
+                    <a href="{{ url_for('admin_panel.system_logs') }}" class="c-btn c-btn--outline-primary">
                         <i class="ti ti-refresh me-1"></i>Clear Filters
                     </a>
                 </div>
@@ -252,6 +252,7 @@
 {% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
 .log-entry-error {
     background-color: rgba(220, 53, 69, 0.05);
@@ -280,9 +281,55 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
 let liveTailActive = false;
 let liveTailInterval = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Refresh logs button
+    document.querySelectorAll('.js-refresh-logs').forEach(btn => {
+        btn.addEventListener('click', function() {
+            refreshLogs();
+        });
+    });
+
+    // Export logs button
+    document.querySelectorAll('.js-export-logs').forEach(btn => {
+        btn.addEventListener('click', function() {
+            exportLogs();
+        });
+    });
+
+    // Clear old logs button
+    document.querySelectorAll('.js-clear-old-logs').forEach(btn => {
+        btn.addEventListener('click', function() {
+            clearOldLogs();
+        });
+    });
+
+    // Start tail button
+    document.querySelectorAll('.js-start-tail').forEach(btn => {
+        btn.addEventListener('click', function() {
+            startTail();
+        });
+    });
+
+    // Stop tail button
+    document.querySelectorAll('.js-stop-tail').forEach(btn => {
+        btn.addEventListener('click', function() {
+            stopTail();
+        });
+    });
+
+    // View log details buttons
+    document.querySelectorAll('.js-view-log-details').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const logId = this.dataset.logId;
+            viewLogDetails(logId);
+        });
+    });
+});
 
 function refreshLogs() {
     location.reload();
@@ -311,10 +358,10 @@ function clearOldLogs() {
 
 function startTail() {
     if (liveTailActive) return;
-    
+
     liveTailActive = true;
-    document.getElementById('liveTailArea').style.display = 'block';
-    
+    document.getElementById('liveTailArea').classList.remove('u-hidden');
+
     // Simulate live tail
     liveTailInterval = setInterval(() => {
         const tailContent = document.getElementById('liveTailContent');
@@ -330,7 +377,7 @@ function stopTail() {
         clearInterval(liveTailInterval);
         liveTailInterval = null;
     }
-    document.getElementById('liveTailArea').style.display = 'none';
+    document.getElementById('liveTailArea').classList.add('u-hidden');
 }
 
 function viewLogDetails(logId) {
@@ -341,7 +388,7 @@ function viewLogDetails(logId) {
             <div class="text-start">
                 <div class="mb-3">
                     <strong>Timestamp:</strong> 2024-01-31 12:00:00<br>
-                    <strong>Level:</strong> <span class="badge bg-danger">ERROR</span><br>
+                    <strong>Level:</strong> <span class="badge bg-danger" data-badge>ERROR</span><br>
                     <strong>Component:</strong> app.admin_panel<br>
                     <strong>Thread:</strong> MainThread
                 </div>
@@ -351,7 +398,7 @@ function viewLogDetails(logId) {
                 </div>
                 <div class="mb-3">
                     <strong>Stack Trace:</strong><br>
-                    <pre class="bg-dark text-light p-2 rounded" style="max-height: 200px; overflow-y: auto;">
+                    <pre class="bg-dark text-light p-2 rounded" class="u-max-h-200-scroll">
 Traceback (most recent call last):
   File "app.py", line 123, in handle_request
     result = process_data(data)

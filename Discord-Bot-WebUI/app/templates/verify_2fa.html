@@ -1,204 +1,71 @@
 {% extends "base_unauthenticated.html" %}
 
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/verify-2fa.css') }}" />
+{% endblock %}
+
 {% block main_content %}
-<style>
-    /* Modern styling for 2FA verification page */
-    :root {
-        --primary-color: #00539F;
-        --primary-light: rgba(0, 83, 159, 0.1);
-        --primary-hover: #0066CC;
-        --accent-color: #50C878; /* Emerald green */
-        --box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
-        --border-radius: 12px;
-        --animation-duration: 0.8s;
-    }
 
-    .authentication-wrapper {
-        min-height: 100vh;
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 2rem;
-        background: linear-gradient(135deg, var(--ecs-neutral-5, #f5f5f5) 0%, var(--ecs-primary-subtle, #ecf6ff) 100%);
-    }
+<div class="c-auth-wrapper">
+    <div class="c-auth-inner">
+        <div class="c-auth-2fa">
+            <div class="c-auth-2fa__accent"></div>
 
-    .authentication-inner {
-        width: 100%;
-        max-width: 420px;
-        background-color: white;
-        padding: 2.5rem;
-        box-shadow: var(--box-shadow);
-        border-radius: var(--border-radius);
-        text-align: center;
-        position: relative;
-        overflow: hidden;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
+            <div class="c-auth-2fa__icon">
+                <i class="ti ti-shield-lock"></i>
+            </div>
 
-    .authentication-inner:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-    }
-    
-    .accent-bar {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 6px;
-        background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
-    }
+            <h1 class="c-auth-2fa__title">Two-Factor Authentication</h1>
+            <p class="c-auth-2fa__subtitle">Please enter the 6-digit code from your authenticator app to verify your identity</p>
 
-    .auth-title {
-        font-weight: 700;
-        color: #333;
-        margin-bottom: 1.5rem;
-        font-size: 1.5rem;
-    }
+            <form method="POST"
+                  action="{{ url_for('auth.verify_2fa_login', user_id=user_id) }}"
+                  id="twoFactorForm"
+                  data-form="2fa-verify">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="user_id" value="{{ user_id }}">
 
-    .auth-subtitle {
-        color: #666;
-        margin-bottom: 2rem;
-        font-size: 1rem;
-        line-height: 1.5;
-    }
+                <div class="c-form-modern__group">
+                    <label for="token" class="c-form-modern__label c-visually-hidden">
+                        Authentication Code
+                    </label>
+                    <input type="text"
+                           id="token"
+                           name="token"
+                           class="c-form-modern__input c-form-modern__input--2fa"
+                           placeholder="• • • • • •"
+                           maxlength="6"
+                           autocomplete="off"
+                           inputmode="numeric"
+                           autofocus
+                           pattern="[0-9]{6}"
+                           required
+                           aria-label="Enter 6-digit authentication code"
+                           aria-describedby="2fa-help">
+                    <div class="c-form-modern__feedback c-form-modern__feedback--invalid" role="alert">
+                        Please enter a valid 6-digit code
+                    </div>
+                </div>
 
-    .auth-icon {
-        margin-bottom: 1.5rem;
-        display: inline-block;
-    }
+                <div class="c-auth-2fa__actions">
+                    <button type="submit" class="c-btn-modern c-btn-modern--primary c-btn-modern--block">
+                        <i class="ti ti-check"></i>
+                        <span>Verify and Continue</span>
+                    </button>
+                </div>
+            </form>
 
-    .auth-icon i {
-        font-size: 3rem;
-        color: var(--primary-color);
-        animation: pulse var(--animation-duration) infinite alternate;
-    }
-
-    .token-input {
-        padding: 1rem;
-        font-size: 1.2rem;
-        letter-spacing: 2px;
-        text-align: center;
-        font-weight: 600;
-        border: 2px solid var(--ecs-neutral-20, #e0e0e0);
-        border-radius: 8px;
-        transition: all 0.3s;
-        background-color: var(--ecs-neutral-5, #fafafa);
-    }
-
-    .token-input:focus {
-        border-color: var(--primary-color);
-        background-color: white;
-        box-shadow: 0 0 0 3px var(--primary-light);
-    }
-
-    .verify-btn {
-        background-color: var(--primary-color);
-        color: white;
-        font-weight: 600;
-        padding: 1rem;
-        border-radius: 8px;
-        font-size: 1rem;
-        width: 100%;
-        transition: all 0.3s ease;
-        border: none;
-        cursor: pointer;
-    }
-
-    .verify-btn:hover {
-        background-color: var(--primary-hover);
-        transform: translateY(-2px);
-    }
-
-    .help-text {
-        margin-top: 1.5rem;
-        font-size: 0.875rem;
-        color: #777;
-    }
-
-    /* Animation keyframes */
-    @keyframes pulse {
-        0% { transform: scale(1); }
-        100% { transform: scale(1.1); }
-    }
-
-    /* Digit input animation */
-    .token-input.animate {
-        animation: shake 0.5s;
-    }
-
-    @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-        20%, 40%, 60%, 80% { transform: translateX(5px); }
-    }
-</style>
-
-<div class="authentication-wrapper">
-    <div class="authentication-inner">
-        <div class="accent-bar"></div>
-        
-        <div class="auth-icon">
-            <i class="ti ti-shield-lock"></i>
+            <div class="c-auth-2fa__help" id="2fa-help">
+                <p>
+                    Having trouble? <a href="{{ url_for('auth.login') }}" class="c-link" data-action="back-to-login">Return to login</a>
+                </p>
+            </div>
         </div>
-        
-        <h2 class="auth-title">Two-Factor Authentication</h2>
-        <p class="auth-subtitle">Please enter the 6-digit code from your authenticator app to verify your identity</p>
-        
-        <form method="POST" action="{{ url_for('auth.verify_2fa_login', user_id=user_id) }}" id="twoFactorForm">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <!-- Hidden input to always carry the user_id throughout the form submission -->
-            <input type="hidden" name="user_id" value="{{ user_id }}">
-            <div class="mb-4">
-                <input type="text" name="token" class="form-control token-input" 
-                       placeholder="• • • • • •" maxlength="6" autocomplete="off" 
-                       inputmode="numeric" autofocus pattern="[0-9]{6}" required>
-            </div>
-            
-            <div class="d-grid">
-                <button type="submit" class="btn verify-btn">
-                    <i class="ti ti-check me-2"></i> Verify and Continue
-                </button>
-            </div>
-        </form>
-        
-        <p class="help-text">
-            Having trouble? <a href="{{ url_for('auth.login') }}" class="text-primary">Return to login</a>
-        </p>
     </div>
 </div>
+{% endblock %}
 
-<script>
-    // Add animation to the input when user enters an invalid code
-    document.addEventListener('DOMContentLoaded', function() {
-        // Check for error messages
-        const hasError = document.querySelector('.alert-danger');
-        if (hasError) {
-            const input = document.querySelector('.token-input');
-            input.classList.add('animate');
-            setTimeout(() => {
-                input.classList.remove('animate');
-            }, 500);
-        }
-        
-        // Auto-focus input
-        const tokenInput = document.querySelector('.token-input');
-        if (tokenInput) {
-            setTimeout(() => {
-                tokenInput.focus();
-            }, 500);
-        }
-        
-        // Make sure form submission uses POST to the current URL with query params
-        const form = document.getElementById('twoFactorForm');
-        if (form) {
-            form.addEventListener('submit', function(e) {
-                // Get the current URL with query params
-                const currentUrl = window.location.href;
-                form.action = currentUrl;
-            });
-        }
-    });
-</script>
+{% block custom_js %}
+{{ super() }}
+<script src="{{ url_for('static', filename='custom_js/verify-2fa.js') }}"></script>
 {% endblock %}

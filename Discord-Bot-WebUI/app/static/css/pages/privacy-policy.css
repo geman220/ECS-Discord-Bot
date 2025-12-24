@@ -1,0 +1,428 @@
+/**
+ * Privacy Policy Page Styles
+ * Modern, clean design with excellent readability
+ * Extracted from inline styles in privacy_policy.html
+ */
+
+/* ========================================
+   Page Component
+   ======================================== */
+
+.c-privacy-page {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 2rem 0;
+}
+
+/* ========================================
+   Privacy Header Component
+   ======================================== */
+
+.c-privacy-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.c-privacy-header__logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.c-privacy-header__logo-img {
+  height: 40px;
+  width: auto;
+}
+
+.c-privacy-header__title {
+  font-weight: 700;
+  color: var(--color-text-primary, #18181B);
+  font-size: 2rem;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.c-privacy-header__subtitle {
+  color: rgba(30, 41, 59, 0.8);
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* ========================================
+   Privacy Card Component
+   ======================================== */
+
+.c-privacy-card {
+  background: white;
+  border: none;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  margin-bottom: 2rem;
+}
+
+.c-privacy-card__header {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  text-align: center;
+  padding: 2rem;
+  border-bottom: none;
+}
+
+.c-privacy-card__title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem 0;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.c-privacy-card__title i {
+  font-size: 2.25rem;
+}
+
+.c-privacy-card__meta {
+  margin: 0;
+  opacity: 0.9;
+}
+
+.c-privacy-card__body {
+  padding: 3rem 2.5rem;
+  color: var(--color-text-primary, #18181B);
+}
+
+/* ========================================
+   Privacy Section Component
+   ======================================== */
+
+.c-privacy-section {
+  margin-bottom: 2.5rem;
+}
+
+.c-privacy-section:last-child {
+  margin-bottom: 0;
+}
+
+.c-privacy-section__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-primary, #2563EB);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.c-privacy-section__title i {
+  font-size: 1.75rem;
+}
+
+.c-privacy-section__subtitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #18181B);
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.c-privacy-section__text {
+  color: var(--color-text-secondary, #3F3F46);
+  line-height: 1.7;
+  margin-bottom: 1rem;
+}
+
+.c-privacy-section__list {
+  color: var(--color-text-secondary, #3F3F46);
+  line-height: 1.8;
+  padding-left: 1.5rem;
+}
+
+.c-privacy-section__list li {
+  margin-bottom: 0.75rem;
+}
+
+.c-privacy-section__list strong {
+  color: var(--color-text-primary, #18181B);
+  font-weight: 600;
+}
+
+.c-privacy-section__actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+/* ========================================
+   Alert Component (within privacy)
+   ======================================== */
+
+.c-privacy-section .c-alert {
+  border-radius: 0.75rem;
+  border-left: 4px solid;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.c-privacy-section .c-alert--danger {
+  background: rgba(239, 68, 68, 0.05);
+  border-left-color: #ef4444;
+}
+
+.c-privacy-section .c-alert--success {
+  background: rgba(16, 185, 129, 0.05);
+  border-left-color: #10b981;
+}
+
+.c-privacy-section .c-alert--info {
+  background: rgba(59, 130, 246, 0.05);
+  border-left-color: var(--color-primary, #2563EB);
+}
+
+.c-privacy-section .c-alert--warning {
+  background: rgba(245, 158, 11, 0.05);
+  border-left-color: #f59e0b;
+}
+
+.c-privacy-section .c-alert__icon {
+  font-size: 1.5rem;
+  margin-right: 1rem;
+  vertical-align: middle;
+}
+
+.c-privacy-section .c-alert__content {
+  flex: 1;
+}
+
+.c-privacy-section .c-alert__heading {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.c-privacy-section .c-alert--danger .c-alert__heading {
+  color: #dc2626;
+}
+
+.c-privacy-section .c-alert--success .c-alert__heading {
+  color: #059669;
+}
+
+.c-privacy-section .c-alert--info .c-alert__heading {
+  color: #2563eb;
+}
+
+.c-privacy-section .c-alert__text {
+  color: var(--color-text-secondary, #3F3F46);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.c-privacy-section .c-alert__list {
+  margin: 0.75rem 0 0 0;
+  padding-left: 1.25rem;
+  color: var(--color-text-secondary, #3F3F46);
+}
+
+.c-privacy-section .c-alert__list li {
+  margin-bottom: 0.5rem;
+}
+
+.c-privacy-section .c-alert__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.c-privacy-section .c-alert__note {
+  display: block;
+  margin-top: 0.75rem;
+  color: var(--color-text-muted, #52525B);
+  font-size: 0.875rem;
+}
+
+/* ========================================
+   Compliance Grid Component
+   ======================================== */
+
+.c-compliance-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.c-compliance-item {
+  text-align: center;
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.c-compliance-item:hover {
+  border-color: var(--color-primary, #2563EB);
+  background: rgba(59, 130, 246, 0.02);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+}
+
+.c-compliance-item__icon {
+  font-size: 3rem;
+  color: var(--color-primary, #2563EB);
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.c-compliance-item__label {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text-primary, #18181B);
+}
+
+/* ========================================
+   Privacy Footer Component
+   ======================================== */
+
+.c-privacy-footer {
+  text-align: center;
+  padding-top: 2rem;
+  margin-top: 2rem;
+  border-top: 1px solid #e2e8f0;
+  color: var(--color-text-muted, #52525B);
+}
+
+.c-privacy-footer__text {
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ========================================
+   Back Link Component
+   ======================================== */
+
+.c-back-link {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.c-back-link .btn {
+  font-weight: 600;
+  padding: 0.75rem 2rem;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.c-back-link .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+
+@media (max-width: 991.98px) {
+  .c-compliance-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .c-compliance-item {
+    padding: 1.25rem;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .c-privacy-page {
+    padding: 1rem 0;
+  }
+
+  .c-privacy-card__body {
+    padding: 2rem 1.5rem;
+  }
+
+  .c-privacy-card__title {
+    font-size: 1.5rem;
+  }
+
+  .c-privacy-section__title {
+    font-size: 1.25rem;
+  }
+
+  .c-privacy-section .c-alert__actions {
+    flex-direction: column;
+  }
+
+  .c-privacy-section .c-alert__actions .btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  .c-compliance-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 576px) {
+  .c-privacy-header__title {
+    font-size: 1.5rem;
+  }
+
+  .c-privacy-header__subtitle {
+    font-size: 0.875rem;
+  }
+
+  .c-privacy-card__header {
+    padding: 1.5rem;
+  }
+
+  .c-privacy-card__title {
+    font-size: 1.35rem;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .c-privacy-card__body {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .c-privacy-section {
+    margin-bottom: 2rem;
+  }
+
+  .c-privacy-section__title {
+    font-size: 1.125rem;
+  }
+
+  .c-compliance-item__icon {
+    font-size: 2.5rem;
+  }
+}
+
+/* ========================================
+   Smooth Scrolling
+   ======================================== */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* ========================================
+   Link Styling
+   ======================================== */
+
+a {
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}

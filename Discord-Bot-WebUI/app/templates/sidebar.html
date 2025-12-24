@@ -1,556 +1,547 @@
 <!-- Sidebar Menu -->
-<style>
-    /* Fix for menu-inner-shadow white bar issue */
-    .menu-inner-shadow {
-        background: linear-gradient(to bottom, #fff, rgba(255, 255, 255, 0)) !important;
-    }
-
-    /* Classic dark mode variant */
-    [data-style="dark"] .menu-inner-shadow {
-        background: linear-gradient(to bottom, var(--ecs-dark-bg-card, #2f3349), rgba(47, 51, 73, 0)) !important;
-    }
-
-    /* Modern theme light mode - use neutral gradient */
-    [data-theme-variant="modern"] .menu-inner-shadow {
-        background: linear-gradient(to bottom, var(--ecs-neutral-5, #FAFAFA), rgba(250, 250, 250, 0)) !important;
-    }
-
-    /* Modern theme dark mode - hide completely */
-    [data-theme-variant="modern"][data-style="dark"] .menu-inner-shadow {
-        display: none !important;
-    }
-
-</style>
-<aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
-    <div class="app-brand">
-        <a href="{{ url_for('main.index') }}" class="app-brand-link">
-            <span class="app-brand-logo">
-                <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="logo" height="23">
+<aside id="layout-menu" class="c-sidebar" role="navigation" aria-label="Main navigation" data-component="sidebar">
+    <!-- Header with Logo and Toggle -->
+    <div class="c-sidebar__header">
+        <a href="{{ url_for('main.index') }}" class="c-sidebar__brand" data-action="navigate-home">
+            <span class="c-sidebar__logo">
+                <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS Logo" class="c-sidebar__logo-img">
             </span>
-            <span class="app-brand-text menu-text fw-bold">ECS</span>
+            <span class="c-sidebar__brand-text">ECS</span>
         </a>
 
-        <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">
-            <!-- Hamburger icon for larger screens -->
-            <i class="ti ti-menu-2 d-none d-xl-block align-middle menu-toggle-icon"></i>
-            <!-- X icon for smaller screens -->
-            <i class="ti ti-x d-block d-xl-none ti-md align-middle" id="close-icon"></i>
-        </a>
+        <button type="button" class="c-sidebar__toggle" data-action="toggle-sidebar" aria-label="Toggle navigation menu">
+            <i class="ti ti-menu-2 c-sidebar__toggle-icon c-sidebar__toggle-icon--desktop" aria-hidden="true"></i>
+            <i class="ti ti-x c-sidebar__toggle-icon c-sidebar__toggle-icon--mobile" aria-hidden="true"></i>
+        </button>
     </div>
 
-    <div class="menu-inner-shadow"></div>
+    <div class="c-sidebar__shadow"></div>
 
-    <ul class="menu-inner py-1">
-        <!-- Global Admin Section Header -->
-        <li class="menu-header small text-uppercase">
-            <span class="menu-header-text">Main</span>
-        </li>
+    <!-- Main Navigation -->
+    <!-- Note: menu-inner class required for Vuexy menu.js PerfectScrollbar compatibility -->
+    <nav class="c-sidebar__nav menu-inner">
+        <ul class="c-sidebar__list" role="list">
+            <!-- Main Section Header -->
+            <li class="c-sidebar__header-item" role="presentation">
+                <span class="c-sidebar__header-label">Main</span>
+            </li>
 
-        <!-- Dashboard - Available for everyone logged in -->
-        {% if safe_current_user.is_authenticated %}
-        <li class="menu-item {{ 'active' if request.endpoint == 'main.index' }}">
-            <a class="menu-link" href="{{ url_for('main.index') }}">
-                <i data-feather="home" class="menu-icon"></i>
-                <div>Dashboard</div>
-            </a>
-        </li>
-        {% endif %}
+            <!-- Dashboard -->
+            {% if safe_current_user.is_authenticated %}
+            <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'main.index' }}" role="none">
+                <a class="c-sidebar__link" href="{{ url_for('main.index') }}" data-action="navigate" role="menuitem">
+                    <i data-feather="home" class="c-sidebar__icon" aria-hidden="true"></i>
+                    <span class="c-sidebar__label">Dashboard</span>
+                </a>
+            </li>
+            {% endif %}
 
-        <!-- Feedback - Anyone Authenticated -->
-        {% if safe_current_user.is_authenticated %}
-        <li class="menu-item {{ 'active' if request.endpoint == 'feedback.submit_feedback' }}">
-            <a class="menu-link feedback-link" href="{{ url_for('feedback.submit_feedback') }}">
-                <i data-feather="alert-circle" class="menu-icon"></i>
-                <div>Submit Feedback / Bug</div>
-            </a>
-        </li>
-        {% endif %}
+            <!-- Feedback -->
+            {% if safe_current_user.is_authenticated %}
+            <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'feedback.submit_feedback' }}" role="none">
+                <a class="c-sidebar__link" href="{{ url_for('feedback.submit_feedback') }}" data-action="navigate" role="menuitem">
+                    <i data-feather="alert-circle" class="c-sidebar__icon" aria-hidden="true"></i>
+                    <span class="c-sidebar__label">Submit Feedback / Bug</span>
+                </a>
+            </li>
+            {% endif %}
 
-        <!-- Coach Dashboard - Coaches and Admins -->
-        {% if 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles or 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
-        <li class="menu-item {{ 'active' if request.endpoint == 'teams.coach_dashboard' }}">
-            <a class="menu-link" href="{{ url_for('teams.coach_dashboard') }}">
-                <i data-feather="clipboard" class="menu-icon"></i>
-                <div>Coach Dashboard</div>
-            </a>
-        </li>
-        {% endif %}
+            <!-- Coach Dashboard -->
+            {% if 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles or 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+            <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'teams.coach_dashboard' }}" role="none">
+                <a class="c-sidebar__link" href="{{ url_for('teams.coach_dashboard') }}" data-action="navigate" role="menuitem">
+                    <i data-feather="clipboard" class="c-sidebar__icon" aria-hidden="true"></i>
+                    <span class="c-sidebar__label">Coach Dashboard</span>
+                </a>
+            </li>
+            {% endif %}
 
-        <!-- Help Topics - Available for everyone logged in -->
-        {% if safe_current_user.is_authenticated %}
-        <li class="menu-item {{ 'active' if request.endpoint == 'help.index' }}">
-            <a class="menu-link" href="{{ url_for('help.index') }}">
-                <i data-feather="help-circle" class="menu-icon"></i>
-                <div>Help Topics</div>
-            </a>
-        </li>
-        {% endif %}
+            <!-- Help Topics -->
+            {% if safe_current_user.is_authenticated %}
+            <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'help.index' }}" role="none">
+                <a class="c-sidebar__link" href="{{ url_for('help.index') }}" data-action="navigate" role="menuitem">
+                    <i data-feather="help-circle" class="c-sidebar__icon" aria-hidden="true"></i>
+                    <span class="c-sidebar__label">Help Topics</span>
+                </a>
+            </li>
+            {% endif %}
 
-        {% set can_view_season_management = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
-        {% set can_view_draft = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles %}
-        {% set can_view_draft_predictions = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles %}
-        {% set can_view_teams = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles or 'pl-classic' in user_roles or 'pl-ecs-fc' in user_roles or 'pl-premier' in user_roles %}
-        {% set can_view_standings = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles %}
-        {% set can_view_calendar = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles or 'Pub League Ref' in user_roles %}
-        {% set can_view_any_ecsfc_section = can_view_season_management or can_view_draft or can_view_draft_predictions or can_view_standings or can_view_calendar or can_view_teams %}
+            {% set can_view_season_management = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+            {% set can_view_draft = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles %}
+            {% set can_view_draft_predictions = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles %}
+            {% set can_view_teams = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles or 'pl-classic' in user_roles or 'pl-ecs-fc' in user_roles or 'pl-premier' in user_roles %}
+            {% set can_view_standings = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles %}
+            {% set can_view_calendar = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles or 'Pub League Ref' in user_roles %}
+            {% set can_view_any_ecsfc_section = can_view_season_management or can_view_draft or can_view_draft_predictions or can_view_standings or can_view_calendar or can_view_teams %}
 
-        <!-- ECS FC Leagues - Only show if user has permission to view at least one link -->
-        {% if can_view_any_ecsfc_section %}
-        <li class="menu-header small text-uppercase">
-            <span class="menu-header-text">ECS FC League</span>
-        </li>
+            <!-- ECS FC League Section -->
+            {% if can_view_any_ecsfc_section %}
+            <li class="c-sidebar__header-item" role="presentation">
+                <span class="c-sidebar__header-label">ECS FC League</span>
+            </li>
 
-        {% if can_view_season_management %}
-        <!-- League Management Hub - Centralized System -->
-        <li class="menu-item {{ 'open' if 'league_management' in request.endpoint }}">
-            <a class="menu-link menu-toggle" href="javascript:void(0);">
-                <i class="ti ti-tournament menu-icon"></i>
-                <div>League Management <span class="badge bg-success ms-1" style="font-size: 0.65rem;">NEW</span></div>
-            </a>
-            <ul class="menu-sub">
-                <!-- New League Hub -->
-                <li class="menu-item {{ 'active' if request.endpoint == 'admin_panel.league_management_dashboard' }}">
-                    <a class="menu-link" href="{{ url_for('admin_panel.league_management_dashboard') }}">
-                        <div>League Hub Dashboard</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'admin_panel.season_wizard' }}">
-                    <a class="menu-link" href="{{ url_for('admin_panel.season_wizard') }}">
-                        <div>Season Wizard</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'admin_panel.league_management_teams' }}">
-                    <a class="menu-link" href="{{ url_for('admin_panel.league_management_teams') }}">
-                        <div>Teams</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'admin_panel.league_management_seasons' }}">
-                    <a class="menu-link" href="{{ url_for('admin_panel.league_management_seasons') }}">
-                        <div>Seasons</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'admin_panel.league_management_history' }}">
-                    <a class="menu-link" href="{{ url_for('admin_panel.league_management_history') }}">
-                        <div>History</div>
-                    </a>
-                </li>
-                <!-- Legacy Tools - Collapsible, closed by default -->
-                <li class="menu-item {{ 'open' if 'publeague' in request.path or 'auto-schedule' in request.path or 'playoff' in request.path }}">
-                    <a class="menu-link menu-toggle" href="javascript:void(0);">
-                        <i class="ti ti-archive menu-icon" style="font-size: 0.9rem;"></i>
-                        <div class="text-muted" style="font-size: 0.85rem;">Legacy Tools</div>
-                    </a>
-                    <ul class="menu-sub">
-                        <li class="menu-item {{ 'active' if request.endpoint == 'publeague.season.manage_seasons' }}">
-                            <a class="menu-link" href="{{ url_for('publeague.season.manage_seasons') }}">
-                                <div>Create Season</div>
-                            </a>
-                        </li>
-                        <li class="menu-item {{ 'active' if request.endpoint == 'publeague.manage_teams' }}">
-                            <a class="menu-link" href="{{ url_for('publeague.manage_teams') }}">
-                                <div>Create Teams</div>
-                            </a>
-                        </li>
-                        <li class="menu-item {{ 'active' if request.endpoint.endswith('manage_publeague_schedule') }}">
+            {% if can_view_season_management %}
+            <!-- League Management Hub -->
+            <li class="c-sidebar__item c-sidebar__item--expandable {{ 'is-open' if 'league_management' in request.endpoint }}" role="none" data-expandable>
+                <button type="button" class="c-sidebar__link c-sidebar__link--toggle" data-action="toggle-submenu" aria-expanded="{{ 'true' if 'league_management' in request.endpoint else 'false' }}" role="menuitem">
+                    <i class="ti ti-tournament c-sidebar__icon" aria-hidden="true"></i>
+                    <span class="c-sidebar__label">League Management <span class="c-badge c-badge--success c-badge--sm" data-badge aria-label="New feature">NEW</span></span>
+                    <i class="c-sidebar__chevron ti ti-chevron-down" aria-hidden="true"></i>
+                </button>
+                <ul class="c-sidebar__submenu" role="list">
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'admin_panel.league_management_dashboard' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('admin_panel.league_management_dashboard') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">League Hub Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'admin_panel.season_wizard' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('admin_panel.season_wizard') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Season Wizard</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'admin_panel.league_management_teams' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('admin_panel.league_management_teams') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Teams</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'admin_panel.league_management_seasons' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('admin_panel.league_management_seasons') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Seasons</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'admin_panel.league_management_history' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('admin_panel.league_management_history') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">History</span>
+                        </a>
+                    </li>
+
+                    <!-- Legacy Tools Nested Submenu -->
+                    <li class="c-sidebar__item c-sidebar__item--expandable {{ 'is-open' if 'publeague' in request.path or 'auto-schedule' in request.path or 'playoff' in request.path }}" role="none" data-expandable>
+                        <button type="button" class="c-sidebar__link c-sidebar__link--toggle c-sidebar__link--legacy" data-action="toggle-submenu" aria-expanded="{{ 'true' if 'publeague' in request.path or 'auto-schedule' in request.path or 'playoff' in request.path else 'false' }}" role="menuitem">
+                            <i class="ti ti-archive c-sidebar__icon c-sidebar__icon--legacy" aria-hidden="true"></i>
+                            <span class="c-sidebar__label c-sidebar__label--legacy">Legacy Tools</span>
+                            <i class="c-sidebar__chevron ti ti-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <ul class="c-sidebar__submenu c-sidebar__submenu--nested" role="list">
+                            <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'publeague.season.manage_seasons' }}" role="none">
+                                <a class="c-sidebar__link" href="{{ url_for('publeague.season.manage_seasons') }}" data-action="navigate" role="menuitem">
+                                    <span class="c-sidebar__label">Create Season</span>
+                                </a>
+                            </li>
+                            <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'publeague.manage_teams' }}" role="none">
+                                <a class="c-sidebar__link" href="{{ url_for('publeague.manage_teams') }}" data-action="navigate" role="menuitem">
+                                    <span class="c-sidebar__label">Create Teams</span>
+                                </a>
+                            </li>
+                            <li class="c-sidebar__item {{ 'is-active' if request.endpoint.endswith('manage_publeague_schedule') }}" role="none">
+                                {% if current_pub_league_season %}
+                                <a class="c-sidebar__link" href="{{ url_for('publeague.schedule.manage_publeague_schedule', season_id=current_pub_league_season.id) }}" data-action="navigate" role="menuitem">
+                                    <span class="c-sidebar__label">Pub League Schedule</span>
+                                </a>
+                                {% else %}
+                                <a class="c-sidebar__link c-sidebar__link--disabled" href="#" data-action="no-active-season" role="menuitem" aria-disabled="true">
+                                    <span class="c-sidebar__label">Pub League Schedule</span>
+                                </a>
+                                {% endif %}
+                            </li>
+                            <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'publeague.schedule.manage_ecsfc_schedule' }}" role="none">
+                                <a class="c-sidebar__link" href="{{ url_for('publeague.schedule.manage_ecsfc_schedule', season_id=g.current_ecs_fc_season.id if g.current_ecs_fc_season else 0) }}" data-action="navigate" role="menuitem">
+                                    <span class="c-sidebar__label">ECS FC Schedule</span>
+                                </a>
+                            </li>
+                            <li class="c-sidebar__item {{ 'is-active' if 'auto-schedule' in request.path }}" role="none">
+                                <a class="c-sidebar__link" href="{{ url_for('auto_schedule.schedule_manager') }}" data-action="navigate" role="menuitem">
+                                    <span class="c-sidebar__label">Auto Schedule</span>
+                                </a>
+                            </li>
                             {% if current_pub_league_season %}
-                            <a class="menu-link"
-                               href="{{ url_for('publeague.schedule.manage_publeague_schedule',
-                              season_id=current_pub_league_season.id) }}">
-                                <div>Pub League Schedule</div>
-                            </a>
-                            {% else %}
-                            <a class="menu-link" href="#" onclick="alert('No active Pub League season')">
-                                <div>Pub League Schedule</div>
-                            </a>
+                            <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'auto_schedule.view_seasonal_schedule' }}" role="none">
+                                <a class="c-sidebar__link" href="{{ url_for('auto_schedule.view_seasonal_schedule', season_id=current_pub_league_season.id) }}" data-action="navigate" role="menuitem">
+                                    <span class="c-sidebar__label">View Season Schedule</span>
+                                </a>
+                            </li>
+                            <li class="c-sidebar__item {{ 'is-active' if 'playoff' in request.path and 'generator' in request.path }}" role="none">
+                                <a class="c-sidebar__link" href="{{ url_for('playoff.playoff_generator_redirect') }}" data-action="navigate" role="menuitem">
+                                    <span class="c-sidebar__label">Playoff Generator</span>
+                                </a>
+                            </li>
+                            <li class="c-sidebar__item {{ 'is-active' if 'playoff' in request.path and 'bracket' in request.path }}" role="none">
+                                <a class="c-sidebar__link" href="{{ url_for('playoff.view_bracket_redirect') }}" data-action="navigate" role="menuitem">
+                                    <span class="c-sidebar__label">Playoff Bracket</span>
+                                </a>
+                            </li>
                             {% endif %}
-                        </li>
-                        <li class="menu-item {{ 'active' if request.endpoint == 'publeague.schedule.manage_ecsfc_schedule' }}">
-                            <a class="menu-link" href="{{ url_for('publeague.schedule.manage_ecsfc_schedule', season_id=g.current_ecs_fc_season.id if g.current_ecs_fc_season else 0) }}">
-                                <div>ECS FC Schedule</div>
-                            </a>
-                        </li>
-                        <li class="menu-item {{ 'active' if 'auto-schedule' in request.path }}">
-                            <a class="menu-link" href="{{ url_for('auto_schedule.schedule_manager') }}">
-                                <div>Auto Schedule</div>
-                            </a>
-                        </li>
-                        {% if current_pub_league_season %}
-                        <li class="menu-item {{ 'active' if request.endpoint == 'auto_schedule.view_seasonal_schedule' }}">
-                            <a class="menu-link" href="{{ url_for('auto_schedule.view_seasonal_schedule', season_id=current_pub_league_season.id) }}">
-                                <div>View Season Schedule</div>
-                            </a>
-                        </li>
-                        <li class="menu-item {{ 'active' if 'playoff' in request.path and 'generator' in request.path }}">
-                            <a class="menu-link" href="{{ url_for('playoff.playoff_generator_redirect') }}">
-                                <div>Playoff Generator</div>
-                            </a>
-                        </li>
-                        <li class="menu-item {{ 'active' if 'playoff' in request.path and 'bracket' in request.path }}">
-                            <a class="menu-link" href="{{ url_for('playoff.view_bracket_redirect') }}">
-                                <div>Playoff Bracket</div>
-                            </a>
-                        </li>
-                        {% endif %}
-                    </ul>
-                </li>
-            </ul>
-        </li>
-        {% endif %}
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+            {% endif %}
 
-        {% if can_view_draft %}
-        <!-- Draft - Pub League Admin / Global Admin / Pub League Coach -->
-        <li class="menu-item {{ 'open' if 'draft' in request.path }}">
-            <a class="menu-link menu-toggle" href="javascript:void(0);">
-                <i data-feather="list" class="menu-icon"></i>
-                <div>Draft</div>
-            </a>
-            <ul class="menu-sub">
-                <li class="menu-item {{ 'active' if request.endpoint == 'draft_enhanced.draft_league' and 'classic' in request.path }}">
-                    <a class="menu-link" href="{{ url_for('draft_enhanced.draft_league', league_name='classic') }}">
-                        <div>Classic Division</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'draft_enhanced.draft_league' and 'premier' in request.path }}">
-                    <a class="menu-link" href="{{ url_for('draft_enhanced.draft_league', league_name='premier') }}">
-                        <div>Premier Division</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'draft_enhanced.draft_league' and 'ecs_fc' in request.path }}">
-                    <a class="menu-link" href="{{ url_for('draft_enhanced.draft_league', league_name='ecs_fc') }}">
-                        <div>ECS FC Division</div>
-                    </a>
-                </li>
-                {% if can_view_draft_predictions %}
-                <li class="menu-item {{ 'active' if 'draft-predictions' in request.path }}">
-                    <a class="menu-link" href="{{ url_for('draft_predictions.index') }}">
-                        <div>Draft Predictions</div>
-                    </a>
-                </li>
-                {% endif %}
-                {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
-                <li class="menu-item {{ 'active' if request.endpoint == 'admin.draft_history' }}">
-                    <a class="menu-link" href="{{ url_for('admin.draft_history') }}">
-                        <div>Draft History</div>
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
-        </li>
-        {% endif %}
+            {% if can_view_draft %}
+            <!-- Draft Section -->
+            <li class="c-sidebar__item c-sidebar__item--expandable {{ 'is-open' if 'draft' in request.path }}" role="none" data-expandable>
+                <button type="button" class="c-sidebar__link c-sidebar__link--toggle" data-action="toggle-submenu" aria-expanded="{{ 'true' if 'draft' in request.path else 'false' }}" role="menuitem">
+                    <i data-feather="list" class="c-sidebar__icon" aria-hidden="true"></i>
+                    <span class="c-sidebar__label">Draft</span>
+                    <i class="c-sidebar__chevron ti ti-chevron-down" aria-hidden="true"></i>
+                </button>
+                <ul class="c-sidebar__submenu" role="list">
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'draft_enhanced.draft_league' and 'classic' in request.path }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('draft_enhanced.draft_league', league_name='classic') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Classic Division</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'draft_enhanced.draft_league' and 'premier' in request.path }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('draft_enhanced.draft_league', league_name='premier') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Premier Division</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'draft_enhanced.draft_league' and 'ecs_fc' in request.path }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('draft_enhanced.draft_league', league_name='ecs_fc') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">ECS FC Division</span>
+                        </a>
+                    </li>
+                    {% if can_view_draft_predictions %}
+                    <li class="c-sidebar__item {{ 'is-active' if 'draft-predictions' in request.path }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('draft_predictions.index') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Draft Predictions</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'admin.draft_history' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('admin.draft_history') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Draft History</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </li>
+            {% endif %}
 
+            <!-- Teams Overview -->
+            {% if can_view_teams and admin_settings.teams_navigation_enabled %}
+            <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'teams.teams_overview' }}" role="none">
+                <a class="c-sidebar__link" href="{{ url_for('teams.teams_overview') }}" data-action="navigate" role="menuitem">
+                    <i data-feather="users" class="c-sidebar__icon" aria-hidden="true"></i>
+                    <span class="c-sidebar__label">Teams</span>
+                </a>
+            </li>
+            {% endif %}
+            {% endif %}
 
-        <!-- Teams Overview -->
-        {% if can_view_teams and admin_settings.teams_navigation_enabled %}
-        <li class="menu-item {{ 'active' if request.endpoint == 'teams.teams_overview' }}">
-            <a class="menu-link teams-link" href="{{ url_for('teams.teams_overview') }}">
-                <i data-feather="users" class="menu-icon"></i>
-                <div>Teams</div>
-            </a>
-        </li>
-        {% endif %}
-        {% endif %}
+            <!-- Standings -->
+            {% if can_view_standings %}
+            <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'teams.view_standings' }}" role="none">
+                <a class="c-sidebar__link" href="{{ url_for('teams.view_standings') }}" data-action="navigate" role="menuitem">
+                    <i data-feather="bar-chart" class="c-sidebar__icon" aria-hidden="true"></i>
+                    <span class="c-sidebar__label">Standings</span>
+                </a>
+            </li>
+            {% endif %}
 
-        {% if can_view_standings %}
-        <li class="menu-item {{ 'active' if request.endpoint == 'teams.view_standings' }}">
-            <a class="menu-link" href="{{ url_for('teams.view_standings') }}">
-                <i data-feather="bar-chart" class="menu-icon"></i>
-                <div>Standings</div>
-            </a>
-        </li>
-        {% endif %}
+            <!-- League Store -->
+            {% set store_enabled = admin_settings.get('store_navigation_enabled', True) %}
+            {% if ('Pub League Coach' in user_roles or 'Pub League Admin' in user_roles or 'Global Admin' in user_roles) and (store_enabled or 'Global Admin' in user_roles) %}
+            <li class="c-sidebar__item {{ 'is-active' if 'store' in request.path }}" role="none">
+                <a class="c-sidebar__link" href="{{ url_for('store.index') }}" data-action="navigate" role="menuitem">
+                    <i class="ti ti-shopping-cart c-sidebar__icon" aria-hidden="true"></i>
+                    <span class="c-sidebar__label">League Store</span>
+                </a>
+            </li>
+            {% endif %}
 
-        <!-- League Store - Under Teams section for Coaches and Admins -->
-        {% set store_enabled = admin_settings.get('store_navigation_enabled', True) %}
-        {% if ('Pub League Coach' in user_roles or 'Pub League Admin' in user_roles or 'Global Admin' in user_roles) and (store_enabled or 'Global Admin' in user_roles) %}
-        <li class="menu-item {{ 'active' if 'store' in request.path }}">
-            <a class="menu-link" href="{{ url_for('store.index') }}">
-                <i class="ti ti-shopping-cart menu-icon"></i>
-                <div>League Store</div>
-            </a>
-        </li>
-        {% endif %}
+            <!-- Calendar -->
+            {% if can_view_calendar %}
+            <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'calendar.calendar_view' }}" role="none">
+                <a class="c-sidebar__link" href="{{ url_for('calendar.calendar_view') }}" data-action="navigate" role="menuitem">
+                    <i data-feather="calendar" class="c-sidebar__icon" aria-hidden="true"></i>
+                    <span class="c-sidebar__label">Pub League Calendar</span>
+                </a>
+            </li>
+            {% endif %}
 
-        {% if can_view_calendar %}
-        <li class="menu-item {{ 'active' if request.endpoint == 'calendar.calendar_view' }}">
-            <a class="menu-link" href="{{ url_for('calendar.calendar_view') }}">
-                <i data-feather="calendar" class="menu-icon"></i>
-                <div>Pub League Calendar</div>
-            </a>
-        </li>
-        {% endif %}
+            <!-- Admin Panel - Prominent -->
+            {% if 'Global Admin' in user_roles or 'Pub League Admin' in user_roles %}
+            <li class="c-sidebar__item {{ 'is-active' if request.blueprint == 'admin_panel' }}" role="none">
+                <a class="c-sidebar__link c-sidebar__link--primary" href="{{ url_for('admin_panel.dashboard') }}" data-action="navigate" role="menuitem">
+                    <i class="ti ti-layout-dashboard c-sidebar__icon" aria-hidden="true"></i>
+                    <span class="c-sidebar__label">Admin Panel <span class="c-badge c-badge--success c-badge--sm" data-badge aria-label="New feature">NEW</span></span>
+                </a>
+            </li>
+            {% endif %}
 
-        <!-- Admin Panel - NEW Centralized Control Center (Promoted to top) -->
-        {% if 'Global Admin' in user_roles or 'Pub League Admin' in user_roles %}
-        <li class="menu-item {{ 'active' if request.blueprint == 'admin_panel' }}">
-            <a class="menu-link" href="{{ url_for('admin_panel.dashboard') }}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; margin: 0.5rem 0;">
-                <i class="ti ti-layout-dashboard menu-icon" style="color: white;"></i>
-                <div style="color: white; font-weight: 600;">Admin Panel <span class="badge bg-success ms-2">NEW</span></div>
-            </a>
-        </li>
-        {% endif %}
+            <!-- Digital Wallets -->
+            {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+            <li class="c-sidebar__item c-sidebar__item--expandable {{ 'is-open' if 'wallet' in request.path and 'admin' in request.path }}" role="none" data-expandable>
+                <button type="button" class="c-sidebar__link c-sidebar__link--toggle" data-action="toggle-submenu" aria-expanded="{{ 'true' if 'wallet' in request.path and 'admin' in request.path else 'false' }}" role="menuitem">
+                    <i class="ti ti-device-mobile c-sidebar__icon" aria-hidden="true"></i>
+                    <span class="c-sidebar__label">Digital Wallets</span>
+                    <i class="c-sidebar__chevron ti ti-chevron-down" aria-hidden="true"></i>
+                </button>
+                <ul class="c-sidebar__submenu" role="list">
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint and 'wizard' in request.endpoint }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('wallet_config.setup_wizard') }}" data-action="navigate" role="menuitem">
+                            <i class="ti ti-wand c-sidebar__icon" aria-hidden="true"></i>
+                            <span class="c-sidebar__label">Setup Wizard</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'wallet_admin.wallet_management' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('wallet_admin.wallet_management') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint and request.endpoint.startswith('pass_studio.') }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('pass_studio.index') }}" data-action="navigate" role="menuitem">
+                            <i class="ti ti-brush c-sidebar__icon" aria-hidden="true"></i>
+                            <span class="c-sidebar__label">Pass Studio</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'wallet_admin.passes_list' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('wallet_admin.passes_list') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Manage Passes</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'wallet_admin.scanner' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('wallet_admin.scanner') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Scanner</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'wallet_admin.checkins_list' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('wallet_admin.checkins_list') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Check-ins</span>
+                        </a>
+                    </li>
+                    {% if 'Global Admin' in user_roles %}
+                    <li class="c-sidebar__item c-sidebar__item--expandable {{ 'is-open' if request.endpoint and request.endpoint in ['wallet_config.diagnostics', 'wallet_config.help_page'] }}" role="none" data-expandable>
+                        <button type="button" class="c-sidebar__link c-sidebar__link--toggle" data-action="toggle-submenu" aria-expanded="{{ 'true' if request.endpoint and request.endpoint in ['wallet_config.diagnostics', 'wallet_config.help_page'] else 'false' }}" role="menuitem">
+                            <i class="ti ti-settings c-sidebar__icon" aria-hidden="true"></i>
+                            <span class="c-sidebar__label">Settings</span>
+                            <i class="c-sidebar__chevron ti ti-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <ul class="c-sidebar__submenu c-sidebar__submenu--nested" role="list">
+                            <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'wallet_config.diagnostics' }}" role="none">
+                                <a class="c-sidebar__link" href="{{ url_for('wallet_config.diagnostics') }}" data-action="navigate" role="menuitem">
+                                    <span class="c-sidebar__label">Diagnostics</span>
+                                </a>
+                            </li>
+                            <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'wallet_config.help_page' }}" role="none">
+                                <a class="c-sidebar__link" href="{{ url_for('wallet_config.help_page') }}" data-action="navigate" role="menuitem">
+                                    <span class="c-sidebar__label">Help & Docs</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    {% endif %}
+                </ul>
+            </li>
+            {% endif %}
 
-        <!-- Digital Wallet Pass Management - Standalone Feature (Not Legacy) -->
-        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
-        <li class="menu-item {{ 'open' if 'wallet' in request.path and 'admin' in request.path }}">
-            <a class="menu-link menu-toggle" href="javascript:void(0);">
-                <i class="ti ti-device-mobile menu-icon"></i>
-                <div>Digital Wallets</div>
-            </a>
-            <ul class="menu-sub">
-                <li class="menu-item {{ 'active' if request.endpoint and 'wizard' in request.endpoint }}">
-                    <a class="menu-link" href="{{ url_for('wallet_config.setup_wizard') }}">
-                        <div><i class="ti ti-wand me-1"></i>Setup Wizard</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'wallet_admin.wallet_management' }}">
-                    <a class="menu-link" href="{{ url_for('wallet_admin.wallet_management') }}">
-                        <div>Dashboard</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint and request.endpoint.startswith('pass_studio.') }}">
-                    <a class="menu-link" href="{{ url_for('pass_studio.index') }}">
-                        <div><i class="ti ti-brush me-1"></i>Pass Studio</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'wallet_admin.passes_list' }}">
-                    <a class="menu-link" href="{{ url_for('wallet_admin.passes_list') }}">
-                        <div>Manage Passes</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'wallet_admin.scanner' }}">
-                    <a class="menu-link" href="{{ url_for('wallet_admin.scanner') }}">
-                        <div>Scanner</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'wallet_admin.checkins_list' }}">
-                    <a class="menu-link" href="{{ url_for('wallet_admin.checkins_list') }}">
-                        <div>Check-ins</div>
-                    </a>
-                </li>
-                {% if 'Global Admin' in user_roles %}
-                <li class="menu-item {{ 'open' if request.endpoint and request.endpoint in ['wallet_config.diagnostics', 'wallet_config.help_page'] }}">
-                    <a class="menu-link menu-toggle" href="javascript:void(0);">
-                        <div><i class="ti ti-settings me-1"></i>Settings</div>
-                    </a>
-                    <ul class="menu-sub">
-                        <li class="menu-item {{ 'active' if request.endpoint == 'wallet_config.diagnostics' }}">
-                            <a class="menu-link" href="{{ url_for('wallet_config.diagnostics') }}">
-                                <div>Diagnostics</div>
-                            </a>
-                        </li>
-                        <li class="menu-item {{ 'active' if request.endpoint == 'wallet_config.help_page' }}">
-                            <a class="menu-link" href="{{ url_for('wallet_config.help_page') }}">
-                                <div>Help & Docs</div>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                {% endif %}
-            </ul>
-        </li>
-        {% endif %}
+            <!-- Legacy Admin Section -->
+            {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Discord Admin' in user_roles %}
+            {% set legacy_active = (
+                request.endpoint == 'admin.discord_management' or
+                request.endpoint in ['admin.manage_polls', 'admin.create_poll', 'admin.poll_results'] or
+                ('message' in request.path and 'admin' in request.path) or
+                request.endpoint == 'admin.view_scheduled_messages' or
+                request.endpoint == 'admin.validate_scheduled_messages' or
+                request.endpoint == 'admin.user_approvals' or
+                request.endpoint == 'admin.user_waitlist' or
+                request.endpoint == 'user_management.manage_users' or
+                'user_management' in request.path or
+                'duplicate_management' in request.path or
+                request.endpoint.startswith('duplicate_management.') or
+                'substitute' in request.path or
+                'sub_requests' in request.path or
+                request.endpoint == 'teams.season_overview' or
+                request.endpoint == 'admin.match_verification_dashboard' or
+                ('notifications' in request.path and 'admin' in request.path) or
+                request.endpoint == 'security_status.security_dashboard' or
+                request.endpoint == 'admin.match_management' or
+                request.endpoint == 'monitoring.monitor_dashboard' or
+                request.endpoint == 'monitoring.db_monitoring' or
+                request.endpoint == 'admin.admin_dashboard' or
+                request.endpoint == 'design.design_guide' or
+                request.endpoint == 'admin.discord_onboarding.admin_test_onboarding' or
+                request.endpoint == 'bot_admin.bot_management' or
+                request.endpoint == 'admin.admin_reports' or
+                request.blueprint == 'ai_prompts'
+            ) %}
+            <li class="c-sidebar__item c-sidebar__item--expandable {{ 'is-open' if legacy_active }}" role="none" data-expandable>
+                <button type="button" class="c-sidebar__link c-sidebar__link--toggle c-sidebar__link--legacy" data-action="toggle-submenu" aria-expanded="{{ 'true' if legacy_active else 'false' }}" role="menuitem">
+                    <i class="ti ti-archive c-sidebar__icon c-sidebar__icon--legacy" aria-hidden="true"></i>
+                    <span class="c-sidebar__label c-sidebar__label--legacy">Legacy Admin <span class="c-badge c-badge--warning c-badge--sm" data-badge aria-label="Old feature">Old</span></span>
+                    <i class="c-sidebar__chevron ti ti-chevron-down" aria-hidden="true"></i>
+                </button>
+                <ul class="c-sidebar__submenu" role="list">
+                    <!-- Info banner -->
+                    <li class="c-sidebar__item c-sidebar__item--info" role="none">
+                        <div class="c-sidebar__info-banner">
+                            <span class="c-sidebar__info-text">
+                                <i class="ti ti-info-circle" aria-hidden="true"></i>Use <a href="{{ url_for('admin_panel.dashboard') }}" class="c-sidebar__info-link" data-action="navigate">Admin Panel</a> instead
+                            </span>
+                        </div>
+                    </li>
 
-        <!-- LEGACY SECTION - Collapsed by default, contains old admin routes -->
-        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Discord Admin' in user_roles %}
-        {% set legacy_active = (
-            request.endpoint == 'admin.discord_management' or
-            request.endpoint in ['admin.manage_polls', 'admin.create_poll', 'admin.poll_results'] or
-            ('message' in request.path and 'admin' in request.path) or
-            request.endpoint == 'admin.view_scheduled_messages' or
-            request.endpoint == 'admin.validate_scheduled_messages' or
-            request.endpoint == 'admin.user_approvals' or
-            request.endpoint == 'admin.user_waitlist' or
-            request.endpoint == 'user_management.manage_users' or
-            'user_management' in request.path or
-            'duplicate_management' in request.path or
-            request.endpoint.startswith('duplicate_management.') or
-            'substitute' in request.path or
-            'sub_requests' in request.path or
-            request.endpoint == 'teams.season_overview' or
-            request.endpoint == 'admin.match_verification_dashboard' or
-            ('notifications' in request.path and 'admin' in request.path) or
-            request.endpoint == 'security_status.security_dashboard' or
-            request.endpoint == 'admin.match_management' or
-            request.endpoint == 'monitoring.monitor_dashboard' or
-            request.endpoint == 'monitoring.db_monitoring' or
-            request.endpoint == 'admin.admin_dashboard' or
-            request.endpoint == 'design.design_guide' or
-            request.endpoint == 'admin.discord_onboarding.admin_test_onboarding' or
-            request.endpoint == 'bot_admin.bot_management' or
-            request.endpoint == 'admin.admin_reports' or
-            request.blueprint == 'ai_prompts'
-        ) %}
-        <li class="menu-item {{ 'open' if legacy_active }}">
-            <a class="menu-link menu-toggle" href="javascript:void(0);">
-                <i class="ti ti-archive menu-icon"></i>
-                <div>Legacy Admin <span class="badge bg-warning text-dark ms-1" style="font-size: 0.6rem;">Old</span></div>
-            </a>
-            <ul class="menu-sub">
-                <!-- Info banner -->
-                <li class="menu-item">
-                    <div class="px-3 py-2" style="background: rgba(255, 193, 7, 0.1); border-left: 3px solid #ffc107; margin: 0 0.25rem 0.5rem; border-radius: 4px;">
-                        <small class="text-muted d-block" style="font-size: 0.65rem;">
-                            <i class="ti ti-info-circle me-1"></i>Use <a href="{{ url_for('admin_panel.dashboard') }}" class="text-primary">Admin Panel</a> instead
-                        </small>
-                    </div>
-                </li>
+                    <!-- Discord Tools -->
+                    {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'admin.discord_management' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('admin.discord_management') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Discord Join Status</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint in ['admin.manage_polls', 'admin.create_poll', 'admin.poll_results'] }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('admin.manage_polls') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">League Polls</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if 'message' in request.path and 'admin' in request.path }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('admin.message_config.list_categories') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Message Management</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'admin.view_scheduled_messages' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('admin.view_scheduled_messages') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Scheduled Messages</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'admin.validate_scheduled_messages' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('admin.validate_scheduled_messages') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">System Validation</span>
+                        </a>
+                    </li>
+                    {% endif %}
 
-                <!-- Discord Tools -->
-                {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
-                <li class="menu-item {{ 'active' if request.endpoint == 'admin.discord_management' }}">
-                    <a class="menu-link" href="{{ url_for('admin.discord_management') }}">
-                        <div>Discord Join Status</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint in ['admin.manage_polls', 'admin.create_poll', 'admin.poll_results'] }}">
-                    <a class="menu-link" href="{{ url_for('admin.manage_polls') }}">
-                        <div>League Polls</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if 'message' in request.path and 'admin' in request.path }}">
-                    <a class="menu-link" href="{{ url_for('admin.message_config.list_categories') }}">
-                        <div>Message Management</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'admin.view_scheduled_messages' }}">
-                    <a class="menu-link" href="{{ url_for('admin.view_scheduled_messages') }}">
-                        <div>Scheduled Messages</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'admin.validate_scheduled_messages' }}">
-                    <a class="menu-link" href="{{ url_for('admin.validate_scheduled_messages') }}">
-                        <div>System Validation</div>
-                    </a>
-                </li>
-                {% endif %}
+                    <!-- Player Management -->
+                    {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'admin.user_approvals' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('admin.user_approvals') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">User Approvals</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'admin.user_waitlist' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('admin.user_waitlist') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">User Waitlist</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'user_management.manage_users' or 'user_management' in request.path }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('user_management.manage_users') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Manage Players</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if 'duplicate_management' in request.path or request.endpoint.startswith('duplicate_management.') }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('duplicate_management.duplicate_registrations') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Duplicate Management</span>
+                        </a>
+                    </li>
+                    {% endif %}
 
-                <!-- Player Management -->
-                {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
-                <li class="menu-item {{ 'active' if request.endpoint == 'admin.user_approvals' }}">
-                    <a class="menu-link" href="{{ url_for('admin.user_approvals') }}">
-                        <div>User Approvals</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'admin.user_waitlist' }}">
-                    <a class="menu-link" href="{{ url_for('admin.user_waitlist') }}">
-                        <div>User Waitlist</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'user_management.manage_users' or 'user_management' in request.path }}">
-                    <a class="menu-link" href="{{ url_for('user_management.manage_users') }}">
-                        <div>Manage Players</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if 'duplicate_management' in request.path or request.endpoint.startswith('duplicate_management.') }}">
-                    <a class="menu-link" href="{{ url_for('duplicate_management.duplicate_registrations') }}">
-                        <div>Duplicate Management</div>
-                    </a>
-                </li>
-                {% endif %}
+                    <!-- Substitute Management -->
+                    {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'ECS FC Coach' in user_roles %}
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'admin.substitute_pool.manage_substitute_pools' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('admin.substitute_pool.manage_substitute_pools') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Substitute Pools</span>
+                        </a>
+                    </li>
+                    {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'admin.manage_sub_requests' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('admin.manage_sub_requests') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Sub Requests</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% endif %}
 
-                <!-- Substitute Management -->
-                {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'ECS FC Coach' in user_roles %}
-                <li class="menu-item {{ 'active' if request.endpoint == 'admin.substitute_pool.manage_substitute_pools' }}">
-                    <a class="menu-link" href="{{ url_for('admin.substitute_pool.manage_substitute_pools') }}">
-                        <div>Substitute Pools</div>
-                    </a>
-                </li>
-                {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
-                <li class="menu-item {{ 'active' if request.endpoint == 'admin.manage_sub_requests' }}">
-                    <a class="menu-link" href="{{ url_for('admin.manage_sub_requests') }}">
-                        <div>Sub Requests</div>
-                    </a>
-                </li>
-                {% endif %}
-                {% endif %}
+                    <!-- Other Legacy Items -->
+                    {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'teams.season_overview' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('teams.season_overview') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Season Overview</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'admin.match_verification_dashboard' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('admin.match_verification_dashboard') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Match Verification</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if 'notifications' in request.path and 'admin' in request.path }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('notification_admin.notification_dashboard') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Push Notifications</span>
+                        </a>
+                    </li>
+                    {% endif %}
 
-                <!-- Other Legacy Items -->
-                {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
-                <li class="menu-item {{ 'active' if request.endpoint == 'teams.season_overview' }}">
-                    <a class="menu-link" href="{{ url_for('teams.season_overview') }}">
-                        <div>Season Overview</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'admin.match_verification_dashboard' }}">
-                    <a class="menu-link" href="{{ url_for('admin.match_verification_dashboard') }}">
-                        <div>Match Verification</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if 'notifications' in request.path and 'admin' in request.path }}">
-                    <a class="menu-link" href="{{ url_for('notification_admin.notification_dashboard') }}">
-                        <div>Push Notifications</div>
-                    </a>
-                </li>
-                {% endif %}
+                    <!-- Security Dashboard -->
+                    {% if 'Global Admin' in user_roles %}
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'security_status.security_dashboard' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('security_status.security_dashboard') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Security Dashboard</span>
+                        </a>
+                    </li>
+                    {% endif %}
 
-                <!-- Security Dashboard - Global Admin Only -->
-                {% if 'Global Admin' in user_roles %}
-                <li class="menu-item {{ 'active' if request.endpoint == 'security_status.security_dashboard' }}">
-                    <a class="menu-link" href="{{ url_for('security_status.security_dashboard') }}">
-                        <div>Security Dashboard</div>
-                    </a>
-                </li>
-                {% endif %}
+                    <!-- Discord Bot Admin -->
+                    {% if 'Discord Admin' in user_roles or 'Global Admin' in user_roles %}
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'admin.match_management' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('admin.match_management') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Match Management (MLS)</span>
+                        </a>
+                    </li>
+                    {% endif %}
 
-                <!-- Discord Bot Admin Legacy Items -->
-                {% if 'Discord Admin' in user_roles or 'Global Admin' in user_roles %}
-                <li class="menu-item {{ 'active' if request.endpoint == 'admin.match_management' }}">
-                    <a class="menu-link" href="{{ url_for('admin.match_management') }}">
-                        <div>Match Management (MLS)</div>
-                    </a>
-                </li>
-                {% endif %}
+                    <!-- Global Admin Only -->
+                    {% if 'Global Admin' in user_roles %}
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'monitoring.monitor_dashboard' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('monitoring.monitor_dashboard') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Task Monitor</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'monitoring.db_monitoring' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('monitoring.db_monitoring') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Database Monitor</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'admin.admin_dashboard' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('admin.admin_dashboard') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Dev Tools</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'design.design_guide' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('design.design_guide') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Design System</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'admin.discord_onboarding.admin_test_onboarding' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('admin.test_onboarding') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Test Onboarding</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'bot_admin.bot_management' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('bot_admin.bot_management') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Bot Admin</span>
+                        </a>
+                    </li>
+                    <li class="c-sidebar__item {{ 'is-active' if request.endpoint == 'admin.admin_reports' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('admin.admin_reports') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">Review Feedback</span>
+                        </a>
+                    </li>
+                    {% endif %}
 
-                <!-- Global Admin Legacy Items -->
-                {% if 'Global Admin' in user_roles %}
-                <li class="menu-item {{ 'active' if request.endpoint == 'monitoring.monitor_dashboard' }}">
-                    <a class="menu-link" href="{{ url_for('monitoring.monitor_dashboard') }}">
-                        <div>Task Monitor</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'monitoring.db_monitoring' }}">
-                    <a class="menu-link" href="{{ url_for('monitoring.db_monitoring') }}">
-                        <div>Database Monitor</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'admin.admin_dashboard' }}">
-                    <a class="menu-link" href="{{ url_for('admin.admin_dashboard') }}">
-                        <div>Dev Tools</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'design.design_guide' }}">
-                    <a class="menu-link" href="{{ url_for('design.design_guide') }}">
-                        <div>Design System</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'admin.discord_onboarding.admin_test_onboarding' }}">
-                    <a class="menu-link" href="{{ url_for('admin.test_onboarding') }}">
-                        <div>Test Onboarding</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'bot_admin.bot_management' }}">
-                    <a class="menu-link" href="{{ url_for('bot_admin.bot_management') }}">
-                        <div>Bot Admin</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'admin.admin_reports' }}">
-                    <a class="menu-link" href="{{ url_for('admin.admin_reports') }}">
-                        <div>Review Feedback</div>
-                    </a>
-                </li>
-                {% endif %}
+                    <!-- AI Prompts -->
+                    {% if 'Global Admin' in user_roles or 'Pub League Admin' in user_roles %}
+                    <li class="c-sidebar__item {{ 'is-active' if request.blueprint == 'ai_prompts' }}" role="none">
+                        <a class="c-sidebar__link" href="{{ url_for('ai_prompts.list_prompts') }}" data-action="navigate" role="menuitem">
+                            <span class="c-sidebar__label">AI Prompts</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
 
-                <!-- AI Prompts - Available in Admin Panel under Services -->
-                {% if 'Global Admin' in user_roles or 'Pub League Admin' in user_roles %}
-                <li class="menu-item {{ 'active' if request.blueprint == 'ai_prompts' }}">
-                    <a class="menu-link" href="{{ url_for('ai_prompts.list_prompts') }}">
-                        <div>AI Prompts</div>
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
-        </li>
-        {% endif %}
-
-    </ul>
+    {# NOTE: Messaging is now handled by the floating chat widget in base.html #}
+    {# See: components/_chat_widget.html #}
 </aside>

@@ -2,6 +2,11 @@
 
 {% block title %}Scheduled Availability Messages{% endblock %}
 
+{% block custom_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/scheduled-messages.css') }}">
+{% endblock %}
+
 {% block extra_scripts %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
 <script src="https://cdn.datatables.net/plug-ins/1.10.25/sorting/datetime-moment.js"></script>
@@ -17,37 +22,37 @@
     <!-- Enhanced Status Overview Cards -->
     <div class="row mb-4">
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
+            <div class="c-card-modern c-card-modern--stat c-card-modern--hoverable h-100">
+                <div class="c-card-modern__body">
                     <div class="d-flex align-items-center">
-                        <div class="avatar avatar-md me-2">
-                            <div class="avatar-initial rounded bg-label-primary">
+                        <div class="c-avatar c-avatar--md me-2">
+                            <div class="c-avatar__initial c-avatar__initial--primary rounded">
                                 <i class="ti ti-calendar-event"></i>
                             </div>
                         </div>
                         <div>
-                            <h5 class="mb-0">{{ stats.total }}</h5>
-                            <small class="text-muted">Total Messages</small>
-                            <div class="text-xs text-muted">{{ stats.filtered_count }} shown</div>
+                            <h5 class="c-card-modern__stat-number mb-0">{{ stats.total }}</h5>
+                            <small class="c-card-modern__stat-label">Total Messages</small>
+                            <div class="c-card-modern__stat-sublabel">{{ stats.filtered_count }} shown</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
+            <div class="c-card-modern c-card-modern--stat c-card-modern--hoverable h-100">
+                <div class="c-card-modern__body">
                     <div class="d-flex align-items-center">
-                        <div class="avatar avatar-md me-2">
-                            <div class="avatar-initial rounded bg-label-warning">
+                        <div class="c-avatar c-avatar--md me-2">
+                            <div class="c-avatar__initial c-avatar__initial--warning rounded">
                                 <i class="ti ti-clock"></i>
                             </div>
                         </div>
                         <div>
-                            <h5 class="mb-0">{{ stats.pending }}</h5>
-                            <small class="text-muted">Pending Messages</small>
+                            <h5 class="c-card-modern__stat-number mb-0">{{ stats.pending }}</h5>
+                            <small class="c-card-modern__stat-label">Pending Messages</small>
                             {% if stats.queued > 0 %}
-                            <div class="text-xs text-info">{{ stats.queued }} queued</div>
+                            <div class="c-card-modern__stat-sublabel c-card-modern__stat-sublabel--info">{{ stats.queued }} queued</div>
                             {% endif %}
                         </div>
                     </div>
@@ -55,19 +60,19 @@
             </div>
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
+            <div class="c-card-modern c-card-modern--stat c-card-modern--hoverable h-100">
+                <div class="c-card-modern__body">
                     <div class="d-flex align-items-center">
-                        <div class="avatar avatar-md me-2">
-                            <div class="avatar-initial rounded bg-label-success">
+                        <div class="c-avatar c-avatar--md me-2">
+                            <div class="c-avatar__initial c-avatar__initial--success rounded">
                                 <i class="ti ti-check"></i>
                             </div>
                         </div>
                         <div>
-                            <h5 class="mb-0">{{ stats.sent }}</h5>
-                            <small class="text-muted">Sent Messages</small>
+                            <h5 class="c-card-modern__stat-number mb-0">{{ stats.sent }}</h5>
+                            <small class="c-card-modern__stat-label">Sent Messages</small>
                             {% if stats.failed > 0 %}
-                            <div class="text-xs text-danger">{{ stats.failed }} failed</div>
+                            <div class="c-card-modern__stat-sublabel c-card-modern__stat-sublabel--danger">{{ stats.failed }} failed</div>
                             {% endif %}
                         </div>
                     </div>
@@ -75,18 +80,18 @@
             </div>
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
+            <div class="c-card-modern c-card-modern--stat c-card-modern--hoverable h-100">
+                <div class="c-card-modern__body">
                     <div class="d-flex align-items-center">
-                        <div class="avatar avatar-md me-2">
-                            <div class="avatar-initial rounded bg-label-info">
+                        <div class="c-avatar c-avatar--md me-2">
+                            <div class="c-avatar__initial c-avatar__initial--primary rounded">
                                 <i class="ti ti-soccer-field"></i>
                             </div>
                         </div>
                         <div>
-                            <h5 class="mb-0">{{ stats.pub_league }}</h5>
-                            <small class="text-muted">Pub League</small>
-                            <div class="text-xs text-primary">{{ stats.ecs_fc }} ECS FC</div>
+                            <h5 class="c-card-modern__stat-number mb-0">{{ stats.pub_league }}</h5>
+                            <small class="c-card-modern__stat-label">Pub League</small>
+                            <div class="c-card-modern__stat-sublabel c-card-modern__stat-sublabel--primary">{{ stats.ecs_fc }} ECS FC</div>
                         </div>
                     </div>
                 </div>
@@ -97,8 +102,8 @@
     <!-- Action Card -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-body">
+            <div class="c-card shadow-sm">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
                         <div>
                             <h5 class="mb-1">Schedule RSVP Messages</h5>
@@ -107,29 +112,29 @@
                         <div class="d-flex flex-wrap gap-2">
                             <form action="{{ url_for('admin.schedule_next_week') }}" method="post" class="d-inline">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-primary">
+                                <button type="submit" class="c-btn c-btn--primary">
                                     <i class="ti ti-calendar-plus me-1"></i> Schedule This Sunday
                                 </button>
                             </form>
                             <form action="{{ url_for('admin.process_scheduled_messages') }}" method="post" class="d-inline">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-outline-secondary">
+                                <button type="submit" class="c-btn c-btn--outline-secondary">
                                     <i class="ti ti-send me-1"></i> Send Pending Messages
                                 </button>
                             </form>
-                            <a href="{{ url_for('admin.validate_scheduled_messages') }}" class="btn btn-outline-info">
+                            <a href="{{ url_for('admin.validate_scheduled_messages') }}" class="c-btn c-btn--outline-info">
                                 <i class="ti ti-checklist me-1"></i> Validate System
                             </a>
                             <form action="{{ url_for('admin.schedule_season') }}" method="post" class="d-inline">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-outline-secondary">
+                                <button type="submit" class="c-btn c-btn--outline-secondary">
                                     <i class="ti ti-calendar me-1"></i> Schedule Future Sundays
                                 </button>
                             </form>
                             <form action="{{ url_for('admin.cleanup_old_messages_route') }}" method="post" class="d-inline">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="days_old" value="7">
-                                <button type="submit" class="btn btn-outline-danger">
+                                <button type="submit" class="c-btn c-btn--outline-danger">
                                     <i class="ti ti-trash me-1"></i> Clean Up Old Messages
                                 </button>
                             </form>
@@ -141,17 +146,17 @@
     </div>
 
     <!-- Messages Table Card -->
-    <div class="card shadow-sm">
-        <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="c-card shadow-sm">
+        <div class="c-card__header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Scheduled Messages</h5>
             <div class="d-flex align-items-center gap-2">
                 <!-- League Filter -->
                 <div class="dropdown">
-                    <button class="btn btn-outline-primary dropdown-toggle" type="button" id="leagueFilter" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <button class="c-btn c-btn--outline-primary dropdown-toggle" type="button" id="leagueFilter" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" data-dropdown-toggle>
                         <i class="ti ti-filter me-1"></i>
                         <span id="filterText">All Leagues</span>
                     </button>
-                    <div class="dropdown-menu" aria-labelledby="leagueFilter">
+                    <div class="dropdown-menu" aria-labelledby="leagueFilter" data-dropdown-menu>
                         <button class="dropdown-item filter-option" data-filter="all">
                             <i class="ti ti-list me-1"></i> All Leagues
                         </button>
@@ -165,10 +170,10 @@
                 </div>
                 <!-- Export Dropdown -->
                 <div class="dropdown">
-                    <button class="btn btn-outline-secondary btn-icon dropdown-toggle hide-arrow" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <button class="c-btn c-btn--outline-secondary c-btn--icon-only dropdown-toggle hide-arrow" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" data-dropdown-toggle>
                         <i class="ti ti-dots-vertical"></i>
                     </button>
-                    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="exportDropdown">
+                    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="exportDropdown" data-dropdown-menu>
                         <button class="dropdown-item export-copy">
                             <i class="ti ti-copy me-1"></i> Copy
                         </button>
@@ -185,24 +190,24 @@
                 </div>
             </div>
         </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table id="scheduledMessagesTable" class="table table-striped table-hover border-top">
-                    <thead>
+        <div class="c-card__body">
+            <div class="c-table-wrapper" data-table-responsive>
+                <table id="scheduledMessagesTable" class="c-table c-table--striped c-table--hoverable border-top" data-table>
+                    <thead scope="col">
                         <tr>
-                            <th>League</th>
-                            <th>Match</th>
-                            <th>Match Date</th>
-                            <th>Scheduled Send</th>
-                            <th>Status</th>
-                            <th>Actions</th>
+                            <th scope="col">League</th>
+                            <th scope="col">Match</th>
+                            <th scope="col">Match Date</th>
+                            <th scope="col">Scheduled Send</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for message in messages %}
                         <tr data-league="{{ 'pub_league' if not message.message_type or message.message_type == 'standard' else 'ecs_fc' }}">
                             <td>
-                                <span class="badge {{ 'bg-primary' if not message.message_type or message.message_type == 'standard' else 'bg-success' }}">
+                                <span class="badge {{ 'bg-primary' if not message.message_type or message.message_type == 'standard' else 'bg-success' }}" data-badge>
                                     <i class="ti {{ 'ti-soccer-field' if not message.message_type or message.message_type == 'standard' else 'ti-trophy' }} me-1"></i>
                                     {{ 'Pub League' if not message.message_type or message.message_type == 'standard' else 'ECS FC' }}
                                 </span>
@@ -245,7 +250,7 @@
                                 </div>
                             </td>
                             <td>
-                                <span class="badge {% if message.status == 'SENT' %}bg-success{% elif message.status == 'PENDING' %}bg-warning{% elif message.status == 'QUEUED' %}bg-info{% else %}bg-danger{% endif %}">
+                                <span class="badge {% if message.status == 'SENT' %}bg-success{% elif message.status == 'PENDING' %}bg-warning{% elif message.status == 'QUEUED' %}bg-info{% else %}bg-danger{% endif %}" data-badge>
                                     {{ message.status }}
                                 </span>
                             </td>
@@ -253,13 +258,13 @@
                                 <div class="d-flex align-items-center">
                                     <form action="{{ url_for('admin.force_send_message', message_id=message.id) }}" method="post" class="me-1">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-sm btn-icon btn-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Force Send Now">
+                                        <button type="submit" class="c-btn c-btn--sm c-btn--icon-only c-btn--warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Force Send Now">
                                             <i class="ti ti-send"></i>
                                         </button>
                                     </form>
                                     {% if not message.message_type or message.message_type == 'standard' %}
                                     <a href="{{ url_for('admin.rsvp_status', match_id=message.match.id) }}" 
-                                       class="btn btn-sm btn-icon btn-primary me-1"
+                                       class="c-btn c-btn--sm c-btn--icon-only c-btn--primary me-1"
                                        data-bs-toggle="tooltip" 
                                        data-bs-placement="top" 
                                        title="View RSVPs">
@@ -268,7 +273,7 @@
                                     {% else %}
                                     {% if message.message_metadata and message.message_metadata.get('match_id') %}
                                     <a href="{{ url_for('admin.ecs_fc_rsvp_status', match_id=message.message_metadata.match_id) }}" 
-                                       class="btn btn-sm btn-icon btn-success me-1"
+                                       class="c-btn c-btn--sm c-btn--icon-only c-btn--success me-1"
                                        data-bs-toggle="tooltip" 
                                        data-bs-placement="top" 
                                        title="View ECS FC RSVPs">
@@ -278,7 +283,7 @@
                                     {% endif %}
                                     <form action="{{ url_for('admin.delete_message', message_id=message.id) }}" method="post" class="delete-message-form">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-sm btn-icon btn-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Message">
+                                        <button type="submit" class="c-btn c-btn--sm c-btn--icon-only c-btn--danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Message">
                                             <i class="ti ti-trash"></i>
                                         </button>
                                     </form>
@@ -292,101 +297,6 @@
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block custom_css %}
-<style>
-    /* Card hover effect */
-    .shadow-sm {
-        transition: all 0.2s ease;
-    }
-    
-    .shadow-sm:hover {
-        box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45) !important;
-    }
-    
-    /* Badge styling */
-    .badge {
-        padding: 0.4rem 0.65rem;
-        font-weight: 500;
-    }
-    
-    /* Avatar styling */
-    .avatar {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 38px;
-        width: 38px;
-    }
-    
-    .avatar-sm {
-        height: 30px;
-        width: 30px;
-    }
-    
-    .avatar-md {
-        height: 42px;
-        width: 42px;
-    }
-    
-    .avatar-initial {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.2rem;
-    }
-    
-    .avatar-sm .avatar-initial {
-        font-size: 0.9rem;
-    }
-    
-    .avatar-md .avatar-initial {
-        font-size: 1.3rem;
-    }
-    
-    .bg-label-primary {
-        background-color: var(--ecs-primary-subtle, rgba(105, 108, 255, 0.16)) !important;
-        color: var(--ecs-primary, #696cff) !important;
-    }
-
-    .bg-label-success {
-        background-color: var(--ecs-success-subtle, rgba(113, 221, 55, 0.16)) !important;
-        color: var(--ecs-success, #71dd37) !important;
-    }
-
-    .bg-label-warning {
-        background-color: var(--ecs-warning-subtle, rgba(255, 171, 0, 0.16)) !important;
-        color: var(--ecs-warning, #ffab00) !important;
-    }
-
-    .bg-label-danger {
-        background-color: var(--ecs-danger-subtle, rgba(255, 62, 29, 0.16)) !important;
-        color: var(--ecs-danger, #ff3e1d) !important;
-    }
-    
-    /* Table styling */
-    #scheduledMessagesTable tbody tr {
-        cursor: pointer;
-    }
-    
-    /* Mobile adaptations */
-    @media (max-width: 767.98px) {
-        .flex-column-mobile {
-            flex-direction: column !important;
-        }
-        
-        .w-100-mobile {
-            width: 100% !important;
-        }
-        
-        .mb-mobile-3 {
-            margin-bottom: 1rem !important;
-        }
-    }
-</style>
 {% endblock %}
 
 {% block custom_js %}

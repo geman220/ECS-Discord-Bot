@@ -1,0 +1,1133 @@
+/**
+ * ============================================================================
+ * C-MODAL COMPONENT - Unified Responsive Modal System
+ * ============================================================================
+ *
+ * Single source of truth for modal styling across the application.
+ * Auto-scales based on content and viewport - no scrolling inside modal needed.
+ *
+ * DESIGN PHILOSOPHY:
+ * - Content-first: Modal sizes around its content, not arbitrary max-widths
+ * - Responsive: Uses clamp() for fluid typography and spacing
+ * - Unified: One modal shell, many content variations
+ * - DRY: Reusable patterns, no duplicate modal definitions
+ *
+ * FEATURES:
+ * - Solid backgrounds (no transparency issues)
+ * - Auto-scaling typography with clamp()
+ * - Content-aware sizing with --auto variant
+ * - Full dark mode support
+ * - Mobile drawer behavior
+ * - Reusable content slots
+ * - Proper z-index layering
+ *
+ * USAGE (Works with Bootstrap modal.js):
+ *   <div class="c-modal modal fade" id="myModal" tabindex="-1" data-modal>
+ *     <div class="c-modal__dialog modal-dialog modal-dialog-centered">
+ *       <div class="c-modal__content modal-content">
+ *         <div class="c-modal__header">
+ *           <h5 class="c-modal__title">Title</h5>
+ *           <button class="c-modal__close" data-bs-dismiss="modal">
+ *             <i class="ti ti-x"></i>
+ *           </button>
+ *         </div>
+ *         <div class="c-modal__body">Content</div>
+ *         <div class="c-modal__footer">Actions</div>
+ *       </div>
+ *     </div>
+ *   </div>
+ *
+ * SIZE MODIFIERS:
+ *   c-modal__dialog--xs    (360px max-width) - Confirmation dialogs
+ *   c-modal__dialog--sm    (420px max-width) - Small forms
+ *   c-modal__dialog--md    (560px max-width, default) - Standard forms
+ *   c-modal__dialog--lg    (800px max-width) - Complex forms
+ *   c-modal__dialog--xl    (1000px max-width) - Dashboards
+ *   c-modal__dialog--full  (full viewport) - Full-screen experiences
+ *   c-modal__dialog--auto  (content-based) - Scales to content
+ *
+ * HEADER VARIANTS:
+ *   c-modal--primary       - Primary themed header
+ *   c-modal--success       - Success themed header
+ *   c-modal--danger        - Danger themed header
+ *   c-modal--warning       - Warning themed header
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   CSS CUSTOM PROPERTIES
+   Scoped to modal for easy theming and responsive scaling
+   ============================================================================ */
+
+.c-modal,
+.modal {
+  /* RESPONSIVE SPACING - scales with viewport */
+  --modal-padding: clamp(1rem, 3vw, 1.5rem);
+  --modal-gap: clamp(0.75rem, 2vw, 1rem);
+  --modal-margin: clamp(0.5rem, 3vw, 2rem);
+
+  /* RESPONSIVE TYPOGRAPHY - scales with viewport */
+  --modal-title-size: clamp(1rem, 2.5vw, 1.25rem);
+  --modal-body-size: clamp(0.875rem, 2vw, 0.9375rem);
+  --modal-small-size: clamp(0.75rem, 1.5vw, 0.8125rem);
+
+  /* SIZING TOKENS */
+  --modal-width-xs: min(calc(100vw - var(--modal-margin) * 2), 360px);
+  --modal-width-sm: min(calc(100vw - var(--modal-margin) * 2), 420px);
+  --modal-width-md: min(calc(100vw - var(--modal-margin) * 2), 560px);
+  --modal-width-lg: min(calc(100vw - var(--modal-margin) * 2), 800px);
+  --modal-width-xl: min(calc(100vw - var(--modal-margin) * 2), 1000px);
+
+  /* VISUAL TOKENS */
+  --modal-radius: clamp(0.5rem, 1.5vw, 0.75rem);
+  --modal-shadow-light:
+    0 4px 6px rgba(0, 0, 0, 0.07),
+    0 20px 25px rgba(0, 0, 0, 0.1);
+  --modal-shadow-dark:
+    0 4px 6px rgba(0, 0, 0, 0.3),
+    0 20px 25px rgba(0, 0, 0, 0.4);
+
+  /* ANIMATION TOKENS */
+  --modal-duration: 200ms;
+  --modal-ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* COLOR TOKENS - Light mode defaults */
+  --modal-bg: #ffffff;
+  --modal-header-bg: #ffffff;
+  --modal-footer-bg: #fafafa;
+  --modal-text: #18181b;
+  --modal-text-muted: #71717a;
+  --modal-border: #e4e4e7;
+  --modal-close-color: #71717a;
+}
+
+/* ============================================================================
+   MODAL CONTENT - The actual modal box
+   CRITICAL: Solid background to prevent transparency
+   ============================================================================ */
+
+.c-modal__content {
+  /* Solid background - NOT transparent - explicit fallback */
+  background-color: #ffffff;
+  background: var(--modal-bg, #ffffff);
+
+  /* Border and shadow for depth */
+  border: 1px solid var(--modal-border, #e4e4e7);
+  border-radius: var(--modal-radius, 0.5rem);
+  box-shadow: var(--modal-shadow-light);
+
+  /* Color */
+  color: var(--modal-text, #18181b);
+
+  /* Layout */
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: calc(100vh - var(--modal-margin) * 2);
+  overflow: hidden;
+
+  /* Ensure content is above backdrop */
+  position: relative;
+  z-index: 1;
+}
+
+/* Bootstrap modal-content compatibility */
+.modal-content.c-modal__content {
+  background-color: var(--modal-bg, #ffffff);
+}
+
+/* ============================================================================
+   MODAL HEADER
+   ============================================================================ */
+
+.c-modal__header {
+  /* Layout */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--modal-gap, 1rem);
+
+  /* Spacing - responsive */
+  padding: var(--modal-padding, 1.25rem);
+
+  /* Visual - solid background */
+  background-color: #ffffff;
+  background: var(--modal-header-bg, #ffffff);
+  border-bottom: 1px solid var(--modal-border, #e4e4e7);
+
+  /* Prevent shrinking */
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   MODAL TITLE
+   ============================================================================ */
+
+.c-modal__title {
+  /* Typography - responsive scaling */
+  margin: 0;
+  font-size: var(--modal-title-size, 1.125rem);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--modal-text, #18181b);
+
+  /* Layout for icon + text */
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  /* Truncation for long titles */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.c-modal__title i,
+.c-modal__title .ti {
+  color: var(--ecs-primary, #2563EB);
+  font-size: 1.1em;
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   MODAL CLOSE BUTTON
+   ============================================================================ */
+
+.c-modal__close {
+  /* Reset */
+  appearance: none;
+  border: none;
+  background: transparent;
+
+  /* Layout - responsive touch target */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(32px, 8vw, 40px);
+  height: clamp(32px, 8vw, 40px);
+  padding: 0;
+
+  /* Visual */
+  border-radius: calc(var(--modal-radius, 0.375rem) - 2px);
+  color: var(--modal-close-color, #71717a);
+  font-size: clamp(1rem, 3vw, 1.25rem);
+
+  /* Interaction */
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+  flex-shrink: 0;
+}
+
+.c-modal__close:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--modal-text, #18181b);
+}
+
+.c-modal__close:active {
+  transform: scale(0.95);
+}
+
+.c-modal__close:focus-visible {
+  outline: 2px solid var(--ecs-primary, #2563EB);
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+   MODAL BODY
+   ============================================================================ */
+
+.c-modal__body {
+  /* Layout */
+  flex: 1 1 auto;
+  min-height: 0;
+
+  /* Spacing - responsive */
+  padding: var(--modal-padding, 1.5rem);
+
+  /* Visual - Solid background */
+  background-color: #ffffff;
+  background: var(--modal-bg, #ffffff);
+  color: var(--modal-text, #27272a);
+
+  /* Typography - responsive scaling */
+  font-size: var(--modal-body-size, 0.9375rem);
+  line-height: 1.6;
+
+  /* Scrolling only when content overflows */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Custom scrollbar */
+.c-modal__body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.c-modal__body::-webkit-scrollbar-track {
+  background: var(--ecs-neutral-10, #f4f4f5);
+  border-radius: 3px;
+}
+
+.c-modal__body::-webkit-scrollbar-thumb {
+  background: var(--ecs-neutral-30, #d4d4d8);
+  border-radius: 3px;
+}
+
+.c-modal__body::-webkit-scrollbar-thumb:hover {
+  background: var(--ecs-neutral-40, #a1a1aa);
+}
+
+/* ============================================================================
+   MODAL FOOTER
+   ============================================================================ */
+
+.c-modal__footer {
+  /* Layout */
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--modal-gap, 0.75rem);
+  flex-wrap: wrap;
+
+  /* Spacing - responsive */
+  padding: var(--modal-padding, 1rem);
+
+  /* Visual - solid background */
+  background-color: #fafafa;
+  background: var(--modal-footer-bg, #fafafa);
+  border-top: 1px solid var(--modal-border, #e4e4e7);
+
+  /* Prevent shrinking */
+  flex-shrink: 0;
+}
+
+/* Footer alignment variants */
+.c-modal__footer--spread,
+.c-modal__footer--between {
+  justify-content: space-between;
+}
+
+.c-modal__footer--start {
+  justify-content: flex-start;
+}
+
+.c-modal__footer--center {
+  justify-content: center;
+}
+
+.c-modal__footer--stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* Mobile-friendly: reverse button order (primary at bottom for thumb reach) */
+.c-modal__footer--mobile-reverse {
+  flex-direction: column-reverse;
+}
+
+/* No border variant */
+.c-modal__footer--borderless {
+  border-top: none;
+  background-color: var(--modal-bg, #ffffff);
+}
+
+/* ============================================================================
+   DIALOG SIZE VARIANTS
+   Uses responsive tokens for viewport-aware sizing
+   ============================================================================ */
+
+/* Extra small - confirmation dialogs, simple alerts */
+.c-modal__dialog--xs {
+  max-width: var(--modal-width-xs, 360px);
+}
+
+/* Small - single input forms, quick actions */
+.c-modal__dialog--sm {
+  max-width: var(--modal-width-sm, 420px);
+}
+
+/* Medium - standard forms (default) */
+.c-modal__dialog--md {
+  max-width: var(--modal-width-md, 560px);
+}
+
+/* Large - complex forms, multi-step wizards */
+.c-modal__dialog--lg {
+  max-width: var(--modal-width-lg, 800px);
+}
+
+/* Extra large - dashboards, detailed views */
+.c-modal__dialog--xl {
+  max-width: var(--modal-width-xl, 1000px);
+}
+
+/* Full viewport - immersive experiences */
+.c-modal__dialog--full {
+  max-width: calc(100vw - var(--modal-margin) * 2);
+  margin: var(--modal-margin);
+}
+
+.c-modal__dialog--full .c-modal__content {
+  max-height: calc(100vh - var(--modal-margin) * 2);
+}
+
+/* AUTO SIZE - Modal adapts to content width
+   Use for variable content where fixed widths don't make sense */
+.c-modal__dialog--auto {
+  max-width: none;
+  width: auto;
+}
+
+.c-modal__dialog--auto .c-modal__content {
+  width: auto;
+  max-width: calc(100vw - var(--modal-margin) * 2);
+}
+
+/* ============================================================================
+   DIALOG CENTERING
+   ============================================================================ */
+
+.c-modal__dialog--centered {
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - 1rem);
+}
+
+/* ============================================================================
+   HEADER VARIANTS - Colored Headers
+   ============================================================================ */
+
+.c-modal--primary .c-modal__header {
+  background-color: var(--color-primary, #2563EB);
+  background: var(--color-primary, #2563EB);
+  border-color: transparent;
+  color: #ffffff;
+}
+
+.c-modal--primary .c-modal__title,
+.c-modal--primary .c-modal__title i {
+  color: #ffffff;
+}
+
+.c-modal--primary .c-modal__close {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.c-modal--primary .c-modal__close:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.c-modal--success .c-modal__header {
+  background-color: var(--color-success, #10b981);
+  background: var(--color-success, #10b981);
+  border-color: transparent;
+  color: #ffffff;
+}
+
+.c-modal--success .c-modal__title,
+.c-modal--success .c-modal__title i {
+  color: #ffffff;
+}
+
+.c-modal--success .c-modal__close {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.c-modal--success .c-modal__close:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.c-modal--danger .c-modal__header {
+  background-color: var(--color-danger, #ef4444);
+  background: var(--color-danger, #ef4444);
+  border-color: transparent;
+  color: #ffffff;
+}
+
+.c-modal--danger .c-modal__title,
+.c-modal--danger .c-modal__title i {
+  color: #ffffff;
+}
+
+.c-modal--danger .c-modal__close {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.c-modal--danger .c-modal__close:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.c-modal--warning .c-modal__header {
+  background-color: var(--color-warning, #f59e0b);
+  background: var(--color-warning, #f59e0b);
+  border-color: transparent;
+  color: #18181b;
+}
+
+.c-modal--warning .c-modal__title,
+.c-modal--warning .c-modal__title i {
+  color: #18181b;
+}
+
+.c-modal--warning .c-modal__close {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.c-modal--warning .c-modal__close:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+  color: #18181b;
+}
+
+.c-modal--info .c-modal__header {
+  background-color: var(--color-info, #3b82f6);
+  background: var(--color-info, #3b82f6);
+  border-color: transparent;
+  color: #ffffff;
+}
+
+.c-modal--info .c-modal__title,
+.c-modal--info .c-modal__title i {
+  color: #ffffff;
+}
+
+.c-modal--info .c-modal__close {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.c-modal--info .c-modal__close:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   CRITICAL: Uses explicit solid colors to prevent transparency
+   ============================================================================ */
+
+/* Override modal tokens in dark mode - Slate palette */
+[data-style="dark"] .c-modal,
+[data-style="dark"] .modal {
+  --modal-bg: #334155;           /* Slate-800 */
+  --modal-header-bg: #334155;    /* Slate-800 */
+  --modal-footer-bg: #1E293B;    /* Slate-900 */
+  --modal-text: #f8fafc;         /* Slate-50 */
+  --modal-text-muted: #94a3b8;   /* Slate-400 */
+  --modal-border: #475569;       /* Slate-700 */
+  --modal-close-color: #94a3b8;  /* Slate-400 */
+}
+
+[data-style="dark"] .c-modal__content {
+  /* Explicit solid colors - prevents transparency */
+  background-color: #334155;     /* Slate-800 */
+  background: #334155;
+  border-color: #475569;         /* Slate-700 */
+  color: #f8fafc;                /* Slate-50 */
+  box-shadow: var(--modal-shadow-dark);
+}
+
+[data-style="dark"] .c-modal__header {
+  background-color: #334155;     /* Slate-800 */
+  background: #334155;
+  border-color: #475569;         /* Slate-700 */
+}
+
+[data-style="dark"] .c-modal__title {
+  color: #f8fafc;                /* Slate-50 */
+}
+
+[data-style="dark"] .c-modal__title i,
+[data-style="dark"] .c-modal__title .ti {
+  color: var(--ecs-primary-light, #60A5FA);
+}
+
+[data-style="dark"] .c-modal__close {
+  color: #94a3b8;                /* Slate-400 */
+}
+
+[data-style="dark"] .c-modal__close:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #f8fafc;                /* Slate-50 */
+}
+
+[data-style="dark"] .c-modal__body {
+  background-color: #334155;     /* Slate-800 */
+  background: #334155;
+  color: #cbd5e1;                /* Slate-300 */
+}
+
+[data-style="dark"] .c-modal__body::-webkit-scrollbar-track {
+  background: #475569;           /* Slate-700 */
+}
+
+[data-style="dark"] .c-modal__body::-webkit-scrollbar-thumb {
+  background: #64748b;           /* Slate-600 */
+}
+
+[data-style="dark"] .c-modal__body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;           /* Slate-400 */
+}
+
+[data-style="dark"] .c-modal__footer {
+  background-color: #1E293B;     /* Slate-900 */
+  background: #1E293B;
+  border-color: #475569;         /* Slate-700 */
+}
+
+[data-style="dark"] .c-modal__footer--borderless {
+  background-color: #334155;     /* Slate-800 */
+}
+
+/* ============================================================================
+   MOBILE RESPONSIVENESS
+   ============================================================================ */
+
+@media (max-width: 576px) {
+  .c-modal,
+  .modal {
+    /* Tighter margins on mobile */
+    --modal-margin: 0.5rem;
+    --modal-padding: 1rem;
+    --modal-gap: 0.75rem;
+  }
+
+  .c-modal__dialog {
+    margin: var(--modal-margin);
+  }
+
+  .c-modal__dialog--sm,
+  .c-modal__dialog--md,
+  .c-modal__dialog--lg,
+  .c-modal__dialog--xl {
+    max-width: calc(100vw - var(--modal-margin) * 2);
+  }
+
+  /* Stack footer buttons vertically */
+  .c-modal__footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .c-modal__footer > * {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Tablet */
+@media (min-width: 576px) and (max-width: 768px) {
+  .c-modal,
+  .modal {
+    --modal-margin: 1rem;
+  }
+}
+
+/* Desktop */
+@media (min-width: 768px) {
+  .c-modal,
+  .modal {
+    --modal-margin: 1.5rem;
+  }
+}
+
+/* Large desktop */
+@media (min-width: 1024px) {
+  .c-modal,
+  .modal {
+    --modal-margin: 2rem;
+  }
+}
+
+/* Mobile drawer variant */
+@media (max-width: 576px) {
+  .c-modal--drawer .c-modal__dialog {
+    margin: 0;
+    max-width: 100%;
+    height: auto;
+    max-height: 85vh;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+
+  .c-modal--drawer .c-modal__content {
+    border-radius: 1rem 1rem 0 0;
+    max-height: 85vh;
+  }
+}
+
+/* ============================================================================
+   FORM ELEMENTS INSIDE MODAL
+   ============================================================================ */
+
+.c-modal__body .c-form-modern__group {
+  margin-bottom: 1rem;
+}
+
+.c-modal__body .c-form-modern__group:last-child {
+  margin-bottom: 0;
+}
+
+.c-modal__body .c-form-modern__label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--ecs-neutral-70, #3f3f46);
+}
+
+[data-style="dark"] .c-modal__body .c-form-modern__label {
+  color: var(--ecs-dark-text-secondary, #d4d4d8);
+}
+
+.c-modal__body .c-form-modern__input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.9375rem;
+  border: 1px solid var(--ecs-neutral-30, #d4d4d8);
+  border-radius: var(--radius-md, 0.375rem);
+  background-color: var(--ecs-neutral-0, #ffffff);
+  color: var(--ecs-neutral-90, #18181b);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.c-modal__body .c-form-modern__input:focus {
+  outline: none;
+  border-color: var(--ecs-primary, #2563EB);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+[data-style="dark"] .c-modal__body .c-form-modern__input {
+  background-color: var(--ecs-dark-bg-elevated, #1E293B);  /* Slate-900 */
+  border-color: var(--ecs-dark-border, #475569);           /* Slate-700 */
+  color: var(--ecs-dark-text-primary, #f8fafc);            /* Slate-50 */
+}
+
+[data-style="dark"] .c-modal__body .c-form-modern__input:focus {
+  border-color: var(--ecs-primary-light, #60A5FA);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+}
+
+/* ============================================================================
+   USER SEARCH RESULTS (Messages Modal)
+   ============================================================================ */
+
+.c-user-search-results {
+  margin-top: 1rem;
+  min-height: 100px;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--ecs-neutral-20, #e4e4e7);
+  border-radius: var(--radius-md, 0.375rem);
+  background-color: var(--ecs-neutral-5, #fafafa);
+}
+
+.c-user-search-results__hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  color: var(--ecs-neutral-50, #71717a);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.c-user-search-results__hint i {
+  margin-right: 0.5rem;
+  color: var(--ecs-neutral-40, #a1a1aa);
+}
+
+.c-user-search-results__item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  border-bottom: 1px solid var(--ecs-neutral-15, #f0f0f0);
+}
+
+.c-user-search-results__item:last-child {
+  border-bottom: none;
+}
+
+.c-user-search-results__item:hover {
+  background-color: var(--ecs-primary-subtle, rgba(37, 99, 235, 0.08));
+}
+
+.c-user-search-results__avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.c-user-search-results__name {
+  font-weight: 500;
+  color: var(--ecs-neutral-90, #18181b);
+}
+
+.c-user-search-results__username {
+  font-size: 0.8125rem;
+  color: var(--ecs-neutral-50, #71717a);
+}
+
+/* Dark mode for search results */
+[data-style="dark"] .c-user-search-results {
+  background-color: var(--ecs-dark-bg-elevated, #1E293B);  /* Slate-900 */
+  border-color: var(--ecs-dark-border, #475569);           /* Slate-700 */
+}
+
+[data-style="dark"] .c-user-search-results__hint {
+  color: var(--ecs-dark-text-muted, #a1a1aa);
+}
+
+[data-style="dark"] .c-user-search-results__item {
+  border-color: var(--ecs-dark-border, #52525b);
+}
+
+[data-style="dark"] .c-user-search-results__item:hover {
+  background-color: rgba(96, 165, 250, 0.15);
+}
+
+[data-style="dark"] .c-user-search-results__name {
+  color: var(--ecs-dark-text-primary, #fafafa);
+}
+
+[data-style="dark"] .c-user-search-results__username {
+  color: var(--ecs-dark-text-muted, #a1a1aa);
+}
+
+/* ============================================================================
+   LOADING STATE
+   ============================================================================ */
+
+.c-modal__body--loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+}
+
+.c-modal__spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 3px solid var(--ecs-neutral-20, #e4e4e7);
+  border-top-color: var(--ecs-primary, #2563EB);
+  border-radius: 50%;
+  animation: c-modal-spin 0.8s linear infinite;
+}
+
+@keyframes c-modal-spin {
+  to { transform: rotate(360deg); }
+}
+
+[data-style="dark"] .c-modal__spinner {
+  border-color: var(--ecs-dark-border, #52525b);
+  border-top-color: var(--ecs-primary-light, #60A5FA);
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .c-modal__close,
+  .c-user-search-results__item,
+  .c-form-modern__input,
+  .c-modal__spinner {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: more) {
+  .c-modal__content {
+    border-width: 2px;
+  }
+
+  .c-modal__header,
+  .c-modal__footer {
+    border-width: 2px;
+  }
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+@media print {
+  .c-modal,
+  .c-modal__content {
+    display: none !important;
+  }
+}
+
+/* ============================================================================
+   CONTENT SLOTS - Reusable patterns for modal content
+   Use these within c-modal__body for consistent styling
+   ============================================================================ */
+
+/* ALERT/MESSAGE SLOT - For confirmation dialogs, status messages */
+.c-modal__message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+  padding: var(--modal-padding, 1rem) 0;
+}
+
+.c-modal__message-icon {
+  font-size: clamp(2.5rem, 8vw, 3.5rem);
+  line-height: 1;
+}
+
+.c-modal__message-icon--success {
+  color: var(--color-success, #10b981);
+}
+
+.c-modal__message-icon--danger {
+  color: var(--color-danger, #ef4444);
+}
+
+.c-modal__message-icon--warning {
+  color: var(--color-warning, #f59e0b);
+}
+
+.c-modal__message-icon--info {
+  color: var(--color-info, #3b82f6);
+}
+
+.c-modal__message-icon--primary {
+  color: var(--color-primary, #2563EB);
+}
+
+.c-modal__message-title {
+  font-size: var(--modal-title-size, 1.25rem);
+  font-weight: 600;
+  margin: 0;
+  color: var(--modal-text, #18181b);
+}
+
+.c-modal__message-text {
+  font-size: var(--modal-body-size, 0.9375rem);
+  color: var(--modal-text-muted, #71717a);
+  margin: 0;
+  max-width: 40ch;
+}
+
+[data-style="dark"] .c-modal__message-title {
+  color: #fafafa;
+}
+
+[data-style="dark"] .c-modal__message-text {
+  color: #a1a1aa;
+}
+
+/* FORM SLOT - For modal forms with consistent layout */
+.c-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.c-modal__form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.c-modal__form-label {
+  font-size: var(--modal-small-size, 0.8125rem);
+  font-weight: 500;
+  color: var(--modal-text, #18181b);
+}
+
+.c-modal__form-input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  font-size: var(--modal-body-size, 0.9375rem);
+  line-height: 1.4;
+  border: 1px solid var(--modal-border, #e4e4e7);
+  border-radius: calc(var(--modal-radius, 0.5rem) - 2px);
+  background-color: var(--modal-bg, #ffffff);
+  color: var(--modal-text, #18181b);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.c-modal__form-input:focus {
+  outline: none;
+  border-color: var(--ecs-primary, #2563EB);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.c-modal__form-input::placeholder {
+  color: var(--modal-text-muted, #71717a);
+}
+
+.c-modal__form-hint {
+  font-size: var(--modal-small-size, 0.75rem);
+  color: var(--modal-text-muted, #71717a);
+}
+
+.c-modal__form-error {
+  font-size: var(--modal-small-size, 0.75rem);
+  color: var(--color-danger, #ef4444);
+}
+
+[data-style="dark"] .c-modal__form-label {
+  color: #cbd5e1;                /* Slate-300 */
+}
+
+[data-style="dark"] .c-modal__form-input {
+  background-color: #1E293B;     /* Slate-900 */
+  border-color: #475569;         /* Slate-700 */
+  color: #f8fafc;                /* Slate-50 */
+}
+
+[data-style="dark"] .c-modal__form-input:focus {
+  border-color: #60A5FA;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+}
+
+[data-style="dark"] .c-modal__form-input::placeholder {
+  color: #64748b;                /* Slate-600 */
+}
+
+[data-style="dark"] .c-modal__form-hint {
+  color: #94a3b8;                /* Slate-400 */
+}
+
+/* Form grid for 2-column layouts */
+.c-modal__form-row {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 576px) {
+  .c-modal__form-row--2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .c-modal__form-row--3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* LIST SLOT - For selection lists, settings */
+.c-modal__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.c-modal__list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--modal-border, #e4e4e7);
+}
+
+.c-modal__list-item:last-child {
+  border-bottom: none;
+}
+
+.c-modal__list-item-title {
+  font-weight: 500;
+  color: var(--modal-text, #18181b);
+}
+
+.c-modal__list-item-description {
+  font-size: var(--modal-small-size, 0.8125rem);
+  color: var(--modal-text-muted, #71717a);
+}
+
+[data-style="dark"] .c-modal__list-item {
+  border-color: #475569;         /* Slate-700 */
+}
+
+[data-style="dark"] .c-modal__list-item-title {
+  color: #f8fafc;                /* Slate-50 */
+}
+
+[data-style="dark"] .c-modal__list-item-description {
+  color: #94a3b8;                /* Slate-400 */
+}
+
+/* DETAIL SLOT - For key-value display */
+.c-modal__detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.c-modal__detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.c-modal__detail-label {
+  font-size: var(--modal-small-size, 0.8125rem);
+  color: var(--modal-text-muted, #71717a);
+  flex-shrink: 0;
+}
+
+.c-modal__detail-value {
+  font-weight: 500;
+  color: var(--modal-text, #18181b);
+  text-align: right;
+}
+
+[data-style="dark"] .c-modal__detail-label {
+  color: #94a3b8;                /* Slate-400 */
+}
+
+[data-style="dark"] .c-modal__detail-value {
+  color: #f8fafc;                /* Slate-50 */
+}
+
+/* BODY UTILITY MODIFIERS */
+.c-modal__body--flush {
+  padding: 0;
+}
+
+.c-modal__body--centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.c-modal__body--divided > * + * {
+  border-top: 1px solid var(--modal-border, #e4e4e7);
+  padding-top: var(--modal-padding, 1rem);
+  margin-top: var(--modal-padding, 1rem);
+}
+
+[data-style="dark"] .c-modal__body--divided > * + * {
+  border-color: #475569;         /* Slate-700 */
+}
+
+/* HEADER UTILITY MODIFIERS */
+.c-modal__header--borderless {
+  border-bottom: none;
+}
+
+.c-modal__header--compact {
+  padding: calc(var(--modal-padding, 1rem) * 0.75);
+}

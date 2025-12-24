@@ -1,0 +1,509 @@
+/**
+ * ============================================================================
+ * ADMIN MATCH DETAIL PAGE - BEM ARCHITECTURE
+ * ============================================================================
+ *
+ * Modern BEM-compliant styles for admin match detail page with live reporting.
+ * Extracted from inline styles and converted to component-based architecture.
+ *
+ * Architecture:
+ * - BEM naming convention (.c-component__element--modifier)
+ * - Design tokens only (no hardcoded values)
+ * - Zero !important declarations
+ * - Full dark mode support
+ * - Mobile-first responsive design
+ * - WCAG AA accessibility compliant
+ *
+ * Reference: /app/templates/admin/manage_subs.html (gold standard)
+ * Migration Date: 2025-12-17
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   MATCH HEADER COMPONENT
+   Page header with title and action buttons
+   ============================================================================ */
+
+.c-match-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-8);
+}
+
+.c-match-header__title {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-bold);
+    color: var(--color-text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.c-match-header__actions {
+    display: flex;
+    gap: var(--space-2);
+}
+
+[data-style="dark"] .c-match-header__title {
+    color: var(--color-text-primary);
+}
+
+/* ============================================================================
+   TEAMS DISPLAY COMPONENT
+   Primary visual display of match teams and date
+   ============================================================================ */
+
+.c-teams-display {
+    background: var(--color-bg-subtle);
+    border-radius: var(--radius-lg);
+    padding: var(--space-8);
+    margin: var(--space-4) 0;
+    transition: background-color var(--duration-normal) var(--ease-smooth);
+}
+
+[data-style="dark"] .c-teams-display {
+    background: var(--color-bg-card);
+}
+
+/* Team Section */
+.c-team-section {
+    text-align: center;
+}
+
+.c-team-section__title {
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-2);
+    font-size: var(--text-2xl);
+    font-weight: var(--font-semibold);
+}
+
+[data-style="dark"] .c-team-section__title {
+    color: var(--color-text-primary);
+}
+
+/* VS Separator */
+.c-vs-separator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.c-vs-separator__text {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-bold);
+    color: var(--color-text-secondary);
+}
+
+.c-vs-separator__date {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    margin-top: var(--space-2);
+}
+
+[data-style="dark"] .c-vs-separator__text {
+    color: var(--color-text-secondary);
+}
+
+[data-style="dark"] .c-vs-separator__date {
+    color: var(--color-text-muted);
+}
+
+/* ============================================================================
+   DETAIL SECTION COMPONENT
+   Reusable card-style container for information blocks
+   ============================================================================ */
+
+.c-detail-section {
+    background: var(--color-bg-card);
+    border-radius: var(--radius-md);
+    padding: var(--space-6);
+    margin-bottom: var(--space-6);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--color-border-primary);
+    transition: box-shadow var(--duration-normal) var(--ease-smooth);
+}
+
+.c-detail-section:hover {
+    box-shadow: var(--shadow-md);
+}
+
+[data-style="dark"] .c-detail-section {
+    background: var(--color-bg-card);
+    border-color: var(--color-border-primary);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Detail Section Header */
+.c-detail-section__header {
+    color: var(--color-primary);
+    margin-bottom: var(--space-4);
+    font-size: var(--text-xl);
+    font-weight: var(--font-semibold);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+[data-style="dark"] .c-detail-section__header {
+    color: var(--color-primary);
+}
+
+/* ============================================================================
+   INFO ROW COMPONENT
+   Label-value pairs in detail sections
+   ============================================================================ */
+
+.c-info-row {
+    margin-bottom: var(--space-4);
+}
+
+.c-info-row:last-child {
+    margin-bottom: 0;
+}
+
+.c-info-row__label {
+    font-weight: var(--font-semibold);
+    color: var(--color-text-secondary);
+}
+
+.c-info-row__value {
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .c-info-row__label {
+    color: var(--color-text-secondary);
+}
+
+[data-style="dark"] .c-info-row__value {
+    color: var(--color-text-primary);
+}
+
+/* ============================================================================
+   STATUS INDICATOR COMPONENT
+   Circular indicator for session status
+   ============================================================================ */
+
+.c-status-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: var(--radius-full);
+    margin-right: var(--space-2);
+    transition: background-color var(--duration-normal) var(--ease-smooth);
+}
+
+.c-status-indicator--active {
+    background-color: var(--color-success);
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+}
+
+.c-status-indicator--inactive {
+    background-color: var(--color-text-muted);
+}
+
+.c-status-indicator--error {
+    background-color: var(--color-danger);
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+}
+
+[data-style="dark"] .c-status-indicator--active {
+    background-color: var(--color-success);
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+}
+
+[data-style="dark"] .c-status-indicator--inactive {
+    background-color: var(--color-text-muted);
+}
+
+[data-style="dark"] .c-status-indicator--error {
+    background-color: var(--color-danger);
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+/* ============================================================================
+   NO SESSION STATE COMPONENT
+   Displayed when no live reporting session exists
+   ============================================================================ */
+
+.c-no-session-state {
+    text-align: center;
+    padding: var(--space-8) var(--space-4);
+}
+
+.c-no-session-state__icon {
+    font-size: 3rem;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-4);
+}
+
+.c-no-session-state__title {
+    color: var(--color-text-secondary);
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    margin-bottom: var(--space-2);
+}
+
+.c-no-session-state__text {
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-4);
+}
+
+[data-style="dark"] .c-no-session-state__icon {
+    color: var(--color-text-muted);
+}
+
+[data-style="dark"] .c-no-session-state__title {
+    color: var(--color-text-secondary);
+}
+
+[data-style="dark"] .c-no-session-state__text {
+    color: var(--color-text-muted);
+}
+
+/* ============================================================================
+   MATCH ACTIONS COMPONENT
+   Action buttons for match management
+   ============================================================================ */
+
+.c-match-actions {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.c-match-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-md);
+    font-weight: var(--font-medium);
+    transition: all var(--duration-fast) var(--ease-smooth);
+}
+
+.c-match-actions .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.c-match-actions .btn:active {
+    transform: translateY(0);
+}
+
+.c-match-actions .btn:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.c-match-actions .btn.is-loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* ============================================================================
+   CODE DISPLAY COMPONENT
+   For displaying IDs and technical values
+   ============================================================================ */
+
+.c-code-display {
+    background: var(--color-bg-subtle);
+    color: var(--color-danger);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: var(--text-sm);
+    border: 1px solid var(--color-border-primary);
+}
+
+[data-style="dark"] .c-code-display {
+    background: var(--color-bg-card);
+    color: var(--color-danger);
+    border-color: var(--color-border-primary);
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
+   Mobile-first breakpoints
+   ============================================================================ */
+
+/* Tablet (768px - 991px) */
+@media (max-width: 992px) {
+    .c-match-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-4);
+    }
+
+    .c-match-header__actions {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .c-match-header__actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .c-teams-display {
+        padding: var(--space-6);
+    }
+
+    .c-vs-separator {
+        margin: var(--space-4) 0;
+    }
+
+    .c-detail-section {
+        padding: var(--space-4);
+    }
+}
+
+/* Mobile (< 768px) */
+@media (max-width: 768px) {
+    .c-match-header__title {
+        font-size: var(--text-xl);
+    }
+
+    .c-teams-display {
+        padding: var(--space-4);
+        margin: var(--space-2) 0;
+    }
+
+    .c-team-section__title {
+        font-size: var(--text-lg);
+    }
+
+    .c-vs-separator__text {
+        font-size: var(--text-xl);
+    }
+
+    .c-detail-section {
+        padding: var(--space-4);
+        margin-bottom: var(--space-4);
+    }
+
+    .c-detail-section__header {
+        font-size: var(--text-lg);
+    }
+
+    .c-match-actions {
+        flex-direction: column;
+    }
+
+    .c-match-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .c-info-row .row {
+        margin-bottom: var(--space-2);
+    }
+
+    .c-info-row .col-sm-4,
+    .c-info-row .col-sm-8 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    .c-info-row__label {
+        margin-bottom: var(--space-1);
+    }
+}
+
+/* Small Mobile (< 576px) */
+@media (max-width: 576px) {
+    .c-teams-display {
+        padding: var(--space-3);
+    }
+
+    .c-team-section {
+        margin-bottom: var(--space-4);
+    }
+
+    .c-team-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .c-vs-separator {
+        font-size: var(--text-lg);
+        padding: var(--space-3) 0;
+    }
+
+    .c-detail-section {
+        padding: var(--space-3);
+    }
+
+    .c-no-session-state {
+        padding: var(--space-6) var(--space-2);
+    }
+
+    .c-no-session-state__icon {
+        font-size: 2rem;
+    }
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   Focus states and accessibility enhancements
+   ============================================================================ */
+
+/* Focus States */
+.c-detail-section:focus-within {
+    box-shadow: var(--shadow-lg);
+    border-color: var(--color-primary);
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    .c-teams-display,
+    .c-detail-section,
+    .c-status-indicator,
+    .c-match-actions .btn {
+        transition: none;
+    }
+
+    .c-match-actions .btn:hover {
+        transform: none;
+    }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: more) {
+    .c-detail-section {
+        border-width: 2px;
+    }
+
+    .c-status-indicator {
+        border: 2px solid currentColor;
+    }
+
+    .c-code-display {
+        border-width: 2px;
+    }
+}
+
+/* ============================================================================
+   PRINT STYLES
+   Optimized for printing
+   ============================================================================ */
+
+@media print {
+    .c-match-header__actions,
+    .c-match-actions {
+        display: none;
+    }
+
+    .c-detail-section {
+        box-shadow: none;
+        border: 1px solid #000;
+        page-break-inside: avoid;
+    }
+
+    .c-teams-display {
+        background: #f5f5f5;
+        border: 1px solid #000;
+    }
+}

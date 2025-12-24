@@ -1,0 +1,574 @@
+/**
+ * ============================================================================
+ * MODERN SWEETALERT2 INTEGRATION - ATHLETIC PRECISION
+ * ============================================================================
+ *
+ * Design: Custom SweetAlert2 styling to match our design system
+ * - Glass-morphism modal
+ * - Athletic button styles
+ * - Smooth animations
+ * - Dark mode support
+ * - Icon customization
+ *
+ * Architecture:
+ * - Overrides default SweetAlert2 classes
+ * - Design tokens only
+ * - Consistent with modal-modern.css
+ * - Zero !important (minimal use only where necessary to override library)
+ *
+ * Note: This file customizes SweetAlert2 (https://sweetalert2.github.io/)
+ * Make sure SweetAlert2 is loaded before this stylesheet
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   CONTAINER & BACKDROP
+   ============================================================================ */
+
+.swal2-container {
+  z-index: var(--z-modal) !important;
+  padding: var(--space-4);
+}
+
+.swal2-backdrop-show {
+  background: rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+[data-style="dark"] .swal2-backdrop-show {
+  background: rgba(0, 0, 0, 0.6) !important;
+}
+
+/* ============================================================================
+   POPUP - Glass-morphism
+   ============================================================================ */
+
+.swal2-popup {
+  /* Glass-morphism */
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(255, 255, 255, 0.95) 100%
+  ) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-xl) !important;
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.07),
+    0 20px 25px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset !important;
+
+  padding: var(--space-6) !important;
+  width: auto !important;
+  max-width: 500px !important;
+}
+
+[data-style="dark"] .swal2-popup {
+  background: linear-gradient(
+    135deg,
+    rgba(30, 30, 35, 0.98) 0%,
+    rgba(30, 30, 35, 0.95) 100%
+  ) !important;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.3),
+    0 20px 25px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset !important;
+}
+
+/* Scale-in animation */
+.swal2-show {
+  animation: swal2ScaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+@keyframes swal2ScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ============================================================================
+   HEADER & TITLE
+   ============================================================================ */
+
+.swal2-header {
+  padding: 0 0 var(--space-4) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  margin-bottom: var(--space-4) !important;
+}
+
+[data-style="dark"] .swal2-header {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.swal2-title {
+  font-size: var(--text-xl) !important;
+  font-weight: var(--font-semibold) !important;
+  color: var(--color-text-primary) !important;
+  line-height: var(--leading-tight) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* ============================================================================
+   ICONS - Using Tabler Icons for better appearance
+   ============================================================================ */
+
+/* Base icon styling - hide default SweetAlert2 animated parts */
+.swal2-icon {
+  position: relative;
+  width: 5rem !important;
+  height: 5rem !important;
+  margin: 0 auto var(--space-4) !important;
+  border: none !important;
+  border-radius: 50%;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Hide all the default animated elements */
+.swal2-icon .swal2-icon-content,
+.swal2-icon .swal2-success-ring,
+.swal2-icon .swal2-success-fix,
+.swal2-icon .swal2-success-circular-line-left,
+.swal2-icon .swal2-success-circular-line-right,
+.swal2-icon .swal2-success-line-tip,
+.swal2-icon .swal2-success-line-long,
+.swal2-icon .swal2-x-mark,
+.swal2-icon .swal2-x-mark-line-left,
+.swal2-icon .swal2-x-mark-line-right {
+  display: none !important;
+}
+
+/* Use ::after for our custom Tabler icon */
+.swal2-icon::after {
+  font-family: 'tabler-icons' !important;
+  font-size: 2.5rem;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Success icon - Checkmark in circle */
+.swal2-icon.swal2-success {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.08) 100%) !important;
+  border: 2px solid rgba(16, 185, 129, 0.3) !important;
+}
+
+.swal2-icon.swal2-success::after {
+  content: '\ea67'; /* ti-circle-check */
+  color: var(--color-success, #10b981);
+}
+
+/* Error icon - X in circle */
+.swal2-icon.swal2-error {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.08) 100%) !important;
+  border: 2px solid rgba(239, 68, 68, 0.3) !important;
+}
+
+.swal2-icon.swal2-error::after {
+  content: '\ea6a'; /* ti-circle-x */
+  color: var(--color-danger, #ef4444);
+}
+
+/* Warning icon - Alert triangle */
+.swal2-icon.swal2-warning {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.08) 100%) !important;
+  border: 2px solid rgba(245, 158, 11, 0.3) !important;
+}
+
+.swal2-icon.swal2-warning::after {
+  content: '\ea06'; /* ti-alert-triangle */
+  color: var(--color-warning, #f59e0b);
+}
+
+/* Info icon - Info circle */
+.swal2-icon.swal2-info {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(14, 165, 233, 0.08) 100%) !important;
+  border: 2px solid rgba(14, 165, 233, 0.3) !important;
+}
+
+.swal2-icon.swal2-info::after {
+  content: '\eac5'; /* ti-info-circle */
+  color: var(--color-primary, #0ea5e9);
+}
+
+/* Question icon - Help circle */
+.swal2-icon.swal2-question {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0.08) 100%) !important;
+  border: 2px solid rgba(139, 92, 246, 0.3) !important;
+}
+
+.swal2-icon.swal2-question::after {
+  content: '\eabf'; /* ti-help */
+  color: #8b5cf6;
+}
+
+/* Dark mode adjustments */
+[data-style="dark"] .swal2-icon.swal2-success {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.1) 100%) !important;
+}
+
+[data-style="dark"] .swal2-icon.swal2-error {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.1) 100%) !important;
+}
+
+[data-style="dark"] .swal2-icon.swal2-warning {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.1) 100%) !important;
+}
+
+[data-style="dark"] .swal2-icon.swal2-info {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.2) 0%, rgba(14, 165, 233, 0.1) 100%) !important;
+}
+
+[data-style="dark"] .swal2-icon.swal2-question {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(139, 92, 246, 0.1) 100%) !important;
+}
+
+/* ============================================================================
+   CONTENT / HTML
+   ============================================================================ */
+
+.swal2-html-container {
+  font-size: var(--text-base) !important;
+  color: var(--color-text-primary) !important;
+  line-height: var(--leading-relaxed) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: center;
+}
+
+/* ============================================================================
+   ACTIONS / BUTTONS
+   ============================================================================ */
+
+.swal2-actions {
+  margin: var(--space-6) 0 0 !important;
+  padding: 0 !important;
+  gap: var(--space-3) !important;
+  justify-content: center !important;
+}
+
+.swal2-styled {
+  /* Athletic button base */
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: var(--space-2) !important;
+
+  padding: var(--space-3) var(--space-5) !important;
+  margin: 0 !important;
+
+  font-size: var(--text-sm) !important;
+  font-weight: var(--font-semibold) !important;
+  font-family: inherit !important;
+  line-height: 1 !important;
+
+  border: 2px solid transparent !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: none !important;
+
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+
+  min-width: 100px !important;
+}
+
+/* Confirm button - Primary */
+.swal2-confirm {
+  background: linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%) !important;
+  color: white !important;
+  box-shadow:
+    0 1px 3px rgba(14, 165, 233, 0.3),
+    0 4px 8px rgba(14, 165, 233, 0.2) !important;
+}
+
+.swal2-confirm:hover {
+  background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow:
+    0 4px 8px rgba(14, 165, 233, 0.4),
+    0 8px 16px rgba(14, 165, 233, 0.3) !important;
+}
+
+.swal2-confirm:active {
+  transform: translateY(0) !important;
+}
+
+.swal2-confirm:focus {
+  box-shadow:
+    0 0 0 4px rgba(14, 165, 233, 0.2),
+    0 4px 8px rgba(14, 165, 233, 0.3) !important;
+}
+
+/* Cancel button - Secondary */
+.swal2-cancel {
+  background: var(--color-neutral-100) !important;
+  color: var(--color-text-primary) !important;
+  border-color: var(--color-border-primary) !important;
+}
+
+.swal2-cancel:hover {
+  background: var(--color-neutral-200) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-style="dark"] .swal2-cancel {
+  background: var(--color-neutral-800) !important;
+  color: var(--color-neutral-200) !important;
+  border-color: var(--color-neutral-700) !important;
+}
+
+[data-style="dark"] .swal2-cancel:hover {
+  background: var(--color-neutral-700) !important;
+}
+
+/* Deny button - Danger */
+.swal2-deny {
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%) !important;
+  color: white !important;
+  box-shadow:
+    0 1px 3px rgba(239, 68, 68, 0.3),
+    0 4px 8px rgba(239, 68, 68, 0.2) !important;
+}
+
+.swal2-deny:hover {
+  background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow:
+    0 4px 8px rgba(239, 68, 68, 0.4),
+    0 8px 16px rgba(239, 68, 68, 0.3) !important;
+}
+
+/* ============================================================================
+   INPUT FIELDS
+   ============================================================================ */
+
+.swal2-input,
+.swal2-textarea,
+.swal2-select {
+  width: 100% !important;
+  padding: var(--space-3) var(--space-4) !important;
+  margin: var(--space-4) 0 !important;
+
+  font-size: var(--text-sm) !important;
+  font-family: inherit !important;
+  color: var(--color-text-primary) !important;
+  line-height: var(--leading-normal) !important;
+
+  background: var(--color-bg-elevated) !important;
+  border: 2px solid var(--color-border-primary) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: none !important;
+
+  outline: none !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.swal2-input:focus,
+.swal2-textarea:focus,
+.swal2-select:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow:
+    0 0 0 4px rgba(14, 165, 233, 0.1),
+    0 4px 12px rgba(14, 165, 233, 0.08) !important;
+  transform: translateY(-1px) !important;
+}
+
+[data-style="dark"] .swal2-input,
+[data-style="dark"] .swal2-textarea,
+[data-style="dark"] .swal2-select {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: var(--color-neutral-200) !important;
+}
+
+.swal2-textarea {
+  min-height: 120px !important;
+  resize: vertical !important;
+}
+
+/* ============================================================================
+   VALIDATION MESSAGE
+   ============================================================================ */
+
+.swal2-validation-message {
+  margin: var(--space-2) 0 !important;
+  padding: var(--space-2) var(--space-3) !important;
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: var(--color-danger) !important;
+  font-size: var(--text-xs) !important;
+  border-radius: var(--radius-md) !important;
+  border-left: 3px solid var(--color-danger) !important;
+}
+
+/* ============================================================================
+   PROGRESS STEPS
+   ============================================================================ */
+
+.swal2-progress-steps {
+  margin: 0 0 var(--space-4) !important;
+  padding: 0 !important;
+}
+
+.swal2-progress-step {
+  background: var(--color-neutral-200) !important;
+  color: var(--color-text-primary) !important;
+  font-size: var(--text-sm) !important;
+}
+
+.swal2-progress-step.swal2-active-progress-step {
+  background: var(--color-primary) !important;
+  color: white !important;
+}
+
+.swal2-progress-step-line {
+  background: var(--color-neutral-200) !important;
+}
+
+/* ============================================================================
+   TIMER PROGRESS BAR
+   ============================================================================ */
+
+.swal2-timer-progress-bar {
+  background: var(--color-primary) !important;
+  height: 4px !important;
+}
+
+.swal2-timer-progress-bar-container {
+  background: rgba(0, 0, 0, 0.1) !important;
+  height: 4px !important;
+}
+
+[data-style="dark"] .swal2-timer-progress-bar-container {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ============================================================================
+   CLOSE BUTTON
+   ============================================================================ */
+
+.swal2-close {
+  width: 2rem !important;
+  height: 2rem !important;
+  padding: 0 !important;
+  font-size: 1.5rem !important;
+  color: var(--color-text-muted) !important;
+  background: transparent !important;
+  border-radius: var(--radius-md) !important;
+  transition: all 0.2s ease !important;
+}
+
+.swal2-close:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: var(--color-text-primary) !important;
+  transform: none !important;
+}
+
+[data-style="dark"] .swal2-close:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ============================================================================
+   TOAST POSITIONING - For toast notifications
+   ============================================================================ */
+
+.swal2-toast {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(255, 255, 255, 0.95) 100%
+  ) !important;
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.07),
+    0 10px 15px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-lg) !important;
+  padding: var(--space-4) !important;
+}
+
+[data-style="dark"] .swal2-toast {
+  background: linear-gradient(
+    135deg,
+    rgba(30, 30, 35, 0.98) 0%,
+    rgba(30, 30, 35, 0.95) 100%
+  ) !important;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.swal2-toast .swal2-title {
+  font-size: var(--text-sm) !important;
+  margin: 0 !important;
+}
+
+.swal2-toast .swal2-icon {
+  width: 2rem !important;
+  height: 2rem !important;
+  margin: 0 var(--space-2) 0 0 !important;
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .swal2-show {
+    animation: none !important;
+  }
+
+  .swal2-styled,
+  .swal2-input,
+  .swal2-close {
+    transition: none !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .swal2-popup {
+    border-width: 2px !important;
+  }
+
+  .swal2-styled {
+    border-width: 3px !important;
+  }
+}
+
+/* ============================================================================
+   MOBILE ADJUSTMENTS
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .swal2-popup {
+    max-width: calc(100vw - var(--space-8)) !important;
+    padding: var(--space-4) !important;
+  }
+
+  .swal2-title {
+    font-size: var(--text-lg) !important;
+  }
+
+  .swal2-html-container {
+    font-size: var(--text-sm) !important;
+  }
+
+  .swal2-actions {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
+  .swal2-styled {
+    width: 100% !important;
+  }
+}

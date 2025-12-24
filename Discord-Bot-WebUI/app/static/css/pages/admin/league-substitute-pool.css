@@ -1,0 +1,415 @@
+/* ==================================================================
+   LEAGUE SUBSTITUTE POOL PAGE - ADMIN
+   Refactored inline styles for /admin/league_substitute_pool.html
+   Target: 100% inline style elimination
+   ================================================================== */
+
+/* ===================
+   League Header
+   =================== */
+.league-pool-header {
+    color: var(--color-neutral-0, #ffffff);
+    padding: var(--space-8, 2rem);
+    border-radius: var(--radius-lg, 10px);
+    margin-bottom: var(--space-8, 2rem);
+}
+
+/* Dynamic league color will be applied via inline style on the element itself
+   or via a data-attribute and custom property */
+
+/* ===================
+   Stats Dashboard
+   =================== */
+.league-pool-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-5, 1.25rem);
+    margin-bottom: var(--space-8, 2rem);
+}
+
+.league-pool-stat-card {
+    background: var(--color-bg-card, #ffffff);
+    padding: var(--space-5, 1.25rem);
+    border-radius: var(--radius-lg, 10px);
+    box-shadow: var(--shadow-md, 0 2px 10px rgba(0,0,0,0.1));
+    text-align: center;
+    border-left: 4px solid currentColor;
+}
+
+.league-pool-stat-number {
+    font-size: var(--text-4xl, 2.5rem);
+    font-weight: var(--font-bold, 700);
+    margin-bottom: var(--space-3, 0.75rem);
+}
+
+.league-pool-stat-label {
+    color: var(--color-text-muted, #666);
+    font-size: var(--text-sm, 0.9rem);
+}
+
+/* ===================
+   Pool Management Grid
+   =================== */
+.league-pool-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: var(--space-8, 2rem);
+    margin-bottom: var(--space-8, 2rem);
+}
+
+.league-pool-section {
+    background: var(--color-bg-card, #ffffff);
+    border-radius: var(--radius-lg, 10px);
+    padding: var(--space-5, 1.25rem);
+    box-shadow: var(--shadow-md, 0 2px 10px rgba(0,0,0,0.1));
+}
+
+.league-pool-section h3 {
+    margin-bottom: var(--space-5, 1.25rem);
+    padding-bottom: var(--space-3, 0.75rem);
+    border-bottom: 2px solid var(--border-color-primary, #eeeeee);
+}
+
+/* ===================
+   Player Grid & Cards
+   =================== */
+.league-pool-player-grid {
+    display: grid;
+    gap: var(--space-4, 1rem);
+}
+
+.league-pool-player-card {
+    background: var(--color-neutral-50, #f8f9fa);
+    border: 1px solid var(--border-color-primary, #dddddd);
+    border-radius: var(--radius-md, 8px);
+    padding: var(--space-4, 1rem);
+    transition: all var(--duration-normal, 0.3s) var(--ease-smooth, ease);
+}
+
+.league-pool-player-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg, 0 4px 12px rgba(0,0,0,0.15));
+}
+
+.league-pool-player-card.league-pool-dragging {
+    opacity: 0.6;
+    transform: rotate(3deg);
+}
+
+.league-pool-player-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--space-3, 0.75rem);
+}
+
+.league-pool-player-details {
+    flex: 1;
+}
+
+.league-pool-player-name {
+    font-weight: var(--font-bold, 700);
+    font-size: var(--text-lg, 1.1rem);
+    margin-bottom: var(--space-2, 0.5rem);
+}
+
+.league-pool-player-meta {
+    font-size: var(--text-sm, 0.9rem);
+    color: var(--color-text-muted, #666);
+}
+
+.league-pool-player-stats {
+    display: flex;
+    gap: var(--space-4, 1rem);
+    margin: var(--space-3, 0.75rem) 0;
+}
+
+.league-pool-player-stat {
+    text-align: center;
+    background: var(--color-bg-card, #ffffff);
+    padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+    border-radius: var(--radius-sm, 6px);
+    border: 1px solid var(--border-color-primary, #dddddd);
+}
+
+.league-pool-stat-value {
+    font-weight: var(--font-bold, 700);
+}
+
+.league-pool-stat-value-label {
+    font-size: var(--text-xs, 0.8rem);
+    color: var(--color-text-muted, #666);
+}
+
+.league-pool-player-actions {
+    display: flex;
+    gap: var(--space-2, 0.5rem);
+    margin-top: var(--space-3, 0.75rem);
+}
+
+/* ===================
+   Notification Badges
+   =================== */
+.league-pool-notification-prefs {
+    display: flex;
+    gap: var(--space-2, 0.5rem);
+    margin-top: var(--space-2, 0.5rem);
+}
+
+.league-pool-notification-badge {
+    padding: 3px var(--space-2, 0.5rem);
+    border-radius: var(--radius-full, 12px);
+    font-size: var(--text-xs, 0.8rem);
+    font-weight: var(--font-bold, 700);
+}
+
+.league-pool-notification-sms {
+    background: var(--color-success, #28a745);
+    color: var(--color-neutral-0, #ffffff);
+}
+
+.league-pool-notification-discord {
+    background: #7289da; /* Discord brand color - intentional */
+    color: var(--color-neutral-0, #ffffff);
+}
+
+.league-pool-notification-email {
+    background: var(--color-info, #17a2b8);
+    color: var(--color-neutral-0, #ffffff);
+}
+
+/* ===================
+   Drag Zones
+   =================== */
+.league-pool-drag-zone {
+    min-height: 200px;
+    border: 2px dashed var(--border-color-primary, #dddddd);
+    border-radius: var(--radius-md, 8px);
+    padding: var(--space-5, 1.25rem);
+    text-align: center;
+    color: var(--color-text-muted, #666);
+    background: var(--color-neutral-50, #f9f9f9);
+    transition: all var(--duration-normal, 0.3s) var(--ease-smooth, ease);
+}
+
+.league-pool-drag-zone.league-pool-drag-over {
+    /* Border and background color will be set dynamically with league color */
+    opacity: 0.85;
+}
+
+.league-pool-drag-zone.league-pool-has-players {
+    border-style: solid;
+    border-color: var(--border-color-primary, #dddddd);
+}
+
+/* ===================
+   Empty State
+   =================== */
+.league-pool-empty {
+    text-align: center;
+    padding: var(--space-10, 2.5rem);
+    color: var(--color-neutral-400, #999);
+}
+
+.league-pool-empty i {
+    font-size: var(--text-5xl, 3rem);
+    margin-bottom: var(--space-5, 1.25rem);
+    color: var(--color-neutral-200, #dddddd);
+}
+
+/* ===================
+   Activity Feed
+   =================== */
+.league-pool-activity-feed {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.league-pool-activity-item {
+    padding: var(--space-3, 0.75rem) 0;
+    border-bottom: 1px solid var(--border-color-primary, #eeeeee);
+}
+
+.league-pool-activity-item:last-child {
+    border-bottom: none;
+}
+
+.league-pool-activity-action {
+    font-weight: var(--font-bold, 700);
+}
+
+.league-pool-activity-time {
+    font-size: var(--text-sm, 0.9rem);
+    color: var(--color-text-muted, #666);
+}
+
+/* ===================
+   Search Section
+   =================== */
+.league-pool-search-section {
+    background: var(--color-neutral-50, #f8f9fa);
+    border-radius: var(--radius-md, 8px);
+    padding: var(--space-5, 1.25rem);
+    margin-bottom: var(--space-5, 1.25rem);
+}
+
+.league-pool-search-results {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color-primary, #dddddd);
+    border-radius: var(--radius-sm, 4px);
+    background: var(--color-bg-card, #ffffff);
+    margin-top: var(--space-3, 0.75rem);
+    display: none;
+}
+
+.league-pool-search-item {
+    padding: var(--space-3, 0.75rem);
+    border-bottom: 1px solid var(--border-color-primary, #eeeeee);
+    cursor: pointer;
+    transition: background var(--duration-fast, 0.2s) var(--ease-smooth, ease);
+}
+
+.league-pool-search-item:hover {
+    background: var(--color-neutral-50, #f8f9fa);
+}
+
+.league-pool-search-item:last-child {
+    border-bottom: none;
+}
+
+/* ===================
+   Breadcrumb
+   =================== */
+.league-pool-breadcrumb {
+    background: transparent;
+    padding: 0;
+    margin-bottom: var(--space-5, 1.25rem);
+}
+
+.league-pool-breadcrumb-item + .league-pool-breadcrumb-item::before {
+    content: ">";
+    color: var(--color-text-muted, #666);
+}
+
+/* ===================
+   Performance Chart
+   =================== */
+.league-pool-chart {
+    height: 300px;
+    margin-top: var(--space-5, 1.25rem);
+}
+
+/* ===================
+   Responsive Design
+   =================== */
+@media (max-width: 768px) {
+    .league-pool-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .league-pool-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .league-pool-player-stats {
+        flex-direction: column;
+        gap: var(--space-3, 0.75rem);
+    }
+
+    .league-pool-player-actions {
+        flex-direction: column;
+    }
+}
+
+/* ===================
+   Dark Mode Support
+   =================== */
+[data-style="dark"] .league-pool-header {
+    color: var(--color-neutral-100, #f5f5f5);
+}
+
+[data-style="dark"] .league-pool-stat-card {
+    background: var(--color-bg-elevated, #2a2a2a);
+    color: var(--color-text-primary, #ffffff);
+}
+
+[data-style="dark"] .league-pool-stat-label {
+    color: var(--color-text-secondary, #b0b0b0);
+}
+
+[data-style="dark"] .league-pool-section {
+    background: var(--color-bg-elevated, #2a2a2a);
+    color: var(--color-text-primary, #ffffff);
+}
+
+[data-style="dark"] .league-pool-section h3 {
+    color: var(--color-text-primary, #ffffff);
+    border-bottom-color: var(--border-color-primary, #404040);
+}
+
+[data-style="dark"] .league-pool-player-card {
+    background: var(--color-bg-card, #1e1e1e);
+    border-color: var(--border-color-primary, #404040);
+    color: var(--color-text-primary, #ffffff);
+}
+
+[data-style="dark"] .league-pool-player-name {
+    color: var(--color-text-primary, #ffffff);
+}
+
+[data-style="dark"] .league-pool-player-meta {
+    color: var(--color-text-secondary, #b0b0b0);
+}
+
+[data-style="dark"] .league-pool-player-stat {
+    background: var(--color-bg-light, #2a2a2a);
+    border-color: var(--border-color-primary, #404040);
+    color: var(--color-text-primary, #ffffff);
+}
+
+[data-style="dark"] .league-pool-stat-value-label {
+    color: var(--color-text-secondary, #b0b0b0);
+}
+
+[data-style="dark"] .league-pool-drag-zone {
+    background: var(--color-bg-light, #2a2a2a);
+    border-color: var(--border-color-primary, #404040);
+    color: var(--color-text-secondary, #b0b0b0);
+}
+
+[data-style="dark"] .league-pool-search-section {
+    background: var(--color-bg-light, #2a2a2a);
+    color: var(--color-text-primary, #ffffff);
+}
+
+[data-style="dark"] .league-pool-search-results {
+    background: var(--color-bg-elevated, #2a2a2a);
+    border-color: var(--border-color-primary, #404040);
+}
+
+[data-style="dark"] .league-pool-search-item {
+    color: var(--color-text-primary, #ffffff);
+    border-bottom-color: var(--border-color-primary, #404040);
+}
+
+[data-style="dark"] .league-pool-search-item:hover {
+    background: var(--color-bg-hover, #353535);
+}
+
+[data-style="dark"] .league-pool-activity-item {
+    color: var(--color-text-primary, #ffffff);
+    border-bottom-color: var(--border-color-primary, #404040);
+}
+
+[data-style="dark"] .league-pool-activity-time {
+    color: var(--color-text-secondary, #b0b0b0);
+}
+
+[data-style="dark"] .league-pool-empty {
+    color: var(--color-text-muted, #888);
+}
+
+[data-style="dark"] .league-pool-empty i {
+    color: var(--color-text-muted, #666);
+}

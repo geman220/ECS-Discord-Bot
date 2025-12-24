@@ -1,0 +1,541 @@
+/**
+ * SIZING UTILITIES
+ * ================
+ * Width and height utility classes for common sizing patterns
+ *
+ * Classes:
+ * - Width utilities (.w-*, .min-w-*, .max-w-*)
+ * - Height utilities (.h-*, .min-h-*, .max-h-*)
+ * - Form control sizing
+ * - Input group sizing
+ *
+ * Usage:
+ * - Provides consistent sizing across form controls
+ * - Replaces inline style width/height declarations
+ * - Supports responsive layouts
+ */
+
+/* ============================================
+   WIDTH UTILITIES
+   ============================================ */
+
+/* Percentage widths */
+.w-25 {
+    width: 25% !important;
+}
+
+.w-50 {
+    width: 50% !important;
+}
+
+.w-75 {
+    width: 75% !important;
+}
+
+.w-100 {
+    width: 100% !important;
+}
+
+.w-auto {
+    width: auto !important;
+}
+
+/* Fixed widths (common sizes) */
+.w-80px {
+    width: 80px !important;
+}
+
+.w-100px {
+    width: 100px !important;
+}
+
+.w-150px {
+    width: 150px !important;
+}
+
+.w-200px {
+    width: 200px !important;
+}
+
+.w-250px {
+    width: 250px !important;
+}
+
+.w-300px {
+    width: 300px !important;
+}
+
+/* ============================================
+   MIN-WIDTH UTILITIES
+   ============================================ */
+
+.min-w-0 {
+    min-width: 0 !important;
+}
+
+.min-w-32 {
+    min-width: 32px !important;
+}
+
+.min-w-50 {
+    min-width: 50px !important;
+}
+
+.min-w-100 {
+    min-width: 100px !important;
+}
+
+.min-w-150 {
+    min-width: 150px !important;
+}
+
+.min-w-200 {
+    min-width: 200px !important;
+}
+
+.min-w-250 {
+    min-width: 250px !important;
+}
+
+.min-w-300 {
+    min-width: 300px !important;
+}
+
+/* Viewport-based min-width */
+.min-w-100vw {
+    min-width: 100vw !important;
+}
+
+/* ============================================
+   MAX-WIDTH UTILITIES
+   ============================================ */
+
+.max-w-50 {
+    max-width: 50px !important;
+}
+
+.max-w-80 {
+    max-width: 80px !important;
+}
+
+.max-w-100 {
+    max-width: 100px !important;
+}
+
+.max-w-150 {
+    max-width: 150px !important;
+}
+
+.max-w-200 {
+    max-width: 200px !important;
+}
+
+.max-w-300 {
+    max-width: 300px !important;
+}
+
+.max-w-400 {
+    max-width: 400px !important;
+}
+
+.max-w-500 {
+    max-width: 500px !important;
+}
+
+.max-w-600 {
+    max-width: 600px !important;
+}
+
+.max-w-700 {
+    max-width: 700px !important;
+}
+
+.max-w-800 {
+    max-width: 800px !important;
+}
+
+/* Max-width percentages */
+.max-w-25 {
+    max-width: 25% !important;
+}
+
+.max-w-50-percent {
+    max-width: 50% !important;
+}
+
+.max-w-75 {
+    max-width: 75% !important;
+}
+
+.max-w-100-percent {
+    max-width: 100% !important;
+}
+
+/* Viewport-based max-width */
+.max-w-100vw {
+    max-width: 100vw !important;
+}
+
+.max-w-none {
+    max-width: none !important;
+}
+
+/* ============================================
+   HEIGHT UTILITIES
+   ============================================ */
+
+/* Percentage heights */
+.h-25 {
+    height: 25% !important;
+}
+
+.h-50 {
+    height: 50% !important;
+}
+
+.h-75 {
+    height: 75% !important;
+}
+
+.h-100 {
+    height: 100% !important;
+}
+
+.h-auto {
+    height: auto !important;
+}
+
+/* Fixed heights */
+.h-50px {
+    height: 50px !important;
+}
+
+.h-100px {
+    height: 100px !important;
+}
+
+.h-150px {
+    height: 150px !important;
+}
+
+.h-200px {
+    height: 200px !important;
+}
+
+/* ============================================
+   MIN-HEIGHT UTILITIES
+   ============================================ */
+
+.min-h-0 {
+    min-height: 0 !important;
+}
+
+.min-h-50 {
+    min-height: 50px !important;
+}
+
+.min-h-100 {
+    min-height: 100px !important;
+}
+
+.min-h-150 {
+    min-height: 150px !important;
+}
+
+.min-h-200 {
+    min-height: 200px !important;
+}
+
+.min-h-300 {
+    min-height: 300px !important;
+}
+
+.min-h-400 {
+    min-height: 400px !important;
+}
+
+.min-h-500 {
+    min-height: 500px !important;
+}
+
+/* Viewport-based min-height */
+.min-h-100vh {
+    min-height: 100vh !important;
+}
+
+/* ============================================
+   MAX-HEIGHT UTILITIES
+   ============================================ */
+
+.max-h-50 {
+    max-height: 50px !important;
+}
+
+.max-h-100 {
+    max-height: 100px !important;
+}
+
+.max-h-150 {
+    max-height: 150px !important;
+}
+
+.max-h-200 {
+    max-height: 200px !important;
+}
+
+.max-h-300 {
+    max-height: 300px !important;
+}
+
+.max-h-400 {
+    max-height: 400px !important;
+}
+
+.max-h-500 {
+    max-height: 500px !important;
+}
+
+.max-h-600 {
+    max-height: 600px !important;
+}
+
+/* Viewport-based max-height */
+.max-h-100vh {
+    max-height: 100vh !important;
+}
+
+.max-h-none {
+    max-height: none !important;
+}
+
+/* ============================================
+   FORM CONTROL SPECIFIC SIZING
+   ============================================ */
+
+/**
+ * Common form control widths
+ * Used for selects, inputs, and form fields
+ */
+.form-control-narrow {
+    max-width: 80px !important;
+}
+
+.form-control-sm-width {
+    max-width: 120px !important;
+}
+
+.form-control-md-width {
+    min-width: 200px !important;
+}
+
+.form-control-lg-width {
+    min-width: 300px !important;
+}
+
+/**
+ * Minute input sizing (compact numeric input)
+ */
+.input-minute {
+    max-width: 80px !important;
+}
+
+/**
+ * Player select sizing (standard dropdown)
+ */
+.select-player {
+    min-width: 200px !important;
+}
+
+/* ============================================
+   INPUT GROUP COMPONENT SIZING
+   ============================================ */
+
+/**
+ * Input group text/prepend/append sizing
+ */
+.input-group-text-compact {
+    min-width: 32px !important;
+    padding: 0.375rem 0.25rem !important;
+}
+
+.input-group-text-md {
+    min-width: 48px !important;
+}
+
+.input-group-text-lg {
+    min-width: 64px !important;
+}
+
+/* ============================================
+   RESPONSIVE SIZING UTILITIES
+   ============================================ */
+
+/* Medium devices (tablets, 768px and up) */
+@media (min-width: 768px) {
+    .w-md-25 { width: 25% !important; }
+    .w-md-50 { width: 50% !important; }
+    .w-md-75 { width: 75% !important; }
+    .w-md-100 { width: 100% !important; }
+    .w-md-auto { width: auto !important; }
+
+    .min-w-md-200 { min-width: 200px !important; }
+    .max-w-md-100 { max-width: 100px !important; }
+}
+
+/* Large devices (desktops, 992px and up) */
+@media (min-width: 992px) {
+    .w-lg-25 { width: 25% !important; }
+    .w-lg-50 { width: 50% !important; }
+    .w-lg-75 { width: 75% !important; }
+    .w-lg-100 { width: 100% !important; }
+    .w-lg-auto { width: auto !important; }
+
+    .min-w-lg-250 { min-width: 250px !important; }
+    .max-w-lg-150 { max-width: 150px !important; }
+}
+
+/* ============================================
+   VW/VH UTILITIES
+   ============================================ */
+
+.w-100vw {
+    width: 100vw !important;
+}
+
+.h-100vh {
+    height: 100vh !important;
+}
+
+/* ============================================
+   BOX SIZING
+   ============================================ */
+
+.box-border {
+    box-sizing: border-box !important;
+}
+
+.box-content {
+    box-sizing: content-box !important;
+}
+
+/* ============================================
+   ICON SIZING UTILITIES
+   ============================================ */
+
+/**
+ * Icon size utilities for consistent icon scaling
+ * Used for icons in empty states, badges, and decorative elements
+ */
+.icon-sm {
+    font-size: 1rem !important;
+}
+
+.icon-md {
+    font-size: 1.5rem !important;
+}
+
+.icon-lg {
+    font-size: 2rem !important;
+}
+
+.icon-xl {
+    font-size: 3rem !important;
+}
+
+.icon-2xl {
+    font-size: 4rem !important;
+}
+
+/* ============================================
+   PROFILE & AVATAR IMAGE SIZING
+   ============================================ */
+
+/**
+ * Profile image containers and images
+ * Used in profile templates, macros, and user avatars
+ */
+
+/* Profile Image Containers */
+.profile-image-container {
+    position: relative;
+    display: inline-block;
+}
+
+.profile-image-sm,
+.profile-image-container.profile-image-sm {
+    width: 50px !important;
+    height: 50px !important;
+}
+
+.profile-image-md,
+.profile-image-container.profile-image-md {
+    width: 80px !important;
+    height: 80px !important;
+}
+
+.profile-image-lg,
+.profile-image-container.profile-image-lg {
+    width: 130px !important;
+    height: 130px !important;
+}
+
+/* Profile Pictures (alternate naming) */
+.profile-picture-sm {
+    width: 60px !important;
+    height: 60px !important;
+    object-fit: cover !important;
+}
+
+.profile-picture-md {
+    width: 80px !important;
+    height: 80px !important;
+    object-fit: cover !important;
+}
+
+.profile-picture-lg {
+    width: 100px !important;
+    height: 100px !important;
+    object-fit: cover !important;
+}
+
+/* Avatar Sizing (for small icons/badges) */
+.avatar-xxs {
+    width: 24px !important;
+    height: 24px !important;
+}
+
+.avatar-xs {
+    width: 30px !important;
+    height: 30px !important;
+}
+
+/* ============================================
+   FORM SELECT HEIGHT UTILITIES
+   ============================================ */
+
+/**
+ * Fixed heights for multi-select form controls
+ * Replaces inline style="height: 100px"
+ */
+.select-height-100 {
+    height: 100px !important;
+}
+
+.select-height-120 {
+    height: 120px !important;
+}
+
+.select-height-150 {
+    height: 150px !important;
+}
+
+/* ============================================
+   CONTAINER MAX-WIDTH UTILITIES
+   ============================================ */
+
+/**
+ * Profile-specific container sizing
+ */
+.profile-desktop-container {
+    max-width: 800px !important;
+}

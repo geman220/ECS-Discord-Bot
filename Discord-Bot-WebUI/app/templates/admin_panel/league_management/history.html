@@ -59,24 +59,24 @@
 {% block panel_content %}
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
+        <div class="c-card">
+            <div class="c-card__header">
                 <h5 class="mb-0">
                     <i class="ti ti-history me-2"></i>Season History
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if history %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Season</th>
-                                <th>League Type</th>
-                                <th>Leagues</th>
-                                <th>Teams</th>
-                                <th>Created</th>
-                                <th>Status</th>
+                                <th scope="col">Season</th>
+                                <th scope="col">League Type</th>
+                                <th scope="col">Leagues</th>
+                                <th scope="col">Teams</th>
+                                <th scope="col">Created</th>
+                                <th scope="col">Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -88,7 +88,7 @@
                                     </a>
                                 </td>
                                 <td>
-                                    <span class="badge bg-label-primary">{{ season.league_type }}</span>
+                                    <span class="badge bg-label-primary" data-badge>{{ season.league_type }}</span>
                                 </td>
                                 <td>{{ season.league_count }}</td>
                                 <td>{{ season.team_count }}</td>
@@ -101,9 +101,9 @@
                                 </td>
                                 <td>
                                     {% if season.is_current %}
-                                    <span class="badge bg-success">Current</span>
+                                    <span class="badge bg-success" data-badge>Current</span>
                                     {% else %}
-                                    <span class="badge bg-secondary">Archived</span>
+                                    <span class="badge bg-secondary" data-badge>Archived</span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -113,7 +113,7 @@
                 </div>
                 {% else %}
                 <div class="text-center py-4">
-                    <i class="ti ti-history text-muted" style="font-size: 2rem;"></i>
+                    <i class="ti ti-history text-muted u-card-icon-stat"></i>
                     <p class="text-muted mt-2">No season history available</p>
                 </div>
                 {% endif %}
@@ -125,21 +125,21 @@
 <!-- Player History Lookup -->
 <div class="row mt-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
+        <div class="c-card">
+            <div class="c-card__header">
                 <h5 class="mb-0">
                     <i class="ti ti-user-search me-2"></i>Player Team History Lookup
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="player-search-container">
                             <label class="form-label">Search by Player Name</label>
-                            <div class="input-group">
+                            <div class="input-group" data-input-group>
                                 <input type="text" class="form-control" id="playerSearchInput"
-                                       placeholder="Start typing player name..." autocomplete="off">
-                                <button class="btn btn-primary" id="lookupBtn" disabled>
+                                       placeholder="Start typing player name..." autocomplete="off" data-form-control>
+                                <button class="c-btn c-btn--primary" id="lookupBtn" disabled>
                                     <i class="ti ti-search me-1"></i>Lookup
                                 </button>
                             </div>
@@ -150,7 +150,7 @@
                     </div>
                 </div>
 
-                <div id="playerHistoryResult" class="mt-4" style="display: none;">
+                <div id="playerHistoryResult" class="mt-4 d-none">
                     <h6 id="playerHistoryTitle">Team History</h6>
                     <div id="playerHistoryContent"></div>
                 </div>
@@ -223,6 +223,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Lookup button
     lookupBtn.addEventListener('click', lookupPlayerHistory);
+
+    // Event delegation for player selection from search results
+    document.addEventListener('click', function(e) {
+        const item = e.target.closest('[data-action="select-player"]');
+        if (item && item.classList.contains('js-player-option')) {
+            const playerIndex = parseInt(item.dataset.playerIndex, 10);
+            if (searchResults[playerIndex]) {
+                selectPlayer(searchResults[playerIndex]);
+            }
+        }
+    });
 });
 
 function updateSelection(items) {
@@ -246,7 +257,7 @@ function searchPlayers(query) {
                 resultsDiv.innerHTML = '<div class="player-search-item text-muted">No players found</div>';
             } else {
                 resultsDiv.innerHTML = searchResults.map((player, idx) => `
-                    <div class="player-search-item" onclick="selectPlayer(searchResults[${idx}])">
+                    <div class="player-search-item js-player-option" data-action="select-player" data-player-index="${idx}">
                         <span class="player-name">${escapeHtml(player.name)}</span>
                         <span class="player-id ms-2">(ID: ${player.id})</span>
                     </div>
@@ -288,14 +299,14 @@ function lookupPlayerHistory() {
     const titleDiv = document.getElementById('playerHistoryTitle');
 
     resultDiv.style.display = 'block';
-    contentDiv.innerHTML = '<div class="spinner-border spinner-border-sm"></div> Loading...';
+    contentDiv.innerHTML = '<div class="spinner-border spinner-border-sm" data-spinner></div> Loading...';
     titleDiv.textContent = `Team History for ${playerName}`;
 
     fetch(`/admin-panel/league-management/history/api/player/${playerId}`)
         .then(response => response.json())
         .then(result => {
             if (result.success && result.history.length > 0) {
-                let html = '<table class="table table-sm"><thead><tr><th>Season</th><th>Team</th></tr></thead><tbody>';
+                let html = '<table class="c-table c-table--compact" data-table><thead scope="col"><tr><th scope="col">Season</th><th scope="col">Team</th></tr></thead><tbody>';
                 result.history.forEach(h => {
                     html += `<tr><td>${escapeHtml(h.season_name)}</td><td>${escapeHtml(h.team_name)}</td></tr>`;
                 });

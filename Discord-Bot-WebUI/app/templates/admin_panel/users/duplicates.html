@@ -13,8 +13,8 @@
 <div class="row">
     <!-- Stats Cards -->
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-warning bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-warning bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-copy fs-1 text-warning mb-2"></i>
                 <h3 class="mb-0">{{ stats.total_groups }}</h3>
                 <small class="text-muted">Duplicate Groups</small>
@@ -22,8 +22,8 @@
         </div>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-danger bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-danger bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-users fs-1 text-danger mb-2"></i>
                 <h3 class="mb-0">{{ stats.total_potential_duplicates }}</h3>
                 <small class="text-muted">Affected Users</small>
@@ -31,8 +31,8 @@
         </div>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-info bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-info bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-mail fs-1 text-info mb-2"></i>
                 <h3 class="mb-0">{{ stats.by_email }}</h3>
                 <small class="text-muted">By Email</small>
@@ -40,8 +40,8 @@
         </div>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-primary bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-primary bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-brand-discord fs-1 text-primary mb-2"></i>
                 <h3 class="mb-0">{{ stats.by_discord }}</h3>
                 <small class="text-muted">By Discord</small>
@@ -51,11 +51,11 @@
 
     <!-- Actions -->
     <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-body">
+        <div class="c-card">
+            <div class="c-card__body">
                 <div class="row align-items-center">
                     <div class="col-md-6 mb-2 mb-md-0">
-                        <button id="scan-btn" class="btn btn-primary me-2">
+                        <button id="scan-btn" class="c-btn c-btn--primary me-2">
                             <i class="ti ti-scan me-1"></i>Scan for Duplicates
                         </button>
                         <span class="text-muted small">Last scan: {{ stats.last_scan or 'Never' }}</span>
@@ -72,8 +72,8 @@
     {% if duplicate_groups %}
         {% for group in duplicate_groups %}
         <div class="col-12 mb-4">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="c-card">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">
                         {% if group.match_type == 'email' %}
                         <i class="ti ti-mail me-2 text-info"></i>Email Match: {{ group.match_value }}
@@ -82,29 +82,31 @@
                         {% elif group.match_type == 'discord' %}
                         <i class="ti ti-brand-discord me-2 text-primary"></i>Discord Match: {{ group.match_value }}
                         {% endif %}
-                        <span class="badge bg-secondary ms-2">{{ group.users|length }} users</span>
+                        <span class="badge bg-secondary ms-2" data-badge>{{ group.users|length }} users</span>
                     </h6>
                     <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-danger" onclick="dismissGroup({{ group.users|map(attribute='id')|list|tojson }})">
+                        <button class="c-btn c-btn--outline-danger js-dismiss-group"
+                                data-action="dismiss-group"
+                                data-user-ids="{{ group.users|map(attribute='id')|list|tojson }}">
                             <i class="ti ti-x me-1"></i>Not Duplicates
                         </button>
                     </div>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover mb-0">
-                            <thead>
+                <div class="c-card__body p-0">
+                    <div class="c-table-wrapper" data-table-responsive>
+                        <table class="c-table c-table--compact c-table--hoverable mb-0" data-table>
+                            <thead scope="col">
                                 <tr>
-                                    <th style="width: 40px;">
+                                    <th class="u-w-80" scope="col">
                                         <input type="radio" name="primary-{{ loop.index }}" disabled title="Select Primary">
                                     </th>
-                                    <th>Username</th>
-                                    <th>Email</th>
-                                    <th>Player Name</th>
-                                    <th>Discord ID</th>
-                                    <th>Status</th>
-                                    <th>Created</th>
-                                    <th>Actions</th>
+                                    <th scope="col">Username</th>
+                                    <th scope="col">Email</th>
+                                    <th scope="col">Player Name</th>
+                                    <th scope="col">Discord ID</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col">Created</th>
+                                    <th scope="col">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -128,17 +130,17 @@
                                     </td>
                                     <td>
                                         {% if user.approval_status == 'approved' %}
-                                        <span class="badge bg-success">Approved</span>
+                                        <span class="badge bg-success" data-badge>Approved</span>
                                         {% elif user.approval_status == 'pending' %}
-                                        <span class="badge bg-warning">Pending</span>
+                                        <span class="badge bg-warning" data-badge>Pending</span>
                                         {% else %}
-                                        <span class="badge bg-secondary">{{ user.approval_status }}</span>
+                                        <span class="badge bg-secondary" data-badge>{{ user.approval_status }}</span>
                                         {% endif %}
                                     </td>
                                     <td><small>{{ user.created_at[:10] if user.created_at else 'N/A' }}</small></td>
                                     <td>
                                         <a href="{{ url_for('admin_panel.user_details_api', user_id=user.id) }}"
-                                           class="btn btn-sm btn-outline-primary" title="View Details" target="_blank">
+                                           class="c-btn c-btn--sm c-btn--outline-primary" title="View Details" target="_blank">
                                             <i class="ti ti-eye"></i>
                                         </a>
                                     </td>
@@ -148,8 +150,8 @@
                         </table>
                     </div>
                 </div>
-                <div class="card-footer">
-                    <button class="btn btn-primary btn-sm merge-btn"
+                <div class="c-card__footer">
+                    <button class="c-btn c-btn--primary c-btn--sm merge-btn"
                             data-group="{{ loop.index }}"
                             data-users="{{ group.users|map(attribute='id')|list|tojson }}" disabled>
                         <i class="ti ti-git-merge me-1"></i>Merge Selected (select primary first)
@@ -161,12 +163,12 @@
         {% endfor %}
     {% else %}
     <div class="col-12">
-        <div class="card">
-            <div class="card-body text-center py-5">
+        <div class="c-card">
+            <div class="c-card__body text-center py-5">
                 <i class="ti ti-check-circle fs-1 text-success mb-3"></i>
                 <h5 class="text-success">No Duplicates Found</h5>
                 <p class="text-muted">No potential duplicate registrations detected.</p>
-                <button id="scan-btn-alt" class="btn btn-outline-primary">
+                <button id="scan-btn-alt" class="c-btn c-btn--outline-primary">
                     <i class="ti ti-scan me-1"></i>Run Scan
                 </button>
             </div>
@@ -233,28 +235,33 @@ document.querySelectorAll('.merge-btn').forEach(btn => {
     });
 });
 
-// Dismiss group
-function dismissGroup(userIds) {
-    if (!confirm('Mark these users as NOT duplicates? They will no longer appear together.')) return;
+// Event delegation for dismiss group button
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.js-dismiss-group')) {
+        const btn = e.target.closest('.js-dismiss-group');
+        const userIds = JSON.parse(btn.dataset.userIds);
 
-    fetch('{{ url_for("admin_panel.dismiss_duplicate") }}', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_ids: userIds })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            AdminPanel.showMobileToast(data.message, 'success');
-            location.reload();
-        } else {
-            AdminPanel.showMobileToast('Error: ' + data.message, 'danger');
-        }
-    })
-    .catch(error => {
-        AdminPanel.showMobileToast('Error dismissing group', 'danger');
-    });
-}
+        if (!confirm('Mark these users as NOT duplicates? They will no longer appear together.')) return;
+
+        fetch('{{ url_for("admin_panel.dismiss_duplicate") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_ids: userIds })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                AdminPanel.showMobileToast(data.message, 'success');
+                location.reload();
+            } else {
+                AdminPanel.showMobileToast('Error: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Error dismissing group', 'danger');
+        });
+    }
+});
 
 // Scan button
 document.getElementById('scan-btn')?.addEventListener('click', runScan);

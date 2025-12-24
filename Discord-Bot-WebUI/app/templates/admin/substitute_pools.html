@@ -19,7 +19,7 @@
                     <p class="text-muted mb-0">Manage substitute players across all leagues</p>
                 </div>
                 <div>
-                    <button class="btn btn-outline-primary" onclick="refreshPools()">
+                    <button class="c-btn c-btn--outline-primary" data-action="refresh-pools" class="js-refresh-pools">
                         <i class="ti ti-refresh me-1"></i>Refresh
                     </button>
                 </div>
@@ -30,12 +30,12 @@
     <!-- Global Stats Overview -->
     <div class="stats-overview">
         {% for league_type, data in pools_data.items() %}
-        <div class="stat-card" style="--league-color: {{ data.config.color }};">
+        <div class="stat-card">
             <div class="stat-number">{{ data.total_active }}</div>
             <div class="stat-label">{{ league_type }} Active</div>
         </div>
         {% endfor %}
-        <div class="stat-card" style="--league-color: var(--ecs-neutral-50, #6c757d);">
+        <div class="stat-card">
             <div class="stat-number">{{ pools_data.values() | map(attribute='available_players') | map('length') | sum }}</div>
             <div class="stat-label">Pending Approval</div>
         </div>
@@ -43,23 +43,23 @@
 
     <!-- Player Search -->
     <div class="search-container">
-        <div class="card">
-            <div class="card-header">
+        <div class="c-card">
+            <div class="c-card__header">
                 <h5 class="mb-0">
                     <i class="ti ti-search me-2"></i>Player Search
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-8">
                         <div class="position-relative">
                             <input type="text" id="playerSearch" class="form-control" 
-                                   placeholder="Search players by name, email, or Discord...">
+                                   placeholder="Search players by name, email, or Discord..." data-form-control>
                             <div id="searchResults" class="search-results"></div>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <select id="searchLeagueFilter" class="form-select ecs-form-control">
+                        <select id="searchLeagueFilter" class="form-select ecs-form-control" data-form-select>
                             <option value="">All Leagues</option>
                             {% for league_type, config in league_types.items() %}
                             <option value="{{ league_type }}">{{ config.name }}</option>
@@ -73,7 +73,7 @@
 
     <!-- League Sections -->
     {% for league_type, data in pools_data.items() %}
-    <div class="league-section" style="--league-color: {{ data.config.color }}; --league-color-dark: {{ data.config.color }};">
+    <div class="league-section">
         <div class="league-header">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
@@ -85,9 +85,10 @@
                     </p>
                 </div>
                 <div>
-                    <button class="btn btn-light btn-sm manage-league-btn" 
+                    <button class="c-btn c-btn--light c-btn--sm"
+                            data-action="manage-league-pool"
                             data-league="{{ league_type }}"
-                            data-bs-toggle="modal" 
+                            data-bs-toggle="modal"
                             data-bs-target="#leagueManagementModal">
                         <i class="ti ti-settings me-1"></i>Manage Pool
                     </button>
@@ -106,27 +107,28 @@
                         </h5>
                         <div class="d-flex gap-2">
                             <div class="btn-group btn-group-sm" role="group">
-                                <button type="button" class="btn btn-outline-secondary view-toggle" 
+                                <button type="button" class="c-btn c-btn--outline-secondary view-toggle"
+                                        data-action="toggle-pool-view"
                                         data-view="grid" data-league="{{ league_type }}" data-section="pending">
                                     <i class="ti ti-grid-dots"></i>
                                 </button>
-                                <button type="button" class="btn btn-outline-secondary view-toggle active" 
+                                <button type="button" class="c-btn c-btn--outline-secondary view-toggle active"
+                                        data-action="toggle-pool-view"
                                         data-view="list" data-league="{{ league_type }}" data-section="pending">
                                     <i class="ti ti-list"></i>
                                 </button>
                             </div>
                             <input type="text" class="form-control form-control-sm pool-filter pool-filter-sm"
                                    placeholder="Filter..."
-                                   data-league="{{ league_type }}" data-section="pending">
+                                   data-on-input="filter-pool"
+                                   data-league="{{ league_type }}" data-section="pending" data-form-control>
                         </div>
                     </div>
                     
-                    <div class="drop-zone pending" 
-                         data-league="{{ league_type }}" 
+                    <div class="drop-zone pending"
+                         data-league="{{ league_type }}"
                          data-status="pending"
-                         ondrop="handleDrop(event)" 
-                         ondragover="handleDragOver(event)"
-                         ondragleave="handleDragLeave(event)">
+                         data-action="drop-zone">
                         
                         {% if data.available_players %}
                             <!-- List View (Default) -->
@@ -138,15 +140,14 @@
                                      data-status="pending"
                                      data-search-text="{{ player.name|lower }} {{ player.user.email|lower if player.user else '' }}"
                                      draggable="true"
-                                     ondragstart="handleDragStart(event)"
-                                     ondragend="handleDragEnd(event)">
+                                     data-action="draggable-player">
                                     <div class="row align-items-center">
                                         <div class="col-md-6">
                                             <div class="d-flex align-items-center">
                                                 <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}"
                                                      alt="{{ player.name }}"
                                                      class="rounded-circle me-3 player-avatar-sm"
-                                                     onerror="this.src='/static/img/default_player.png';">
+                                                     data-fallback-src="/static/img/default_player.png">
                                                 <div>
                                                     <h6 class="mb-1 ecs-player-name">{{ player.name }}</h6>
                                                     <small class="text-muted ecs-text-muted">
@@ -156,20 +157,22 @@
                                             </div>
                                         </div>
                                         <div class="col-md-3 text-center">
-                                            <span class="badge bg-warning">Pending</span>
+                                            <span class="badge bg-warning" data-badge>Pending</span>
                                             {% if player.discord_id %}
                                             <br><small class="text-muted"><i class="ti ti-brand-discord"></i> Discord</small>
                                             {% endif %}
                                         </div>
                                         <div class="col-md-3 text-end">
                                             <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-success approve-player" 
+                                                <button class="c-btn c-btn--success"
+                                                        data-action="approve-pool-player"
                                                         data-player-id="{{ player.id }}"
                                                         data-league="{{ league_type }}"
                                                         title="Approve">
                                                     <i class="ti ti-check"></i>
                                                 </button>
-                                                <button class="btn btn-outline-info player-details-btn" 
+                                                <button class="c-btn c-btn--outline-info"
+                                                        data-action="view-pool-player-details"
                                                         data-player-id="{{ player.id }}"
                                                         title="View Details">
                                                     <i class="ti ti-user"></i>
@@ -186,34 +189,35 @@
                                 <div class="row g-2">
                                     {% for player in data.available_players %}
                                     <div class="col-md-6 col-lg-4">
-                                        <div class="card player-card border-0 shadow-sm h-100"
+                                        <div class="c-card player-card border-0 shadow-sm h-100"
                                              data-player-id="{{ player.id }}"
                                              data-league="{{ league_type }}"
                                              data-status="pending"
                                              data-search-text="{{ player.name|lower }} {{ player.user.email|lower if player.user else '' }}"
                                              draggable="true"
-                                             ondragstart="handleDragStart(event)"
-                                             ondragend="handleDragEnd(event)">
-                                            
+                                             data-action="draggable-player">
+
                                             <!-- Compact Player Card -->
-                                            <div class="card-body p-2 text-center">
+                                            <div class="c-card__body p-2 text-center">
                                                 <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}"
                                                      alt="{{ player.name }}"
                                                      class="rounded-circle mb-2 player-avatar-md"
-                                                     onerror="this.src='/static/img/default_player.png';">
+                                                     data-fallback-src="/static/img/default_player.png">
                                                 <h6 class="mb-1 ecs-player-name">{{ player.name }}</h6>
                                                 <small class="text-muted d-block ecs-text-muted">{{ player.user.email if player.user else 'No email' }}</small>
-                                                <span class="badge bg-warning mt-1">Pending</span>
+                                                <span class="badge bg-warning mt-1" data-badge>Pending</span>
                                             </div>
-                                            
-                                            <div class="card-footer bg-transparent border-0 p-1">
+
+                                            <div class="c-card__footer bg-transparent border-0 p-1">
                                                 <div class="btn-group btn-group-sm w-100">
-                                                    <button class="btn btn-success approve-player" 
+                                                    <button class="c-btn c-btn--success"
+                                                            data-action="approve-pool-player"
                                                             data-player-id="{{ player.id }}"
                                                             data-league="{{ league_type }}">
                                                         <i class="ti ti-check"></i>
                                                     </button>
-                                                    <button class="btn btn-outline-info player-details-btn" 
+                                                    <button class="c-btn c-btn--outline-info"
+                                                            data-action="view-pool-player-details"
                                                             data-player-id="{{ player.id }}">
                                                         <i class="ti ti-user"></i>
                                                     </button>
@@ -233,7 +237,7 @@
                                     of <span id="pending-total-{{ league_type }}">{{ data.available_players|length }}</span>
                                 </small>
                                 <nav>
-                                    <ul class="pagination pagination-sm mb-0" id="pending-pagination-{{ league_type }}">
+                                    <ul class="pagination pagination-sm mb-0" id="pending-pagination-{{ league_type }}" data-pagination>
                                         <!-- Pagination will be generated by JavaScript -->
                                     </ul>
                                 </nav>
@@ -258,27 +262,28 @@
                         </h5>
                         <div class="d-flex gap-2">
                             <div class="btn-group btn-group-sm" role="group">
-                                <button type="button" class="btn btn-outline-secondary view-toggle" 
+                                <button type="button" class="c-btn c-btn--outline-secondary view-toggle"
+                                        data-action="toggle-pool-view"
                                         data-view="grid" data-league="{{ league_type }}" data-section="active">
                                     <i class="ti ti-grid-dots"></i>
                                 </button>
-                                <button type="button" class="btn btn-outline-secondary view-toggle active" 
+                                <button type="button" class="c-btn c-btn--outline-secondary view-toggle active"
+                                        data-action="toggle-pool-view"
                                         data-view="list" data-league="{{ league_type }}" data-section="active">
                                     <i class="ti ti-list"></i>
                                 </button>
                             </div>
                             <input type="text" class="form-control form-control-sm pool-filter pool-filter-sm"
                                    placeholder="Filter..."
-                                   data-league="{{ league_type }}" data-section="active">
+                                   data-on-input="filter-pool"
+                                   data-league="{{ league_type }}" data-section="active" data-form-control>
                         </div>
                     </div>
                     
-                    <div class="drop-zone active" 
-                         data-league="{{ league_type }}" 
+                    <div class="drop-zone active"
+                         data-league="{{ league_type }}"
                          data-status="active"
-                         ondrop="handleDrop(event)" 
-                         ondragover="handleDragOver(event)"
-                         ondragleave="handleDragLeave(event)">
+                         data-action="drop-zone">
                         
                         {% if data.active_pools %}
                             <!-- List View (Default) -->
@@ -290,15 +295,14 @@
                                      data-status="active"
                                      data-search-text="{{ pool.player.name|lower }} {{ pool.player.user.email|lower if pool.player.user else '' }} {{ pool.preferred_positions|lower if pool.preferred_positions else '' }}"
                                      draggable="true"
-                                     ondragstart="handleDragStart(event)"
-                                     ondragend="handleDragEnd(event)">
+                                     data-action="draggable-player">
                                     <div class="row align-items-center">
                                         <div class="col-md-5">
                                             <div class="d-flex align-items-center">
                                                 <img src="{{ pool.player.profile_picture_url or '/static/img/default_player.png' }}"
                                                      alt="{{ pool.player.name }}"
                                                      class="rounded-circle me-3 player-avatar-sm"
-                                                     onerror="this.src='/static/img/default_player.png';">
+                                                     data-fallback-src="/static/img/default_player.png">
                                                 <div>
                                                     <h6 class="mb-1 ecs-player-name">{{ pool.player.name }}</h6>
                                                     <small class="text-muted ecs-text-muted">
@@ -327,31 +331,34 @@
                                             </div>
                                             <div class="mt-1">
                                                 {% if pool.sms_for_sub_requests %}
-                                                <span class="badge bg-success badge-sm me-1">SMS</span>
+                                                <span class="badge bg-success badge-sm me-1" data-badge>SMS</span>
                                                 {% endif %}
                                                 {% if pool.discord_for_sub_requests %}
-                                                <span class="badge bg-primary badge-sm me-1">Discord</span>
+                                                <span class="badge bg-primary badge-sm me-1" data-badge>Discord</span>
                                                 {% endif %}
                                                 {% if pool.email_for_sub_requests %}
-                                                <span class="badge bg-info badge-sm">Email</span>
+                                                <span class="badge bg-info badge-sm" data-badge>Email</span>
                                                 {% endif %}
                                             </div>
                                         </div>
                                         <div class="col-md-3 text-end">
                                             <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-warning remove-player" 
+                                                <button class="c-btn c-btn--outline-warning"
+                                                        data-action="remove-pool-player"
                                                         data-player-id="{{ pool.player_id }}"
                                                         data-league="{{ league_type }}"
                                                         title="Remove">
                                                     <i class="ti ti-x"></i>
                                                 </button>
-                                                <button class="btn btn-outline-secondary edit-preferences" 
+                                                <button class="c-btn c-btn--outline-secondary"
+                                                        data-action="edit-pool-preferences"
                                                         data-player-id="{{ pool.player_id }}"
                                                         data-league="{{ league_type }}"
                                                         title="Edit">
                                                     <i class="ti ti-edit"></i>
                                                 </button>
-                                                <button class="btn btn-outline-info player-details-btn" 
+                                                <button class="c-btn c-btn--outline-info"
+                                                        data-action="view-pool-player-details"
                                                         data-player-id="{{ pool.player_id }}"
                                                         title="View Details">
                                                     <i class="ti ti-user"></i>
@@ -368,21 +375,20 @@
                                 <div class="row g-2">
                                     {% for pool in data.active_pools %}
                                     <div class="col-md-6 col-lg-4">
-                                        <div class="card player-card border-0 shadow-sm h-100"
+                                        <div class="c-card player-card border-0 shadow-sm h-100"
                                              data-player-id="{{ pool.player_id }}"
                                              data-league="{{ league_type }}"
                                              data-status="active"
                                              data-search-text="{{ pool.player.name|lower }} {{ pool.player.user.email|lower if pool.player.user else '' }} {{ pool.preferred_positions|lower if pool.preferred_positions else '' }}"
                                              draggable="true"
-                                             ondragstart="handleDragStart(event)"
-                                             ondragend="handleDragEnd(event)">
+                                             data-action="draggable-player">
                                             
                                             <!-- Compact Player Card -->
-                                            <div class="card-body p-2 text-center">
+                                            <div class="c-card__body p-2 text-center">
                                                 <img src="{{ pool.player.profile_picture_url or '/static/img/default_player.png' }}"
                                                      alt="{{ pool.player.name }}"
                                                      class="rounded-circle mb-2 player-avatar-md"
-                                                     onerror="this.src='/static/img/default_player.png';">
+                                                     data-fallback-src="/static/img/default_player.png">
                                                 <h6 class="mb-1 ecs-player-name">{{ pool.player.name }}</h6>
                                                 <small class="text-muted d-block ecs-text-muted">{{ pool.player.user.email if pool.player.user else 'No email' }}</small>
                                                 
@@ -402,22 +408,25 @@
                                                     </div>
                                                 </div>
                                                 
-                                                <span class="badge bg-success mt-1">Active</span>
+                                                <span class="badge bg-success mt-1" data-badge>Active</span>
                                             </div>
                                             
-                                            <div class="card-footer bg-transparent border-0 p-1">
+                                            <div class="c-card__footer bg-transparent border-0 p-1">
                                                 <div class="btn-group btn-group-sm w-100">
-                                                    <button class="btn btn-outline-warning remove-player" 
+                                                    <button class="c-btn c-btn--outline-warning"
+                                                            data-action="remove-pool-player"
                                                             data-player-id="{{ pool.player_id }}"
                                                             data-league="{{ league_type }}">
                                                         <i class="ti ti-x"></i>
                                                     </button>
-                                                    <button class="btn btn-outline-secondary edit-preferences" 
+                                                    <button class="c-btn c-btn--outline-secondary"
+                                                            data-action="edit-pool-preferences"
                                                             data-player-id="{{ pool.player_id }}"
                                                             data-league="{{ league_type }}">
                                                         <i class="ti ti-edit"></i>
                                                     </button>
-                                                    <button class="btn btn-outline-info player-details-btn" 
+                                                    <button class="c-btn c-btn--outline-info"
+                                                            data-action="view-pool-player-details"
                                                             data-player-id="{{ pool.player_id }}">
                                                         <i class="ti ti-user"></i>
                                                     </button>
@@ -437,7 +446,7 @@
                                     of <span id="active-total-{{ league_type }}">{{ data.active_pools|length }}</span>
                                 </small>
                                 <nav>
-                                    <ul class="pagination pagination-sm mb-0" id="active-pagination-{{ league_type }}">
+                                    <ul class="pagination pagination-sm mb-0" id="active-pagination-{{ league_type }}" data-pagination>
                                         <!-- Pagination will be generated by JavaScript -->
                                     </ul>
                                 </nav>
@@ -459,20 +468,20 @@
 </div>
 
 <!-- Player Details Modal -->
-<div class="modal fade" id="playerDetailsModal" tabindex="-1" aria-labelledby="playerDetailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content ecs-modal dark-mode-applied">
-            <div class="modal-header ecs-modal-header">
-                <h5 class="modal-title ecs-modal-title" id="playerDetailsModalLabel">
+<div class="modal c-modal fade" data-modal id="playerDetailsModal" tabindex="-1" aria-labelledby="playerDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+        <div class="modal-content c-modal__content ecs-modal dark-mode-applied" data-modal-content>
+            <div class="modal-header c-modal__header ecs-modal-header" data-modal-header>
+                <h5 class="modal-title c-modal__title ecs-modal-title" id="playerDetailsModalLabel">
                     <i class="ti ti-user me-2"></i>Player Details
                 </h5>
-                <button type="button" class="btn-close ecs-modal-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close ecs-modal-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
             </div>
-            <div class="modal-body p-0 ecs-modal-body">
+            <div class="modal-body c-modal__body p-0 ecs-modal-body" data-modal-body>
                 <div id="playerDetailsContent">
                     <!-- Loading State -->
                     <div id="detailsLoading" class="text-center py-5 ecs-text-muted">
-                        <div class="spinner-border text-primary mb-3" role="status">
+                        <div class="spinner-border text-primary mb-3" role="status" data-spinner>
                             <span class="visually-hidden">Loading...</span>
                         </div>
                         <p class="text-muted ecs-text-secondary">Loading player details...</p>
@@ -489,14 +498,14 @@
 </div>
 
 <!-- Edit Preferences Modal -->
-<div class="modal fade" id="editPreferencesModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content ecs-modal">
-            <div class="modal-header ecs-modal-header">
-                <h5 class="modal-title ecs-modal-title">Edit Substitute Preferences</h5>
-                <button type="button" class="btn-close ecs-modal-close" data-bs-dismiss="modal"></button>
+<div class="modal c-modal fade" data-modal id="editPreferencesModal" tabindex="-1" aria-labelledby="editPreferencesModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content ecs-modal" data-modal-content>
+            <div class="modal-header c-modal__header ecs-modal-header" data-modal-header>
+                <h5 class="modal-title c-modal__title ecs-modal-title">Edit Substitute Preferences</h5>
+                <button type="button" class="btn-close ecs-modal-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body ecs-modal-body">
+            <div class="modal-body c-modal__body ecs-modal-body" data-modal-body>
                 <form id="preferencesForm">
                     <input type="hidden" id="editPlayerId" name="player_id">
                     <input type="hidden" id="editLeagueType" name="league_type">
@@ -504,13 +513,13 @@
                     <div class="mb-3">
                         <label class="form-label">Preferred Positions</label>
                         <input type="text" class="form-control" id="editPositions" name="preferred_positions" 
-                               placeholder="e.g., Forward, Midfielder">
+                               placeholder="e.g., Forward, Midfielder" data-form-control>
                     </div>
                     
                     <div class="mb-3">
                         <label class="form-label">Max Matches Per Week</label>
                         <input type="number" class="form-control" id="editMaxMatches" name="max_matches_per_week" 
-                               min="1" max="10" value="3">
+                               min="1" max="10" value="3" data-form-control>
                     </div>
                     
                     <div class="mb-3">
@@ -538,30 +547,30 @@
                     <div class="mb-3">
                         <label class="form-label">Notes</label>
                         <textarea class="form-control" id="editNotes" name="notes" rows="3" 
-                                  placeholder="Any additional notes about this substitute..."></textarea>
+                                  placeholder="Any additional notes about this substitute..." data-form-control></textarea>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="savePreferences">Save Changes</button>
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--primary" data-action="save-pool-preferences">Save Changes</button>
             </div>
         </div>
     </div>
 </div>
 
 <!-- League Management Modal -->
-<div class="modal fade" id="leagueManagementModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content ecs-modal">
-            <div class="modal-header ecs-modal-header">
-                <h5 class="modal-title ecs-modal-title">
+<div class="modal c-modal fade" data-modal id="leagueManagementModal" tabindex="-1" aria-labelledby="leagueManagementModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-xl c-modal__dialog--xl" data-modal-dialog>
+        <div class="modal-content c-modal__content ecs-modal" data-modal-content>
+            <div class="modal-header c-modal__header ecs-modal-header" data-modal-header>
+                <h5 class="modal-title c-modal__title ecs-modal-title">
                     <i id="leagueIcon" class="fas fa-futbol me-2"></i>
                     <span id="leagueTitle">League</span> Pool Management
                 </h5>
-                <button type="button" class="btn-close ecs-modal-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close ecs-modal-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body ecs-modal-body p-0">
+            <div class="modal-body c-modal__body ecs-modal-body p-0" data-modal-body>
                 <!-- League Stats -->
                 <div class="bg-light p-4 ecs-stats-section">
                     <div class="row g-3">
@@ -600,13 +609,13 @@
                                 <i class="ti ti-users me-2"></i>Quick Actions
                             </h6>
                             <div class="d-grid gap-2">
-                                <button class="btn btn-outline-primary" id="bulkApproveBtn">
+                                <button class="c-btn c-btn--outline-primary" id="bulkApproveBtn">
                                     <i class="ti ti-check-circle me-2"></i>Approve All Pending
                                 </button>
-                                <button class="btn btn-outline-info" id="exportPoolBtn">
+                                <button class="c-btn c-btn--outline-info" id="exportPoolBtn">
                                     <i class="ti ti-download me-2"></i>Export Pool Data
                                 </button>
-                                <button class="btn btn-outline-warning" id="sendNotificationBtn">
+                                <button class="c-btn c-btn--outline-warning" id="sendNotificationBtn">
                                     <i class="ti ti-bell me-2"></i>Send Pool Notification
                                 </button>
                             </div>
@@ -617,7 +626,7 @@
                             </h6>
                             <div class="mb-3">
                                 <label class="form-label">Default Max Matches Per Week</label>
-                                <input type="number" class="form-control" id="defaultMaxMatches" min="1" max="10" value="3">
+                                <input type="number" class="form-control" id="defaultMaxMatches" min="1" max="10" value="3" data-form-control>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Auto-Approval</label>
@@ -636,19 +645,19 @@
                         <div class="col-12">
                             <h6 class="mb-3">
                                 <i class="ti ti-messages me-2"></i>Recent Substitute Requests
-                                <button class="btn btn-sm btn-outline-primary ms-2" id="refreshRequestsBtn">
+                                <button class="c-btn c-btn--sm c-btn--outline-primary ms-2" id="refreshRequestsBtn">
                                     <i class="ti ti-refresh"></i>
                                 </button>
                             </h6>
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
+                            <div class="c-table-wrapper" data-table-responsive>
+                                <table class="c-table c-table--compact" data-table>
+                                    <thead scope="col">
                                         <tr>
-                                            <th>Created</th>
-                                            <th>Team</th>
-                                            <th>Status</th>
-                                            <th>Responses</th>
-                                            <th>Actions</th>
+                                            <th scope="col">Created</th>
+                                            <th scope="col">Team</th>
+                                            <th scope="col">Status</th>
+                                            <th scope="col">Responses</th>
+                                            <th scope="col">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="substituteRequestsTable">
@@ -667,14 +676,14 @@
                             <h6 class="mb-3">
                                 <i class="ti ti-clock me-2"></i>Recent Activity
                             </h6>
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
+                            <div class="c-table-wrapper" data-table-responsive>
+                                <table class="c-table c-table--compact" data-table>
+                                    <thead scope="col">
                                         <tr>
-                                            <th>Time</th>
-                                            <th>Action</th>
-                                            <th>Player</th>
-                                            <th>Performed By</th>
+                                            <th scope="col">Time</th>
+                                            <th scope="col">Action</th>
+                                            <th scope="col">Player</th>
+                                            <th scope="col">Performed By</th>
                                         </tr>
                                     </thead>
                                     <tbody id="recentActivityTable">
@@ -688,9 +697,9 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="savePoolSettings">Save Settings</button>
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
+                <button type="button" class="c-btn c-btn--primary" id="savePoolSettings">Save Settings</button>
             </div>
         </div>
     </div>

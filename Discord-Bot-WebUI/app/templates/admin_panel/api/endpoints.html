@@ -13,24 +13,24 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="mb-0">API Endpoints</h4>
     <div class="btn-group">
-        <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+        <button type="button" class="c-btn c-btn--outline-primary dropdown-toggle" data-bs-toggle="dropdown" data-dropdown-toggle>
             <i class="ti ti-download me-2"></i>Export
         </button>
-        <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#" onclick="exportEndpoints('csv')"><i class="ti ti-file-text me-2"></i>Export as CSV</a></li>
-            <li><a class="dropdown-item" href="#" onclick="exportEndpoints('json')"><i class="ti ti-code me-2"></i>Export as JSON</a></li>
-            <li><a class="dropdown-item" href="#" onclick="exportEndpoints('xlsx')"><i class="ti ti-file-spreadsheet me-2"></i>Export as Excel</a></li>
+        <ul class="dropdown-menu" data-dropdown-menu>
+            <li><a class="dropdown-item js-export-endpoints" href="#" data-action="export-endpoints" data-format="csv"><i class="ti ti-file-text me-2"></i>Export as CSV</a></li>
+            <li><a class="dropdown-item js-export-endpoints" href="#" data-action="export-endpoints" data-format="json"><i class="ti ti-code me-2"></i>Export as JSON</a></li>
+            <li><a class="dropdown-item js-export-endpoints" href="#" data-action="export-endpoints" data-format="xlsx"><i class="ti ti-file-spreadsheet me-2"></i>Export as Excel</a></li>
         </ul>
     </div>
 </div>
 
 <!-- Filters -->
-<div class="card mb-4">
-    <div class="card-body">
+<div class="c-card mb-4">
+    <div class="c-card__body">
         <form method="GET" class="row g-3">
             <div class="col-md-3">
                 <label class="form-label">Blueprint</label>
-                <select name="filter" class="form-select">
+                <select name="filter" class="form-select" data-form-select>
                     <option value="all" {% if current_filters.filter == 'all' %}selected{% endif %}>All Blueprints</option>
                     {% for blueprint in blueprints %}
                     <option value="{{ blueprint }}" {% if current_filters.filter == blueprint %}selected{% endif %}>
@@ -41,7 +41,7 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">Method</label>
-                <select name="method" class="form-select">
+                <select name="method" class="form-select" data-form-select>
                     <option value="all" {% if current_filters.method == 'all' %}selected{% endif %}>All Methods</option>
                     {% for method in methods %}
                     <option value="{{ method }}" {% if current_filters.method == method %}selected{% endif %}>
@@ -52,18 +52,18 @@
             </div>
             <div class="col-md-4">
                 <label class="form-label">Search</label>
-                <div class="input-group">
-                    <input type="text" name="search" class="form-control" placeholder="Search endpoints..." value="{{ current_filters.search }}">
-                    <button type="submit" class="btn btn-outline-primary">
+                <div class="input-group" data-input-group>
+                    <input type="text" name="search" class="form-control" placeholder="Search endpoints..." value="{{ current_filters.search }}" data-form-control>
+                    <button type="submit" class="c-btn c-btn--outline-primary">
                         <i class="ti ti-search"></i>
                     </button>
                 </div>
             </div>
             <div class="col-md-3 d-flex align-items-end">
-                <a href="{{ url_for('admin_panel.api_endpoints') }}" class="btn btn-outline-secondary me-2" title="Clear filters">
+                <a href="{{ url_for('admin_panel.api_endpoints') }}" class="c-btn c-btn--outline-secondary me-2" title="Clear filters">
                     <i class="ti ti-x"></i> Clear
                 </a>
-                <button type="button" class="btn btn-primary" onclick="refreshEndpoints()">
+                <button type="button" class="c-btn c-btn--primary js-refresh-endpoints" data-action="refresh-endpoints">
                     <i class="ti ti-refresh"></i> Refresh
                 </button>
             </div>
@@ -72,22 +72,22 @@
 </div>
 
 <!-- Endpoints Table -->
-<div class="card">
-    <div class="card-body p-0">
+<div class="c-card">
+    <div class="c-card__body p-0">
         {% if endpoints %}
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
+        <div class="c-table-wrapper" data-table-responsive>
+            <table class="c-table c-table--hoverable mb-0" data-table>
+                <thead class="c-table--light" scope="col">
                     <tr>
-                        <th>Endpoint</th>
-                        <th>Blueprint</th>
-                        <th>Methods</th>
-                        <th>Authentication</th>
-                        <th>Requests</th>
-                        <th>Avg Response</th>
-                        <th>Status</th>
-                        <th>Last Used</th>
-                        <th>Actions</th>
+                        <th scope="col">Endpoint</th>
+                        <th scope="col">Blueprint</th>
+                        <th scope="col">Methods</th>
+                        <th scope="col">Authentication</th>
+                        <th scope="col">Requests</th>
+                        <th scope="col">Avg Response</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Last Used</th>
+                        <th scope="col">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -102,17 +102,17 @@
                             </div>
                         </td>
                         <td>
-                            <span class="badge bg-secondary">{{ endpoint.blueprint }}</span>
+                            <span class="badge bg-secondary" data-badge>{{ endpoint.blueprint }}</span>
                         </td>
                         <td>
                             {% for method in endpoint.methods %}
-                            <span class="badge bg-{% if method == 'GET' %}info{% elif method == 'POST' %}primary{% elif method == 'PUT' %}warning{% elif method == 'DELETE' %}danger{% else %}secondary{% endif %} me-1">
+                            <span class="badge bg-{% if method == 'GET' %}info{% elif method == 'POST' %}primary{% elif method == 'PUT' %}warning{% elif method == 'DELETE' %}danger{% else %}secondary{% endif %} me-1" data-badge>
                                 {{ method }}
                             </span>
                             {% endfor %}
                         </td>
                         <td>
-                            <span class="badge bg-{% if endpoint.authentication == 'admin' %}danger{% elif endpoint.authentication == 'required' %}warning{% else %}success{% endif %}">
+                            <span class="badge bg-{% if endpoint.authentication == 'admin' %}danger{% elif endpoint.authentication == 'required' %}warning{% else %}success{% endif %}" data-badge>
                                 {{ endpoint.authentication }}
                             </span>
                         </td>
@@ -125,7 +125,7 @@
                             </span>
                         </td>
                         <td>
-                            <span class="badge bg-{% if endpoint.status == 'active' %}success{% elif endpoint.status == 'deprecated' %}warning{% else %}danger{% endif %}">
+                            <span class="badge bg-{% if endpoint.status == 'active' %}success{% elif endpoint.status == 'deprecated' %}warning{% else %}danger{% endif %}" data-badge>
                                 {{ endpoint.status }}
                             </span>
                         </td>
@@ -134,33 +134,33 @@
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <button type="button" class="btn btn-outline-info" 
-                                        onclick="viewEndpointDetails('{{ endpoint.path[1:] }}')" title="View Details">
+                                <button type="button" class="c-btn c-btn--outline-info js-view-endpoint-details"
+                                        data-action="view-endpoint-details" data-endpoint-path="{{ endpoint.path[1:] }}" title="View Details">
                                     <i class="ti ti-eye"></i>
                                 </button>
-                                <button type="button" class="btn btn-outline-primary" 
-                                        onclick="testEndpoint('{{ endpoint.path }}', {{ endpoint.methods | tojson }})" title="Test">
+                                <button type="button" class="c-btn c-btn--outline-primary js-test-endpoint"
+                                        data-action="test-endpoint" data-endpoint-path="{{ endpoint.path }}" data-methods="{{ endpoint.methods | tojson }}" title="Test">
                                     <i class="ti ti-test-pipe"></i>
                                 </button>
                                 <div class="dropdown">
-                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <button class="c-btn c-btn--outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-dropdown-toggle>
                                         <i class="ti ti-dots"></i>
                                     </button>
-                                    <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" href="#" onclick="copyEndpoint('{{ endpoint.path }}')">
+                                    <ul class="dropdown-menu" data-dropdown-menu>
+                                        <li><a class="dropdown-item js-copy-endpoint" href="#" data-action="copy-endpoint" data-endpoint-path="{{ endpoint.path }}">
                                             <i class="ti ti-copy me-2"></i>Copy Path
                                         </a></li>
-                                        <li><a class="dropdown-item" href="#" onclick="showDocumentation('{{ endpoint.path }}')">
+                                        <li><a class="dropdown-item js-show-documentation" href="#" data-action="show-documentation" data-endpoint-path="{{ endpoint.path }}">
                                             <i class="ti ti-book me-2"></i>Documentation
                                         </a></li>
                                         {% if endpoint.status == 'active' %}
                                         <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item text-warning" href="#" onclick="toggleEndpointStatus('{{ endpoint.path }}', 'inactive')">
+                                        <li><a class="dropdown-item text-warning js-toggle-endpoint-status" href="#" data-action="toggle-endpoint-status" data-endpoint-path="{{ endpoint.path }}" data-new-status="inactive">
                                             <i class="ti ti-pause me-2"></i>Disable
                                         </a></li>
                                         {% else %}
                                         <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item text-success" href="#" onclick="toggleEndpointStatus('{{ endpoint.path }}', 'active')">
+                                        <li><a class="dropdown-item text-success js-toggle-endpoint-status" href="#" data-action="toggle-endpoint-status" data-endpoint-path="{{ endpoint.path }}" data-new-status="active">
                                             <i class="ti ti-play me-2"></i>Enable
                                         </a></li>
                                         {% endif %}
@@ -176,33 +176,33 @@
         
         <!-- Pagination -->
         {% if pagination.pages > 1 %}
-        <div class="card-footer">
+        <div class="c-card__footer">
             <nav aria-label="Page navigation">
-                <ul class="pagination justify-content-center mb-0">
+                <ul class="pagination justify-content-center mb-0" data-pagination>
                     {% if pagination.has_prev %}
-                    <li class="page-item">
+                    <li class="page-item" data-page-item>
                         <a class="page-link" href="{{ url_for('admin_panel.api_endpoints', page=pagination.prev_num, **current_filters) }}">Previous</a>
                     </li>
                     {% endif %}
                     
                     {% for page_num in range(1, pagination.pages + 1) %}
                         {% if page_num == pagination.page %}
-                        <li class="page-item active">
+                        <li class="page-item active" data-page-item data-page-active>
                             <span class="page-link">{{ page_num }}</span>
                         </li>
                         {% elif page_num <= 3 or page_num > pagination.pages - 3 or (page_num >= pagination.page - 1 and page_num <= pagination.page + 1) %}
-                        <li class="page-item">
+                        <li class="page-item" data-page-item>
                             <a class="page-link" href="{{ url_for('admin_panel.api_endpoints', page=page_num, **current_filters) }}">{{ page_num }}</a>
                         </li>
                         {% elif page_num == 4 or page_num == pagination.pages - 3 %}
-                        <li class="page-item disabled">
+                        <li class="page-item disabled" data-page-item data-page-disabled>
                             <span class="page-link">…</span>
                         </li>
                         {% endif %}
                     {% endfor %}
                     
                     {% if pagination.has_next %}
-                    <li class="page-item">
+                    <li class="page-item" data-page-item>
                         <a class="page-link" href="{{ url_for('admin_panel.api_endpoints', page=pagination.next_num, **current_filters) }}">Next</a>
                     </li>
                     {% endif %}
@@ -213,7 +213,7 @@
         
         {% else %}
         <div class="text-center py-5">
-            <i class="ti ti-api text-muted" style="font-size: 4rem;"></i>
+            <i class="ti ti-api text-muted icon-empty-state"></i>
             <h5 class="text-muted mt-3">No Endpoints Found</h5>
             <p class="text-muted">No API endpoints match your current filters.</p>
         </div>
@@ -225,38 +225,38 @@
 {% if endpoints %}
 <div class="row mt-4">
     <div class="col-md-3">
-        <div class="card bg-light">
-            <div class="card-body text-center">
-                <i class="ti ti-api text-primary" style="font-size: 2rem;"></i>
-                <h6 class="card-title mt-2">{{ pagination.total }}</h6>
-                <p class="card-text small text-muted">Total Endpoints</p>
+        <div class="c-card bg-light">
+            <div class="c-card__body text-center">
+                <i class="ti ti-api text-primary card-icon-stat"></i>
+                <h6 class="c-card__title mt-2">{{ pagination.total }}</h6>
+                <p class="c-card__description small text-muted">Total Endpoints</p>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card bg-light">
-            <div class="card-body text-center">
-                <i class="ti ti-check-circle text-success" style="font-size: 2rem;"></i>
-                <h6 class="card-title mt-2">{{ endpoints | selectattr('status', 'equalto', 'active') | list | length }}</h6>
-                <p class="card-text small text-muted">Active Endpoints</p>
+        <div class="c-card bg-light">
+            <div class="c-card__body text-center">
+                <i class="ti ti-check-circle text-success card-icon-stat"></i>
+                <h6 class="c-card__title mt-2">{{ endpoints | selectattr('status', 'equalto', 'active') | list | length }}</h6>
+                <p class="c-card__description small text-muted">Active Endpoints</p>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card bg-light">
-            <div class="card-body text-center">
-                <i class="ti ti-activity text-info" style="font-size: 2rem;"></i>
-                <h6 class="card-title mt-2">{{ "{:,}".format(endpoints | sum(attribute='request_count')) }}</h6>
-                <p class="card-text small text-muted">Total Requests</p>
+        <div class="c-card bg-light">
+            <div class="c-card__body text-center">
+                <i class="ti ti-activity text-info card-icon-stat"></i>
+                <h6 class="c-card__title mt-2">{{ "{:,}".format(endpoints | sum(attribute='request_count')) }}</h6>
+                <p class="c-card__description small text-muted">Total Requests</p>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card bg-light">
-            <div class="card-body text-center">
-                <i class="ti ti-clock text-warning" style="font-size: 2rem;"></i>
-                <h6 class="card-title mt-2">{{ "%.3f"|format(endpoints | sum(attribute='avg_response_time') / endpoints | length) }}s</h6>
-                <p class="card-text small text-muted">Avg Response Time</p>
+        <div class="c-card bg-light">
+            <div class="c-card__body text-center">
+                <i class="ti ti-clock text-warning card-icon-stat"></i>
+                <h6 class="c-card__title mt-2">{{ "%.3f"|format(endpoints | sum(attribute='avg_response_time') / endpoints | length) }}s</h6>
+                <p class="c-card__description small text-muted">Avg Response Time</p>
             </div>
         </div>
     </div>
@@ -266,7 +266,71 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Export Endpoints
+    document.querySelectorAll('.js-export-endpoints').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const format = this.dataset.format;
+            exportEndpoints(format);
+        });
+    });
+
+    // Refresh Endpoints
+    document.querySelectorAll('.js-refresh-endpoints').forEach(btn => {
+        btn.addEventListener('click', function() {
+            refreshEndpoints();
+        });
+    });
+
+    // View Endpoint Details
+    document.querySelectorAll('.js-view-endpoint-details').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const endpointPath = this.dataset.endpointPath;
+            viewEndpointDetails(endpointPath);
+        });
+    });
+
+    // Test Endpoint
+    document.querySelectorAll('.js-test-endpoint').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const endpointPath = this.dataset.endpointPath;
+            const methods = JSON.parse(this.dataset.methods);
+            testEndpoint(endpointPath, methods);
+        });
+    });
+
+    // Copy Endpoint
+    document.querySelectorAll('.js-copy-endpoint').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const endpointPath = this.dataset.endpointPath;
+            copyEndpoint(endpointPath);
+        });
+    });
+
+    // Show Documentation
+    document.querySelectorAll('.js-show-documentation').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const endpointPath = this.dataset.endpointPath;
+            showDocumentation(endpointPath);
+        });
+    });
+
+    // Toggle Endpoint Status
+    document.querySelectorAll('.js-toggle-endpoint-status').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const endpointPath = this.dataset.endpointPath;
+            const newStatus = this.dataset.newStatus;
+            toggleEndpointStatus(endpointPath, newStatus);
+        });
+    });
+});
+
 function viewEndpointDetails(endpointPath) {
     fetch(`/admin-panel/api/endpoint/${endpointPath}/details`)
         .then(response => response.json())
@@ -283,8 +347,8 @@ function viewEndpointDetails(endpointPath) {
                             <p><strong>Path:</strong> <code>${endpoint.path}</code></p>
                             <p><strong>Blueprint:</strong> ${endpoint.blueprint}</p>
                             <p><strong>Methods:</strong> ${endpoint.methods.join(', ')}</p>
-                            <p><strong>Authentication:</strong> <span class="badge bg-secondary">${endpoint.authentication}</span></p>
-                            <p><strong>Status:</strong> <span class="badge bg-${endpoint.status === 'active' ? 'success' : 'warning'}">${endpoint.status}</span></p>
+                            <p><strong>Authentication:</strong> <span class="badge bg-secondary" data-badge>${endpoint.authentication}</span></p>
+                            <p><strong>Status:</strong> <span class="badge bg-${endpoint.status === 'active' ? 'success' : 'warning'}" data-badge>${endpoint.status}</span></p>
                         </div>
                         <div class="col-md-6">
                             <h6>Usage Statistics</h6>
@@ -313,10 +377,10 @@ function viewEndpointDetails(endpointPath) {
                         <div class="row mt-3">
                             <div class="col-12">
                                 <h6>Common Errors</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-sm">
-                                        <thead>
-                                            <tr><th>Error</th><th>Count</th></tr>
+                                <div class="c-table-wrapper" data-table-responsive>
+                                    <table class="c-table c-table--compact" data-table>
+                                        <thead scope="col">
+                                            <tr><th scope="col">Error</th><th scope="col">Count</th></tr>
                                         </thead>
                                         <tbody>
                                             ${usage.most_common_errors.map(error => 
@@ -335,17 +399,17 @@ function viewEndpointDetails(endpointPath) {
                         <div class="row mt-3">
                             <div class="col-12">
                                 <h6>Recent Activity</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-sm">
-                                        <thead>
-                                            <tr><th>Time</th><th>Method</th><th>Status</th><th>Response Time</th></tr>
+                                <div class="c-table-wrapper" data-table-responsive>
+                                    <table class="c-table c-table--compact" data-table>
+                                        <thead scope="col">
+                                            <tr><th scope="col">Time</th><th scope="col">Method</th><th scope="col">Status</th><th scope="col">Response Time</th></tr>
                                         </thead>
                                         <tbody>
                                             ${recentActivity.slice(0, 5).map(activity => 
                                                 `<tr>
                                                     <td>${new Date(activity.timestamp).toLocaleString()}</td>
-                                                    <td><span class="badge bg-info">${activity.method}</span></td>
-                                                    <td><span class="badge bg-${activity.status_code < 400 ? 'success' : 'danger'}">${activity.status_code}</span></td>
+                                                    <td><span class="badge bg-info" data-badge>${activity.method}</span></td>
+                                                    <td><span class="badge bg-${activity.status_code < 400 ? 'success' : 'danger'}" data-badge>${activity.status_code}</span></td>
                                                     <td>${activity.response_time.toFixed(3)}s</td>
                                                 </tr>`
                                             ).join('')}
@@ -380,17 +444,17 @@ function testEndpoint(endpoint, methods) {
             <div class="text-start">
                 <div class="mb-3">
                     <label class="form-label">Endpoint</label>
-                    <input type="text" id="test-endpoint" class="form-control" value="${endpoint}" readonly>
+                    <input type="text" id="test-endpoint" class="form-control" value="${endpoint}" readonly data-form-control>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Method</label>
-                    <select id="test-method" class="form-select">
+                    <select id="test-method" class="form-select" data-form-select>
                         ${methods.map(method => `<option value="${method}">${method}</option>`).join('')}
                     </select>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Parameters (JSON)</label>
-                    <textarea id="test-params" class="form-control" rows="3" placeholder='{"key": "value"}'></textarea>
+                    <textarea id="test-params" class="form-control" rows="3" placeholder='{"key": "value"}' data-form-control></textarea>
                 </div>
             </div>
         `,
@@ -433,11 +497,11 @@ function testEndpointWithData(data) {
         if (result.success) {
             let resultHtml = `
                 <div class="text-start">
-                    <p><strong>Status:</strong> <span class="badge bg-${result.status_code < 400 ? 'success' : 'danger'}">${result.status_code}</span></p>
+                    <p><strong>Status:</strong> <span class="badge bg-${result.status_code < 400 ? 'success' : 'danger'}" data-badge>${result.status_code}</span></p>
                     <p><strong>Response Time:</strong> ${result.response_time}s</p>
                     <p><strong>Timestamp:</strong> ${new Date(result.timestamp).toLocaleString()}</p>
                     <p><strong>Response:</strong></p>
-                    <pre class="bg-light p-3 rounded" style="max-height: 200px; overflow-y: auto;"><code>${JSON.stringify(result.response_data, null, 2)}</code></pre>
+                    <pre class="bg-light p-3 rounded u-max-h-200-scroll"><code>${JSON.stringify(result.response_data, null, 2)}</code></pre>
                 </div>
             `;
             

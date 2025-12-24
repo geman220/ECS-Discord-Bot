@@ -1,0 +1,670 @@
+/**
+ * ============================================================================
+ * STANDINGS PAGE STYLES - Remediated Version
+ * ============================================================================
+ *
+ * Comprehensive styling for league standings tables and team statistics.
+ *
+ * REMEDIATION CHANGES:
+ * - Removed ALL 2 unjustified !important declarations
+ * - Fixed specificity issues properly with .standings-page wrapper
+ * - Converted hardcoded colors to design tokens
+ * - Maintained full dark mode support
+ * - Updated legacy variable names to proper design tokens
+ * - Properly documented justified !important (accessibility/print)
+ *
+ * Features:
+ *   - Responsive standings tables with semantic structure
+ *   - Team statistics popovers with hover effects
+ *   - Empty state displays for leagues without data
+ *   - Dark mode support with proper contrast
+ *   - Accessibility features (focus states, reduced motion)
+ *   - Mobile-optimized layouts
+ *
+ * Design System:
+ *   - Uses design tokens from /app/static/css/tokens/colors.css
+ *   - Follows established spacing and typography scales
+ *   - Maintains consistent color palette across light/dark modes
+ *
+ * Last Updated: 2025-12-17
+ * Refactored: Wave 3C Retry - Batch 1 (Remediation Pass)
+ * ============================================================================
+ */
+
+/* ============================================================================
+   PAGE CONTAINER
+   ============================================================================ */
+
+.standings-page {
+  padding: var(--space-4) var(--space-3);
+  max-width: 100%;
+}
+
+/* Season Selector */
+.season-selector {
+  min-width: 150px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-input);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  transition: border-color var(--duration-fast) var(--ease-smooth),
+              box-shadow var(--duration-fast) var(--ease-smooth);
+}
+
+.season-selector:focus {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-primary-subtle);
+  outline: none;
+}
+
+.season-selector:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+   TABLE STRUCTURE
+   ============================================================================ */
+
+/* Column Width Definitions */
+.col-rank {
+  width: 5%;
+  min-width: 40px;
+}
+
+.col-team {
+  width: 25%;
+  min-width: 150px;
+}
+
+/* Table Hover Effect */
+.standings-page .table-hover tbody tr {
+  transition: background-color var(--duration-fast) var(--ease-smooth);
+}
+
+.standings-page .table-hover tbody tr:hover {
+  background-color: rgba(var(--color-primary-rgb), 0.05);
+  cursor: pointer;
+}
+
+/* Table Cell Padding for Better Readability */
+.standings-page .table td,
+.standings-page .table th {
+  padding: var(--space-3) var(--space-2);
+  vertical-align: middle;
+}
+
+/* ============================================================================
+   TEAM INFORMATION
+   ============================================================================ */
+
+/* Team Name Link */
+.team-name {
+  font-weight: var(--font-medium);
+  text-decoration: none;
+  color: var(--color-text-primary);
+  transition: color var(--duration-fast) var(--ease-smooth);
+  display: inline-block;
+  position: relative;
+}
+
+.team-name:hover {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.team-name:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Team Avatar Initial */
+.team-initial {
+  font-weight: var(--font-bold);
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+}
+
+/* ============================================================================
+   TEAM STATISTICS POPOVER
+   ============================================================================ */
+
+.team-stats-popover {
+  padding: var(--space-2);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  max-width: 280px;
+}
+
+.team-stats-popover strong {
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+.team-stats-popover div {
+  margin-bottom: var(--space-2);
+}
+
+.team-stats-popover div:last-child {
+  margin-bottom: 0;
+}
+
+/* ============================================================================
+   EMPTY STATE
+   ============================================================================ */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.empty-state-icon {
+  font-size: 2.5rem;
+  color: var(--color-neutral-400);
+  margin-bottom: var(--space-3);
+  opacity: 0.6;
+}
+
+.empty-state-message {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  max-width: 400px;
+  line-height: var(--leading-relaxed);
+}
+
+/* ============================================================================
+   STANDINGS TABLE ENHANCEMENTS
+   ============================================================================ */
+
+/* Rank Badge Styling */
+.standings-page .table td[data-label="#"] {
+  font-weight: var(--font-bold);
+  color: var(--color-primary);
+}
+
+/* Points Column Emphasis */
+.standings-page .table td[data-label="Pts"] {
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  font-size: var(--text-base);
+}
+
+/* Goal Difference Coloring */
+.standings-page .table td[data-label="GD"] {
+  font-weight: var(--font-medium);
+}
+
+/* Legend Section */
+.standings-page .card-body h6 {
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-3);
+}
+
+/* ============================================================================
+   TABS STYLING
+   ============================================================================ */
+
+.standings-page .nav-pills .nav-link {
+  font-weight: var(--font-medium);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  transition: all var(--duration-fast) var(--ease-smooth);
+  color: var(--color-text-secondary);
+}
+
+.standings-page .nav-pills .nav-link:hover {
+  background-color: rgba(var(--color-primary-rgb), 0.1);
+  color: var(--color-primary);
+}
+
+.standings-page .nav-pills .nav-link.active {
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.standings-page .nav-pills .nav-link i {
+  font-size: var(--text-base);
+}
+
+.standings-page .nav-pills .nav-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+   CARD STYLING
+   ============================================================================ */
+
+.standings-page .card {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-primary);
+  background-color: var(--color-bg-card);
+  transition: box-shadow var(--duration-normal) var(--ease-smooth);
+}
+
+.standings-page .card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.standings-page .card-header {
+  background-color: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border-primary);
+  padding: var(--space-4);
+}
+
+.standings-page .card-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: 0;
+}
+
+/* Info Badge */
+.standings-page .badge {
+  font-weight: var(--font-medium);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+}
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================ */
+
+[data-style="dark"] .standings-page .season-selector {
+  background-color: var(--color-neutral-50);
+  border-color: var(--color-neutral-200);
+  color: var(--color-neutral-900);
+}
+
+[data-style="dark"] .standings-page .season-selector:focus {
+  border-color: var(--color-primary-400);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.2);
+}
+
+[data-style="dark"] .standings-page .table-hover tbody tr:hover {
+  background-color: rgba(var(--color-primary-rgb), 0.15);
+}
+
+[data-style="dark"] .team-name {
+  color: var(--color-neutral-900);
+}
+
+[data-style="dark"] .team-name:hover {
+  color: var(--color-primary-700);
+}
+
+[data-style="dark"] .empty-state-icon {
+  color: var(--color-neutral-500);
+}
+
+[data-style="dark"] .standings-page .card {
+  background-color: var(--color-neutral-50);
+  border-color: var(--color-neutral-200);
+}
+
+[data-style="dark"] .standings-page .card-header {
+  background-color: var(--color-neutral-100);
+  border-bottom-color: var(--color-neutral-200);
+}
+
+[data-style="dark"] .standings-page .nav-pills .nav-link {
+  color: var(--color-neutral-700);
+}
+
+[data-style="dark"] .standings-page .nav-pills .nav-link:hover {
+  background-color: rgba(var(--color-primary-rgb), 0.2);
+  color: var(--color-primary-700);
+}
+
+[data-style="dark"] .standings-page .nav-pills .nav-link.active {
+  background-color: var(--color-primary-600);
+  color: var(--color-neutral-0);
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================ */
+
+/* Tablet (768px and below) */
+@media (max-width: 768px) {
+  .standings-page {
+    padding: var(--space-3) var(--space-2);
+  }
+
+  /* Make tabs scrollable on small screens */
+  .standings-page .nav-pills {
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .standings-page .nav-pills::-webkit-scrollbar {
+    display: none;
+  }
+
+  .standings-page .nav-pills .nav-link {
+    padding: var(--space-2) var(--space-3);
+    white-space: nowrap;
+    font-size: var(--text-sm);
+  }
+
+  /* Adjust column widths for smaller screens */
+  .col-rank {
+    width: 8%;
+    min-width: 35px;
+  }
+
+  .col-team {
+    width: 35%;
+    min-width: 120px;
+  }
+
+  /* Stack table data on very small screens */
+  .standings-page .table-responsive {
+    font-size: var(--text-sm);
+  }
+
+  .standings-page .table td,
+  .standings-page .table th {
+    padding: var(--space-2) var(--space-1);
+  }
+
+  /* Adjust season selector */
+  .season-selector {
+    min-width: 120px;
+    font-size: var(--text-xs);
+  }
+
+  /* Make card headers more compact */
+  .standings-page .card-header {
+    padding: var(--space-3);
+  }
+
+  .standings-page .card-title {
+    font-size: var(--text-base);
+  }
+
+  /* Adjust empty state */
+  .empty-state {
+    padding: var(--space-6) var(--space-3);
+  }
+
+  .empty-state-icon {
+    font-size: 2rem;
+  }
+}
+
+/* Mobile (576px and below) */
+@media (max-width: 576px) {
+  .standings-page {
+    padding: var(--space-2) var(--space-1);
+  }
+
+  /* Further reduce spacing */
+  .standings-page .table td,
+  .standings-page .table th {
+    padding: var(--space-1) var(--space-0);
+    font-size: var(--text-xs);
+  }
+
+  /* Make team names wrap gracefully */
+  .team-name {
+    font-size: var(--text-sm);
+    display: block;
+  }
+
+  /* Adjust popover positioning for mobile */
+  .team-stats-popover {
+    max-width: 240px;
+    font-size: var(--text-xs);
+  }
+
+  /**
+   * REMEDIATION: Removed !important from gap property
+   * Previous: gap: var(--space-2) !important;
+   * Fix: Increased specificity by targeting more specific selector
+   * Context: Compact legend on mobile
+   */
+  .standings-page .card-body .d-flex.flex-wrap {
+    gap: var(--space-2);
+  }
+
+  .standings-page .card-body .d-flex.align-items-center {
+    font-size: var(--text-xs);
+  }
+
+  /* Hide text labels on mobile, rely on data-label */
+  .standings-page .table thead {
+    font-size: var(--text-xs);
+  }
+}
+
+/* Large Desktop (1400px and above) */
+@media (min-width: 1400px) {
+  .standings-page {
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .standings-page .table td,
+  .standings-page .table th {
+    padding: var(--space-4) var(--space-3);
+  }
+
+  .standings-page .card-title {
+    font-size: var(--text-xl);
+  }
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+/* Focus States for Keyboard Navigation */
+.standings-page a:focus-visible,
+.standings-page button:focus-visible,
+.standings-page select:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: more) {
+  .standings-page .table-hover tbody tr:hover {
+    background-color: rgba(var(--color-primary-rgb), 0.2);
+    outline: 2px solid var(--color-primary);
+  }
+
+  .team-name:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+  }
+
+  .standings-page .card {
+    border-width: 2px;
+  }
+}
+
+/**
+ * JUSTIFIED !important - Reduced Motion Accessibility
+ *
+ * Why these !important declarations are necessary:
+ * 1. User Preference Override: Must override ALL animations/transitions for users
+ *    who have enabled reduced motion in their OS accessibility settings
+ * 2. Medical Necessity: Protects users with vestibular disorders, epilepsy,
+ *    or motion sensitivity from potentially harmful animations
+ * 3. WCAG 2.1 Level A Requirement: Required for accessibility compliance
+ * 4. Global Override: Must override all other transition/animation rules regardless
+ *    of specificity since this is a user preference that takes precedence
+ *
+ * These !important declarations are JUSTIFIED and should NOT be removed.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .standings-page * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .standings-page .table-hover tbody tr:hover {
+    transition: none;
+  }
+
+  .team-name,
+  .season-selector,
+  .standings-page .nav-pills .nav-link {
+    transition: none;
+  }
+}
+
+/* Screen Reader Optimization */
+.sr-only-standings {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+/**
+ * JUSTIFIED !important - Print Styles
+ *
+ * Why this !important declaration is necessary:
+ * 1. Print Override: Must override all screen styles when printing
+ * 2. User Intent: When printing, user explicitly wants clean, readable output
+ * 3. Browser Default Override: Overrides browser's default link colors
+ * 4. Consistency: Ensures consistent black text across all printers/settings
+ *
+ * This !important declaration is JUSTIFIED and should NOT be removed.
+ */
+@media print {
+  .standings-page {
+    padding: 0;
+  }
+
+  .standings-page .nav-pills,
+  .season-selector,
+  .standings-page .badge {
+    display: none;
+  }
+
+  .standings-page .card {
+    box-shadow: none;
+    border: 1px solid var(--color-neutral-900);
+    page-break-inside: avoid;
+  }
+
+  .standings-page .table {
+    font-size: 10pt;
+  }
+
+  .standings-page .table-hover tbody tr:hover {
+    background-color: transparent;
+  }
+
+  .team-name {
+    color: var(--color-neutral-900) !important;
+    text-decoration: none;
+  }
+}
+
+/* ============================================================================
+   UTILITY CLASSES
+   ============================================================================ */
+
+/* Rank Position Badges (Top 3 special styling) */
+.standings-page tr:nth-child(1) td[data-label="#"] {
+  color: var(--color-warning-600);
+  font-size: var(--text-lg);
+}
+
+.standings-page tr:nth-child(2) td[data-label="#"] {
+  color: var(--color-neutral-500);
+  font-size: var(--text-lg);
+}
+
+.standings-page tr:nth-child(3) td[data-label="#"] {
+  color: var(--color-warning-700);
+  font-size: var(--text-lg);
+}
+
+/* Positive Goal Difference */
+.standings-page .table td[data-label="GD"]:not(:empty)::before {
+  content: '';
+}
+
+/* Loading State */
+.standings-page.is-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.standings-page.is-loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--color-neutral-200);
+  border-top-color: var(--color-primary);
+  border-radius: var(--radius-full);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* ============================================================================
+   LEGACY COMPATIBILITY
+   ============================================================================ */
+
+/* Light Mode Override for Team Names */
+html:not([data-style="dark"]) .team-name,
+html:not([data-style="dark"]) a.team-name {
+  color: var(--color-primary);
+}
+
+html:not([data-style="dark"]) .team-name:hover,
+html:not([data-style="dark"]) a.team-name:hover {
+  color: var(--color-primary-700);
+}
+
+/* Ensure Bootstrap table compatibility */
+.standings-page .table-light {
+  background-color: var(--color-neutral-100);
+  color: var(--color-text-primary);
+}
+
+[data-style="dark"] .standings-page .table-light {
+  background-color: var(--color-neutral-100);
+  color: var(--color-neutral-900);
+}
+
+/* End of Standings Page Styles */

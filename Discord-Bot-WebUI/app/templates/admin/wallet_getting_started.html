@@ -2,6 +2,7 @@
 {% block title %}Getting Started with Digital Wallets{% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
     /* Getting Started - Theme-aware styling */
     .hero-section {
@@ -114,24 +115,24 @@
                 </p>
                 <div class="d-flex flex-wrap gap-3">
                     {% if progress.total_percent == 100 %}
-                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="btn btn-light btn-lg">
+                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="c-btn c-btn--light c-btn--lg">
                         <i class="ti ti-dashboard me-1"></i>Go to Dashboard
                     </a>
-                    <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="btn btn-outline-light btn-lg">
+                    <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="c-btn c-btn--outline-light c-btn--lg">
                         <i class="ti ti-plus me-1"></i>Create Pass
                     </a>
                     {% else %}
-                    <a href="{{ url_for('wallet_config.setup_wizard') }}" class="btn btn-light btn-lg">
+                    <a href="{{ url_for('wallet_config.setup_wizard') }}" class="c-btn c-btn--light c-btn--lg">
                         <i class="ti ti-wand me-1"></i>Start Setup Wizard
                     </a>
-                    <a href="#prerequisites" class="btn btn-outline-light btn-lg">
+                    <a href="#prerequisites" class="c-btn c-btn--outline-light c-btn--lg">
                         <i class="ti ti-list-check me-1"></i>View Prerequisites
                     </a>
                     {% endif %}
                 </div>
             </div>
             <div class="col-lg-4 text-center mt-4 mt-lg-0">
-                <div class="progress-circle mx-auto" style="--progress: {{ progress.total_percent }}">
+                <div class="progress-circle mx-auto">
                     <div class="progress-circle-inner">
                         <span class="display-5 fw-bold">{{ progress.total_percent }}%</span>
                         <small class="opacity-75">Complete</small>
@@ -154,16 +155,16 @@
     <div class="row">
         <!-- Setup Progress -->
         <div class="col-lg-8">
-            <div class="card mb-4">
-                <div class="card-header">
+            <div class="c-card mb-4">
+                <div class="c-card__header">
                     <h5 class="mb-0">
                         <i class="ti ti-list-numbers me-2"></i>Setup Progress
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <!-- Step 1: Certificates -->
-                    <div class="step-card card mb-3 {{ 'completed' if progress.certificates else 'in-progress' if progress.total_percent == 0 else 'pending' }}">
-                        <div class="card-body d-flex align-items-center">
+                    <div class="step-card c-card mb-3 {{ 'completed' if progress.certificates else 'in-progress' if progress.total_percent == 0 else 'pending' }}">
+                        <div class="c-card__body d-flex align-items-center">
                             <div class="step-number bg-{{ 'success' if progress.certificates else 'warning' if progress.total_percent == 0 else 'secondary' }} text-white me-3">
                                 {% if progress.certificates %}
                                 <i class="ti ti-check"></i>
@@ -180,9 +181,9 @@
                             </div>
                             <div>
                                 {% if progress.certificates %}
-                                <span class="badge bg-label-success"><i class="ti ti-check me-1"></i>Done</span>
+                                <span class="badge bg-label-success" data-badge><i class="ti ti-check me-1"></i>Done</span>
                                 {% else %}
-                                <a href="{{ url_for('wallet_config.certificates') }}" class="btn btn-sm btn-primary">
+                                <a href="{{ url_for('wallet_config.certificates') }}" class="c-btn c-btn--sm c-btn--primary">
                                     Configure
                                 </a>
                                 {% endif %}
@@ -191,8 +192,8 @@
                     </div>
 
                     <!-- Step 2: Assets -->
-                    <div class="step-card card mb-3 {{ 'completed' if progress.assets else 'in-progress' if progress.certificates and not progress.assets else 'pending' }}">
-                        <div class="card-body d-flex align-items-center">
+                    <div class="step-card c-card mb-3 {{ 'completed' if progress.assets else 'in-progress' if progress.certificates and not progress.assets else 'pending' }}">
+                        <div class="c-card__body d-flex align-items-center">
                             <div class="step-number bg-{{ 'success' if progress.assets else 'warning' if progress.certificates and not progress.assets else 'secondary' }} text-white me-3">
                                 {% if progress.assets %}
                                 <i class="ti ti-check"></i>
@@ -209,21 +210,21 @@
                             </div>
                             <div>
                                 {% if progress.assets %}
-                                <span class="badge bg-label-success"><i class="ti ti-check me-1"></i>Done</span>
+                                <span class="badge bg-label-success" data-badge><i class="ti ti-check me-1"></i>Done</span>
                                 {% elif progress.certificates %}
-                                <a href="{{ url_for('wallet_config.assets') }}" class="btn btn-sm btn-primary">
+                                <a href="{{ url_for('wallet_config.assets') }}" class="c-btn c-btn--sm c-btn--primary">
                                     Configure
                                 </a>
                                 {% else %}
-                                <span class="badge bg-label-secondary">Pending</span>
+                                <span class="badge bg-label-secondary" data-badge>Pending</span>
                                 {% endif %}
                             </div>
                         </div>
                     </div>
 
                     <!-- Step 3: Templates -->
-                    <div class="step-card card mb-3 {{ 'completed' if progress.templates else 'in-progress' if progress.assets and not progress.templates else 'pending' }}">
-                        <div class="card-body d-flex align-items-center">
+                    <div class="step-card c-card mb-3 {{ 'completed' if progress.templates else 'in-progress' if progress.assets and not progress.templates else 'pending' }}">
+                        <div class="c-card__body d-flex align-items-center">
                             <div class="step-number bg-{{ 'success' if progress.templates else 'warning' if progress.assets and not progress.templates else 'secondary' }} text-white me-3">
                                 {% if progress.templates %}
                                 <i class="ti ti-check"></i>
@@ -240,21 +241,21 @@
                             </div>
                             <div>
                                 {% if progress.templates %}
-                                <span class="badge bg-label-success"><i class="ti ti-check me-1"></i>Done</span>
+                                <span class="badge bg-label-success" data-badge><i class="ti ti-check me-1"></i>Done</span>
                                 {% elif progress.assets %}
-                                <a href="{{ url_for('wallet_config.templates') }}" class="btn btn-sm btn-primary">
+                                <a href="{{ url_for('wallet_config.templates') }}" class="c-btn c-btn--sm c-btn--primary">
                                     Configure
                                 </a>
                                 {% else %}
-                                <span class="badge bg-label-secondary">Pending</span>
+                                <span class="badge bg-label-secondary" data-badge>Pending</span>
                                 {% endif %}
                             </div>
                         </div>
                     </div>
 
                     <!-- Step 4: Testing -->
-                    <div class="step-card card mb-3 {{ 'completed' if progress.templates else 'pending' }}">
-                        <div class="card-body d-flex align-items-center">
+                    <div class="step-card c-card mb-3 {{ 'completed' if progress.templates else 'pending' }}">
+                        <div class="c-card__body d-flex align-items-center">
                             <div class="step-number bg-{{ 'success' if progress.templates else 'secondary' }} text-white me-3">
                                 {% if progress.templates %}
                                 <i class="ti ti-check"></i>
@@ -270,21 +271,21 @@
                             </div>
                             <div>
                                 {% if progress.templates %}
-                                <span class="badge bg-label-success"><i class="ti ti-check me-1"></i>Ready</span>
+                                <span class="badge bg-label-success" data-badge><i class="ti ti-check me-1"></i>Ready</span>
                                 {% elif progress.assets %}
-                                <a href="{{ url_for('wallet_config.setup_wizard', step='testing') }}" class="btn btn-sm btn-primary">
+                                <a href="{{ url_for('wallet_config.setup_wizard', step='testing') }}" class="c-btn c-btn--sm c-btn--primary">
                                     Run Tests
                                 </a>
                                 {% else %}
-                                <span class="badge bg-label-secondary">Pending</span>
+                                <span class="badge bg-label-secondary" data-badge>Pending</span>
                                 {% endif %}
                             </div>
                         </div>
                     </div>
 
                     <!-- Step 5: WooCommerce -->
-                    <div class="step-card card {{ 'completed' if progress.woocommerce else 'pending' }}">
-                        <div class="card-body d-flex align-items-center">
+                    <div class="step-card c-card {{ 'completed' if progress.woocommerce else 'pending' }}">
+                        <div class="c-card__body d-flex align-items-center">
                             <div class="step-number bg-{{ 'success' if progress.woocommerce else 'secondary' }} text-white me-3">
                                 {% if progress.woocommerce %}
                                 <i class="ti ti-check"></i>
@@ -301,13 +302,13 @@
                             </div>
                             <div>
                                 {% if progress.woocommerce %}
-                                <span class="badge bg-label-success"><i class="ti ti-check me-1"></i>Connected</span>
+                                <span class="badge bg-label-success" data-badge><i class="ti ti-check me-1"></i>Connected</span>
                                 {% elif progress.templates %}
-                                <a href="{{ url_for('wallet_config.setup_wizard', step='woocommerce') }}" class="btn btn-sm btn-primary">
+                                <a href="{{ url_for('wallet_config.setup_wizard', step='woocommerce') }}" class="c-btn c-btn--sm c-btn--primary">
                                     Connect
                                 </a>
                                 {% else %}
-                                <span class="badge bg-label-secondary">Pending</span>
+                                <span class="badge bg-label-secondary" data-badge>Pending</span>
                                 {% endif %}
                             </div>
                         </div>
@@ -316,13 +317,13 @@
             </div>
 
             <!-- Prerequisites Section -->
-            <div class="card mb-4" id="prerequisites">
-                <div class="card-header">
+            <div class="c-card mb-4" id="prerequisites">
+                <div class="c-card__header">
                     <h5 class="mb-0">
                         <i class="ti ti-checklist me-2"></i>Before You Begin
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <p class="text-muted mb-4">
                         Make sure you have these ready before starting the setup process.
                         Don't worry if you're not technical - we'll guide you through each step!
@@ -338,7 +339,7 @@
                                     Sign up here <i class="ti ti-external-link"></i>
                                 </a>
                             </p>
-                            <div class="alert alert-info small mb-0 py-2">
+                            <div class="alert alert-info small mb-0 py-2" data-alert>
                                 <i class="ti ti-info-circle me-1"></i>
                                 If your organization already has one, ask your admin for access.
                             </div>
@@ -392,13 +393,13 @@
         <!-- Sidebar -->
         <div class="col-lg-4">
             <!-- Quick Links -->
-            <div class="card mb-4">
-                <div class="card-header">
+            <div class="c-card mb-4">
+                <div class="c-card__header">
                     <h6 class="mb-0">
                         <i class="ti ti-bolt me-1"></i>Quick Links
                     </h6>
                 </div>
-                <div class="card-body p-0">
+                <div class="c-card__body p-0">
                     <a href="{{ url_for('wallet_config.setup_wizard') }}" class="quick-link-card d-flex align-items-center p-3 border-bottom">
                         <div class="avatar me-3">
                             <span class="avatar-initial rounded bg-primary bg-opacity-10">
@@ -447,13 +448,13 @@
             </div>
 
             <!-- Pass Types Status -->
-            <div class="card mb-4">
-                <div class="card-header">
+            <div class="c-card mb-4">
+                <div class="c-card__header">
                     <h6 class="mb-0">
                         <i class="ti ti-wallet me-1"></i>Pass Type Status
                     </h6>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <p class="small text-muted mb-3">Each pass type can be configured independently.</p>
 
                     <!-- ECS Membership -->
@@ -468,11 +469,11 @@
                                 <h6 class="mb-0">ECS Membership</h6>
                             </div>
                             {% if progress.ecs.ready %}
-                            <span class="badge bg-label-success">Ready</span>
+                            <span class="badge bg-label-success" data-badge>Ready</span>
                             {% elif not progress.ecs.exists %}
-                            <span class="badge bg-label-secondary">Not Initialized</span>
+                            <span class="badge bg-label-secondary" data-badge>Not Initialized</span>
                             {% else %}
-                            <span class="badge bg-label-warning">Incomplete</span>
+                            <span class="badge bg-label-warning" data-badge>Incomplete</span>
                             {% endif %}
                         </div>
                         <ul class="list-unstyled small mb-0 ms-4">
@@ -487,7 +488,7 @@
                             </li>
                         </ul>
                         {% if progress.ecs.ready %}
-                        <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="btn btn-sm btn-success mt-2 w-100">
+                        <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="c-btn c-btn--sm c-btn--success mt-2 w-100">
                             <i class="ti ti-plus me-1"></i>Create Pass
                         </a>
                         {% endif %}
@@ -505,11 +506,11 @@
                                 <h6 class="mb-0">Pub League</h6>
                             </div>
                             {% if progress.pub.ready %}
-                            <span class="badge bg-label-success">Ready</span>
+                            <span class="badge bg-label-success" data-badge>Ready</span>
                             {% elif not progress.pub.exists %}
-                            <span class="badge bg-label-secondary">Not Initialized</span>
+                            <span class="badge bg-label-secondary" data-badge>Not Initialized</span>
                             {% else %}
-                            <span class="badge bg-label-warning">Incomplete</span>
+                            <span class="badge bg-label-warning" data-badge>Incomplete</span>
                             {% endif %}
                         </div>
                         <ul class="list-unstyled small mb-0 ms-4">
@@ -524,7 +525,7 @@
                             </li>
                         </ul>
                         {% if progress.pub.ready %}
-                        <a href="{{ url_for('wallet_admin.create_pub_league_pass') }}" class="btn btn-sm btn-success mt-2 w-100">
+                        <a href="{{ url_for('wallet_admin.create_pub_league_pass') }}" class="c-btn c-btn--sm c-btn--success mt-2 w-100">
                             <i class="ti ti-plus me-1"></i>Create Pass
                         </a>
                         {% endif %}
@@ -533,15 +534,15 @@
             </div>
 
             <!-- Support -->
-            <div class="card bg-body-tertiary border-0">
-                <div class="card-body">
+            <div class="c-card bg-body-tertiary border-0">
+                <div class="c-card__body">
                     <h6 class="mb-2">
                         <i class="ti ti-headset me-1"></i>Need Help?
                     </h6>
                     <p class="small text-muted mb-3">
                         Stuck on a step? Check our documentation or reach out for assistance.
                     </p>
-                    <a href="{{ url_for('wallet_config.help_page') }}" class="btn btn-outline-primary btn-sm w-100">
+                    <a href="{{ url_for('wallet_config.help_page') }}" class="c-btn c-btn--outline-primary c-btn--sm w-100">
                         <i class="ti ti-book me-1"></i>View Documentation
                     </a>
                 </div>

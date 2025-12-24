@@ -60,17 +60,17 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2>Draft Cache Statistics</h2>
                 <div>
-                    <button id="refresh-btn" class="btn btn-primary btn-sm me-2">Refresh</button>
-                    <a href="/admin/redis/stats" class="btn btn-secondary btn-sm me-2">Redis Stats</a>
-                    <button id="invalidate-all-btn" class="btn btn-danger btn-sm">Clear All Draft Cache</button>
+                    <button id="draft-cache-refresh-btn" class="c-btn c-btn--primary c-btn--sm me-2">Refresh</button>
+                    <a href="/admin/redis/stats" class="c-btn c-btn--secondary c-btn--sm me-2">Redis Stats</a>
+                    <button id="invalidate-all-btn" class="c-btn c-btn--danger c-btn--sm">Clear All Draft Cache</button>
                 </div>
             </div>
 
             <div class="auto-refresh">
                 <label>
-                    <input type="checkbox" id="auto-refresh" checked> Auto-refresh every 10 seconds
+                    <input type="checkbox" id="draft-cache-auto-refresh" checked> Auto-refresh every 10 seconds
                 </label>
-                <span id="last-updated" class="ms-3 text-muted"></span>
+                <span id="draft-cache-last-updated" class="ms-3 text-muted"></span>
             </div>
 
             <!-- Cache TTL Settings -->
@@ -120,12 +120,12 @@
             <!-- Cache Type Breakdown -->
             <div class="row">
                 <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
+                    <div class="c-card">
+                        <div class="c-card__header">
                             <h5>Cache Type Breakdown</h5>
                         </div>
-                        <div class="card-body">
-                            <table class="table table-sm">
+                        <div class="c-card__body">
+                            <table class="c-table c-table--compact" data-table>
                                 <tbody>
                                     <tr>
                                         <td>Player Cache Keys</td>
@@ -150,12 +150,12 @@
                 </div>
 
                 <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
+                    <div class="c-card">
+                        <div class="c-card__header">
                             <h5>Connection Pool Health</h5>
                         </div>
-                        <div class="card-body">
-                            <table class="table table-sm">
+                        <div class="c-card__body">
+                            <table class="c-table c-table--compact" data-table>
                                 <tbody>
                                     <tr>
                                         <td>Max Connections</td>
@@ -183,11 +183,11 @@
             <!-- League-Specific Cache Status -->
             <div class="row mt-4">
                 <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
+                    <div class="c-card">
+                        <div class="c-card__header">
                             <h5>League-Specific Cache Status</h5>
                         </div>
-                        <div class="card-body">
+                        <div class="c-card__body">
                             <div class="row" id="league-cache-status">
                                 {% for league_name in leagues %}
                                 <div class="col-md-6 mb-3">
@@ -225,7 +225,7 @@
                                             </div>
                                         </div>
                                         <div class="mt-2">
-                                            <button class="btn btn-sm btn-outline-primary warm-cache-btn" data-league="{{ league_name }}">
+                                            <button class="c-btn c-btn--sm c-btn--outline-primary warm-cache-btn" data-league="{{ league_name }}">
                                                 Warm Cache
                                             </button>
                                         </div>

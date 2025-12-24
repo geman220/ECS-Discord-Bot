@@ -2,110 +2,114 @@
 
 {% block title %}Sub Request - ECS Soccer League{% endblock %}
 
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/rsvp-pages.css') }}">
+{% endblock %}
+
 {% block content %}
-<div class="container-xxl flex-grow-1 container-p-y">
-    <div class="row justify-content-center">
-        <div class="col-12 col-md-8 col-lg-6">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="card-title mb-0">
+<div class="c-substitute-rsvp" data-component="substitute-rsvp">
+    <div class="c-substitute-rsvp__container">
+        <div class="c-substitute-rsvp__content">
+            <div class="c-substitute-rsvp__card">
+                <div class="c-substitute-rsvp__header">
+                    <h4 class="c-substitute-rsvp__title">
                         <i class="ti ti-users me-2"></i>
                         Substitute Request
                     </h4>
                 </div>
-                <div class="card-body">
+                <div class="c-substitute-rsvp__body">
                     {% if error %}
-                        <div class="alert alert-danger">
+                        <div class="c-substitute-rsvp__alert c-substitute-rsvp__alert--error" data-alert>
                             <i class="ti ti-alert-circle me-2"></i>
                             {{ error }}
                         </div>
                     {% elif already_responded %}
                         <!-- Already Responded View -->
-                        <div class="text-center py-4">
+                        <div class="c-substitute-rsvp__response">
                             {% if response.is_available %}
-                                <div class="mb-4">
-                                    <span class="avatar avatar-xl bg-success-subtle rounded-circle">
-                                        <i class="ti ti-check text-success" style="font-size: 3rem;"></i>
+                                <div class="c-substitute-rsvp__icon c-substitute-rsvp__icon--success">
+                                    <span class="c-substitute-rsvp__avatar c-substitute-rsvp__avatar--success">
+                                        <i class="ti ti-check"></i>
                                     </span>
                                 </div>
-                                <h4 class="text-success">You're Available!</h4>
-                                <p class="text-muted">
+                                <h4 class="c-substitute-rsvp__status c-substitute-rsvp__status--success">You're Available!</h4>
+                                <p class="c-substitute-rsvp__message">
                                     Thanks for letting us know. We'll contact you if you're selected.
                                 </p>
                             {% else %}
-                                <div class="mb-4">
-                                    <span class="avatar avatar-xl bg-danger-subtle rounded-circle">
-                                        <i class="ti ti-x text-danger" style="font-size: 3rem;"></i>
+                                <div class="c-substitute-rsvp__icon c-substitute-rsvp__icon--unavailable">
+                                    <span class="c-substitute-rsvp__avatar c-substitute-rsvp__avatar--unavailable">
+                                        <i class="ti ti-x"></i>
                                     </span>
                                 </div>
-                                <h4 class="text-danger">Not Available</h4>
-                                <p class="text-muted">
+                                <h4 class="c-substitute-rsvp__status c-substitute-rsvp__status--unavailable">Not Available</h4>
+                                <p class="c-substitute-rsvp__message">
                                     Thanks for letting us know. Maybe next time!
                                 </p>
                             {% endif %}
 
                             {% if response.response_text %}
-                                <div class="mt-3 p-3 bg-light rounded">
-                                    <small class="text-muted">Your note:</small>
-                                    <p class="mb-0">{{ response.response_text }}</p>
+                                <div class="c-substitute-rsvp__note">
+                                    <small class="c-substitute-rsvp__note-label">Your note:</small>
+                                    <p class="c-substitute-rsvp__note-text">{{ response.response_text }}</p>
                                 </div>
                             {% endif %}
                         </div>
 
-                        <hr>
+                        <hr class="c-substitute-rsvp__divider">
 
                         <!-- Match Details (read-only) -->
-                        <h5 class="mb-3"><i class="ti ti-calendar-event me-2"></i>Match Details</h5>
+                        <h5 class="c-substitute-rsvp__section-title"><i class="ti ti-calendar-event me-2"></i>Match Details</h5>
                     {% else %}
                         <!-- Active Request View -->
-                        <p class="mb-4">
+                        <p class="c-substitute-rsvp__intro">
                             Hi <strong>{{ details.player_name }}</strong>!
                             <strong>{{ details.team_name }}</strong> is looking for a substitute player.
                         </p>
 
-                        <h5 class="mb-3"><i class="ti ti-calendar-event me-2"></i>Match Details</h5>
+                        <h5 class="c-substitute-rsvp__section-title"><i class="ti ti-calendar-event me-2"></i>Match Details</h5>
                     {% endif %}
 
                     {% if details %}
-                        <div class="table-responsive">
-                            <table class="table table-borderless mb-0">
+                        <div class="c-substitute-rsvp__details" data-table-responsive>
+                            <table class="c-substitute-rsvp__table" data-table>
                                 <tbody>
-                                    <tr>
-                                        <td class="text-muted" style="width: 120px;">
+                                    <tr class="c-substitute-rsvp__detail-row">
+                                        <td class="c-substitute-rsvp__detail-label">
                                             <i class="ti ti-vs me-1"></i> Match
                                         </td>
-                                        <td><strong>{{ details.match.home_team }} vs {{ details.match.away_team }}</strong></td>
+                                        <td class="c-substitute-rsvp__detail-value"><strong>{{ details.match.home_team }} vs {{ details.match.away_team }}</strong></td>
                                     </tr>
-                                    <tr>
-                                        <td class="text-muted">
+                                    <tr class="c-substitute-rsvp__detail-row">
+                                        <td class="c-substitute-rsvp__detail-label">
                                             <i class="ti ti-users me-1"></i> Team
                                         </td>
-                                        <td>{{ details.team_name }}</td>
+                                        <td class="c-substitute-rsvp__detail-value">{{ details.team_name }}</td>
                                     </tr>
-                                    <tr>
-                                        <td class="text-muted">
+                                    <tr class="c-substitute-rsvp__detail-row">
+                                        <td class="c-substitute-rsvp__detail-label">
                                             <i class="ti ti-calendar me-1"></i> Date
                                         </td>
-                                        <td>{{ details.match.date }}</td>
+                                        <td class="c-substitute-rsvp__detail-value">{{ details.match.date }}</td>
                                     </tr>
-                                    <tr>
-                                        <td class="text-muted">
+                                    <tr class="c-substitute-rsvp__detail-row">
+                                        <td class="c-substitute-rsvp__detail-label">
                                             <i class="ti ti-clock me-1"></i> Time
                                         </td>
-                                        <td>{{ details.match.time }}</td>
+                                        <td class="c-substitute-rsvp__detail-value">{{ details.match.time }}</td>
                                     </tr>
-                                    <tr>
-                                        <td class="text-muted">
+                                    <tr class="c-substitute-rsvp__detail-row">
+                                        <td class="c-substitute-rsvp__detail-label">
                                             <i class="ti ti-map-pin me-1"></i> Location
                                         </td>
-                                        <td>{{ details.match.location }}</td>
+                                        <td class="c-substitute-rsvp__detail-value">{{ details.match.location }}</td>
                                     </tr>
                                     {% if details.positions_needed %}
-                                    <tr>
-                                        <td class="text-muted">
+                                    <tr class="c-substitute-rsvp__detail-row">
+                                        <td class="c-substitute-rsvp__detail-label">
                                             <i class="ti ti-shirt me-1"></i> Position
                                         </td>
-                                        <td>{{ details.positions_needed }}</td>
+                                        <td class="c-substitute-rsvp__detail-value">{{ details.positions_needed }}</td>
                                     </tr>
                                     {% endif %}
                                 </tbody>
@@ -113,7 +117,7 @@
                         </div>
 
                         {% if details.notes %}
-                        <div class="alert alert-info mt-3 mb-0">
+                        <div class="c-substitute-rsvp__alert c-substitute-rsvp__alert--info" data-alert>
                             <i class="ti ti-info-circle me-2"></i>
                             <strong>Notes:</strong> {{ details.notes }}
                         </div>
@@ -121,31 +125,31 @@
                     {% endif %}
 
                     {% if not already_responded and not error %}
-                        <hr class="my-4">
+                        <hr class="c-substitute-rsvp__divider">
 
-                        <h5 class="mb-3"><i class="ti ti-question-mark me-2"></i>Are you available?</h5>
+                        <h5 class="c-substitute-rsvp__section-title"><i class="ti ti-question-mark me-2"></i>Are you available?</h5>
 
-                        <form action="{{ url_for('substitute_rsvp.submit_rsvp', token=token) }}" method="POST">
-                            <div class="mb-3">
-                                <label for="response_text" class="form-label">
+                        <form class="c-substitute-rsvp__form" action="{{ url_for('substitute_rsvp.submit_rsvp', token=token) }}" method="POST" data-action="submit-rsvp">
+                            <div class="c-substitute-rsvp__form-group">
+                                <label for="response_text" class="c-substitute-rsvp__form-label">
                                     Optional note (e.g., "Might be 5 min late")
                                 </label>
                                 <textarea
-                                    class="form-control"
+                                    class="c-substitute-rsvp__form-textarea"
                                     id="response_text"
                                     name="response_text"
                                     rows="2"
                                     maxlength="500"
                                     placeholder="Add any notes here..."
-                                ></textarea>
+                                 data-form-control></textarea>
                             </div>
 
-                            <div class="d-grid gap-2">
-                                <button type="submit" name="is_available" value="yes" class="btn btn-success btn-lg">
+                            <div class="c-substitute-rsvp__actions">
+                                <button type="submit" name="is_available" value="yes" class="c-substitute-rsvp__button c-substitute-rsvp__button--yes" data-action="submit-available">
                                     <i class="ti ti-check me-2"></i>
                                     Yes, I'm Available!
                                 </button>
-                                <button type="submit" name="is_available" value="no" class="btn btn-outline-danger btn-lg">
+                                <button type="submit" name="is_available" value="no" class="c-substitute-rsvp__button c-substitute-rsvp__button--no" data-action="submit-unavailable">
                                     <i class="ti ti-x me-2"></i>
                                     No, I Can't Make It
                                 </button>
@@ -154,8 +158,8 @@
                     {% endif %}
                 </div>
 
-                <div class="card-footer text-center text-muted">
-                    <small>
+                <div class="c-substitute-rsvp__footer">
+                    <small class="c-substitute-rsvp__footer-text">
                         <i class="ti ti-shield-check me-1"></i>
                         ECS Soccer League - Substitute Management
                     </small>

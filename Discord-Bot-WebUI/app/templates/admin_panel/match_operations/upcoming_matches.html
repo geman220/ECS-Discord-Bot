@@ -14,60 +14,60 @@
 <!-- Upcoming Matches Overview -->
 <div class="row mb-4">
     <div class="col-md-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
+        <div class="c-card bg-primary text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ upcoming|length }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Total Upcoming</p>
+                        <h5 class="c-card__title text-white mb-1">{{ upcoming|length }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Total Upcoming</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-calendar-plus" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-calendar-plus card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
+        <div class="c-card bg-warning text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ today_matches }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Today</p>
+                        <h5 class="c-card__title text-white mb-1">{{ today_matches }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Today</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-calendar-event" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-calendar-event card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
+        <div class="c-card bg-info text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ this_week }}</h5>
-                        <p class="card-text small opacity-75 mb-0">This Week</p>
+                        <h5 class="c-card__title text-white mb-1">{{ this_week }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">This Week</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-calendar-week" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-calendar-week card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
+        <div class="c-card bg-success text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ unscheduled }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Unscheduled</p>
+                        <h5 class="c-card__title text-white mb-1">{{ unscheduled }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Unscheduled</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-clock-question" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-clock-question card-icon-stat"></i>
                     </div>
                 </div>
             </div>
@@ -78,25 +78,25 @@
 <!-- Upcoming Matches Table -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-calendar-plus me-2"></i>Upcoming Matches
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if upcoming %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Date</th>
-                                <th>Time</th>
-                                <th>Match</th>
-                                <th>League</th>
-                                <th>Venue</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th scope="col">Date</th>
+                                <th scope="col">Time</th>
+                                <th scope="col">Match</th>
+                                <th scope="col">League</th>
+                                <th scope="col">Venue</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -128,7 +128,7 @@
                                 </td>
                                 <td>
                                     {% if match.league %}
-                                        <span class="badge bg-primary">{{ match.league.name }}</span>
+                                        <span class="badge bg-primary" data-badge>{{ match.league.name }}</span>
                                     {% else %}
                                         <span class="text-muted">-</span>
                                     {% endif %}
@@ -144,28 +144,28 @@
                                     {% if match.date and match.time %}
                                         {% set days_until = (match.date - moment().date()).days %}
                                         {% if days_until == 0 %}
-                                            <span class="badge bg-warning">Today</span>
+                                            <span class="badge bg-warning" data-badge>Today</span>
                                         {% elif days_until == 1 %}
-                                            <span class="badge bg-info">Tomorrow</span>
+                                            <span class="badge bg-info" data-badge>Tomorrow</span>
                                         {% elif days_until <= 7 %}
-                                            <span class="badge bg-primary">{{ days_until }} days</span>
+                                            <span class="badge bg-primary" data-badge>{{ days_until }} days</span>
                                         {% else %}
-                                            <span class="badge bg-secondary">{{ days_until }} days</span>
+                                            <span class="badge bg-secondary" data-badge>{{ days_until }} days</span>
                                         {% endif %}
                                     {% else %}
-                                        <span class="badge bg-warning">Unscheduled</span>
+                                        <span class="badge bg-warning" data-badge>Unscheduled</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-info" onclick="viewMatch({{ match.id }})">
+                                        <button class="c-btn c-btn--outline-info" data-action="view-match" data-match-id="{{ match.id }}">
                                             <i class="ti ti-eye"></i>
                                         </button>
-                                        <button class="btn btn-outline-warning" onclick="editMatch({{ match.id }})">
+                                        <button class="c-btn c-btn--outline-warning" data-action="edit-match" data-match-id="{{ match.id }}">
                                             <i class="ti ti-edit"></i>
                                         </button>
                                         {% if not match.date or not match.time %}
-                                        <button class="btn btn-outline-success" onclick="scheduleMatch({{ match.id }})">
+                                        <button class="c-btn c-btn--outline-success" data-action="schedule-match" data-match-id="{{ match.id }}">
                                             <i class="ti ti-calendar-plus"></i>
                                         </button>
                                         {% endif %}
@@ -178,10 +178,10 @@
                 </div>
                 {% else %}
                 <div class="text-center py-5">
-                    <i class="ti ti-calendar-off text-muted" style="font-size: 4rem;"></i>
+                    <i class="ti ti-calendar-off text-muted icon-empty-large"></i>
                     <h5 class="text-muted mt-3">No Upcoming Matches</h5>
                     <p class="text-muted">There are no upcoming matches scheduled at this time.</p>
-                    <a href="{{ url_for('admin_panel.schedule_matches') }}" class="btn btn-primary">
+                    <a href="{{ url_for('admin_panel.schedule_matches') }}" class="c-btn c-btn--primary">
                         <i class="ti ti-calendar-plus me-1"></i>Schedule Matches
                     </a>
                 </div>
@@ -194,7 +194,31 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
+// Event delegation for upcoming match actions
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        const matchId = target.dataset.matchId;
+
+        switch(action) {
+            case 'view-match':
+                viewMatch(matchId);
+                break;
+            case 'edit-match':
+                editMatch(matchId);
+                break;
+            case 'schedule-match':
+                scheduleMatch(matchId);
+                break;
+        }
+    });
+});
+
 function viewMatch(matchId) {
     Swal.fire({
         title: 'Match Details',

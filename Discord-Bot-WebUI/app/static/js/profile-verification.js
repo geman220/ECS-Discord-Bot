@@ -83,14 +83,14 @@
         checkbox.type = 'checkbox';
         checkbox.id = `section-reviewed-${index}`;
         checkbox.setAttribute('data-section', sectionName.toLowerCase().replace(/\s+/g, '-'));
+        checkbox.setAttribute('data-verification-checkbox', 'section');
+        checkbox.setAttribute('data-on-change', 'verify-section-reviewed');
 
         // Create label
         const label = document.createElement('label');
-        label.className = 'form-check-label ms-2';
+        label.className = 'form-check-label ms-2 verification-label';
         label.setAttribute('for', `section-reviewed-${index}`);
         label.textContent = 'Reviewed';
-        label.style.fontSize = '14px';
-        label.style.cursor = 'pointer';
 
         // Append elements
         checkboxContainer.appendChild(checkbox);
@@ -127,21 +127,21 @@
 
     /**
      * Attach event listeners to checkboxes
+     * NOTE: Now using centralized event delegation system
+     * Checkboxes use data-on-change="verify-section-reviewed" attribute
      */
     attachCheckboxListeners: function() {
+      // Event listeners are now handled by the centralized event delegation system
+      // Checkboxes should have data-on-change="verify-section-reviewed" attribute
+      // The event delegation system will call handleCheckboxChange() when triggered
+
+      // Haptic feedback is now handled by CSS :active pseudo-class or can be
+      // added to the event delegation handler if needed
+
+      // Mark checkboxes as initialized
       const checkboxes = document.querySelectorAll('.section-reviewed');
-
       checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', (e) => {
-          this.handleCheckboxChange(e.target);
-        });
-
-        // Add visual feedback on interaction
-        checkbox.addEventListener('click', () => {
-          if (window.Haptics) {
-            window.Haptics.light();
-          }
-        });
+        checkbox.setAttribute('data-verification-initialized', 'true');
       });
     },
 
@@ -150,9 +150,18 @@
      */
     handleCheckboxChange: function(checkbox) {
       // Haptic feedback
-      if (checkbox.checked && window.Haptics) {
-        window.Haptics.success();
+      if (window.Haptics) {
+        if (checkbox.checked) {
+          window.Haptics.success();
+        } else {
+          window.Haptics.light();
+        }
       }
+
+      // Track for analytics
+      const sectionName = checkbox.getAttribute('data-section');
+      const isChecked = checkbox.checked;
+      console.log(`Section "${sectionName}" ${isChecked ? 'checked' : 'unchecked'}`);
 
       // Update progress
       this.updateProgress();
@@ -161,13 +170,15 @@
       this.updateConfirmButton();
 
       // Visual feedback on parent card
-      const card = checkbox.closest('.card');
+      const card = checkbox.closest('[data-section-card]');
       if (card) {
         if (checkbox.checked) {
           card.classList.add('section-complete');
+          card.setAttribute('data-complete', 'true');
           this.animateCardCheck(card);
         } else {
           card.classList.remove('section-complete');
+          card.setAttribute('data-complete', 'false');
         }
       }
     },
@@ -176,20 +187,29 @@
      * Animate card when section is checked
      */
     animateCardCheck: function(card) {
-      card.style.transition = 'all 0.3s ease';
-      card.style.transform = 'scale(0.98)';
+      // Add animation class
+      card.classList.add('section-complete-animation');
+
+      // Scale down
+      card.classList.add('scale-down');
+      card.classList.remove('scale-normal');
 
       setTimeout(() => {
-        card.style.transform = 'scale(1)';
+        // Scale back to normal
+        card.classList.remove('scale-down');
+        card.classList.add('scale-normal');
       }, 150);
 
       setTimeout(() => {
-        card.style.transition = '';
+        // Clean up animation classes
+        card.classList.remove('section-complete-animation', 'scale-normal');
       }, 300);
     },
 
     /**
      * Setup confirm button behavior
+     * NOTE: Now using centralized event delegation system
+     * Button uses data-action="verify-profile-submit" attribute
      */
     setupConfirmButton: function() {
       const confirmButton = document.querySelector('button[name="verify_profile"]');
@@ -200,26 +220,9 @@
       confirmButton.disabled = true;
       confirmButton.classList.add('disabled');
 
-      // Add click handler for warning if not all sections reviewed
-      confirmButton.addEventListener('click', (e) => {
-        if (!this.areAllSectionsReviewed()) {
-          e.preventDefault();
-
-          const uncheckedSections = this.getUncheckedSections();
-
-          if (window.Haptics) {
-            window.Haptics.error();
-          }
-
-          // Show warning
-          this.showIncompleteWarning(uncheckedSections);
-        } else {
-          // All reviewed - proceed
-          if (window.Haptics) {
-            window.Haptics.success();
-          }
-        }
-      });
+      // Click handler is now handled by the centralized event delegation system
+      // The button should have data-action="verify-profile-submit" attribute
+      // The event delegation system will check if all sections are reviewed
 
       // Initial state check
       this.updateConfirmButton();
@@ -240,6 +243,7 @@
         confirmButton.classList.remove('disabled');
         confirmButton.classList.add('btn-success');
         confirmButton.classList.remove('btn-secondary');
+        confirmButton.setAttribute('data-state', 'enabled');
 
         // Add checkmark icon if not present
         if (!confirmButton.querySelector('.ti-check')) {
@@ -252,6 +256,7 @@
         confirmButton.classList.add('disabled');
         confirmButton.classList.remove('btn-success');
         confirmButton.classList.add('btn-secondary');
+        confirmButton.setAttribute('data-state', 'disabled');
 
         // Remove checkmark icon
         const icon = confirmButton.querySelector('.ti-check');
@@ -309,8 +314,9 @@
     createProgressIndicator: function() {
       const container = document.createElement('div');
       container.id = 'verification-progress';
-      container.className = 'alert alert-info sticky-top mb-4';
-      container.style.zIndex = '100';
+      container.className = 'alert alert-info sticky-top mb-4 verification-progress-container';
+      container.setAttribute('data-progress-indicator', 'verification');
+      container.setAttribute('data-status', 'info');
 
       const progressText = document.createElement('strong');
       progressText.id = 'progress-text';
@@ -324,7 +330,7 @@
       container.appendChild(helpText);
 
       // Find the first card and insert before it
-      const firstCard = document.querySelector('.card');
+      const firstCard = document.querySelector('[data-section-card]');
       if (firstCard && firstCard.parentNode) {
         firstCard.parentNode.insertBefore(container, firstCard);
       }
@@ -346,17 +352,20 @@
         progressText.textContent = `${checkedCount} of ${totalCount} sections reviewed`;
 
         // Update alert class based on progress
-        const progressContainer = document.getElementById('verification-progress');
+        const progressContainer = document.querySelector('[data-progress-indicator="verification"]');
         if (progressContainer) {
           if (checkedCount === totalCount && totalCount > 0) {
             progressContainer.classList.remove('alert-info', 'alert-warning');
             progressContainer.classList.add('alert-success');
+            progressContainer.setAttribute('data-status', 'success');
           } else if (checkedCount > 0) {
             progressContainer.classList.remove('alert-info', 'alert-success');
             progressContainer.classList.add('alert-warning');
+            progressContainer.setAttribute('data-status', 'warning');
           } else {
             progressContainer.classList.remove('alert-warning', 'alert-success');
             progressContainer.classList.add('alert-info');
+            progressContainer.setAttribute('data-status', 'info');
           }
         }
       }
@@ -373,17 +382,17 @@
 
       if (!progressBar && totalCount > 0) {
         // Create progress bar
-        const progressContainer = document.getElementById('verification-progress');
+        const progressContainer = document.querySelector('[data-progress-indicator="verification"]');
         if (progressContainer) {
           const progressBarContainer = document.createElement('div');
-          progressBarContainer.className = 'progress mt-2';
-          progressBarContainer.style.height = '8px';
+          progressBarContainer.className = 'progress mt-2 verification-progress-bar-container';
+          progressBarContainer.setAttribute('data-progress-container', 'verification');
 
           progressBar = document.createElement('div');
           progressBar.id = 'verification-progress-bar';
-          progressBar.className = 'progress-bar';
+          progressBar.className = 'progress-bar verification-progress-bar';
           progressBar.role = 'progressbar';
-          progressBar.style.transition = 'width 0.3s ease';
+          progressBar.setAttribute('data-progress-bar', 'verification');
 
           progressBarContainer.appendChild(progressBar);
           progressContainer.appendChild(progressBarContainer);
@@ -428,20 +437,13 @@
 
     /**
      * Track user interaction for analytics
+     * NOTE: Now using centralized event delegation system
+     * Analytics tracking is handled in handleCheckboxChange()
      */
     trackUserInteraction: function() {
-      const checkboxes = document.querySelectorAll('.section-reviewed');
-
-      checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', () => {
-          // Track which sections users are reviewing
-          const sectionName = checkbox.getAttribute('data-section');
-          const isChecked = checkbox.checked;
-
-          // Log for analytics (can be sent to server)
-          console.log(`Section "${sectionName}" ${isChecked ? 'checked' : 'unchecked'}`);
-        });
-      });
+      // Tracking is now handled within handleCheckboxChange()
+      // which is called by the event delegation system
+      // No separate event listeners needed
     }
   };
 

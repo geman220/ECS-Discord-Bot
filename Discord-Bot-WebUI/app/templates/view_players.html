@@ -1,99 +1,205 @@
 {% extends "base.html" %}
 
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/players-list.css') }}">
+{% endblock %}
+
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
-    <!-- Page Heading -->
-    <div class="content-header row">
-        <div class="content-header-left col-md-6 col-12 mb-2">
-            <h2 class="content-header-title">Player List</h2>
+    <!-- Page Header -->
+    <div class="c-page-header" data-component="page-header">
+        <div class="c-page-header__content">
+            <h2 class="c-page-header__title">Player List</h2>
+            <p class="c-page-header__subtitle">Manage and view all registered players</p>
+        </div>
+        <div class="c-page-header__actions">
+            <!-- Update Players Button -->
+            <form method="POST" action="{{ url_for('players.update_players') }}" data-form="update-players">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit"
+                        class="c-btn c-btn--success"
+                        data-action="sync-players">
+                    <i data-feather="refresh-cw"></i>
+                    <span class="c-page-header__action-text">Update Players</span>
+                </button>
+            </form>
+
+            <!-- Create Player Button -->
+            <button type="button"
+                    class="c-btn c-btn--primary"
+                    data-bs-toggle="modal"
+                    data-bs-target="#createPlayerModal"
+                    data-action="create-player">
+                <i data-feather="plus"></i>
+                <span class="c-page-header__action-text">Create Player</span>
+            </button>
         </div>
     </div>
 
-    <!-- Actions -->
-    <div class="row mb-2">
-        <div class="col-12 d-flex align-items-center mobile-action-container">
-            <!-- Search Form - First on mobile -->
-            <form method="GET" action="{{ url_for('players.view_players') }}" class="d-flex align-items-center flex-grow-1 mobile-search-container">
+    <!-- Filter Bar -->
+    <div class="c-filter-bar" data-component="filter-bar">
+        <form method="GET"
+              action="{{ url_for('players.view_players') }}"
+              class="c-filter-bar__form"
+              data-form="search-players">
+            <div class="c-filter-bar__search">
                 <div class="input-group">
-                    <input type="text" class="form-control" name="search" placeholder="Search by name, email, phone, etc." value="{{ search_term }}">
-                    <button class="btn btn-primary" type="submit"><i data-feather="search"></i></button>
-                    <button class="btn btn-secondary" type="button" onclick="clearSearch()"><i data-feather="x"></i></button>
-                </div>
-            </form>
-            
-            <div class="mobile-button-container">
-                <!-- Update Players Button -->
-                <form method="POST" action="{{ url_for('players.update_players') }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-success me-2">
-                        <i data-feather="refresh-cw"></i> Update Players
+                    <input type="text"
+                           class="form-control c-filter-bar__input"
+                           name="search"
+                           placeholder="Search by name, email, phone, etc."
+                           value="{{ search_term }}"
+                           data-input="search">
+                    <button class="c-btn c-btn--primary c-filter-bar__button"
+                            type="submit"
+                            data-action="search">
+                        <i data-feather="search"></i>
                     </button>
-                </form>
-
-                <!-- Create Player Button -->
-                <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#createPlayerModal">
-                    <i data-feather="plus"></i> Create Player
-                </button>
+                    <button class="c-btn c-btn--secondary c-filter-bar__button"
+                            type="button"
+                            data-action="clear-search">
+                        <i data-feather="x"></i>
+                    </button>
+                </div>
             </div>
-        </div>
+        </form>
     </div>
 
     <!-- Players Table -->
-    <div class="table-responsive">
-        <table class="table table-striped mobile-card-table">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Jersey Size</th>
-                    <th>Primary League</th>
-                    <th>Other Leagues</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for player in players %}
-                <tr>
-                    <td data-label="Name">{{ player.name }}</td>
-                    <td data-label="Email">{{ player.user.email }}</td>
-                    <td data-label="Phone">{{ player.phone }}</td>
-                    <td data-label="Jersey Size">{{ player.jersey_size }}</td>
-                    <td data-label="Primary League">{{ player.primary_league.name if player.primary_league else 'N/A' }}</td>
-                    <td data-label="Other Leagues">{{ player.other_leagues|map(attribute='name')|join(', ') }}</td>
-                    <td data-label="Actions" class="table-actions">
-                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="btn btn-sm btn-primary">View</a>
-                        <button type="button" class="btn btn-sm btn-danger" onclick="confirmDeletePlayer({{ player.id }})">Delete</button>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="c-players-table" data-component="players-table">
+        <div class="c-table-wrapper">
+            <table class="c-table c-players-table__table">
+                <thead class="c-players-table__head">
+                    <tr>
+                        <th scope="col" class="c-players-table__header">Name</th>
+                        <th scope="col" class="c-players-table__header">Email</th>
+                        <th scope="col" class="c-players-table__header">Phone</th>
+                        <th scope="col" class="c-players-table__header">Jersey Size</th>
+                        <th scope="col" class="c-players-table__header">Primary League</th>
+                        <th scope="col" class="c-players-table__header">Other Leagues</th>
+                        <th scope="col" class="c-players-table__header c-players-table__header--actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="c-players-table__body">
+                    {% for player in players %}
+                    <tr class="c-player-row" data-player-id="{{ player.id }}" data-player-row>
+                        <td class="c-player-row__cell c-player-row__cell--name" data-label="Name">
+                            <div class="c-player-row__name-wrapper">
+                                <div class="c-player-row__avatar">
+                                    {% if player.profile_picture_url %}
+                                    <img src="{{ player.profile_picture_url }}"
+                                         alt="{{ player.name }}"
+                                         class="c-player-row__avatar-image">
+                                    {% else %}
+                                    <img src="{{ url_for('static', filename='img/default_player.png') }}"
+                                         alt="{{ player.name }}"
+                                         class="c-player-row__avatar-image">
+                                    {% endif %}
+                                    {% if player.user_id %}
+                                    <span class="c-online-status c-online-status--sm is-offline"
+                                          data-online-status="{{ player.user_id }}"
+                                          title="Offline"
+                                          aria-label="Online status"></span>
+                                    {% endif %}
+                                </div>
+                                <span class="c-player-row__name">{{ player.name }}</span>
+                            </div>
+                        </td>
+                        <td class="c-player-row__cell" data-label="Email">{{ player.user.email }}</td>
+                        <td class="c-player-row__cell" data-label="Phone">{{ player.phone }}</td>
+                        <td class="c-player-row__cell" data-label="Jersey Size">
+                            <span class="c-badge c-badge--info" data-badge>{{ player.jersey_size }}</span>
+                        </td>
+                        <td class="c-player-row__cell" data-label="Primary League">
+                            {% if player.primary_league %}
+                            <span class="c-badge c-badge--primary" data-badge>
+                                <i class="ti ti-trophy"></i>{{ player.primary_league.name }}
+                            </span>
+                            {% else %}
+                            <span class="c-badge c-badge--secondary" data-badge>N/A</span>
+                            {% endif %}
+                        </td>
+                        <td class="c-player-row__cell" data-label="Other Leagues">
+                            <div class="c-player-row__leagues">
+                                {% for league in player.other_leagues %}
+                                <span class="c-badge c-badge--light c-badge--small" data-badge>{{ league.name }}</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td class="c-player-row__cell c-player-row__cell--actions" data-label="Actions">
+                            <div class="c-player-row__actions">
+                                <a href="{{ url_for('players.player_profile', player_id=player.id) }}"
+                                   class="c-btn c-btn--sm c-btn--primary"
+                                   data-action="view-player"
+                                   data-player-id="{{ player.id }}">
+                                    <i data-feather="eye"></i>
+                                    <span class="c-player-row__action-text">View</span>
+                                </a>
+                                <button type="button"
+                                        class="c-btn c-btn--sm c-btn--danger"
+                                        data-action="delete-player"
+                                        data-player-id="{{ player.id }}"
+                                        data-player-name="{{ player.name }}">
+                                    <i data-feather="trash-2"></i>
+                                    <span class="c-player-row__action-text">Delete</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        {% if not players %}
+        <div class="c-empty-state" data-component="empty-state">
+            <div class="c-empty-state__icon">
+                <i class="ti ti-users-off"></i>
+            </div>
+            <p class="c-empty-state__text">No players found</p>
+            {% if search_term %}
+            <p class="c-empty-state__help">Try adjusting your search criteria</p>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 
+    <!-- Pagination -->
     {% if pagination.pages > 1 %}
-    <nav aria-label="Page navigation">
-        <ul class="pagination">
+    <nav class="c-pagination" aria-label="Page navigation" data-component="pagination">
+        <ul class="pagination c-pagination__list">
             {% if pagination.has_prev %}
-            <li class="page-item">
-                <a class="page-link" href="{{ url_for('players.view_players', page=pagination.prev_num, search=search_term) }}" aria-label="Previous">
+            <li class="page-item c-pagination__item">
+                <a class="page-link c-pagination__link"
+                   href="{{ url_for('players.view_players', page=pagination.prev_num, search=search_term) }}"
+                   aria-label="Previous"
+                   data-page="prev">
                     <span aria-hidden="true">&laquo;</span>
+                    <span class="sr-only">Previous</span>
                 </a>
             </li>
             {% endif %}
 
             {% for page_num in range(1, pagination.pages + 1) %}
-            {% if pagination.page == page_num %}
-            <li class="page-item active"><a class="page-link" href="{{ url_for('players.view_players', page=page_num, search=search_term) }}">{{ page_num }}</a></li>
-            {% else %}
-            <li class="page-item"><a class="page-link" href="{{ url_for('players.view_players', page=page_num, search=search_term) }}">{{ page_num }}</a></li>
-            {% endif %}
+            <li class="page-item c-pagination__item {% if pagination.page == page_num %}c-pagination__item--active{% endif %}">
+                <a class="page-link c-pagination__link"
+                   href="{{ url_for('players.view_players', page=page_num, search=search_term) }}"
+                   data-page="{{ page_num }}">
+                    {{ page_num }}
+                </a>
+            </li>
             {% endfor %}
 
             {% if pagination.has_next %}
-            <li class="page-item">
-                <a class="page-link" href="{{ url_for('players.view_players', page=pagination.next_num, search=search_term) }}" aria-label="Next">
+            <li class="page-item c-pagination__item">
+                <a class="page-link c-pagination__link"
+                   href="{{ url_for('players.view_players', page=pagination.next_num, search=search_term) }}"
+                   aria-label="Next"
+                   data-page="next">
                     <span aria-hidden="true">&raquo;</span>
+                    <span class="sr-only">Next</span>
                 </a>
             </li>
             {% endif %}
@@ -103,39 +209,71 @@
 </div>
 
 <!-- Create Player Modal -->
-<div class="modal fade" id="createPlayerModal" tabindex="-1" aria-labelledby="createPlayerModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <form method="POST" action="{{ url_for('players.create_player') }}" class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="createPlayerModalLabel">Create New Player</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal c-modal fade"
+     id="createPlayerModal"
+     tabindex="-1"
+     aria-labelledby="createPlayerModalLabel"
+     aria-hidden="true"
+     data-modal="create-player">
+    <div class="modal-dialog c-modal__dialog">
+        <form method="POST"
+              action="{{ url_for('players.create_player') }}"
+              class="modal-content c-modal__content">
+            <div class="modal-header c-modal__header">
+                <h5 class="modal-title c-modal__title" id="createPlayerModalLabel">
+                    Create New Player
+                </h5>
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"
+                        data-action="close-modal"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body">
                 <!-- CSRF Token -->
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <!-- Name Field -->
-                <div class="mb-3">
-                    <label for="playerName" class="form-label">Name</label>
-                    <input type="text" class="form-control" id="playerName" name="name" required>
+                <div class="mb-3 c-form-field">
+                    <label for="playerName" class="form-label c-form-field__label">Name</label>
+                    <input type="text"
+                           class="form-control c-form-field__input"
+                           id="playerName"
+                           name="name"
+                           required
+                           data-input="name">
                 </div>
 
                 <!-- Email Field -->
-                <div class="mb-3">
-                    <label for="playerEmail" class="form-label">Email</label>
-                    <input type="email" class="form-control" id="playerEmail" name="email" required>
+                <div class="mb-3 c-form-field">
+                    <label for="playerEmail" class="form-label c-form-field__label">Email</label>
+                    <input type="email"
+                           class="form-control c-form-field__input"
+                           id="playerEmail"
+                           name="email"
+                           required
+                           data-input="email">
                 </div>
 
                 <!-- Phone Number Field -->
-                <div class="mb-3">
-                    <label for="playerPhone" class="form-label">Phone Number</label>
-                    <input type="tel" class="form-control" id="playerPhone" name="phone" required>
+                <div class="mb-3 c-form-field">
+                    <label for="playerPhone" class="form-label c-form-field__label">Phone Number</label>
+                    <input type="tel"
+                           class="form-control c-form-field__input"
+                           id="playerPhone"
+                           name="phone"
+                           required
+                           data-input="phone">
                 </div>
 
                 <!-- Jersey Size Field -->
-                <div class="mb-3">
-                    <label for="playerJerseySize" class="form-label">Jersey Size</label>
-                    <select class="form-select" id="playerJerseySize" name="jersey_size" required>
+                <div class="mb-3 c-form-field">
+                    <label for="playerJerseySize" class="form-label c-form-field__label">Jersey Size</label>
+                    <select class="form-select c-form-field__select"
+                            id="playerJerseySize"
+                            name="jersey_size"
+                            required
+                            data-input="jersey-size">
                         <option value="" disabled selected>Select a size</option>
                         {% for size in jersey_sizes %}
                         <option value="{{ size }}">{{ size }}</option>
@@ -144,9 +282,13 @@
                 </div>
 
                 <!-- League Selection Field -->
-                <div class="mb-3">
-                    <label for="playerLeague" class="form-label">League</label>
-                    <select class="form-select" id="playerLeague" name="league_id" required>
+                <div class="mb-3 c-form-field">
+                    <label for="playerLeague" class="form-label c-form-field__label">League</label>
+                    <select class="form-select c-form-field__select"
+                            id="playerLeague"
+                            name="league_id"
+                            required
+                            data-input="league">
                         <option value="" disabled selected>Select a league</option>
                         {% for league in leagues %}
                         <option value="{{ league.id }}">{{ league.name }}</option>
@@ -154,9 +296,14 @@
                     </select>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn btn-primary">Create Player</button>
+            <div class="modal-footer c-modal__footer">
+                <button type="button"
+                        class="c-btn c-btn--outline-secondary"
+                        data-bs-dismiss="modal"
+                        data-action="close-modal">Cancel</button>
+                <button type="submit" class="c-btn c-btn--primary">
+                    <i data-feather="plus"></i>Create Player
+                </button>
             </div>
         </form>
     </div>
@@ -164,203 +311,12 @@
 {% endblock %}
 
 {% block custom_js %}
-<!-- Include Feather Icons -->
+<script src="{{ url_for('static', filename='custom_js/players-list.js') }}"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        if (feather) {
-            feather.replace();
-        }
-    });
-
-    function clearSearch() {
-        // Redirect to the same page without the search term and reset pagination
-        window.location.href = "{{ url_for('players.view_players') }}";
+    // Initialize Feather icons
+    if (typeof feather !== 'undefined') {
+        feather.replace();
     }
 </script>
 {{ super() }}
-<script>
-    function confirmDeletePlayer(playerId) {
-        Swal.fire({
-            title: 'Are you sure?',
-            text: "This will delete the player and associated user account.",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-            confirmButtonText: 'Yes, delete them!',
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Create a temporary form to submit the deletion
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = `/players/delete_player/${playerId}`;
-
-                // Add CSRF token
-                const csrfInput = document.createElement('input');
-                csrfInput.type = 'hidden';
-                csrfInput.name = 'csrf_token';
-                csrfInput.value = '{{ csrf_token() }}';
-                form.appendChild(csrfInput);
-
-                document.body.appendChild(form);
-                form.submit();
-            }
-        });
-    }
-</script>
-<script>
-document.querySelector('form[action="{{ url_for("players.update_players") }}"]').addEventListener('submit', function (e) {
-    e.preventDefault();
-
-    Swal.fire({
-        title: 'Sync with WooCommerce?',
-        text: 'This will synchronize player data with WooCommerce orders. Continue?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, sync now',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Show progress modal
-            Swal.fire({
-                title: 'Syncing with WooCommerce',
-                html: `
-                    <div class="text-center">
-                        <div class="mb-3 progress-stage">Initializing...</div>
-                        <div class="progress mb-3">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">
-                            </div>
-                        </div>
-                        <div class="small text-muted progress-message">Starting...</div>
-                    </div>
-                `,
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showConfirmButton: false
-            });
-
-            // Variable to hold the task ID returned from /update
-            let taskId = "";
-
-            // Function to check progress by building the URL dynamically
-            const checkProgress = () => {
-                if (!taskId) return; // Do nothing if taskId is not yet set
-                // Build the URL using the taskId
-                const statusUrl = '/players/update_status/' + taskId;
-                fetch(statusUrl)
-                    .then(response => response.json())
-                    .then(data => {
-                        const progressBar = document.querySelector('.progress-bar');
-                        const messageDiv = document.querySelector('.progress-message');
-                        if (progressBar && messageDiv) {
-                            progressBar.style.width = (data.progress || 0) + '%';
-                            progressBar.setAttribute('aria-valuenow', data.progress || 0);
-                            messageDiv.textContent = data.message || 'Processing...';
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error fetching progress:', error);
-                    });
-            };
-
-            // Start polling for progress every 1 second
-            const progressInterval = setInterval(checkProgress, 1000);
-
-            // Start the sync process by submitting the form via fetch
-            fetch(this.action, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token() }}'
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    // Save the task ID from the response
-                    taskId = data.task_id;
-                })
-                .then(() => {
-                    // Check for task completion by polling its status
-                    const confirmInterval = setInterval(() => {
-                        const statusUrl = '/players/update_status/' + taskId;
-                        fetch(statusUrl)
-                            .then(response => response.json())
-                            .then(statusData => {
-                                if (statusData.stage === 'complete') {
-                                    // When complete, clear both intervals
-                                    clearInterval(confirmInterval);
-                                    clearInterval(progressInterval);
-                                    // Show confirmation modal with sync results
-                                    Swal.fire({
-                                        title: 'Sync Results',
-                                        html: `
-                                            <p>${statusData.new_players || 0} new players found</p>
-                                            <p>${statusData.potential_inactive || 0} players without current orders</p>
-                                            <div class="mb-3">
-                                                <input type="checkbox" id="processNew" checked>
-                                                <label for="processNew">Import new players</label>
-                                            </div>
-                                            <div class="mb-3">
-                                                <input type="checkbox" id="processInactive" checked>
-                                                <label for="processInactive">Mark inactive players</label>
-                                            </div>
-                                        `,
-                                        showCancelButton: true,
-                                        confirmButtonText: 'Proceed',
-                                        cancelButtonText: 'Cancel'
-                                    }).then((result) => {
-                                        if (result.isConfirmed) {
-                                            fetch('{{ url_for("players.confirm_update") }}', {
-                                                method: 'POST',
-                                                headers: {
-                                                    'Content-Type': 'application/json',
-                                                    'X-CSRFToken': '{{ csrf_token() }}'
-                                                },
-                                                body: JSON.stringify({
-                                                    task_id: taskId,
-                                                    process_new: document.getElementById('processNew').checked,
-                                                    process_inactive: document.getElementById('processInactive').checked
-                                                })
-                                            })
-                                                .then(response => response.json())
-                                                .then(data => {
-                                                    if (data.status === 'success') {
-                                                        Swal.fire({
-                                                            title: 'Success!',
-                                                            text: 'Player data has been synchronized.',
-                                                            icon: 'success'
-                                                        }).then(() => {
-                                                            window.location.reload();
-                                                        });
-                                                    } else {
-                                                        throw new Error(data.message || 'Unknown error');
-                                                    }
-                                                })
-                                                .catch(error => {
-                                                    Swal.fire({
-                                                        title: 'Error!',
-                                                        text: error.message || 'An error occurred during synchronization.',
-                                                        icon: 'error'
-                                                    });
-                                                });
-                                        }
-                                    });
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error checking completion:', error);
-                            });
-                    }, 1000);
-                })
-                .catch(error => {
-                    clearInterval(progressInterval);
-                    Swal.fire({
-                        title: 'Error!',
-                        text: error.message || 'An error occurred during synchronization.',
-                        icon: 'error'
-                    });
-                });
-        }
-    });
-});
-</script>
 {% endblock %}

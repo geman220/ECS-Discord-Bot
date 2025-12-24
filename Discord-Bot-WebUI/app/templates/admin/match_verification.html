@@ -4,84 +4,83 @@
 
 {% block custom_css %}
 {{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/match-verification.css') }}">
 {% endblock %}
 
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Page Header -->
-    <div class="row mb-4">
+    <div class="row match-verification-header">
         <div class="col-12">
-            <h2 class="fw-bold py-3 mb-2">
+            <h2 class="match-verification-title">
                 <i class="ti ti-clipboard-check me-2 text-primary"></i>Match Verification Dashboard
             </h2>
-            <div class="d-flex align-items-center text-muted">
+            <div class="match-verification-subtitle">
                 <i class="ti ti-calendar-event me-2"></i>
-                Verify match reports and confirm game results for <span class="fw-semibold text-primary ms-1">{{ active_season.name if active_season else "Current Season" }}</span>
+                Verify match reports and confirm game results for <span class="match-verification-season-name">{{ active_season.name if active_season else "Current Season" }}</span>
             </div>
         </div>
     </div>
     
     {% if is_coach %}
-    <div class="alert alert-info mb-4">
+    <div class="alert alert-info coach-verification-alert" data-alert>
         <div class="d-flex">
             <i class="ti ti-info-circle fs-3 me-2"></i>
             <div>
-                <h6 class="alert-heading mb-1">Coach Verification</h6>
-                <p class="mb-0">As a coach, you can verify match reports for your team. This confirms the match score and statistics are correct.</p>
+                <h6 class="alert-heading">Coach Verification</h6>
+                <p>As a coach, you can verify match reports for your team. This confirms the match score and statistics are correct.</p>
             </div>
         </div>
     </div>
     {% endif %}
 
     <!-- Filters Card -->
-    <div class="row mb-4">
+    <div class="row filters-card">
         <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header border-bottom py-3">
+            <div class="c-card shadow-sm">
+                <div class="c-card__header filters-card-header">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
+                        <h5 class="filters-card-title">
                             <i class="ti ti-filter me-2"></i>Filter Matches
                         </h5>
                         <div>
-                            <a class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" href="#seasonSelectorCollapse" role="button" aria-expanded="false" aria-controls="seasonSelectorCollapse">
+                            <a class="c-btn c-btn--sm c-btn--outline-primary" data-bs-toggle="collapse" href="#seasonSelectorCollapse" role="button" aria-expanded="false" aria-controls="seasonSelectorCollapse" data-collapse-toggle>
                                 <i class="ti ti-calendar-stats me-1"></i>Change Season
                             </a>
                         </div>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="true">
+                        <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="true" data-collapse-toggle>
                             <i class="ti ti-chevron-down"></i>
                         </button>
                     </div>
                 </div>
                 <div class="collapse show" id="filterCollapse">
-                    <div class="card-body">
+                    <div class="c-card__body">
                         <!-- Season Selector Collapse -->
-                        <div class="collapse mb-3" id="seasonSelectorCollapse">
-                            <div class="card card-body bg-light">
-                                <h6 class="mb-3">Select Season</h6>
-                                <div class="row">
+                        <div class="collapse season-selector-collapse c-season-selector-collapse" id="seasonSelectorCollapse">
+                            <div class="c-card c-card__body season-selector-card">
+                                <h6 class="season-selector-title">Select Season</h6>
+                                <div class="season-grid">
                                     {% for season in seasons %}
-                                    <div class="col-md-3 mb-2">
-                                        <a href="{{ url_for('admin.match_verification_dashboard', season_id=season.id) }}" 
-                                        class="btn btn-sm {{ 'btn-primary' if active_season and season.id == active_season.id else 'btn-outline-primary' }} w-100">
-                                            {{ season.name }}
-                                            {% if season.is_current %}
-                                            <span class="badge bg-success ms-1">Current</span>
-                                            {% endif %}
-                                        </a>
-                                    </div>
+                                    <a href="{{ url_for('admin.match_verification_dashboard', season_id=season.id) }}"
+                                       class="c-btn c-btn--sm season-button {{ 'btn-primary' if active_season and season.id == active_season.id else 'btn-outline-primary' }}">
+                                        {{ season.name }}
+                                        {% if season.is_current %}
+                                        <span class="badge bg-success season-badge" data-badge>Current</span>
+                                        {% endif %}
+                                    </a>
                                     {% endfor %}
                                 </div>
                             </div>
                         </div>
-                        
-                        <form method="GET" action="{{ url_for('admin.match_verification_dashboard') }}" class="row g-3">
+
+                        <form method="GET" action="{{ url_for('admin.match_verification_dashboard') }}" class="filter-form">
                             {% if selected_season_id %}
                             <input type="hidden" name="season_id" value="{{ selected_season_id }}">
                             {% endif %}
                             <!-- Week Filter -->
                             <div class="col-12 col-sm-6 col-md-4">
                                 <label for="week" class="form-label">Week</label>
-                                <select id="week" name="week" class="form-select">
+                                <select id="week" name="week" class="form-select" data-form-select>
                                     <option value="">All Weeks</option>
                                     {% if weeks %}
                                         {% for week_item in weeks %}
@@ -96,7 +95,7 @@
                             <!-- League Filter -->
                             <div class="col-12 col-sm-6 col-md-4">
                                 <label for="league_id" class="form-label">League</label>
-                                <select id="league_id" name="league_id" class="form-select">
+                                <select id="league_id" name="league_id" class="form-select" data-form-select>
                                     <option value="">All Leagues</option>
                                     {% for league in leagues %}
                                     <option value="{{ league.id }}" {% if current_league_id|int == league.id %}selected{% endif %}>{{ league.name }}</option>
@@ -107,7 +106,7 @@
                             <!-- Verification Status Filter -->
                             <div class="col-12 col-sm-12 col-md-4">
                                 <label for="verification_status" class="form-label">Verification Status</label>
-                                <select id="verification_status" name="verification_status" class="form-select">
+                                <select id="verification_status" name="verification_status" class="form-select" data-form-select>
                                     <option value="all" {% if current_verification_status == 'all' %}selected{% endif %}>All Matches</option>
                                     <option value="unverified" {% if current_verification_status == 'unverified' %}selected{% endif %}>Needs Verification</option>
                                     <option value="partially_verified" {% if current_verification_status == 'partially_verified' %}selected{% endif %}>Partially Verified</option>
@@ -117,11 +116,11 @@
                             </div>
 
                             <!-- Filter Buttons -->
-                            <div class="col-12 d-flex flex-column flex-sm-row justify-content-sm-end gap-2 mt-3">
-                                <a href="{{ url_for('admin.match_verification_dashboard') }}" class="btn btn-outline-secondary">
+                            <div class="filter-actions">
+                                <a href="{{ url_for('admin.match_verification_dashboard') }}" class="c-btn c-btn--outline-secondary">
                                     <i class="ti ti-refresh me-1"></i> <span class="d-none d-sm-inline">Reset</span> Filters
                                 </a>
-                                <button type="submit" class="btn btn-primary">
+                                <button type="submit" class="c-btn c-btn--primary">
                                     <i class="ti ti-filter me-1"></i> Apply <span class="d-none d-sm-inline">Filters</span>
                                 </button>
                             </div>
@@ -133,63 +132,63 @@
     </div>
 
     <!-- Stats Cards -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 col-6 mb-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
+    <div class="row stats-cards-row">
+        <div class="col-xl-3 col-md-6 col-6">
+            <div class="c-card shadow-sm stat-card">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center mb-2">
-                        <div class="avatar avatar-sm bg-primary-subtle rounded me-2 d-none d-sm-flex">
+                        <div class="stat-card-avatar stat-card-avatar--primary">
                             <i class="ti ti-soccer-field text-primary"></i>
                         </div>
-                        <h6 class="card-title mb-0 text-truncate">Total Matches</h6>
+                        <h6 class="stat-card-title">Total Matches</h6>
                     </div>
-                    <h3 class="fw-bold mb-0">{{ matches|length }}</h3>
-                    <p class="text-muted mb-0 small d-none d-sm-block">Current season</p>
+                    <h3 class="stat-card-value">{{ matches|length }}</h3>
+                    <p class="stat-card-description">Current season</p>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 col-6 mb-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
+        <div class="col-xl-3 col-md-6 col-6">
+            <div class="c-card shadow-sm stat-card">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center mb-2">
-                        <div class="avatar avatar-sm bg-success-subtle rounded me-2 d-none d-sm-flex">
+                        <div class="stat-card-avatar stat-card-avatar--success">
                             <i class="ti ti-check text-success"></i>
                         </div>
-                        <h6 class="card-title mb-0 text-truncate">Fully Verified</h6>
+                        <h6 class="stat-card-title">Fully Verified</h6>
                     </div>
-                    <h3 class="fw-bold mb-0">{{ matches|selectattr('home_team_verified', 'defined')|selectattr('home_team_verified')|selectattr('away_team_verified', 'defined')|selectattr('away_team_verified')|list|length }}</h3>
-                    <p class="text-muted mb-0 small d-none d-sm-block">Both teams verified</p>
+                    <h3 class="stat-card-value">{{ matches|selectattr('home_team_verified', 'defined')|selectattr('home_team_verified')|selectattr('away_team_verified', 'defined')|selectattr('away_team_verified')|list|length }}</h3>
+                    <p class="stat-card-description">Both teams verified</p>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 col-6 mb-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
+        <div class="col-xl-3 col-md-6 col-6">
+            <div class="c-card shadow-sm stat-card">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center mb-2">
-                        <div class="avatar avatar-sm bg-warning-subtle rounded me-2 d-none d-sm-flex">
+                        <div class="stat-card-avatar stat-card-avatar--warning">
                             <i class="ti ti-clock text-warning"></i>
                         </div>
-                        <h6 class="card-title mb-0 text-truncate">Partially</h6>
+                        <h6 class="stat-card-title">Partially</h6>
                     </div>
-                    <h3 class="fw-bold mb-0">{{ matches|selectattr('home_team_score', 'defined')|selectattr('away_team_score', 'defined')|rejectattr('home_team_verified')|rejectattr('away_team_verified')|list|length }}</h3>
-                    <p class="text-muted mb-0 small d-none d-sm-block">One team verified</p>
+                    <h3 class="stat-card-value">{{ matches|selectattr('home_team_score', 'defined')|selectattr('away_team_score', 'defined')|rejectattr('home_team_verified')|rejectattr('away_team_verified')|list|length }}</h3>
+                    <p class="stat-card-description">One team verified</p>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 col-6 mb-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
+        <div class="col-xl-3 col-md-6 col-6">
+            <div class="c-card shadow-sm stat-card">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center mb-2">
-                        <div class="avatar avatar-sm bg-danger-subtle rounded me-2 d-none d-sm-flex">
+                        <div class="stat-card-avatar stat-card-avatar--danger">
                             <i class="ti ti-alert-triangle text-danger"></i>
                         </div>
-                        <h6 class="card-title mb-0 text-truncate">Not Reported</h6>
+                        <h6 class="stat-card-title">Not Reported</h6>
                     </div>
-                    <h3 class="fw-bold mb-0">{{ matches|rejectattr('home_team_score', 'defined')|list|length + matches|rejectattr('away_team_score', 'defined')|list|length }}</h3>
-                    <p class="text-muted mb-0 small d-none d-sm-block">Needs initial report</p>
+                    <h3 class="stat-card-value">{{ matches|rejectattr('home_team_score', 'defined')|list|length + matches|rejectattr('away_team_score', 'defined')|list|length }}</h3>
+                    <p class="stat-card-description">Needs initial report</p>
                 </div>
             </div>
         </div>
@@ -198,28 +197,28 @@
     <!-- Matches Table Card -->
     <div class="row">
         <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header border-bottom py-3">
+            <div class="c-card shadow-sm matches-table-card">
+                <div class="c-card__header matches-table-header">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
+                        <h5 class="matches-table-title">
                             <i class="ti ti-list me-2"></i>Match List
                         </h5>
-                        <div class="dropdown">
-                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="dropdown export-dropdown">
+                            <button class="c-btn c-btn--outline-secondary c-btn--sm dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle>
                                 <i class="ti ti-download me-1"></i> Export
                             </button>
-                            <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                            <ul class="dropdown-menu" aria-labelledby="exportDropdown" data-dropdown-menu>
                                 <li><a class="dropdown-item" href="#"><i class="ti ti-file-spreadsheet me-1"></i> Export to Excel</a></li>
                                 <li><a class="dropdown-item" href="#"><i class="ti ti-file-csv me-1"></i> Export to CSV</a></li>
                             </ul>
                         </div>
                     </div>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-hover ecs-table ecs-table-hover" id="match-verification-table">
-                        <thead class="table-light">
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable ecs-table ecs-table-hover c-match-verification-table" id="match-verification-table" data-table>
+                        <thead class="c-table--light" scope="col">
                             <tr>
-                                <th>
+                                <th scope="col">
                                     <a href="{{ url_for('admin.match_verification_dashboard', 
                                         week=current_week, 
                                         league_id=current_league_id, 
@@ -231,7 +230,7 @@
                                         <i class="sort-icon ti ti-sort-{{ 'ascending' if sort_by == 'date' and sort_order == 'asc' else 'descending' }}"></i>
                                     </a>
                                 </th>
-                                <th>
+                                <th scope="col">
                                     <a href="{{ url_for('admin.match_verification_dashboard', 
                                         week=current_week, 
                                         league_id=current_league_id, 
@@ -243,7 +242,7 @@
                                         <i class="sort-icon ti ti-sort-{{ 'ascending' if sort_by == 'week' and sort_order == 'asc' else 'descending' }}"></i>
                                     </a>
                                 </th>
-                                <th>
+                                <th scope="col">
                                     <a href="{{ url_for('admin.match_verification_dashboard', 
                                         week=current_week, 
                                         league_id=current_league_id, 
@@ -255,7 +254,7 @@
                                         <i class="sort-icon ti ti-sort-{{ 'ascending' if sort_by == 'home_team' and sort_order == 'asc' else 'descending' }}"></i>
                                     </a>
                                 </th>
-                                <th>
+                                <th scope="col">
                                     <a href="{{ url_for('admin.match_verification_dashboard', 
                                         week=current_week, 
                                         league_id=current_league_id, 
@@ -267,8 +266,8 @@
                                         <i class="sort-icon ti ti-sort-{{ 'ascending' if sort_by == 'away_team' and sort_order == 'asc' else 'descending' }}"></i>
                                     </a>
                                 </th>
-                                <th>Score</th>
-                                <th>
+                                <th scope="col">Score</th>
+                                <th scope="col">
                                     <a href="{{ url_for('admin.match_verification_dashboard', 
                                         week=current_week, 
                                         league_id=current_league_id, 
@@ -280,7 +279,7 @@
                                         <i class="sort-icon ti ti-sort-{{ 'ascending' if sort_by == 'status' and sort_order == 'asc' else 'descending' }}"></i>
                                     </a>
                                 </th>
-                                <th class="text-end">Actions</th>
+                                <th class="text-end" scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -292,12 +291,12 @@
                                     <td data-label="Home Team">
                                         {{ match.home_team.name }}
                                         {% if match.home_team_verified %}
-                                        <span class="badge bg-label-success" data-bs-toggle="tooltip" title="Verified by: {{ (match.home_verifier.player.name if match.home_verifier and match.home_verifier.player else match.home_verifier.username) if match.home_verifier else 'Unknown' }} 
-                                        at {{ match.home_team_verified_at.strftime('%m/%d/%Y %H:%M') if match.home_team_verified_at else 'Unknown' }}">
+                                        <span class="badge verification-badge--verified" data-bs-toggle="tooltip" title="Verified by: {{ (match.home_verifier.player.name if match.home_verifier and match.home_verifier.player else match.home_verifier.username) if match.home_verifier else 'Unknown' }}
+                                        at {{ match.home_team_verified_at.strftime('%m/%d/%Y %H:%M') if match.home_team_verified_at else 'Unknown' }}" data-badge>
                                             <i class="ti ti-check me-1"></i>Verified
                                         </span>
                                         {% else %}
-                                        <span class="badge bg-label-warning" data-bs-toggle="tooltip" title="Not verified">
+                                        <span class="badge verification-badge--pending" data-bs-toggle="tooltip" title="Not verified" data-badge>
                                             <i class="ti ti-clock me-1"></i>Pending
                                         </span>
                                         {% endif %}
@@ -305,12 +304,12 @@
                                     <td data-label="Away Team">
                                         {{ match.away_team.name }}
                                         {% if match.away_team_verified %}
-                                        <span class="badge bg-label-success" data-bs-toggle="tooltip" title="Verified by: {{ (match.away_verifier.player.name if match.away_verifier and match.away_verifier.player else match.away_verifier.username) if match.away_verifier else 'Unknown' }} 
-                                        at {{ match.away_team_verified_at.strftime('%m/%d/%Y %H:%M') if match.away_team_verified_at else 'Unknown' }}">
+                                        <span class="badge verification-badge--verified" data-bs-toggle="tooltip" title="Verified by: {{ (match.away_verifier.player.name if match.away_verifier and match.away_verifier.player else match.away_verifier.username) if match.away_verifier else 'Unknown' }}
+                                        at {{ match.away_team_verified_at.strftime('%m/%d/%Y %H:%M') if match.away_team_verified_at else 'Unknown' }}" data-badge>
                                             <i class="ti ti-check me-1"></i>Verified
                                         </span>
                                         {% else %}
-                                        <span class="badge bg-label-warning" data-bs-toggle="tooltip" title="Not verified">
+                                        <span class="badge verification-badge--pending" data-bs-toggle="tooltip" title="Not verified" data-badge>
                                             <i class="ti ti-clock me-1"></i>Pending
                                         </span>
                                         {% endif %}
@@ -319,26 +318,26 @@
                                         {% if match.home_team_score is not none and match.away_team_score is not none %}
                                             <span class="fw-bold">{{ match.home_team_score }} - {{ match.away_team_score }}</span>
                                         {% else %}
-                                            <span class="badge bg-label-danger">Not reported</span>
+                                            <span class="badge status-badge--not-reported" data-badge>Not reported</span>
                                         {% endif %}
                                     </td>
                                     <td data-label="Status">
                                         {% if match.home_team_score is none or match.away_team_score is none %}
-                                            <span class="badge bg-label-danger">Not reported</span>
+                                            <span class="badge status-badge--not-reported" data-badge>Not reported</span>
                                         {% elif match.home_team_verified and match.away_team_verified %}
-                                            <span class="badge bg-label-success">Fully verified</span>
+                                            <span class="badge status-badge--fully-verified" data-badge>Fully verified</span>
                                         {% elif match.home_team_verified or match.away_team_verified %}
-                                            <span class="badge bg-label-warning">Partially verified</span>
+                                            <span class="badge status-badge--partially-verified" data-badge>Partially verified</span>
                                         {% else %}
-                                            <span class="badge bg-label-warning">Needs verification</span>
+                                            <span class="badge status-badge--needs-verification" data-badge>Needs verification</span>
                                         {% endif %}
                                     </td>
-                                    <td class="text-end position-relative" data-label="Actions">
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-icon btn-text-secondary rounded-pill dropdown-toggle hide-arrow ecs-btn ecs-btn-sm ecs-btn-icon" type="button" id="matchActions{{ match.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <td class="match-actions-cell" data-label="Actions">
+                                        <div class="dropdown match-actions-dropdown">
+                                            <button class="c-btn c-btn--sm c-btn--icon-only btn-text-secondary rounded-pill dropdown-toggle hide-arrow ecs-btn ecs-btn-sm ecs-btn-icon" type="button" id="matchActions{{ match.id }}" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle>
                                                 <i class="ti ti-dots-vertical"></i>
                                             </button>
-                                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="matchActions{{ match.id }}" style="z-index: 9999; position: absolute;">
+                                            <ul class="dropdown-menu dropdown-menu-end match-actions-menu" aria-labelledby="matchActions{{ match.id }}" data-dropdown-menu>
                                                 <li>
                                                     <a class="dropdown-item" href="{{ url_for('teams.team_details', team_id=match.home_team_id) }}">
                                                         <i class="ti ti-home me-1"></i> View Home Team
@@ -391,17 +390,17 @@
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td colspan="7" class="text-center py-5">
-                                        <div class="d-flex flex-column align-items-center">
-                                            <i class="ti ti-search fs-1 text-muted mb-3"></i>
-                                            <h5 class="mb-2">No matches found</h5>
+                                    <td colspan="7">
+                                        <div class="empty-state">
+                                            <i class="ti ti-search empty-state-icon"></i>
+                                            <h5 class="empty-state-title">No matches found</h5>
                                             {% if current_week or current_league_id or current_verification_status != 'all' %}
-                                                <p class="text-muted mb-3">No matches match your current filter criteria</p>
-                                                <a href="{{ url_for('admin.match_verification_dashboard') }}" class="btn btn-sm btn-primary">
+                                                <p class="empty-state-description">No matches match your current filter criteria</p>
+                                                <a href="{{ url_for('admin.match_verification_dashboard') }}" class="c-btn c-btn--sm c-btn--primary">
                                                     <i class="ti ti-refresh me-1"></i>Reset Filters
                                                 </a>
                                             {% else %}
-                                                <p class="text-muted mb-0">There are no matches to verify in the current season</p>
+                                                <p class="empty-state-description">There are no matches to verify in the current season</p>
                                             {% endif %}
                                         </div>
                                     </td>
@@ -419,42 +418,56 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl)
+        return new bootstrap.Tooltip(tooltipTriggerEl);
     });
-    
-    // Fix dropdown positioning
-    document.querySelectorAll('.dropdown-toggle').forEach(toggleBtn => {
+
+    // Enhanced dropdown positioning for match actions
+    // Bootstrap handles basic positioning, but we ensure proper viewport constraints
+    document.querySelectorAll('.match-actions-dropdown .dropdown-toggle').forEach(toggleBtn => {
         toggleBtn.addEventListener('click', function() {
-            // Close any other open dropdowns
-            document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
-                if (menu !== this.nextElementSibling) {
-                    menu.classList.remove('show');
-                }
-            });
-            
-            // Ensure the dropdown menu is positioned correctly
+            // Allow Bootstrap to handle showing/hiding
             setTimeout(() => {
-                const dropdown = this.closest('.dropdown');
-                const menu = dropdown.querySelector('.dropdown-menu');
-                
+                const dropdown = this.closest('.match-actions-dropdown');
+                const menu = dropdown.querySelector('.match-actions-menu');
+
                 if (menu && menu.classList.contains('show')) {
-                    // Make sure the menu is in the viewport
+                    // Ensure menu stays within viewport bounds
                     const rect = menu.getBoundingClientRect();
-                    if (rect.right > window.innerWidth) {
-                        menu.style.left = 'auto';
-                        menu.style.right = '0';
+                    const viewportWidth = window.innerWidth;
+                    const viewportHeight = window.innerHeight;
+
+                    // If menu extends beyond right edge, ensure it's properly aligned
+                    if (rect.right > viewportWidth) {
+                        // dropdown-menu-end class should handle this, but force it if needed
+                        menu.classList.add('dropdown-menu-end');
                     }
-                    if (rect.bottom > window.innerHeight) {
-                        menu.style.top = 'auto';
-                        menu.style.bottom = '0';
+
+                    // If menu extends beyond bottom edge, adjust if possible
+                    if (rect.bottom > viewportHeight) {
+                        // Add a class to position above the button instead
+                        menu.classList.add('dropup');
                     }
-                    
-                    // Z-index handled by centralized CSS system in mobile-scale-system.css
                 }
             }, 10);
         });
+    });
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.match-actions-dropdown')) {
+            document.querySelectorAll('.match-actions-menu.show').forEach(menu => {
+                const dropdown = menu.closest('.match-actions-dropdown');
+                const toggle = dropdown.querySelector('.dropdown-toggle');
+                if (toggle) {
+                    const bsDropdown = bootstrap.Dropdown.getInstance(toggle);
+                    if (bsDropdown) {
+                        bsDropdown.hide();
+                    }
+                }
+            });
+        }
     });
 });
 </script>

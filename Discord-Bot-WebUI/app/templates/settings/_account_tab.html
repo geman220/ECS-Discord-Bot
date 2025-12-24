@@ -1,51 +1,80 @@
 {# Account Settings Tab Partial #}
-<div class="tab-pane fade show active" id="tab-account" role="tabpanel">
+<div class="c-settings-tab c-settings-tab--active" id="tab-account" role="tabpanel" data-component="settings-tab" data-tab-pane="account">
     <div class="row">
         <div class="col-lg-8">
-            <div class="card settings-card mb-4">
-                <div class="card-header d-flex align-items-center pb-2 border-bottom">
-                    <div class="settings-icon bg-primary bg-opacity-10 text-primary me-3">
+            <div class="c-settings-card" data-component="settings-card">
+                <div class="c-settings-card__header">
+                    <div class="c-settings-card__icon c-settings-card__icon--primary">
                         <i class="ti ti-user-circle"></i>
                     </div>
-                    <div>
-                        <h5 class="card-title mb-0">Personal Information</h5>
-                        <small class="text-muted">Update your account details</small>
+                    <div class="c-settings-card__header-info">
+                        <h5 class="c-settings-card__title">Personal Information</h5>
+                        <small class="c-settings-card__subtitle">Update your account details</small>
                     </div>
                 </div>
-                <div class="card-body pt-3">
-                    <form id="accountInfoForm" action="{{ url_for('account.update_account_info') }}" method="POST">
+                <div class="c-settings-card__body">
+                    <form id="accountInfoForm"
+                          action="{{ url_for('account.update_account_info') }}"
+                          method="POST"
+                          class="c-settings-form"
+                          data-form="account-info"
+                          data-component="settings-form">
                         {{ notification_form.hidden_tag() }}
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">Name</label>
-                                <input type="text" class="form-control" name="name"
-                                       value="{{ safe_current_user.player.name if safe_current_user.player else '' }}"
-                                       placeholder="Your full name">
+                                <div class="c-settings-field" data-component="form-field">
+                                    <label for="account-name" class="c-settings-field__label">Name</label>
+                                    <input type="text"
+                                           class="c-settings-field__input"
+                                           id="account-name"
+                                           name="name"
+                                           value="{{ safe_current_user.player.name if safe_current_user.player else '' }}"
+                                           placeholder="Your full name"
+                                           autocomplete="name"
+                                           data-input="name">
+                                </div>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">Email</label>
-                                <input type="email" class="form-control" name="email"
-                                       value="{{ safe_current_user.email }}"
-                                       placeholder="your@email.com">
+                                <div class="c-settings-field" data-component="form-field">
+                                    <label for="account-email" class="c-settings-field__label">Email</label>
+                                    <input type="email"
+                                           class="c-settings-field__input"
+                                           id="account-email"
+                                           name="email"
+                                           value="{{ safe_current_user.email }}"
+                                           placeholder="your@email.com"
+                                           autocomplete="email"
+                                           data-input="email">
+                                </div>
                             </div>
                         </div>
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">Phone Number</label>
-                                <input type="tel" class="form-control" name="phone"
-                                       value="{{ safe_current_user.player.phone if safe_current_user.player else '' }}"
-                                       placeholder="(555) 123-4567">
+                                <div class="c-settings-field" data-component="form-field">
+                                    <label for="account-phone" class="c-settings-field__label">Phone Number</label>
+                                    <input type="tel"
+                                           class="c-settings-field__input"
+                                           id="account-phone"
+                                           name="phone"
+                                           value="{{ safe_current_user.player.phone if safe_current_user.player else '' }}"
+                                           placeholder="(555) 123-4567"
+                                           autocomplete="tel"
+                                           data-input="phone">
+                                </div>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">Profile Visibility</label>
-                                {{ notification_form.profile_visibility(class="form-select") }}
+                                <div class="c-settings-field" data-component="form-field">
+                                    <label for="profile-visibility" class="c-settings-field__label">Profile Visibility</label>
+                                    {{ notification_form.profile_visibility(class="c-settings-field__select", id="profile-visibility", **{"data-input": "visibility"}) }}
+                                </div>
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary">
-                            <i class="ti ti-device-floppy me-2"></i>Save Changes
+                        <button type="submit" class="c-settings-btn c-settings-btn--primary" data-action="save-account">
+                            <i class="ti ti-device-floppy"></i>
+                            <span>Save Changes</span>
                         </button>
                     </form>
                 </div>
@@ -53,56 +82,56 @@
 
             <!-- Player Status Info (if player exists) -->
             {% if safe_current_user.player %}
-            <div class="card settings-card">
-                <div class="card-header d-flex align-items-center pb-2 border-bottom">
-                    <div class="settings-icon bg-success bg-opacity-10 text-success me-3">
+            <div class="c-settings-card" data-component="settings-card">
+                <div class="c-settings-card__header">
+                    <div class="c-settings-card__icon c-settings-card__icon--success">
                         <i class="ti ti-shield-check"></i>
                     </div>
-                    <div>
-                        <h5 class="card-title mb-0">Player Status</h5>
-                        <small class="text-muted">Your current team and season information</small>
+                    <div class="c-settings-card__header-info">
+                        <h5 class="c-settings-card__title">Player Status</h5>
+                        <small class="c-settings-card__subtitle">Your current team and season information</small>
                     </div>
                 </div>
-                <div class="card-body pt-3">
+                <div class="c-settings-card__body">
                     <div class="row g-3 mb-3">
                         <div class="col-sm-6 col-md-3">
-                            <div class="text-center p-3 bg-light rounded">
-                                <small class="text-muted d-block mb-1">Status</small>
+                            <div class="c-stat-box" data-component="stat-box">
+                                <small class="c-stat-box__label">Status</small>
                                 {% if safe_current_user.player.is_current_player %}
-                                <span class="badge bg-success">Active</span>
+                                <span class="c-badge c-badge--success" data-badge data-status="active">Active</span>
                                 {% else %}
-                                <span class="badge bg-secondary">Inactive</span>
+                                <span class="c-badge c-badge--secondary" data-badge data-status="inactive">Inactive</span>
                                 {% endif %}
                             </div>
                         </div>
                         <div class="col-sm-6 col-md-3">
-                            <div class="text-center p-3 bg-light rounded">
-                                <small class="text-muted d-block mb-1">Primary Team</small>
-                                <span class="fw-semibold">
+                            <div class="c-stat-box" data-component="stat-box">
+                                <small class="c-stat-box__label">Primary Team</small>
+                                <span class="c-stat-box__value">
                                     {% if safe_current_user.player.primary_team %}
                                     {{ safe_current_user.player.primary_team.name }}
                                     {% else %}
-                                    <span class="text-muted">None</span>
+                                    <span class="c-stat-box__value--muted">None</span>
                                     {% endif %}
                                 </span>
                             </div>
                         </div>
                         <div class="col-sm-6 col-md-3">
-                            <div class="text-center p-3 bg-light rounded">
-                                <small class="text-muted d-block mb-1">League</small>
-                                <span class="fw-semibold">
+                            <div class="c-stat-box" data-component="stat-box">
+                                <small class="c-stat-box__label">League</small>
+                                <span class="c-stat-box__value">
                                     {% if safe_current_user.player.league %}
                                     {{ safe_current_user.player.league.name }}
                                     {% else %}
-                                    <span class="text-muted">None</span>
+                                    <span class="c-stat-box__value--muted">None</span>
                                     {% endif %}
                                 </span>
                             </div>
                         </div>
                         <div class="col-sm-6 col-md-3">
-                            <div class="text-center p-3 bg-light rounded">
-                                <small class="text-muted d-block mb-1">Teams</small>
-                                <span class="fw-semibold">
+                            <div class="c-stat-box" data-component="stat-box">
+                                <small class="c-stat-box__label">Teams</small>
+                                <span class="c-stat-box__value">
                                     {% set team_count = safe_current_user.player.teams|length if safe_current_user.player.teams else 0 %}
                                     {{ team_count }}
                                 </span>
@@ -111,11 +140,11 @@
                     </div>
 
                     {% if user_team and user_team|length > 0 %}
-                    <div class="mb-0">
-                        <small class="text-muted d-block mb-2">Current Season Teams:</small>
-                        <div class="d-flex flex-wrap gap-2">
+                    <div class="c-settings-teams" data-component="team-list">
+                        <small class="c-settings-teams__label">Current Season Teams:</small>
+                        <div class="c-settings-teams__list">
                             {% for team in user_team %}
-                            <span class="badge bg-primary">{{ team.name }}</span>
+                            <span class="c-badge c-badge--primary" data-badge data-team="{{ team.name }}">{{ team.name }}</span>
                             {% endfor %}
                         </div>
                     </div>
@@ -127,19 +156,24 @@
 
         <!-- Quick Actions Sidebar -->
         <div class="col-lg-4">
-            <div class="card border-0 bg-light">
-                <div class="card-body">
-                    <h6 class="fw-semibold mb-3">
-                        <i class="ti ti-bolt me-2"></i>Quick Actions
+            <div class="c-settings-sidebar" data-component="settings-sidebar">
+                <div class="c-settings-sidebar__content">
+                    <h6 class="c-settings-sidebar__title">
+                        <i class="ti ti-bolt c-settings-sidebar__icon"></i>
+                        Quick Actions
                     </h6>
-                    <div class="d-grid gap-2">
+                    <div class="c-settings-sidebar__actions">
                         <a href="{{ url_for('players.player_profile', player_id=safe_current_user.player.id) if safe_current_user.player else '#' }}"
-                           class="btn btn-outline-primary btn-sm {% if not safe_current_user.player %}disabled{% endif %}">
-                            <i class="ti ti-user me-2"></i>View My Profile
+                           class="c-settings-sidebar__action {% if not safe_current_user.player %}is-disabled{% endif %}"
+                           data-action="view-profile">
+                            <i class="ti ti-user"></i>
+                            View My Profile
                         </a>
                         <a href="{{ url_for('players.profile_wizard') }}"
-                           class="btn btn-outline-primary btn-sm {% if not safe_current_user.player %}disabled{% endif %}">
-                            <i class="ti ti-clipboard-check me-2"></i>Verify Profile
+                           class="c-settings-sidebar__action {% if not safe_current_user.player %}is-disabled{% endif %}"
+                           data-action="verify-profile">
+                            <i class="ti ti-clipboard-check"></i>
+                            Verify Profile
                         </a>
                     </div>
                 </div>

@@ -4,19 +4,19 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
+            <div class="c-card">
+                <div class="c-card__header">
                     <h4>Auto Schedule Configuration - {{ league.name }}</h4>
                     <p class="text-muted">Generate a randomized schedule for {{ league.name }} ({{ team_count }} teams)</p>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     {% if team_count < 2 %}
-                        <div class="alert alert-warning">
+                        <div class="alert alert-warning" data-alert>
                             <i class="fas fa-exclamation-triangle"></i>
                             This league only has {{ team_count }} teams. You need at least 2 teams to generate a schedule.
                         </div>
                     {% else %}
-                        <div class="alert alert-info">
+                        <div class="alert alert-info" data-alert>
                             <i class="fas fa-info-circle"></i>
                             <strong>Schedule Generation Rules:</strong>
                             <ul class="mb-0 mt-2">
@@ -29,17 +29,17 @@
 
                         <form method="POST">
                             <!-- Enhanced Time Configuration Section -->
-                            <div class="card mb-4">
-                                <div class="card-header">
+                            <div class="c-card mb-4">
+                                <div class="c-card__header">
                                     <h5><i class="fas fa-clock"></i> Time Configuration</h5>
                                 </div>
-                                <div class="card-body">
+                                <div class="c-card__body">
                                     <div class="row">
                                         <div class="col-md-4">
                                             <div class="form-group">
                                                 <label for="premier_start_time">Premier Start Time *</label>
                                                 <input type="time" class="form-control" id="premier_start_time" name="premier_start_time" 
-                                                       value="{{ config.premier_start_time.strftime('%H:%M') if config and config.premier_start_time else '08:20' }}" required>
+                                                       value="{{ config.premier_start_time.strftime('%H:%M') if config and config.premier_start_time else '08:20' }}" required data-form-control>
                                                 <small class="form-text text-muted">First time slot for Premier teams</small>
                                             </div>
                                         </div>
@@ -47,7 +47,7 @@
                                             <div class="form-group">
                                                 <label for="classic_start_time">Classic Start Time *</label>
                                                 <input type="time" class="form-control" id="classic_start_time" name="classic_start_time" 
-                                                       value="{{ config.classic_start_time.strftime('%H:%M') if config and config.classic_start_time else '13:10' }}" required>
+                                                       value="{{ config.classic_start_time.strftime('%H:%M') if config and config.classic_start_time else '13:10' }}" required data-form-control>
                                                 <small class="form-text text-muted">First time slot for Classic teams</small>
                                             </div>
                                         </div>
@@ -56,7 +56,7 @@
                                                 <label for="match_duration">Match Duration (minutes) *</label>
                                                 <input type="number" class="form-control" id="match_duration" name="match_duration" 
                                                        value="{{ config.match_duration_minutes if config else 70 }}" 
-                                                       min="30" max="120" required>
+                                                       min="30" max="120" required data-form-control>
                                                 <small class="form-text text-muted">Duration including setup time</small>
                                             </div>
                                         </div>
@@ -80,7 +80,7 @@
                                                 <label for="break_duration">Break Between Matches (minutes)</label>
                                                 <input type="number" class="form-control" id="break_duration" name="break_duration" 
                                                        value="{{ config.break_duration_minutes if config else 10 }}" 
-                                                       min="0" max="30">
+                                                       min="0" max="30" data-form-control>
                                                 <small class="form-text text-muted">Rest time between back-to-back matches</small>
                                             </div>
                                         </div>
@@ -94,39 +94,39 @@
                                         <label for="weeks_count">Number of Weeks *</label>
                                         <input type="number" class="form-control" id="weeks_count" name="weeks_count" 
                                                value="{{ config.weeks_count if config else 7 }}" 
-                                               min="1" max="20" required>
+                                               min="1" max="20" required data-form-control>
                                         <small class="form-text text-muted">Number of weeks in the regular season</small>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <!-- Enhanced Field Configuration -->
-                                    <div class="card">
-                                        <div class="card-header">
+                                    <div class="c-card">
+                                        <div class="c-card__header">
                                             <h6><i class="fas fa-map-marker-alt"></i> Field Configuration</h6>
                                         </div>
-                                        <div class="card-body">
+                                        <div class="c-card__body">
                                             <div id="field-configurations">
                                                 {% set fields = config.fields.split(',') if config and config.fields else ['North', 'South'] %}
                                                 {% for field in fields %}
                                                 <div class="field-config-item mb-2" data-field-index="{{ loop.index0 }}">
-                                                    <div class="input-group">
+                                                    <div class="input-group" data-input-group>
                                                         <input type="text" class="form-control field-name" 
                                                                name="field_name_{{ loop.index0 }}" 
                                                                value="{{ field.strip() }}" 
-                                                               placeholder="Field name" required>
+                                                               placeholder="Field name" required data-form-control>
                                                         <input type="number" class="form-control field-capacity" 
                                                                name="field_capacity_{{ loop.index0 }}" 
                                                                value="20" min="1" max="50" 
-                                                               placeholder="Capacity" title="Field capacity">
-                                                        <button type="button" class="btn btn-outline-danger remove-field" 
-                                                                onclick="removeField(this)" {{ 'disabled' if loop.index0 < 2 else '' }}>
+                                                               placeholder="Capacity" title="Field capacity" data-form-control>
+                                                        <button type="button" class="c-btn c-btn--outline-danger remove-field js-remove-field"
+                                                                data-action="remove-field" {{ 'disabled' if loop.index0 < 2 else '' }}>
                                                             <i class="fas fa-times"></i>
                                                         </button>
                                                     </div>
                                                 </div>
                                                 {% endfor %}
                                             </div>
-                                            <button type="button" class="btn btn-sm btn-secondary" onclick="addField()">
+                                            <button type="button" class="c-btn c-btn--sm c-btn--secondary js-add-field" data-action="add-field">
                                                 <i class="fas fa-plus"></i> Add Field
                                             </button>
                                             <small class="form-text text-muted d-block mt-2">
@@ -138,31 +138,31 @@
                             </div>
 
                             <!-- Enhanced Week Configuration Section -->
-                            <div class="card mb-4">
-                                <div class="card-header">
+                            <div class="c-card mb-4">
+                                <div class="c-card__header">
                                     <h5><i class="fas fa-calendar-alt"></i> Season Schedule Configuration</h5>
                                 </div>
-                                <div class="card-body">
+                                <div class="c-card__body">
                                     <p class="text-muted">Configure your season layout with regular matches, practice sessions, and special weeks.</p>
                                     
                                     <!-- Quick Setup Templates -->
                                     <div class="mb-3">
                                         <h6>Quick Setup Templates</h6>
                                         <div class="btn-group" role="group">
-                                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="applyTemplate('premier-standard')">
+                                            <button type="button" class="c-btn c-btn--outline-primary c-btn--sm js-template" data-action="apply-template" data-template="premier-standard">
                                                 Premier Standard (8 weeks)
                                             </button>
-                                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="applyTemplate('classic-practice')">
+                                            <button type="button" class="c-btn c-btn--outline-primary c-btn--sm js-template" data-action="apply-template" data-template="classic-practice">
                                                 Classic w/ Practice (7 weeks)
                                             </button>
-                                            <button type="button" class="btn btn-outline-info btn-sm" onclick="applyTemplate('custom')">
+                                            <button type="button" class="c-btn c-btn--outline-info c-btn--sm js-template" data-action="apply-template" data-template="custom">
                                                 Custom Schedule
                                             </button>
                                         </div>
                                     </div>
-                                    
+
                                     <!-- Practice Week Configuration for Classic -->
-                                    <div class="practice-config mb-3" id="practice-config" style="display: none;">
+                                    <div class="practice-config mb-3 u-hidden" id="practice-config">
                                         <h6>Classic Practice Configuration</h6>
                                         <div class="form-check form-check-inline">
                                             <input class="form-check-input" type="checkbox" id="enable-practice-weeks" name="enable_practice_weeks">
@@ -170,7 +170,7 @@
                                                 Enable Practice Sessions for Classic
                                             </label>
                                         </div>
-                                        <div class="practice-weeks mt-2" id="practice-weeks-selection" style="display: none;">
+                                        <div class="practice-weeks mt-2" id="practice-weeks-selection" class="u-hidden">
                                             <label class="form-label">Practice Session Weeks:</label>
                                             <div class="practice-week-checkboxes" id="practice-week-checkboxes">
                                                 <!-- Generated dynamically based on season length -->
@@ -189,13 +189,13 @@
                                         </div>
                                         
                                         <div class="week-controls mt-3">
-                                            <button type="button" class="btn btn-sm btn-secondary" onclick="addWeekConfig()">
+                                            <button type="button" class="c-btn c-btn--sm c-btn--secondary js-add-week-config" data-action="add-week-config">
                                                 <i class="fas fa-plus"></i> Add Week
                                             </button>
-                                            <button type="button" class="btn btn-sm btn-info" onclick="generateDefaultWeeks()">
+                                            <button type="button" class="c-btn c-btn--sm c-btn--info js-generate-weeks" data-action="generate-default-weeks">
                                                 <i class="fas fa-magic"></i> Auto-Generate
                                             </button>
-                                            <button type="button" class="btn btn-sm btn-warning" onclick="clearWeeks()">
+                                            <button type="button" class="c-btn c-btn--sm c-btn--warning js-clear-weeks" data-action="clear-weeks">
                                                 <i class="fas fa-trash"></i> Clear All
                                             </button>
                                         </div>
@@ -204,7 +204,7 @@
                             </div>
 
                             <div class="form-group">
-                                <div class="alert alert-secondary">
+                                <div class="alert alert-secondary" data-alert>
                                     <strong>Preview:</strong> With {{ team_count }} teams, each team will play 
                                     <strong>{{ (team_count - 1) * 2 }}</strong> matches total 
                                     ({{ team_count - 1 }} different opponents, twice each).
@@ -212,10 +212,10 @@
                             </div>
 
                             <div class="form-group">
-                                <button type="submit" class="btn btn-primary">
+                                <button type="submit" class="c-btn c-btn--primary">
                                     <i class="fas fa-cogs"></i> Generate Schedule
                                 </button>
-                                <a href="{{ url_for('publeague.season.manage_seasons') }}" class="btn btn-secondary">
+                                <a href="{{ url_for('publeague.season.manage_seasons') }}" class="c-btn c-btn--secondary">
                                     <i class="fas fa-arrow-left"></i> Back to Seasons
                                 </a>
                             </div>
@@ -277,11 +277,54 @@
 .field-config-item .input-group {
     margin-bottom: 5px;
 }
+
+.week-card.dragging {
+    opacity: 0.5;
+}
+
+.js-remove-week-card {
+    font-size: 0.7em;
+}
 </style>
 
 <script>
 let weekConfigCount = 0;
 let fieldCount = 2; // Start with North and South
+
+// Event delegation
+document.addEventListener('click', function(e) {
+    const action = e.target.closest('[data-action]')?.dataset.action;
+    if (!action) return;
+
+    const target = e.target.closest('[data-action]');
+
+    switch(action) {
+        case 'add-field':
+            addField();
+            break;
+        case 'remove-field':
+            removeField(target);
+            break;
+        case 'apply-template':
+            applyTemplate(target.dataset.template);
+            break;
+        case 'add-week-config':
+            addWeekConfig();
+            break;
+        case 'generate-default-weeks':
+            generateDefaultWeeks();
+            break;
+        case 'clear-weeks':
+            clearWeeks();
+            break;
+        case 'update-week-card':
+            updateWeekCard(e.target);
+            break;
+        case 'remove-week-card':
+            removeWeekCard(target);
+            break;
+    }
+});
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize field counter based on existing fields
@@ -304,8 +347,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Handle practice weeks checkbox
     document.getElementById('enable-practice-weeks').addEventListener('change', function() {
-        document.getElementById('practice-weeks-selection').style.display = 
-            this.checked ? 'block' : 'none';
+        const practiceWeeksSelection = document.getElementById('practice-weeks-selection');
+        if (this.checked) {
+            practiceWeeksSelection.classList.remove('u-hidden');
+        } else {
+            practiceWeeksSelection.classList.add('u-hidden');
+        }
     });
 });
 
@@ -338,7 +385,8 @@ function applyTemplate(templateType) {
                 const week3 = document.getElementById('practice-week-3');
                 if (week1) week1.checked = true;
                 if (week3) week3.checked = true;
-                document.getElementById('practice-weeks-selection').style.display = 'block';
+                const practiceWeeksSelection = document.getElementById('practice-weeks-selection');
+                if (practiceWeeksSelection) practiceWeeksSelection.classList.remove('u-hidden');
             }, 100);
             
             generateRegularWeeks(7);
@@ -383,7 +431,8 @@ function updatePracticeWeekOptions() {
 
 function updatePracticeConfigVisibility() {
     // Show practice config section when configuring the wizard
-    document.getElementById('practice-config').style.display = 'block';
+    const practiceConfig = document.getElementById('practice-config');
+    if (practiceConfig) practiceConfig.classList.remove('u-hidden');
 }
 
 // Field management functions
@@ -394,16 +443,16 @@ function addField() {
     fieldItem.setAttribute('data-field-index', fieldCount);
     
     fieldItem.innerHTML = `
-        <div class="input-group">
-            <input type="text" class="form-control field-name" 
-                   name="field_name_${fieldCount}" 
-                   placeholder="Field name" required>
-            <input type="number" class="form-control field-capacity" 
-                   name="field_capacity_${fieldCount}" 
-                   value="20" min="1" max="50" 
-                   placeholder="Capacity" title="Field capacity">
-            <button type="button" class="btn btn-outline-danger remove-field" 
-                    onclick="removeField(this)">
+        <div class="input-group" data-input-group>
+            <input type="text" class="form-control field-name"
+                   name="field_name_${fieldCount}"
+                   placeholder="Field name" required data-form-control>
+            <input type="number" class="form-control field-capacity"
+                   name="field_capacity_${fieldCount}"
+                   value="20" min="1" max="50"
+                   placeholder="Capacity" title="Field capacity" data-form-control>
+            <button type="button" class="c-btn c-btn--outline-danger remove-field js-remove-field"
+                    data-action="remove-field">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -441,12 +490,12 @@ function addWeekConfig(weekType = 'REGULAR') {
 
     weekCard.innerHTML = `
         <div class="week-header">Week ${weekConfigCount + 1}</div>
-        <div class="week-type" style="color: ${weekTypeColor[weekType] || defaultTextColor}">
+        <div class="week-type">
             ${weekType}
         </div>
-        <select class="form-control form-control-sm mt-2 week-type-select" 
-                name="week_type_${weekConfigCount}" 
-                onchange="updateWeekCard(this)">
+        <select class="form-control form-control-sm mt-2 week-type-select"
+                name="week_type_${weekConfigCount}"
+                data-action="update-week-card" data-form-select>
             <option value="REGULAR" ${weekType === 'REGULAR' ? 'selected' : ''}>Regular</option>
             <option value="PRACTICE" ${weekType === 'PRACTICE' ? 'selected' : ''}>Practice</option>
             <option value="FUN" ${weekType === 'FUN' ? 'selected' : ''}>Fun Week</option>
@@ -454,8 +503,8 @@ function addWeekConfig(weekType = 'REGULAR') {
             <option value="BYE" ${weekType === 'BYE' ? 'selected' : ''}>BYE</option>
             <option value="PLAYOFF" ${weekType === 'PLAYOFF' ? 'selected' : ''}>Playoff</option>
         </select>
-        <button type="button" class="btn btn-sm btn-outline-danger mt-1" 
-                onclick="removeWeekCard(this)" style="font-size: 0.7em;">
+        <button type="button" class="c-btn c-btn--sm c-btn--outline-danger mt-1 js-remove-week-card"
+                data-action="remove-week-card">
             <i class="fas fa-times"></i>
         </button>
         <input type="hidden" name="week_order_${weekConfigCount}" value="${weekConfigCount + 1}">
@@ -534,8 +583,14 @@ let draggedElement = null;
 
 function handleDragStart(e) {
     draggedElement = this;
-    this.style.opacity = '0.5';
+    this.classList.add('dragging');
 }
+
+document.addEventListener('dragend', function(e) {
+    if (e.target.classList.contains('week-card')) {
+        e.target.classList.remove('dragging');
+    }
+});
 
 function handleDragOver(e) {
     e.preventDefault();
@@ -557,8 +612,8 @@ function handleDrop(e) {
         
         renumberWeeks();
     }
-    
-    draggedElement.style.opacity = '1';
+
+    draggedElement.classList.remove('dragging');
     draggedElement = null;
 }
 </script>

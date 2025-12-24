@@ -6,18 +6,18 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Playoff Management - {{ league.name }}</h3>
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h3 class="c-card__title">Playoff Management - {{ league.name }}</h3>
                     <div class="card-tools">
-                        <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="btn btn-secondary btn-sm">
+                        <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="c-btn c-btn--secondary c-btn--sm">
                             <i class="fas fa-arrow-left"></i> Back to Schedule Manager
                         </a>
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     {% if playoff_matches %}
-                    <div class="alert alert-info">
+                    <div class="alert alert-info" data-alert>
                         <h5><i class="fas fa-info-circle"></i> Playoff Setup</h5>
                         <p>Assign teams to playoff matches based on regular season standings. Premier Division has 2 playoff weeks, Classic Division has 1 playoff week.</p>
                     </div>
@@ -25,19 +25,19 @@
                     <!-- Standings Reference -->
                     <div class="row mb-4">
                         <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header">
+                            <div class="c-card">
+                                <div class="c-card__header">
                                     <h5>Current Standings</h5>
                                 </div>
-                                <div class="card-body">
-                                    <div class="table-responsive">
-                                        <table class="table table-sm">
-                                            <thead>
+                                <div class="c-card__body">
+                                    <div class="c-table-wrapper" data-table-responsive>
+                                        <table class="c-table c-table--compact" data-table>
+                                            <thead scope="col">
                                                 <tr>
-                                                    <th>Rank</th>
-                                                    <th>Team</th>
-                                                    <th>Points</th>
-                                                    <th>Record</th>
+                                                    <th scope="col">Rank</th>
+                                                    <th scope="col">Team</th>
+                                                    <th scope="col">Points</th>
+                                                    <th scope="col">Record</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -57,11 +57,11 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header">
+                            <div class="c-card">
+                                <div class="c-card__header">
                                     <h5>Playoff Format</h5>
                                 </div>
-                                <div class="card-body">
+                                <div class="c-card__body">
                                     {% if league.name == 'Premier' %}
                                     <h6>Premier Division (2 Weeks)</h6>
                                     <ul>
@@ -98,18 +98,18 @@
                         <div class="row">
                             {% for week_num, matches in playoff_matches.items() %}
                             <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header">
+                                <div class="c-card">
+                                    <div class="c-card__header">
                                         <h5>{{ week_num }} - {{ matches[0].date.strftime('%B %d, %Y') }}</h5>
                                     </div>
-                                    <div class="card-body">
+                                    <div class="c-card__body">
                                         {% for match in matches %}
                                         <div class="match-assignment mb-3">
                                             <h6>{{ match.time.strftime('%I:%M %p') }} - {{ match.location }}</h6>
                                             <div class="row">
                                                 <div class="col-md-6">
                                                     <label>Home Team</label>
-                                                    <select class="form-control" name="home_team_{{ match.id }}">
+                                                    <select class="form-control" name="home_team_{{ match.id }}" data-form-select>
                                                         <option value="">Select Team</option>
                                                         {% for team in teams %}
                                                         <option value="{{ team.id }}" {% if match.home_team_id == team.id %}selected{% endif %}>
@@ -120,7 +120,7 @@
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label>Away Team</label>
-                                                    <select class="form-control" name="away_team_{{ match.id }}">
+                                                    <select class="form-control" name="away_team_{{ match.id }}" data-form-select>
                                                         <option value="">Select Team</option>
                                                         {% for team in teams %}
                                                         <option value="{{ team.id }}" {% if match.away_team_id == team.id %}selected{% endif %}>
@@ -135,7 +135,7 @@
                                                     <label>Match Description</label>
                                                     <input type="text" class="form-control" name="description_{{ match.id }}" 
                                                            value="{{ match.description|default('') }}" 
-                                                           placeholder="e.g., Semifinal #1, Championship Game">
+                                                           placeholder="e.g., Semifinal #1, Championship Game" data-form-control>
                                                 </div>
                                             </div>
                                         </div>
@@ -148,20 +148,20 @@
 
                         <div class="row mt-4">
                             <div class="col-md-12">
-                                <button type="submit" class="btn btn-primary">
+                                <button type="submit" class="c-btn c-btn--primary">
                                     <i class="fas fa-save"></i> Assign Playoff Teams
                                 </button>
-                                <button type="button" class="btn btn-success" onclick="autoAssignPlayoffs()">
+                                <button type="button" class="c-btn c-btn--success" data-action="auto-assign-playoffs" class="js-auto-assign-playoffs">
                                     <i class="fas fa-magic"></i> Auto-Assign by Standings
                                 </button>
-                                <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="btn btn-secondary">
+                                <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="c-btn c-btn--secondary">
                                     <i class="fas fa-times"></i> Cancel
                                 </a>
                             </div>
                         </div>
                     </form>
                     {% else %}
-                    <div class="alert alert-warning">
+                    <div class="alert alert-warning" data-alert>
                         <h5><i class="fas fa-exclamation-triangle"></i> No Playoff Matches Found</h5>
                         <p>No playoff matches have been scheduled for this league yet. Please generate a schedule that includes playoff weeks.</p>
                     </div>

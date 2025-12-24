@@ -17,8 +17,8 @@
     <div class="row mb-4">
         <!-- Database Status Card -->
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
+            <div class="c-card h-100 shadow-sm">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-md me-2">
                             <div class="avatar-initial rounded bg-label-primary">
@@ -37,8 +37,8 @@
         
         <!-- Ready to Send Card -->
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
+            <div class="c-card h-100 shadow-sm">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-md me-2">
                             <div class="avatar-initial rounded {% if validation.database_status.ready_to_send > 0 %}bg-label-warning{% else %}bg-label-success{% endif %}">
@@ -59,8 +59,8 @@
         
         <!-- Celery Status Card -->
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
+            <div class="c-card h-100 shadow-sm">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-md me-2">
                             <div class="avatar-initial rounded {% if validation.celery_status.connected %}bg-label-success{% else %}bg-label-danger{% endif %}">
@@ -81,8 +81,8 @@
         
         <!-- Beat Schedule Card -->
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
+            <div class="c-card h-100 shadow-sm">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-md me-2">
                             <div class="avatar-initial rounded {% if validation.beat_schedule.configured %}bg-label-success{% else %}bg-label-danger{% endif %}">
@@ -108,8 +108,8 @@
         <!-- Issues Column -->
         {% if validation.issues %}
         <div class="col-lg-6 mb-3">
-            <div class="card h-100 shadow-sm">
-                <div class="card-header d-flex align-items-center">
+            <div class="c-card h-100 shadow-sm">
+                <div class="c-card__header d-flex align-items-center">
                     <div class="avatar avatar-sm me-2">
                         <div class="avatar-initial rounded bg-label-warning">
                             <i class="ti ti-alert-triangle"></i>
@@ -117,9 +117,9 @@
                     </div>
                     <h5 class="mb-0">Issues Detected</h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     {% for issue in validation.issues %}
-                    <div class="alert alert-{{ 'danger' if issue.severity == 'error' else 'warning' }} mb-2">
+                    <div class="alert alert-{{ 'danger' if issue.severity == 'error' else 'warning' }} mb-2" data-alert>
                         <i class="ti ti-alert-circle me-1"></i>{{ issue.message }}
                     </div>
                     {% endfor %}
@@ -131,8 +131,8 @@
         <!-- Recommendations Column -->
         {% if validation.recommendations %}
         <div class="col-lg-{% if validation.issues %}6{% else %}12{% endif %} mb-3">
-            <div class="card h-100 shadow-sm">
-                <div class="card-header d-flex align-items-center">
+            <div class="c-card h-100 shadow-sm">
+                <div class="c-card__header d-flex align-items-center">
                     <div class="avatar avatar-sm me-2">
                         <div class="avatar-initial rounded bg-label-info">
                             <i class="ti ti-bulb"></i>
@@ -140,9 +140,9 @@
                     </div>
                     <h5 class="mb-0">Recommendations</h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     {% for rec in validation.recommendations %}
-                    <div class="alert alert-info mb-2">
+                    <div class="alert alert-info mb-2" data-alert>
                         <i class="ti ti-info-circle me-1"></i>{{ rec }}
                     </div>
                     {% endfor %}
@@ -154,8 +154,8 @@
     {% endif %}
     
     <!-- System Configuration Card -->
-    <div class="card mb-4 shadow-sm">
-        <div class="card-header d-flex align-items-center">
+    <div class="c-card mb-4 shadow-sm">
+        <div class="c-card__header d-flex align-items-center">
             <div class="avatar avatar-sm me-2">
                 <div class="avatar-initial rounded {% if validation.beat_schedule.configured %}bg-label-success{% else %}bg-label-danger{% endif %}">
                     <i class="ti ti-settings"></i>
@@ -163,9 +163,9 @@
             </div>
             <h5 class="mb-0">System Configuration</h5>
         </div>
-        <div class="card-body">
+        <div class="c-card__body">
             {% if validation.beat_schedule.configured %}
-            <div class="alert alert-success d-flex align-items-center mb-3">
+            <div class="alert alert-success d-flex align-items-center mb-3" data-alert>
                 <i class="ti ti-check me-2"></i>
                 <span>Automated message processing is properly configured</span>
             </div>
@@ -184,7 +184,7 @@
                 </div>
             </div>
             {% else %}
-            <div class="alert alert-danger d-flex align-items-center">
+            <div class="alert alert-danger d-flex align-items-center" data-alert>
                 <i class="ti ti-x me-2"></i>
                 <span>Automated message processing is NOT configured in beat schedule!</span>
             </div>
@@ -193,8 +193,8 @@
     </div>
     
     <!-- Upcoming Messages -->
-    <div class="card mb-4 shadow-sm">
-        <div class="card-header d-flex align-items-center justify-content-between">
+    <div class="c-card mb-4 shadow-sm">
+        <div class="c-card__header d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center">
                 <div class="avatar avatar-sm me-2">
                     <div class="avatar-initial rounded bg-label-primary">
@@ -205,24 +205,24 @@
             </div>
             <small class="text-muted">Next 7 days</small>
         </div>
-        <div class="card-body">
+        <div class="c-card__body">
             {% if validation.upcoming_messages %}
-            <div class="table-responsive">
-                <table class="table table-hover border-top">
-                    <thead>
+            <div class="c-table-wrapper" data-table-responsive>
+                <table class="c-table c-table--hoverable border-top" data-table>
+                    <thead scope="col">
                         <tr>
-                            <th>Status</th>
-                            <th>Send Time</th>
-                            <th>Countdown</th>
-                            <th>Match</th>
-                            <th>Type</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Send Time</th>
+                            <th scope="col">Countdown</th>
+                            <th scope="col">Match</th>
+                            <th scope="col">Type</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for msg in validation.upcoming_messages %}
                         <tr>
                             <td>
-                                <span class="badge bg-label-{{ 'warning' if msg.status == 'QUEUED' else ('success' if msg.status == 'SENT' else 'secondary') }}">
+                                <span class="badge bg-label-{{ 'warning' if msg.status == 'QUEUED' else ('success' if msg.status == 'SENT' else 'secondary') }}" data-badge>
                                     {{ msg.status }}
                                 </span>
                             </td>
@@ -232,9 +232,9 @@
                             </td>
                             <td>
                                 {% if msg.is_overdue %}
-                                <span class="badge bg-danger">OVERDUE</span>
+                                <span class="badge bg-danger" data-badge>OVERDUE</span>
                                 {% elif msg.hours_until < 0 %}
-                                <span class="badge bg-warning">READY</span>
+                                <span class="badge bg-warning" data-badge>READY</span>
                                 {% elif msg.hours_until < 24 %}
                                 <span class="text-warning fw-medium">{{ msg.hours_until }}h</span>
                                 {% else %}
@@ -245,7 +245,7 @@
                                 <div class="fw-medium">{{ msg.match_info }}</div>
                             </td>
                             <td>
-                                <span class="badge bg-label-info">{{ msg.type }}</span>
+                                <span class="badge bg-label-info" data-badge>{{ msg.type }}</span>
                             </td>
                         </tr>
                         {% endfor %}
@@ -254,7 +254,7 @@
             </div>
             {% else %}
             <div class="text-center py-4">
-                <i class="ti ti-calendar-off text-muted" style="font-size: 2rem;"></i>
+                <i class="ti ti-calendar-off text-muted" class="u-icon-xl"></i>
                 <p class="text-muted mt-2">No upcoming messages scheduled</p>
             </div>
             {% endif %}
@@ -266,8 +266,8 @@
         <!-- Recent Sends -->
         {% if validation.recent_sends %}
         <div class="col-lg-6 mb-3">
-            <div class="card h-100 shadow-sm">
-                <div class="card-header d-flex align-items-center">
+            <div class="c-card h-100 shadow-sm">
+                <div class="c-card__header d-flex align-items-center">
                     <div class="avatar avatar-sm me-2">
                         <div class="avatar-initial rounded bg-label-success">
                             <i class="ti ti-check"></i>
@@ -276,7 +276,7 @@
                     <h5 class="mb-0">Recent Activity</h5>
                     <small class="text-muted ms-auto">Last 24 hours</small>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     {% for send in validation.recent_sends %}
                     <div class="d-flex align-items-center mb-2 {% if not loop.last %}border-bottom pb-2{% endif %}">
                         <div class="avatar avatar-xs me-2">
@@ -297,8 +297,8 @@
         
         <!-- Actions -->
         <div class="col-lg-{% if validation.recent_sends %}6{% else %}12{% endif %} mb-3">
-            <div class="card h-100 shadow-sm">
-                <div class="card-header d-flex align-items-center">
+            <div class="c-card h-100 shadow-sm">
+                <div class="c-card__header d-flex align-items-center">
                     <div class="avatar avatar-sm me-2">
                         <div class="avatar-initial rounded bg-label-primary">
                             <i class="ti ti-tool"></i>
@@ -306,18 +306,18 @@
                     </div>
                     <h5 class="mb-0">Actions</h5>
                 </div>
-                <div class="card-body d-flex flex-column justify-content-center">
+                <div class="c-card__body d-flex flex-column justify-content-center">
                     <div class="d-grid gap-2">
-                        <a href="{{ url_for('admin.view_scheduled_messages') }}" class="btn btn-primary">
+                        <a href="{{ url_for('admin.view_scheduled_messages') }}" class="c-btn c-btn--primary">
                             <i class="ti ti-calendar me-1"></i> View All Messages
                         </a>
-                        <button class="btn btn-outline-info" onclick="refreshValidation()">
+                        <button class="c-btn c-btn--outline-info" data-action="refresh-validation" class="js-refresh-validation">
                             <i class="ti ti-refresh me-1"></i> Refresh Status
                         </button>
                         {% if validation.database_status.ready_to_send > 0 or validation.database_status.overdue > 0 %}
                         <form method="POST" action="{{ url_for('admin.process_scheduled_messages') }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-success w-100">
+                            <button type="submit" class="c-btn c-btn--success w-100">
                                 <i class="ti ti-send me-1"></i> Process Messages Now
                             </button>
                         </form>
@@ -329,8 +329,8 @@
     </div>
     
     <!-- How It Works -->
-    <div class="card shadow-sm">
-        <div class="card-header d-flex align-items-center">
+    <div class="c-card shadow-sm">
+        <div class="c-card__header d-flex align-items-center">
             <div class="avatar avatar-sm me-2">
                 <div class="avatar-initial rounded bg-label-secondary">
                     <i class="ti ti-info-circle"></i>
@@ -338,7 +338,7 @@
             </div>
             <h5 class="mb-0">How the System Works</h5>
         </div>
-        <div class="card-body">
+        <div class="c-card__body">
             <div class="row">
                 <div class="col-lg-6">
                     <div class="timeline">

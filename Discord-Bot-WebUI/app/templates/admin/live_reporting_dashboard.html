@@ -82,11 +82,11 @@
     <!-- System Status Cards -->
     <div class="stats-grid">
         <!-- Real-time Service Status -->
-        <div class="card status-card status-{{ 'healthy' if realtime_health.health == 'healthy' else 'degraded' if realtime_health.health == 'degraded' else 'offline' }}">
-            <div class="card-header">
+        <div class="c-card status-card status-{{ 'healthy' if realtime_health.health == 'healthy' else 'degraded' if realtime_health.health == 'degraded' else 'offline' }}">
+            <div class="c-card__header">
                 <i class="fas fa-server"></i> Real-time Service
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span class="service-indicator service-{{ realtime_health.health }}"></span>
@@ -109,11 +109,11 @@
         </div>
 
         <!-- Active Sessions -->
-        <div class="card status-card">
-            <div class="card-header">
+        <div class="c-card status-card">
+            <div class="c-card__header">
                 <i class="fas fa-play-circle"></i> Active Sessions
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <h3 class="mb-0">{{ active_sessions|length }}</h3>
                 <small class="text-muted">Live reporting sessions</small>
                 {% if coordination_status.database_sessions %}
@@ -125,11 +125,11 @@
         </div>
 
         <!-- Coordination Status -->
-        <div class="card status-card status-{{ 'healthy' if coordination_status.coordination_status == 'healthy' else 'degraded' }}">
-            <div class="card-header">
+        <div class="c-card status-card status-{{ 'healthy' if coordination_status.coordination_status == 'healthy' else 'degraded' }}">
+            <div class="c-card__header">
                 <i class="fas fa-link"></i> Coordination
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div>
                     <span class="service-indicator service-{{ coordination_status.coordination_status }}"></span>
                     <strong>{{ coordination_status.coordination_status.title() }}</strong>
@@ -141,11 +141,11 @@
         </div>
 
         <!-- Upcoming Matches -->
-        <div class="card status-card">
-            <div class="card-header">
+        <div class="c-card status-card">
+            <div class="c-card__header">
                 <i class="fas fa-calendar"></i> Upcoming Matches
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <h3 class="mb-0">{{ upcoming_matches|length }}</h3>
                 <small class="text-muted">Next 7 days</small>
             </div>
@@ -155,12 +155,12 @@
     <div class="row">
         <!-- Active Sessions -->
         <div class="col-md-6">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between">
+            <div class="c-card">
+                <div class="c-card__header d-flex justify-content-between">
                     <span><i class="fas fa-broadcast-tower"></i> Active Sessions</span>
-                    <a href="{{ url_for('admin_live.sessions') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                    <a href="{{ url_for('admin_live.sessions') }}" class="c-btn c-btn--sm c-btn--outline-primary">View All</a>
                 </div>
-                <div class="card-body p-0">
+                <div class="c-card__body p-0">
                     <div class="match-list">
                         {% for session in active_sessions %}
                         <div class="session-item px-3">
@@ -200,12 +200,12 @@
 
         <!-- Upcoming Matches -->
         <div class="col-md-6">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between">
+            <div class="c-card">
+                <div class="c-card__header d-flex justify-content-between">
                     <span><i class="fas fa-calendar-alt"></i> Upcoming Matches</span>
-                    <a href="{{ url_for('admin_live.matches') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                    <a href="{{ url_for('admin_live.matches') }}" class="c-btn c-btn--sm c-btn--outline-primary">View All</a>
                 </div>
-                <div class="card-body p-0">
+                <div class="c-card__body p-0">
                     <div class="match-list">
                         {% for match in upcoming_matches %}
                         <div class="session-item px-3">
@@ -231,7 +231,7 @@
                                 </div>
                                 <div class="text-right">
                                     <a href="{{ url_for('admin_live.match_detail', match_id=match.id) }}"
-                                       class="btn btn-sm btn-outline-info">Details</a>
+                                       class="c-btn c-btn--sm c-btn--outline-info">Details</a>
                                 </div>
                             </div>
                         </div>
@@ -250,22 +250,22 @@
     <!-- Quick Actions -->
     <div class="row mt-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
+            <div class="c-card">
+                <div class="c-card__header">
                     <i class="fas fa-tools"></i> Quick Actions
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <div class="btn-group" role="group">
-                        <a href="{{ url_for('admin_live.schedule_season') }}" class="btn btn-primary">
+                        <a href="{{ url_for('admin_live.schedule_season') }}" class="c-btn c-btn--primary">
                             <i class="fas fa-calendar-plus"></i> Schedule Season
                         </a>
-                        <a href="{{ url_for('admin_live.realtime_status') }}" class="btn btn-info">
+                        <a href="{{ url_for('admin_live.realtime_status') }}" class="c-btn c-btn--info">
                             <i class="fas fa-heartbeat"></i> Real-time Status
                         </a>
-                        <button class="btn btn-warning" onclick="forceSync()">
+                        <button class="c-btn c-btn--warning" data-action="force-sync" class="js-force-sync">
                             <i class="fas fa-sync"></i> Force Sync
                         </button>
-                        <button class="btn btn-secondary" onclick="refreshDashboard()">
+                        <button class="c-btn c-btn--secondary" data-action="refresh-dashboard" class="js-refresh-dashboard">
                             <i class="fas fa-refresh"></i> Refresh
                         </button>
                     </div>

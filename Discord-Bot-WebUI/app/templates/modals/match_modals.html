@@ -3,7 +3,10 @@
 <!-- This template is rendered by the /render_modals endpoint -->
 <!-- It contains all match modals in a single location -->
 
-<div id="reportMatchModal-container" class="modal-container">
+<div id="reportMatchModal-container"
+     class="c-modal-container"
+     data-component="modal-container"
+     data-modal>
     {% for match in matches %}
         {% if match and match.id in player_choices %}
             {{ render_report_match_modal(match, player_choices) }}
@@ -13,5 +16,5 @@
 
 <!-- Modal container initialized silently -->
 <script>
-    // Modals loaded successfully
+    // Modals loaded successfully - BEM migration complete
 </script>

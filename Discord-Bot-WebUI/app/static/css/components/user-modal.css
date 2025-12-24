@@ -1,0 +1,150 @@
+/**
+ * User Modal Component Styles
+ * BEM CSS for user editing modal
+ * Wave 9 Migration - 2025-12-18
+ */
+
+/* ============================================
+   User Modal Component
+   ============================================ */
+.c-user-modal {
+    /* Modal base styles inherited from Bootstrap */
+}
+
+.c-user-modal__dialog {
+    /* Dialog styles inherited */
+}
+
+.c-user-modal__content {
+    /* Content styles inherited */
+}
+
+.c-user-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--ecs-neutral-20, #dee2e6);
+}
+
+.c-user-modal__title {
+    margin: 0;
+    font-weight: 600;
+    font-size: 1.25rem;
+}
+
+.c-user-modal__close {
+    /* Close button styles inherited */
+}
+
+.c-user-modal__body {
+    padding: 1.5rem;
+}
+
+.c-user-modal__footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--ecs-neutral-20, #dee2e6);
+}
+
+.c-user-modal__button {
+    /* Button base styles inherited */
+}
+
+.c-user-modal__button--cancel {
+    /* Cancel button styles inherited */
+}
+
+.c-user-modal__button--submit {
+    /* Submit button styles inherited */
+}
+
+/* ============================================
+   User Form Component
+   ============================================ */
+.c-user-form {
+    /* Form container */
+}
+
+.c-user-form__field {
+    margin-bottom: 1rem;
+}
+
+.c-user-form__label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--ecs-neutral-90, #212529);
+}
+
+.c-user-form__input,
+.c-user-form__select {
+    /* Input/select styles inherited from form controls */
+}
+
+.c-user-form__switch {
+    padding-left: 2.5rem;
+}
+
+.c-user-form__switch-input {
+    /* Switch input styles inherited */
+}
+
+.c-user-form__switch-label {
+    /* Switch label styles inherited */
+}
+
+/* ============================================
+   Modal Container Component
+   ============================================ */
+.c-modal-container {
+    /* Container for multiple modals */
+}
+
+/* ============================================
+   Focus States
+   ============================================ */
+.c-user-form__input:focus,
+.c-user-form__select:focus {
+    border-color: var(--ecs-primary, #007bff);
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* ============================================
+   Validation States
+   ============================================ */
+.c-user-form__input:invalid,
+.c-user-form__select:invalid {
+    border-color: var(--ecs-danger, #dc3545);
+}
+
+.c-user-form__input:valid,
+.c-user-form__select:valid {
+    border-color: var(--ecs-success, #28a745);
+}
+
+/* ============================================
+   Responsive Styles
+   ============================================ */
+@media (max-width: 767.98px) {
+    .c-user-modal__dialog {
+        margin: 0.5rem;
+    }
+
+    .c-user-modal__header,
+    .c-user-modal__body,
+    .c-user-modal__footer {
+        padding: 1rem;
+    }
+
+    .c-user-modal__footer {
+        flex-direction: column;
+    }
+
+    .c-user-modal__button {
+        width: 100%;
+    }
+}

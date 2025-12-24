@@ -5,18 +5,18 @@
     <h1 class="h3 mb-4 text-gray-800">Manual Review Required</h1>
 
     {% if players %}
-    <div class="card shadow mb-4">
-        <div class="card-header py-3">
+    <div class="c-card shadow mb-4">
+        <div class="c-card__header py-3">
             <h6 class="m-0 font-weight-bold text-primary">Players Needing Review</h6>
         </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                    <thead>
+        <div class="c-card__body">
+            <div class="c-table-wrapper" data-table-responsive>
+                <table class="c-table c-table--bordered" id="dataTable" width="100%" cellspacing="0" data-table>
+                    <thead scope="col">
                         <tr>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Action</th>
+                            <th scope="col">Name</th>
+                            <th scope="col">Email</th>
+                            <th scope="col">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -25,7 +25,7 @@
                             <td>{{ player.name }}</td>
                             <td>{{ player.email }}</td>
                             <td>
-                                <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="btn btn-warning btn-sm">
+                                <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="c-btn c-btn--warning c-btn--sm">
                                     Review
                                 </a>
                             </td>
@@ -37,7 +37,7 @@
         </div>
     </div>
     {% else %}
-    <div class="alert alert-info" role="alert">
+    <div class="alert alert-info" role="alert" data-alert>
         No accounts need manual review at this time.
     </div>
     {% endif %}

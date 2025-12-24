@@ -13,7 +13,7 @@ import logging
 from flask import render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy import func
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.admin_panel import admin_panel_bp
 from app.core import db
@@ -27,36 +27,66 @@ logger = logging.getLogger(__name__)
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def manage_teams():
-    """Manage teams across all Pub League divisions (Premier, Classic, ECS FC)."""
+    """Manage teams across all league types (Pub League and ECS FC)."""
     try:
         from app.models import Team, League, Player, Season
 
-        # Get current Pub League season
-        current_season = Season.query.filter_by(is_current=True, league_type="Pub League").first()
-        if not current_season:
-            # Fallback to any current season
-            current_season = Season.query.filter_by(is_current=True).first()
-
         # Get filter parameters
         league_filter = request.args.get('league_id', type=int)
+        league_type_filter = request.args.get('league_type', '')  # 'Pub League', 'ECS FC', or '' for all
 
-        # Get all leagues for the current season (Premier, Classic, ECS FC)
-        if current_season:
-            leagues = League.query.filter_by(season_id=current_season.id).order_by(League.name.asc()).all()
+        # Get ALL current seasons (both Pub League and ECS FC)
+        current_seasons = Season.query.filter_by(is_current=True).all()
+        current_season_ids = [s.id for s in current_seasons]
+
+        # Build a display name for current seasons
+        if current_seasons:
+            season_names = [s.name for s in current_seasons]
+            current_season_display = ' & '.join(season_names)
         else:
-            leagues = League.query.order_by(League.name.asc()).all()
+            current_season_display = 'All Seasons'
 
-        # Build teams query - show ALL teams from all leagues in the current season
-        if current_season:
-            teams_query = Team.query.join(
+        # Get all leagues from current seasons, grouped by league type
+        # Eagerly load season for display in dropdown
+        if current_season_ids:
+            leagues_query = League.query.options(
+                joinedload(League.season)
+            ).filter(League.season_id.in_(current_season_ids))
+
+            # Apply league type filter if specified
+            if league_type_filter:
+                leagues_query = leagues_query.join(Season).filter(Season.league_type == league_type_filter)
+
+            leagues = leagues_query.order_by(League.name.asc()).all()
+        else:
+            leagues = League.query.options(
+                joinedload(League.season)
+            ).order_by(League.name.asc()).all()
+
+        # Build teams query - show teams from all current seasons
+        # Use eager loading to avoid N+1 queries
+        if current_season_ids:
+            teams_query = Team.query.options(
+                joinedload(Team.league).joinedload(League.season),
+                selectinload(Team.players)
+            ).join(
                 League, Team.league_id == League.id
             ).filter(
-                League.season_id == current_season.id
+                League.season_id.in_(current_season_ids)
             )
-        else:
-            teams_query = Team.query
 
-        # Apply league filter if specified
+            # Apply league type filter if specified
+            if league_type_filter:
+                teams_query = teams_query.join(Season, League.season_id == Season.id).filter(
+                    Season.league_type == league_type_filter
+                )
+        else:
+            teams_query = Team.query.options(
+                joinedload(Team.league).joinedload(League.season),
+                selectinload(Team.players)
+            )
+
+        # Apply specific league filter if specified
         if league_filter:
             teams_query = teams_query.filter(Team.league_id == league_filter)
 
@@ -67,16 +97,23 @@ def manage_teams():
             'total_teams': len(teams),
             'active_teams': len([t for t in teams if getattr(t, 'is_active', True)]),
             'teams_by_league': {},
+            'teams_by_league_type': {'Pub League': 0, 'ECS FC': 0},
             'teams_with_players': 0,
-            'current_season': current_season.name if current_season else 'All Seasons'
+            'current_season': current_season_display
         }
 
-        # Group teams by league
+        # Group teams by league and league type
         for team in teams:
             league_name = team.league.name if team.league else 'No League'
             if league_name not in stats['teams_by_league']:
                 stats['teams_by_league'][league_name] = 0
             stats['teams_by_league'][league_name] += 1
+
+            # Track by league type
+            if team.league and team.league.season:
+                league_type = team.league.season.league_type
+                if league_type in stats['teams_by_league_type']:
+                    stats['teams_by_league_type'][league_type] += 1
 
             # Count teams that have players (if player-team relationship exists)
             if hasattr(team, 'players') and team.players:
@@ -88,7 +125,8 @@ def manage_teams():
             leagues=leagues,
             stats=stats,
             current_league_id=league_filter,
-            current_season=current_season
+            current_league_type=league_type_filter,
+            current_seasons=current_seasons
         )
     except Exception as e:
         logger.error(f"Error loading manage teams: {e}")
@@ -191,6 +229,17 @@ def create_team():
         db.session.add(team)
         db.session.commit()
 
+        # Trigger Discord channel/role creation if team has a league
+        discord_task_queued = False
+        if league_id:
+            try:
+                from app.tasks.tasks_discord import create_team_discord_resources_task
+                create_team_discord_resources_task.delay(team_id=team.id)
+                discord_task_queued = True
+                logger.info(f"Discord resource creation task queued for team {team.id}")
+            except Exception as discord_err:
+                logger.warning(f"Could not queue Discord resource creation task: {discord_err}")
+
         # Log the action
         AdminAuditLog.log_action(
             user_id=current_user.id,
@@ -203,9 +252,14 @@ def create_team():
         )
 
         logger.info(f"Team '{name}' created by user {current_user.id}")
+
+        message = f'Team "{name}" created successfully'
+        if discord_task_queued:
+            message += '. Discord channel creation in progress.'
+
         return jsonify({
             'success': True,
-            'message': f'Team "{name}" created successfully',
+            'message': message,
             'team_id': team.id
         })
 
@@ -301,6 +355,10 @@ def delete_team(team_id):
             }), 400
 
         team_name = team.name
+        # Store Discord IDs before deletion for cleanup
+        discord_channel_id = team.discord_channel_id
+        discord_player_role_id = team.discord_player_role_id
+        discord_coach_role_id = team.discord_coach_role_id
 
         # Log the action before deletion
         AdminAuditLog.log_action(
@@ -315,6 +373,21 @@ def delete_team(team_id):
 
         db.session.delete(team)
         db.session.commit()
+
+        # Queue Discord cleanup AFTER deleting the team (pass IDs directly)
+        if discord_channel_id or discord_player_role_id or discord_coach_role_id:
+            try:
+                from app.tasks.tasks_discord import delete_discord_resources_by_ids_task
+                delete_discord_resources_by_ids_task.delay(
+                    channel_id=discord_channel_id,
+                    player_role_id=discord_player_role_id,
+                    coach_role_id=discord_coach_role_id
+                )
+                logger.info(f"Discord cleanup task queued for deleted team {team_id}")
+            except Exception as discord_err:
+                # If the specific task doesn't exist, log and continue
+                # Discord resources can be cleaned up manually if needed
+                logger.warning(f"Could not queue Discord cleanup task: {discord_err}")
 
         logger.info(f"Team '{team_name}' deleted by user {current_user.id}")
         return jsonify({

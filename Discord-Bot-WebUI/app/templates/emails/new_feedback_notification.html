@@ -58,7 +58,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1 style="margin: 0;">New Feedback</h1>
+            <h1 class="u-m-0">New Feedback</h1>
         </div>
         <div class="content">
             <p>Dear Admin,</p>
@@ -72,7 +72,7 @@
             <h3>Feedback Description:</h3>
             <p>{{ feedback.description }}</p>
             <p>Please review this feedback at your earliest convenience.</p>
-            <p style="text-align: center;">
+            <p>
                 <a href="{{ url_for('feedback.view_feedback', feedback_id=feedback.id, _external=True) }}" class="button">View Feedback</a>
             </p>
         </div>

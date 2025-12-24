@@ -1,0 +1,156 @@
+/**
+ * DATATABLE UTILITIES
+ * ===================
+ * Utilities for DataTables integration and dropdown fix
+ *
+ * Purpose:
+ * These classes solve a specific problem where DataTables applies inline
+ * overflow styles that clip dropdown menus. Instead of fighting DataTables
+ * with JavaScript, we use high-specificity CSS to ensure proper rendering.
+ *
+ * Usage:
+ * Apply these classes to DataTable containers in HTML, and they will
+ * override DataTables' inline styles via !important.
+ */
+
+/* ============================================
+   DATATABLE CONTAINER FIX
+   ============================================ */
+
+/**
+ * Apply to containers that need to show dropdowns
+ * Prevents DataTables from clipping action menus
+ */
+.dt-container-visible {
+    overflow: visible !important;
+    position: relative !important;
+}
+
+/* Specific selectors for DataTables-generated elements */
+.dataTables_wrapper.dt-container-visible,
+div.dataTables_wrapper,
+.table-responsive.dt-container-visible,
+.card-body.dt-container-visible,
+.tab-content.dt-container-visible,
+.tab-pane.dt-container-visible {
+    overflow: visible !important;
+    position: relative !important;
+}
+
+/* ============================================
+   DATATABLE DROPDOWN FIX
+   ============================================ */
+
+/**
+ * Ensures dropdown menus render above table elements
+ * Prevents z-index stacking issues with DataTables
+ */
+.dt-dropdown {
+    z-index: 9999 !important;
+    position: absolute !important;
+}
+
+/* Target Bootstrap dropdown menus within DataTables */
+.dataTables_wrapper .dropdown-menu,
+.table-responsive .dropdown-menu {
+    z-index: 9999 !important;
+    position: absolute !important;
+}
+
+/* ============================================
+   DATATABLE ROW ACTIONS
+   ============================================ */
+
+/**
+ * Fix for action button dropdowns in table rows
+ * Ensures they don't get clipped by table boundaries
+ */
+.dataTables_wrapper .dropdown {
+    position: static !important;
+}
+
+.dataTables_wrapper .dropdown .dropdown-menu {
+    position: absolute !important;
+    z-index: 9999 !important;
+    transform: none !important;
+}
+
+/* ============================================
+   TAB INTEGRATION FIX
+   ============================================ */
+
+/**
+ * When DataTables are inside tabs, ensure proper rendering
+ * Prevents overflow issues during tab switches
+ */
+.tab-pane .dataTables_wrapper {
+    overflow: visible !important;
+}
+
+.tab-content {
+    overflow: visible !important;
+}
+
+/* ============================================
+   RESPONSIVE TABLE FIX
+   ============================================ */
+
+/**
+ * Override Bootstrap's .table-responsive overflow
+ * Only when it contains DataTables
+ */
+.table-responsive:has(.dataTables_wrapper) {
+    overflow: visible !important;
+}
+
+/* Fallback for browsers that don't support :has() */
+.table-responsive.has-datatable {
+    overflow: visible !important;
+}
+
+/* ============================================
+   CARD INTEGRATION
+   ============================================ */
+
+/**
+ * Fix for DataTables inside Bootstrap cards
+ * Ensures dropdown menus aren't clipped by card boundaries
+ */
+.card-body:has(.dataTables_wrapper) {
+    overflow: visible !important;
+}
+
+/* Fallback for browsers that don't support :has() */
+.card-body.has-datatable {
+    overflow: visible !important;
+}
+
+.card:has(.dataTables_wrapper) {
+    overflow: visible !important;
+}
+
+.card.has-datatable {
+    overflow: visible !important;
+}
+
+/* ============================================
+   PERFORMANCE NOTES
+   ============================================ */
+
+/**
+ * Why use !important:
+ * - DataTables applies inline styles with high specificity
+ * - We need to override these without modifying DataTables core
+ * - !important ensures our styles take precedence
+ *
+ * Why use :has() with fallback:
+ * - Modern approach using CSS containment queries
+ * - Fallback classes (.has-datatable) for older browsers
+ * - JavaScript can add fallback classes where needed
+ *
+ * Benefits over JavaScript approach:
+ * - No repeated style application after each redraw
+ * - Better performance (CSS vs JS style manipulation)
+ * - Declarative and maintainable
+ * - Works even if JavaScript is delayed or fails
+ */

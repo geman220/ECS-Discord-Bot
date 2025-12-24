@@ -1,0 +1,694 @@
+/* ==================================================================
+   RSVP STATUS PAGE - ADMIN
+   Refactored inline styles for /admin/rsvp_status.html
+   ================================================================== */
+
+/* ===================
+   Avatar Styles
+   =================== */
+.rsvp-avatar {
+    background-color: transparent;
+}
+
+.rsvp-avatar-image {
+    object-fit: cover;
+    border: 1px solid var(--color-border-secondary);
+}
+
+/* ===================
+   Mobile Card Layout
+   =================== */
+.rsvp-player-container {
+    flex: 1;
+    min-width: 0;
+}
+
+.rsvp-actions-wrapper {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* ===================
+   Response Time Box
+   =================== */
+.rsvp-response-time-box {
+    margin-bottom: var(--space-3);
+    padding: var(--space-2);
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-md);
+}
+
+.rsvp-response-time-label {
+    font-size: var(--text-xs);
+}
+
+.rsvp-response-time-value {
+    font-weight: var(--font-medium);
+}
+
+.rsvp-no-response-text {
+    color: var(--color-text-muted);
+}
+
+/* ===================
+   Sub Management
+   =================== */
+.rsvp-sub-form {
+    margin-top: var(--space-3);
+}
+
+.rsvp-sub-form-inline {
+    margin: 0;
+}
+
+/* ===================
+   Card Hover Effects
+   =================== */
+.rsvp-card {
+    transition: all var(--transition-base);
+}
+
+.rsvp-card:hover {
+    box-shadow: 0 0.25rem 1rem rgba(var(--color-neutral-400), 0.25);
+}
+
+/* ===================
+   Badge Styling
+   =================== */
+.rsvp-badge {
+    padding: var(--space-2) var(--space-3);
+    font-weight: var(--font-medium);
+}
+
+/* ===================
+   Avatar Sizing
+   =================== */
+.rsvp-status-page .avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 38px;
+    width: 38px;
+    overflow: hidden;
+    border-radius: 50%;
+}
+
+.rsvp-status-page .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.rsvp-status-page .avatar.avatar-sm,
+.rsvp-status-page .avatar.avatar-md {
+    background-color: transparent;
+}
+
+.rsvp-status-page .avatar.avatar-sm img,
+.rsvp-status-page .avatar.avatar-md img {
+    box-shadow: 0 2px 4px rgba(var(--color-neutral-900), 0.1);
+}
+
+.rsvp-status-page .avatar-sm {
+    height: 30px;
+    width: 30px;
+}
+
+.rsvp-status-page .avatar-md {
+    height: 42px;
+    width: 42px;
+}
+
+.rsvp-status-page .avatar-initial {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.rsvp-status-page .avatar-sm .avatar-initial {
+    font-size: 0.9rem;
+}
+
+.rsvp-status-page .avatar-md .avatar-initial {
+    font-size: 1.3rem;
+}
+
+/* ===================
+   Label Background Colors
+   =================== */
+.rsvp-status-page .bg-label-primary {
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary-600);
+}
+
+.rsvp-status-page .bg-label-indigo {
+    background-color: var(--color-info-subtle);
+    color: var(--color-info-600);
+}
+
+.rsvp-status-page .bg-label-success {
+    background-color: var(--color-success-subtle);
+    color: var(--color-success-600);
+}
+
+.rsvp-status-page .bg-label-warning {
+    background-color: var(--color-warning-subtle);
+    color: var(--color-warning-600);
+}
+
+.rsvp-status-page .bg-label-danger {
+    background-color: var(--color-danger-subtle);
+    color: var(--color-danger-600);
+}
+
+.rsvp-status-page .bg-label-info {
+    background-color: var(--color-info-subtle);
+    color: var(--color-info-600);
+}
+
+.rsvp-status-page .bg-label-secondary {
+    background-color: var(--color-secondary-subtle);
+    color: var(--color-secondary-600);
+}
+
+/* ===================
+   Navigation Tabs
+   =================== */
+.rsvp-status-page .nav-tabs .nav-link.active {
+    background: none;
+    border-bottom-color: var(--color-primary-600);
+    color: var(--color-primary-600);
+}
+
+.rsvp-status-page .nav-tabs .nav-link {
+    color: var(--color-text-secondary);
+}
+
+/* ===================
+   Mobile Adaptations
+   =================== */
+@media (max-width: 767.98px) {
+    .rsvp-status-page .flex-column-mobile {
+        flex-direction: column;
+    }
+
+    .rsvp-status-page .w-100-mobile {
+        width: 100%;
+    }
+
+    .rsvp-status-page .mb-mobile-3 {
+        margin-bottom: var(--space-4);
+    }
+
+    /* Mobile-first RSVP Card System */
+    .rsvp-mobile-card {
+        background: var(--color-bg-card);
+        border: 1px solid var(--color-border-primary);
+        border-radius: var(--radius-lg);
+        margin-bottom: var(--space-3);
+        box-shadow: 0 1px 3px rgba(var(--color-neutral-900), 0.1);
+        transition: all var(--transition-base);
+        overflow: hidden;
+    }
+
+    .rsvp-mobile-card:hover {
+        box-shadow: 0 2px 8px rgba(var(--color-neutral-900), 0.15);
+        transform: translateY(-1px);
+    }
+
+    .rsvp-card-header {
+        padding: var(--space-4);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--color-bg-secondary);
+        border-bottom: 1px solid var(--color-border-primary);
+    }
+
+    .rsvp-card-main {
+        padding: var(--space-4);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .rsvp-card-body {
+        padding: 0 var(--space-4) var(--space-4);
+        display: none;
+    }
+
+    .rsvp-card-body.show {
+        display: block;
+    }
+
+    .player-info-mobile {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .player-name-mobile {
+        font-weight: var(--font-semibold);
+        margin-bottom: var(--space-1);
+        font-size: var(--text-base);
+    }
+
+    .player-meta-mobile {
+        font-size: var(--text-sm);
+        color: var(--color-text-muted);
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        flex-wrap: wrap;
+    }
+
+    .response-badge-mobile {
+        padding: var(--space-2) var(--space-3);
+        border-radius: 20px;
+        font-weight: var(--font-semibold);
+        font-size: var(--text-sm);
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+    }
+
+    .expand-button {
+        background: none;
+        border: none;
+        color: var(--color-text-muted);
+        padding: var(--space-2);
+        cursor: pointer;
+        border-radius: 50%;
+        transition: all var(--transition-base);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+    }
+
+    .expand-button:hover {
+        background: var(--color-hover-bg);
+        color: var(--color-text-secondary);
+    }
+
+    .expand-button.expanded {
+        transform: rotate(180deg);
+    }
+
+    .quick-actions-mobile {
+        display: flex;
+        gap: var(--space-2);
+        margin-top: var(--space-3);
+        flex-wrap: wrap;
+    }
+
+    .quick-action-btn {
+        flex: 1;
+        min-width: 120px;
+        padding: var(--space-2) var(--space-3);
+        border-radius: var(--radius-md);
+        font-size: var(--text-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-1);
+        transition: all var(--transition-base);
+    }
+
+    .contact-actions-mobile {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-2);
+        margin-top: var(--space-3);
+    }
+
+    .contact-action-btn {
+        padding: var(--space-3);
+        border-radius: var(--radius-lg);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+        font-size: var(--text-sm);
+        font-weight: var(--font-medium);
+        transition: all var(--transition-base);
+    }
+
+    .rsvp-actions-mobile {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-2);
+        margin-top: var(--space-3);
+    }
+
+    .rsvp-action-btn {
+        padding: var(--space-3);
+        border-radius: var(--radius-lg);
+        border: none;
+        cursor: pointer;
+        font-size: var(--text-sm);
+        font-weight: var(--font-medium);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+        transition: all var(--transition-base);
+    }
+
+    /* Hide desktop table on mobile */
+    .rsvp-status-page .table-responsive {
+        display: none;
+    }
+
+    /* Show mobile cards only on mobile */
+    .rsvp-mobile-list {
+        display: block;
+    }
+}
+
+/* ===================
+   Desktop Styles
+   =================== */
+@media (min-width: 768px) {
+    .rsvp-mobile-list {
+        display: none;
+    }
+
+    .rsvp-status-page .table-responsive {
+        display: block;
+    }
+
+    /* Enhanced desktop table */
+    .rsvp-status-page .table th {
+        font-weight: var(--font-semibold);
+        color: var(--color-text-primary);
+        border-bottom: 2px solid var(--color-border-primary);
+    }
+
+    .rsvp-status-page .table td {
+        vertical-align: middle;
+        padding: var(--space-4) var(--space-3);
+    }
+
+    .player-item-desktop {
+        display: flex;
+        align-items: center;
+    }
+
+    .player-item-desktop .avatar {
+        margin-right: var(--space-3);
+    }
+
+    .rsvp-status-page .dropdown-menu {
+        border-radius: var(--radius-lg);
+        box-shadow: 0 4px 16px rgba(var(--color-neutral-900), 0.15);
+        border: none;
+        padding: var(--space-2) 0;
+    }
+
+    .rsvp-status-page .dropdown-item {
+        padding: var(--space-2) var(--space-4);
+        font-size: var(--text-sm);
+    }
+
+    .rsvp-status-page .dropdown-item:hover {
+        background-color: var(--color-hover-bg);
+    }
+}
+
+/* ===================
+   Page Loader
+   =================== */
+.c-page-loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--color-bg-overlay);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: var(--z-priority);
+    transition: opacity 0.5s ease-out;
+}
+
+.c-page-loader.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.loader-spinner {
+    width: 48px;
+    height: 48px;
+    border: 5px solid var(--color-primary-600);
+    border-bottom-color: transparent;
+    border-radius: 50%;
+    display: inline-block;
+    box-sizing: border-box;
+    animation: rotation 1s linear infinite;
+}
+
+@keyframes rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* ===================
+   Modal Styling
+   =================== */
+.rsvp-status-page .modal-content {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.rsvp-status-page .modal-header.bg-primary,
+.rsvp-status-page .btn-primary {
+    background-color: var(--color-primary-600);
+    border-color: var(--color-primary-600);
+}
+
+.rsvp-status-page .modal-header.bg-indigo,
+.rsvp-status-page .btn-indigo {
+    background-color: var(--color-info-600);
+    border-color: var(--color-info-600);
+    color: var(--color-text-inverse);
+}
+
+.rsvp-status-page .border-indigo {
+    border-color: var(--color-info-600);
+}
+
+.rsvp-status-page .text-indigo {
+    color: var(--color-info-600);
+}
+
+.rsvp-status-page .bg-indigo {
+    background-color: var(--color-info-600);
+}
+
+.rsvp-status-page textarea.form-control {
+    resize: none;
+    transition: all var(--transition-base);
+}
+
+.rsvp-status-page textarea.form-control:focus {
+    box-shadow: 0 0 0 0.25rem var(--color-primary-subtle);
+}
+
+.rsvp-status-page .form-text {
+    color: var(--color-text-muted);
+}
+
+.rsvp-status-page .avatar {
+    transition: all var(--transition-base);
+}
+
+.rsvp-status-page .avatar:hover {
+    transform: scale(1.05);
+}
+
+/* ===================
+   Dropdown Fixes
+   =================== */
+.rsvp-status-page .table-responsive {
+    overflow: visible;
+}
+
+.rsvp-status-page .card {
+    overflow: visible;
+}
+
+.rsvp-status-page .dropdown-menu {
+    z-index: var(--z-dropdown);
+    position: absolute;
+}
+
+.rsvp-status-page .tab-content {
+    overflow: visible;
+}
+
+.rsvp-status-page .tab-pane {
+    overflow: visible;
+}
+
+.rsvp-status-page table td {
+    position: relative;
+}
+
+/* Specific fix for action column dropdowns */
+.rsvp-status-page table td:last-child .dropdown-menu {
+    right: 0;
+    left: auto;
+}
+
+/* ===================
+   Dark Mode Styles
+   =================== */
+
+/* Cards and main content */
+[data-style="dark"] .rsvp-status-page .card,
+[data-style="dark"] .rsvp-status-page .shadow-sm {
+    background-color: var(--color-bg-card);
+    border-color: var(--color-border-primary);
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .rsvp-status-page .card-header {
+    background-color: var(--color-bg-secondary);
+    border-bottom-color: var(--color-border-primary);
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .rsvp-status-page .card-body {
+    background-color: var(--color-bg-card);
+    color: var(--color-text-primary);
+}
+
+/* Navigation tabs */
+[data-style="dark"] .rsvp-status-page .nav-tabs .nav-link {
+    color: var(--color-text-secondary);
+    border-color: transparent;
+}
+
+[data-style="dark"] .rsvp-status-page .nav-tabs .nav-link.active {
+    color: var(--color-primary-600);
+    border-bottom-color: var(--color-primary-600);
+    background-color: transparent;
+}
+
+[data-style="dark"] .rsvp-status-page .nav-tabs {
+    border-bottom-color: var(--color-border-primary);
+}
+
+/* Mobile RSVP Cards */
+[data-style="dark"] .rsvp-mobile-card {
+    background: var(--color-bg-card);
+    border-color: var(--color-border-primary);
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .rsvp-card-header {
+    background: var(--color-bg-secondary);
+    border-bottom-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .player-meta-mobile {
+    color: var(--color-text-muted);
+}
+
+/* Table styling */
+[data-style="dark"] .rsvp-status-page .table {
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .rsvp-status-page .table th {
+    background-color: var(--color-bg-secondary);
+    border-bottom-color: var(--color-border-primary);
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .rsvp-status-page .table td {
+    border-top-color: var(--color-border-primary);
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .rsvp-status-page .table-striped > tbody > tr:nth-of-type(odd) > td,
+[data-style="dark"] .rsvp-status-page .table-striped > tbody > tr:nth-of-type(odd) > th {
+    background-color: var(--color-bg-secondary);
+}
+
+/* Dropdown menus */
+[data-style="dark"] .rsvp-status-page .dropdown-menu {
+    background-color: var(--color-bg-card);
+    border-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .rsvp-status-page .dropdown-item {
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .rsvp-status-page .dropdown-item:hover {
+    background-color: var(--color-hover-bg);
+    color: var(--color-text-primary);
+}
+
+/* Badge colors for dark mode */
+[data-style="dark"] .rsvp-status-page .bg-label-success {
+    background-color: var(--color-success-subtle);
+    color: var(--color-success-600);
+}
+
+[data-style="dark"] .rsvp-status-page .bg-label-warning {
+    background-color: var(--color-warning-subtle);
+    color: var(--color-warning-600);
+}
+
+[data-style="dark"] .rsvp-status-page .bg-label-danger {
+    background-color: var(--color-danger-subtle);
+    color: var(--color-danger-600);
+}
+
+[data-style="dark"] .rsvp-status-page .bg-label-secondary {
+    background-color: var(--color-secondary-subtle);
+    color: var(--color-secondary-600);
+}
+
+[data-style="dark"] .rsvp-status-page .bg-label-primary {
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary-600);
+}
+
+[data-style="dark"] .rsvp-status-page .bg-label-info {
+    background-color: var(--color-info-subtle);
+    color: var(--color-info-600);
+}
+
+/* Text and general elements */
+[data-style="dark"] .rsvp-status-page .text-muted {
+    color: var(--color-text-muted);
+}
+
+[data-style="dark"] .rsvp-status-page .border-bottom {
+    border-bottom-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .rsvp-status-page .shadow-sm:hover {
+    box-shadow: 0 0.25rem 1rem rgba(var(--color-neutral-0), 0.1);
+}
+
+[data-style="dark"] .rsvp-response-time-box {
+    background: var(--color-bg-secondary);
+}

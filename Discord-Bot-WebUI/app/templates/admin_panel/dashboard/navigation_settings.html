@@ -12,14 +12,14 @@
 {% block panel_content %}
     <div class="row">
         <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-menu-2 me-2"></i>Sidebar Navigation Settings
                     </h5>
-                    <span class="badge bg-info">Global Admin Only</span>
+                    <span class="badge bg-info" data-badge>Global Admin Only</span>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <p class="text-muted mb-4">
                         Control which navigation items appear in the sidebar for non-admin users.
                         Disabled items will be hidden from the sidebar but the routes will still be accessible if users know the URL.
@@ -31,8 +31,8 @@
                         <div class="row">
                             {% for item in nav_items %}
                             <div class="col-md-6 mb-3">
-                                <div class="card border {% if item.enabled %}border-success{% else %}border-secondary{% endif %}">
-                                    <div class="card-body py-3">
+                                <div class="c-card border {% if item.enabled %}border-success{% else %}border-secondary{% endif %}">
+                                    <div class="c-card__body py-3">
                                         <div class="form-check form-switch d-flex justify-content-between align-items-center">
                                             <div>
                                                 <i class="ti ti-{{ item.icon }} me-2 text-primary"></i>
@@ -64,10 +64,10 @@
                                 </span>
                             </div>
                             <div>
-                                <button type="button" class="btn btn-outline-secondary me-2" onclick="resetToDefaults()">
+                                <button type="button" class="c-btn c-btn--outline-secondary me-2 js-reset-defaults" data-action="reset-defaults">
                                     <i class="ti ti-restore me-1"></i>Reset to Defaults
                                 </button>
-                                <button type="button" class="btn btn-primary" onclick="saveAllSettings()">
+                                <button type="button" class="c-btn c-btn--primary js-save-all" data-action="save-all">
                                     <i class="ti ti-device-floppy me-1"></i>Save All
                                 </button>
                             </div>
@@ -78,21 +78,20 @@
         </div>
 
         <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-eye me-2"></i>Preview
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <p class="text-muted small mb-3">
                         Non-admin users will see these navigation items:
                     </p>
                     <ul class="list-group list-group-flush" id="previewList">
                         {% for item in nav_items %}
-                        <li class="list-group-item preview-item"
-                            data-key="{{ item.key }}"
-                            {% if not item.enabled %}style="display: none;"{% endif %}>
+                        <li class="list-group-item preview-item{% if not item.enabled %} d-none{% endif %}"
+                            data-key="{{ item.key }}">
                             <i class="ti ti-{{ item.icon }} me-2 text-primary"></i>
                             {{ item.label }}
                         </li>
@@ -101,20 +100,20 @@
                 </div>
             </div>
 
-            <div class="card mt-3">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
+            <div class="c-card mt-3">
+                <div class="c-card__header">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-history me-2"></i>Recent Changes
                     </h5>
                 </div>
-                <div class="card-body p-0">
+                <div class="c-card__body p-0">
                     {% if recent_changes %}
                     <ul class="list-group list-group-flush">
                         {% for change in recent_changes[:5] %}
                         <li class="list-group-item small">
                             <div class="d-flex justify-content-between">
                                 <span>{{ change.setting }}</span>
-                                <span class="badge {% if change.new_value == 'true' %}bg-success{% else %}bg-secondary{% endif %}">
+                                <span class="badge {% if change.new_value == 'true' %}bg-success{% else %}bg-secondary{% endif %}" data-badge>
                                     {{ 'Enabled' if change.new_value == 'true' else 'Disabled' }}
                                 </span>
                             </div>
@@ -136,6 +135,7 @@
 {% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
 .form-switch .form-check-input {
     width: 3rem;
@@ -173,8 +173,21 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Handle reset to defaults button
+    const resetBtn = document.querySelector('.js-reset-defaults');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', resetToDefaults);
+    }
+
+    // Handle save all button
+    const saveAllBtn = document.querySelector('.js-save-all');
+    if (saveAllBtn) {
+        saveAllBtn.addEventListener('click', saveAllSettings);
+    }
+
     // Auto-save on toggle change
     document.querySelectorAll('.nav-toggle').forEach(toggle => {
         toggle.addEventListener('change', function() {

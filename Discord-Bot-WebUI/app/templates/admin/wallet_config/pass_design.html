@@ -7,6 +7,7 @@
 {% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
     /* Pass Preview Card */
     .pass-preview-card {
@@ -164,15 +165,15 @@
             <p class="text-muted mb-0">Customize how your {{ pass_type.name }} passes look and what information they display</p>
         </div>
         <div>
-            <a href="{{ url_for('wallet_config.templates') }}" class="btn btn-outline-secondary me-2">
+            <a href="{{ url_for('wallet_config.templates') }}" class="c-btn c-btn--outline-secondary me-2">
                 <i class="ti ti-arrow-left me-1"></i> Back
             </a>
             {% if pass_type_code == 'ecs' %}
-            <a href="{{ url_for('wallet_config.pass_design', pass_type='pub') }}" class="btn btn-outline-primary">
+            <a href="{{ url_for('wallet_config.pass_design', pass_type='pub') }}" class="c-btn c-btn--outline-primary">
                 <i class="ti ti-arrows-exchange me-1"></i> Switch to Pub League
             </a>
             {% else %}
-            <a href="{{ url_for('wallet_config.pass_design', pass_type='ecs') }}" class="btn btn-outline-primary">
+            <a href="{{ url_for('wallet_config.pass_design', pass_type='ecs') }}" class="c-btn c-btn--outline-primary">
                 <i class="ti ti-arrows-exchange me-1"></i> Switch to ECS
             </a>
             {% endif %}
@@ -182,20 +183,20 @@
     <div class="row">
         <!-- Left Column: Live Preview -->
         <div class="col-lg-5 mb-4">
-            <div class="card">
-                <div class="card-header">
+            <div class="c-card">
+                <div class="c-card__header">
                     <h5 class="mb-0"><i class="ti ti-eye me-2"></i>Live Preview</h5>
                 </div>
-                <div class="card-body d-flex justify-content-center py-4">
+                <div class="c-card__body d-flex justify-content-center py-4">
                     <div class="pass-preview-card" id="passPreview"
-                         style="background-color: {{ pass_type.background_color }}; color: {{ pass_type.foreground_color }};">
+                         class="bg-custom" data-bg-color="{{ pass_type.background_color }}; color: {{ pass_type.foreground_color }};">
                         <div class="pass-header">
                             <div class="pass-logo-area">
                                 <div class="pass-logo-img" id="logoPreview">
                                     {% if assets and 'icon' in assets %}
                                     <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['icon'].id) }}" alt="Logo">
                                     {% else %}
-                                    <i class="ti ti-certificate" style="font-size: 24px;"></i>
+                                    <i class="ti ti-certificate" class="u-font-size-24"></i>
                                     {% endif %}
                                 </div>
                                 <div class="pass-logo-text" id="logoTextPreview">{{ pass_type.logo_text }}</div>
@@ -204,20 +205,20 @@
                         <div class="pass-content">
                             <!-- Primary Field -->
                             <div class="pass-field">
-                                <div class="pass-field-label" id="label1" style="color: {{ pass_type.label_color }};">MEMBER</div>
+                                <div class="pass-field-label" id="label1" class="text-custom" data-color="{{ pass_type.label_color }};">MEMBER</div>
                                 <div class="pass-field-value" id="value1">Jane Smith</div>
                             </div>
 
                             <!-- Secondary Field -->
                             <div class="pass-field">
-                                <div class="pass-field-label" id="label2" style="color: {{ pass_type.label_color }};">VALID FOR</div>
+                                <div class="pass-field-label" id="label2" class="text-custom" data-color="{{ pass_type.label_color }};">VALID FOR</div>
                                 <div class="pass-field-value" id="value2">2025 Membership</div>
                             </div>
 
                             {% if pass_type_code == 'pub' %}
                             <!-- Team Field (Pub League only) -->
                             <div class="pass-field">
-                                <div class="pass-field-label" id="label3" style="color: {{ pass_type.label_color }};">TEAM</div>
+                                <div class="pass-field-label" id="label3" class="text-custom" data-color="{{ pass_type.label_color }};">TEAM</div>
                                 <div class="pass-field-value" id="value3">Seattle Sounders FC</div>
                             </div>
                             {% endif %}
@@ -225,7 +226,7 @@
                             <!-- Barcode -->
                             <div class="pass-barcode-area">
                                 <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAMAAAD04JH5AAAABlBMVEX///8AAABVwtN+AAAAy0lEQVR4nO3QQQ0AIAwAMNj/0twgCOcwmNBkZuAAAAAAAAAAAAAAAAAAAAAAaM/vYhVV1VVVdVVVXVVVV1XVVVV1VVVdVVVXVdVVVXVVVV1VVVdV1VVVdVVVXVVVV1XVdVV1VVVdVVVXVdVVVXVVVV1VVVdV1VVVdVVVXVVVV1XVdVV1VVVdVVVXVdVVVXVVVV1VVVdV1VVVdVVVXVVVV1XVdVV1VVVdVVVXVdVAAAAAAAAAAAAAAAAAAAAAHgDYQABVnV7/MkAAAAASUVORK5CYII=" alt="QR">
-                                <div style="color: #333; font-size: 11px; margin-top: 8px;">ECSFC-ECS-12345678</div>
+                                <div class="text-custom" data-color="#333; font-size: 11px; margin-top: 8px;">ECSFC-ECS-12345678</div>
                             </div>
                         </div>
                     </div>
@@ -233,20 +234,20 @@
             </div>
 
             <!-- Quick Actions -->
-            <div class="card mt-4">
-                <div class="card-header">
+            <div class="c-card mt-4">
+                <div class="c-card__header">
                     <h5 class="mb-0"><i class="ti ti-bolt me-2"></i>Quick Actions</h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <div class="d-grid gap-2">
-                        <a href="{{ url_for('wallet_config.assets') }}" class="btn btn-outline-primary">
+                        <a href="{{ url_for('wallet_config.assets') }}" class="c-btn c-btn--outline-primary">
                             <i class="ti ti-photo me-2"></i>Manage Pass Images
                         </a>
-                        <a href="{{ url_for('wallet_config.locations') }}" class="btn btn-outline-primary">
+                        <a href="{{ url_for('wallet_config.locations') }}" class="c-btn c-btn--outline-primary">
                             <i class="ti ti-map-pin me-2"></i>Manage Locations ({{ locations|length }}/10)
                         </a>
                         {% if pass_type_code == 'ecs' %}
-                        <a href="{{ url_for('wallet_config.subgroups') }}" class="btn btn-outline-primary">
+                        <a href="{{ url_for('wallet_config.subgroups') }}" class="c-btn c-btn--outline-primary">
                             <i class="ti ti-users-group me-2"></i>Manage Subgroups
                         </a>
                         {% endif %}
@@ -261,16 +262,16 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <!-- Appearance Settings -->
-                <div class="card mb-4">
-                    <div class="card-header">
+                <div class="c-card mb-4">
+                    <div class="c-card__header">
                         <h5 class="mb-0"><i class="ti ti-paint me-2"></i>Appearance</h5>
                     </div>
-                    <div class="card-body">
+                    <div class="c-card__body">
                         <!-- Logo Text -->
                         <div class="mb-4">
                             <label class="form-label fw-medium">Logo Text</label>
                             <input type="text" class="form-control" id="logo_text" name="logo_text"
-                                   value="{{ pass_type.logo_text }}" placeholder="e.g., ECS FC">
+                                   value="{{ pass_type.logo_text }}" placeholder="e.g., ECS FC" data-form-control>
                             <div class="form-text">Text displayed next to your logo on the pass</div>
                         </div>
 
@@ -280,27 +281,27 @@
                                 <label class="form-label fw-medium">Background</label>
                                 <div class="color-picker-wrapper">
                                     <div class="color-swatch" id="bgColorSwatch"
-                                         style="background-color: {{ pass_type.background_color }};"></div>
+                                         class="bg-custom" data-bg-color="{{ pass_type.background_color }};"></div>
                                     <input type="text" class="form-control form-control-sm" id="background_color"
-                                           name="background_color" value="{{ pass_type.background_color }}">
+                                           name="background_color" value="{{ pass_type.background_color }}" data-form-control>
                                 </div>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-medium">Text Color</label>
                                 <div class="color-picker-wrapper">
                                     <div class="color-swatch" id="fgColorSwatch"
-                                         style="background-color: {{ pass_type.foreground_color }};"></div>
+                                         class="bg-custom" data-bg-color="{{ pass_type.foreground_color }};"></div>
                                     <input type="text" class="form-control form-control-sm" id="foreground_color"
-                                           name="foreground_color" value="{{ pass_type.foreground_color }}">
+                                           name="foreground_color" value="{{ pass_type.foreground_color }}" data-form-control>
                                 </div>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-medium">Label Color</label>
                                 <div class="color-picker-wrapper">
                                     <div class="color-swatch" id="lblColorSwatch"
-                                         style="background-color: {{ pass_type.label_color }};"></div>
+                                         class="bg-custom" data-bg-color="{{ pass_type.label_color }};"></div>
                                     <input type="text" class="form-control form-control-sm" id="label_color"
-                                           name="label_color" value="{{ pass_type.label_color }}">
+                                           name="label_color" value="{{ pass_type.label_color }}" data-form-control>
                                 </div>
                             </div>
                         </div>
@@ -313,14 +314,14 @@
                 </div>
 
                 <!-- Active Locations -->
-                <div class="card mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="c-card mb-4">
+                    <div class="c-card__header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="ti ti-map-pin me-2"></i>Location Notifications</h5>
-                        <a href="{{ url_for('wallet_config.locations') }}" class="btn btn-sm btn-outline-primary">
+                        <a href="{{ url_for('wallet_config.locations') }}" class="c-btn c-btn--sm c-btn--outline-primary">
                             <i class="ti ti-settings me-1"></i> Manage
                         </a>
                     </div>
-                    <div class="card-body">
+                    <div class="c-card__body">
                         {% if locations %}
                         <p class="text-muted mb-3">Members will receive notifications when near these {{ locations|length }} location(s):</p>
                         <div class="mb-0">
@@ -333,9 +334,9 @@
                         </div>
                         {% else %}
                         <div class="text-center py-3">
-                            <i class="ti ti-map-pin-off text-muted mb-2" style="font-size: 2rem;"></i>
+                            <i class="ti ti-map-pin-off text-muted mb-2" class="u-icon-xl"></i>
                             <p class="text-muted mb-2">No locations configured yet</p>
-                            <a href="{{ url_for('wallet_config.locations') }}" class="btn btn-sm btn-primary">
+                            <a href="{{ url_for('wallet_config.locations') }}" class="c-btn c-btn--sm c-btn--primary">
                                 <i class="ti ti-plus me-1"></i> Add Locations
                             </a>
                         </div>
@@ -344,19 +345,19 @@
                 </div>
 
                 <!-- Available Variables Reference -->
-                <div class="card mb-4">
-                    <div class="card-header">
+                <div class="c-card mb-4">
+                    <div class="c-card__header">
                         <h5 class="mb-0"><i class="ti ti-variable me-2"></i>Dynamic Content</h5>
                     </div>
-                    <div class="card-body">
+                    <div class="c-card__body">
                         <p class="text-muted mb-3">These values are automatically filled when a pass is created:</p>
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
+                        <div class="c-table-wrapper" data-table-responsive>
+                            <table class="c-table c-table--compact" data-table>
+                                <thead scope="col">
                                     <tr>
-                                        <th>Variable</th>
-                                        <th>Description</th>
-                                        <th>Example</th>
+                                        <th scope="col">Variable</th>
+                                        <th scope="col">Description</th>
+                                        <th scope="col">Example</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -402,10 +403,10 @@
 
                 <!-- Submit -->
                 <div class="d-flex justify-content-between">
-                    <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                    <button type="button" class="c-btn c-btn--outline-secondary" data-action="reset-form" class="js-reset-form">
                         <i class="ti ti-refresh me-1"></i> Reset Changes
                     </button>
-                    <button type="submit" class="btn btn-primary btn-lg">
+                    <button type="submit" class="c-btn c-btn--primary c-btn--lg">
                         <i class="ti ti-device-floppy me-1"></i> Save Design
                     </button>
                 </div>

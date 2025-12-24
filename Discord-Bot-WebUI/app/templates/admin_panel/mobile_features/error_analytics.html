@@ -11,7 +11,7 @@
 <!-- Error Analytics Header -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="alert alert-info">
+        <div class="alert alert-info" data-alert>
             <div class="d-flex align-items-center">
                 <i class="ti ti-bug me-2"></i>
                 <div>
@@ -26,60 +26,60 @@
 <!-- Statistics Cards -->
 <div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-danger text-white">
-            <div class="card-body">
+        <div class="c-card bg-danger text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.total_errors }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Total Errors</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.total_errors }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Total Errors</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-bug" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-bug u-card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
+        <div class="c-card bg-warning text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.recent_errors }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Errors (7 days)</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.recent_errors }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Errors (7 days)</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-alert-triangle" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-alert-triangle u-card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
+        <div class="c-card bg-info text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.total_patterns }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Error Patterns</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.total_patterns }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Error Patterns</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-chart-dots me-2" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-chart-dots me-2 u-card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-{% if stats.critical_errors_24h > 0 %}danger{% else %}success{% endif %} text-white">
-            <div class="card-body">
+        <div class="c-card bg-{% if stats.critical_errors_24h > 0 %}danger{% else %}success{% endif %} text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.critical_errors_24h }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Critical (24h)</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.critical_errors_24h }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Critical (24h)</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-urgent" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-urgent u-card-icon-stat"></i>
                     </div>
                 </div>
             </div>
@@ -90,21 +90,21 @@
 <!-- Error Management Actions -->
 <div class="row mb-4">
     <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card h-100">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-list me-2"></i>Top Errors This Week
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if stats.top_errors %}
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--compact" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Error Type</th>
-                                <th>Severity</th>
-                                <th>Count</th>
+                                <th scope="col">Error Type</th>
+                                <th scope="col">Severity</th>
+                                <th scope="col">Count</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -112,7 +112,7 @@
                             <tr>
                                 <td>{{ error.error_type }}</td>
                                 <td>
-                                    <span class="badge bg-{% if error.severity == 'critical' %}danger{% elif error.severity == 'error' %}warning{% else %}info{% endif %}">
+                                    <span class="badge bg-{% if error.severity == 'critical' %}danger{% elif error.severity == 'error' %}warning{% else %}info{% endif %}" data-badge>
                                         {{ error.severity }}
                                     </span>
                                 </td>
@@ -124,7 +124,7 @@
                 </div>
                 {% else %}
                 <div class="text-center py-4 text-muted">
-                    <i class="ti ti-check-circle" style="font-size: 2rem;"></i>
+                    <i class="ti ti-check-circle u-text-xl"></i>
                     <p class="mt-2 mb-0">No errors recorded this week</p>
                 </div>
                 {% endif %}
@@ -133,13 +133,13 @@
     </div>
 
     <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card h-100">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-chart-dots me-2"></i>Active Patterns
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if stats.active_patterns %}
                 <div class="list-group list-group-flush">
                     {% for pattern in stats.active_patterns %}
@@ -149,13 +149,13 @@
                             <br>
                             <small class="text-muted">{{ pattern.occurrences }} occurrences</small>
                         </div>
-                        <span class="badge bg-primary">{{ pattern.occurrences }}</span>
+                        <span class="badge bg-primary" data-badge>{{ pattern.occurrences }}</span>
                     </div>
                     {% endfor %}
                 </div>
                 {% else %}
                 <div class="text-center py-4 text-muted">
-                    <i class="ti ti-check-circle" style="font-size: 2rem;"></i>
+                    <i class="ti ti-check-circle u-text-xl"></i>
                     <p class="mt-2 mb-0">No active patterns detected</p>
                 </div>
                 {% endif %}
@@ -167,31 +167,32 @@
 <!-- Quick Actions -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-bolt me-2"></i>Quick Actions
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-3 mb-3">
-                        <a href="{{ url_for('admin_panel.mobile_error_list') }}" class="btn btn-outline-primary w-100">
+                        <a href="{{ url_for('admin_panel.mobile_error_list') }}" class="c-btn c-btn--outline-primary w-100">
                             <i class="ti ti-list me-1"></i>View All Errors
                         </a>
                     </div>
                     <div class="col-md-3 mb-3">
-                        <a href="{{ url_for('admin_panel.mobile_error_cleanup') }}" class="btn btn-outline-warning w-100">
+                        <a href="{{ url_for('admin_panel.mobile_error_cleanup') }}" class="c-btn c-btn--outline-warning w-100">
                             <i class="ti ti-trash me-1"></i>Cleanup Old Data
                         </a>
                     </div>
                     <div class="col-md-3 mb-3">
-                        <button class="btn btn-outline-success w-100" onclick="exportErrors()">
+                        <button class="c-btn c-btn--outline-success w-100 js-export-errors"
+                                data-action="export-errors">
                             <i class="ti ti-download me-1"></i>Export Errors
                         </button>
                     </div>
                     <div class="col-md-3 mb-3">
-                        <a href="{{ url_for('admin_panel.mobile_features') }}" class="btn btn-outline-secondary w-100">
+                        <a href="{{ url_for('admin_panel.mobile_features') }}" class="c-btn c-btn--outline-secondary w-100">
                             <i class="ti ti-arrow-left me-1"></i>Back to Mobile
                         </a>
                     </div>
@@ -204,13 +205,13 @@
 <!-- Storage Statistics -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-database me-2"></i>Storage Statistics
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row text-center">
                     <div class="col-md-4 mb-3">
                         <div class="border rounded p-3">
@@ -238,46 +239,50 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
-function exportErrors() {
-    Swal.fire({
-        title: 'Export Errors',
-        html: `
-            <div class="text-start">
-                <div class="mb-3">
-                    <label class="form-label">Date Range</label>
-                    <select class="form-select" id="exportDays">
-                        <option value="7">Last 7 days</option>
-                        <option value="30">Last 30 days</option>
-                        <option value="90">Last 90 days</option>
-                        <option value="all">All time</option>
-                    </select>
+// Event delegation for export errors button
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.js-export-errors')) {
+        Swal.fire({
+            title: 'Export Errors',
+            html: `
+                <div class="text-start">
+                    <div class="mb-3">
+                        <label class="form-label">Date Range</label>
+                        <select class="form-select" id="exportDays" data-form-select>
+                            <option value="7">Last 7 days</option>
+                            <option value="30">Last 30 days</option>
+                            <option value="90">Last 90 days</option>
+                            <option value="all">All time</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Format</label>
+                        <select class="form-select" id="exportFormat" data-form-select>
+                            <option value="csv">CSV</option>
+                            <option value="json">JSON</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Format</label>
-                    <select class="form-select" id="exportFormat">
-                        <option value="csv">CSV</option>
-                        <option value="json">JSON</option>
-                    </select>
-                </div>
-            </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Export',
-        preConfirm: () => {
-            return {
-                days: document.getElementById('exportDays').value,
-                format: document.getElementById('exportFormat').value
-            };
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Trigger download
-            const params = new URLSearchParams(result.value);
-            window.location.href = `{{ url_for('admin_panel.mobile_error_list') }}?export=true&${params.toString()}`;
-            Swal.fire('Exporting...', 'Your download will start shortly.', 'info');
-        }
-    });
-}
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Export',
+            preConfirm: () => {
+                return {
+                    days: document.getElementById('exportDays').value,
+                    format: document.getElementById('exportFormat').value
+                };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Trigger download
+                const params = new URLSearchParams(result.value);
+                window.location.href = `{{ url_for('admin_panel.mobile_error_list') }}?export=true&${params.toString()}`;
+                Swal.fire('Exporting...', 'Your download will start shortly.', 'info');
+            }
+        });
+    }
+});
 </script>
 {% endblock %}

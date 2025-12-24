@@ -1,0 +1,562 @@
+/**
+ * Waitlist Confirmation Page - BEM Architecture
+ * Celebratory design with clear next steps
+ *
+ * Component Blocks:
+ * - c-confirmation: Main confirmation container
+ * - c-success-message: Success state messaging
+ * - c-next-steps: What happens next section
+ * - c-discord-cta: Discord call-to-action
+ */
+
+/* ============================================
+   CSS VARIABLES - Celebration Theme
+   ============================================ */
+:root {
+    /* Success Colors - Positive and Welcoming */
+    --confirm-success: #10B981;
+    --confirm-success-dark: #059669;
+    --confirm-success-light: rgba(16, 185, 129, 0.1);
+    --confirm-primary: #00539F;
+    --confirm-discord: #5865F2;
+
+    /* Friendly Neutrals */
+    --confirm-surface: #FFFFFF;
+    --confirm-surface-alt: #F8FAFC;
+    --confirm-border: #E2E8F0;
+    --confirm-text: #1E293B;
+    --confirm-text-muted: #64748B;
+
+    /* Effects - Joyful Motion */
+    --confirm-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --confirm-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --confirm-shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
+
+    /* Timing */
+    --confirm-duration-fast: 200ms;
+    --confirm-duration-base: 300ms;
+    --confirm-duration-slow: 500ms;
+    --confirm-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --confirm-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ============================================
+   CONFIRMATION CONTAINER
+   ============================================ */
+.c-confirmation {
+    position: relative;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.c-confirmation__card {
+    background: var(--confirm-surface);
+    border-radius: 16px;
+    box-shadow: var(--confirm-shadow-lg);
+    overflow: hidden;
+    animation: card-entrance 0.6s var(--confirm-ease-bounce);
+}
+
+@keyframes card-entrance {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.c-confirmation__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--confirm-border);
+    background: linear-gradient(135deg, var(--confirm-surface) 0%, var(--confirm-surface-alt) 100%);
+}
+
+.c-confirmation__header-content {
+    flex: 1;
+}
+
+.c-confirmation__title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--confirm-text);
+    margin: 0 0 0.25rem;
+    letter-spacing: -0.025em;
+}
+
+.c-confirmation__subtitle {
+    font-size: 0.875rem;
+    color: var(--confirm-text-muted);
+    margin: 0;
+}
+
+.c-confirmation__logo {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+}
+
+.c-confirmation__body {
+    padding: 2rem;
+}
+
+/* ============================================
+   SUCCESS MESSAGE - Celebration
+   ============================================ */
+.c-success-message {
+    position: relative;
+    padding: 2rem;
+    background: linear-gradient(135deg, var(--confirm-success-light) 0%, rgba(16, 185, 129, 0.05) 100%);
+    border: 2px solid var(--confirm-success);
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    overflow: hidden;
+}
+
+/* Animated success pulse */
+.c-success-message::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
+    animation: success-pulse 3s ease-in-out infinite;
+}
+
+@keyframes success-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.2); opacity: 1; }
+}
+
+.c-success-message__content {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.c-success-message__icon {
+    flex-shrink: 0;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--confirm-success);
+    color: white;
+    border-radius: 50%;
+    font-size: 2rem;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    animation: icon-bounce 0.8s var(--confirm-ease-bounce);
+}
+
+@keyframes icon-bounce {
+    0% { transform: scale(0); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.c-success-message__text {
+    flex: 1;
+}
+
+.c-success-message__heading {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--confirm-success-dark);
+    margin: 0 0 0.5rem;
+}
+
+.c-success-message__description {
+    font-size: 0.9375rem;
+    color: var(--confirm-text);
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* ============================================
+   NEXT STEPS - Process Flow
+   ============================================ */
+.c-next-steps {
+    margin-bottom: 2rem;
+}
+
+.c-next-steps__header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--confirm-border);
+}
+
+.c-next-steps__title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--confirm-text);
+    margin: 0;
+}
+
+.c-next-steps__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.c-next-steps__item {
+    display: flex;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--confirm-surface-alt);
+    border-radius: 10px;
+    transition: all var(--confirm-duration-base) var(--confirm-ease);
+    animation: step-fade-in 0.5s var(--confirm-ease) backwards;
+}
+
+.c-next-steps__item:nth-child(1) { animation-delay: 0.1s; }
+.c-next-steps__item:nth-child(2) { animation-delay: 0.2s; }
+.c-next-steps__item:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes step-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.c-next-steps__item:hover {
+    background: white;
+    box-shadow: var(--confirm-shadow-md);
+    transform: translateY(-2px);
+}
+
+.c-next-steps__item-icon {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--confirm-primary);
+    color: white;
+    border-radius: 12px;
+    font-size: 1.5rem;
+}
+
+.c-next-steps__item-content {
+    flex: 1;
+}
+
+.c-next-steps__item-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--confirm-text);
+    margin: 0 0 0.5rem;
+}
+
+.c-next-steps__item-description {
+    font-size: 0.875rem;
+    color: var(--confirm-text-muted);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ============================================
+   DISCORD CTA - Urgent Action
+   ============================================ */
+.c-discord-cta {
+    position: relative;
+    padding: 2rem;
+    background: linear-gradient(135deg, var(--confirm-discord) 0%, #4752C4 100%);
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    color: white;
+    overflow: hidden;
+}
+
+/* Animated background elements */
+.c-discord-cta::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    border-radius: 50%;
+    animation: float-bubble 6s ease-in-out infinite;
+}
+
+@keyframes float-bubble {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(-20px, -20px); }
+}
+
+.c-discord-cta__content {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.c-discord-cta__icon {
+    flex-shrink: 0;
+    font-size: 3.5rem;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.c-discord-cta__text {
+    flex: 1;
+}
+
+.c-discord-cta__title {
+    font-size: 1.375rem;
+    font-weight: 700;
+    margin: 0 0 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.c-discord-cta__description {
+    font-size: 0.9375rem;
+    opacity: 0.95;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.c-discord-cta__benefits {
+    margin: 1rem 0;
+    padding-left: 1.5rem;
+}
+
+.c-discord-cta__benefits li {
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+
+.c-discord-cta__footer {
+    margin-top: 0.75rem;
+    font-weight: 600;
+}
+
+.c-discord-cta__actions {
+    margin-top: 1.5rem;
+}
+
+.c-discord-cta__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    background: white;
+    color: var(--confirm-discord);
+    font-weight: 600;
+    font-size: 1rem;
+    border: none;
+    border-radius: 10px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all var(--confirm-duration-base) var(--confirm-ease);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.c-discord-cta__btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    color: var(--confirm-discord);
+}
+
+.c-discord-cta__btn:active {
+    transform: translateY(-1px);
+}
+
+/* ============================================
+   HELP SECTION
+   ============================================ */
+.c-confirmation__help {
+    margin-bottom: 2rem;
+}
+
+.c-confirmation__help-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--confirm-border);
+}
+
+.c-confirmation__help-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--confirm-text);
+    margin: 0;
+}
+
+.c-confirmation__help-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.c-confirmation__help-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+}
+
+.c-confirmation__help-icon {
+    flex-shrink: 0;
+    font-size: 1.25rem;
+    color: var(--confirm-primary);
+}
+
+.c-confirmation__help-text {
+    font-size: 0.9375rem;
+    color: var(--confirm-text-muted);
+    margin: 0;
+}
+
+/* ============================================
+   ACTION BUTTONS
+   ============================================ */
+.c-confirmation__actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.c-confirmation__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.75rem;
+    font-weight: 600;
+    font-size: 1rem;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: all var(--confirm-duration-base) var(--confirm-ease);
+    cursor: pointer;
+}
+
+.c-confirmation__btn--primary {
+    background: var(--confirm-primary);
+    color: white;
+    border: 2px solid var(--confirm-primary);
+}
+
+.c-confirmation__btn--primary:hover {
+    background: #003A70;
+    border-color: #003A70;
+    transform: translateY(-2px);
+    box-shadow: var(--confirm-shadow-md);
+    color: white;
+}
+
+.c-confirmation__btn--secondary {
+    background: transparent;
+    color: var(--confirm-text);
+    border: 2px solid var(--confirm-border);
+}
+
+.c-confirmation__btn--secondary:hover {
+    background: var(--confirm-surface-alt);
+    border-color: var(--confirm-text);
+    color: var(--confirm-text);
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+@media (max-width: 768px) {
+    .c-confirmation__header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+
+    .c-confirmation__logo {
+        order: -1;
+    }
+
+    .c-confirmation__body {
+        padding: 1.5rem;
+    }
+
+    .c-success-message {
+        padding: 1.5rem;
+    }
+
+    .c-success-message__content {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .c-discord-cta {
+        padding: 1.5rem;
+    }
+
+    .c-discord-cta__content {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .c-next-steps__grid {
+        grid-template-columns: 1fr;
+    }
+
+    .c-confirmation__help-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .c-confirmation__actions {
+        flex-direction: column;
+    }
+
+    .c-confirmation__btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+@media (prefers-contrast: more) {
+    .c-confirmation__card {
+        border: 2px solid var(--confirm-border);
+    }
+
+    .c-success-message {
+        border-width: 3px;
+    }
+}

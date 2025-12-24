@@ -53,7 +53,16 @@ class VisibilityService:
         """
         if not user or not user.roles:
             return set()
-        return {role.name for role in user.roles}
+
+        # Handle both Role objects and string role names
+        # (UserAuthData stores roles as strings, User model stores as Role objects)
+        roles = set()
+        for role in user.roles:
+            if isinstance(role, str):
+                roles.add(role)
+            else:
+                roles.add(role.name)
+        return roles
 
     def is_admin(self, user: User) -> bool:
         """

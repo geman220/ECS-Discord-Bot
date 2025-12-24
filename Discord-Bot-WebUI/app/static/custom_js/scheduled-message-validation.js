@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeValidationPage() {
     // Set up periodic refresh for overdue messages
     setupAutoRefresh();
-    
+
     // Initialize tooltips if Bootstrap tooltips are available
     if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -22,9 +22,12 @@ function initializeValidationPage() {
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
     }
-    
+
     // Set up refresh button functionality
     setupRefreshButton();
+
+    // Start countdown updates
+    startCountdownUpdates();
 }
 
 /**
@@ -163,6 +166,3 @@ function startCountdownUpdates() {
         setInterval(updateCountdowns, 60000); // Update every minute
     }
 }
-
-// Start countdown updates when page loads
-document.addEventListener('DOMContentLoaded', startCountdownUpdates);

@@ -1,0 +1,441 @@
+/**
+ * ============================================================================
+ * SEASONAL SCHEDULE VIEW STYLES - Remediated Version
+ * ============================================================================
+ *
+ * Complete styling for the seasonal schedule page with full dark mode support.
+ * All styles use design tokens (CSS variables) for consistency.
+ *
+ * REMEDIATION CHANGES:
+ * - Removed ALL 13 unjustified !important declarations (kept 3 justified print styles)
+ * - Fixed specificity issues properly with .seasonal-schedule-page wrapper
+ * - All colors use design tokens from tokens/colors.css
+ * - Full dark mode support via [data-style="dark"] selectors
+ * - Uses proper cascade without !important
+ * - Following patterns from authentication.css, seasons.css, user-waitlist.css
+ *
+ * Sections:
+ *   1. Week Container & Content
+ *   2. Week Header & Edit Forms
+ *   3. Match Rows
+ *   4. Match Fields (Time, Field, Team)
+ *   5. Edit Controls
+ *   6. Alerts
+ *   7. Badge Styling
+ *   8. Print Styles
+ *   9. Responsive: Mobile
+ *   10. Responsive: Tablet
+ *   11. Accessibility
+ *   12. Dark Mode
+ *
+ * Target: 0 unjustified !important declarations, 100% design token usage
+ * ============================================================================
+ */
+
+/* ==========================================================================
+   1. WEEK CONTAINER & CONTENT
+   ========================================================================== */
+
+.week-container {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.week-content {
+    display: block;
+    transition: all 0.3s ease;
+}
+
+.week-content-collapsed {
+    display: none;
+}
+
+/* Week Container States */
+.week-container.dragging {
+    opacity: 0.5;
+}
+
+.week-container.drag-over {
+    border: 2px dashed var(--color-primary);
+    background-color: var(--color-primary-subtle);
+}
+
+[data-style="dark"] .week-container.drag-over {
+    border-color: var(--color-primary);
+    background-color: var(--color-primary-subtle);
+}
+
+/* ==========================================================================
+   2. WEEK HEADER & EDIT FORMS
+   ========================================================================== */
+
+.week-header {
+    position: relative;
+}
+
+.week-edit-form {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* Fixed specificity - removed !important */
+.seasonal-schedule-page .week-edit-form.week-edit-form-hidden,
+.week-edit-form.week-edit-form-hidden {
+    display: none;
+}
+
+.week-edit-form input {
+    width: auto;
+    min-width: 120px;
+}
+
+.week-edit-date-input,
+.week-edit-time-input {
+    width: auto;
+    display: inline-block;
+    margin-right: var(--space-2);
+}
+
+/* ==========================================================================
+   3. MATCH ROWS
+   ========================================================================== */
+
+.match-row {
+    transition: all 0.2s ease;
+}
+
+.match-row:hover {
+    background-color: var(--color-hover-bg);
+}
+
+[data-style="dark"] .match-row:hover {
+    background-color: var(--color-hover-bg);
+}
+
+.match-row.filtered-out {
+    display: none;
+}
+
+.match-row.dragging {
+    opacity: 0.5;
+}
+
+.match-row.drag-over {
+    border-top: 2px solid var(--color-primary);
+}
+
+/* Match Row States */
+.match-row.editing {
+    background-color: var(--color-warning-subtle);
+    border-left: 3px solid var(--color-warning);
+}
+
+[data-style="dark"] .match-row.editing {
+    background-color: var(--color-warning-subtle);
+    border-left-color: var(--color-warning);
+}
+
+.match-row.new-match {
+    background-color: var(--color-success-subtle);
+    border-left: 3px solid var(--color-success);
+}
+
+[data-style="dark"] .match-row.new-match {
+    background-color: var(--color-success-subtle);
+    border-left-color: var(--color-success);
+}
+
+/* ==========================================================================
+   4. MATCH FIELDS (TIME, FIELD, TEAM)
+   ========================================================================== */
+
+.time-edit,
+.field-edit,
+.team-edit {
+    display: none;
+    min-width: 100px;
+}
+
+/* Fixed specificity - removed !important */
+.seasonal-schedule-page .time-edit.time-edit-visible,
+.seasonal-schedule-page .field-edit.field-edit-visible,
+.seasonal-schedule-page .team-edit.team-edit-visible,
+.time-edit.time-edit-visible,
+.field-edit.field-edit-visible,
+.team-edit.team-edit-visible {
+    display: block;
+}
+
+.team-edit {
+    font-size: var(--text-sm, 0.875rem);
+}
+
+/* ==========================================================================
+   5. EDIT CONTROLS
+   ========================================================================== */
+
+.edit-controls {
+    display: none;
+    transition: opacity 0.2s ease;
+}
+
+/* Fixed specificity - removed !important */
+.seasonal-schedule-page .edit-controls.edit-controls-visible,
+.edit-controls.edit-controls-visible {
+    display: table-cell;
+}
+
+.seasonal-schedule-page .edit-controls-btn.edit-controls-btn-visible,
+.edit-controls-btn.edit-controls-btn-visible {
+    display: inline-block;
+}
+
+.edit-controls input,
+.edit-controls select {
+    font-size: var(--text-sm, 0.875rem);
+    padding: var(--space-1) var(--space-2);
+}
+
+/* Edit Mode Toggle Button - Fixed with higher specificity instead of !important */
+.seasonal-schedule-page .btn.edit-mode-active,
+.seasonal-schedule-page button.edit-mode-active,
+button.btn.edit-mode-active.edit-mode-active {
+    background-color: var(--color-warning);
+    border-color: var(--color-warning);
+    color: var(--color-neutral-900);
+}
+
+[data-style="dark"] .seasonal-schedule-page .btn.edit-mode-active,
+[data-style="dark"] .seasonal-schedule-page button.edit-mode-active,
+[data-style="dark"] button.btn.edit-mode-active.edit-mode-active {
+    background-color: var(--color-warning);
+    border-color: var(--color-warning);
+    color: var(--color-neutral-900);
+}
+
+/* ==========================================================================
+   6. ALERTS
+   ========================================================================== */
+
+.alert.alert-dismissible {
+    position: fixed;
+    top: var(--space-5);
+    right: var(--space-5);
+    z-index: var(--z-toast, 1080);
+    min-width: 300px;
+    margin: 0;
+}
+
+/* ==========================================================================
+   7. BADGE STYLING
+   ========================================================================== */
+
+.badge {
+    font-weight: 500;
+}
+
+/* ==========================================================================
+   8. PRINT STYLES
+   ========================================================================== */
+
+@media print {
+    /* Justified !important usage for print styles to override all other rules */
+    .btn,
+    .form-select,
+    .card-header button,
+    .edit-controls {
+        display: none !important;
+    }
+
+    .week-content {
+        display: block !important;
+    }
+
+    .week-content-collapsed {
+        display: block !important;
+    }
+}
+
+/* ==========================================================================
+   9. RESPONSIVE: MOBILE (MAX-WIDTH: 768PX)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    .week-edit-form {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .week-edit-form input {
+        width: 100%;
+        margin-bottom: var(--space-1);
+    }
+
+    .edit-controls {
+        white-space: nowrap;
+    }
+
+    .edit-controls .btn {
+        padding: var(--space-1) var(--space-2);
+        font-size: var(--text-xs, 0.75rem);
+    }
+
+    .alert.alert-dismissible {
+        top: var(--space-3);
+        right: var(--space-3);
+        left: var(--space-3);
+        min-width: auto;
+    }
+}
+
+/* ==========================================================================
+   10. RESPONSIVE: TABLET (768PX - 1024PX)
+   ========================================================================== */
+
+@media (min-width: 768px) and (max-width: 1024px) {
+    .week-edit-form input {
+        min-width: 100px;
+    }
+
+    .alert.alert-dismissible {
+        min-width: 250px;
+    }
+}
+
+/* ==========================================================================
+   11. ACCESSIBILITY
+   ========================================================================== */
+
+/* Focus States */
+.week-edit-form input:focus,
+.time-edit:focus,
+.field-edit:focus,
+.team-edit:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.week-edit-form input:focus-visible,
+.time-edit:focus-visible,
+.field-edit:focus-visible,
+.team-edit:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+[data-style="dark"] .week-edit-form input:focus,
+[data-style="dark"] .time-edit:focus,
+[data-style="dark"] .field-edit:focus,
+[data-style="dark"] .team-edit:focus,
+[data-style="dark"] .week-edit-form input:focus-visible,
+[data-style="dark"] .time-edit:focus-visible,
+[data-style="dark"] .field-edit:focus-visible,
+[data-style="dark"] .team-edit:focus-visible {
+    outline-color: var(--color-primary);
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    .week-container,
+    .week-content,
+    .match-row,
+    .edit-controls {
+        transition: none;
+    }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: more) {
+    .match-row:hover {
+        background-color: var(--color-neutral-200);
+        outline: 2px solid var(--color-text-primary);
+    }
+
+    [data-style="dark"] .match-row:hover {
+        background-color: var(--color-neutral-200);
+        outline: 2px solid var(--color-text-primary);
+    }
+
+    .week-container.drag-over,
+    .match-row.drag-over {
+        border-width: 3px;
+    }
+}
+
+/* ==========================================================================
+   12. DARK MODE
+   ========================================================================== */
+
+[data-style="dark"] .badge {
+    filter: brightness(1.2);
+}
+
+[data-style="dark"] .alert.alert-dismissible {
+    background-color: var(--color-bg-card);
+    border-color: var(--color-border-primary);
+    color: var(--color-text-primary);
+}
+
+/* ==========================================================================
+   CLASS REFERENCE DOCUMENTATION
+   ========================================================================== */
+
+/**
+ * Component Classes:
+ * ------------------
+ * .seasonal-schedule-page       - Main wrapper class (add to body/container)
+ * .week-container               - Week container with drag/drop support
+ * .week-content                 - Week content area
+ * .week-content-collapsed       - Collapsed week state
+ * .week-header                  - Week header area
+ * .week-edit-form               - Week edit form
+ * .week-edit-form-hidden        - Hidden form state
+ * .week-edit-date-input         - Date input field
+ * .week-edit-time-input         - Time input field
+ * .match-row                    - Match table row
+ * .match-row.editing            - Match in edit mode
+ * .match-row.new-match          - Newly created match
+ * .match-row.filtered-out       - Filtered/hidden match
+ * .time-edit                    - Time edit field
+ * .field-edit                   - Field edit dropdown
+ * .team-edit                    - Team edit dropdown
+ * .time-edit-visible            - Visible time edit state
+ * .field-edit-visible           - Visible field edit state
+ * .team-edit-visible            - Visible team edit state
+ * .edit-controls                - Edit controls container
+ * .edit-controls-visible        - Visible controls state
+ * .edit-controls-btn-visible    - Visible button state
+ * .edit-mode-active             - Active edit mode button state
+ *
+ * Usage Example:
+ * --------------
+ * <body class="seasonal-schedule-page">
+ *   <div class="week-container">
+ *     <div class="week-header">
+ *       <form class="week-edit-form">...</form>
+ *     </div>
+ *     <div class="week-content">
+ *       <table>
+ *         <tr class="match-row">
+ *           <td><input class="time-edit time-edit-visible"></td>
+ *           <td class="edit-controls edit-controls-visible">
+ *             <button class="btn edit-mode-active">Save</button>
+ *           </td>
+ *         </tr>
+ *       </table>
+ *     </div>
+ *   </div>
+ * </body>
+ *
+ * Design Token Usage:
+ * -------------------
+ * Colors: var(--color-primary), var(--color-success), var(--color-warning)
+ * Backgrounds: var(--color-bg-card), var(--color-hover-bg)
+ * Borders: var(--color-border-primary)
+ * Spacing: var(--space-1) through var(--space-5)
+ * Text: var(--text-xs), var(--text-sm)
+ * Z-index: var(--z-toast)
+ *
+ * ============================================================================
+ */

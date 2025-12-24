@@ -1,0 +1,279 @@
+/**
+ * ============================================================================
+ * ONLINE STATUS INDICATOR COMPONENT
+ * ============================================================================
+ *
+ * Shows user online/offline status with animated indicators.
+ * Used on player profiles, player lists, and online users widget.
+ *
+ * BEM Structure:
+ *   .c-online-status           - Base indicator
+ *   .c-online-status--sm       - Small variant (for tables)
+ *   .c-online-status--lg       - Large variant (for profiles)
+ *   .c-online-status.is-online - Online state (green, animated)
+ *   .c-online-status.is-offline - Offline state (gray)
+ *   .c-online-status.is-away   - Away state (yellow)
+ *
+ * ============================================================================
+ */
+
+/* -----------------------------------------------------------------------------
+ * Base Status Indicator
+ * -------------------------------------------------------------------------- */
+
+.c-online-status {
+  --status-size: 10px;
+  --status-color: var(--bs-secondary, #6c757d);
+  --status-glow: transparent;
+
+  position: relative;
+  display: inline-block;
+  width: var(--status-size);
+  height: var(--status-size);
+  border-radius: 50%;
+  background-color: var(--status-color);
+  border: 2px solid var(--bs-body-bg, #fff);
+  box-shadow: 0 0 0 0 var(--status-glow);
+  transition:
+    background-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+/* -----------------------------------------------------------------------------
+ * State Modifiers
+ * -------------------------------------------------------------------------- */
+
+/* Online - Vibrant green with pulse animation */
+.c-online-status.is-online {
+  --status-color: #22c55e;
+  --status-glow: rgba(34, 197, 94, 0.4);
+  animation: online-pulse 2s ease-in-out infinite;
+}
+
+/* Offline - Subtle gray */
+.c-online-status.is-offline {
+  --status-color: var(--bs-secondary, #6c757d);
+  --status-glow: transparent;
+  opacity: 0.7;
+}
+
+/* Away - Amber/yellow */
+.c-online-status.is-away {
+  --status-color: #f59e0b;
+  --status-glow: rgba(245, 158, 11, 0.3);
+}
+
+/* Do Not Disturb - Red */
+.c-online-status.is-dnd {
+  --status-color: #ef4444;
+  --status-glow: rgba(239, 68, 68, 0.3);
+}
+
+/* -----------------------------------------------------------------------------
+ * Size Variants
+ * -------------------------------------------------------------------------- */
+
+/* Small - For tables and lists */
+.c-online-status--sm {
+  --status-size: 8px;
+  border-width: 1.5px;
+}
+
+/* Large - For profile pages */
+.c-online-status--lg {
+  --status-size: 14px;
+  border-width: 3px;
+}
+
+/* Extra large - For prominent displays */
+.c-online-status--xl {
+  --status-size: 18px;
+  border-width: 3px;
+}
+
+/* -----------------------------------------------------------------------------
+ * Positioning Helpers
+ * -------------------------------------------------------------------------- */
+
+/* Position absolutely in avatar container */
+.c-online-status--avatar {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  transform: translate(25%, 25%);
+}
+
+/* For use in table cells */
+.c-online-status--inline {
+  vertical-align: middle;
+  margin-left: 0.5rem;
+}
+
+/* -----------------------------------------------------------------------------
+ * Pulse Animation
+ * -------------------------------------------------------------------------- */
+
+@keyframes online-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--status-glow);
+  }
+  50% {
+    box-shadow: 0 0 0 4px var(--status-glow);
+  }
+  100% {
+    box-shadow: 0 0 0 0 var(--status-glow);
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .c-online-status.is-online {
+    animation: none;
+    box-shadow: 0 0 0 2px var(--status-glow);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+ * Avatar Container Integration
+ * -------------------------------------------------------------------------- */
+
+/* Wrapper that positions status indicator on avatars */
+.c-avatar-with-status {
+  position: relative;
+  display: inline-block;
+}
+
+.c-avatar-with-status .c-online-status {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  z-index: 1;
+}
+
+/* Different sizes for different avatar sizes */
+.c-avatar-with-status--sm .c-online-status {
+  --status-size: 8px;
+  border-width: 1.5px;
+  transform: translate(15%, 15%);
+}
+
+.c-avatar-with-status--md .c-online-status {
+  --status-size: 10px;
+  border-width: 2px;
+  transform: translate(20%, 20%);
+}
+
+.c-avatar-with-status--lg .c-online-status {
+  --status-size: 14px;
+  border-width: 2.5px;
+  transform: translate(25%, 25%);
+}
+
+/* -----------------------------------------------------------------------------
+ * Status Badge with Text
+ * -------------------------------------------------------------------------- */
+
+.c-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: var(--bs-body-bg, #fff);
+  border: 1px solid var(--bs-border-color, #dee2e6);
+}
+
+.c-status-badge .c-online-status {
+  border-color: var(--bs-body-bg, #fff);
+}
+
+.c-status-badge.is-online {
+  background-color: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.2);
+  color: #16a34a;
+}
+
+.c-status-badge.is-offline {
+  background-color: var(--bs-body-bg, #fff);
+  color: var(--bs-secondary, #6c757d);
+}
+
+.c-status-badge__text {
+  text-transform: capitalize;
+}
+
+/* -----------------------------------------------------------------------------
+ * Dark Mode Adjustments
+ * -------------------------------------------------------------------------- */
+
+[data-style="dark"] .c-online-status {
+  border-color: var(--bs-body-bg, #212529);
+}
+
+[data-style="dark"] .c-online-status.is-online {
+  --status-color: #4ade80;
+  --status-glow: rgba(74, 222, 128, 0.4);
+}
+
+[data-style="dark"] .c-status-badge {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-style="dark"] .c-status-badge.is-online {
+  background-color: rgba(74, 222, 128, 0.15);
+  border-color: rgba(74, 222, 128, 0.25);
+  color: #4ade80;
+}
+
+/* -----------------------------------------------------------------------------
+ * Player Avatar Component
+ * -------------------------------------------------------------------------- */
+
+.c-player-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: var(--bs-secondary-bg, #e9ecef);
+}
+
+.c-player-avatar--sm {
+  width: 32px;
+  height: 32px;
+}
+
+.c-player-avatar--md {
+  width: 40px;
+  height: 40px;
+}
+
+.c-player-avatar--lg {
+  width: 56px;
+  height: 56px;
+}
+
+.c-player-avatar--xl {
+  width: 80px;
+  height: 80px;
+}
+
+/* Link wrapper - remove default link styles */
+.c-player-avatar-link {
+  display: inline-block;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease;
+}
+
+.c-player-avatar-link:hover {
+  transform: scale(1.05);
+}
+
+.c-player-avatar-link:focus-visible {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: 2px;
+  border-radius: 50%;
+}

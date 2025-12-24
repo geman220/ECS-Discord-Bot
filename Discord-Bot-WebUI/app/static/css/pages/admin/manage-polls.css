@@ -1,0 +1,14 @@
+/* Poll Management Styles */
+.poll-question-cell {
+    max-width: 300px;
+}
+
+.poll-progress-bar {
+    width: 100px;
+    height: 6px;
+}
+
+.empty-state-icon {
+    font-size: 48px;
+    color: var(--ecs-muted, #ccc);
+}

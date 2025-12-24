@@ -89,6 +89,14 @@ class User(UserMixin, db.Model):
     sms_notifications = db.Column(db.Boolean, default=True)
     sms_confirmation_code = db.Column(db.String(6), nullable=True)
     discord_notifications = db.Column(db.Boolean, default=True)
+
+    # Push notification preferences (unified notification system)
+    push_notifications = db.Column(db.Boolean, default=True)  # Master push toggle
+    match_reminder_notifications = db.Column(db.Boolean, default=True)  # Match reminders
+    rsvp_reminder_notifications = db.Column(db.Boolean, default=True)  # RSVP reminders
+    team_update_notifications = db.Column(db.Boolean, default=True)  # Team/roster updates
+    announcement_notifications = db.Column(db.Boolean, default=True)  # Admin announcements
+
     profile_visibility = db.Column(db.String(20), default='everyone')
     notifications = db.relationship('Notification', back_populates='user', lazy='select')
     has_completed_onboarding = db.Column(db.Boolean, default=False)

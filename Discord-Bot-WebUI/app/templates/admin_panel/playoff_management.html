@@ -10,60 +10,60 @@
 <!-- Playoff Overview Cards -->
 <div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
+        <div class="c-card bg-primary text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.active_playoffs or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Active Playoffs</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.active_playoffs or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Active Playoffs</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-tournament" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-tournament card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
+        <div class="c-card bg-success text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.completed_playoffs or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Completed Playoffs</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.completed_playoffs or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Completed Playoffs</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-trophy" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-trophy card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
+        <div class="c-card bg-warning text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.upcoming_matches or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Upcoming Matches</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.upcoming_matches or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Upcoming Matches</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-calendar" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-calendar card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
+        <div class="c-card bg-info text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.playoff_teams or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Playoff Teams</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.playoff_teams or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Playoff Teams</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-users" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-users card-icon-stat"></i>
                     </div>
                 </div>
             </div>
@@ -74,16 +74,16 @@
 <!-- Playoff Management Actions -->
 <div class="row mb-4">
     <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card h-100">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-plus me-2"></i>Create & Manage
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <p>Set up new playoffs and manage existing tournaments</p>
                 <div class="list-group list-group-flush">
-                    <button class="list-group-item list-group-item-action" onclick="createPlayoff()">
+                    <button class="list-group-item list-group-item-action js-create-playoff" data-action="create-playoff">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <i class="ti ti-plus me-2 text-success"></i>Create New Playoff
@@ -91,15 +91,15 @@
                             <i class="ti ti-chevron-right"></i>
                         </div>
                     </button>
-                    <a href="#" class="list-group-item list-group-item-action" onclick="viewActivePlayoffs()">
+                    <a href="#" class="list-group-item list-group-item-action js-view-active" data-action="view-active">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <i class="ti ti-tournament me-2"></i>Active Playoffs
                             </div>
-                            <span class="badge bg-primary">{{ stats.active_playoffs or 0 }}</span>
+                            <span class="badge bg-primary" data-badge>{{ stats.active_playoffs or 0 }}</span>
                         </div>
                     </a>
-                    <a href="#" class="list-group-item list-group-item-action" onclick="bracketGenerator()">
+                    <a href="#" class="list-group-item list-group-item-action js-bracket-gen" data-action="bracket-gen">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <i class="ti ti-sitemap me-2"></i>Bracket Generator
@@ -107,7 +107,7 @@
                             <i class="ti ti-chevron-right"></i>
                         </div>
                     </a>
-                    <a href="#" class="list-group-item list-group-item-action" onclick="seedTeams()">
+                    <a href="#" class="list-group-item list-group-item-action js-seed-teams" data-action="seed-teams">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <i class="ti ti-sort-ascending me-2"></i>Seed Teams
@@ -121,16 +121,16 @@
     </div>
     
     <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card h-100">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-chart-dots me-2"></i>Results & Reports
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <p>Track results, generate reports, and manage playoffs</p>
                 <div class="list-group list-group-flush">
-                    <a href="#" class="list-group-item list-group-item-action" onclick="updateResults()">
+                    <a href="#" class="list-group-item list-group-item-action js-update-results" data-action="update-results">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <i class="ti ti-edit me-2"></i>Update Match Results
@@ -138,7 +138,7 @@
                             <i class="ti ti-chevron-right"></i>
                         </div>
                     </a>
-                    <a href="#" class="list-group-item list-group-item-action" onclick="viewBrackets()">
+                    <a href="#" class="list-group-item list-group-item-action js-view-brackets" data-action="view-brackets">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <i class="ti ti-tournament me-2"></i>View Brackets
@@ -146,15 +146,15 @@
                             <i class="ti ti-chevron-right"></i>
                         </div>
                     </a>
-                    <a href="#" class="list-group-item list-group-item-action" onclick="playoffHistory()">
+                    <a href="#" class="list-group-item list-group-item-action js-playoff-history" data-action="playoff-history">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <i class="ti ti-history me-2"></i>Playoff History
                             </div>
-                            <span class="badge bg-success">{{ stats.completed_playoffs or 0 }}</span>
+                            <span class="badge bg-success" data-badge>{{ stats.completed_playoffs or 0 }}</span>
                         </div>
                     </a>
-                    <a href="#" class="list-group-item list-group-item-action" onclick="generateReports()">
+                    <a href="#" class="list-group-item list-group-item-action js-generate-reports" data-action="generate-reports">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <i class="ti ti-file-report me-2"></i>Generate Reports
@@ -172,20 +172,20 @@
 {% if stats.active_playoffs > 0 %}
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-tournament me-2"></i>Current Playoffs
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-6">
-                        <div class="card border">
-                            <div class="card-body">
+                        <div class="c-card border">
+                            <div class="c-card__body">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="card-title mb-0">Spring 2024 Championship</h6>
-                                    <span class="badge bg-warning">Semifinals</span>
+                                    <h6 class="c-card__title mb-0">Spring 2024 Championship</h6>
+                                    <span class="badge bg-warning" data-badge>Semifinals</span>
                                 </div>
                                 <div class="row text-center mb-3">
                                     <div class="col-4">
@@ -201,14 +201,14 @@
                                         <div class="small text-muted">Remaining</div>
                                     </div>
                                 </div>
-                                <div class="progress mb-3" style="height: 8px;">
-                                    <div class="progress-bar bg-warning" style="width: 75%"></div>
+                                <div class="progress mb-3 u-progress-sm">
+                                    <div class="progress-bar bg-warning" data-width="75"></div>
                                 </div>
                                 <div class="d-flex gap-2">
-                                    <button class="btn btn-sm btn-outline-primary" onclick="manageTournament('spring-2024')">
+                                    <button class="c-btn c-btn--sm c-btn--outline-primary js-manage-tournament" data-action="manage-tournament" data-tournament-id="spring-2024">
                                         <i class="ti ti-settings me-1"></i>Manage
                                     </button>
-                                    <button class="btn btn-sm btn-outline-success" onclick="viewBracket('spring-2024')">
+                                    <button class="c-btn c-btn--sm c-btn--outline-success js-view-bracket" data-action="view-bracket" data-tournament-id="spring-2024">
                                         <i class="ti ti-tournament me-1"></i>Bracket
                                     </button>
                                 </div>
@@ -217,9 +217,9 @@
                     </div>
                     <div class="col-md-6">
                         <div class="text-center text-muted mt-4">
-                            <i class="ti ti-plus d-block mb-2" style="font-size: 3rem;"></i>
+                            <i class="ti ti-plus d-block mb-2 icon-empty-state"></i>
                             <p>Create additional playoff tournaments</p>
-                            <button class="btn btn-outline-primary" onclick="createPlayoff()">
+                            <button class="c-btn c-btn--outline-primary js-create-playoff" data-action="create-playoff">
                                 <i class="ti ti-plus me-1"></i>New Playoff
                             </button>
                         </div>
@@ -232,14 +232,14 @@
 {% else %}
 <div class="row mb-4">
     <div class="col-12">
-        <div class="alert alert-info">
+        <div class="alert alert-info" data-alert>
             <div class="d-flex align-items-center">
                 <i class="ti ti-info-circle me-2"></i>
                 <div>
                     <strong>No Active Playoffs</strong><br>
                     Create your first playoff tournament to get started with bracket management.
                     <div class="mt-2">
-                        <button class="btn btn-sm btn-primary" onclick="createPlayoff()">
+                        <button class="c-btn c-btn--sm c-btn--primary js-create-playoff" data-action="create-playoff">
                             <i class="ti ti-plus me-1"></i>Create First Playoff
                         </button>
                     </div>
@@ -253,45 +253,45 @@
 <!-- Playoff Templates -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-template me-2"></i>Playoff Templates
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-4 mb-3">
-                        <div class="card border">
-                            <div class="card-body text-center">
-                                <i class="ti ti-tournament text-primary mb-2" style="font-size: 2rem;"></i>
-                                <h6 class="card-title">Single Elimination</h6>
-                                <p class="card-text small text-muted">8, 16, or 32 team bracket</p>
-                                <button class="btn btn-sm btn-outline-primary" onclick="useTemplate('single-elim')">
+                        <div class="c-card border">
+                            <div class="c-card__body text-center">
+                                <i class="ti ti-tournament text-primary mb-2 card-icon-stat"></i>
+                                <h6 class="c-card__title">Single Elimination</h6>
+                                <p class="c-card__description small text-muted">8, 16, or 32 team bracket</p>
+                                <button class="c-btn c-btn--sm c-btn--outline-primary js-use-template" data-action="use-template" data-template="single-elim">
                                     Use Template
                                 </button>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <div class="card border">
-                            <div class="card-body text-center">
-                                <i class="ti ti-repeat text-success mb-2" style="font-size: 2rem;"></i>
-                                <h6 class="card-title">Double Elimination</h6>
-                                <p class="card-text small text-muted">Winners & losers brackets</p>
-                                <button class="btn btn-sm btn-outline-success" onclick="useTemplate('double-elim')">
+                        <div class="c-card border">
+                            <div class="c-card__body text-center">
+                                <i class="ti ti-repeat text-success mb-2 card-icon-stat"></i>
+                                <h6 class="c-card__title">Double Elimination</h6>
+                                <p class="c-card__description small text-muted">Winners & losers brackets</p>
+                                <button class="c-btn c-btn--sm c-btn--outline-success js-use-template" data-action="use-template" data-template="double-elim">
                                     Use Template
                                 </button>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <div class="card border">
-                            <div class="card-body text-center">
-                                <i class="ti ti-users text-info mb-2" style="font-size: 2rem;"></i>
-                                <h6 class="card-title">Round Robin</h6>
-                                <p class="card-text small text-muted">Every team plays each other</p>
-                                <button class="btn btn-sm btn-outline-info" onclick="useTemplate('round-robin')">
+                        <div class="c-card border">
+                            <div class="c-card__body text-center">
+                                <i class="ti ti-users text-info mb-2 card-icon-stat"></i>
+                                <h6 class="c-card__title">Round Robin</h6>
+                                <p class="c-card__description small text-muted">Every team plays each other</p>
+                                <button class="c-btn c-btn--sm c-btn--outline-info js-use-template" data-action="use-template" data-template="round-robin">
                                     Use Template
                                 </button>
                             </div>
@@ -300,36 +300,36 @@
                 </div>
                 <div class="row">
                     <div class="col-md-4 mb-3">
-                        <div class="card border">
-                            <div class="card-body text-center">
-                                <i class="ti ti-crown text-warning mb-2" style="font-size: 2rem;"></i>
-                                <h6 class="card-title">Swiss System</h6>
-                                <p class="card-text small text-muted">Pair teams by performance</p>
-                                <button class="btn btn-sm btn-outline-warning" onclick="useTemplate('swiss')">
+                        <div class="c-card border">
+                            <div class="c-card__body text-center">
+                                <i class="ti ti-crown text-warning mb-2 card-icon-stat"></i>
+                                <h6 class="c-card__title">Swiss System</h6>
+                                <p class="c-card__description small text-muted">Pair teams by performance</p>
+                                <button class="c-btn c-btn--sm c-btn--outline-warning js-use-template" data-action="use-template" data-template="swiss">
                                     Use Template
                                 </button>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <div class="card border">
-                            <div class="card-body text-center">
-                                <i class="ti ti-layers text-danger mb-2" style="font-size: 2rem;"></i>
-                                <h6 class="card-title">Group Stage</h6>
-                                <p class="card-text small text-muted">Groups then knockout</p>
-                                <button class="btn btn-sm btn-outline-danger" onclick="useTemplate('group-stage')">
+                        <div class="c-card border">
+                            <div class="c-card__body text-center">
+                                <i class="ti ti-layers text-danger mb-2 card-icon-stat"></i>
+                                <h6 class="c-card__title">Group Stage</h6>
+                                <p class="c-card__description small text-muted">Groups then knockout</p>
+                                <button class="c-btn c-btn--sm c-btn--outline-danger js-use-template" data-action="use-template" data-template="group-stage">
                                     Use Template
                                 </button>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <div class="card border">
-                            <div class="card-body text-center">
-                                <i class="ti ti-settings text-secondary mb-2" style="font-size: 2rem;"></i>
-                                <h6 class="card-title">Custom Format</h6>
-                                <p class="card-text small text-muted">Design your own format</p>
-                                <button class="btn btn-sm btn-outline-secondary" onclick="useTemplate('custom')">
+                        <div class="c-card border">
+                            <div class="c-card__body text-center">
+                                <i class="ti ti-settings text-secondary mb-2 card-icon-stat"></i>
+                                <h6 class="c-card__title">Custom Format</h6>
+                                <p class="c-card__description small text-muted">Design your own format</p>
+                                <button class="c-btn c-btn--sm c-btn--outline-secondary js-use-template" data-action="use-template" data-template="custom">
                                     Create Custom
                                 </button>
                             </div>
@@ -343,18 +343,98 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
+// Event delegation for playoff actions
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.js-create-playoff').forEach(btn => {
+        btn.addEventListener('click', function() {
+            createPlayoff();
+        });
+    });
+
+    document.querySelectorAll('.js-view-active').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            viewActivePlayoffs();
+        });
+    });
+
+    document.querySelectorAll('.js-bracket-gen').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            bracketGenerator();
+        });
+    });
+
+    document.querySelectorAll('.js-seed-teams').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            seedTeams();
+        });
+    });
+
+    document.querySelectorAll('.js-update-results').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            updateResults();
+        });
+    });
+
+    document.querySelectorAll('.js-view-brackets').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            viewBrackets();
+        });
+    });
+
+    document.querySelectorAll('.js-playoff-history').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            playoffHistory();
+        });
+    });
+
+    document.querySelectorAll('.js-generate-reports').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            generateReports();
+        });
+    });
+
+    document.querySelectorAll('.js-manage-tournament').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tournamentId = this.dataset.tournamentId;
+            manageTournament(tournamentId);
+        });
+    });
+
+    document.querySelectorAll('.js-view-bracket').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tournamentId = this.dataset.tournamentId;
+            viewBracket(tournamentId);
+        });
+    });
+
+    document.querySelectorAll('.js-use-template').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const template = this.dataset.template;
+            useTemplate(template);
+        });
+    });
+});
+
 function createPlayoff() {
     Swal.fire({
         title: 'Create New Playoff',
         html: `
             <div class="mb-3">
                 <label class="form-label">Tournament Name</label>
-                <input type="text" class="form-control" id="tournamentName" placeholder="Enter tournament name">
+                <input type="text" class="form-control" id="tournamentName" placeholder="Enter tournament name" data-form-control>
             </div>
             <div class="mb-3">
                 <label class="form-label">Format</label>
-                <select class="form-select" id="tournamentFormat">
+                <select class="form-select" id="tournamentFormat" data-form-select>
                     <option value="">Select format...</option>
                     <option value="single-elim">Single Elimination</option>
                     <option value="double-elim">Double Elimination</option>
@@ -364,7 +444,7 @@ function createPlayoff() {
             </div>
             <div class="mb-3">
                 <label class="form-label">Number of Teams</label>
-                <select class="form-select" id="teamCount">
+                <select class="form-select" id="teamCount" data-form-select>
                     <option value="">Select team count...</option>
                     <option value="4">4 Teams</option>
                     <option value="8">8 Teams</option>

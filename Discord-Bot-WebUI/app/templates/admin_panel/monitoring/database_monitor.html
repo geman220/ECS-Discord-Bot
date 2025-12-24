@@ -15,60 +15,60 @@
     <!-- Database Status Overview -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-{% if db_stats.status == 'connected' %}success{% else %}danger{% endif %} text-white">
-                <div class="card-body">
+            <div class="c-card bg-{% if db_stats.status == 'connected' %}success{% else %}danger{% endif %} text-white">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title text-white mb-1">{{ db_stats.status|title or 'Unknown' }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Connection Status</p>
+                            <h5 class="c-card__title text-white mb-1">{{ db_stats.status|title or 'Unknown' }}</h5>
+                            <p class="c-card__description small opacity-75 mb-0">Connection Status</p>
                         </div>
                         <div class="card-icon">
-                            <i class="ti ti-{% if db_stats.status == 'connected' %}database-check{% else %}database-x{% endif %}" style="font-size: 2rem; opacity: 0.5;"></i>
+                            <i class="ti ti-{% if db_stats.status == 'connected' %}database-check{% else %}database-x{% endif %} u-card-icon-stat"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
+            <div class="c-card bg-primary text-white">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title text-white mb-1">{{ db_stats.active_connections or 0 }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Active Connections</p>
+                            <h5 class="c-card__title text-white mb-1">{{ db_stats.active_connections or 0 }}</h5>
+                            <p class="c-card__description small opacity-75 mb-0">Active Connections</p>
                         </div>
                         <div class="card-icon">
-                            <i class="ti ti-plug-connected" style="font-size: 2rem; opacity: 0.5;"></i>
+                            <i class="ti ti-plug-connected u-card-icon-stat"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
+            <div class="c-card bg-info text-white">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title text-white mb-1">{{ db_stats.queries_per_sec or 0 }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Queries/Sec</p>
+                            <h5 class="c-card__title text-white mb-1">{{ db_stats.queries_per_sec or 0 }}</h5>
+                            <p class="c-card__description small opacity-75 mb-0">Queries/Sec</p>
                         </div>
                         <div class="card-icon">
-                            <i class="ti ti-activity" style="font-size: 2rem; opacity: 0.5;"></i>
+                            <i class="ti ti-activity u-card-icon-stat"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
+            <div class="c-card bg-warning text-white">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title text-white mb-1">{{ db_stats.avg_query_time or '0ms' }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Avg Query Time</p>
+                            <h5 class="c-card__title text-white mb-1">{{ db_stats.avg_query_time or '0ms' }}</h5>
+                            <p class="c-card__description small opacity-75 mb-0">Avg Query Time</p>
                         </div>
                         <div class="card-icon">
-                            <i class="ti ti-clock" style="font-size: 2rem; opacity: 0.5;"></i>
+                            <i class="ti ti-clock u-card-icon-stat"></i>
                         </div>
                     </div>
                 </div>
@@ -79,21 +79,21 @@
     <!-- Connection Pool Status -->
     <div class="row mb-4">
         <div class="col-md-8 mb-3">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-pool me-2"></i>Connection Pool Status
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label small text-muted">Pool Size</label>
-                                <div class="progress mb-2" style="height: 25px;">
+                                <div class="progress mb-2 u-h-25">
                                     {% set pool_percentage = ((db_stats.active_connections or 0) / (db_stats.max_connections or 20) * 100) %}
-                                    <div class="progress-bar bg-{% if pool_percentage > 80 %}danger{% elif pool_percentage > 60 %}warning{% else %}success{% endif %}" 
-                                         role="progressbar" style="width: {{ pool_percentage }}%">
+                                    <div class="progress-bar bg-{% if pool_percentage > 80 %}danger{% elif pool_percentage > 60 %}warning{% else %}success{% endif %}"
+                                         role="progressbar" data-width="{{ pool_percentage }}">
                                         {{ db_stats.active_connections or 0 }}/{{ db_stats.max_connections or 20 }}
                                     </div>
                                 </div>
@@ -108,7 +108,7 @@
                                 </div>
                                 <div class="col-6">
                                     <div class="d-flex align-items-center">
-                                        <div class="status-indicator" style="background-color: var(--ecs-secondary, #6c757d);" ></div>
+                                        <div class="status-indicator status-secondary"></div>
                                         <span class="small ms-2">Idle: {{ (db_stats.max_connections or 20) - (db_stats.active_connections or 0) }}</span>
                                     </div>
                                 </div>
@@ -118,19 +118,19 @@
                             <div class="list-group list-group-flush">
                                 <div class="list-group-item d-flex justify-content-between align-items-center px-0">
                                     <span class="small">Max Connections</span>
-                                    <span class="badge bg-primary">{{ db_stats.max_connections or 20 }}</span>
+                                    <span class="badge bg-primary" data-badge>{{ db_stats.max_connections or 20 }}</span>
                                 </div>
                                 <div class="list-group-item d-flex justify-content-between align-items-center px-0">
                                     <span class="small">Connection Timeout</span>
-                                    <span class="badge bg-secondary">{{ db_stats.timeout or '30s' }}</span>
+                                    <span class="badge bg-secondary" data-badge>{{ db_stats.timeout or '30s' }}</span>
                                 </div>
                                 <div class="list-group-item d-flex justify-content-between align-items-center px-0">
                                     <span class="small">Pool Overflow</span>
-                                    <span class="badge bg-info">{{ db_stats.overflow or 5 }}</span>
+                                    <span class="badge bg-info" data-badge>{{ db_stats.overflow or 5 }}</span>
                                 </div>
                                 <div class="list-group-item d-flex justify-content-between align-items-center px-0">
                                     <span class="small">Failed Connections</span>
-                                    <span class="badge bg-{% if (db_stats.failed_connections or 0) > 0 %}danger{% else %}success{% endif %}">
+                                    <span class="badge bg-{% if (db_stats.failed_connections or 0) > 0 %}danger{% else %}success{% endif %}" data-badge>
                                         {{ db_stats.failed_connections or 0 }}
                                     </span>
                                 </div>
@@ -141,33 +141,33 @@
             </div>
         </div>
         <div class="col-md-4 mb-3">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-server me-2"></i>Database Info
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <div class="list-group list-group-flush">
                         <div class="list-group-item d-flex justify-content-between align-items-center px-0">
                             <span class="small">Database Type</span>
-                            <span class="badge bg-primary">{{ db_info.type or 'PostgreSQL' }}</span>
+                            <span class="badge bg-primary" data-badge>{{ db_info.type or 'PostgreSQL' }}</span>
                         </div>
                         <div class="list-group-item d-flex justify-content-between align-items-center px-0">
                             <span class="small">Version</span>
-                            <span class="badge bg-secondary">{{ db_info.version or '13.x' }}</span>
+                            <span class="badge bg-secondary" data-badge>{{ db_info.version or '13.x' }}</span>
                         </div>
                         <div class="list-group-item d-flex justify-content-between align-items-center px-0">
                             <span class="small">Database Size</span>
-                            <span class="badge bg-info">{{ db_info.size or '45MB' }}</span>
+                            <span class="badge bg-info" data-badge>{{ db_info.size or '45MB' }}</span>
                         </div>
                         <div class="list-group-item d-flex justify-content-between align-items-center px-0">
                             <span class="small">Tables</span>
-                            <span class="badge bg-success">{{ db_info.table_count or 12 }}</span>
+                            <span class="badge bg-success" data-badge>{{ db_info.table_count or 12 }}</span>
                         </div>
                         <div class="list-group-item d-flex justify-content-between align-items-center px-0">
                             <span class="small">Uptime</span>
-                            <span class="badge bg-warning">{{ db_info.uptime or '7d 3h' }}</span>
+                            <span class="badge bg-warning" data-badge>{{ db_info.uptime or '7d 3h' }}</span>
                         </div>
                     </div>
                 </div>
@@ -178,23 +178,23 @@
     <!-- Query Performance -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-chart-line me-2"></i>Query Performance
                     </h5>
                     <div class="btn-group" role="group">
                         <input type="radio" class="btn-check" name="perf_period" id="perf_1h" autocomplete="off" checked>
-                        <label class="btn btn-outline-primary btn-sm" for="perf_1h">1H</label>
+                        <label class="c-btn c-btn--outline-primary c-btn--sm" for="perf_1h">1H</label>
                         
                         <input type="radio" class="btn-check" name="perf_period" id="perf_24h" autocomplete="off">
-                        <label class="btn btn-outline-primary btn-sm" for="perf_24h">24H</label>
+                        <label class="c-btn c-btn--outline-primary c-btn--sm" for="perf_24h">24H</label>
                         
                         <input type="radio" class="btn-check" name="perf_period" id="perf_7d" autocomplete="off">
-                        <label class="btn btn-outline-primary btn-sm" for="perf_7d">7D</label>
+                        <label class="c-btn c-btn--outline-primary c-btn--sm" for="perf_7d">7D</label>
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <div class="row">
                         <div class="col-md-3">
                             <div class="text-center p-3 border-end">
@@ -229,22 +229,22 @@
     <!-- Slow Queries & Recent Activity -->
     <div class="row">
         <div class="col-md-6 mb-3">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-clock-exclamation me-2"></i>Slow Queries
                     </h5>
                 </div>
-                <div class="card-body p-0">
+                <div class="c-card__body p-0">
                     {% if slow_queries %}
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
+                    <div class="c-table-wrapper" data-table-responsive>
+                        <table class="c-table c-table--hoverable mb-0" data-table>
+                            <thead class="c-table--light" scope="col">
                                 <tr>
-                                    <th>Query</th>
-                                    <th>Duration</th>
-                                    <th>Table</th>
-                                    <th>Time</th>
+                                    <th scope="col">Query</th>
+                                    <th scope="col">Duration</th>
+                                    <th scope="col">Table</th>
+                                    <th scope="col">Time</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -254,7 +254,7 @@
                                         <code class="small">{{ query.sql[:40] }}...</code>
                                     </td>
                                     <td>
-                                        <span class="badge bg-{% if query.duration > 5000 %}danger{% elif query.duration > 1000 %}warning{% else %}secondary{% endif %}">
+                                        <span class="badge bg-{% if query.duration > 5000 %}danger{% elif query.duration > 1000 %}warning{% else %}secondary{% endif %}" data-badge>
                                             {{ query.duration }}ms
                                         </span>
                                     </td>
@@ -271,7 +271,7 @@
                     </div>
                     {% else %}
                     <div class="text-center py-4">
-                        <i class="ti ti-clock-check text-success" style="font-size: 3rem;"></i>
+                        <i class="ti ti-clock-check text-success u-icon-xl"></i>
                         <p class="text-muted mt-2">No slow queries detected</p>
                     </div>
                     {% endif %}
@@ -280,13 +280,13 @@
         </div>
         
         <div class="col-md-6 mb-3">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-activity me-2"></i>Recent Activity
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     {% if recent_activity %}
                     <div class="list-group list-group-flush">
                         {% for activity in recent_activity %}
@@ -301,7 +301,7 @@
                                 </div>
                                 <div class="text-end">
                                     <small class="text-muted">{{ activity.timestamp.strftime('%H:%M:%S') if activity.timestamp else 'Unknown' }}</small>
-                                    <br><span class="badge bg-secondary">{{ activity.duration or '0' }}ms</span>
+                                    <br><span class="badge bg-secondary" data-badge>{{ activity.duration or '0' }}ms</span>
                                 </div>
                             </div>
                         </div>
@@ -309,7 +309,7 @@
                     </div>
                     {% else %}
                     <div class="text-center py-4">
-                        <i class="ti ti-database-off text-muted" style="font-size: 3rem;"></i>
+                        <i class="ti ti-database-off text-muted u-icon-xl"></i>
                         <p class="text-muted mt-2">No recent activity</p>
                     </div>
                     {% endif %}
@@ -321,16 +321,16 @@
     <!-- Database Health Check -->
     <div class="row mt-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-health-recognition me-2"></i>Database Health Check
                     </h5>
-                    <button class="btn btn-outline-primary btn-sm" onclick="runHealthCheck()">
+                    <button class="c-btn c-btn--outline-primary c-btn--sm" data-action="run-health-check">
                         <i class="ti ti-refresh me-1"></i>Run Check
                     </button>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <div class="row">
                         <div class="col-md-3">
                             <div class="d-flex align-items-center p-3">
@@ -388,26 +388,26 @@
     <!-- Database Actions -->
     <div class="row mt-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-tools me-2"></i>Database Actions
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <div class="btn-group me-2" role="group">
-                        <button class="btn btn-outline-info" onclick="refreshConnections()">
+                        <button class="c-btn c-btn--outline-info" data-action="refresh-connections">
                             <i class="ti ti-refresh me-1"></i>Refresh Connections
                         </button>
-                        <button class="btn btn-outline-warning" onclick="flushQueryCache()">
+                        <button class="c-btn c-btn--outline-warning" data-action="flush-query-cache">
                             <i class="ti ti-trash me-1"></i>Flush Query Cache
                         </button>
-                        <button class="btn btn-outline-primary" onclick="analyzePerformance()">
+                        <button class="c-btn c-btn--outline-primary" data-action="analyze-performance">
                             <i class="ti ti-chart-line me-1"></i>Analyze Performance
                         </button>
                     </div>
                     <div class="btn-group" role="group">
-                        <button class="btn btn-outline-success" onclick="optimizeDatabase()">
+                        <button class="c-btn c-btn--outline-success" data-action="optimize-database">
                             <i class="ti ti-tool me-1"></i>Optimize Database
                         </button>
                     </div>
@@ -418,6 +418,7 @@
 {% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
 .card-icon {
     display: flex;
@@ -442,6 +443,10 @@
     box-shadow: 0 0 0 2px rgba(var(--ecs-danger-rgb, 220, 53, 69), 0.2);
 }
 
+.status-indicator.status-secondary {
+    background-color: var(--ecs-secondary, #6c757d);
+}
+
 .progress {
     background-color: var(--ecs-neutral-10, #e9ecef);
 }
@@ -451,11 +456,11 @@
         border-right: none !important;
         border-bottom: 1px solid var(--bs-border-color) !important;
     }
-    
+
     .btn-group {
         flex-wrap: wrap;
     }
-    
+
     .btn-group .btn {
         margin-bottom: 0.5rem;
     }
@@ -464,13 +469,39 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
-function runHealthCheck() {
-    const button = document.querySelector('button[onclick="runHealthCheck()"]');
+document.addEventListener('DOMContentLoaded', function() {
+    // Event delegation for all database actions
+    document.addEventListener('click', function(e) {
+        const action = e.target.closest('[data-action]')?.dataset.action;
+        if (!action) return;
+
+        switch(action) {
+            case 'run-health-check':
+                runHealthCheck(e.target.closest('button'));
+                break;
+            case 'refresh-connections':
+                refreshConnections();
+                break;
+            case 'flush-query-cache':
+                flushQueryCache();
+                break;
+            case 'analyze-performance':
+                analyzePerformance();
+                break;
+            case 'optimize-database':
+                optimizeDatabase();
+                break;
+        }
+    });
+});
+
+function runHealthCheck(button) {
     const originalText = button.innerHTML;
     button.innerHTML = '<i class="ti ti-loader me-1"></i>Running...';
     button.disabled = true;
-    
+
     fetch('{{ url_for("admin_panel.run_db_health_check") }}', {
         method: 'POST',
         headers: {

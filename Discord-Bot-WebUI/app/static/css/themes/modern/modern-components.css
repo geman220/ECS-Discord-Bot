@@ -1,0 +1,528 @@
+/**
+ * ============================================================================
+ * ECS MODERN THEME - COMPONENT STYLES
+ * ============================================================================
+ *
+ * Theme-specific component styling for the Modern theme.
+ * Applies to BOTH light and dark modes.
+ * Only includes structural/behavioral styles - colors are in light/dark files.
+ *
+ * Selector: [data-theme-variant="modern"]
+ *
+ * Architecture:
+ * - modern-light.css → Light mode colors
+ * - modern-dark.css → Dark mode colors
+ * - modern-components.css (this file) → Component styles (both modes)
+ *
+ * Pacific Northwest Athletic Theme:
+ * - Modern, clean typography (Archivo Black display, Barlow body)
+ * - Athletic commanding presence
+ * - Professional interactions
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   TYPOGRAPHY
+   Modern theme uses Archivo Black for display, Barlow for body
+   ============================================================================ */
+
+[data-theme-variant="modern"] {
+  font-family: var(--ecs-font-body);
+}
+
+[data-theme-variant="modern"] body {
+  font-family: var(--ecs-font-body);
+  font-size: var(--ecs-text-base);
+  line-height: var(--ecs-leading-normal);
+}
+
+/* Headlines - Athletic, commanding */
+[data-theme-variant="modern"] h1,
+[data-theme-variant="modern"] .h1 {
+  font-family: var(--ecs-font-display);
+  font-size: var(--ecs-text-4xl);
+  line-height: var(--ecs-leading-tight);
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+[data-theme-variant="modern"] h2,
+[data-theme-variant="modern"] .h2 {
+  font-family: var(--ecs-font-body);
+  font-size: var(--ecs-text-3xl);
+  font-weight: var(--ecs-weight-bold);
+  line-height: var(--ecs-leading-tight);
+  letter-spacing: -0.01em;
+}
+
+[data-theme-variant="modern"] h3,
+[data-theme-variant="modern"] .h3 {
+  font-family: var(--ecs-font-body);
+  font-size: var(--ecs-text-2xl);
+  font-weight: var(--ecs-weight-bold);
+  line-height: var(--ecs-leading-snug);
+}
+
+[data-theme-variant="modern"] h4,
+[data-theme-variant="modern"] .h4 {
+  font-family: var(--ecs-font-body);
+  font-size: var(--ecs-text-xl);
+  font-weight: var(--ecs-weight-semibold);
+  line-height: var(--ecs-leading-snug);
+}
+
+[data-theme-variant="modern"] h5,
+[data-theme-variant="modern"] .h5 {
+  font-family: var(--ecs-font-body);
+  font-size: var(--ecs-text-lg);
+  font-weight: var(--ecs-weight-semibold);
+  line-height: var(--ecs-leading-normal);
+}
+
+[data-theme-variant="modern"] h6,
+[data-theme-variant="modern"] .h6 {
+  font-family: var(--ecs-font-body);
+  font-size: var(--ecs-text-base);
+  font-weight: var(--ecs-weight-semibold);
+  line-height: var(--ecs-leading-normal);
+}
+
+/* Data/Numbers - Tabular figures for alignment */
+[data-theme-variant="modern"] .data-value,
+[data-theme-variant="modern"] .score,
+[data-theme-variant="modern"] .stat,
+[data-theme-variant="modern"] .number {
+  font-family: var(--ecs-font-body);
+  font-weight: var(--ecs-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Small text */
+[data-theme-variant="modern"] small,
+[data-theme-variant="modern"] .small {
+  font-size: var(--ecs-text-sm);
+}
+
+/* Links */
+[data-theme-variant="modern"] a {
+  text-decoration: none;
+  transition: color var(--ecs-transition-fast);
+}
+
+[data-theme-variant="modern"] a:hover {
+  text-decoration: none;
+}
+
+/* Responsive Typography */
+@media (max-width: 767.98px) {
+  [data-theme-variant="modern"] h1,
+  [data-theme-variant="modern"] .h1 {
+    font-size: var(--ecs-text-2xl);
+  }
+
+  [data-theme-variant="modern"] h2,
+  [data-theme-variant="modern"] .h2 {
+    font-size: var(--ecs-text-xl);
+  }
+
+  [data-theme-variant="modern"] h3,
+  [data-theme-variant="modern"] .h3 {
+    font-size: var(--ecs-text-lg);
+  }
+}
+
+/* ============================================================================
+   LAYOUT
+   ============================================================================ */
+
+/* Main container */
+[data-theme-variant="modern"] .container-xxl,
+[data-theme-variant="modern"] .container-fluid {
+  padding-top: var(--ecs-space-6);
+  padding-bottom: var(--ecs-space-6);
+}
+
+/* Page headers */
+[data-theme-variant="modern"] .page-header {
+  margin-bottom: var(--ecs-space-6);
+}
+
+[data-theme-variant="modern"] .page-header h1 {
+  margin-bottom: var(--ecs-space-2);
+}
+
+/* Breadcrumbs */
+[data-theme-variant="modern"] .breadcrumb {
+  font-size: var(--ecs-text-sm);
+  background: transparent;
+  padding: 0;
+  margin-bottom: var(--ecs-space-4);
+}
+
+/* ============================================================================
+   SIDEBAR / NAVIGATION
+   ============================================================================ */
+
+/* Sidebar text */
+[data-theme-variant="modern"] .layout-menu .menu-link,
+[data-theme-variant="modern"] #layout-menu .menu-link {
+  font-weight: var(--ecs-weight-medium);
+  border-radius: var(--ecs-radius-md);
+  margin: 0.125rem 0.5rem;
+  transition: all var(--ecs-transition-normal);
+}
+
+/* Sidebar section headers */
+[data-theme-variant="modern"] .layout-menu .menu-header,
+[data-theme-variant="modern"] #layout-menu .menu-header {
+  font-size: var(--ecs-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--ecs-weight-semibold);
+}
+
+/* Brand section */
+[data-theme-variant="modern"] .app-brand {
+  padding: var(--ecs-space-5);
+}
+
+[data-theme-variant="modern"] .app-brand-text {
+  font-family: var(--ecs-font-display);
+  font-size: var(--ecs-text-xl);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* ============================================================================
+   INTERACTION STATES
+   ============================================================================ */
+
+[data-theme-variant="modern"] ::selection {
+  background-color: var(--ecs-primary);
+  color: white;
+}
+
+[data-theme-variant="modern"] :focus-visible {
+  outline: 2px solid var(--ecs-primary);
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+   SCROLLBAR STYLING
+   ============================================================================ */
+
+[data-theme-variant="modern"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+[data-theme-variant="modern"] ::-webkit-scrollbar-track {
+  border-radius: var(--ecs-radius-full);
+}
+
+[data-theme-variant="modern"] ::-webkit-scrollbar-thumb {
+  border-radius: var(--ecs-radius-full);
+}
+
+/* Firefox */
+[data-theme-variant="modern"] * {
+  scrollbar-width: thin;
+}
+
+/* ============================================================================
+   MODALS - 2025 MODERN DESIGN
+   ============================================================================ */
+
+[data-theme-variant="modern"] .modal-content {
+  border: none !important;
+  border-radius: 0.75rem !important;
+  overflow: hidden !important;
+}
+
+[data-theme-variant="modern"] .modal-header {
+  padding: 1rem 1.5rem !important;
+}
+
+[data-theme-variant="modern"] .modal-footer {
+  padding: 1rem 1.5rem !important;
+}
+
+/* ============================================================================
+   DROPDOWNS - 2025 MODERN DESIGN
+   ============================================================================ */
+
+[data-theme-variant="modern"] .dropdown-menu {
+  border-radius: 0.5rem !important;
+  padding: 0.5rem 0 !important;
+}
+
+[data-theme-variant="modern"] .dropdown-item {
+  padding: 0.625rem 1rem !important;
+  font-weight: 500 !important;
+  transition: all 0.15s ease !important;
+}
+
+[data-theme-variant="modern"] .dropdown-divider {
+  margin: 0.5rem 0 !important;
+  opacity: 1 !important;
+}
+
+[data-theme-variant="modern"] .dropdown-header {
+  font-weight: 600 !important;
+  font-size: 0.75rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+/* ============================================================================
+   TABS & PILLS
+   ============================================================================ */
+
+[data-theme-variant="modern"] .nav-tabs .nav-link {
+  transition: all var(--ecs-transition-normal);
+}
+
+[data-theme-variant="modern"] .nav-pills .nav-link {
+  transition: all var(--ecs-transition-normal);
+  border-radius: var(--ecs-radius-md);
+}
+
+/* ============================================================================
+   BADGES
+   ============================================================================ */
+
+[data-theme-variant="modern"] .badge {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.35em 0.65em;
+  border-radius: var(--ecs-radius-sm);
+}
+
+/* ============================================================================
+   FORMS
+   ============================================================================ */
+
+[data-theme-variant="modern"] .form-control,
+[data-theme-variant="modern"] .form-select {
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.9375rem;
+  transition: all var(--ecs-transition-normal);
+}
+
+[data-theme-variant="modern"] .form-control:focus,
+[data-theme-variant="modern"] .form-select:focus {
+  transition: all var(--ecs-transition-fast);
+}
+
+/* ============================================================================
+   TABLES
+   ============================================================================ */
+
+[data-theme-variant="modern"] .table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+[data-theme-variant="modern"] .table thead th {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  padding: 0.875rem 1rem;
+}
+
+[data-theme-variant="modern"] .table tbody td {
+  padding: 0.875rem 1rem;
+  vertical-align: middle;
+}
+
+[data-theme-variant="modern"] .table tbody tr {
+  transition: background-color var(--ecs-transition-fast);
+}
+
+/* ============================================================================
+   BUTTONS - 2025 MODERN POLISH
+   ============================================================================ */
+
+[data-theme-variant="modern"] .btn {
+  border-radius: var(--ecs-radius-md);
+  font-weight: var(--ecs-weight-medium);
+  transition: all var(--ecs-transition-normal);
+}
+
+[data-theme-variant="modern"] .btn:not(.btn-link):hover {
+  transform: translateY(-1px);
+}
+
+[data-theme-variant="modern"] .btn:not(.btn-link):active {
+  transform: translateY(0);
+}
+
+/* ============================================================================
+   CARDS - 2025 MODERN POLISH
+   ============================================================================ */
+
+[data-theme-variant="modern"] .card {
+  border-radius: var(--ecs-radius-lg);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-theme-variant="modern"] .card:hover {
+  transform: translateY(-2px);
+}
+
+/* Disable hover on cards that shouldn't lift */
+[data-theme-variant="modern"] .card.no-hover:hover,
+[data-theme-variant="modern"] .modal .card:hover {
+  transform: none;
+}
+
+[data-theme-variant="modern"] .card-header {
+  padding: 1rem 1.5rem;
+  font-weight: var(--ecs-weight-semibold);
+}
+
+[data-theme-variant="modern"] .card-body {
+  padding: 1.5rem;
+}
+
+[data-theme-variant="modern"] .card-footer {
+  padding: 1rem 1.5rem;
+}
+
+/* ============================================================================
+   AVATARS
+   ============================================================================ */
+
+[data-theme-variant="modern"] .avatar,
+[data-theme-variant="modern"] .rounded-circle {
+  border-width: 2px;
+}
+
+/* ============================================================================
+   ALERTS
+   ============================================================================ */
+
+[data-theme-variant="modern"] .alert {
+  border-radius: var(--ecs-radius-md);
+  border-left-width: 4px;
+  padding: 1rem 1.25rem;
+}
+
+/* ============================================================================
+   PROGRESS BARS
+   ============================================================================ */
+
+[data-theme-variant="modern"] .progress {
+  border-radius: var(--ecs-radius-full);
+  overflow: hidden;
+}
+
+[data-theme-variant="modern"] .progress-bar {
+  transition: width var(--ecs-transition-normal);
+}
+
+/* ============================================================================
+   PAGINATION
+   ============================================================================ */
+
+[data-theme-variant="modern"] .pagination .page-link {
+  border-radius: var(--ecs-radius-md);
+  margin: 0 0.125rem;
+  font-weight: var(--ecs-weight-medium);
+  transition: all var(--ecs-transition-fast);
+}
+
+/* ============================================================================
+   LIST GROUPS
+   ============================================================================ */
+
+[data-theme-variant="modern"] .list-group-item {
+  transition: all var(--ecs-transition-fast);
+}
+
+[data-theme-variant="modern"] .list-group-item-action:hover {
+  transform: translateX(2px);
+}
+
+/* ============================================================================
+   ACCORDIONS
+   ============================================================================ */
+
+[data-theme-variant="modern"] .accordion-button {
+  font-weight: var(--ecs-weight-semibold);
+  transition: all var(--ecs-transition-normal);
+}
+
+[data-theme-variant="modern"] .accordion-item {
+  border-radius: var(--ecs-radius-md);
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+}
+
+/* ============================================================================
+   TOASTS
+   ============================================================================ */
+
+[data-theme-variant="modern"] .toast {
+  border-radius: var(--ecs-radius-lg);
+  box-shadow: var(--ecs-shadow-lg);
+}
+
+/* ============================================================================
+   LOADING STATES
+   ============================================================================ */
+
+[data-theme-variant="modern"] .skeleton,
+[data-theme-variant="modern"] .loading {
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--ecs-radius-md);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ============================================================================
+   SMOOTH SCROLL
+   ============================================================================ */
+
+[data-theme-variant="modern"] html {
+  scroll-behavior: smooth;
+}
+
+/* ============================================================================
+   GLOBAL TRANSITIONS
+   Professional micro-interactions
+   ============================================================================ */
+
+[data-theme-variant="modern"] * {
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity;
+  transition-duration: 0.15s;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Disable transitions on elements that shouldn't animate */
+[data-theme-variant="modern"] .no-transition,
+[data-theme-variant="modern"] .modal,
+[data-theme-variant="modern"] .modal-backdrop,
+[data-theme-variant="modern"] .tooltip,
+[data-theme-variant="modern"] .popover {
+  transition: none !important;
+}
+
+/* ============================================================================
+   PRINT-FRIENDLY STYLES
+   ============================================================================ */
+
+@media print {
+  [data-theme-variant="modern"] .btn,
+  [data-theme-variant="modern"] .card {
+    box-shadow: none !important;
+    transform: none !important;
+  }
+}

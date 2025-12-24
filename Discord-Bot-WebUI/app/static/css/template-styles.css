@@ -1,47 +1,113 @@
 /**
  * Centralized Template Styles
  * All inline styles from templates moved here for better organization
+ *
+ * REFACTORED: BEM Naming Convention
+ * - c- prefix for components
+ * - u- prefix for utilities
+ * - is- prefix for states
+ * - Legacy selectors maintained for backward compatibility
  */
 
-/* Dark mode fixes from base.html */
+/* ============================================================================
+   ACCESSIBILITY: Skip Navigation Links (WCAG 2.4.1 Bypass Blocks)
+   ============================================================================ */
+
+/* Skip to main content link - visible on focus only */
+/* BEM: c-skip-link */
+.c-skip-link,
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #000;
+    color: #fff;
+    padding: 8px 16px;
+    text-decoration: none;
+    z-index: 100;
+    border-radius: 0 0 4px 0;
+    font-weight: 600;
+}
+
+.c-skip-link:focus,
+.skip-link:focus {
+    top: 0;
+    outline: 3px solid #4A90E2;
+    outline-offset: 2px;
+}
+
+/* ============================================================================
+   DARK MODE OVERRIDES
+   ============================================================================ */
+
+/* BEM: c-list-group__item--dark */
+[data-style="dark"] .c-list-group__item-action,
 [data-style="dark"] .list-group-item-action {
     color: var(--ecs-dark-text-primary, #ffffff) !important;
     background-color: transparent !important;
 }
 
+[data-style="dark"] .c-list-group__item-action:hover,
 [data-style="dark"] .list-group-item-action:hover {
     color: var(--ecs-dark-text-primary, #ffffff) !important;
     background-color: rgba(255, 255, 255, 0.1) !important;
 }
 
+[data-style="dark"] .c-list-group__item-action i,
 [data-style="dark"] .list-group-item-action i {
     color: var(--ecs-dark-text-primary, #ffffff) !important;
 }
 
-/* Desktop button overrides from base.html */
+/* ============================================================================
+   DESKTOP BUTTON OVERRIDES
+   ============================================================================ */
+
+/* BEM: c-btn--desktop (no transform on desktop) */
 @media (hover: hover) and (pointer: fine) {
     /* Desktop devices with mouse */
-    button, .btn, .ecs-btn, [class*="btn-"] {
+    .c-btn,
+    button,
+    .btn,
+    .ecs-btn,
+    [class*="btn-"] {
         transform: none !important;
-        transition: background-color 0.15s ease-in-out, 
+        transition: background-color 0.15s ease-in-out,
                    color 0.15s ease-in-out,
                    border-color 0.15s ease-in-out !important;
     }
-    
-    button:active, .btn:active, .ecs-btn:active, [class*="btn-"]:active,
-    button:hover, .btn:hover, .ecs-btn:hover, [class*="btn-"]:hover,
-    button:focus, .btn:focus, .ecs-btn:focus, [class*="btn-"]:focus {
+
+    .c-btn:active,
+    .c-btn:hover,
+    .c-btn:focus,
+    button:active,
+    .btn:active,
+    .ecs-btn:active,
+    [class*="btn-"]:active,
+    button:hover,
+    .btn:hover,
+    .ecs-btn:hover,
+    [class*="btn-"]:hover,
+    button:focus,
+    .btn:focus,
+    .ecs-btn:focus,
+    [class*="btn-"]:focus {
         transform: none !important;
     }
-    
+
     /* Never apply scaling on desktop */
+    .is-touch-active,
     .touch-active {
         transform: none !important;
         opacity: 0.9;
     }
 }
 
-/* Autocomplete profile image styles */
+/* ============================================================================
+   AUTOCOMPLETE COMPONENTS
+   ============================================================================ */
+
+/* BEM: c-autocomplete__profile-img */
+.c-autocomplete__profile-img,
 .autocomplete-profile-img {
     width: 30px;
     height: 30px;
@@ -50,37 +116,8 @@
     object-fit: cover;
 }
 
-/* Login page styles */
-/* Force authentication page background - override everything */
-html.auth-page, body.auth-page {
-    background-color: var(--ecs-primary) !important;
-    background: var(--ecs-primary) !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    height: 100% !important;
-    min-height: 100vh !important;
-}
-
-.authentication-wrapper {
-    background-color: var(--ecs-primary) !important;
-    background: var(--ecs-primary) !important;
-    height: 100vh !important;
-    width: 100% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-height: 100vh !important;
-}
-
-/* Make sure no other elements override this - but allow authentication-inner to be centered */
-
-/* Register page Discord logo */
-.btn-discord img {
-    height: 20px;
-    margin-right: 8px;
-}
-
-/* jQuery UI Autocomplete mobile optimization */
+/* BEM: c-autocomplete (jQuery UI) */
+.c-autocomplete,
 .ui-autocomplete {
     max-height: 300px;
     overflow-y: auto;
@@ -88,17 +125,42 @@ html.auth-page, body.auth-page {
 }
 
 @media (max-width: 767.98px) {
+    .c-autocomplete,
     .ui-autocomplete {
         max-height: 200px;
         font-size: 14px;
     }
-    
+
+    .c-autocomplete__item,
     .ui-menu-item {
         padding: 10px;
     }
 }
 
-/* Registration page waiver content */
+/* ============================================================================
+   AUTHENTICATION PAGE STYLES
+   ============================================================================
+
+   NOTE: Auth page styling has been migrated to pages/authentication.css
+   which provides proper BEM structure, design tokens, and dark mode support.
+
+   DO NOT add auth styles here - use the page-specific CSS file instead.
+
+   ============================================================================ */
+
+/* BEM: c-btn-discord__logo */
+.c-btn-discord__logo,
+.btn-discord img {
+    height: 20px;
+    margin-right: 8px;
+}
+
+/* ============================================================================
+   REGISTRATION FORM COMPONENTS
+   ============================================================================ */
+
+/* BEM: c-waiver */
+.c-waiver__content,
 .waiver-content {
     max-height: 300px;
     overflow-y: auto;
@@ -110,6 +172,7 @@ html.auth-page, body.auth-page {
 }
 
 @media (max-width: 767.98px) {
+    .c-waiver__content,
     .waiver-content {
         max-height: 250px;
         padding: 12px;
@@ -117,15 +180,21 @@ html.auth-page, body.auth-page {
     }
 }
 
+/* ============================================================================
+   CHECKBOX COMPONENTS
+   ============================================================================ */
+
+/* BEM: c-checkbox--terms */
 /* Registration form checkbox fixes - override conflicting CSS */
-#terms-agreement, 
-#terms-agreement-waitlist {
+.c-checkbox--terms,
+.c-terms-checkbox {
     width: 1em !important;
     height: 1em !important;
     margin-top: 0.125em !important;
     font-size: 16px !important; /* Control the base size */
 }
 
+.c-checkbox__label,
 .form-group .form-check-label {
     font-size: 14px !important;
     line-height: 1.5 !important;
@@ -134,18 +203,20 @@ html.auth-page, body.auth-page {
 
 /* Mobile checkbox fixes */
 @media (max-width: 767.98px) {
-    #terms-agreement, 
-    #terms-agreement-waitlist {
+    .c-checkbox--terms,
+    .c-terms-checkbox {
         width: 1em !important;
         height: 1em !important;
         font-size: 18px !important; /* Slightly larger base for mobile */
     }
-    
+
+    .c-checkbox__label,
     .form-group .form-check-label {
         font-size: 16px !important;
         line-height: 1.4 !important;
     }
-    
+
+    .c-checkbox__wrapper,
     .form-group .form-check {
         min-height: 44px !important;
         padding-top: 0.5rem !important;
@@ -153,7 +224,9 @@ html.auth-page, body.auth-page {
     }
 }
 
+/* BEM: c-notification-checkbox */
 /* Notification Preferences Checkbox Styling - Simple Fix */
+.c-notification-checkbox,
 .notification-group .form-check .form-check-input[type="checkbox"] {
     width: 1.25rem !important;
     height: 1.25rem !important;
@@ -165,6 +238,7 @@ html.auth-page, body.auth-page {
     border-radius: 0.25rem !important;
 }
 
+.c-notification-checkbox:checked,
 .notification-group .form-check .form-check-input[type="checkbox"]:checked {
     background-color: var(--ecs-primary) !important;
     border-color: var(--ecs-primary) !important;
@@ -175,10 +249,12 @@ html.auth-page, body.auth-page {
 }
 
 /* Override foundation.css active state that could interfere */
+.c-notification-checkbox:active,
 .notification-group .form-check .form-check-input[type="checkbox"]:active {
     filter: none !important;
 }
 
+.c-notification-checkbox:checked:active,
 .notification-group .form-check .form-check-input[type="checkbox"]:checked:active {
     background-color: var(--ecs-primary) !important;
     border-color: var(--ecs-primary) !important;
@@ -190,11 +266,13 @@ html.auth-page, body.auth-page {
 }
 
 /* Focus state styling */
+.c-notification-checkbox:focus,
 .notification-group .form-check .form-check-input[type="checkbox"]:focus {
     box-shadow: 0 0 0 0.2rem rgba(var(--ecs-primary-rgb), 0.25) !important;
     outline: none !important;
 }
 
+.c-notification-checkbox:checked:focus,
 .notification-group .form-check .form-check-input[type="checkbox"]:checked:focus {
     background-color: var(--ecs-primary) !important;
     border-color: var(--ecs-primary) !important;
@@ -204,158 +282,185 @@ html.auth-page, body.auth-page {
     background-size: contain !important;
 }
 
-
 /* Mobile notification improvements */
 @media (max-width: 767.98px) {
+    .c-notification-checkbox,
     .notification-group .form-check-input[type="checkbox"] {
         width: 1.35rem !important;
         height: 1.35rem !important;
     }
-    
+
+    .c-notification-group__card,
     .notification-group .card {
         margin-bottom: 1rem;
     }
-    
+
+    .c-notification-group__card-body,
     .notification-group .card-body {
         padding: 1rem;
     }
-    
+
+    .c-notification-checkbox__label,
     .notification-group .form-check-label {
         font-size: 15px !important;
         line-height: 1.4;
     }
-    
+
+    .c-notification-group__help-text,
     .notification-group .small {
         font-size: 13px !important;
     }
 }
 
-/* Mobile optimizations for waitlist registration carousel - MOBILE ONLY */
+/* ============================================================================
+   WAITLIST REGISTRATION MODAL
+   ============================================================================ */
+
+/* BEM: c-waitlist-modal (Mobile optimizations - MOBILE ONLY) */
 @media (max-width: 576px) {
-    /* Only target the specific waitlist registration modal/content */
-    #waitlistRegistrationModal .modal-dialog {
+    /* Modal dialog */
+    .c-waitlist-modal .modal-dialog {
         margin: 0.5rem;
         max-width: calc(100% - 1rem);
     }
-    
-    #waitlistRegistrationModal .modal-body {
+
+    .c-waitlist-modal .modal-body {
         padding: 0.5rem;
     }
-    
-    /* Only apply to waitlist registration content */
-    #waitlistRegistrationModal .registration-content {
+
+    /* Content wrapper */
+    .c-waitlist-modal__content {
         padding: 0.75rem !important;
     }
-    
-    /* Specific to waitlist sections */
-    #waitlistRegistrationModal .section-header {
+
+    /* Header section */
+    .c-waitlist-modal__header {
         margin-bottom: 1rem !important;
     }
-    
-    #waitlistRegistrationModal .section-header h4,
-    #waitlistRegistrationModal .section-header h5 {
+
+    .c-waitlist-modal__header h4,
+    .c-waitlist-modal__header h5 {
         font-size: 1.1rem !important;
         margin-bottom: 0.25rem !important;
     }
-    
-    #waitlistRegistrationModal .section-header p,
-    #waitlistRegistrationModal .section-header small {
+
+    .c-waitlist-modal__header p,
+    .c-waitlist-modal__header small {
         font-size: 0.85rem !important;
     }
-    
-    #waitlistRegistrationModal .section-header i {
+
+    .c-waitlist-modal__header i {
         font-size: 1.75rem !important;
     }
-    
-    /* Only target waitlist modal cards */
-    #waitlistRegistrationModal .card {
+
+    /* Card components */
+    .c-waitlist-modal__card {
         padding: 0.75rem !important;
         margin-bottom: 0.5rem !important;
     }
-    
-    /* Only target form elements inside waitlist modal */
-    #waitlistRegistrationModal .form-control,
-    #waitlistRegistrationModal .form-select {
+
+    /* Form elements */
+    .c-waitlist-modal__input,
+    .c-waitlist-modal__select {
         padding: 0.5rem 0.75rem !important;
         font-size: 0.9rem !important;
     }
-    
-    #waitlistRegistrationModal .form-label {
+
+    .c-waitlist-modal__label {
         font-size: 0.85rem !important;
         margin-bottom: 0.25rem !important;
         font-weight: 600 !important;
     }
-    
-    #waitlistRegistrationModal .form-text {
+
+    .c-waitlist-modal__help-text {
         font-size: 0.75rem !important;
         margin-top: 0.25rem !important;
     }
-    
-    /* Only target rows inside waitlist modal */
-    #waitlistRegistrationModal .row {
+
+    /* Grid system adjustments */
+    .c-waitlist-modal .row {
         margin-left: -0.25rem !important;
         margin-right: -0.25rem !important;
     }
-    
-    #waitlistRegistrationModal .row > [class*="col-"] {
+
+    .c-waitlist-modal .row > [class*="col-"] {
         padding-left: 0.25rem !important;
         padding-right: 0.25rem !important;
         margin-bottom: 0.75rem !important;
     }
-    
-    /* Profile picture section compact - waitlist specific */
-    #waitlistRegistrationModal #cropperInterface img {
+
+    /* Profile picture section compact */
+    .c-waitlist-modal__cropper-image {
         max-height: 200px !important;
     }
-    
-    #waitlistRegistrationModal #profilePicturePreview {
+
+    .c-waitlist-modal__profile-preview {
         max-height: 150px !important;
     }
-    
-    /* Only compact buttons inside waitlist modal */
-    #waitlistRegistrationModal .btn {
+
+    /* Button sizing */
+    .c-waitlist-modal .btn {
         padding: 0.5rem 1rem !important;
         font-size: 0.85rem !important;
     }
-    
-    #waitlistRegistrationModal .btn-lg {
+
+    .c-waitlist-modal .btn-lg {
         padding: 0.6rem 1.2rem !important;
         font-size: 0.9rem !important;
     }
-    
-    /* Progress bar container - waitlist specific */
-    #waitlistRegistrationModal .progress-container {
+
+    /* Progress bar container */
+    .c-waitlist-modal__progress {
         padding: 0.5rem !important;
     }
-    
-    /* Carousel navigation - waitlist specific */
-    #waitlistRegistrationModal .carousel-nav {
+
+    /* Carousel navigation */
+    .c-waitlist-modal__nav {
         padding: 0.5rem !important;
     }
 }
 
-/* Tablet optimizations */
+/* ============================================================================
+   TABLET OPTIMIZATIONS (Generic Registration)
+   ============================================================================ */
+
+/* BEM: c-registration (Tablet) */
 @media (max-width: 768px) and (min-width: 577px) {
+    .c-registration__content,
     .registration-content {
         padding: 1rem !important;
     }
-    
+
+    .c-registration__section-header,
     .section-header {
         margin-bottom: 1.5rem !important;
     }
-    
+
+    .c-registration__card,
     .card {
         padding: 1rem !important;
     }
-    
+
+    .c-registration__input,
+    .c-registration__select,
     .form-control,
     .form-select {
         padding: 0.6rem 0.9rem !important;
     }
 }
 
-/* DataTables Sorting Arrow Fixes */
+/* ============================================================================
+   DATATABLE COMPONENTS
+   ============================================================================ */
+
+/* BEM: c-datatable__sort-indicator */
 /* NUCLEAR OPTION: Completely hide ALL possible DataTables sorting arrows */
+.c-datatable thead th.sorting::before,
+.c-datatable thead th.sorting::after,
+.c-datatable thead th.sorting_asc::before,
+.c-datatable thead th.sorting_asc::after,
+.c-datatable thead th.sorting_desc::before,
+.c-datatable thead th.sorting_desc::after,
 table.dataTable thead th.sorting::before,
 table.dataTable thead th.sorting::after,
 table.dataTable thead th.sorting_asc::before,
@@ -391,6 +496,7 @@ div.dataTables_scrollBody > table.dataTable > thead > tr > td::after {
 }
 
 /* Create clean single sorting indicators */
+.c-datatable__header--sortable,
 table.dataTable thead th.sorting,
 table.dataTable thead th.sorting_asc,
 table.dataTable thead th.sorting_desc {
@@ -399,6 +505,7 @@ table.dataTable thead th.sorting_desc {
 }
 
 /* Add single sorting arrow using a single pseudo-element */
+.c-datatable__header--sortable::after,
 table.dataTable thead th.sorting::after {
     display: inline-block !important;
     content: "⇅" !important;
@@ -412,6 +519,7 @@ table.dataTable thead th.sorting::after {
     color: var(--ecs-neutral-50, #666) !important;
 }
 
+.c-datatable__header--sort-asc::after,
 table.dataTable thead th.sorting_asc::after {
     display: inline-block !important;
     content: "▲" !important;
@@ -425,6 +533,7 @@ table.dataTable thead th.sorting_asc::after {
     color: var(--ecs-primary) !important;
 }
 
+.c-datatable__header--sort-desc::after,
 table.dataTable thead th.sorting_desc::after {
     display: inline-block !important;
     content: "▼" !important;
@@ -439,29 +548,34 @@ table.dataTable thead th.sorting_desc::after {
 }
 
 /* Hover effects */
+.c-datatable__header--sortable:hover::after,
 table.dataTable thead th.sorting:hover::after {
     opacity: 0.6 !important;
     color: var(--ecs-primary) !important;
 }
 
 /* Dark mode compatibility */
+[data-style="dark"] .c-datatable__header--sortable::after,
 [data-style="dark"] table.dataTable thead th.sorting::after {
     color: var(--ecs-neutral-40, #cccccc) !important;
 }
 
+[data-style="dark"] .c-datatable__header--sort-asc::after,
+[data-style="dark"] .c-datatable__header--sort-desc::after,
 [data-style="dark"] table.dataTable thead th.sorting_asc::after,
 [data-style="dark"] table.dataTable thead th.sorting_desc::after {
     color: var(--ecs-accent, #4dabf7) !important;
 }
 
+[data-style="dark"] .c-datatable__header--sortable:hover::after,
 [data-style="dark"] table.dataTable thead th.sorting:hover::after {
     color: var(--ecs-accent, #4dabf7) !important;
 }
 
 /* Force our arrows to show with maximum specificity */
-div.table-responsive table#rsvpStatusTable.dataTable thead th.sorting::after,
-div#rsvpStatusTable_wrapper table.dataTable thead th.sorting::after,
-table#rsvpStatusTable.table.dataTable thead th.sorting::after,
+div.table-responsive table.c-rsvp-status-table.dataTable thead th.sorting::after,
+div.c-rsvp-table-wrapper table.dataTable thead th.sorting::after,
+table.c-rsvp-status-table.table.dataTable thead th.sorting::after,
 html body div.container-xxl table.dataTable thead th.sorting::after,
 html body div table.dataTable thead th.sorting::after,
 html body table.dataTable thead th.sorting::after {
@@ -482,9 +596,9 @@ html body table.dataTable thead th.sorting::after {
     border: none !important;
 }
 
-div.table-responsive table#rsvpStatusTable.dataTable thead th.sorting_asc::after,
-div#rsvpStatusTable_wrapper table.dataTable thead th.sorting_asc::after,
-table#rsvpStatusTable.table.dataTable thead th.sorting_asc::after,
+div.table-responsive table.c-rsvp-status-table.dataTable thead th.sorting_asc::after,
+div.c-rsvp-table-wrapper table.dataTable thead th.sorting_asc::after,
+table.c-rsvp-status-table.table.dataTable thead th.sorting_asc::after,
 html body div.container-xxl table.dataTable thead th.sorting_asc::after,
 html body div table.dataTable thead th.sorting_asc::after,
 html body table.dataTable thead th.sorting_asc::after {
@@ -505,9 +619,9 @@ html body table.dataTable thead th.sorting_asc::after {
     border: none !important;
 }
 
-div.table-responsive table#rsvpStatusTable.dataTable thead th.sorting_desc::after,
-div#rsvpStatusTable_wrapper table.dataTable thead th.sorting_desc::after,
-table#rsvpStatusTable.table.dataTable thead th.sorting_desc::after,
+div.table-responsive table.c-rsvp-status-table.dataTable thead th.sorting_desc::after,
+div.c-rsvp-table-wrapper table.dataTable thead th.sorting_desc::after,
+table.c-rsvp-status-table.table.dataTable thead th.sorting_desc::after,
 html body div.container-xxl table.dataTable thead th.sorting_desc::after,
 html body div table.dataTable thead th.sorting_desc::after,
 html body table.dataTable thead th.sorting_desc::after {
@@ -529,15 +643,18 @@ html body table.dataTable thead th.sorting_desc::after {
 }
 
 /* ============================================================================
-   APP BRAND STYLES (Extracted from demo.css - essential only)
+   APP BRAND COMPONENTS (Extracted from demo.css - essential only)
    ============================================================================ */
 
+/* BEM: c-app-brand */
 /* Sidebar brand container */
+.c-app-brand,
 .menu .app-brand {
     height: 64px;
 }
 
 /* Brand logo container */
+.c-app-brand__logo,
 .app-brand-logo {
     align-items: center;
     justify-content: center;
@@ -546,12 +663,14 @@ html body table.dataTable thead th.sorting_desc::after {
     height: 24px;
 }
 
+.c-app-brand__logo svg,
 .app-brand-logo svg {
     width: 35px;
     height: 24px;
 }
 
 /* Brand text */
+.c-app-brand__text,
 .app-brand-text {
     font-size: 1.375rem;
 }
@@ -560,16 +679,20 @@ html body table.dataTable thead th.sorting_desc::after {
    LAYOUT FIXES (Extracted from demo.css - critical)
    ============================================================================ */
 
+/* BEM: c-layout--navbar-fixed */
 /* Fix padding for fixed navbar layout */
+.c-layout--navbar-fixed .c-layout__wrapper:not(.c-layout--without-menu) .c-layout__page,
 .layout-navbar-fixed .layout-wrapper:not(.layout-without-menu) .layout-page {
     padding-top: 64px !important;
 }
 
+.c-layout--navbar-fixed .c-layout__wrapper:not(.c-layout--horizontal):not(.c-layout--without-menu) .c-layout__page,
 .layout-navbar-fixed .layout-wrapper:not(.layout-horizontal):not(.layout-without-menu) .layout-page {
     padding-top: 72px !important;
 }
 
 /* Navbar z-index fix */
+.c-content-wrapper .c-navbar,
 .content-wrapper .navbar {
     z-index: auto;
 }

@@ -282,8 +282,9 @@ def handle_draft_player_enhanced(data):
                     'league_name': league_name
                 }
 
-            emit('player_drafted_enhanced', response_data)
-            print(f"✅ Successfully drafted {player_name} to {team_name}")
+            # Broadcast to all clients in the draft room so everyone sees the update
+            emit('player_drafted_enhanced', response_data, room=f'draft_{league_name}')
+            print(f"✅ Successfully drafted {player_name} to {team_name} - broadcasted to room draft_{league_name}")
             logger.info(f"✅ Successfully drafted {player_name} to {team_name}")
 
         except Exception as e:
@@ -594,8 +595,9 @@ def handle_remove_player_enhanced(data):
                     'league_name': league_name
                 }
 
-                emit('player_removed_enhanced', response_data)
-                print(f"✅ Successfully removed {player.name} from {team.name}")
+                # Broadcast to all clients in the draft room so everyone sees the update
+                emit('player_removed_enhanced', response_data, room=f'draft_{league_name}')
+                print(f"✅ Successfully removed {player.name} from {team.name} - broadcasted to room draft_{league_name}")
                 logger.info(f"✅ Successfully removed {player.name} from {team.name}")
 
                 # Clean up Flask context

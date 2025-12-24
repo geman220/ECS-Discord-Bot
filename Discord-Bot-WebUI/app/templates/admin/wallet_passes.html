@@ -2,6 +2,7 @@
 {% block title %}Manage Wallet Passes{% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
     /* Passes list - Theme-aware styling */
     .pass-stat-card {
@@ -33,18 +34,18 @@
                     <p class="text-muted mb-0">View and manage all ECS Membership and Pub League wallet passes</p>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
-                    <a href="{{ url_for('wallet_admin.scanner') }}" class="btn btn-outline-primary">
+                    <a href="{{ url_for('wallet_admin.scanner') }}" class="c-btn c-btn--outline-primary">
                         <i class="ti ti-qrcode me-1"></i>Scanner
                     </a>
-                    <a href="{{ url_for('wallet_admin.checkins_list') }}" class="btn btn-outline-secondary">
+                    <a href="{{ url_for('wallet_admin.checkins_list') }}" class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-list-check me-1"></i>Check-ins
                     </a>
                     {% if 'Global Admin' in user_roles %}
                     <div class="dropdown">
-                        <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <button class="c-btn c-btn--success dropdown-toggle" type="button" data-bs-toggle="dropdown" data-dropdown-toggle>
                             <i class="ti ti-plus me-1"></i>Create Pass
                         </button>
-                        <ul class="dropdown-menu">
+                        <ul class="dropdown-menu" data-dropdown-menu>
                             <li><a class="dropdown-item" href="{{ url_for('wallet_admin.create_ecs_pass') }}">
                                 <i class="ti ti-id-badge-2 me-2"></i>ECS Membership
                             </a></li>
@@ -66,8 +67,8 @@
     <!-- Statistics Cards -->
     <div class="row mb-4">
         <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
-            <div class="card pass-stat-card h-100">
-                <div class="card-body">
+            <div class="c-card pass-stat-card h-100">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <p class="text-muted mb-1 small">Total Passes</p>
@@ -83,8 +84,8 @@
             </div>
         </div>
         <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
-            <div class="card pass-stat-card h-100">
-                <div class="card-body">
+            <div class="c-card pass-stat-card h-100">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <p class="text-muted mb-1 small">Active</p>
@@ -100,8 +101,8 @@
             </div>
         </div>
         <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
-            <div class="card pass-stat-card h-100">
-                <div class="card-body">
+            <div class="c-card pass-stat-card h-100">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <p class="text-muted mb-1 small">ECS Members</p>
@@ -117,8 +118,8 @@
             </div>
         </div>
         <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
-            <div class="card pass-stat-card h-100">
-                <div class="card-body">
+            <div class="c-card pass-stat-card h-100">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <p class="text-muted mb-1 small">Pub League</p>
@@ -136,16 +137,16 @@
     </div>
 
     <!-- Main Card with Tabs -->
-    <div class="card">
-        <div class="card-header pb-0">
+    <div class="c-card">
+        <div class="c-card__header pb-0">
             <!-- Tabs -->
-            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+            <ul class="nav nav-tabs c-card__header c-card__header--tabs" role="tablist" data-tabs>
                 <li class="nav-item">
                     <a class="nav-link {{ 'active' if active_tab == 'ecs' or not active_tab else '' }}"
                        href="{{ url_for('wallet_admin.passes_list', tab='ecs') }}">
                         <i class="ti ti-id-badge-2 me-1"></i>ECS Memberships
                         {% if stats.by_type and stats.by_type.ecs_membership %}
-                        <span class="badge bg-primary ms-1">{{ stats.by_type.ecs_membership.active }}</span>
+                        <span class="badge bg-primary ms-1" data-badge>{{ stats.by_type.ecs_membership.active }}</span>
                         {% endif %}
                     </a>
                 </li>
@@ -154,14 +155,14 @@
                        href="{{ url_for('wallet_admin.passes_list', tab='pub_league') }}">
                         <i class="ti ti-ball-football me-1"></i>Pub League
                         {% if stats.by_type and stats.by_type.pub_league %}
-                        <span class="badge bg-warning ms-1">{{ stats.by_type.pub_league.active }}</span>
+                        <span class="badge bg-warning ms-1" data-badge>{{ stats.by_type.pub_league.active }}</span>
                         {% endif %}
                     </a>
                 </li>
             </ul>
         </div>
 
-        <div class="card-body">
+        <div class="c-card__body">
             <!-- Filters -->
             <div class="filter-row mb-4">
                 <div class="row g-3 align-items-end">
@@ -171,15 +172,15 @@
                             <input type="hidden" name="tab" value="{{ active_tab or 'ecs' }}">
                             <input type="text" name="search" class="form-control"
                                    placeholder="Search by name or email..."
-                                   value="{{ search or '' }}">
-                            <button type="submit" class="btn btn-primary">
+                                   value="{{ search or '' }}" data-form-control>
+                            <button type="submit" class="c-btn c-btn--primary">
                                 <i class="ti ti-search"></i>
                             </button>
                         </form>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label small text-muted">Status Filter</label>
-                        <select class="form-select" onchange="filterByStatus(this.value)">
+                        <select class="form-select" data-action="filter-by-status" class="js-filter-by-status" data-form-select>
                             <option value="all" {{ 'selected' if status_filter == 'all' or not status_filter else '' }}>All Statuses</option>
                             <option value="active" {{ 'selected' if status_filter == 'active' else '' }}>Active Only</option>
                             <option value="voided" {{ 'selected' if status_filter == 'voided' else '' }}>Voided</option>
@@ -188,7 +189,7 @@
                     </div>
                     <div class="col-md-4 text-end">
                         {% if search or status_filter and status_filter != 'all' %}
-                        <a href="{{ url_for('wallet_admin.passes_list', tab=active_tab or 'ecs') }}" class="btn btn-outline-secondary">
+                        <a href="{{ url_for('wallet_admin.passes_list', tab=active_tab or 'ecs') }}" class="c-btn c-btn--outline-secondary">
                             <i class="ti ti-x me-1"></i>Clear Filters
                         </a>
                         {% endif %}
@@ -198,19 +199,19 @@
 
             <!-- Bulk Actions Bar (hidden by default, shown when items selected) -->
             {% if 'Global Admin' in user_roles %}
-            <div id="bulkActionsBar" class="alert alert-secondary d-none mb-4">
+            <div id="bulkActionsBar" class="alert alert-secondary d-none mb-4" data-alert>
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span id="selectedCount">0</span> passes selected
                     </div>
                     <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-sm btn-danger" onclick="bulkVoid()">
+                        <button type="button" class="c-btn c-btn--sm c-btn--danger" data-action="bulk-void" class="js-bulk-void">
                             <i class="ti ti-ban me-1"></i>Void Selected
                         </button>
-                        <button type="button" class="btn btn-sm btn-success" onclick="bulkReactivate()">
+                        <button type="button" class="c-btn c-btn--sm c-btn--success" data-action="bulk-reactivate" class="js-bulk-reactivate">
                             <i class="ti ti-refresh me-1"></i>Reactivate Selected
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearSelection()">
+                        <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary" data-action="clear-selection" class="js-clear-selection">
                             <i class="ti ti-x me-1"></i>Clear Selection
                         </button>
                     </div>
@@ -220,24 +221,24 @@
 
             <!-- Passes Table -->
             {% if passes and passes.items %}
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
+            <div class="c-table-wrapper" data-table-responsive>
+                <table class="c-table c-table--hoverable" data-table>
+                    <thead scope="col">
                         <tr>
                             {% if 'Global Admin' in user_roles %}
-                            <th style="width: 40px;">
-                                <input type="checkbox" class="form-check-input" id="selectAll" onclick="toggleSelectAll(this)">
+                            <th class="u-w-40" scope="col">
+                                <input type="checkbox" class="form-check-input js-select-all" id="passes-selectAll" data-action="toggle-select-all">
                             </th>
                             {% endif %}
-                            <th>Member</th>
+                            <th scope="col">Member</th>
                             {% if active_tab == 'pub_league' %}
-                            <th>Team</th>
+                            <th scope="col">Team</th>
                             {% endif %}
-                            <th>Validity Period</th>
-                            <th>Status</th>
-                            <th>Downloads</th>
-                            <th>Created</th>
-                            <th class="text-end">Actions</th>
+                            <th scope="col">Validity Period</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Downloads</th>
+                            <th scope="col">Created</th>
+                            <th class="text-end" scope="col">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -245,10 +246,10 @@
                         <tr>
                             {% if 'Global Admin' in user_roles %}
                             <td>
-                                <input type="checkbox" class="form-check-input pass-checkbox"
+                                <input type="checkbox" class="form-check-input pass-checkbox js-update-bulk-actions"
                                        value="{{ wallet_pass.id }}"
                                        data-status="{{ wallet_pass.status }}"
-                                       onchange="updateBulkActions()">
+                                       data-action="update-bulk-actions">
                             </td>
                             {% endif %}
                             <td>
@@ -269,36 +270,36 @@
                             {% if active_tab == 'pub_league' %}
                             <td>
                                 {% if wallet_pass.team_name %}
-                                <span class="badge bg-label-warning">{{ wallet_pass.team_name }}</span>
+                                <span class="badge bg-label-warning" data-badge>{{ wallet_pass.team_name }}</span>
                                 {% else %}
                                 <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
                             {% endif %}
                             <td>
-                                <span class="badge bg-label-{{ 'primary' if active_tab == 'ecs' or not active_tab else 'warning' }}">
+                                <span class="badge bg-label-{{ 'primary' if active_tab == 'ecs' or not active_tab else 'warning' }}" data-badge>
                                     {{ wallet_pass.display_validity if wallet_pass.display_validity else 'N/A' }}
                                 </span>
                             </td>
                             <td>
                                 {% if wallet_pass.status == 'active' and wallet_pass.is_valid %}
-                                <span class="badge bg-label-success">
+                                <span class="badge bg-label-success" data-badge>
                                     <i class="ti ti-check me-1"></i>Active
                                 </span>
                                 {% elif wallet_pass.status == 'voided' %}
-                                <span class="badge bg-label-danger">
+                                <span class="badge bg-label-danger" data-badge>
                                     <i class="ti ti-ban me-1"></i>Voided
                                 </span>
                                 {% elif wallet_pass.is_expired %}
-                                <span class="badge bg-label-secondary">
+                                <span class="badge bg-label-secondary" data-badge>
                                     <i class="ti ti-clock me-1"></i>Expired
                                 </span>
                                 {% else %}
-                                <span class="badge bg-label-warning">{{ wallet_pass.status }}</span>
+                                <span class="badge bg-label-warning" data-badge>{{ wallet_pass.status }}</span>
                                 {% endif %}
                             </td>
                             <td>
-                                <span class="badge bg-label-info">
+                                <span class="badge bg-label-info" data-badge>
                                     <i class="ti ti-download me-1"></i>{{ wallet_pass.download_count }}
                                 </span>
                             </td>
@@ -310,13 +311,13 @@
                             <td class="text-end">
                                 <div class="btn-group btn-group-sm">
                                     <a href="{{ url_for('wallet_admin.pass_detail', pass_id=wallet_pass.id) }}"
-                                       class="btn btn-outline-primary" title="View Details">
+                                       class="c-btn c-btn--outline-primary" title="View Details">
                                         <i class="ti ti-eye"></i>
                                     </a>
-                                    <button type="button" class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split"
-                                            data-bs-toggle="dropdown">
+                                    <button type="button" class="c-btn c-btn--outline-secondary dropdown-toggle dropdown-toggle-split"
+                                            data-bs-toggle="dropdown" data-dropdown-toggle>
                                     </button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
+                                    <ul class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
                                         <li>
                                             <a class="dropdown-item" href="{{ url_for('wallet_admin.download_pass', pass_id=wallet_pass.id, platform='apple') }}">
                                                 <i class="ti ti-brand-apple me-2"></i>Download Apple Pass
@@ -325,13 +326,13 @@
                                         <li><hr class="dropdown-divider"></li>
                                         {% if wallet_pass.status == 'active' %}
                                         <li>
-                                            <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="voidPass({{ wallet_pass.id }})">
+                                            <a class="dropdown-item text-danger" href="javascript:void(0);" data-action="void-pass" data-id="{{ wallet_pass.id }}" class="js-void-pass">
                                                 <i class="ti ti-ban me-2"></i>Void Pass
                                             </a>
                                         </li>
                                         {% else %}
                                         <li>
-                                            <a class="dropdown-item text-success" href="javascript:void(0);" onclick="reactivatePass({{ wallet_pass.id }})">
+                                            <a class="dropdown-item text-success" href="javascript:void(0);" data-action="reactivate-pass" data-id="{{ wallet_pass.id }}" class="js-reactivate-pass">
                                                 <i class="ti ti-refresh me-2"></i>Reactivate Pass
                                             </a>
                                         </li>
@@ -348,9 +349,9 @@
             <!-- Pagination -->
             {% if passes.pages > 1 %}
             <nav class="mt-4">
-                <ul class="pagination justify-content-center mb-0">
+                <ul class="pagination justify-content-center mb-0" data-pagination>
                     {% if passes.has_prev %}
-                    <li class="page-item">
+                    <li class="page-item" data-page-item>
                         <a class="page-link" href="{{ url_for('wallet_admin.passes_list', tab=active_tab or 'ecs', page=passes.prev_num, status=status_filter, search=search) }}">
                             <i class="ti ti-chevron-left"></i>
                         </a>
@@ -359,18 +360,18 @@
 
                     {% for page_num in passes.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
                         {% if page_num %}
-                        <li class="page-item {{ 'active' if page_num == passes.page else '' }}">
+                        <li class="page-item {{ 'active' if page_num == passes.page else '' }}" data-page-item data-page-active>
                             <a class="page-link" href="{{ url_for('wallet_admin.passes_list', tab=active_tab or 'ecs', page=page_num, status=status_filter, search=search) }}">
                                 {{ page_num }}
                             </a>
                         </li>
                         {% else %}
-                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                        <li class="page-item disabled" data-page-item data-page-disabled><span class="page-link">...</span></li>
                         {% endif %}
                     {% endfor %}
 
                     {% if passes.has_next %}
-                    <li class="page-item">
+                    <li class="page-item" data-page-item>
                         <a class="page-link" href="{{ url_for('wallet_admin.passes_list', tab=active_tab or 'ecs', page=passes.next_num, status=status_filter, search=search) }}">
                             <i class="ti ti-chevron-right"></i>
                         </a>
@@ -383,7 +384,7 @@
             {% else %}
             <!-- Empty State -->
             <div class="text-center py-5">
-                <i class="ti ti-wallet-off text-muted mb-3" style="font-size: 4rem;"></i>
+                <i class="ti ti-wallet-off text-muted mb-3" class="u-icon-4xl"></i>
                 <h5 class="text-muted mb-2">No Passes Found</h5>
                 <p class="text-muted mb-4">
                     {% if search or (status_filter and status_filter != 'all') %}
@@ -395,11 +396,11 @@
                     {% endif %}
                 </p>
                 {% if search or (status_filter and status_filter != 'all') %}
-                <a href="{{ url_for('wallet_admin.passes_list', tab=active_tab or 'ecs') }}" class="btn btn-outline-primary">
+                <a href="{{ url_for('wallet_admin.passes_list', tab=active_tab or 'ecs') }}" class="c-btn c-btn--outline-primary">
                     <i class="ti ti-x me-1"></i>Clear Filters
                 </a>
                 {% elif active_tab != 'pub_league' and 'Global Admin' in user_roles %}
-                <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="btn btn-success">
+                <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="c-btn c-btn--success">
                     <i class="ti ti-plus me-1"></i>Create First Pass
                 </a>
                 {% endif %}
@@ -410,19 +411,19 @@
 
     <!-- Bulk Generate Modal -->
 {% if 'Global Admin' in user_roles %}
-<div class="modal fade" id="bulkGenerateModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="ti ti-users me-2"></i>Bulk Generate Passes</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal c-modal fade" data-modal id="bulkGenerateModal" tabindex="-1" aria-labelledby="bulkGenerateModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="bulkGenerateModalLabel"><i class="ti ti-users me-2"></i>Bulk Generate Passes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <p>Generate wallet passes for all eligible players who don't already have one.</p>
 
                 <div class="mb-3">
                     <label class="form-label">Pass Type</label>
-                    <select class="form-select" id="bulkPassType">
+                    <select class="form-select" id="bulkPassType" data-form-select>
                         <option value="ecs_membership">ECS Membership</option>
                         <option value="pub_league">Pub League</option>
                     </select>
@@ -430,7 +431,7 @@
 
                 <div class="mb-3" id="yearField">
                     <label class="form-label">Year</label>
-                    <select class="form-select" id="bulkYear">
+                    <select class="form-select" id="bulkYear" data-form-select>
                         {% for y in range(2024, 2027) %}
                         <option value="{{ y }}" {{ 'selected' if y == 2025 else '' }}>{{ y }}</option>
                         {% endfor %}
@@ -439,10 +440,10 @@
 
                 <div class="mb-3 d-none" id="seasonField">
                     <label class="form-label">Season Name</label>
-                    <input type="text" class="form-control" id="bulkSeasonName" placeholder="e.g., Spring 2025">
+                    <input type="text" class="form-control" id="bulkSeasonName" placeholder="e.g., Spring 2025" data-form-control>
                 </div>
 
-                <div class="alert alert-info small">
+                <div class="alert alert-info small" data-alert>
                     <i class="ti ti-info-circle me-1"></i>
                     <strong>Note:</strong> Only players who are active, have a team assignment, and have a user account will receive passes.
                     Players who already have a non-voided pass of this type will be skipped.
@@ -454,9 +455,9 @@
                     <div id="bulkResultsContent"></div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="bulkGenerateBtn" onclick="bulkGenerate()">
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
+                <button type="button" class="c-btn c-btn--primary" id="bulkGenerateBtn" data-action="bulk-generate" class="js-bulk-generate">
                     <i class="ti ti-bolt me-1"></i>Generate Passes
                 </button>
             </div>
@@ -465,31 +466,31 @@
 </div>
 
 <!-- Bulk Void Reason Modal -->
-<div class="modal fade" id="bulkVoidModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="ti ti-ban me-2 text-danger"></i>Bulk Void Passes</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal c-modal fade" data-modal id="bulkVoidModal" tabindex="-1" aria-labelledby="bulkVoidModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="bulkVoidModalLabel"><i class="ti ti-ban me-2 text-danger"></i>Bulk Void Passes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <p>You are about to void <strong id="voidCount">0</strong> passes.</p>
 
                 <div class="mb-3">
                     <label class="form-label">Reason for Voiding</label>
                     <input type="text" class="form-control" id="voidReason" value="Bulk voided by admin"
-                           placeholder="Enter reason...">
+                           placeholder="Enter reason..." data-form-control>
                 </div>
 
-                <div class="alert alert-warning small">
+                <div class="alert alert-warning small" data-alert>
                     <i class="ti ti-alert-triangle me-1"></i>
                     <strong>Warning:</strong> Voided passes will be marked as invalid. Push notifications will be sent
                     to affected users' devices.
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" onclick="confirmBulkVoid()">
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--danger" data-action="confirm-bulk-void" class="js-confirm-bulk-void">
                     <i class="ti ti-ban me-1"></i>Void Passes
                 </button>
             </div>
@@ -588,7 +589,7 @@ function bulkVoid() {
     if (ids.length === 0) return;
 
     document.getElementById('voidCount').textContent = ids.length;
-    new bootstrap.Modal(document.getElementById('bulkVoidModal')).show();
+    ModalManager.show('bulkVoidModal');
 }
 
 function confirmBulkVoid() {
@@ -675,7 +676,7 @@ function bulkGenerate() {
         resultsDiv.classList.remove('d-none');
 
         if (data.error) {
-            resultsContent.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            resultsContent.innerHTML = `<div class="alert alert-danger" data-alert>${data.error}</div>`;
             return;
         }
 
@@ -699,7 +700,7 @@ function bulkGenerate() {
     .catch(err => {
         btn.disabled = false;
         btn.innerHTML = '<i class="ti ti-bolt me-1"></i>Generate Passes';
-        resultsContent.innerHTML = `<div class="alert alert-danger">Error generating passes. Please try again.</div>`;
+        resultsContent.innerHTML = `<div class="alert alert-danger" data-alert>Error generating passes. Please try again.</div>`;
         resultsDiv.classList.remove('d-none');
     });
 }

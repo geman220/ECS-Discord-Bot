@@ -12,393 +12,150 @@
 {% block panel_content %}
 
 <!-- Statistics Cards -->
-<div class="row mb-4">
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.total_leagues or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Total Leagues</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-flag" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
+<div class="c-stats-grid" data-component="stats-grid">
+    <div class="c-stat-card c-stat-card--primary" data-stat-card data-stat-type="total">
+        <div class="c-stat-card__content">
+            <div class="c-stat-card__body">
+                <h5 class="c-stat-card__value">{{ stats.total_leagues or 0 }}</h5>
+                <p class="c-stat-card__label">Total Leagues</p>
+            </div>
+            <div class="c-stat-card__icon">
+                <i class="ti ti-flag"></i>
             </div>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.active_leagues or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Active Leagues</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-flag-check" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
+
+    <div class="c-stat-card c-stat-card--success" data-stat-card data-stat-type="active">
+        <div class="c-stat-card__content">
+            <div class="c-stat-card__body">
+                <h5 class="c-stat-card__value">{{ stats.active_leagues or 0 }}</h5>
+                <p class="c-stat-card__label">Active Leagues</p>
+            </div>
+            <div class="c-stat-card__icon">
+                <i class="ti ti-flag-check"></i>
             </div>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.leagues_with_teams or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">With Teams</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-users" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
+
+    <div class="c-stat-card c-stat-card--warning" data-stat-card data-stat-type="with-teams">
+        <div class="c-stat-card__content">
+            <div class="c-stat-card__body">
+                <h5 class="c-stat-card__value">{{ stats.leagues_with_teams or 0 }}</h5>
+                <p class="c-stat-card__label">With Teams</p>
+            </div>
+            <div class="c-stat-card__icon">
+                <i class="ti ti-users"></i>
             </div>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.leagues_with_matches or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">With Matches</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-calendar" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
+
+    <div class="c-stat-card c-stat-card--info" data-stat-card data-stat-type="with-matches">
+        <div class="c-stat-card__content">
+            <div class="c-stat-card__body">
+                <h5 class="c-stat-card__value">{{ stats.leagues_with_matches or 0 }}</h5>
+                <p class="c-stat-card__label">With Matches</p>
+            </div>
+            <div class="c-stat-card__icon">
+                <i class="ti ti-calendar"></i>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Leagues Table -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-flag me-2"></i>Leagues
-                    </h5>
-                    <button class="btn btn-primary btn-sm" onclick="createLeague()">
-                        <i class="ti ti-plus me-1"></i>Create League
-                    </button>
-                </div>
+<div class="c-panel-section" data-component="panel-section">
+    <div class="c-card" data-card>
+        <div class="c-card__header c-card__header--action">
+            <h5 class="c-card__title">
+                <i class="ti ti-flag"></i>Leagues
+            </h5>
+            <button class="c-btn c-btn--primary c-btn--sm" data-action="create-league">
+                <i class="ti ti-plus"></i>Create League
+            </button>
+        </div>
+        <div class="c-card__body">
+            {% if leagues %}
+            <div class="c-table-responsive" data-table-container>
+                <table class="c-table" data-table data-table-type="leagues">
+                    <thead class="c-table__head">
+                        <tr class="c-table__row">
+                            <th class="c-table__header" scope="col">League Name</th>
+                            <th class="c-table__header" scope="col">Season</th>
+                            <th class="c-table__header" scope="col">Teams</th>
+                            <th class="c-table__header" scope="col">Matches</th>
+                            <th class="c-table__header" scope="col">Status</th>
+                            <th class="c-table__header" scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="c-table__body">
+                        {% for league in leagues %}
+                        <tr class="c-table__row" data-league-id="{{ league.id }}">
+                            <td class="c-table__cell">
+                                <strong>{{ league.name }}</strong>
+                            </td>
+                            <td class="c-table__cell">
+                                <span class="c-text-muted">{{ league.season.name if league.season else 'No Season' }}</span>
+                            </td>
+                            <td class="c-table__cell">
+                                <span class="c-badge c-badge--primary" data-badge data-badge-type="count">{{ league.team_count or 0 }}</span>
+                            </td>
+                            <td class="c-table__cell">
+                                <span class="c-badge c-badge--info" data-badge data-badge-type="count">{{ league.match_count or 0 }}</span>
+                            </td>
+                            <td class="c-table__cell">
+                                <span class="c-badge c-badge--success" data-badge data-status="active">{{ league.status or 'Active' }}</span>
+                            </td>
+                            <td class="c-table__cell">
+                                <div class="c-btn-group" data-btn-group>
+                                    <button class="c-btn c-btn--icon c-btn--outline-info" data-action="view-league" data-league-id="{{ league.id }}" aria-label="View league">
+                                        <i class="ti ti-eye"></i>
+                                    </button>
+                                    <button class="c-btn c-btn--icon c-btn--outline-warning" data-action="edit-league" data-league-id="{{ league.id }}" aria-label="Edit league">
+                                        <i class="ti ti-edit"></i>
+                                    </button>
+                                    <button class="c-btn c-btn--icon c-btn--outline-success" data-action="toggle-league" data-league-id="{{ league.id }}" aria-label="Toggle league status">
+                                        <i class="ti ti-toggle-left"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            <div class="card-body">
-                {% if leagues %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>League Name</th>
-                                <th>Season</th>
-                                <th>Teams</th>
-                                <th>Matches</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for league in leagues %}
-                            <tr>
-                                <td>
-                                    <strong>{{ league.name }}</strong>
-                                </td>
-                                <td>
-                                    <span class="text-muted">{{ league.season.name if league.season else 'No Season' }}</span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-primary">{{ league.team_count or 0 }}</span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-info">{{ league.match_count or 0 }}</span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-success">{{ league.status or 'Active' }}</span>
-                                </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-info" onclick="viewLeague({{ league.id }})">
-                                            <i class="ti ti-eye"></i>
-                                        </button>
-                                        <button class="btn btn-outline-warning" onclick="editLeague({{ league.id }})">
-                                            <i class="ti ti-edit"></i>
-                                        </button>
-                                        <button class="btn btn-outline-success" onclick="toggleLeagueStatus({{ league.id }})">
-                                            <i class="ti ti-toggle-left"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="text-center py-5">
-                    <i class="ti ti-flag-off text-muted" style="font-size: 4rem;"></i>
-                    <h5 class="text-muted mt-3">No Leagues Found</h5>
-                    <p class="text-muted">Create your first league to get started.</p>
-                    <button class="btn btn-primary" onclick="createLeague()">
-                        <i class="ti ti-plus me-1"></i>Create League
-                    </button>
-                </div>
-                {% endif %}
+            {% else %}
+            <div class="c-empty-state" data-component="empty-state" data-empty-type="leagues">
+                <i class="ti ti-flag-off c-empty-state__icon"></i>
+                <h5 class="c-empty-state__title">No Leagues Found</h5>
+                <p class="c-empty-state__text">Create your first league to get started.</p>
+                <button class="c-btn c-btn--primary" data-action="create-league">
+                    <i class="ti ti-plus"></i>Create League
+                </button>
             </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
-<!-- Quick Actions -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="alert alert-info">
-            <div class="d-flex align-items-center">
-                <i class="ti ti-info-circle me-2"></i>
-                <div>
-                    <strong>League Management:</strong> 
-                    Manage all leagues in your system. Create new leagues, edit existing ones, and manage team assignments.
-                </div>
-            </div>
+<!-- Info Alert -->
+<div class="c-panel-section" data-component="panel-section">
+    <div class="c-alert c-alert--info" data-alert data-alert-type="info">
+        <i class="ti ti-info-circle c-alert__icon"></i>
+        <div class="c-alert__content">
+            <strong>League Management:</strong>
+            Manage all leagues in your system. Create new leagues, edit existing ones, and manage team assignments.
         </div>
     </div>
 </div>
 
-{% endblock %}
-
-{% block custom_js %}
-<script>
-// Store seasons for the dropdown
-let availableSeasons = [];
-
-// Fetch seasons on page load
-document.addEventListener('DOMContentLoaded', function() {
-    fetch('/admin-panel/match-operations/seasons')
-        .then(response => response.text())
-        .then(html => {
-            // We'll use a simpler approach - just provide season selection in forms
-        })
-        .catch(() => console.log('Could not preload seasons'));
-});
-
-function createLeague() {
-    Swal.fire({
-        title: 'Create New League',
-        html: `
-            <div class="text-start">
-                <div class="mb-3">
-                    <label class="form-label">League Name <span class="text-danger">*</span></label>
-                    <input type="text" id="leagueName" class="form-control" placeholder="e.g., Division A">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Season ID (optional)</label>
-                    <input type="number" id="leagueSeasonId" class="form-control" placeholder="Enter season ID">
-                    <small class="text-muted">Leave blank for no season association</small>
-                </div>
-            </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Create League',
-        cancelButtonText: 'Cancel',
-        preConfirm: () => {
-            const name = document.getElementById('leagueName').value;
-            if (!name) {
-                Swal.showValidationMessage('League name is required');
-                return false;
-            }
-            return {
-                name: name,
-                season_id: document.getElementById('leagueSeasonId').value
-            };
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const formData = new FormData();
-            formData.append('name', result.value.name);
-            if (result.value.season_id) {
-                formData.append('season_id', result.value.season_id);
-            }
-
-            fetch('{{ url_for("admin_panel.create_league") }}', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Success', data.message, 'success').then(() => location.reload());
-                } else {
-                    Swal.fire('Error', data.message, 'error');
-                }
-            })
-            .catch(() => Swal.fire('Error', 'Failed to create league', 'error'));
-        }
-    });
-}
-
-function viewLeague(leagueId) {
-    fetch(`/admin-panel/match-operations/leagues/${leagueId}/details`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const league = data.league;
-                Swal.fire({
-                    title: league.name,
-                    html: `
-                        <div class="text-start">
-                            <p><strong>League ID:</strong> ${league.id}</p>
-                            <p><strong>Season ID:</strong> ${league.season_id || 'None'}</p>
-                        </div>
-                    `,
-                    icon: 'info'
-                });
-            } else {
-                Swal.fire('Error', data.message, 'error');
-            }
-        })
-        .catch(() => Swal.fire('Error', 'Failed to load league details', 'error'));
-}
-
-function editLeague(leagueId) {
-    // First fetch the league details
-    fetch(`/admin-panel/match-operations/leagues/${leagueId}/details`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const league = data.league;
-                Swal.fire({
-                    title: 'Edit League',
-                    html: `
-                        <div class="text-start">
-                            <div class="mb-3">
-                                <label class="form-label">League Name <span class="text-danger">*</span></label>
-                                <input type="text" id="editLeagueName" class="form-control" value="${league.name}">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Season ID (optional)</label>
-                                <input type="number" id="editLeagueSeasonId" class="form-control" value="${league.season_id || ''}">
-                            </div>
-                        </div>
-                    `,
-                    showCancelButton: true,
-                    showDenyButton: true,
-                    confirmButtonText: 'Save Changes',
-                    denyButtonText: 'Delete League',
-                    denyButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-                    cancelButtonText: 'Cancel',
-                    preConfirm: () => {
-                        const name = document.getElementById('editLeagueName').value;
-                        if (!name) {
-                            Swal.showValidationMessage('League name is required');
-                            return false;
-                        }
-                        return {
-                            name: name,
-                            season_id: document.getElementById('editLeagueSeasonId').value
-                        };
-                    }
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        const formData = new FormData();
-                        formData.append('name', result.value.name);
-                        if (result.value.season_id) {
-                            formData.append('season_id', result.value.season_id);
-                        }
-
-                        fetch(`/admin-panel/match-operations/leagues/${leagueId}/update`, {
-                            method: 'POST',
-                            body: formData
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                Swal.fire('Success', data.message, 'success').then(() => location.reload());
-                            } else {
-                                Swal.fire('Error', data.message, 'error');
-                            }
-                        })
-                        .catch(() => Swal.fire('Error', 'Failed to update league', 'error'));
-                    } else if (result.isDenied) {
-                        deleteLeague(leagueId, league.name);
-                    }
-                });
-            } else {
-                Swal.fire('Error', data.message, 'error');
-            }
-        })
-        .catch(() => Swal.fire('Error', 'Failed to load league details', 'error'));
-}
-
-function deleteLeague(leagueId, leagueName) {
-    Swal.fire({
-        title: 'Delete League?',
-        text: `Are you sure you want to delete "${leagueName}"? This cannot be undone.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, delete',
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch(`/admin-panel/match-operations/leagues/${leagueId}/delete`, {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Deleted', data.message, 'success').then(() => location.reload());
-                } else {
-                    Swal.fire('Error', data.message, 'error');
-                }
-            })
-            .catch(() => Swal.fire('Error', 'Failed to delete league', 'error'));
-        }
-    });
-}
-
-function toggleLeagueStatus(leagueId) {
-    // Make AJAX request to toggle league status
-    fetch(`{{ url_for('admin_panel.toggle_league_status') }}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `league_id=${leagueId}`
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            Swal.fire({
-                title: 'Success',
-                text: data.message,
-                icon: 'success'
-            }).then(() => {
-                location.reload();
-            });
-        } else {
-            Swal.fire({
-                title: 'Error',
-                text: data.message,
-                icon: 'error'
-            });
-        }
-    })
-    .catch(error => {
-        Swal.fire({
-            title: 'Error',
-            text: 'An error occurred while updating league status',
-            icon: 'error'
-        });
-    });
-}
-</script>
 {% endblock %}
 
 {% block custom_css %}
 {{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/match-operations/seasons.css') }}">
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/match-operations/manage-leagues.js') }}"></script>
 {% endblock %}

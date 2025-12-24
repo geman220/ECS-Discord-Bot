@@ -11,60 +11,60 @@
 <!-- Statistics Overview Cards -->
 <div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
+        <div class="c-card bg-primary text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ "{:,}".format(stats.total_players) }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Total Players</p>
+                        <h5 class="c-card__title text-white mb-1">{{ "{:,}".format(stats.total_players) }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Total Players</p>
                     </div>
-                    <div class="card-icon">
-                        <i class="ti ti-users" style="font-size: 2rem; opacity: 0.5;"></i>
+                    <div class="card-icon-stat">
+                        <i class="ti ti-users"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
+        <div class="c-card bg-success text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.total_teams }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Teams</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.total_teams }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Teams</p>
                     </div>
-                    <div class="card-icon">
-                        <i class="ti ti-shield" style="font-size: 2rem; opacity: 0.5;"></i>
+                    <div class="card-icon-stat">
+                        <i class="ti ti-shield"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
+        <div class="c-card bg-info text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ "{:,}".format(stats.total_matches) }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Total Matches</p>
+                        <h5 class="c-card__title text-white mb-1">{{ "{:,}".format(stats.total_matches) }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Total Matches</p>
                     </div>
-                    <div class="card-icon">
-                        <i class="ti ti-trophy" style="font-size: 2rem; opacity: 0.5;"></i>
+                    <div class="card-icon-stat">
+                        <i class="ti ti-trophy"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
+        <div class="c-card bg-warning text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.data_quality }}%</h5>
-                        <p class="card-text small opacity-75 mb-0">Data Quality</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.data_quality }}%</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Data Quality</p>
                     </div>
-                    <div class="card-icon">
-                        <i class="ti ti-chart-line" style="font-size: 2rem; opacity: 0.5;"></i>
+                    <div class="card-icon-stat">
+                        <i class="ti ti-chart-line"></i>
                     </div>
                 </div>
             </div>
@@ -75,38 +75,38 @@
 <!-- Quick Actions -->
 <div class="row mb-4">
     <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-rocket me-2"></i>Quick Actions
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <div class="d-grid">
-                            <a href="{{ url_for('admin_panel.player_statistics') }}" class="btn btn-primary">
+                            <a href="{{ url_for('admin_panel.player_statistics') }}" class="c-btn c-btn--primary">
                                 <i class="ti ti-user me-2"></i>Player Statistics
                             </a>
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <div class="d-grid">
-                            <a href="{{ url_for('admin_panel.team_statistics') }}" class="btn btn-success">
+                            <a href="{{ url_for('admin_panel.team_statistics') }}" class="c-btn c-btn--success">
                                 <i class="ti ti-shield me-2"></i>Team Statistics
                             </a>
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <div class="d-grid">
-                            <a href="{{ url_for('admin_panel.league_statistics') }}" class="btn btn-info">
+                            <a href="{{ url_for('admin_panel.league_statistics') }}" class="c-btn c-btn--info">
                                 <i class="ti ti-trophy me-2"></i>League Statistics
                             </a>
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <div class="d-grid">
-                            <button type="button" class="btn btn-warning" onclick="recalculateStatistics()">
+                            <button type="button" class="c-btn c-btn--warning js-recalculate-stats" data-action="recalculate-stats">
                                 <i class="ti ti-refresh me-2"></i>Recalculate All
                             </button>
                         </div>
@@ -117,21 +117,21 @@
     </div>
     
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-gauge me-2"></i>System Health
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <span class="small">Data Quality</span>
                         <span class="small fw-bold">{{ stats.data_quality }}%</span>
                     </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar bg-{% if stats.data_quality > 80 %}success{% elif stats.data_quality > 60 %}warning{% else %}danger{% endif %}" 
-                             style="width: {{ stats.data_quality }}%"></div>
+                    <div class="progress progress-thin">
+                        <div class="progress-bar bg-{% if stats.data_quality > 80 %}success{% elif stats.data_quality > 60 %}warning{% else %}danger{% endif %} progress-thin-bar"
+                             data-width="{{ stats.data_quality }}"></div>
                     </div>
                 </div>
                 <div class="mb-3">
@@ -139,13 +139,13 @@
                         <span class="small">Active Players</span>
                         <span class="small fw-bold">{{ stats.active_players }}</span>
                     </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar bg-primary" 
-                             style="width: {% if stats.total_players > 0 %}{{ (stats.active_players / stats.total_players * 100) }}%{% else %}0%{% endif %}"></div>
+                    <div class="progress progress-thin">
+                        <div class="progress-bar bg-primary progress-thin-bar"
+                             data-width="{% if stats.total_players > 0 %}{{ (stats.active_players / stats.total_players * 100) }}{% else %}0{% endif %}"></div>
                     </div>
                 </div>
                 <div class="text-center">
-                    <span class="badge bg-{% if stats.recent_updates > 10 %}success{% elif stats.recent_updates > 5 %}warning{% else %}secondary{% endif %}">
+                    <span class="badge bg-{% if stats.recent_updates > 10 %}success{% elif stats.recent_updates > 5 %}warning{% else %}secondary{% endif %}" data-badge>
                         {{ stats.recent_updates }} updates this week
                     </span>
                 </div>
@@ -157,13 +157,13 @@
 <!-- Top Performers -->
 <div class="row mb-4">
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-target me-2"></i>Top Goal Scorers
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if top_performers.goals %}
                 {% for performer in top_performers.goals %}
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -172,7 +172,7 @@
                         <br><small class="text-muted">{{ performer.team }} • {{ performer.season }}</small>
                     </div>
                     <div class="text-end">
-                        <span class="badge bg-primary">{{ performer.value }}</span>
+                        <span class="badge bg-primary" data-badge>{{ performer.value }}</span>
                     </div>
                 </div>
                 {% endfor %}
@@ -184,13 +184,13 @@
     </div>
     
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-hand me-2"></i>Top Assists
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if top_performers.assists %}
                 {% for performer in top_performers.assists %}
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -199,7 +199,7 @@
                         <br><small class="text-muted">{{ performer.team }} • {{ performer.season }}</small>
                     </div>
                     <div class="text-end">
-                        <span class="badge bg-success">{{ performer.value }}</span>
+                        <span class="badge bg-success" data-badge>{{ performer.value }}</span>
                     </div>
                 </div>
                 {% endfor %}
@@ -211,13 +211,13 @@
     </div>
     
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-calendar me-2"></i>Most Appearances
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if top_performers.appearances %}
                 {% for performer in top_performers.appearances %}
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -226,7 +226,7 @@
                         <br><small class="text-muted">{{ performer.team }} • {{ performer.season }}</small>
                     </div>
                     <div class="text-end">
-                        <span class="badge bg-info">{{ performer.value }}</span>
+                        <span class="badge bg-info" data-badge>{{ performer.value }}</span>
                     </div>
                 </div>
                 {% endfor %}
@@ -241,27 +241,27 @@
 <!-- League Comparison -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-trophy me-2"></i>League Performance Comparison
                 </h5>
-                <button type="button" class="btn btn-outline-primary btn-sm" onclick="exportStatistics('leagues', 'csv')">
+                <button type="button" class="c-btn c-btn--outline-primary c-btn--sm js-export-stats" data-action="export-stats" data-type="leagues" data-format="csv">
                     <i class="ti ti-download me-1"></i>Export
                 </button>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if league_comparison %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>League</th>
-                                <th>Teams</th>
-                                <th>Players</th>
-                                <th>Matches</th>
-                                <th>Avg Goals/Match</th>
-                                <th>Competitiveness</th>
+                                <th scope="col">League</th>
+                                <th scope="col">Teams</th>
+                                <th scope="col">Players</th>
+                                <th scope="col">Matches</th>
+                                <th scope="col">Avg Goals/Match</th>
+                                <th scope="col">Competitiveness</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -274,8 +274,8 @@
                                 <td>{{ league.avg_goals_per_match }}</td>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        <div class="progress me-2" style="width: 60px; height: 8px;">
-                                            <div class="progress-bar bg-primary" style="width: {{ league.competitiveness_score }}%"></div>
+                                        <div class="progress me-2 competitiveness-progress">
+                                            <div class="progress-bar bg-primary progress-thin-bar" data-width="{{ league.competitiveness_score }}"></div>
                                         </div>
                                         <small>{{ league.competitiveness_score }}%</small>
                                     </div>
@@ -296,13 +296,13 @@
 <!-- Recent Updates -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-activity me-2"></i>Recent Statistical Updates
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if recent_updates %}
                 <div class="timeline">
                     {% for update in recent_updates %}
@@ -314,7 +314,7 @@
                                     <p class="mb-1 small">{{ update.description }}</p>
                                     <small class="text-muted">{{ update.user }} • {{ update.timestamp.strftime('%H:%M') }}</small>
                                 </div>
-                                <span class="badge bg-info ms-2">Stats</span>
+                                <span class="badge bg-info ms-2" data-badge>Stats</span>
                             </div>
                         </div>
                     </div>
@@ -331,6 +331,7 @@
 {% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
 .timeline {
     position: relative;
@@ -377,7 +378,28 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
+// Event delegation for statistics actions
+document.addEventListener('DOMContentLoaded', function() {
+    // Recalculate Statistics button delegation
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.js-recalculate-stats')) {
+            recalculateStatistics();
+        }
+    });
+
+    // Export Statistics button delegation
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.js-export-stats')) {
+            const btn = e.target.closest('.js-export-stats');
+            const type = btn.dataset.type;
+            const format = btn.dataset.format;
+            exportStatistics(type, format);
+        }
+    });
+});
+
 function recalculateStatistics() {
     Swal.fire({
         title: 'Recalculate Statistics',

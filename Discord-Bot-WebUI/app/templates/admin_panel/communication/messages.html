@@ -11,45 +11,33 @@
 {% endblock %}
 
 {% block panel_content %}
-
-    <!-- Help / Documentation Section -->
+    <!-- Quick Actions Row -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="alert alert-info border-0" style="background: linear-gradient(135deg, rgba(0, 123, 255, 0.1) 0%, rgba(0, 123, 255, 0.05) 100%);">
-                <div class="d-flex align-items-start">
-                    <i class="ti ti-info-circle me-3" style="font-size: 1.5rem;"></i>
-                    <div>
-                        <h6 class="alert-heading mb-1">About Message Templates</h6>
-                        <p class="mb-2 small">
-                            Message Templates allow you to create reusable, customizable messages for the system.
-                            Organize templates into <strong>categories</strong> (e.g., "Notifications", "Welcome Messages", "Match Reminders")
-                            and use <strong>variables</strong> to personalize messages dynamically.
-                        </p>
-                        <div class="row small">
-                            <div class="col-md-4">
-                                <strong>Example Categories:</strong>
-                                <ul class="mb-0 ps-3">
-                                    <li>Match Notifications</li>
-                                    <li>Welcome/Onboarding</li>
-                                    <li>Discord Bot Messages</li>
-                                </ul>
+            <div class="c-card">
+                <div class="c-card__body py-3">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                        <!-- Search Bar -->
+                        <div class="flex-grow-1" style="max-width: 400px;">
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent border-end-0">
+                                    <i class="ti ti-search"></i>
+                                </span>
+                                <input type="text" class="form-control border-start-0" id="templateSearch"
+                                       placeholder="Search templates, categories, or variables...">
                             </div>
-                            <div class="col-md-4">
-                                <strong>Example Variables:</strong>
-                                <ul class="mb-0 ps-3">
-                                    <li><code>{player_name}</code></li>
-                                    <li><code>{team_name}</code></li>
-                                    <li><code>{match_date}</code></li>
-                                </ul>
-                            </div>
-                            <div class="col-md-4">
-                                <strong>Where Used:</strong>
-                                <ul class="mb-0 ps-3">
-                                    <li>Email notifications</li>
-                                    <li>SMS messages</li>
-                                    <li>Discord bot announcements</li>
-                                </ul>
-                            </div>
+                        </div>
+                        <!-- Quick Links -->
+                        <div class="d-flex gap-2 flex-wrap">
+                            <a href="{{ url_for('admin_panel.league_settings') }}" class="c-btn c-btn--outline-info">
+                                <i class="ti ti-trophy me-1"></i>League Settings
+                            </a>
+                            <a href="{{ url_for('admin_panel.announcements') }}" class="c-btn c-btn--outline-secondary">
+                                <i class="ti ti-speakerphone me-1"></i>Announcements
+                            </a>
+                            <button class="c-btn c-btn--primary" data-bs-toggle="modal" data-bs-target="#createCategoryModal">
+                                <i class="ti ti-plus me-1"></i>Add Category
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -57,128 +45,89 @@
         </div>
     </div>
 
-    <!-- Message Template Overview -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ categories|length }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Categories</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-folder" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ total_templates }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Total Templates</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-file-text" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ active_templates }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Active Templates</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-check-circle" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ recent_announcements|length }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Recent Announcements</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-speakerphone" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     <!-- Message Categories -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-folder me-2"></i>Message Categories
-                    </h5>
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createCategoryModal">
+            <div class="c-card">
+                <div class="c-card__header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div class="d-flex align-items-center gap-3">
+                        <h5 class="c-card__title mb-0">
+                            <i class="ti ti-folder me-2"></i>Message Categories
+                        </h5>
+                        <div class="d-none d-md-flex align-items-center gap-2 text-muted small">
+                            <span><strong>{{ categories|length }}</strong> categories</span>
+                            <span class="text-muted">|</span>
+                            <span><strong>{{ total_templates }}</strong> total templates</span>
+                            <span class="text-muted">|</span>
+                            <span class="text-success"><strong>{{ active_templates }}</strong> active</span>
+                        </div>
+                    </div>
+                    <button class="c-btn c-btn--primary" data-bs-toggle="modal" data-bs-target="#createCategoryModal">
                         <i class="ti ti-plus me-1"></i>Add Category
                     </button>
                 </div>
-                <div class="card-body p-0">
+                <div class="c-card__body p-0">
                     {% if categories %}
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
+                    <div class="c-table-wrapper" data-table-responsive>
+                        <table class="c-table c-table--hoverable mb-0" data-table>
+                            <thead class="c-table--light" scope="col">
                                 <tr>
-                                    <th>Category</th>
-                                    <th>Description</th>
-                                    <th>Templates</th>
-                                    <th>Last Updated</th>
-                                    <th>Actions</th>
+                                    <th scope="col">Category</th>
+                                    <th scope="col">Description</th>
+                                    <th scope="col" class="text-center">Templates</th>
+                                    <th scope="col">Last Updated</th>
+                                    <th scope="col" class="text-end">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for category in categories %}
-                                <tr>
+                                <tr class="category-row" data-category-name="{{ category.name }}" data-category-desc="{{ category.description or '' }}">
                                     <td>
-                                        <div class="d-flex align-items-center">
-                                            <i class="ti ti-folder me-2 text-primary"></i>
-                                            <strong>{{ category.name }}</strong>
-                                        </div>
+                                        <a href="{{ url_for('admin_panel.message_category', category_id=category.id) }}"
+                                           class="d-flex align-items-center text-decoration-none">
+                                            <i class="ti ti-folder-filled me-2 text-primary"></i>
+                                            <strong class="text-body">{{ category.name }}</strong>
+                                        </a>
                                     </td>
                                     <td>
-                                        <span class="text-muted">{{ category.description or 'No description' }}</span>
+                                        <span class="text-muted small">{{ category.description or 'No description' }}</span>
                                     </td>
-                                    <td>
-                                        <span class="badge bg-info">{{ category.templates|length }} templates</span>
+                                    <td class="text-center">
+                                        {% set template_count = category.templates|length %}
+                                        {% set active_count = category.templates|selectattr('is_active', 'equalto', true)|list|length %}
+                                        <span class="badge {% if template_count == 0 %}bg-secondary{% elif active_count == template_count %}bg-success{% else %}bg-info{% endif %}" data-badge>
+                                            {{ template_count }}{% if template_count > 0 %} <small class="opacity-75">({{ active_count }} active)</small>{% endif %}
+                                        </span>
                                     </td>
                                     <td>
                                         <small class="text-muted">
                                             {{ category.updated_at.strftime('%Y-%m-%d %H:%M') if category.updated_at else 'Never' }}
                                         </small>
                                     </td>
-                                    <td>
+                                    <td class="text-end">
                                         <div class="btn-group btn-group-sm">
-                                            <a href="{{ url_for('admin_panel.message_category', category_id=category.id) }}" 
-                                               class="btn btn-outline-primary">
+                                            <a href="{{ url_for('admin_panel.message_category', category_id=category.id) }}"
+                                               class="c-btn c-btn--outline-primary" title="View Templates">
                                                 <i class="ti ti-eye"></i>
                                             </a>
-                                            <button class="btn btn-outline-warning" 
-                                                    onclick="editCategory({{ category.id }}, '{{ category.name }}', '{{ category.description or '' }}')">
+                                            <button class="c-btn c-btn--outline-warning js-edit-category"
+                                                    data-action="edit-category"
+                                                    data-category-id="{{ category.id }}"
+                                                    data-category-name="{{ category.name }}"
+                                                    data-category-description="{{ category.description or '' }}"
+                                                    title="Edit Category">
                                                 <i class="ti ti-edit"></i>
                                             </button>
                                             {% if category.templates|length == 0 %}
-                                            <button class="btn btn-outline-danger" 
-                                                    onclick="deleteCategory({{ category.id }}, '{{ category.name }}')">
+                                            <button class="c-btn c-btn--outline-danger js-delete-category"
+                                                    data-action="delete-category"
+                                                    data-category-id="{{ category.id }}"
+                                                    data-category-name="{{ category.name }}"
+                                                    data-delete-url="{{ url_for('admin_panel.delete_message_category') }}"
+                                                    data-csrf-token="{{ csrf_token() }}"
+                                                    title="Delete Category">
                                                 <i class="ti ti-trash"></i>
                                             </button>
                                             {% endif %}
@@ -191,10 +140,10 @@
                     </div>
                     {% else %}
                     <div class="text-center py-5">
-                        <i class="ti ti-folder-x text-muted" style="font-size: 4rem;"></i>
+                        <i class="ti ti-folder-x text-muted icon-empty-state"></i>
                         <h5 class="text-muted mt-3">No message categories found</h5>
                         <p class="text-muted">Create your first message category to get started.</p>
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createCategoryModal">
+                        <button class="c-btn c-btn--primary" data-bs-toggle="modal" data-bs-target="#createCategoryModal">
                             <i class="ti ti-plus me-1"></i>Create Category
                         </button>
                     </div>
@@ -208,24 +157,24 @@
     {% if recent_announcements %}
     <div class="row">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-speakerphone me-2"></i>Recent Announcements
                     </h5>
-                    <a href="{{ url_for('admin_panel.announcements') }}" class="btn btn-sm btn-outline-primary">
+                    <a href="{{ url_for('admin_panel.announcements') }}" class="c-btn c-btn--sm c-btn--outline-primary">
                         View All <i class="ti ti-arrow-right ms-1"></i>
                     </a>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm mb-0">
-                            <thead>
+                <div class="c-card__body p-0">
+                    <div class="c-table-wrapper" data-table-responsive>
+                        <table class="c-table c-table--compact mb-0" data-table>
+                            <thead scope="col">
                                 <tr>
-                                    <th>Title</th>
-                                    <th>Type</th>
-                                    <th>Created</th>
-                                    <th>Status</th>
+                                    <th scope="col">Title</th>
+                                    <th scope="col">Type</th>
+                                    <th scope="col">Created</th>
+                                    <th scope="col">Status</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -236,13 +185,13 @@
                                         <br><small class="text-muted">{{ announcement.content[:50] }}...</small>
                                     </td>
                                     <td>
-                                        <span class="badge bg-secondary">{{ announcement.announcement_type or 'General' }}</span>
+                                        <span class="badge bg-secondary" data-badge>{{ announcement.announcement_type or 'General' }}</span>
                                     </td>
                                     <td>
                                         <small>{{ announcement.created_at.strftime('%m/%d %H:%M') }}</small>
                                     </td>
                                     <td>
-                                        <span class="badge bg-success">Active</span>
+                                        <span class="badge bg-success" data-badge>Active</span>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -256,28 +205,28 @@
     {% endif %}
 
     <!-- Create Category Modal -->
-    <div class="modal fade" id="createCategoryModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Create Message Category</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal c-modal fade" data-modal id="createCategoryModal" tabindex="-1" aria-labelledby="createCategoryModalLabel">
+        <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+            <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+                <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                    <h5 class="modal-title c-modal__title" id="createCategoryModalLabel">Create Message Category</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
                 </div>
                 <form method="POST" action="{{ url_for('admin_panel.create_message_category') }}">
-                    <div class="modal-body">
+                    <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="mb-3">
                             <label for="category_name" class="form-label">Category Name</label>
-                            <input type="text" class="form-control" id="category_name" name="name" required>
+                            <input type="text" class="form-control" id="category_name" name="name" required data-form-control>
                         </div>
                         <div class="mb-3">
                             <label for="category_description" class="form-label">Description</label>
-                            <textarea class="form-control" id="category_description" name="description" rows="3"></textarea>
+                            <textarea class="form-control" id="category_description" name="description" rows="3" data-form-control></textarea>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Create Category</button>
+                    <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                        <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                        <button type="submit" class="c-btn c-btn--primary">Create Category</button>
                     </div>
                 </form>
             </div>
@@ -285,29 +234,29 @@
     </div>
 
     <!-- Edit Category Modal -->
-    <div class="modal fade" id="editCategoryModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit Message Category</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal c-modal fade" data-modal id="editCategoryModal" tabindex="-1" aria-labelledby="editCategoryModalLabel">
+        <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+            <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+                <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                    <h5 class="modal-title c-modal__title" id="editCategoryModalLabel">Edit Message Category</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
                 </div>
                 <form method="POST" action="{{ url_for('admin_panel.update_message_category') }}">
-                    <div class="modal-body">
+                    <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="category_id" id="edit_category_id">
                         <div class="mb-3">
                             <label for="edit_category_name" class="form-label">Category Name</label>
-                            <input type="text" class="form-control" id="edit_category_name" name="name" required>
+                            <input type="text" class="form-control" id="edit_category_name" name="name" required data-form-control>
                         </div>
                         <div class="mb-3">
                             <label for="edit_category_description" class="form-label">Description</label>
-                            <textarea class="form-control" id="edit_category_description" name="description" rows="3"></textarea>
+                            <textarea class="form-control" id="edit_category_description" name="description" rows="3" data-form-control></textarea>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Update Category</button>
+                    <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                        <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                        <button type="submit" class="c-btn c-btn--primary">Update Category</button>
                     </div>
                 </form>
             </div>
@@ -316,11 +265,20 @@
 {% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.icon-empty-state {
+    font-size: 4rem;
+    opacity: 0.3;
+}
+
+.row-hidden {
+    display: none !important;
+}
+
+/* Category row hover styling */
+.category-row td a:hover strong {
+    color: var(--bs-primary) !important;
 }
 
 @media (max-width: 768px) {
@@ -333,48 +291,51 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/admin/message-categories.js') }}"></script>
 <script>
-function editCategory(id, name, description) {
-    document.getElementById('edit_category_id').value = id;
-    document.getElementById('edit_category_name').value = name;
-    document.getElementById('edit_category_description').value = description;
-    
-    const modal = new bootstrap.Modal(document.getElementById('editCategoryModal'));
-    modal.show();
-}
+document.addEventListener('DOMContentLoaded', function() {
+    // Search functionality
+    const searchInput = document.getElementById('templateSearch');
+    const categoryRows = document.querySelectorAll('.category-row');
 
-function deleteCategory(id, name) {
-    Swal.fire({
-        title: 'Delete Category?',
-        text: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : '#3085d6',
-        confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Create form and submit
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '{{ url_for("admin_panel.delete_message_category") }}';
-            
-            const csrfToken = document.createElement('input');
-            csrfToken.type = 'hidden';
-            csrfToken.name = 'csrf_token';
-            csrfToken.value = '{{ csrf_token() }}';
-            
-            const categoryId = document.createElement('input');
-            categoryId.type = 'hidden';
-            categoryId.name = 'category_id';
-            categoryId.value = id;
-            
-            form.appendChild(csrfToken);
-            form.appendChild(categoryId);
-            document.body.appendChild(form);
-            form.submit();
-        }
-    });
-}
+    if (searchInput && categoryRows.length > 0) {
+        let debounceTimer;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                const query = this.value.toLowerCase().trim();
+
+                categoryRows.forEach(function(row) {
+                    const name = (row.dataset.categoryName || '').toLowerCase();
+                    const desc = (row.dataset.categoryDesc || '').toLowerCase();
+                    const text = row.textContent.toLowerCase();
+
+                    if (query === '' || name.includes(query) || desc.includes(query) || text.includes(query)) {
+                        row.classList.remove('row-hidden');
+                    } else {
+                        row.classList.add('row-hidden');
+                    }
+                });
+
+                // Show/hide "no results" message
+                const visibleRows = document.querySelectorAll('.category-row:not(.row-hidden)');
+                let noResultsMsg = document.getElementById('noSearchResults');
+
+                if (visibleRows.length === 0 && query !== '') {
+                    if (!noResultsMsg) {
+                        const tbody = document.querySelector('tbody');
+                        const newRow = document.createElement('tr');
+                        newRow.id = 'noSearchResults';
+                        newRow.innerHTML = '<td colspan="5" class="text-center text-muted py-4"><i class="ti ti-search-off me-2"></i>No categories match "' + query + '"</td>';
+                        tbody.appendChild(newRow);
+                    }
+                } else if (noResultsMsg) {
+                    noResultsMsg.remove();
+                }
+            }, 200);
+        });
+    }
+});
 </script>
 {% endblock %}

@@ -1,0 +1,727 @@
+/**
+ * ============================================================================
+ * C-MESSENGER-WIDGET - Unified Sidebar Messaging Component
+ * ============================================================================
+ *
+ * Facebook Messenger-style sidebar widget combining:
+ * - Online users display
+ * - Conversation list
+ * - Chat interface
+ * - User search
+ *
+ * BEM Structure:
+ *   .c-messenger             - Main widget container
+ *   .c-messenger__header     - Widget header with title and controls
+ *   .c-messenger__online     - Online users section
+ *   .c-messenger__search     - Search input
+ *   .c-messenger__list       - Conversation/user list
+ *   .c-messenger__chat       - Active chat panel (slides in)
+ *
+ * States:
+ *   .is-chatting             - Panel showing chat view
+ *   .is-expanded             - Widget fully expanded
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   CUSTOM PROPERTIES
+   ============================================================================ */
+
+.c-messenger {
+  --messenger-bg: var(--bs-body-bg, #fff);
+  --messenger-border: var(--bs-border-color, rgba(0, 0, 0, 0.1));
+  --messenger-radius: 0.5rem;
+  --messenger-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --messenger-header-bg: rgba(var(--bs-primary-rgb), 0.08);
+  --messenger-hover-bg: rgba(var(--bs-primary-rgb), 0.06);
+  --messenger-active-bg: rgba(var(--bs-primary-rgb), 0.12);
+  --messenger-sent-bg: var(--bs-primary);
+  --messenger-received-bg: var(--bs-secondary-bg, #e9ecef);
+}
+
+/* ============================================================================
+   MAIN CONTAINER
+   ============================================================================ */
+
+.c-messenger {
+  display: flex;
+  flex-direction: column;
+  background: var(--messenger-bg);
+  border: 1px solid var(--messenger-border);
+  border-radius: var(--messenger-radius);
+  box-shadow: var(--messenger-shadow);
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+/* ============================================================================
+   HEADER
+   ============================================================================ */
+
+.c-messenger__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--messenger-header-bg);
+  border-bottom: 1px solid var(--messenger-border);
+  min-height: 48px;
+}
+
+.c-messenger__header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--bs-body-color);
+}
+
+.c-messenger__header-icon {
+  color: var(--bs-primary);
+}
+
+.c-messenger__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.c-messenger__header-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 1rem;
+  color: var(--bs-secondary-color);
+  background: transparent;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.c-messenger__header-btn:hover {
+  color: var(--bs-body-color);
+  background: var(--messenger-hover-bg);
+}
+
+/* Back button (hidden by default) */
+.c-messenger__header-back {
+  display: none;
+}
+
+.c-messenger.is-chatting .c-messenger__header-back {
+  display: inline-flex;
+}
+
+/* Badge/count */
+.c-messenger__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--bs-danger, #dc3545);
+  border-radius: 9999px;
+}
+
+.c-messenger__badge.u-hidden {
+  display: none;
+}
+
+/* ============================================================================
+   ONLINE USERS SECTION
+   ============================================================================ */
+
+.c-messenger__online {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--messenger-border);
+}
+
+.c-messenger__online-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.c-messenger__online-title {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--bs-secondary-color);
+}
+
+.c-messenger__online-dot {
+  width: 8px;
+  height: 8px;
+  background: #22c55e;
+  border-radius: 50%;
+  animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.c-messenger__online-count {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #22c55e;
+}
+
+.c-messenger__online-list {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  scrollbar-width: none;
+}
+
+.c-messenger__online-list::-webkit-scrollbar {
+  display: none;
+}
+
+.c-messenger__online-user {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  text-decoration: none;
+  color: var(--bs-body-color);
+  min-width: 56px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.c-messenger__online-user:hover {
+  transform: translateY(-2px);
+}
+
+.c-messenger__online-avatar {
+  position: relative;
+  width: 40px;
+  height: 40px;
+}
+
+.c-messenger__online-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #22c55e;
+}
+
+.c-messenger__online-avatar .c-online-status {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-width: 2px;
+}
+
+.c-messenger__online-name {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 56px;
+}
+
+/* Hide online section when chatting */
+.c-messenger.is-chatting .c-messenger__online {
+  display: none;
+}
+
+/* ============================================================================
+   SEARCH
+   ============================================================================ */
+
+.c-messenger__search {
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--messenger-border);
+}
+
+.c-messenger__search-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--bs-body-color);
+  background: var(--bs-tertiary-bg, #f8f9fa);
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  transition: all 0.15s ease;
+}
+
+.c-messenger__search-input:focus {
+  outline: none;
+  background: var(--messenger-bg);
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 3px rgba(var(--bs-primary-rgb), 0.15);
+}
+
+.c-messenger__search-input::placeholder {
+  color: var(--bs-secondary-color);
+}
+
+/* Hide search when chatting */
+.c-messenger.is-chatting .c-messenger__search {
+  display: none;
+}
+
+/* ============================================================================
+   CONVERSATION LIST
+   ============================================================================ */
+
+.c-messenger__list {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+.c-messenger__list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.c-messenger__list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.c-messenger__list::-webkit-scrollbar-thumb {
+  background: var(--messenger-border);
+  border-radius: 2px;
+}
+
+/* Hide list when chatting */
+.c-messenger.is-chatting .c-messenger__list {
+  display: none;
+}
+
+/* Conversation item */
+.c-messenger__conversation {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  border-bottom: 1px solid var(--messenger-border);
+}
+
+.c-messenger__conversation:last-child {
+  border-bottom: none;
+}
+
+.c-messenger__conversation:hover {
+  background: var(--messenger-hover-bg);
+}
+
+.c-messenger__conversation.is-unread {
+  background: var(--messenger-active-bg);
+}
+
+.c-messenger__conversation-avatar {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+}
+
+.c-messenger__conversation-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.c-messenger__conversation-avatar .c-online-status {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-width: 2px;
+}
+
+.c-messenger__conversation-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-messenger__conversation-name {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--bs-body-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.c-messenger__conversation-preview {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.c-messenger__conversation.is-unread .c-messenger__conversation-name,
+.c-messenger__conversation.is-unread .c-messenger__conversation-preview {
+  font-weight: 600;
+  color: var(--bs-body-color);
+}
+
+.c-messenger__conversation-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.c-messenger__conversation-time {
+  font-size: 0.6875rem;
+  color: var(--bs-secondary-color);
+}
+
+.c-messenger__conversation-unread {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--bs-primary);
+  border-radius: 9999px;
+}
+
+/* ============================================================================
+   LOADING & EMPTY STATES
+   ============================================================================ */
+
+.c-messenger__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  color: var(--bs-secondary-color);
+  font-size: 0.8125rem;
+}
+
+.c-messenger__loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--messenger-border);
+  border-top-color: var(--bs-primary);
+  border-radius: 50%;
+  animation: messenger-spin 0.6s linear infinite;
+}
+
+@keyframes messenger-spin {
+  to { transform: rotate(360deg); }
+}
+
+.c-messenger__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--bs-secondary-color);
+}
+
+.c-messenger__empty-icon {
+  font-size: 2rem;
+  opacity: 0.5;
+}
+
+.c-messenger__empty-text {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+/* ============================================================================
+   CHAT PANEL
+   ============================================================================ */
+
+.c-messenger__chat {
+  display: none;
+  flex-direction: column;
+  height: 350px;
+}
+
+.c-messenger.is-chatting .c-messenger__chat {
+  display: flex;
+}
+
+/* Messages container */
+.c-messenger__messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.c-messenger__messages::-webkit-scrollbar {
+  width: 4px;
+}
+
+.c-messenger__messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.c-messenger__messages::-webkit-scrollbar-thumb {
+  background: var(--messenger-border);
+  border-radius: 2px;
+}
+
+/* Message bubble */
+.c-messenger__message {
+  max-width: 80%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.c-messenger__message--sent {
+  align-self: flex-end;
+}
+
+.c-messenger__message--received {
+  align-self: flex-start;
+}
+
+.c-messenger__message-content {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  border-radius: 1rem;
+  word-wrap: break-word;
+}
+
+.c-messenger__message--sent .c-messenger__message-content {
+  background: var(--messenger-sent-bg);
+  color: #fff;
+  border-bottom-right-radius: 0.25rem;
+}
+
+.c-messenger__message--received .c-messenger__message-content {
+  background: var(--messenger-received-bg);
+  color: var(--bs-body-color);
+  border-bottom-left-radius: 0.25rem;
+}
+
+.c-messenger__message-time {
+  font-size: 0.625rem;
+  color: var(--bs-secondary-color);
+  padding: 0 0.25rem;
+}
+
+.c-messenger__message--sent .c-messenger__message-time {
+  text-align: right;
+}
+
+/* Message actions (delete, etc) */
+.c-messenger__message-actions {
+  display: none;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.c-messenger__message:hover .c-messenger__message-actions {
+  display: flex;
+}
+
+.c-messenger__message--sent .c-messenger__message-actions {
+  justify-content: flex-end;
+}
+
+.c-messenger__message-action {
+  padding: 0.125rem 0.375rem;
+  font-size: 0.625rem;
+  color: var(--bs-danger);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
+}
+
+.c-messenger__message-action:hover {
+  opacity: 1;
+}
+
+/* Typing indicator */
+.c-messenger__typing {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+  background: var(--messenger-received-bg);
+  border-radius: 1rem;
+  align-self: flex-start;
+}
+
+.c-messenger__typing-dots {
+  display: flex;
+  gap: 0.125rem;
+}
+
+.c-messenger__typing-dot {
+  width: 4px;
+  height: 4px;
+  background: var(--bs-secondary-color);
+  border-radius: 50%;
+  animation: typing-bounce 1.4s infinite ease-in-out both;
+}
+
+.c-messenger__typing-dot:nth-child(1) { animation-delay: -0.32s; }
+.c-messenger__typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes typing-bounce {
+  0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* ============================================================================
+   INPUT AREA
+   ============================================================================ */
+
+.c-messenger__input {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--messenger-border);
+  background: var(--messenger-bg);
+}
+
+.c-messenger__input-field {
+  flex: 1;
+  min-height: 36px;
+  max-height: 100px;
+  padding: 0.5rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  color: var(--bs-body-color);
+  background: var(--bs-tertiary-bg, #f8f9fa);
+  border: 1px solid transparent;
+  border-radius: 1.125rem;
+  resize: none;
+  transition: all 0.15s ease;
+}
+
+.c-messenger__input-field:focus {
+  outline: none;
+  background: var(--messenger-bg);
+  border-color: var(--bs-primary);
+}
+
+.c-messenger__input-field::placeholder {
+  color: var(--bs-secondary-color);
+}
+
+.c-messenger__input-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: #fff;
+  background: var(--bs-primary);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.c-messenger__input-send:hover {
+  background: var(--bs-primary);
+  transform: scale(1.05);
+}
+
+.c-messenger__input-send:active {
+  transform: scale(0.95);
+}
+
+/* ============================================================================
+   DARK MODE
+   ============================================================================ */
+
+[data-style="dark"] .c-messenger {
+  --messenger-bg: rgba(255, 255, 255, 0.03);
+  --messenger-border: rgba(255, 255, 255, 0.08);
+  --messenger-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --messenger-header-bg: rgba(59, 130, 246, 0.1);
+  --messenger-hover-bg: rgba(255, 255, 255, 0.06);
+  --messenger-active-bg: rgba(59, 130, 246, 0.15);
+  --messenger-received-bg: rgba(255, 255, 255, 0.1);
+}
+
+[data-style="dark"] .c-messenger__search-input {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+[data-style="dark"] .c-messenger__search-input:focus {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-style="dark"] .c-messenger__input-field {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+[data-style="dark"] .c-messenger__input-field:focus {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-style="dark"] .c-messenger__online-avatar-img {
+  border-color: #4ade80;
+}
+
+/* ============================================================================
+   RESPONSIVE / MOBILE
+   ============================================================================ */
+
+@media (max-width: 991.98px) {
+  .c-messenger {
+    display: none;
+  }
+}
+
+/* ============================================================================
+   UTILITY CLASSES
+   ============================================================================ */
+
+.c-messenger .u-hidden {
+  display: none !important;
+}

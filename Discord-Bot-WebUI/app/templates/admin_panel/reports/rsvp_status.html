@@ -13,8 +13,8 @@
 <div class="row">
     <!-- Match Info -->
     <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
                     <i class="ti ti-calendar-event me-2"></i>
                     {% if is_ecs_fc_match and ecs_match %}
@@ -26,10 +26,10 @@
                     {% endif %}
                 </h5>
                 {% if is_ecs_fc_match %}
-                <span class="badge bg-primary">ECS FC</span>
+                <span class="badge bg-primary" data-badge>ECS FC</span>
                 {% endif %}
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-4">
                         <strong>Date:</strong>
@@ -62,8 +62,8 @@
 
     <!-- RSVP Summary -->
     <div class="col-md-4 col-sm-6 mb-4">
-        <div class="card h-100 bg-success bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-success bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-check fs-1 text-success mb-2"></i>
                 <h3 class="mb-0">{{ rsvps.yes|length if rsvps.yes else 0 }}</h3>
                 <small class="text-muted">Yes / In</small>
@@ -71,8 +71,8 @@
         </div>
     </div>
     <div class="col-md-4 col-sm-6 mb-4">
-        <div class="card h-100 bg-danger bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-danger bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-x fs-1 text-danger mb-2"></i>
                 <h3 class="mb-0">{{ rsvps.no|length if rsvps.no else 0 }}</h3>
                 <small class="text-muted">No / Out</small>
@@ -80,8 +80,8 @@
         </div>
     </div>
     <div class="col-md-4 col-sm-6 mb-4">
-        <div class="card h-100 bg-warning bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-warning bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-question-mark fs-1 text-warning mb-2"></i>
                 <h3 class="mb-0">{{ rsvps.maybe|length if rsvps.maybe else 0 }}</h3>
                 <small class="text-muted">Maybe / Tentative</small>
@@ -91,12 +91,12 @@
 
     <!-- RSVP Details -->
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
+        <div class="c-card">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-list me-2"></i>RSVP Responses</h5>
             </div>
-            <div class="card-body p-0">
-                <ul class="nav nav-tabs px-3 pt-2" role="tablist">
+            <div class="c-card__body p-0">
+                <ul class="nav nav-tabs px-3 pt-2" role="tablist" data-tabs>
                     <li class="nav-item">
                         <a class="nav-link active" data-bs-toggle="tab" href="#yes-tab">
                             <i class="ti ti-check text-success me-1"></i>Yes ({{ rsvps.yes|length if rsvps.yes else 0 }})
@@ -120,15 +120,15 @@
                 </ul>
                 <div class="tab-content p-3">
                     <!-- Yes Tab -->
-                    <div class="tab-pane fade show active" id="yes-tab">
+                    <div class="tab-pane fade show active" id="yes-tab" data-tab-pane>
                         {% if rsvps.yes %}
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover">
-                                <thead>
+                        <div class="c-table-wrapper" data-table-responsive>
+                            <table class="c-table c-table--compact c-table--hoverable" data-table>
+                                <thead scope="col">
                                     <tr>
-                                        <th>Player</th>
-                                        <th>Responded</th>
-                                        <th>Actions</th>
+                                        <th scope="col">Player</th>
+                                        <th scope="col">Responded</th>
+                                        <th scope="col">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -137,7 +137,7 @@
                                         <td>{{ rsvp.player.name if rsvp.player else 'Unknown' }}</td>
                                         <td><small class="text-muted">{{ rsvp.responded_at.strftime('%b %d, %I:%M %p') if rsvp.responded_at else '-' }}</small></td>
                                         <td>
-                                            <button class="btn btn-sm btn-outline-secondary" onclick="updateRsvp('{{ rsvp.player.id }}', 'no')">Change to No</button>
+                                            <button class="c-btn c-btn--sm c-btn--outline-secondary js-update-rsvp" data-action="update-rsvp" data-player-id="{{ rsvp.player.id }}" data-response="no">Change to No</button>
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -150,15 +150,15 @@
                     </div>
 
                     <!-- No Tab -->
-                    <div class="tab-pane fade" id="no-tab">
+                    <div class="tab-pane fade" id="no-tab" data-tab-pane>
                         {% if rsvps.no %}
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover">
-                                <thead>
+                        <div class="c-table-wrapper" data-table-responsive>
+                            <table class="c-table c-table--compact c-table--hoverable" data-table>
+                                <thead scope="col">
                                     <tr>
-                                        <th>Player</th>
-                                        <th>Responded</th>
-                                        <th>Actions</th>
+                                        <th scope="col">Player</th>
+                                        <th scope="col">Responded</th>
+                                        <th scope="col">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -167,7 +167,7 @@
                                         <td>{{ rsvp.player.name if rsvp.player else 'Unknown' }}</td>
                                         <td><small class="text-muted">{{ rsvp.responded_at.strftime('%b %d, %I:%M %p') if rsvp.responded_at else '-' }}</small></td>
                                         <td>
-                                            <button class="btn btn-sm btn-outline-secondary" onclick="updateRsvp('{{ rsvp.player.id }}', 'yes')">Change to Yes</button>
+                                            <button class="c-btn c-btn--sm c-btn--outline-secondary js-update-rsvp" data-action="update-rsvp" data-player-id="{{ rsvp.player.id }}" data-response="yes">Change to Yes</button>
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -180,15 +180,15 @@
                     </div>
 
                     <!-- Maybe Tab -->
-                    <div class="tab-pane fade" id="maybe-tab">
+                    <div class="tab-pane fade" id="maybe-tab" data-tab-pane>
                         {% if rsvps.maybe %}
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover">
-                                <thead>
+                        <div class="c-table-wrapper" data-table-responsive>
+                            <table class="c-table c-table--compact c-table--hoverable" data-table>
+                                <thead scope="col">
                                     <tr>
-                                        <th>Player</th>
-                                        <th>Responded</th>
-                                        <th>Actions</th>
+                                        <th scope="col">Player</th>
+                                        <th scope="col">Responded</th>
+                                        <th scope="col">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -198,8 +198,8 @@
                                         <td><small class="text-muted">{{ rsvp.responded_at.strftime('%b %d, %I:%M %p') if rsvp.responded_at else '-' }}</small></td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-success" onclick="updateRsvp('{{ rsvp.player.id }}', 'yes')">Yes</button>
-                                                <button class="btn btn-outline-danger" onclick="updateRsvp('{{ rsvp.player.id }}', 'no')">No</button>
+                                                <button class="c-btn c-btn--outline-success js-update-rsvp" data-action="update-rsvp" data-player-id="{{ rsvp.player.id }}" data-response="yes">Yes</button>
+                                                <button class="c-btn c-btn--outline-danger js-update-rsvp" data-action="update-rsvp" data-player-id="{{ rsvp.player.id }}" data-response="no">No</button>
                                             </div>
                                         </td>
                                     </tr>
@@ -213,14 +213,14 @@
                     </div>
 
                     <!-- No Response Tab -->
-                    <div class="tab-pane fade" id="no-response-tab">
+                    <div class="tab-pane fade" id="no-response-tab" data-tab-pane>
                         {% if rsvps.no_response %}
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover">
-                                <thead>
+                        <div class="c-table-wrapper" data-table-responsive>
+                            <table class="c-table c-table--compact c-table--hoverable" data-table>
+                                <thead scope="col">
                                     <tr>
-                                        <th>Player</th>
-                                        <th>Actions</th>
+                                        <th scope="col">Player</th>
+                                        <th scope="col">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -229,9 +229,9 @@
                                         <td>{{ player.name if player else 'Unknown' }}</td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-success" onclick="updateRsvp('{{ player.id }}', 'yes')">Yes</button>
-                                                <button class="btn btn-outline-danger" onclick="updateRsvp('{{ player.id }}', 'no')">No</button>
-                                                <button class="btn btn-outline-warning" onclick="updateRsvp('{{ player.id }}', 'maybe')">Maybe</button>
+                                                <button class="c-btn c-btn--outline-success js-update-rsvp" data-action="update-rsvp" data-player-id="{{ player.id }}" data-response="yes">Yes</button>
+                                                <button class="c-btn c-btn--outline-danger js-update-rsvp" data-action="update-rsvp" data-player-id="{{ player.id }}" data-response="no">No</button>
+                                                <button class="c-btn c-btn--outline-warning js-update-rsvp" data-action="update-rsvp" data-player-id="{{ player.id }}" data-response="maybe">Maybe</button>
                                             </div>
                                         </td>
                                     </tr>
@@ -254,6 +254,17 @@
 {{ super() }}
 <script>
 const matchId = '{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% elif match %}{{ match.id }}{% endif %}';
+
+// Event delegation for RSVP actions
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.js-update-rsvp').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const playerId = this.dataset.playerId;
+            const response = this.dataset.response;
+            updateRsvp(playerId, response);
+        });
+    });
+});
 
 function updateRsvp(playerId, response) {
     const formData = new FormData();

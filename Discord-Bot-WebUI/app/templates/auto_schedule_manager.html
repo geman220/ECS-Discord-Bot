@@ -1,17 +1,21 @@
 {% extends "base.html" %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/features/schedule-manager.css') }}">
+{% endblock %}
+
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Welcome Header -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card welcome-header">
-                <div class="card-body">
+            <div class="c-card welcome-header">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h2 class="text-primary mb-1">
                                 <i class="fas fa-magic me-2"></i>Season Builder Pro
-                                <span class="badge bg-success ms-2">NEW</span>
+                                <span class="badge bg-success ms-2" data-badge>NEW</span>
                             </h2>
                             <p class="text-muted mb-0">
                                 Create complete seasons with intelligent scheduling, field balancing, and special weeks
@@ -29,36 +33,36 @@
     <!-- Quick Start Actions -->
     <div class="row mb-4">
         <div class="col-md-6">
-            <div class="card h-100 border-primary">
-                <div class="card-body text-center">
+            <div class="c-card h-100 border-primary">
+                <div class="c-card__body text-center">
                     <div class="avatar mx-auto mb-3">
                         <span class="avatar-initial rounded-circle bg-label-primary">
                             <i class="ti ti-plus ti-lg"></i>
                         </span>
                     </div>
-                    <h5 class="card-title">Create New Season</h5>
-                    <p class="card-text text-muted">
+                    <h5 class="c-card__title">Create New Season</h5>
+                    <p class="c-card__description text-muted">
                         Build a complete season from scratch with our step-by-step wizard
                     </p>
-                    <button class="btn btn-primary" onclick="startSeasonWizard()">
+                    <button class="c-btn c-btn--primary js-start-season-wizard" data-action="start-season-wizard">
                         <i class="ti ti-wand me-1"></i>Start Season Wizard
                     </button>
                 </div>
             </div>
         </div>
         <div class="col-md-6">
-            <div class="card h-100 border-info">
-                <div class="card-body text-center">
+            <div class="c-card h-100 border-info">
+                <div class="c-card__body text-center">
                     <div class="avatar mx-auto mb-3">
                         <span class="avatar-initial rounded-circle bg-label-info">
                             <i class="ti ti-calendar-stats ti-lg"></i>
                         </span>
                     </div>
-                    <h5 class="card-title">Manage Existing Seasons</h5>
-                    <p class="card-text text-muted">
+                    <h5 class="c-card__title">Manage Existing Seasons</h5>
+                    <p class="c-card__description text-muted">
                         Generate schedules for existing seasons or modify current schedules
                     </p>
-                    <button class="btn btn-info" onclick="showExistingSeasons()">
+                    <button class="c-btn c-btn--info js-show-existing-seasons" data-action="show-existing-seasons">
                         <i class="ti ti-list me-1"></i>View Seasons
                     </button>
                 </div>
@@ -67,16 +71,16 @@
     </div>
 
     <!-- Season Wizard Modal -->
-    <div class="modal fade" id="seasonWizardModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h4 class="modal-title">
+    <div class="modal c-modal fade" data-modal id="seasonWizardModal" tabindex="-1" aria-hidden="true" aria-labelledby="seasonWizardModalLabel">
+        <div class="modal-dialog c-modal__dialog modal-xl c-modal__dialog--xl modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+            <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+                <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                    <h4 class="modal-title c-modal__title" id="seasonWizardModalLabel">
                         <i class="ti ti-wand me-2 text-primary"></i>Season Builder Wizard
                     </h4>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
                 </div>
-                <div class="modal-body p-0">
+                <div class="modal-body c-modal__body p-0" data-modal-body>
                     <!-- Progress Steps -->
                     <div class="wizard-progress bg-light p-3 border-bottom">
                         <div class="d-flex justify-content-between">
@@ -117,14 +121,14 @@
                                     <div class="mb-3">
                                         <label class="form-label">Season Name *</label>
                                         <input type="text" class="form-control" id="seasonName" 
-                                               placeholder="e.g., 2025 Spring" required>
+                                               placeholder="e.g., 2025 Spring" required data-form-control>
                                         <div class="form-text">Enter the name for your new season</div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">League Type *</label>
-                                        <select class="form-select" id="leagueType" required>
+                                        <select class="form-select" id="leagueType" required data-form-select>
                                             <option value="">Select league type...</option>
                                             <option value="Pub League">Pub League (Premier + Classic)</option>
                                             <option value="ECS FC">ECS FC</option>
@@ -154,15 +158,15 @@
                             <p class="text-muted">Configure special weeks and season length. Premier and Classic have aligned schedules with shared special weeks.</p>
                             
                             <!-- Season Length Configuration -->
-                            <div class="card mb-4 border-primary">
-                                <div class="card-header bg-primary text-white">
+                            <div class="c-card mb-4 border-primary">
+                                <div class="c-card__header bg-primary text-white">
                                     <h6 class="mb-0"><i class="fas fa-calendar-week me-2"></i>Season Length</h6>
                                 </div>
-                                <div class="card-body">
+                                <div class="c-card__body">
                                     <div class="row">
                                         <div class="col-md-6">
                                             <label class="form-label">Total Season Weeks</label>
-                                            <select class="form-select" id="totalSeasonWeeks" onchange="updateSeasonStructure()">
+                                            <select class="form-select js-total-season-weeks" id="totalSeasonWeeks" data-on-change="update-season-structure" data-form-select>
                                                 <option value="9">9 Weeks (7 Regular + 2 Special)</option>
                                                 <option value="10">10 Weeks (8 Regular + 2 Special)</option>
                                                 <option value="11" selected>11 Weeks (9 Regular + 2 Special)</option>
@@ -185,12 +189,12 @@
                             </div>
                             
                             <!-- Shared Special Weeks Configuration -->
-                            <div class="card mb-4 border-warning">
-                                <div class="card-header bg-warning text-dark">
+                            <div class="c-card mb-4 border-warning">
+                                <div class="c-card__header bg-warning text-dark">
                                     <h6 class="mb-0"><i class="fas fa-star me-2"></i>Special Weeks (Shared)</h6>
                                 </div>
-                                <div class="card-body">
-                                    <div class="alert alert-info mb-3">
+                                <div class="c-card__body">
+                                    <div class="alert alert-info mb-3" data-alert>
                                         <i class="fas fa-info-circle me-2"></i>
                                         <strong>Shared Schedule:</strong> When enabled, TST, FUN, and BYE weeks happen on the same week number for both Premier and Classic divisions.
                                     </div>
@@ -225,7 +229,7 @@
                                     </div>
                                     
                                     <div class="mt-3">
-                                        <div class="alert alert-info">
+                                        <div class="alert alert-info" data-alert>
                                             <i class="fas fa-info-circle me-2"></i>
                                             <strong>Next Step:</strong> You'll be able to drag and drop any weeks to customize your schedule in the calendar preview.
                                         </div>
@@ -235,11 +239,11 @@
                             
                             <!-- Classic Practice Configuration -->
                             <div id="pubLeagueStructure" class="d-none">
-                                <div class="card mb-4 border-success">
-                                    <div class="card-header bg-success text-white">
+                                <div class="c-card mb-4 border-success">
+                                    <div class="c-card__header bg-success text-white">
                                         <h6 class="mb-0"><i class="fas fa-running me-2"></i>Classic Practice Sessions</h6>
                                     </div>
-                                    <div class="card-body">
+                                    <div class="c-card__body">
                                         <div class="form-check form-switch mb-3">
                                             <input class="form-check-input" type="checkbox" id="classicHasPractice" checked>
                                             <label class="form-check-label" for="classicHasPractice">
@@ -274,7 +278,7 @@
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label">Practice Time Slot</label>
-                                                    <select class="form-select" id="classicPracticeTimeSlot">
+                                                    <select class="form-select" id="classicPracticeTimeSlot" data-form-select>
                                                         <option value="1" selected>1:10 PM (Game 1 time)</option>
                                                         <option value="2">2:20 PM (Game 2 time)</option>
                                                     </select>
@@ -287,24 +291,24 @@
                             </div>
                             
                             <div id="ecsFcStructure" class="d-none">
-                                <div class="card border-info">
-                                    <div class="card-header bg-info text-white">
+                                <div class="c-card border-info">
+                                    <div class="c-card__header bg-info text-white">
                                         <h6 class="mb-0"><i class="ti ti-shield me-1"></i>ECS FC Structure</h6>
                                     </div>
-                                    <div class="card-body">
+                                    <div class="c-card__body">
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <div class="mb-3">
                                                     <label class="form-label">Regular Season Weeks</label>
-                                                    <input type="number" class="form-control" id="ecsFcRegularWeeks" value="8" min="4" max="20">
+                                                    <input type="number" class="form-control" id="ecsFcRegularWeeks" value="8" min="4" max="20" data-form-control>
                                                 </div>
                                                 <div class="mb-3">
                                                     <label class="form-label">Playoff Weeks</label>
-                                                    <input type="number" class="form-control" id="ecsFcPlayoffWeeks" value="1" min="0" max="5">
+                                                    <input type="number" class="form-control" id="ecsFcPlayoffWeeks" value="1" min="0" max="5" data-form-control>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
-                                                <div class="alert alert-info">
+                                                <div class="alert alert-info" data-alert>
                                                     <small><strong>Total:</strong> <span id="ecsFcTotalWeeks">9</span> weeks</small>
                                                 </div>
                                             </div>
@@ -322,7 +326,7 @@
                             <div class="row mb-4">
                                 <div class="col-md-6">
                                     <label class="form-label">Season Start Date *</label>
-                                    <input type="date" class="form-control" id="seasonStartDate" required>
+                                    <input type="date" class="form-control" id="seasonStartDate" required data-form-control>
                                     <div class="form-text" id="startDateWarning">
                                         <small class="text-info">
                                             <i class="ti ti-info-circle me-1"></i>
@@ -331,7 +335,7 @@
                                     </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <div class="alert alert-info mb-0">
+                                    <div class="alert alert-info mb-0" data-alert>
                                         <h6><i class="ti ti-info-circle me-1"></i>Calendar Generated From Step 2</h6>
                                         <p class="mb-1">Your calendar is automatically created based on your structure choices:</p>
                                         <div id="calendarSummary">
@@ -345,12 +349,12 @@
                                 <h6>Season Calendar Preview <small class="text-muted">(Drag weeks to reorder - Shared weeks move together)</small></h6>
                                 <!-- Unified Season Calendar Preview -->
                                 <div id="pubLeagueCalendar" class="d-none">
-                                    <div class="card border-primary">
-                                        <div class="card-header bg-primary text-white">
+                                    <div class="c-card border-primary">
+                                        <div class="c-card__header bg-primary text-white">
                                             <h6 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Season Calendar Preview</h6>
                                             <small class="opacity-75">Both Premier and Classic divisions with shared special weeks</small>
                                         </div>
-                                        <div class="card-body">
+                                        <div class="c-card__body">
                                             <div id="unifiedCalendarPreview" class="calendar-container">
                                                 <div class="text-center text-muted py-4">
                                                     <i class="fas fa-calendar-plus fa-3x mb-3 opacity-50"></i>
@@ -362,7 +366,7 @@
                                     </div>
                                     
                                     <div class="mt-3">
-                                        <div class="alert alert-info">
+                                        <div class="alert alert-info" data-alert>
                                             <i class="fas fa-info-circle me-2"></i>
                                             <strong>Schedule Alignment:</strong>
                                             <ul class="mb-0 mt-2">
@@ -377,11 +381,11 @@
                                 </div>
                                 
                                 <div id="ecsFcCalendar" class="d-none">
-                                    <div class="card border-info">
-                                        <div class="card-header bg-info text-white">
+                                    <div class="c-card border-info">
+                                        <div class="c-card__header bg-info text-white">
                                             <h6 class="mb-0"><i class="fas fa-shield-alt me-2"></i>ECS FC Calendar</h6>
                                         </div>
-                                        <div class="card-body">
+                                        <div class="c-card__body">
                                             <div id="ecsFcCalendarPreview" class="calendar-container">
                                                 <div class="text-center text-muted py-4">
                                                     <i class="fas fa-calendar-plus fa-3x mb-3 opacity-50"></i>
@@ -400,26 +404,26 @@
                             <p class="text-muted">Configure time slots, field preferences, and special features for optimal scheduling</p>
                             
                             <!-- Quick Setup Templates -->
-                            <div class="card mb-4 border-info">
-                                <div class="card-header bg-info text-white">
+                            <div class="c-card mb-4 border-info">
+                                <div class="c-card__header bg-info text-white">
                                     <h6 class="mb-0"><i class="fas fa-magic me-2"></i>Quick Setup Templates</h6>
                                 </div>
-                                <div class="card-body">
+                                <div class="c-card__body">
                                     <div class="row">
                                         <div class="col-md-4">
-                                            <button type="button" class="btn btn-outline-primary w-100 mb-2" onclick="applyWizardTemplate('standard')">
+                                            <button type="button" class="c-btn c-btn--outline-primary w-100 mb-2 js-apply-wizard-template" data-action="apply-wizard-template" data-template-type="standard">
                                                 <i class="fas fa-star me-1"></i>Standard Setup
                                                 <small class="d-block text-muted">Premier 8:20 AM, Classic 1:10 PM, Time rotation</small>
                                             </button>
                                         </div>
                                         <div class="col-md-4">
-                                            <button type="button" class="btn btn-outline-success w-100 mb-2" onclick="applyWizardTemplate('classic-practice')">
+                                            <button type="button" class="c-btn c-btn--outline-success w-100 mb-2 js-apply-wizard-template" data-action="apply-wizard-template" data-template-type="classic-practice">
                                                 <i class="fas fa-running me-1"></i>Classic Practice
                                                 <small class="d-block text-muted">Include practice weeks 1 & 3 for Classic</small>
                                             </button>
                                         </div>
                                         <div class="col-md-4">
-                                            <button type="button" class="btn btn-outline-warning w-100 mb-2" onclick="applyWizardTemplate('custom')">
+                                            <button type="button" class="c-btn c-btn--outline-warning w-100 mb-2 js-apply-wizard-template" data-action="apply-wizard-template" data-template-type="custom">
                                                 <i class="fas fa-cog me-1"></i>Custom Config
                                                 <small class="d-block text-muted">Manual configuration</small>
                                             </button>
@@ -429,37 +433,37 @@
                             </div>
                             
                             <!-- Time Configuration -->
-                            <div class="card mb-4">
-                                <div class="card-header">
+                            <div class="c-card mb-4">
+                                <div class="c-card__header">
                                     <h6 class="mb-0"><i class="fas fa-clock me-2"></i>Time Configuration</h6>
                                 </div>
-                                <div class="card-body">
+                                <div class="c-card__body">
                                     <div class="row">
                                         <div class="col-md-3">
                                             <div class="mb-3">
                                                 <label class="form-label">Premier Start Time *</label>
-                                                <input type="time" class="form-control" id="premierStartTime" value="08:20">
+                                                <input type="time" class="form-control" id="premierStartTime" value="08:20" data-form-control>
                                                 <small class="form-text text-muted">First time slot for Premier teams</small>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
                                             <div class="mb-3">
                                                 <label class="form-label">Classic Start Time *</label>
-                                                <input type="time" class="form-control" id="classicStartTime" value="13:10">
+                                                <input type="time" class="form-control" id="classicStartTime" value="13:10" data-form-control>
                                                 <small class="form-text text-muted">First time slot for Classic teams</small>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
                                             <div class="mb-3">
                                                 <label class="form-label">Match Duration (min)</label>
-                                                <input type="number" class="form-control" id="matchDuration" value="70" min="30" max="120">
+                                                <input type="number" class="form-control" id="matchDuration" value="70" min="30" max="120" data-form-control>
                                                 <small class="form-text text-muted">Including setup time</small>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
                                             <div class="mb-3">
                                                 <label class="form-label">Break Duration (min)</label>
-                                                <input type="number" class="form-control" id="breakDuration" value="10" min="0" max="30">
+                                                <input type="number" class="form-control" id="breakDuration" value="10" min="0" max="30" data-form-control>
                                                 <small class="form-text text-muted">Rest between matches</small>
                                             </div>
                                         </div>
@@ -485,21 +489,21 @@
                             </div>
                             
                             <!-- Field Configuration -->
-                            <div class="card mb-4">
-                                <div class="card-header">
+                            <div class="c-card mb-4">
+                                <div class="c-card__header">
                                     <h6 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>Field Configuration</h6>
                                 </div>
-                                <div class="card-body">
+                                <div class="c-card__body">
                                     <div id="wizard-field-configurations">
                                         <div class="wizard-field-item mb-3">
                                             <div class="row">
                                                 <div class="col-md-8">
                                                     <label class="form-label">Field Name</label>
-                                                    <input type="text" class="form-control wizard-field-name" value="North" required>
+                                                    <input type="text" class="form-control wizard-field-name" value="North" required data-form-control>
                                                     <div class="form-text">e.g., "North Field", "South Field", "Main Pitch"</div>
                                                 </div>
                                                 <div class="col-md-2 d-flex align-items-end">
-                                                    <button type="button" class="btn btn-outline-danger" onclick="removeWizardField(this)" disabled>
+                                                    <button type="button" class="c-btn c-btn--outline-danger js-remove-wizard-field" data-action="remove-wizard-field" disabled>
                                                         <i class="fas fa-times"></i>
                                                     </button>
                                                 </div>
@@ -509,18 +513,18 @@
                                             <div class="row">
                                                 <div class="col-md-8">
                                                     <label class="form-label">Field Name</label>
-                                                    <input type="text" class="form-control wizard-field-name" value="South" required>
+                                                    <input type="text" class="form-control wizard-field-name" value="South" required data-form-control>
                                                     <div class="form-text">e.g., "North Field", "South Field", "Main Pitch"</div>
                                                 </div>
                                                 <div class="col-md-2 d-flex align-items-end">
-                                                    <button type="button" class="btn btn-outline-danger" onclick="removeWizardField(this)" disabled>
+                                                    <button type="button" class="c-btn c-btn--outline-danger js-remove-wizard-field" data-action="remove-wizard-field" disabled>
                                                         <i class="fas fa-times"></i>
                                                     </button>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addWizardField()">
+                                    <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary js-add-wizard-field" data-action="add-wizard-field">
                                         <i class="fas fa-plus me-1"></i>Add Field
                                     </button>
                                     <small class="form-text text-muted d-block mt-2">
@@ -535,7 +539,7 @@
                         <!-- Step 5: Teams -->
                         <div class="wizard-step" data-step="5">
                             <h5>Team Creation</h5>
-                            <div class="alert alert-info">
+                            <div class="alert alert-info" data-alert>
                                 <i class="ti ti-info-circle me-1"></i>
                                 <strong>Automatic Setup:</strong> The wizard will create placeholder teams with Discord channels and roles.
                                 You can rename teams later through the team management interface.
@@ -544,14 +548,14 @@
                             <div id="pubLeagueTeams" class="d-none">
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <div class="card border-primary">
-                                            <div class="card-header bg-primary text-white">
+                                        <div class="c-card border-primary">
+                                            <div class="c-card__header bg-primary text-white">
                                                 <h6 class="mb-0"><i class="ti ti-trophy me-1"></i>Premier Division Teams</h6>
                                             </div>
-                                            <div class="card-body">
+                                            <div class="c-card__body">
                                                 <div class="mb-3">
                                                     <label class="form-label">Number of Teams</label>
-                                                    <select class="form-select" id="premierTeamCount">
+                                                    <select class="form-select" id="premierTeamCount" data-form-select>
                                                         <option value="6">6 Teams</option>
                                                         <option value="8" selected>8 Teams (Recommended)</option>
                                                         <option value="10">10 Teams</option>
@@ -565,14 +569,14 @@
                                         </div>
                                     </div>
                                     <div class="col-md-6">
-                                        <div class="card border-info">
-                                            <div class="card-header bg-info text-white">
+                                        <div class="c-card border-info">
+                                            <div class="c-card__header bg-info text-white">
                                                 <h6 class="mb-0"><i class="ti ti-shield me-1"></i>Classic Division Teams</h6>
                                             </div>
-                                            <div class="card-body">
+                                            <div class="c-card__body">
                                                 <div class="mb-3">
                                                     <label class="form-label">Number of Teams</label>
-                                                    <select class="form-select" id="classicTeamCount">
+                                                    <select class="form-select" id="classicTeamCount" data-form-select>
                                                         <option value="4" selected>4 Teams (Recommended)</option>
                                                         <option value="6">6 Teams</option>
                                                         <option value="8">8 Teams</option>
@@ -590,14 +594,14 @@
                             <div id="ecsFcTeams" class="d-none">
                                 <div class="row justify-content-center">
                                     <div class="col-md-8">
-                                        <div class="card border-success">
-                                            <div class="card-header bg-success text-white">
+                                        <div class="c-card border-success">
+                                            <div class="c-card__header bg-success text-white">
                                                 <h6 class="mb-0"><i class="ti ti-users me-1"></i>ECS FC Teams</h6>
                                             </div>
-                                            <div class="card-body">
+                                            <div class="c-card__body">
                                                 <div class="mb-3">
                                                     <label class="form-label">Number of Teams</label>
-                                                    <select class="form-select" id="ecsFcTeamCount">
+                                                    <select class="form-select" id="ecsFcTeamCount" data-form-select>
                                                         <option value="4">4 Teams</option>
                                                         <option value="6">6 Teams</option>
                                                         <option value="8" selected>8 Teams (Recommended)</option>
@@ -613,7 +617,7 @@
                                 </div>
                             </div>
                             
-                            <div class="alert alert-light mt-3">
+                            <div class="alert alert-light mt-3" data-alert>
                                 <h6><i class="ti ti-settings me-1"></i>What happens next:</h6>
                                 <ul class="mb-0">
                                     <li>Placeholder teams will be created (Team A, Team B, etc.)</li>
@@ -633,10 +637,10 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" id="prevBtn" onclick="previousStep()">Previous</button>
-                    <button type="button" class="btn btn-primary" id="nextBtn" onclick="nextStep()">Next</button>
-                    <button type="button" class="btn btn-success d-none" id="createBtn" onclick="createSeason()">Create Season</button>
+                <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                    <button type="button" class="c-btn c-btn--outline-secondary js-previous-step" id="prevBtn" data-action="previous-step">Previous</button>
+                    <button type="button" class="c-btn c-btn--primary js-next-step" id="nextBtn" data-action="next-step">Next</button>
+                    <button type="button" class="c-btn c-btn--success d-none js-create-season" id="createBtn" data-action="create-season">Create Season</button>
                 </div>
             </div>
         </div>
@@ -646,7 +650,7 @@
     <div id="existingSeasons" class="d-none">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="mb-0">Manage Existing Seasons</h4>
-            <button class="btn btn-outline-secondary" onclick="showMainView()">
+            <button class="c-btn c-btn--outline-secondary js-show-main-view" data-action="show-main-view">
                 <i class="ti ti-arrow-left me-1"></i>Back to Main
             </button>
         </div>
@@ -654,26 +658,26 @@
         <div class="row">
             {% for season in pub_league_seasons %}
             <div class="col-md-6 mb-3">
-                <div class="card {{ 'border-primary' if season.is_current }}">
-                    <div class="card-body">
+                <div class="c-card {{ 'border-primary' if season.is_current }}">
+                    <div class="c-card__body">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <h6 class="card-title">
+                                <h6 class="c-card__title">
                                     {{ season.name }}
                                     {% if season.is_current %}
-                                        <span class="badge bg-primary">Current</span>
+                                        <span class="badge bg-primary" data-badge>Current</span>
                                     {% endif %}
                                 </h6>
                                 <p class="text-muted">Pub League</p>
                                 <small class="text-muted">{{ season.leagues|length }} league(s)</small>
                             </div>
                             <div class="dropdown">
-                                <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <button class="c-btn c-btn--outline-primary c-btn--sm dropdown-toggle" type="button" data-bs-toggle="dropdown" data-dropdown-toggle>
                                     Actions
                                 </button>
-                                <ul class="dropdown-menu">
+                                <ul class="dropdown-menu" data-dropdown-menu>
                                     {% if not season.is_current %}
-                                    <li><a class="dropdown-item" href="#" onclick="setActiveSeason({{ season.id }}, 'Pub League')">
+                                    <li><a class="dropdown-item js-set-active-season" href="#" data-action="set-active-season" data-season-id="{{ season.id }}" data-season-type="Pub League">
                                         <i class="ti ti-star me-1"></i>Set as Current
                                     </a></li>
                                     <li><hr class="dropdown-divider"></li>
@@ -689,7 +693,7 @@
                                     {% endfor %}
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
-                                        <button type="button" class="dropdown-item text-warning" onclick="recreateDiscordResources('{{ season.id }}', '{{ season.name }}')">
+                                        <button type="button" class="dropdown-item text-warning js-recreate-discord-resources" data-action="recreate-discord-resources" data-season-id="{{ season.id }}" data-season-name="{{ season.name }}">
                                             <i class="fab fa-discord me-1"></i>Recreate Discord Resources
                                         </button>
                                     </li>
@@ -699,7 +703,7 @@
                                               id="deleteSeasonForm{{ season.id }}"
                                               class="d-inline">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="button" class="dropdown-item text-danger" onclick="confirmDeleteSeason('{{ season.id }}', '{{ season.name }}')">
+                                            <button type="button" class="dropdown-item text-danger js-confirm-delete-season" data-action="confirm-delete-season" data-season-id="{{ season.id }}" data-season-name="{{ season.name }}">
                                                 <i class="ti ti-trash me-1"></i>Delete Season (Undo All)
                                             </button>
                                         </form>
@@ -713,26 +717,26 @@
             {% endfor %}
             {% for season in ecs_fc_seasons %}
             <div class="col-md-6 mb-3">
-                <div class="card {{ 'border-primary' if season.is_current }}">
-                    <div class="card-body">
+                <div class="c-card {{ 'border-primary' if season.is_current }}">
+                    <div class="c-card__body">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <h6 class="card-title">
+                                <h6 class="c-card__title">
                                     {{ season.name }}
                                     {% if season.is_current %}
-                                        <span class="badge bg-primary">Current</span>
+                                        <span class="badge bg-primary" data-badge>Current</span>
                                     {% endif %}
                                 </h6>
                                 <p class="text-muted">ECS FC</p>
                                 <small class="text-muted">{{ season.leagues|length }} league(s)</small>
                             </div>
                             <div class="dropdown">
-                                <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <button class="c-btn c-btn--outline-primary c-btn--sm dropdown-toggle" type="button" data-bs-toggle="dropdown" data-dropdown-toggle>
                                     Actions
                                 </button>
-                                <ul class="dropdown-menu">
+                                <ul class="dropdown-menu" data-dropdown-menu>
                                     {% if not season.is_current %}
-                                    <li><a class="dropdown-item" href="#" onclick="setActiveSeason({{ season.id }}, 'ECS FC')">
+                                    <li><a class="dropdown-item js-set-active-season" href="#" data-action="set-active-season" data-season-id="{{ season.id }}" data-season-type="ECS FC">
                                         <i class="ti ti-star me-1"></i>Set as Current
                                     </a></li>
                                     <li><hr class="dropdown-divider"></li>
@@ -748,7 +752,7 @@
                                     {% endfor %}
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
-                                        <button type="button" class="dropdown-item text-warning" onclick="recreateDiscordResources('{{ season.id }}', '{{ season.name }}')">
+                                        <button type="button" class="dropdown-item text-warning js-recreate-discord-resources" data-action="recreate-discord-resources" data-season-id="{{ season.id }}" data-season-name="{{ season.name }}">
                                             <i class="fab fa-discord me-1"></i>Recreate Discord Resources
                                         </button>
                                     </li>
@@ -758,7 +762,7 @@
                                               id="deleteSeasonForm{{ season.id }}"
                                               class="d-inline">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="button" class="dropdown-item text-danger" onclick="confirmDeleteSeason('{{ season.id }}', '{{ season.name }}')">
+                                            <button type="button" class="dropdown-item text-danger js-confirm-delete-season" data-action="confirm-delete-season" data-season-id="{{ season.id }}" data-season-name="{{ season.name }}">
                                                 <i class="ti ti-trash me-1"></i>Delete Season (Undo All)
                                             </button>
                                         </form>
@@ -774,349 +778,16 @@
     </div>
 </div>
 
-<style>
-.wizard-progress .step {
-    text-align: center;
-    position: relative;
-    flex: 1;
-}
-
-.wizard-progress .step:not(:last-child)::after {
-    content: '';
-    position: absolute;
-    top: 20px;
-    right: -50%;
-    width: 100%;
-    height: 2px;
-    background: var(--ecs-neutral-20);
-    z-index: 1;
-}
-
-.wizard-progress .step.active:not(:last-child)::after,
-.wizard-progress .step.completed:not(:last-child)::after {
-    background: var(--ecs-success);
-}
-
-.step-circle {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: var(--ecs-neutral-20);
-    color: var(--ecs-neutral-50);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    position: relative;
-    z-index: 2;
-    margin-bottom: 8px;
-}
-
-.step.active .step-circle {
-    background: var(--ecs-primary);
-    color: white;
-}
-
-.step.completed .step-circle {
-    background: var(--ecs-success);
-    color: white;
-}
-
-.step-label {
-    font-size: 0.875rem;
-    font-weight: 500;
-}
-
-.wizard-step {
-    display: none;
-    min-height: 400px;
-}
-
-.wizard-step.active {
-    display: block;
-}
-
-/* Drag and drop styling */
-.badge[draggable="true"] {
-    cursor: move;
-    transition: all 0.2s ease;
-    user-select: none;
-}
-
-.badge[draggable="true"]:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
-
-.badge[draggable="true"].dragging {
-    opacity: 0.5;
-    transform: rotate(5deg);
-}
-
-.calendar-preview {
-    min-height: 200px;
-}
-
-.calendar-preview .badge {
-    min-height: 60px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-
-/* Calendar week item styling */
-.week-item {
-    background: var(--ecs-neutral-5);
-    border: 1px solid var(--ecs-neutral-20);
-    border-radius: 5px;
-    padding: 10px;
-    margin-bottom: 8px;
-    cursor: move;
-    transition: all 0.2s ease;
-    position: relative;
-}
-
-.week-item:hover {
-    background: var(--ecs-neutral-20);
-    border-color: var(--ecs-primary);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
-}
-
-.week-item[draggable="true"] {
-    user-select: none;
-}
-
-.week-item[draggable="true"]:active {
-    cursor: grabbing;
-}
-
-/* Enhanced drag feedback */
-.week-item[style*="opacity: 0.5"] {
-    transform: rotate(5deg);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-/* Drop insertion indicators */
-.week-item[style*="border-top: 3px solid"] {
-    border-top: 3px solid var(--ecs-primary) !important;
-    border-top-left-radius: 0 !important;
-    border-top-right-radius: 0 !important;
-}
-
-.week-item[style*="border-bottom: 3px solid"] {
-    border-bottom: 3px solid var(--ecs-primary) !important;
-    border-bottom-left-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
-}
-
-/* Add pulse animation to drop indicators */
-.week-item[style*="border-top: 3px solid"]:before,
-.week-item[style*="border-bottom: 3px solid"]:after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--ecs-primary);
-    animation: pulse 0.8s ease-in-out infinite alternate;
-}
-
-.week-item[style*="border-top: 3px solid"]:before {
-    top: -3px;
-}
-
-.week-item[style*="border-bottom: 3px solid"]:after {
-    bottom: -3px;
-}
-
-@keyframes pulse {
-    0% { opacity: 0.6; }
-    100% { opacity: 1; }
-}
-
-.week-item.regular-week {
-    border-left: 4px solid var(--ecs-secondary);
-}
-
-.week-item.fun-week {
-    border-left: 4px solid var(--ecs-warning);
-}
-
-.week-item.tst-week {
-    border-left: 4px solid var(--ecs-info);
-}
-
-.week-item.playoff-week {
-    border-left: 4px solid var(--ecs-danger);
-}
-
-.week-item.bonus-week {
-    border-left: 4px solid var(--ecs-purple);
-}
-
-.week-item.bye-week {
-    border-left: 4px solid var(--ecs-secondary);
-}
-
-.week-number {
-    font-weight: bold;
-    font-size: 0.9em;
-    color: var(--ecs-neutral-60);
-}
-
-.week-date {
-    font-size: 0.8em;
-    color: var(--ecs-neutral-50);
-}
-
-.week-type {
-    font-size: 0.8em;
-    color: var(--ecs-primary);
-    font-weight: 500;
-}
-
-/* Add visual feedback for drag operations */
-.drop-zone {
-    border: 2px dashed var(--ecs-primary);
-    background-color: rgba(0, 123, 255, 0.1);
-}
-
-.btn-group .btn {
-    white-space: nowrap;
-}
-
-/* Better spacing for special week inputs */
-.input-group .btn {
-    z-index: 1;
-}
-</style>
-
-{% block extra_css %}
-<style>
-.calendar-container {
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.calendar-weeks {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.week-item {
-    display: flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-radius: 6px;
-    border: 1px solid var(--ecs-neutral-20);
-    background: var(--ecs-neutral-5);
-}
-
-.week-item.regular-week {
-    border-color: var(--ecs-success);
-    background: var(--ecs-success-subtle);
-}
-
-.week-item.fun-week {
-    border-color: var(--ecs-warning);
-    background: var(--ecs-warning-subtle);
-}
-
-.week-item.tst-week {
-    border-color: var(--ecs-info);
-    background: var(--ecs-info-subtle);
-}
-
-.week-item.playoff-week {
-    border-color: var(--ecs-danger);
-    background: var(--ecs-danger-subtle);
-}
-
-.week-item.bonus-week {
-    border-color: var(--ecs-purple);
-    background: var(--ecs-purple-subtle);
-}
-
-.week-item.bye-week {
-    border-color: var(--ecs-secondary);
-    background: var(--ecs-neutral-5);
-}
-
-.week-number {
-    font-weight: bold;
-    min-width: 70px;
-    color: var(--ecs-neutral-80);
-}
-
-.week-date {
-    flex: 1;
-    color: var(--ecs-neutral-60);
-    font-size: 0.9em;
-}
-
-.week-type {
-    color: var(--ecs-neutral-80);
-    font-size: 0.9em;
-    font-weight: 500;
-}
-
-.regular-week .week-type {
-    color: var(--ecs-success);
-}
-
-.fun-week .week-type {
-    color: var(--ecs-warning);
-}
-
-.tst-week .week-type {
-    color: var(--ecs-info);
-}
-
-.playoff-week .week-type {
-    color: var(--ecs-danger);
-}
-
-.bonus-week .week-type {
-    color: var(--ecs-purple);
-}
-
-.bye-week .week-type {
-    color: var(--ecs-secondary);
-}
-
-/* Shared weeks styling - draggable but synchronized */
-.week-item.shared-week {
-    cursor: move !important;
-    opacity: 0.95;
-    position: relative;
-    border: 2px solid rgba(0, 123, 255, 0.3);
-}
-
-.week-item.shared-week:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
-    border-color: rgba(0, 123, 255, 0.5);
-}
-
-.week-item.shared-week::after {
-    content: '🔗';
-    position: absolute;
-    top: 2px;
-    right: 4px;
-    font-size: 12px;
-    opacity: 0.6;
-}
-</style>
-{% endblock %}
-
 <!-- JavaScript URLs for external file -->
 <script>
     window.autoScheduleUrls = {
         setActiveSeason: '{{ url_for("auto_schedule.set_active_season") }}',
         createSeasonWizard: '{{ url_for("auto_schedule.create_season_wizard") }}'
     };
+
+    // CONVERTED TO EVENT DELEGATION: All event listeners now handled by EventDelegation system
+    // The data-action attributes on buttons automatically trigger the registered handlers in event-delegation.js
+    // No need for manual addEventListener calls - the centralized system handles all click events
 
     function confirmDeleteSeason(seasonId, seasonName) {
         Swal.fire({

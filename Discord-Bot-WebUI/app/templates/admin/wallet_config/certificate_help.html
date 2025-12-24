@@ -2,6 +2,7 @@
 {% block title %}Wallet Certificate Setup Guide{% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
     /* Certificate Help - Theme-aware styling */
     .step-container {
@@ -69,7 +70,7 @@
                     <p class="text-muted mb-0">Detailed instructions for configuring Apple and Google Wallet certificates</p>
                 </div>
                 <div>
-                    <a href="{{ url_for('wallet_config.certificates') }}" class="btn btn-outline-secondary">
+                    <a href="{{ url_for('wallet_config.certificates') }}" class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-arrow-left me-1"></i> Back to Certificates
                     </a>
                 </div>
@@ -80,12 +81,12 @@
     <!-- Guide Content -->
     <div class="row">
         <div class="col-12">
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="c-card mb-4">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Apple Wallet Certificate Setup</h5>
                 </div>
-                <div class="card-body">
-                    <div class="alert alert-info">
+                <div class="c-card__body">
+                    <div class="alert alert-info" data-alert>
                         <div class="d-flex">
                             <div class="me-3">
                                 <i class="ti ti-info-circle fs-3"></i>
@@ -132,11 +133,11 @@
                             <li>You'll be prompted to create a Certificate Signing Request (CSR):</li>
                         </ol>
                         
-                        <div class="card mb-3">
-                            <div class="card-header">
+                        <div class="c-card mb-3">
+                            <div class="c-card__header">
                                 <h6 class="mb-0">Creating a Certificate Signing Request (CSR) on macOS</h6>
                             </div>
-                            <div class="card-body">
+                            <div class="c-card__body">
                                 <ol>
                                     <li>Open Keychain Access (in Applications > Utilities)</li>
                                     <li>From the menu bar, select Keychain Access > Certificate Assistant > Request a Certificate from a Certificate Authority</li>
@@ -149,11 +150,11 @@
                             </div>
                         </div>
                         
-                        <div class="card mb-3">
-                            <div class="card-header">
+                        <div class="c-card mb-3">
+                            <div class="c-card__header">
                                 <h6 class="mb-0">Creating a CSR using OpenSSL (Linux/Windows)</h6>
                             </div>
-                            <div class="card-body">
+                            <div class="c-card__body">
                                 <p>Run the following commands in a terminal:</p>
                                 <div class="code-block">
                                     # Generate a private key
@@ -233,12 +234,12 @@
                 </div>
             </div>
             
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="c-card mb-4">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Google Wallet Certificate Setup</h5>
                 </div>
-                <div class="card-body">
-                    <div class="alert alert-info">
+                <div class="c-card__body">
+                    <div class="alert alert-info" data-alert>
                         <div class="d-flex">
                             <div class="me-3">
                                 <i class="ti ti-info-circle fs-3"></i>
@@ -327,20 +328,20 @@
                 </div>
             </div>
             
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="c-card mb-4">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Troubleshooting Certificate Issues</h5>
                 </div>
-                <div class="card-body">
-                    <div class="accordion" id="certificateTroubleshooting">
-                        <div class="accordion-item">
+                <div class="c-card__body">
+                    <div class="accordion" id="certificateTroubleshooting" data-accordion>
+                        <div class="accordion-item" data-accordion>
                             <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#error1">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#error1" data-collapse-toggle>
                                     "Could not read certificate" or "Invalid certificate format"
                                 </button>
                             </h2>
-                            <div id="error1" class="accordion-collapse collapse" data-bs-parent="#certificateTroubleshooting">
-                                <div class="accordion-body">
+                            <div id="error1" class="accordion-collapse collapse" data-bs-parent="#certificateTroubleshooting" data-accordion>
+                                <div class="accordion-body" data-accordion>
                                     <p><strong>Problem:</strong> The certificate file is not in the expected format or is corrupted.</p>
                                     <p><strong>Solution:</strong></p>
                                     <ol>
@@ -355,14 +356,14 @@
                             </div>
                         </div>
                         
-                        <div class="accordion-item">
+                        <div class="accordion-item" data-accordion>
                             <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#error2">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#error2" data-collapse-toggle>
                                     "Private key does not match certificate" or "Key verification failed"
                                 </button>
                             </h2>
-                            <div id="error2" class="accordion-collapse collapse" data-bs-parent="#certificateTroubleshooting">
-                                <div class="accordion-body">
+                            <div id="error2" class="accordion-collapse collapse" data-bs-parent="#certificateTroubleshooting" data-accordion>
+                                <div class="accordion-body" data-accordion>
                                     <p><strong>Problem:</strong> The private key doesn't correspond to the certificate.</p>
                                     <p><strong>Solution:</strong></p>
                                     <ol>
@@ -380,14 +381,14 @@
                             </div>
                         </div>
                         
-                        <div class="accordion-item">
+                        <div class="accordion-item" data-accordion>
                             <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#error3">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#error3" data-collapse-toggle>
                                     "Pass generation fails" or "Unable to sign pass"
                                 </button>
                             </h2>
-                            <div id="error3" class="accordion-collapse collapse" data-bs-parent="#certificateTroubleshooting">
-                                <div class="accordion-body">
+                            <div id="error3" class="accordion-collapse collapse" data-bs-parent="#certificateTroubleshooting" data-accordion>
+                                <div class="accordion-body" data-accordion>
                                     <p><strong>Problem:</strong> Pass signing fails due to certificate configuration issues.</p>
                                     <p><strong>Solution:</strong></p>
                                     <ol>
@@ -400,14 +401,14 @@
                             </div>
                         </div>
                         
-                        <div class="accordion-item">
+                        <div class="accordion-item" data-accordion>
                             <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#error4">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#error4" data-collapse-toggle>
                                     "Google Wallet API not authorized" or "Service account issues"
                                 </button>
                             </h2>
-                            <div id="error4" class="accordion-collapse collapse" data-bs-parent="#certificateTroubleshooting">
-                                <div class="accordion-body">
+                            <div id="error4" class="accordion-collapse collapse" data-bs-parent="#certificateTroubleshooting" data-accordion>
+                                <div class="accordion-body" data-accordion>
                                     <p><strong>Problem:</strong> Google Wallet API authorization issues.</p>
                                     <p><strong>Solution:</strong></p>
                                     <ol>

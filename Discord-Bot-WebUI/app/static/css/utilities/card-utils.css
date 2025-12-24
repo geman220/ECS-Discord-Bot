@@ -1,0 +1,151 @@
+/**
+ * ============================================================================
+ * CARD UTILITIES
+ * ============================================================================
+ *
+ * Utility classes for card components, icons, and decorative elements.
+ * Replaces inline styles in card-based layouts.
+ *
+ * Classes:
+ * - Card icon stat sizing
+ * - Empty state icons
+ * - Success state icons
+ * - Gradient backgrounds
+ * - Border radius utilities
+ *
+ * Usage:
+ *   <i class="ti ti-trophy card-icon-stat"></i>
+ *   <i class="ti ti-users icon-empty-state"></i>
+ *   <div class="card card-gradient-welcome"></div>
+ *
+ * ============================================================================
+ */
+
+/* ============================================
+   CARD ICON STATISTICS
+   ============================================ */
+
+/**
+ * Icon sizing for stat cards
+ * Used in dashboard cards, match operations, admin panels
+ */
+.card-icon-stat {
+    font-size: 2rem !important;
+    opacity: 0.5 !important;
+}
+
+/* ============================================
+   EMPTY STATE ICONS
+   ============================================ */
+
+/**
+ * Icon sizing for empty state displays
+ * When there's no content to show
+ */
+.icon-empty-state {
+    font-size: 3rem !important;
+}
+
+.icon-empty-large {
+    font-size: 4rem !important;
+}
+
+/* ============================================
+   SUCCESS STATE ICONS
+   ============================================ */
+
+/**
+ * Icon sizing for success states
+ * Used in profile success pages, confirmations
+ */
+.success-icon-lg {
+    font-size: 2rem !important;
+}
+
+.success-icon-xl {
+    font-size: 3rem !important;
+}
+
+/* ============================================
+   GRADIENT BACKGROUNDS
+   ============================================ */
+
+/**
+ * Gradient backgrounds for cards and containers
+ * Replaces inline style="background: linear-gradient(...)"
+ */
+.card-gradient-welcome {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.card-gradient-primary {
+    background: linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-800) 100%) !important;
+}
+
+.card-gradient-success {
+    background: linear-gradient(135deg, var(--color-success-600) 0%, var(--color-success-800) 100%) !important;
+}
+
+.card-gradient-info {
+    background: linear-gradient(135deg, var(--color-info-600) 0%, var(--color-info-800) 100%) !important;
+}
+
+.card-gradient-warning {
+    background: linear-gradient(135deg, var(--color-warning-600) 0%, var(--color-warning-800) 100%) !important;
+}
+
+.card-gradient-danger {
+    background: linear-gradient(135deg, var(--color-danger-600) 0%, var(--color-danger-800) 100%) !important;
+}
+
+/* ============================================
+   BORDER RADIUS UTILITIES
+   ============================================ */
+
+/**
+ * Specific border radius values
+ * Used for badges, verification elements
+ */
+.verification-badge-rounded {
+    border-radius: 15px !important;
+}
+
+.rounded-lg {
+    border-radius: 0.5rem !important;
+}
+
+.rounded-xl {
+    border-radius: 0.75rem !important;
+}
+
+.rounded-2xl {
+    border-radius: 1rem !important;
+}
+
+/* ============================================
+   CURSOR UTILITIES
+   ============================================ */
+
+/**
+ * Cursor styles for interactive elements
+ * Replaces inline style="cursor: pointer"
+ */
+.divider-toggle {
+    cursor: pointer !important;
+}
+
+.cursor-pointer {
+    cursor: pointer !important;
+}
+
+.cursor-not-allowed {
+    cursor: not-allowed !important;
+}
+
+.cursor-grab {
+    cursor: grab !important;
+}
+
+.cursor-grabbing {
+    cursor: grabbing !important;
+}

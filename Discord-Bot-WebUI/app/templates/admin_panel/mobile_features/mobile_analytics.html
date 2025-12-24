@@ -12,60 +12,60 @@
 <!-- Mobile Analytics Overview -->
 <div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
+        <div class="c-card bg-primary text-white mobile-analytics-stat-card">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ analytics_data.total_mobile_users or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Total Mobile Users</p>
+                        <h5 class="c-card__title text-white mb-1">{{ analytics_data.total_mobile_users or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Total Mobile Users</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-users" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-users"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
+        <div class="c-card bg-success text-white mobile-analytics-stat-card">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ analytics_data.daily_active_users or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Daily Active Users</p>
+                        <h5 class="c-card__title text-white mb-1">{{ analytics_data.daily_active_users or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Daily Active Users</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-activity" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-activity"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
+        <div class="c-card bg-info text-white mobile-analytics-stat-card">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ analytics_data.retention_rate or '78%' }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Retention Rate</p>
+                        <h5 class="c-card__title text-white mb-1">{{ analytics_data.retention_rate or '78%' }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Retention Rate</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-trending-up" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-trending-up"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
+        <div class="c-card bg-warning text-white mobile-analytics-stat-card">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ analytics_data.avg_session_duration or '5m 30s' }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Avg Session Duration</p>
+                        <h5 class="c-card__title text-white mb-1">{{ analytics_data.avg_session_duration or '5m 30s' }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Avg Session Duration</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-clock" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-clock"></i>
                     </div>
                 </div>
             </div>
@@ -77,18 +77,18 @@
 <div class="row mb-4">
     <!-- User Engagement Chart -->
     <div class="col-md-8 mb-3">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-chart-line me-2"></i>User Engagement Trends
                 </h5>
                 <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-primary active" onclick="updateChart('7d')">7 Days</button>
-                    <button class="btn btn-outline-primary" onclick="updateChart('30d')">30 Days</button>
-                    <button class="btn btn-outline-primary" onclick="updateChart('90d')">90 Days</button>
+                    <button class="c-btn c-btn--outline-primary active js-update-chart" data-action="update-chart" data-period="7d">7 Days</button>
+                    <button class="c-btn c-btn--outline-primary js-update-chart" data-action="update-chart" data-period="30d">30 Days</button>
+                    <button class="c-btn c-btn--outline-primary js-update-chart" data-action="update-chart" data-period="90d">90 Days</button>
                 </div>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <canvas id="engagementChart" height="300"></canvas>
             </div>
         </div>
@@ -96,31 +96,31 @@
 
     <!-- Platform Breakdown -->
     <div class="col-md-4 mb-3">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card h-100">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-device-mobile me-2"></i>Platform Breakdown
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <canvas id="platformChart" height="200"></canvas>
                 
                 <div class="mt-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span class="d-flex align-items-center">
-                            <span class="badge bg-primary me-2"></span>iOS
+                            <span class="badge bg-primary me-2" data-badge></span>iOS
                         </span>
                         <span>{{ analytics_data.platform_breakdown.iOS or 0 }}</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span class="d-flex align-items-center">
-                            <span class="badge bg-success me-2"></span>Android
+                            <span class="badge bg-success me-2" data-badge></span>Android
                         </span>
                         <span>{{ analytics_data.platform_breakdown.Android or 0 }}</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
                         <span class="d-flex align-items-center">
-                            <span class="badge bg-secondary me-2"></span>Unknown
+                            <span class="badge bg-secondary me-2" data-badge></span>Unknown
                         </span>
                         <span>{{ analytics_data.platform_breakdown.unknown or 0 }}</span>
                     </div>
@@ -133,60 +133,60 @@
 <!-- Feature Usage Analytics -->
 <div class="row mb-4">
     <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card h-100">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-star me-2"></i>Feature Usage
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span>Team Schedule</span>
-                        <span class="badge bg-primary">85%</span>
+                        <span class="badge bg-primary" data-badge>85%</span>
                     </div>
-                    <div class="progress mb-2" style="height: 6px;">
-                        <div class="progress-bar bg-primary" style="width: 85%"></div>
+                    <div class="progress mb-2 mobile-analytics-feature-progress">
+                        <div class="progress-bar bg-primary mobile-analytics-progress-85"></div>
                     </div>
                 </div>
-                
+
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span>Player Stats</span>
-                        <span class="badge bg-success">72%</span>
+                        <span class="badge bg-success" data-badge>72%</span>
                     </div>
-                    <div class="progress mb-2" style="height: 6px;">
-                        <div class="progress-bar bg-success" style="width: 72%"></div>
+                    <div class="progress mb-2 mobile-analytics-feature-progress">
+                        <div class="progress-bar bg-success mobile-analytics-progress-72"></div>
                     </div>
                 </div>
-                
+
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span>Match Reports</span>
-                        <span class="badge bg-info">68%</span>
+                        <span class="badge bg-info" data-badge>68%</span>
                     </div>
-                    <div class="progress mb-2" style="height: 6px;">
-                        <div class="progress-bar bg-info" style="width: 68%"></div>
+                    <div class="progress mb-2 mobile-analytics-feature-progress">
+                        <div class="progress-bar bg-info mobile-analytics-progress-68"></div>
                     </div>
                 </div>
-                
+
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span>Push Notifications</span>
-                        <span class="badge bg-warning">{{ analytics_data.push_open_rate or '45%' }}</span>
+                        <span class="badge bg-warning" data-badge>{{ analytics_data.push_open_rate or '45%' }}</span>
                     </div>
-                    <div class="progress mb-2" style="height: 6px;">
-                        <div class="progress-bar bg-warning" style="width: 45%"></div>
+                    <div class="progress mb-2 mobile-analytics-feature-progress">
+                        <div class="progress-bar bg-warning mobile-analytics-progress-45"></div>
                     </div>
                 </div>
-                
+
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span>Settings</span>
-                        <span class="badge bg-secondary">25%</span>
+                        <span class="badge bg-secondary" data-badge>25%</span>
                     </div>
-                    <div class="progress mb-2" style="height: 6px;">
-                        <div class="progress-bar bg-secondary" style="width: 25%"></div>
+                    <div class="progress mb-2 mobile-analytics-feature-progress">
+                        <div class="progress-bar bg-secondary mobile-analytics-progress-25"></div>
                     </div>
                 </div>
             </div>
@@ -195,13 +195,13 @@
 
     <!-- Performance Metrics -->
     <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card h-100">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-gauge me-2"></i>Performance Metrics
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-6">
                         <div class="text-center mb-3">
@@ -233,24 +233,24 @@
                 </div>
                 
                 <hr>
-                
-                <div class="mb-3">
+
+                <div class="mb-3 mobile-analytics-performance-progress">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span>Memory Usage</span>
                         <span class="text-success">Normal</span>
                     </div>
-                    <div class="progress" style="height: 6px;">
-                        <div class="progress-bar bg-success" style="width: 45%"></div>
+                    <div class="progress mobile-analytics-feature-progress">
+                        <div class="progress-bar bg-success mobile-analytics-progress-45"></div>
                     </div>
                 </div>
-                
-                <div class="mb-3">
+
+                <div class="mb-3 mobile-analytics-performance-progress">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span>Battery Impact</span>
                         <span class="text-primary">Low</span>
                     </div>
-                    <div class="progress" style="height: 6px;">
-                        <div class="progress-bar bg-primary" style="width: 30%"></div>
+                    <div class="progress mobile-analytics-feature-progress">
+                        <div class="progress-bar bg-primary mobile-analytics-progress-30"></div>
                     </div>
                 </div>
             </div>
@@ -261,49 +261,49 @@
 <!-- User Behavior Analytics -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-users me-2"></i>User Behavior Analytics
                 </h5>
                 <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-primary" onclick="exportAnalytics()">
+                    <button class="c-btn c-btn--outline-primary js-export-analytics" data-action="export-analytics">
                         <i class="ti ti-download me-1"></i>Export
                     </button>
-                    <button class="btn btn-outline-primary" onclick="refreshAnalytics()">
+                    <button class="c-btn c-btn--outline-primary js-refresh-analytics" data-action="refresh-analytics">
                         <i class="ti ti-refresh me-1"></i>Refresh
                     </button>
                 </div>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-3">
-                        <div class="card bg-light">
-                            <div class="card-body text-center">
+                        <div class="c-card bg-light">
+                            <div class="c-card__body text-center">
                                 <h4 class="text-primary">{{ analytics_data.weekly_active_users or 0 }}</h4>
                                 <small class="text-muted">Weekly Active Users</small>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card bg-light">
-                            <div class="card-body text-center">
+                        <div class="c-card bg-light">
+                            <div class="c-card__body text-center">
                                 <h4 class="text-success">{{ analytics_data.monthly_active_users or 0 }}</h4>
                                 <small class="text-muted">Monthly Active Users</small>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card bg-light">
-                            <div class="card-body text-center">
+                        <div class="c-card bg-light">
+                            <div class="c-card__body text-center">
                                 <h4 class="text-info">3.2</h4>
                                 <small class="text-muted">Avg Sessions/User</small>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card bg-light">
-                            <div class="card-body text-center">
+                        <div class="c-card bg-light">
+                            <div class="c-card__body text-center">
                                 <h4 class="text-warning">12.5</h4>
                                 <small class="text-muted">Avg Screen Views/Session</small>
                             </div>
@@ -318,20 +318,20 @@
 <!-- Top Screens & User Flows -->
 <div class="row">
     <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card h-100">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-screen-share me-2"></i>Top Screens
                 </h5>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
+            <div class="c-card__body">
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--compact" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Screen</th>
-                                <th>Views</th>
-                                <th>Avg Time</th>
+                                <th scope="col">Screen</th>
+                                <th scope="col">Views</th>
+                                <th scope="col">Avg Time</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -368,37 +368,37 @@
     </div>
 
     <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card h-100">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-git-fork me-2"></i>User Flow Analysis
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="mb-3">
                     <h6>Most Common User Paths</h6>
                     <div class="list-group list-group-flush">
                         <div class="list-group-item d-flex justify-content-between align-items-center">
                             <span>Home → Team Schedule → Match Details</span>
-                            <span class="badge bg-primary">32%</span>
+                            <span class="badge bg-primary" data-badge>32%</span>
                         </div>
                         <div class="list-group-item d-flex justify-content-between align-items-center">
                             <span>Home → Player Stats → Profile</span>
-                            <span class="badge bg-success">24%</span>
+                            <span class="badge bg-success" data-badge>24%</span>
                         </div>
                         <div class="list-group-item d-flex justify-content-between align-items-center">
                             <span>Home → Match Results → Share</span>
-                            <span class="badge bg-info">18%</span>
+                            <span class="badge bg-info" data-badge>18%</span>
                         </div>
                         <div class="list-group-item d-flex justify-content-between align-items-center">
                             <span>Settings → Notifications → Save</span>
-                            <span class="badge bg-warning">12%</span>
+                            <span class="badge bg-warning" data-badge>12%</span>
                         </div>
                     </div>
                 </div>
                 
                 <div class="mt-3">
-                    <button class="btn btn-outline-primary btn-sm w-100" onclick="viewDetailedFlow()">
+                    <button class="c-btn c-btn--outline-primary c-btn--sm w-100 js-view-detailed-flow" data-action="view-detailed-flow">
                         <i class="ti ti-eye me-1"></i>View Detailed Flow
                     </button>
                 </div>
@@ -407,12 +407,43 @@
     </div>
 </div>
 
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/mobile-analytics.css') }}">
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 // Initialize charts when page loads
 document.addEventListener('DOMContentLoaded', function() {
     initializeEngagementChart();
     initializePlatformChart();
+
+    // Update chart buttons
+    document.querySelectorAll('.js-update-chart').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const period = this.dataset.period;
+            updateChart(period, this);
+        });
+    });
+
+    // Export analytics button
+    document.querySelectorAll('.js-export-analytics').forEach(btn => {
+        btn.addEventListener('click', function() {
+            exportAnalytics();
+        });
+    });
+
+    // Refresh analytics button
+    document.querySelectorAll('.js-refresh-analytics').forEach(btn => {
+        btn.addEventListener('click', function() {
+            refreshAnalytics();
+        });
+    });
+
+    // View detailed flow button
+    document.querySelectorAll('.js-view-detailed-flow').forEach(btn => {
+        btn.addEventListener('click', function() {
+            viewDetailedFlow();
+        });
+    });
 });
 
 function initializeEngagementChart() {
@@ -474,12 +505,12 @@ function initializePlatformChart() {
     });
 }
 
-function updateChart(period) {
+function updateChart(period, clickedBtn) {
     // Update chart based on selected time period
     document.querySelectorAll('.btn-group .btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    event.target.classList.add('active');
+    clickedBtn.classList.add('active');
     alert(`Update chart for ${period} - functionality will be implemented here`);
 }
 

@@ -1,147 +1,772 @@
 /**
- * Authentication Pages CSS
- * Extracted from app/templates/login.html
- * 
- * Critical CSS for login and authentication flows.
- * Provides Sounders Blue branding and responsive authentication layout.
+ * ============================================================================
+ * AUTHENTICATION PAGES
+ * ============================================================================
+ *
+ * BEM Component: c-auth-*
+ * Purpose: Login, register, forgot password pages
+ *
+ * Design: Dark athletic theme with subtle ambient lighting
+ *
+ * Structure:
+ *   .c-auth-layout          - HTML root class
+ *   .c-auth-layout__body    - Body element
+ *   .c-auth-layout__container - Centering container
+ *   .c-auth-wrapper         - Main card container
+ *   .c-auth-logo            - Logo section
+ *   .c-auth-form            - Form container
+ *   .c-auth-btn             - Action buttons
+ *   .c-auth-input           - Form inputs
+ *   .c-auth-alert           - Info/warning alerts
+ *
+ * ============================================================================
  */
 
-/* ===== AUTHENTICATION LAYOUT ===== */
-/* Override base layout for authentication pages */
-html.auth-page, 
-body.auth-page {
-    margin: 0 !important;
-    padding: 0 !important;
-    height: 100% !important;
-    background-color: var(--ecs-primary) !important; /* ECS Primary Blue */
+/* =============================================================================
+   Design Tokens
+   ============================================================================ */
+
+.c-auth-layout {
+  --auth-bg-page: #0f1419;
+  --auth-bg-card: #1a1f26;
+  --auth-bg-input: #242b33;
+  --auth-border: rgba(148, 163, 184, 0.12);
+  --auth-border-focus: rgba(88, 101, 242, 0.5);
+
+  --auth-text-primary: #f1f5f9;
+  --auth-text-secondary: #94a3b8;
+  --auth-text-muted: #64748b;
+
+  --auth-discord: #5865F2;
+  --auth-discord-hover: #4752c4;
+  --auth-warning: #f59e0b;
+  --auth-warning-bg: rgba(245, 158, 11, 0.12);
+
+  --auth-radius: 12px;
+  --auth-radius-lg: 16px;
+  --auth-space: 1rem;
+  --auth-space-lg: 1.5rem;
+  --auth-space-xl: 2rem;
 }
 
-.authentication-wrapper {
-    height: 100vh !important;
-    width: 100% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-height: 100vh !important;
+/* =============================================================================
+   Page Layout
+   ============================================================================ */
+
+.c-auth-layout {
+  min-height: 100vh;
 }
 
-.authentication-inner {
-    width: 100%;
-    max-width: 600px;
-    background-color: var(--ecs-neutral-0);
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-    margin: 1rem;
-    min-height: 400px;
+.c-auth-layout__body {
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background: var(--auth-bg-page);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow-x: hidden;
 }
 
-/* ===== AUTHENTICATION BUTTONS ===== */
-.waves-button-input {
-    background-color: var(--ecs-primary) !important;
-    color: var(--ecs-neutral-0) !important;
-    padding: 10px 20px;
-    border-radius: 5px;
-    font-size: 16px;
-    width: 100%;
-    border: none;
-    cursor: pointer;
-    transition: background-color 0.15s ease-in-out;
+/* Ambient glow - top right */
+.c-auth-layout__body::before {
+  content: '';
+  position: fixed;
+  top: -200px;
+  right: -100px;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(88, 101, 242, 0.1) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
 }
 
-.waves-button-input:hover {
-    background-color: var(--ecs-primary-dark) !important;
-    color: var(--ecs-neutral-0) !important;
+/* Ambient glow - bottom left */
+.c-auth-layout__body::after {
+  content: '';
+  position: fixed;
+  bottom: -200px;
+  left: -100px;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(34, 197, 94, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
 }
 
-.waves-button-input:focus {
-    outline: 2px solid rgba(var(--ecs-primary-rgb), 0.5);
-    outline-offset: 2px;
+.c-auth-layout__container {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--auth-space-lg);
+  position: relative;
+  z-index: 1;
 }
 
-/* ===== DISCORD INTEGRATION ===== */
-.discord-img {
-    height: 20px;
-    margin-right: 8px;
-    vertical-align: middle;
+/* =============================================================================
+   Card Wrapper
+   ============================================================================ */
+
+.c-auth-wrapper {
+  width: 100%;
+  max-width: 440px;
+  background: var(--auth-bg-card);
+  border: 1px solid var(--auth-border);
+  border-radius: var(--auth-radius-lg);
+  padding: var(--auth-space-xl);
+  position: relative;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  animation: authCardEnter 0.5s ease backwards;
 }
 
-/* Discord button specific styling */
-.btn-discord {
-    background-color: #5865f2 !important;
-    border-color: #5865f2 !important;
-    color: var(--ecs-neutral-0) !important;
+/* Accent line at top */
+.c-auth-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--auth-discord), transparent);
+  border-radius: 0 0 2px 2px;
 }
 
-.btn-discord:hover {
-    background-color: #4752c4 !important;
-    border-color: #4752c4 !important;
-    color: var(--ecs-neutral-0) !important;
+@keyframes authCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
 }
 
-/* ===== RESPONSIVE DESIGN ===== */
-@media (max-width: 991.98px) {
-    .authentication-inner {
-        flex-direction: column;
-        max-width: 400px;
-        padding: 2rem;
-    }
-    
-    .authentication-wrapper {
-        padding: 1rem;
-    }
+/* =============================================================================
+   Logo Section
+   ============================================================================ */
+
+.c-auth-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--auth-space);
+  margin-bottom: var(--auth-space-xl);
 }
 
-@media (max-width: 575.98px) {
-    .authentication-inner {
-        margin: 0.5rem;
-        padding: 1.5rem;
-        border-radius: 4px;
-    }
-    
-    .waves-button-input {
-        font-size: 14px;
-        padding: 12px 16px;
-    }
+.c-auth-logo__image {
+  height: 56px;
+  width: auto;
+  max-width: 120px;
+  object-fit: contain;
+  filter: brightness(1.05);
+  transition: transform 0.2s ease;
 }
 
-/* ===== DARK MODE SUPPORT ===== */
-html[data-style="dark"] .authentication-inner {
-    background-color: var(--bs-body-bg);
-    color: var(--bs-body-color);
-    border: 1px solid var(--bs-border-color);
+.c-auth-logo__image:hover {
+  transform: scale(1.05);
 }
 
-html[data-style="dark"] .waves-button-input {
-    background-color: var(--bs-primary) !important;
+.c-auth-logo__divider {
+  width: 1px;
+  height: 40px;
+  background: var(--auth-border);
 }
 
-html[data-style="dark"] .waves-button-input:hover {
-    background-color: var(--bs-primary-hover) !important;
+/* =============================================================================
+   Form Structure
+   ============================================================================ */
+
+.c-auth-form {
+  display: flex;
+  flex-direction: column;
 }
 
-/* ===== ACCESSIBILITY ===== */
-.authentication-wrapper:focus-within {
-    outline: none;
+.c-auth-form__header {
+  text-align: center;
+  margin-bottom: var(--auth-space-xl);
 }
 
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-    .waves-button-input {
-        border: 2px solid currentColor;
-    }
-    
-    .authentication-inner {
-        border: 2px solid var(--ecs-neutral-90);
-    }
+.c-auth-form__title {
+  font-size: 1.625rem;
+  font-weight: 700;
+  color: var(--auth-text-primary);
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.02em;
 }
 
-/* Reduced motion support */
+.c-auth-form__subtitle {
+  font-size: 0.9375rem;
+  color: var(--auth-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.c-auth-form__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* =============================================================================
+   Buttons
+   ============================================================================ */
+
+.c-auth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 14px var(--auth-space-lg);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  border-radius: var(--auth-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.c-auth-btn__icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+/* Discord - Primary */
+.c-auth-btn--discord {
+  background: var(--auth-discord);
+  color: white;
+  box-shadow: 0 4px 16px rgba(88, 101, 242, 0.35);
+}
+
+.c-auth-btn--discord:hover {
+  background: var(--auth-discord-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(88, 101, 242, 0.35);
+}
+
+/* Outline - Secondary */
+.c-auth-btn--outline {
+  background: transparent;
+  color: var(--auth-text-secondary);
+  border: 1px solid var(--auth-border);
+}
+
+.c-auth-btn--outline:hover {
+  background: var(--auth-bg-input);
+  color: var(--auth-text-primary);
+  border-color: var(--auth-text-muted);
+}
+
+/* Warning - Waitlist */
+.c-auth-btn--warning {
+  background: var(--auth-warning-bg);
+  color: var(--auth-warning);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.c-auth-btn--warning:hover {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: var(--auth-warning);
+}
+
+/* Primary - Form Submit */
+.c-auth-btn--primary {
+  background: var(--auth-discord);
+  color: white;
+}
+
+.c-auth-btn--primary:hover {
+  background: var(--auth-discord-hover);
+}
+
+/* =============================================================================
+   Divider
+   ============================================================================ */
+
+.c-auth-divider {
+  display: flex;
+  align-items: center;
+  margin: var(--auth-space-lg) 0;
+  gap: var(--auth-space);
+}
+
+.c-auth-divider::before,
+.c-auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--auth-border);
+}
+
+.c-auth-divider__text {
+  font-size: 0.8125rem;
+  color: var(--auth-text-muted);
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.c-auth-divider__text:hover {
+  color: var(--auth-text-secondary);
+  background: var(--auth-bg-input);
+}
+
+/* =============================================================================
+   Form Inputs
+   ============================================================================ */
+
+.c-auth-email-form {
+  margin-top: 0.75rem;
+}
+
+.c-auth-input-group {
+  margin-bottom: var(--auth-space);
+}
+
+.c-auth-input-group--password {
+  position: relative;
+}
+
+.c-auth-input {
+  width: 100%;
+  padding: 14px var(--auth-space);
+  font-size: 0.9375rem;
+  color: var(--auth-text-primary);
+  background: var(--auth-bg-input);
+  border: 1px solid var(--auth-border);
+  border-radius: var(--auth-radius);
+  transition: all 0.2s ease;
+}
+
+.c-auth-input::placeholder {
+  color: var(--auth-text-muted);
+}
+
+.c-auth-input:focus {
+  outline: none;
+  border-color: var(--auth-border-focus);
+  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.15);
+}
+
+.c-auth-password-toggle {
+  position: absolute;
+  right: var(--auth-space);
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--auth-text-muted);
+  cursor: pointer;
+  padding: 0.5rem;
+  transition: color 0.2s ease;
+}
+
+.c-auth-password-toggle:hover {
+  color: var(--auth-text-secondary);
+}
+
+/* =============================================================================
+   Form Row (Remember Me + Forgot Password)
+   ============================================================================ */
+
+.c-auth-form-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--auth-space);
+  font-size: 0.875rem;
+}
+
+.c-auth-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.c-auth-checkbox__input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--auth-discord);
+  cursor: pointer;
+}
+
+.c-auth-checkbox__label {
+  color: var(--auth-text-secondary);
+  cursor: pointer;
+}
+
+.c-auth-link {
+  color: var(--auth-text-secondary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.c-auth-link:hover {
+  color: var(--auth-discord);
+}
+
+/* =============================================================================
+   Alerts
+   ============================================================================ */
+
+.c-auth-alert {
+  padding: var(--auth-space);
+  border-radius: var(--auth-radius);
+  margin-top: var(--auth-space-lg);
+}
+
+.c-auth-alert--info {
+  background: rgba(88, 101, 242, 0.1);
+  border: 1px solid rgba(88, 101, 242, 0.2);
+}
+
+.c-auth-alert--warning {
+  background: var(--auth-warning-bg);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.c-auth-alert__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--auth-text-primary);
+  margin: 0 0 0.5rem 0;
+}
+
+.c-auth-alert__text {
+  font-size: 0.8125rem;
+  color: var(--auth-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* =============================================================================
+   Utility
+   ============================================================================ */
+
+.is-hidden {
+  display: none;
+}
+
+/* =============================================================================
+   Responsive
+   ============================================================================ */
+
+@media (max-width: 480px) {
+  .c-auth-wrapper {
+    padding: var(--auth-space-lg);
+    margin: 0 0.5rem;
+    border-radius: var(--auth-radius);
+  }
+
+  .c-auth-form__title {
+    font-size: 1.375rem;
+  }
+
+  .c-auth-logo__image {
+    height: 44px;
+  }
+
+  .c-auth-logo__divider {
+    height: 32px;
+  }
+}
+
+/* =============================================================================
+   Accessibility
+   ============================================================================ */
+
+.c-auth-btn:focus-visible,
+.c-auth-input:focus-visible,
+.c-auth-link:focus-visible {
+  outline: 2px solid var(--auth-discord);
+  outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .waves-button-input {
-        transition: none;
-    }
+  .c-auth-wrapper {
+    animation: none;
+  }
+}
+
+/* =============================================================================
+   Card Width Modifiers
+   ============================================================================ */
+
+.c-auth-wrapper--wide {
+  max-width: 520px;
+}
+
+.c-auth-wrapper--narrow {
+  max-width: 400px;
+}
+
+/* =============================================================================
+   Help Text
+   ============================================================================ */
+
+.c-auth-help-text {
+  padding: var(--auth-space);
+  background: rgba(88, 101, 242, 0.06);
+  border-radius: var(--auth-radius);
+  margin: var(--auth-space-lg) 0;
+  text-align: center;
+}
+
+.c-auth-help-text__content {
+  font-size: 0.875rem;
+  color: var(--auth-text-secondary);
+  margin: 0 0 0.5rem 0;
+  line-height: 1.5;
+}
+
+.c-auth-help-text__links {
+  font-size: 0.8125rem;
+  color: var(--auth-text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* =============================================================================
+   Form Note
+   ============================================================================ */
+
+.c-auth-form__note {
+  font-size: 0.8125rem;
+  color: var(--auth-text-secondary);
+  text-align: center;
+  margin: 0 0 var(--auth-space) 0;
+  line-height: 1.5;
+}
+
+/* =============================================================================
+   Form Footer
+   ============================================================================ */
+
+.c-auth-form__footer {
+  text-align: center;
+  padding-top: var(--auth-space-lg);
+  margin-top: var(--auth-space-lg);
+  border-top: 1px solid var(--auth-border);
+}
+
+.c-auth-form__footer--spaced {
+  margin-top: var(--auth-space-xl);
+}
+
+.c-auth-form__footer-text {
+  font-size: 0.875rem;
+  color: var(--auth-text-secondary);
+  margin: 0 0 0.5rem 0;
+}
+
+.c-auth-form__footer-text:last-child {
+  margin-bottom: 0;
+}
+
+/* =============================================================================
+   Benefits Grid
+   ============================================================================ */
+
+.c-auth-benefits {
+  padding: var(--auth-space-lg);
+  background: rgba(34, 197, 94, 0.06);
+  border-radius: var(--auth-radius);
+  margin: var(--auth-space-xl) 0;
+  border: 1px solid rgba(34, 197, 94, 0.12);
+}
+
+.c-auth-benefits__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--auth-text-primary);
+  text-align: center;
+  margin: 0 0 var(--auth-space-lg) 0;
+}
+
+.c-auth-benefits__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--auth-space);
+}
+
+.c-auth-benefits__item {
+  text-align: center;
+  padding: var(--auth-space);
+}
+
+.c-auth-benefits__icon {
+  font-size: 1.5rem;
+  color: #22c55e;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.c-auth-benefits__text {
+  font-size: 0.8125rem;
+  color: var(--auth-text-secondary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* =============================================================================
+   Form Rows (for registration forms)
+   ============================================================================ */
+
+.c-auth-form__row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--auth-space);
+  margin-bottom: var(--auth-space);
+}
+
+@media (max-width: 480px) {
+  .c-auth-form__row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =============================================================================
+   Input Group Labels
+   ============================================================================ */
+
+.c-auth-input-group__label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--auth-text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+/* =============================================================================
+   Help Card (for account info display)
+   ============================================================================ */
+
+.c-auth-help-card {
+  padding: var(--auth-space);
+  background: rgba(88, 101, 242, 0.08);
+  border-radius: var(--auth-radius);
+  border: 1px solid rgba(88, 101, 242, 0.15);
+}
+
+.c-auth-help-card--mb-lg {
+  margin-bottom: var(--auth-space-lg);
+}
+
+.c-auth-help-card__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--auth-text-primary);
+  margin: 0 0 0.75rem 0;
+}
+
+.c-auth-help-card__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.c-auth-help-card__item {
+  font-size: 0.8125rem;
+  color: var(--auth-text-secondary);
+}
+
+.c-auth-help-card__item strong {
+  color: var(--auth-text-primary);
+}
+
+/* =============================================================================
+   Button Row (for side-by-side buttons)
+   ============================================================================ */
+
+.c-auth-btn-row {
+  display: flex;
+  gap: var(--auth-space);
+  margin-top: var(--auth-space-lg);
+}
+
+.c-auth-btn-row__item {
+  flex: 1;
+}
+
+.c-auth-btn-row__item--auto {
+  flex: 0 0 auto;
+}
+
+/* =============================================================================
+   Alert Icon Support
+   ============================================================================ */
+
+.c-auth-alert__title i {
+  margin-right: 0.5rem;
+}
+
+/* =============================================================================
+   Waiver Section (for registration)
+   ============================================================================ */
+
+.c-waiver {
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.15);
+  border-radius: var(--auth-radius);
+  margin-bottom: var(--auth-space-xl);
+}
+
+.c-waiver__header {
+  padding: var(--auth-space);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.12);
+}
+
+.c-waiver__header-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--auth-warning);
+  margin: 0 0 0.5rem 0;
+}
+
+.c-waiver__content {
+  padding: var(--auth-space);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.c-waiver__content p {
+  font-size: 0.8125rem;
+  color: var(--auth-text-secondary);
+  margin: 0 0 0.75rem 0;
+  line-height: 1.6;
+}
+
+.c-waiver__content p:last-child {
+  margin-bottom: 0;
+}
+
+.c-waiver__section-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--auth-text-primary);
+  margin: var(--auth-space) 0 0.5rem 0;
+}
+
+.c-waiver__list {
+  font-size: 0.8125rem;
+  color: var(--auth-text-secondary);
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.c-waiver__list-item {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+/* =============================================================================
+   Muted Label Modifier
+   ============================================================================ */
+
+.c-auth-checkbox__label--muted {
+  color: var(--auth-text-muted);
 }

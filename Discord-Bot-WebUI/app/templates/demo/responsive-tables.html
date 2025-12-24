@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
   .demo-section {
     margin-bottom: 2rem;
@@ -25,13 +26,13 @@
 {% block main_content %}
 <div class="row">
   <div class="col-12">
-    <div class="card">
-      <div class="card-header">
-        <h4 class="card-title">Responsive Tables Demo</h4>
-        <p class="card-subtitle">Demonstration of mobile-friendly responsive table patterns</p>
+    <div class="c-card">
+      <div class="c-card__header">
+        <h4 class="c-card__title">Responsive Tables Demo</h4>
+        <p class="c-card__subtitle">Demonstration of mobile-friendly responsive table patterns</p>
       </div>
       
-      <div class="card-body">
+      <div class="c-card__body">
         <div class="demo-section">
           <h5>Overview</h5>
           <p>This responsive tables solution converts standard data tables to card-based layouts on mobile devices, making it easier for users to view and interact with tabular data on small screens.</p>
@@ -65,19 +66,19 @@
           <p>A simple table that transforms to cards on mobile devices (resize your browser to see the effect):</p>
           
           <div class="code-block">
-            &lt;table class="table table-striped mobile-card-table"&gt;
+            &lt;table class="c-table c-table--striped mobile-card-table"&gt;
           </div>
           
-          <div class="table-responsive">
-            <table class="table table-striped mobile-card-table">
-              <thead>
+          <div class="c-table-wrapper" data-table-responsive>
+            <table class="c-table c-table--striped mobile-card-table" data-table>
+              <thead scope="col">
                 <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Jersey Size</th>
-                  <th>Primary League</th>
-                  <th>Actions</th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Email</th>
+                  <th scope="col">Phone</th>
+                  <th scope="col">Jersey Size</th>
+                  <th scope="col">Primary League</th>
+                  <th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -88,8 +89,8 @@
                   <td>XL</td>
                   <td>Premier</td>
                   <td>
-                    <a href="#" class="btn btn-sm btn-primary">View</a>
-                    <button type="button" class="btn btn-sm btn-danger">Delete</button>
+                    <a href="#" class="c-btn c-btn--sm c-btn--primary">View</a>
+                    <button type="button" class="c-btn c-btn--sm c-btn--danger">Delete</button>
                   </td>
                 </tr>
                 <tr>
@@ -99,8 +100,8 @@
                   <td>M</td>
                   <td>Classic</td>
                   <td>
-                    <a href="#" class="btn btn-sm btn-primary">View</a>
-                    <button type="button" class="btn btn-sm btn-danger">Delete</button>
+                    <a href="#" class="c-btn c-btn--sm c-btn--primary">View</a>
+                    <button type="button" class="c-btn c-btn--sm c-btn--danger">Delete</button>
                   </td>
                 </tr>
                 <tr>
@@ -110,8 +111,8 @@
                   <td>L</td>
                   <td>Premier</td>
                   <td>
-                    <a href="#" class="btn btn-sm btn-primary">View</a>
-                    <button type="button" class="btn btn-sm btn-danger">Delete</button>
+                    <a href="#" class="c-btn c-btn--sm c-btn--primary">View</a>
+                    <button type="button" class="c-btn c-btn--sm c-btn--danger">Delete</button>
                   </td>
                 </tr>
               </tbody>
@@ -123,16 +124,16 @@
           <h5>With Status Colors</h5>
           <p>Tables with status color rows will maintain their styling in card view:</p>
           
-          <div class="table-responsive">
-            <table class="table mobile-card-table">
-              <thead>
+          <div class="c-table-wrapper" data-table-responsive>
+            <table class="c-table mobile-card-table" data-table>
+              <thead scope="col">
                 <tr>
-                  <th>Match</th>
-                  <th>Date</th>
-                  <th>Time</th>
-                  <th>Location</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th scope="col">Match</th>
+                  <th scope="col">Date</th>
+                  <th scope="col">Time</th>
+                  <th scope="col">Location</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -141,10 +142,10 @@
                   <td>May 15, 2025</td>
                   <td>7:00 PM</td>
                   <td>Memorial Stadium</td>
-                  <td><span class="badge bg-success">Confirmed</span></td>
+                  <td><span class="badge bg-success" data-badge>Confirmed</span></td>
                   <td>
-                    <a href="#" class="btn btn-sm btn-primary">View</a>
-                    <a href="#" class="btn btn-sm btn-info">Report</a>
+                    <a href="#" class="c-btn c-btn--sm c-btn--primary">View</a>
+                    <a href="#" class="c-btn c-btn--sm c-btn--info">Report</a>
                   </td>
                 </tr>
                 <tr class="table-warning">
@@ -152,10 +153,10 @@
                   <td>May 22, 2025</td>
                   <td>6:30 PM</td>
                   <td>Starfire Sports Complex</td>
-                  <td><span class="badge bg-warning">Pending</span></td>
+                  <td><span class="badge bg-warning" data-badge>Pending</span></td>
                   <td>
-                    <a href="#" class="btn btn-sm btn-primary">View</a>
-                    <a href="#" class="btn btn-sm btn-warning">Confirm</a>
+                    <a href="#" class="c-btn c-btn--sm c-btn--primary">View</a>
+                    <a href="#" class="c-btn c-btn--sm c-btn--warning">Confirm</a>
                   </td>
                 </tr>
                 <tr class="table-danger">
@@ -163,10 +164,10 @@
                   <td>May 29, 2025</td>
                   <td>8:00 PM</td>
                   <td>Tacoma Soccer Center</td>
-                  <td><span class="badge bg-danger">Cancelled</span></td>
+                  <td><span class="badge bg-danger" data-badge>Cancelled</span></td>
                   <td>
-                    <a href="#" class="btn btn-sm btn-primary">View</a>
-                    <a href="#" class="btn btn-sm btn-secondary">Reschedule</a>
+                    <a href="#" class="c-btn c-btn--sm c-btn--primary">View</a>
+                    <a href="#" class="c-btn c-btn--sm c-btn--secondary">Reschedule</a>
                   </td>
                 </tr>
               </tbody>
@@ -178,17 +179,17 @@
           <h5>Complex Table with Avatars</h5>
           <p>Tables with avatars and more complex data are also supported:</p>
           
-          <div class="table-responsive">
-            <table class="table table-hover mobile-card-table">
-              <thead>
+          <div class="c-table-wrapper" data-table-responsive>
+            <table class="c-table c-table--hoverable mobile-card-table" data-table>
+              <thead scope="col">
                 <tr>
-                  <th>Player</th>
-                  <th>Position</th>
-                  <th>Team</th>
-                  <th>Goals</th>
-                  <th>Assists</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th scope="col">Player</th>
+                  <th scope="col">Position</th>
+                  <th scope="col">Team</th>
+                  <th scope="col">Goals</th>
+                  <th scope="col">Assists</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -205,13 +206,13 @@
                   <td>ECS FC Premier</td>
                   <td>12</td>
                   <td>5</td>
-                  <td><span class="badge bg-success">Active</span></td>
+                  <td><span class="badge bg-success" data-badge>Active</span></td>
                   <td>
                     <div class="dropdown">
-                      <button type="button" class="btn btn-sm dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                      <button type="button" class="c-btn c-btn--sm dropdown-toggle hide-arrow" data-bs-toggle="dropdown" data-dropdown-toggle>
                         <i class="ti ti-dots-vertical"></i>
                       </button>
-                      <div class="dropdown-menu">
+                      <div class="dropdown-menu" data-dropdown-menu>
                         <a class="dropdown-item" href="#"><i class="ti ti-edit me-2"></i> Edit</a>
                         <a class="dropdown-item" href="#"><i class="ti ti-trash me-2"></i> Delete</a>
                       </div>
@@ -231,13 +232,13 @@
                   <td>ECS FC Classic</td>
                   <td>8</td>
                   <td>14</td>
-                  <td><span class="badge bg-warning">Injured</span></td>
+                  <td><span class="badge bg-warning" data-badge>Injured</span></td>
                   <td>
                     <div class="dropdown">
-                      <button type="button" class="btn btn-sm dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                      <button type="button" class="c-btn c-btn--sm dropdown-toggle hide-arrow" data-bs-toggle="dropdown" data-dropdown-toggle>
                         <i class="ti ti-dots-vertical"></i>
                       </button>
-                      <div class="dropdown-menu">
+                      <div class="dropdown-menu" data-dropdown-menu>
                         <a class="dropdown-item" href="#"><i class="ti ti-edit me-2"></i> Edit</a>
                         <a class="dropdown-item" href="#"><i class="ti ti-trash me-2"></i> Delete</a>
                       </div>
@@ -257,13 +258,13 @@
                   <td>ECS FC Premier</td>
                   <td>3</td>
                   <td>2</td>
-                  <td><span class="badge bg-success">Active</span></td>
+                  <td><span class="badge bg-success" data-badge>Active</span></td>
                   <td>
                     <div class="dropdown">
-                      <button type="button" class="btn btn-sm dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                      <button type="button" class="c-btn c-btn--sm dropdown-toggle hide-arrow" data-bs-toggle="dropdown" data-dropdown-toggle>
                         <i class="ti ti-dots-vertical"></i>
                       </button>
-                      <div class="dropdown-menu">
+                      <div class="dropdown-menu" data-dropdown-menu>
                         <a class="dropdown-item" href="#"><i class="ti ti-edit me-2"></i> Edit</a>
                         <a class="dropdown-item" href="#"><i class="ti ti-trash me-2"></i> Delete</a>
                       </div>
@@ -278,7 +279,7 @@
         <div class="demo-section">
           <h5>Implementation Guide</h5>
           
-          <div class="alert alert-info">
+          <div class="alert alert-info" data-alert>
             <h6 class="alert-heading">How to update your existing tables</h6>
             <p>To convert any table in your application to use this responsive card pattern:</p>
             <ol class="mb-0">
@@ -292,8 +293,8 @@
           <h6 class="mt-4">Example Code</h6>
           <div class="code-block">
             &lt;!-- Basic Implementation --&gt;
-            &lt;div class="table-responsive"&gt;
-              &lt;table class="table table-striped mobile-card-table"&gt;
+            &lt;div class="c-table-wrapper"&gt;
+              &lt;table class="c-table c-table--striped mobile-card-table"&gt;
                 &lt;thead&gt;
                   &lt;tr&gt;
                     &lt;th&gt;Name&lt;/th&gt;
@@ -308,8 +309,8 @@
                     &lt;td&gt;john@example.com&lt;/td&gt;
                     &lt;td&gt;555-1234&lt;/td&gt;
                     &lt;td&gt;
-                      &lt;a href="#" class="btn btn-sm btn-primary"&gt;View&lt;/a&gt;
-                      &lt;button class="btn btn-sm btn-danger"&gt;Delete&lt;/button&gt;
+                      &lt;a href="#" class="c-btn c-btn--sm c-btn--primary"&gt;View&lt;/a&gt;
+                      &lt;button class="c-btn c-btn--sm c-btn--danger"&gt;Delete&lt;/button&gt;
                     &lt;/td&gt;
                   &lt;/tr&gt;
                 &lt;/tbody&gt;

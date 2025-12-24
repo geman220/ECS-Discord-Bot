@@ -3,40 +3,45 @@
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Page Header -->
-    <div class="card mb-4">
-        <div class="card-body p-4 position-relative">
-            <div class="row align-items-center">
-                <div class="col">
-                    <h4 class="fw-bold mb-1">
-                        <i class="ti ti-calendar me-2 text-primary"></i>
-                        Pub League Calendar
-                    </h4>
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item">
-                                <a href="/"><i class="ti ti-home text-muted me-1"></i> Home</a>
-                            </li>
-                            <li class="breadcrumb-item active">Calendar</li>
-                        </ol>
-                    </nav>
-                </div>
-                <div class="col-auto">
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-primary btn-icon-text" id="refreshScheduleBtn">
-                            <i class="ti ti-refresh me-1"></i> Refresh
-                        </button>
-                        {% if can_edit_events %}
-                        <button class="btn btn-success btn-icon-text" id="addLeagueEventBtn">
-                            <i class="ti ti-calendar-plus me-1"></i> Add Event
-                        </button>
-                        {% endif %}
-                        {% if can_assign_referee and not is_referee %}
-                        <button class="btn btn-outline-primary btn-icon-text" id="toggleAssignmentMode">
-                            <i class="ti ti-user-check me-1"></i> Assignment Mode
-                        </button>
-                        {% endif %}
-                    </div>
-                </div>
+    <div class="c-calendar-header" data-component="calendar-header">
+        <div class="c-calendar-header__content">
+            <div class="c-calendar-header__info">
+                <h4 class="c-calendar-header__title">
+                    <i class="ti ti-calendar c-calendar-header__icon"></i>
+                    Pub League Calendar
+                </h4>
+                <nav class="c-calendar-header__breadcrumb" aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item">
+                            <a href="/"><i class="ti ti-home"></i> Home</a>
+                        </li>
+                        <li class="breadcrumb-item active">Calendar</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="c-calendar-header__actions">
+                <button class="c-calendar-btn c-calendar-btn--primary"
+                        id="refreshScheduleBtn"
+                        data-action="refresh-schedule">
+                    <i class="ti ti-refresh"></i>
+                    Refresh
+                </button>
+                {% if can_edit_events %}
+                <button class="c-calendar-btn c-calendar-btn--success"
+                        id="addLeagueEventBtn"
+                        data-action="add-event">
+                    <i class="ti ti-calendar-plus"></i>
+                    Add Event
+                </button>
+                {% endif %}
+                {% if can_assign_referee and not is_referee %}
+                <button class="c-calendar-btn c-calendar-btn--outline"
+                        id="toggleAssignmentMode"
+                        data-action="toggle-assignment-mode">
+                    <i class="ti ti-user-check"></i>
+                    Assignment Mode
+                </button>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -46,21 +51,22 @@
     <div class="row">
         <!-- My Assignments Section -->
         <div class="col-lg-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center border-bottom">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-user-check me-2 text-primary"></i>
+            <div class="c-calendar-card" data-component="calendar-card">
+                <div class="c-calendar-card__header">
+                    <h5 class="c-calendar-card__title">
+                        <i class="ti ti-user-check c-calendar-card__icon"></i>
                         My Assignments
                     </h5>
-                    <span class="badge bg-primary rounded-pill" id="myAssignmentsCount">0</span>
+                    <span class="c-badge c-badge--primary c-badge--pill"
+                          id="myAssignmentsCount"
+                          data-badge
+                          data-count="assignments">0</span>
                 </div>
-                <div class="card-body p-0">
-                    <div id="myAssignmentsList" class="p-3">
-                        <div class="text-center py-4">
-                            <div class="spinner-border text-primary mb-2" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <p class="text-primary mb-0 small fw-medium">Loading assignments...</p>
+                <div class="c-calendar-card__body c-calendar-card__body--no-padding">
+                    <div id="myAssignmentsList" class="c-calendar-assignments">
+                        <div class="c-loading-state" data-component="loading-state">
+                            <div class="c-loading-state__spinner"></div>
+                            <p class="c-loading-state__text">Loading assignments...</p>
                         </div>
                     </div>
                 </div>
@@ -69,22 +75,22 @@
         
         <!-- Availability Toggle -->
         <div class="col-lg-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header border-bottom">
-                    <h5 class="card-title mb-0">
+            <div class="c-card h-100">
+                <div class="c-card__header border-bottom">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-toggle-right me-2 text-primary"></i>
                         Availability Status
                     </h5>
                 </div>
-                <div class="card-body text-center">
+                <div class="c-card__body text-center">
                     <div class="availability-container">
                         <div class="availability-status mb-3" id="availabilityStatus">
-                            <div class="spinner-border text-primary mb-2" role="status">
+                            <div class="spinner-border text-primary mb-2" role="status" data-spinner>
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                             <p class="text-muted">Loading status...</p>
                         </div>
-                        <button type="button" class="btn btn-primary" id="toggleAvailabilityBtn" disabled>
+                        <button type="button" class="c-btn c-btn--primary" id="toggleAvailabilityBtn" disabled>
                             <i class="ti ti-loader ti-spin me-1"></i> Loading...
                         </button>
                         <div class="mt-3">
@@ -102,45 +108,69 @@
     <div class="row">
         <!-- Main Content Column -->
         <div class="col-lg-8 col-xl-9 mb-4 mb-lg-0">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center border-bottom">
-                    <h5 class="card-title mb-0">Match Schedule</h5>
-                    <div class="d-flex align-items-center flex-wrap gap-2">
-                        <div class="input-group" style="width: 250px;">
-                            <span class="input-group-text border-end-0 ps-3 pe-1 bg-body">
-                                <i class="ti ti-search text-muted"></i>
+            <div class="c-calendar-main" data-component="calendar-main">
+                <div class="c-calendar-main__header">
+                    <h5 class="c-calendar-main__title">Match Schedule</h5>
+                    <div class="c-calendar-main__controls">
+                        <div class="c-calendar-search" data-component="calendar-search">
+                            <span class="c-calendar-search__icon">
+                                <i class="ti ti-search"></i>
                             </span>
-                            <input type="text" class="form-control border-start-0 ps-1" id="matchSearchInput" placeholder="Search matches...">
+                            <input type="text"
+                                   class="c-calendar-search__input"
+                                   id="matchSearchInput"
+                                   placeholder="Search matches..."
+                                   data-input="search">
                         </div>
-                        <div class="btn-group ms-2">
-                            <button type="button" class="btn btn-outline-primary btn-sm" data-view="day" id="viewDayBtn">Day</button>
-                            <button type="button" class="btn btn-outline-primary btn-sm" data-view="week" id="viewWeekBtn">Week</button>
-                            <button type="button" class="btn btn-outline-primary btn-sm active" data-view="month" id="viewMonthBtn">Month</button>
-                            <button type="button" class="btn btn-outline-primary btn-sm" data-view="list" id="viewListBtn">List</button>
+                        <div class="c-calendar-views" data-component="calendar-views">
+                            <button type="button"
+                                    class="c-calendar-view"
+                                    data-view="day"
+                                    id="viewDayBtn"
+                                    data-action="change-view">Day</button>
+                            <button type="button"
+                                    class="c-calendar-view"
+                                    data-view="week"
+                                    id="viewWeekBtn"
+                                    data-action="change-view">Week</button>
+                            <button type="button"
+                                    class="c-calendar-view c-calendar-view--active"
+                                    data-view="month"
+                                    id="viewMonthBtn"
+                                    data-action="change-view">Month</button>
+                            <button type="button"
+                                    class="c-calendar-view"
+                                    data-view="list"
+                                    id="viewListBtn"
+                                    data-action="change-view">List</button>
                         </div>
-                        <button type="button" class="btn btn-sm btn-icon btn-outline-secondary ms-2" id="keyboardHelpBtn" title="Keyboard shortcuts (?)">
+                        <button type="button"
+                                class="c-calendar-help-btn"
+                                id="keyboardHelpBtn"
+                                title="Keyboard shortcuts (?)"
+                                data-action="show-shortcuts">
                             <i class="ti ti-keyboard"></i>
                         </button>
                     </div>
                 </div>
-                <div class="card-body p-0">
+                <div class="c-card__body p-0">
                     <!-- Custom Schedule View -->
                     <div id="scheduleContainer" class="p-4 h-100">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <div class="d-flex gap-2 align-items-center">
-                                <button class="btn btn-sm btn-icon btn-outline-primary" id="prevBtn" title="Previous">
+                                <button class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-primary" id="calendar-prevBtn" title="Previous">
                                     <i class="ti ti-chevron-left"></i>
                                 </button>
-                                <button class="btn btn-sm btn-outline-secondary" id="todayBtn" title="Go to today">
+                                <button class="c-btn c-btn--sm c-btn--outline-secondary" id="todayBtn" title="Go to today">
                                     Today
                                 </button>
                             </div>
                             <h5 id="currentDateDisplay" class="mb-0 fw-semibold">Sunday, April 7, 2024</h5>
                             <div class="d-flex gap-2 align-items-center">
-                                <button class="btn btn-sm btn-outline-info" id="nextEventBtn" title="Jump to next scheduled event">
+                                <button class="c-btn c-btn--sm c-btn--outline-info" id="nextEventBtn" title="Jump to next scheduled event">
                                     <i class="ti ti-calendar-event me-1"></i>Next
                                 </button>
-                                <button class="btn btn-sm btn-icon btn-outline-primary" id="nextBtn" title="Next">
+                                <button class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-primary" id="calendar-nextBtn" title="Next">
                                     <i class="ti ti-chevron-right"></i>
                                 </button>
                             </div>
@@ -149,7 +179,7 @@
                         <!-- Schedule content will be loaded here dynamically -->
                         <div id="scheduleContent" class="schedule-content">
                             <div class="text-center py-5">
-                                <div class="spinner-border spinner-border-lg text-primary mb-2" role="status">
+                                <div class="spinner-border spinner-border-lg text-primary mb-2" role="status" data-spinner>
                                     <span class="visually-hidden">Loading...</span>
                                 </div>
                                 <h6 class="fw-normal text-primary mb-1">Loading schedule...</h6>
@@ -164,44 +194,50 @@
         <!-- Sidebar -->
         <div class="col-lg-4 col-xl-3">
             <!-- Mini Calendar Card -->
-            <div class="card mb-4">
-                <div class="card-header border-bottom py-3">
-                    <div class="d-flex align-items-center">
-                        <div class="avatar avatar-sm me-2 bg-label-primary">
-                            <i class="ti ti-calendar"></i>
-                        </div>
-                        <h5 class="card-title mb-0">Quick Jump</h5>
+            <div class="c-calendar-sidebar-card" data-component="mini-calendar-card">
+                <div class="c-calendar-sidebar-card__header">
+                    <div class="c-calendar-sidebar-card__icon">
+                        <i class="ti ti-calendar"></i>
                     </div>
+                    <h5 class="c-calendar-sidebar-card__title">Quick Jump</h5>
                 </div>
-                <div class="card-body p-2">
-                    <div id="miniCalendar"></div>
+                <div class="c-calendar-sidebar-card__body c-calendar-sidebar-card__body--compact">
+                    <div id="miniCalendar" class="c-mini-calendar" data-component="mini-calendar"></div>
                 </div>
             </div>
 
             <!-- Calendar Filters Card -->
-            <div class="card mb-4">
-                <div class="card-header border-bottom">
-                    <div class="d-flex align-items-center">
-                        <div class="avatar avatar-sm me-2 bg-label-info">
-                            <i class="ti ti-filter"></i>
-                        </div>
-                        <h5 class="card-title mb-0">Filters</h5>
+            <div class="c-calendar-sidebar-card" data-component="filters-card">
+                <div class="c-calendar-sidebar-card__header">
+                    <div class="c-calendar-sidebar-card__icon c-calendar-sidebar-card__icon--info">
+                        <i class="ti ti-filter"></i>
                     </div>
+                    <h5 class="c-calendar-sidebar-card__title">Filters</h5>
                 </div>
-                <div class="card-body">
+                <div class="c-calendar-sidebar-card__body c-calendar-filters" data-component="calendar-filters">
                     <!-- Event Type Filters -->
-                    <div class="mb-3">
-                        <label class="form-label text-muted small text-uppercase">Event Types</label>
-                        <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox" id="filterShowMatches" checked>
-                            <label class="form-check-label" for="filterShowMatches">
-                                <i class="ti ti-ball-football me-1 text-primary"></i>Matches
+                    <div class="c-filter-section" data-component="filter-section">
+                        <label class="c-filter-section__label">Event Types</label>
+                        <div class="c-filter-option" data-component="filter-option">
+                            <input class="c-filter-option__input"
+                                   type="checkbox"
+                                   id="filterShowMatches"
+                                   checked
+                                   data-filter="matches">
+                            <label class="c-filter-option__label" for="filterShowMatches">
+                                <i class="ti ti-ball-football c-filter-option__icon"></i>
+                                Matches
                             </label>
                         </div>
-                        <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox" id="filterShowLeagueEvents" checked>
-                            <label class="form-check-label" for="filterShowLeagueEvents">
-                                <i class="ti ti-calendar-event me-1 text-info"></i>League Events
+                        <div class="c-filter-option" data-component="filter-option">
+                            <input class="c-filter-option__input"
+                                   type="checkbox"
+                                   id="filterShowLeagueEvents"
+                                   checked
+                                   data-filter="events">
+                            <label class="c-filter-option__label" for="filterShowLeagueEvents">
+                                <i class="ti ti-calendar-event c-filter-option__icon"></i>
+                                League Events
                             </label>
                         </div>
                     </div>
@@ -211,27 +247,27 @@
                         <label class="form-label text-muted small text-uppercase d-flex justify-content-between align-items-center">
                             <span>Divisions</span>
                             <span>
-                                <button type="button" class="btn btn-link btn-sm p-0 me-2" id="filterSelectAllDivisions">All</button>
-                                <button type="button" class="btn btn-link btn-sm p-0" id="filterClearAllDivisions">None</button>
+                                <button type="button" class="c-btn c-btn--link c-btn--sm p-0 me-2" id="filterSelectAllDivisions">All</button>
+                                <button type="button" class="c-btn c-btn--link c-btn--sm p-0" id="filterClearAllDivisions">None</button>
                             </span>
                         </label>
                         <div class="form-check mb-2">
                             <input class="form-check-input filter-division" type="checkbox" value="Premier" id="filterDivPremier" checked>
                             <label class="form-check-label" for="filterDivPremier">
-                                <span class="badge bg-primary me-1">&nbsp;</span>Premier
+                                <span class="badge bg-primary me-1" data-badge>&nbsp;</span>Premier
                             </label>
                         </div>
                         <div class="form-check mb-2">
                             <input class="form-check-input filter-division" type="checkbox" value="Classic" id="filterDivClassic" checked>
                             <label class="form-check-label" for="filterDivClassic">
-                                <span class="badge bg-success me-1">&nbsp;</span>Classic
+                                <span class="badge bg-success me-1" data-badge>&nbsp;</span>Classic
                             </label>
                         </div>
                     </div>
 
                     <!-- Reset Button -->
                     <div class="d-grid">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" id="filterResetBtn">
+                        <button type="button" class="c-btn c-btn--outline-secondary c-btn--sm" id="filterResetBtn">
                             <i class="ti ti-refresh me-1"></i>Reset Filters
                         </button>
                     </div>
@@ -240,16 +276,16 @@
 
             <!-- Quick Stats Card -->
             {% if can_view_schedule_stats %}
-            <div class="card mb-4">
-                <div class="card-header border-bottom">
+            <div class="c-card mb-4">
+                <div class="c-card__header border-bottom">
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-sm me-2 bg-label-primary">
                             <i class="ti ti-chart-pie"></i>
                         </div>
-                        <h5 class="card-title mb-0">Schedule Statistics</h5>
+                        <h5 class="c-card__title mb-0">Schedule Statistics</h5>
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <div class="row g-3">
                         <div class="col-6">
                             <div class="stat-card bg-label-primary shadow-sm rounded-3">
@@ -302,30 +338,30 @@
 
             <!-- Referee List Card - Only show for admins -->
             {% if not is_referee and can_view_available_referees %}
-            <div class="card">
-                <div class="card-header border-bottom">
+            <div class="c-card">
+                <div class="c-card__header border-bottom">
                     <div class="d-flex align-items-center justify-content-between">
                         <div class="d-flex align-items-center">
                             <div class="avatar avatar-sm me-2 bg-label-primary">
                                 <i class="ti ti-users"></i>
                             </div>
-                            <h5 class="card-title mb-0">Available Referees</h5>
+                            <h5 class="c-card__title mb-0">Available Referees</h5>
                         </div>
-                        <span class="badge bg-primary rounded-pill" id="refCount">0</span>
+                        <span class="badge bg-primary rounded-pill" id="refCount" data-badge>0</span>
                     </div>
                 </div>
-                <div class="card-body p-0">
+                <div class="c-card__body p-0">
                     <div class="p-3">
-                        <div class="input-group">
+                        <div class="input-group" data-input-group>
                             <span class="input-group-text border-end-0 ps-3 pe-1 bg-body">
                                 <i class="ti ti-search text-muted"></i>
                             </span>
-                            <input type="text" class="form-control border-start-0 ps-1" id="refSearchInput" placeholder="Search referees...">
+                            <input type="text" class="form-control border-start-0 ps-1" id="refSearchInput" placeholder="Search referees..." data-form-control>
                         </div>
                     </div>
                     <div class="referee-list" id="refereeList">
                         <div class="text-center py-4">
-                            <div class="spinner-border text-primary mb-2" role="status">
+                            <div class="spinner-border text-primary mb-2" role="status" data-spinner>
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                             <p class="text-primary mb-0 small fw-medium">Loading referees...</p>
@@ -339,17 +375,17 @@
 </div>
 
 <!-- Referee Assignment Modal -->
-<div class="modal fade" id="assignRefModal" tabindex="-1" aria-labelledby="assignRefModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header border-bottom">
-                <h5 class="modal-title" id="assignRefModalLabel">
+<div class="modal c-modal fade" data-modal id="assignRefModal" tabindex="-1" aria-labelledby="assignRefModalLabel" aria-hidden="true">
+    <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header border-bottom" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="assignRefModalLabel">
                     <i class="ti ti-user-check text-primary me-1"></i> Referee Assignment
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <form id="assignRefForm">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
+                <form id="assignRefForm" data-on-submit="assign-referee">
                     <input type="hidden" id="matchId" name="match_id">
                     
                     <div class="match-detail-card mb-3 bg-label-primary rounded-3">
@@ -368,7 +404,7 @@
                                     <i class="ti ti-map-pin me-1"></i>
                                     <span id="matchLocation">Location</span>
                                 </p>
-                                <span class="badge bg-primary rounded-pill" id="matchDivision">Division</span>
+                                <span class="badge bg-primary rounded-pill" id="matchDivision" data-badge>Division</span>
                             </div>
                         </div>
                     </div>
@@ -382,7 +418,7 @@
                                 </div>
                                 <span id="currentRefereeName" class="fw-semibold">Unassigned</span>
                             </div>
-                            <button type="button" class="btn btn-outline-danger btn-sm" id="removeRefButton">
+                            <button type="button" class="c-btn c-btn--outline-danger c-btn--sm" id="removeRefButton" data-action="remove-referee">
                                 <i class="ti ti-user-x me-1"></i> Remove
                             </button>
                         </div>
@@ -390,7 +426,7 @@
                     
                     <div class="mb-3">
                         <label for="refSelect" class="form-label fw-semibold">Assign Referee</label>
-                        <select class="form-select" id="refSelect" name="ref_id" required>
+                        <select class="form-select" id="refSelect" name="ref_id" required data-form-select>
                             <option value="" selected disabled>Choose a referee</option>
                         </select>
                         <div class="form-text">Select a referee from the list to assign to this match</div>
@@ -399,9 +435,9 @@
                     <div id="assignRefFeedback" class="mt-2"></div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" form="assignRefForm" class="btn btn-primary" id="assignRefButton">
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="submit" form="assignRefForm" class="c-btn c-btn--primary" id="assignRefButton">
                     <i class="ti ti-user-check me-1"></i> Assign Referee
                 </button>
             </div>
@@ -410,16 +446,16 @@
 </div>
 
 <!-- Match Details Modal -->
-<div class="modal fade" id="matchDetailsModal" tabindex="-1" aria-labelledby="matchDetailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header border-bottom">
-                <h5 class="modal-title" id="matchDetailsModalLabel">
+<div class="modal c-modal fade" data-modal id="matchDetailsModal" tabindex="-1" aria-labelledby="matchDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header border-bottom" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="matchDetailsModalLabel">
                     <i class="ti ti-soccer-field text-primary me-1"></i> Match Details
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <div class="match-detail-full">
                     <div class="match-teams-container">
                         <div class="team home-team">
@@ -460,7 +496,7 @@
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h6 class="fw-bold mb-0">Referee Assignment</h6>
                             {% if can_assign_referee %}
-                            <button type="button" class="btn btn-sm btn-primary" id="openAssignRefBtnTop">
+                            <button type="button" class="c-btn c-btn--sm c-btn--primary" id="openAssignRefBtnTop">
                                 <i class="ti ti-user-check me-1"></i> Assign Referee
                             </button>
                             {% endif %}
@@ -476,10 +512,10 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
                 {% if can_assign_referee %}
-                <button type="button" class="btn btn-primary" id="openAssignRefBtn">
+                <button type="button" class="c-btn c-btn--primary" id="openAssignRefBtn">
                     <i class="ti ti-user-check me-1"></i> Assign Referee
                 </button>
                 {% endif %}
@@ -490,29 +526,29 @@
 
 <!-- League Event Modal (for admin event creation/editing) -->
 {% if can_edit_events %}
-<div class="modal fade" id="leagueEventModal" tabindex="-1" aria-labelledby="leagueEventModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="leagueEventModalLabel">
+<div class="modal c-modal fade" data-modal id="leagueEventModal" tabindex="-1" aria-labelledby="leagueEventModalLabel" aria-hidden="true">
+    <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="leagueEventModalLabel">
                     <i class="ti ti-calendar-plus me-2"></i>
                     <span id="eventModalTitle">Create League Event</span>
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <form id="leagueEventForm">
                     <input type="hidden" id="eventId" value="">
 
                     <div class="mb-3">
                         <label for="eventTitle" class="form-label">Event Title <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="eventTitle" placeholder="e.g., Pre-Season Party" required>
+                        <input type="text" class="form-control" id="eventTitle" placeholder="e.g., Pre-Season Party" required data-form-control>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="eventType" class="form-label">Event Type</label>
-                            <select class="form-select" id="eventType">
+                            <select class="form-select" id="eventType" data-form-select>
                                 <option value="party">Party</option>
                                 <option value="meeting">Meeting</option>
                                 <option value="social">Social Event</option>
@@ -523,18 +559,18 @@
                         </div>
                         <div class="col-md-6">
                             <label for="eventLocation" class="form-label">Location</label>
-                            <input type="text" class="form-control" id="eventLocation" placeholder="e.g., The Local Pub">
+                            <input type="text" class="form-control" id="eventLocation" placeholder="e.g., The Local Pub" data-form-control>
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="eventStartDate" class="form-label">Start Date/Time <span class="text-danger">*</span></label>
-                            <input type="datetime-local" class="form-control" id="eventStartDate" required>
+                            <input type="datetime-local" class="form-control" id="eventStartDate" required data-form-control>
                         </div>
                         <div class="col-md-6">
                             <label for="eventEndDate" class="form-label">End Date/Time</label>
-                            <input type="datetime-local" class="form-control" id="eventEndDate">
+                            <input type="datetime-local" class="form-control" id="eventEndDate" data-form-control>
                         </div>
                     </div>
 
@@ -549,7 +585,7 @@
 
                     <div class="mb-3">
                         <label for="eventDescription" class="form-label">Description</label>
-                        <textarea class="form-control" id="eventDescription" rows="3" placeholder="Event details..."></textarea>
+                        <textarea class="form-control" id="eventDescription" rows="3" placeholder="Event details..." data-form-control></textarea>
                     </div>
 
                     <div class="mb-3">
@@ -563,12 +599,12 @@
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-danger me-auto" id="deleteEventBtn" style="display: none;">
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--outline-danger me-auto calendar-delete-event-btn" id="deleteEventBtn">
                     <i class="ti ti-trash me-1"></i> Delete
                 </button>
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="saveEventBtn">
+                <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--primary" id="saveEventBtn">
                     <i class="ti ti-check me-1"></i> Save Event
                 </button>
             </div>
@@ -855,7 +891,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <i class="ti ti-alert-triangle empty-state-icon text-danger"></i>
                     <h5 class="empty-state-text text-danger">Failed to load schedule</h5>
                     <p class="empty-state-subtext">There was a problem retrieving the match data</p>
-                    <button class="btn btn-sm btn-outline-danger mt-3" onclick="document.getElementById('refreshScheduleBtn').click()">
+                    <button class="c-btn c-btn--sm c-btn--outline-danger mt-3 js-refresh-schedule" data-action="refresh-schedule">
                         <i class="ti ti-refresh me-1"></i> Try Again
                     </button>
                 </div>
@@ -902,9 +938,9 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error fetching referees:', error);
             document.getElementById('refereeList').innerHTML = `
                 <div class="text-center py-4">
-                    <i class="ti ti-alert-triangle text-danger mb-2" style="font-size: 2rem;"></i>
+                    <i class="ti ti-alert-triangle text-danger mb-2 calendar-icon-alert-lg"></i>
                     <p class="text-danger mb-1 fw-medium">Failed to load referees</p>
-                    <button class="btn btn-sm btn-outline-danger mt-2" onclick="document.getElementById('refreshScheduleBtn').click()">
+                    <button class="c-btn c-btn--sm c-btn--outline-danger mt-2 js-refresh-schedule" data-action="refresh-schedule">
                         <i class="ti ti-refresh me-1"></i> Retry
                     </button>
                 </div>
@@ -944,8 +980,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const highlightClass = ref.matches_assigned_in_week === 0 ? 'referee-available' : '';
             
             refItem.innerHTML = `
-                <div class="card mb-2 ${highlightClass} referee-card" data-ref-id="${ref.id}" data-ref-name="${ref.name}">
-                    <div class="card-body p-3">
+                <div class="c-card mb-2 ${highlightClass} referee-card" data-ref-id="${ref.id}" data-ref-name="${ref.name}">
+                    <div class="c-card__body p-3">
                         <div class="d-flex justify-content-between align-items-center">
                             <div class="d-flex align-items-center">
                                 <div class="avatar avatar-sm me-2 bg-label-primary">
@@ -954,27 +990,26 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div>
                                     <span class="referee-name fw-semibold">${ref.name}</span>
                                     ${ref.matches_assigned_in_week > 0 
-                                        ? `<span class="badge bg-warning ms-2" title="Assigned this week">${ref.matches_assigned_in_week}</span>` 
-                                        : '<span class="badge bg-success ms-2">Available</span>'}
+                                        ? `<span class="badge bg-warning ms-2" title="Assigned this week" data-badge>${ref.matches_assigned_in_week}</span>` 
+                                        : '<span class="badge bg-success ms-2" data-badge>Available</span>'}
                                 </div>
                             </div>
                             <div>
-                                <span class="badge bg-primary rounded-pill" title="Total matches assigned">
+                                <span class="badge bg-primary rounded-pill" title="Total matches assigned" data-badge>
                                     ${ref.total_matches_assigned}
                                 </span>
                             </div>
                         </div>
-                        <div class="progress mt-2" style="height: 5px;">
-                            <div class="progress-bar" role="progressbar" 
-                                style="width: ${Math.min(ref.matches_assigned_in_week * 33, 100)}%;" 
-                                aria-valuenow="${ref.matches_assigned_in_week}" 
-                                aria-valuemin="0" 
+                        <div class="progress mt-2 calendar-progress-thin">
+                            <div class="progress-bar" role="progressbar"
+                                aria-valuenow="${ref.matches_assigned_in_week}"
+                                aria-valuemin="0"
                                 aria-valuemax="3">
                             </div>
                         </div>
                         <div class="assignment-mode-overlay d-none">
                             <div class="text-center">
-                                <i class="ti ti-click text-primary mb-1" style="font-size: 1.5rem;"></i>
+                                <i class="ti ti-click text-primary mb-1 calendar-icon-click-lg"></i>
                                 <div class="small text-primary fw-medium">Click to Select</div>
                             </div>
                         </div>
@@ -1017,7 +1052,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <i class="ti ti-calendar-off empty-state-icon"></i>
                     <h5 class="empty-state-text">No matches scheduled</h5>
                     <p class="empty-state-subtext">Try a different date or view to see scheduled matches</p>
-                    <button class="btn btn-sm btn-outline-primary mt-3" onclick="document.getElementById('refreshScheduleBtn').click()">
+                    <button class="c-btn c-btn--sm c-btn--outline-primary mt-3 js-refresh-schedule" data-action="refresh-schedule">
                         <i class="ti ti-refresh me-1"></i> Refresh Schedule
                     </button>
                 </div>
@@ -1136,10 +1171,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const assignmentClass = (!isAssigned && isAssignmentMode) ? 'unassigned-match' : '';
                 
                 html += `
-                    <div class="match-item card mb-3 ${assignmentClass}" data-event-id="${event.id}">
-                        <div class="card-body p-3">
+                    <div class="match-item c-card mb-3 ${assignmentClass}" data-event-id="${event.id}">
+                        <div class="c-card__body p-3">
                             <div class="match-header d-flex justify-content-between align-items-center mb-2">
-                                <span class="badge bg-${event.division === 'Premier' ? 'primary' : 'success'} me-2">${event.division}</span>
+                                <span class="badge bg-${event.division === 'Premier' ? 'primary' : 'success'} me-2" data-badge>${event.division}</span>
                                 <small class="text-muted"><i class="ti ti-map-pin me-1"></i>${event.location}</small>
                             </div>
                             
@@ -1158,16 +1193,16 @@ document.addEventListener('DOMContentLoaded', () => {
                                 
                                 <div class="match-actions">
                                     ${!isAssignmentMode ? `
-                                    <button class="btn btn-sm btn-outline-secondary view-match-btn">
+                                    <button class="c-btn c-btn--sm c-btn--outline-secondary view-match-btn">
                                         <i class="ti ti-eye me-1"></i>View
                                     </button>
                                     ${canAssignReferee ? `
-                                    <button class="btn btn-sm ${isAssigned ? 'btn-outline-success' : 'btn-primary'} assign-ref-btn" title="${isAssigned ? 'Change Referee' : 'Assign Referee'}">
+                                    <button class="c-btn c-btn--sm ${isAssigned ? 'btn-outline-success' : 'btn-primary'} assign-ref-btn" title="${isAssigned ? 'Change Referee' : 'Assign Referee'}">
                                         <i class="ti ti-user-check me-1"></i>${isAssigned ? 'Change' : 'Assign'}
                                     </button>
                                     ` : ''}
                                     ${(canEditRefereeMatches && refereeAssignedMatches.includes(event.id)) ? `
-                                    <button class="btn btn-sm btn-outline-primary edit-match-btn" title="Edit Match Report">
+                                    <button class="c-btn c-btn--sm c-btn--outline-primary edit-match-btn" title="Edit Match Report">
                                         <i class="ti ti-edit me-1"></i>Edit
                                     </button>
                                     ` : ''}
@@ -1266,14 +1301,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     const isAssigned = event.ref !== 'Unassigned';
                     
                     html += `
-                        <div class="match-item card mb-2" data-event-id="${event.id}">
-                            <div class="card-body p-2">
+                        <div class="match-item c-card mb-2" data-event-id="${event.id}">
+                            <div class="c-card__body p-2">
                                 <div class="match-time text-muted mb-1">
                                     <i class="ti ti-clock me-1"></i>${event.time}
                                 </div>
                                 
                                 <div class="match-teams-compact mb-1">
-                                    <span class="badge bg-${event.division === 'Premier' ? 'primary' : 'success'} me-1">${event.division}</span>
+                                    <span class="badge bg-${event.division === 'Premier' ? 'primary' : 'success'} me-1" data-badge>${event.division}</span>
                                     <small>${event.homeTeam} vs ${event.awayTeam}</small>
                                 </div>
                                 
@@ -1284,11 +1319,11 @@ document.addEventListener('DOMContentLoaded', () => {
                                     </div>
                                     
                                     <div class="match-actions">
-                                        <button class="btn btn-sm btn-icon btn-outline-secondary view-match-btn" title="View Details">
+                                        <button class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary view-match-btn" title="View Details">
                                             <i class="ti ti-eye"></i>
                                         </button>
                                         ${canAssignReferee ? `
-                                        <button class="btn btn-sm btn-icon ${isAssigned ? 'btn-outline-success' : 'btn-primary'} assign-ref-btn" title="${isAssigned ? 'Change Referee' : 'Assign Referee'}">
+                                        <button class="c-btn c-btn--sm c-btn--icon-only ${isAssigned ? 'btn-outline-success' : 'btn-primary'} assign-ref-btn" title="${isAssigned ? 'Change Referee' : 'Assign Referee'}">
                                             <i class="ti ti-user-check"></i>
                                         </button>
                                         ` : ''}
@@ -1375,7 +1410,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Build event count badge
             const eventCountBadge = dayEvents.length > 0
-                ? `<span class="event-count-badge">${dayEvents.length}</span>`
+                ? `<span class="event-count-badge" data-badge>${dayEvents.length}</span>`
                 : '';
 
             html += `
@@ -1514,11 +1549,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const assignmentClass = (!isAssigned && isAssignmentMode) ? 'unassigned-match' : '';
                 
                 html += `
-                    <div class="match-item card mb-3 ${assignmentClass}" data-event-id="${event.id}">
-                        <div class="card-body p-3">
+                    <div class="match-item c-card mb-3 ${assignmentClass}" data-event-id="${event.id}">
+                        <div class="c-card__body p-3">
                             <div class="match-header d-flex justify-content-between align-items-center mb-2">
                                 <div>
-                                    <span class="badge bg-${event.division === 'Premier' ? 'primary' : 'success'} me-2">${event.division}</span>
+                                    <span class="badge bg-${event.division === 'Premier' ? 'primary' : 'success'} me-2" data-badge>${event.division}</span>
                                     <span class="match-time text-muted">
                                         <i class="ti ti-clock me-1"></i>${event.time}
                                     </span>
@@ -1541,16 +1576,16 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                                 
                                 <div class="match-actions">
-                                    <button class="btn btn-sm btn-outline-secondary view-match-btn">
+                                    <button class="c-btn c-btn--sm c-btn--outline-secondary view-match-btn">
                                         <i class="ti ti-eye me-1"></i>View
                                     </button>
                                     ${canAssignReferee ? `
-                                    <button class="btn btn-sm ${isAssigned ? 'btn-outline-success' : 'btn-primary'} assign-ref-btn" title="${isAssigned ? 'Change Referee' : 'Assign Referee'}">
+                                    <button class="c-btn c-btn--sm ${isAssigned ? 'btn-outline-success' : 'btn-primary'} assign-ref-btn" title="${isAssigned ? 'Change Referee' : 'Assign Referee'}">
                                         <i class="ti ti-user-check me-1"></i>${isAssigned ? 'Change' : 'Assign'}
                                     </button>
                                     ` : ''}
                                     ${(canEditRefereeMatches && refereeAssignedMatches.includes(event.id)) ? `
-                                    <button class="btn btn-sm btn-outline-primary edit-match-btn" title="Edit Match Report">
+                                    <button class="c-btn c-btn--sm c-btn--outline-primary edit-match-btn" title="Edit Match Report">
                                         <i class="ti ti-edit me-1"></i>Edit
                                     </button>
                                     ` : ''}
@@ -1658,24 +1693,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const openAssignRefBtnTop = document.getElementById('openAssignRefBtnTop');
         
         if (openAssignRefBtn) {
-            openAssignRefBtn.onclick = function() {
+            openAssignRefBtn.addEventListener('click', function() {
                 bootstrap.Modal.getInstance(modal).hide();
                 setTimeout(() => showAssignRefModal(event), 500);
-            };
+            });
         }
-        
+
         if (openAssignRefBtnTop) {
-            openAssignRefBtnTop.onclick = function() {
+            openAssignRefBtnTop.addEventListener('click', function() {
                 bootstrap.Modal.getInstance(modal).hide();
                 setTimeout(() => showAssignRefModal(event), 500);
-            };
+            });
         }
-        
-        // Show modal
-        const bsModal = new bootstrap.Modal(modal);
-        bsModal.show();
+
+        ModalManager.show(modal.id);
     }
-    
+
     // Referee assignment modal functions
     function showAssignRefModal(event) {
         const modal = document.getElementById('assignRefModal');
@@ -1705,13 +1738,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Fetch available referees for the match
         fetchRefereesForMatch(event.id);
-        
+
         // Clear previous feedback
         document.getElementById('assignRefFeedback').innerHTML = '';
-        
-        // Show modal
-        const bsModal = new bootstrap.Modal(modal);
-        bsModal.show();
+
+        ModalManager.show(modal.id);
     }
     
     async function fetchRefereesForMatch(matchId) {
@@ -1730,7 +1761,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const notesContainer = document.createElement('div');
             notesContainer.className = 'referee-notes mb-2';
             notesContainer.innerHTML = `
-                <div class="alert alert-info p-2">
+                <div class="alert alert-info p-2" data-alert>
                     <p class="mb-1 small"><i class="ti ti-info-circle me-1"></i> <strong>Notes:</strong></p>
                     <ul class="mb-0 ps-3 small">
                         <li>Referees who play on either team are automatically excluded</li>
@@ -1914,7 +1945,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         
         feedbackEl.innerHTML = `
-            <div class="alert alert-${type} d-flex align-items-center p-2 m-0 rounded-3" role="alert">
+            <div class="alert alert-${type} d-flex align-items-center p-2 m-0 rounded-3" role="alert" data-alert>
                 ${icons[type] || ''}
                 <span class="fw-semibold small">${message}</span>
             </div>
@@ -1982,9 +2013,9 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error loading referee assignments:', error);
             document.getElementById('myAssignmentsList').innerHTML = `
                 <div class="text-center py-4">
-                    <i class="ti ti-alert-triangle text-danger mb-2" style="font-size: 2rem;"></i>
+                    <i class="ti ti-alert-triangle text-danger mb-2 calendar-icon-alert-lg"></i>
                     <p class="text-danger mb-1 fw-medium">Failed to load assignments</p>
-                    <button class="btn btn-sm btn-outline-danger mt-2" onclick="loadRefereeAssignments()">
+                    <button class="c-btn c-btn--sm c-btn--outline-danger mt-2 js-load-referee-assignments" data-action="load-referee-assignments">
                         <i class="ti ti-refresh me-1"></i> Retry
                     </button>
                 </div>
@@ -2031,9 +2062,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                         </div>
                         <div class="text-end">
-                            <span class="badge bg-${assignment.division === 'Premier' ? 'primary' : 'success'} mb-1">${assignment.division}</span>
+                            <span class="badge bg-${assignment.division === 'Premier' ? 'primary' : 'success'} mb-1" data-badge>${assignment.division}</span>
                             <br>
-                            <span class="badge bg-${isUpcoming ? 'info' : 'secondary'} small">
+                            <span class="badge bg-${isUpcoming ? 'info' : 'secondary'} small" data-badge>
                                 ${isUpcoming ? 'Upcoming' : 'Completed'}
                             </span>
                         </div>
@@ -2058,7 +2089,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Error loading availability status:', error);
             document.getElementById('availabilityStatus').innerHTML = `
-                <i class="ti ti-alert-triangle text-danger mb-2" style="font-size: 2rem;"></i>
+                <i class="ti ti-alert-triangle text-danger mb-2 calendar-icon-alert-lg"></i>
                 <p class="text-danger">Failed to load status</p>
             `;
         }
@@ -2083,7 +2114,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         
         // Add click handler for toggle button
-        toggleBtn.onclick = async function() {
+        toggleBtn.addEventListener('click', async function() {
             this.disabled = true;
             this.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i> Updating...';
             
@@ -2108,7 +2139,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.disabled = false;
                 this.innerHTML = `<i class="ti ti-toggle-${isAvailable ? 'right' : 'left'} me-1"></i> ${isAvailable ? 'Set Unavailable' : 'Set Available'}`;
             }
-        };
+        });
     }
     
     // Assignment Mode Functions
@@ -2319,7 +2350,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <i class="ti ti-info-circle me-1"></i>
                         Assignment Mode Active
                     </h6>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('toggleAssignmentMode').click()">
+                    <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary js-toggle-assignment-mode" data-action="toggle-assignment-mode">
                         <i class="ti ti-x"></i>
                     </button>
                 </div>
@@ -2383,14 +2414,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (existingModal) {
                     existingModal.remove();
                 }
-                
+
                 // Append the new modal to the body
                 document.body.appendChild(modal);
-                
-                // Show the modal
-                const bsModal = new bootstrap.Modal(modal);
-                bsModal.show();
-                
+
+                ModalManager.show(modal.id);
+
                 // Clean up when modal is hidden
                 modal.addEventListener('hidden.bs.modal', function() {
                     modal.remove();
@@ -2588,6 +2617,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Event delegation for data-action attributes (standardized pattern)
+    document.addEventListener('click', function(e) {
+        const actionElement = e.target.closest('[data-action]');
+        if (!actionElement) return;
+
+        const action = actionElement.dataset.action;
+
+        switch(action) {
+            case 'refresh-schedule':
+                e.preventDefault();
+                document.getElementById('refreshScheduleBtn')?.click();
+                break;
+            case 'load-referee-assignments':
+                e.preventDefault();
+                loadRefereeAssignments();
+                break;
+            case 'toggle-assignment-mode':
+                e.preventDefault();
+                document.getElementById('toggleAssignmentMode')?.click();
+                break;
+        }
+    });
+
     function switchView(direction) {
         const views = ['month', 'week', 'day'];
         const currentIndex = views.indexOf(currentView);
@@ -2618,17 +2670,17 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
 
         const html = `
-            <div class="modal fade" id="keyboardShortcutsModal" tabindex="-1">
-                <div class="modal-dialog modal-dialog-centered modal-sm">
-                    <div class="modal-content">
-                        <div class="modal-header border-bottom py-2">
-                            <h6 class="modal-title">
+            <div class="modal c-modal fade" data-modal id="keyboardShortcutsModal" tabindex="-1" aria-labelledby="keyboardShortcutsModalLabel">
+                <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered modal-sm c-modal__dialog--sm" data-modal-dialog>
+                    <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+                        <div class="modal-header c-modal__header border-bottom py-2" data-modal-header>
+                            <h6 class="modal-title c-modal__title" id="keyboardShortcutsModalLabel">
                                 <i class="ti ti-keyboard me-2"></i>Keyboard Shortcuts
                             </h6>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
                         </div>
-                        <div class="modal-body py-3">
-                            <table class="table table-sm mb-0">
+                        <div class="modal-body c-modal__body py-3" data-modal-body>
+                            <table class="c-table c-table--compact mb-0" data-table>
                                 <tbody>
                                     ${shortcuts.map(s => `
                                         <tr>
@@ -2650,14 +2702,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Add and show new modal
         document.body.insertAdjacentHTML('beforeend', html);
-        const modal = new bootstrap.Modal(document.getElementById('keyboardShortcutsModal'));
-        modal.show();
+        ModalManager.show('keyboardShortcutsModal');
     }
 });
 </script>
 {% endblock %}
 
 {% block custom_css %}
+{{ super() }}
+<!-- Calendar Page Specific Styles -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/calendar.css') }}">
+
 <style>
 /* Mini Calendar Styles */
 #miniCalendar {

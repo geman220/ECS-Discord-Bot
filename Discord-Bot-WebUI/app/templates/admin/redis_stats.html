@@ -3,40 +3,7 @@
 {% block title %}Redis Connection Statistics{% endblock %}
 
 {% block extra_css %}
-<style>
-    .stat-card {
-        background: var(--ecs-neutral-5, #f8f9fa);
-        border: 1px solid var(--ecs-neutral-20, #dee2e6);
-        border-radius: 0.375rem;
-        padding: 1rem;
-        margin-bottom: 1rem;
-    }
-    .stat-value {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: var(--ecs-neutral-60, #495057);
-    }
-    .stat-label {
-        color: var(--ecs-secondary, #6c757d);
-        font-size: 0.875rem;
-    }
-    .health-indicator {
-        display: inline-block;
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        margin-right: 8px;
-    }
-    .health-healthy { background-color: var(--ecs-success, #28a745); }
-    .health-unhealthy { background-color: var(--ecs-danger, #dc3545); }
-    .health-warning { background-color: var(--ecs-warning, #ffc107); }
-    .auto-refresh {
-        background: var(--ecs-neutral-10, #e9ecef);
-        padding: 10px;
-        border-radius: 5px;
-        margin-bottom: 20px;
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/redis-stats.css') }}">
 {% endblock %}
 
 {% block admin_content %}
@@ -46,30 +13,30 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2>Redis Connection Statistics</h2>
                 <div>
-                    <button id="refresh-btn" class="btn btn-primary btn-sm me-2">Refresh</button>
-                    <button id="cleanup-btn" class="btn btn-warning btn-sm me-2">Cleanup Connections</button>
-                    <button id="test-btn" class="btn btn-info btn-sm me-2">Test Connection</button>
-                    <a href="/admin/redis/draft-cache-stats" class="btn btn-success btn-sm">Draft Cache Stats</a>
+                    <button id="redis-refresh-btn" class="c-btn c-btn--primary c-btn--sm me-2">Refresh</button>
+                    <button id="cleanup-btn" class="c-btn c-btn--warning c-btn--sm me-2">Cleanup Connections</button>
+                    <button id="test-btn" class="c-btn c-btn--info c-btn--sm me-2">Test Connection</button>
+                    <a href="/admin/redis/draft-cache-stats" class="c-btn c-btn--success c-btn--sm">Draft Cache Stats</a>
                 </div>
             </div>
 
-            <div class="auto-refresh">
+            <div class="redis-auto-refresh">
                 <label>
-                    <input type="checkbox" id="auto-refresh" checked> Auto-refresh every 5 seconds
+                    <input type="checkbox" id="redis-auto-refresh" checked> Auto-refresh every 5 seconds
                 </label>
-                <span id="last-updated" class="ms-3 text-muted"></span>
+                <span id="redis-last-updated" class="ms-3 text-muted"></span>
             </div>
 
             <!-- Connection Health Status -->
             <div class="row">
                 <div class="col-md-4">
-                    <div class="stat-card">
+                    <div class="redis-stat-card">
                         <h5>Connection Health</h5>
                         <div id="health-status">
                             {% if connection_health.overall %}
-                                <span class="health-indicator health-healthy"></span>All connections healthy
+                                <span class="redis-health-indicator redis-health-healthy"></span>All connections healthy
                             {% else %}
-                                <span class="health-indicator health-unhealthy"></span>Connection issues detected
+                                <span class="redis-health-indicator redis-health-unhealthy"></span>Connection issues detected
                             {% endif %}
                         </div>
                         <div class="mt-2">
@@ -80,18 +47,18 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="col-md-4">
-                    <div class="stat-card">
-                        <div class="stat-value" id="max-connections">{{ stats.pool_stats.max_connections|default(0) }}</div>
-                        <div class="stat-label">Max Connections</div>
+                    <div class="redis-stat-card">
+                        <div class="redis-stat-value" id="redis-max-connections">{{ stats.pool_stats.max_connections|default(0) }}</div>
+                        <div class="redis-stat-label">Max Connections</div>
                     </div>
                 </div>
-                
+
                 <div class="col-md-4">
-                    <div class="stat-card">
-                        <div class="stat-value" id="utilization">{{ stats.pool_stats.utilization_percent|default(0) }}%</div>
-                        <div class="stat-label">Pool Utilization</div>
+                    <div class="redis-stat-card">
+                        <div class="redis-stat-value" id="utilization">{{ stats.pool_stats.utilization_percent|default(0) }}%</div>
+                        <div class="redis-stat-label">Pool Utilization</div>
                     </div>
                 </div>
             </div>
@@ -99,12 +66,12 @@
             <!-- Connection Pool Details -->
             <div class="row">
                 <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
+                    <div class="c-card">
+                        <div class="c-card__header">
                             <h5>Connection Pool Statistics</h5>
                         </div>
-                        <div class="card-body">
-                            <table class="table table-sm">
+                        <div class="c-card__body">
+                            <table class="c-table c-table--compact" data-table>
                                 <tbody>
                                     <tr>
                                         <td>Pool Initialized</td>
@@ -133,12 +100,12 @@
                 </div>
 
                 <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
+                    <div class="c-card">
+                        <div class="c-card__header">
                             <h5>Redis Server Metrics</h5>
                         </div>
-                        <div class="card-body">
-                            <table class="table table-sm">
+                        <div class="c-card__body">
+                            <table class="c-table c-table--compact" data-table>
                                 <tbody>
                                     <tr>
                                         <td>Connected Clients</td>
@@ -166,11 +133,11 @@
             <!-- Test Results -->
             <div class="row mt-4">
                 <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
+                    <div class="c-card">
+                        <div class="c-card__header">
                             <h5>Connection Test Results</h5>
                         </div>
-                        <div class="card-body">
+                        <div class="c-card__body">
                             <div id="test-results">
                                 <p class="text-muted">Click "Test Connection" to run connection tests</p>
                             </div>
@@ -184,139 +151,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-let autoRefreshInterval;
-
-function updateStats() {
-    fetch('/admin/redis/api/stats')
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                console.error('Error fetching stats:', data.error);
-                return;
-            }
-            
-            // Update health status
-            const healthIndicator = data.health?.overall ? 'health-healthy' : 'health-unhealthy';
-            const healthText = data.health?.overall ? 'All connections healthy' : 'Connection issues detected';
-            document.getElementById('health-status').innerHTML = 
-                `<span class="health-indicator ${healthIndicator}"></span>${healthText}`;
-            
-            // Update client status
-            document.getElementById('decoded-status').textContent = data.health?.decoded_client ? "✓" : "✗";
-            document.getElementById('raw-status').textContent = data.health?.raw_client ? "✓" : "✗";
-            
-            // Update pool stats
-            if (data.pool_stats) {
-                document.getElementById('max-connections').textContent = data.pool_stats.max_connections || 0;
-                document.getElementById('utilization').textContent = (data.pool_stats.utilization_percent || 0) + '%';
-                document.getElementById('created-connections').textContent = data.pool_stats.created_connections || 0;
-                document.getElementById('available-connections').textContent = data.pool_stats.available_connections || 0;
-                document.getElementById('in-use-connections').textContent = data.pool_stats.in_use_connections || 0;
-            }
-            
-            // Update server metrics
-            if (data.server_metrics) {
-                document.getElementById('connected-clients').textContent = data.server_metrics.connected_clients || 'N/A';
-                document.getElementById('memory-usage').textContent = data.server_metrics.used_memory_human || 'N/A';
-                document.getElementById('commands-processed').textContent = data.server_metrics.total_commands_processed || 'N/A';
-                document.getElementById('ops-per-sec').textContent = data.server_metrics.instantaneous_ops_per_sec || 'N/A';
-            }
-            
-            // Update last updated time
-            document.getElementById('last-updated').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
-        })
-        .catch(error => {
-            console.error('Error updating stats:', error);
-        });
-}
-
-function testConnection() {
-    const testButton = document.getElementById('test-btn');
-    const originalText = testButton.textContent;
-    testButton.textContent = 'Testing...';
-    testButton.disabled = true;
-    
-    fetch('/admin/redis/test-connection')
-        .then(response => response.json())
-        .then(data => {
-            const resultsDiv = document.getElementById('test-results');
-            if (data.error) {
-                resultsDiv.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
-            } else {
-                let html = '<div class="row">';
-                for (const [testName, result] of Object.entries(data.tests)) {
-                    const badgeClass = result.status === 'success' ? 'bg-success' : 'bg-danger';
-                    html += `
-                        <div class="col-md-4 mb-2">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h6>${testName.replace('_', ' ').toUpperCase()}</h6>
-                                    <span class="badge ${badgeClass}">${result.status}</span>
-                                    <p class="mt-2 mb-0"><small>${result.message}</small></p>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-                html += '</div>';
-                resultsDiv.innerHTML = html;
-            }
-        })
-        .catch(error => {
-            document.getElementById('test-results').innerHTML = 
-                `<div class="alert alert-danger">Error running tests: ${error}</div>`;
-        })
-        .finally(() => {
-            testButton.textContent = originalText;
-            testButton.disabled = false;
-        });
-}
-
-function cleanupConnections() {
-    const cleanupButton = document.getElementById('cleanup-btn');
-    const originalText = cleanupButton.textContent;
-    cleanupButton.textContent = 'Cleaning...';
-    cleanupButton.disabled = true;
-    
-    fetch('/admin/redis/connection-cleanup')
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                alert('Error during cleanup: ' + data.error);
-            } else {
-                alert('Connection cleanup completed successfully');
-                updateStats();
-            }
-        })
-        .catch(error => {
-            alert('Error during cleanup: ' + error);
-        })
-        .finally(() => {
-            cleanupButton.textContent = originalText;
-            cleanupButton.disabled = false;
-        });
-}
-
-// Event listeners
-document.getElementById('refresh-btn').addEventListener('click', updateStats);
-document.getElementById('test-btn').addEventListener('click', testConnection);
-document.getElementById('cleanup-btn').addEventListener('click', cleanupConnections);
-
-document.getElementById('auto-refresh').addEventListener('change', function() {
-    if (this.checked) {
-        autoRefreshInterval = setInterval(updateStats, 5000);
-    } else {
-        clearInterval(autoRefreshInterval);
-    }
-});
-
-// Initialize auto-refresh
-if (document.getElementById('auto-refresh').checked) {
-    autoRefreshInterval = setInterval(updateStats, 5000);
-}
-
-// Initial load
-updateStats();
-</script>
+<script src="{{ url_for('static', filename='custom_js/redis-stats.js') }}"></script>
 {% endblock %}

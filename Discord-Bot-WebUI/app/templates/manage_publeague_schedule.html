@@ -3,6 +3,7 @@
 {% block title %}Pub League Schedule Management{% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <!-- Mobile optimizations loaded from base.html mobile.css -->
 <style>
     .table-responsive {
@@ -31,15 +32,15 @@
 <div class="container-xxl flex-grow-1 container-p-y schedule-page">
     <div class="row">
         <div class="col-12">
-            <div class="card">
+            <div class="c-card">
                 <!-- Minimal card header -->
-                <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Pub League Schedule Management</h5>
                 </div>
 
-                <div class="card-body">
+                <div class="c-card__body">
                     <!-- Tabs for each league -->
-                    <ul class="nav nav-tabs" role="tablist">
+                    <ul class="nav nav-tabs" role="tablist" data-tabs>
                         {% for league in leagues %}
                         <li class="nav-item">
                             <a class="nav-link {% if loop.first %}active{% endif %}"
@@ -56,17 +57,17 @@
                         {% for league in leagues %}
                         <div id="league-{{ league.id }}"
                              class="tab-pane fade {% if loop.first %}show active{% endif %}"
-                             role="tabpanel">
+                             role="tabpanel" data-tab-pane>
 
                             <!-- Buttons for bulk wizard and single-week modal -->
                             <div class="d-flex justify-content-end mt-3 mb-3">
-                                <a class="btn btn-sm btn-primary me-2"
+                                <a class="c-btn c-btn--sm c-btn--primary me-2"
                                    href="{{ url_for('publeague.schedule.schedule_wizard',
                                                     season_id=season.id,
                                                     league_id=league.id) }}">
                                     Generate Bulk Schedule ({{ league.name }})
                                 </a>
-                                <button class="btn btn-sm btn-secondary"
+                                <button class="c-btn c-btn--sm c-btn--secondary"
                                         data-bs-toggle="modal"
                                         data-bs-target="#addSingleWeekModal"
                                         data-league-id="{{ league.id }}">
@@ -76,30 +77,30 @@
 
                             <!-- If matches exist, show them by week -->
                             {% if schedule[league.name] %}
-                            <div class="accordion" id="accordionWeek{{ league.id }}">
+                            <div class="accordion" id="accordionWeek{{ league.id }}" data-accordion>
                                 {% for week, data in schedule[league.name].items() %}
-                                <div class="card mb-3">
-                                    <div class="card-header p-3">
+                                <div class="c-card mb-3">
+                                    <div class="c-card__header p-3">
                                         <div class="d-flex justify-content-between align-items-center accordion-header"
-                                             id="heading-{{ league.id }}-{{ week }}">
+                                             id="heading-{{ league.id }}-{{ week }}" data-accordion>
 
                                             <div class="flex-grow-1 accordion-button {% if not loop.first %}collapsed{% endif %}"
                                                  role="button"
                                                  data-bs-toggle="collapse"
                                                  data-bs-target="#week-{{ league.id }}-{{ week }}"
                                                  aria-expanded="{% if loop.first %}true{% else %}false{% endif %}"
-                                                 aria-controls="week-{{ league.id }}-{{ week }}">
+                                                 aria-controls="week-{{ league.id }}-{{ week }}" data-accordion data-collapse-toggle>
                                                 <h6 class="mb-0">
                                                     Week {{ week }} - {{ data.date }}
                                                 </h6>
                                             </div>
 
-                                            <button class="btn btn-sm btn-success schedule-add-match-btn ms-2"
+                                            <button class="c-btn c-btn--sm c-btn--success schedule-add-match-btn ms-2 js-add-match-btn"
                                                     data-week="{{ week }}"
                                                     data-date="{{ data.date }}"
                                                     data-league-id="{{ league.id }}"
-                                                    type="button"
-                                                    onclick="event.stopPropagation();">
+                                                    data-action="add-match"
+                                                    type="button">
                                                 <i class="ti ti-plus"></i> Add Match
                                             </button>
                                         </div>
@@ -108,15 +109,15 @@
                                     <div id="week-{{ league.id }}-{{ week }}"
                                          class="collapse {% if loop.first %}show{% endif %}"
                                          data-bs-parent="#accordionWeek{{ league.id }}">
-                                        <div class="card-body">
-                                            <div class="table-responsive">
-                                                <table class="table table-hover">
-                                                    <thead>
+                                        <div class="c-card__body">
+                                            <div class="c-table-wrapper" data-table-responsive>
+                                                <table class="c-table c-table--hoverable" data-table>
+                                                    <thead scope="col">
                                                         <tr>
-                                                            <th>Teams</th>
-                                                            <th>Time</th>
-                                                            <th>Location</th>
-                                                            <th>Actions</th>
+                                                            <th scope="col">Teams</th>
+                                                            <th scope="col">Time</th>
+                                                            <th scope="col">Location</th>
+                                                            <th scope="col">Actions</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -126,7 +127,7 @@
                                                             <td data-label="Time">{{ match.time }}</td>
                                                             <td data-label="Location">{{ match.location }}</td>
                                                             <td>
-                                                                <button class="btn btn-sm btn-primary schedule-edit-match-btn"
+                                                                <button class="c-btn c-btn--sm c-btn--primary schedule-edit-match-btn"
                                                                         data-match-id="{{ match.id }}"
                                                                         data-date="{{ data.date }}"
                                                                         data-time="{{ match.time }}"
@@ -138,7 +139,7 @@
                                                                         data-week="{{ week }}">
                                                                     <i class="ti ti-edit"></i> Edit
                                                                 </button>
-                                                                <button class="btn btn-sm btn-danger schedule-delete-match-btn"
+                                                                <button class="c-btn c-btn--sm c-btn--danger schedule-delete-match-btn"
                                                                         data-match-id="{{ match.id }}">
                                                                     <i class="ti ti-trash"></i> Delete
                                                                 </button>
@@ -154,7 +155,7 @@
                                 {% endfor %}
                             </div>
                             {% else %}
-                            <div class="alert alert-info mt-3">
+                            <div class="alert alert-info mt-3" data-alert>
                                 No matches scheduled for this league.
                             </div>
                             {% endif %}
@@ -185,34 +186,34 @@
 </div>
 
 <!-- Edit/Add Match Modal -->
-<div class="modal fade" id="editMatchModal" tabindex="-1" aria-labelledby="editMatchModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editMatchModalLabel">Edit Match</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal c-modal fade" data-modal id="editMatchModal" tabindex="-1" aria-labelledby="editMatchModalLabel" aria-hidden="true">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="editMatchModalLabel">Edit Match</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
             <form id="editMatchForm">
                 <!-- you can also put a hidden CSRF here if not using a meta tag -->
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                <div class="modal-body">
+                <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                     <input type="hidden" id="editMatchId" name="match_id">
                     <input type="hidden" id="editWeek" name="week">
 
                     <div class="mb-3">
                         <label for="editDate" class="form-label">Date</label>
-                        <input type="date" class="form-control" id="editDate" name="date" required>
+                        <input type="date" class="form-control" id="editDate" name="date" required data-form-control>
                     </div>
 
                     <div class="mb-3">
                         <label for="editTime" class="form-label">Time</label>
-                        <input type="time" class="form-control" id="editTime" name="time" required>
+                        <input type="time" class="form-control" id="editTime" name="time" required data-form-control>
                     </div>
 
                     <div class="mb-3">
                         <label for="editTeamA" class="form-label">Team A</label>
-                        <select class="form-control" id="editTeamA" name="team_a" required>
+                        <select class="form-control" id="editTeamA" name="team_a" required data-form-select>
                             <option value="">Select Team A</option>
                             {% for league in leagues %}
                             {% for team in league.teams %}
@@ -224,7 +225,7 @@
 
                     <div class="mb-3">
                         <label for="editTeamB" class="form-label">Team B</label>
-                        <select class="form-control" id="editTeamB" name="team_b" required>
+                        <select class="form-control" id="editTeamB" name="team_b" required data-form-select>
                             <option value="">Select Team B</option>
                             {% for league in leagues %}
                             {% for team in league.teams %}
@@ -236,16 +237,16 @@
 
                     <div class="mb-3">
                         <label for="editLocation" class="form-label">Location</label>
-                        <select class="form-control" id="editLocation" name="location" required>
+                        <select class="form-control" id="editLocation" name="location" required data-form-select>
                             <option value="North">North</option>
                             <option value="South">South</option>
                         </select>
                     </div>
                 </div>
 
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
+                    <button type="submit" class="c-btn c-btn--primary">Save Changes</button>
                 </div>
             </form>
         </div>
@@ -253,29 +254,29 @@
 </div>
 
 <!-- Single Week Modal -->
-<div class="modal fade" id="addSingleWeekModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add Single Week</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal c-modal fade" data-modal id="addSingleWeekModal" tabindex="-1" aria-hidden="true" aria-labelledby="addSingleWeekModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="addSingleWeekModalLabel">Add Single Week</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
             <form id="addSingleWeekForm" action="{{ url_for('publeague.schedule.add_single_week') }}" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                <div class="modal-body">
+                <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                     <input type="hidden" name="league_id" id="singleWeekLeagueId">
 
                     <div class="mb-3">
                         <label for="weekDate" class="form-label">Week Date (Sunday)</label>
-                        <input type="date" id="weekDate" name="week_date" class="form-control" required>
+                        <input type="date" id="weekDate" name="week_date" class="form-control" required data-form-control>
                     </div>
 
-                    <div class="card mt-3">
-                        <div class="card-body">
+                    <div class="c-card mt-3">
+                        <div class="c-card__body">
                             <h6>Time Slots</h6>
                             <div id="singleWeekTimeSlots"></div>
-                            <button type="button" class="btn btn-sm btn-secondary mt-2" id="addTimeSlotBtn">
+                            <button type="button" class="c-btn c-btn--sm c-btn--secondary mt-2" id="addTimeSlotBtn">
                                 Add Time Slot
                             </button>
                         </div>
@@ -292,9 +293,9 @@
                     </div>
                 </div>
 
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Create Week</button>
+                <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
+                    <button type="submit" class="c-btn c-btn--primary">Create Week</button>
                 </div>
             </form>
         </div>
@@ -379,8 +380,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const leagueId = activeTabPane ? activeTabPane.id.replace('league-', '') : null;
                     if (leagueId) {
                         document.getElementById('singleWeekLeagueId').value = leagueId;
-                        const modal = new bootstrap.Modal(document.getElementById('addSingleWeekModal'));
-                        modal.show();
+                        ModalManager.show('addSingleWeekModal');
                     }
                 }
 
@@ -390,6 +390,14 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
+
+    // Event delegation for add match action
+    document.addEventListener('click', function(e) {
+        // Prevent propagation for add match button
+        if (e.target.closest('.js-add-match-btn')) {
+            e.stopPropagation();
+        }
+    });
 });
 </script>
 

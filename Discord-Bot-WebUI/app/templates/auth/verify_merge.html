@@ -6,97 +6,115 @@
 
 {% block main_content %}
 
-<div class="authentication-wrapper">
-    <div class="authentication-inner">
+<div class="c-auth-wrapper">
+    <div class="c-auth-inner">
         <!-- ECS Logos -->
-        <div class="d-none d-lg-flex col-lg-6 align-items-center justify-content-center p-5">
-            <div class="text-center">
-                <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS Logo" class="img-fluid mb-4" style="max-height: 180px; width: auto;">
-                <br>
-                <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="ECS FC Pub League Logo" class="img-fluid" style="max-height: 180px; width: auto;">
+        <div class="c-auth-branding c-auth-branding--desktop">
+            <div class="c-auth-branding__content">
+                <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS Logo" class="c-auth-branding__logo c-auth-branding__logo--primary">
+                <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="ECS FC Pub League Logo" class="c-auth-branding__logo c-auth-branding__logo--secondary">
             </div>
         </div>
 
         <!-- Verification Content -->
-        <div class="col-12 col-lg-6 d-flex align-items-center p-4 bg-white rounded-end">
-            <div style="width: 100%; max-width: 450px;">
-                
+        <div class="c-auth-panel">
+            <div class="c-auth-panel__content">
+
                 {% if verification_sent %}
                 <!-- Verification Email Sent -->
-                <div class="text-center">
-                    <div class="mb-4">
-                        <i class="ti ti-mail-check text-primary" style="font-size: 4rem;"></i>
+                <div class="c-auth-status c-auth-status--success">
+                    <div class="c-auth-status__icon">
+                        <i class="ti ti-mail-check"></i>
                     </div>
-                    <h4 class="mb-2 text-primary">Verification Email Sent!</h4>
-                    <p class="mb-4 text-muted">
-                        We've sent a verification email to <strong>{{ old_email }}</strong>. 
+                    <h1 class="c-auth-status__title">Verification Email Sent!</h1>
+                    <p class="c-auth-status__description">
+                        We've sent a verification email to <strong>{{ old_email }}</strong>.
                         Please check your inbox and click the verification link to merge your accounts.
                     </p>
 
-                    <div class="alert alert-info text-start mb-4">
-                        <h6 class="alert-heading fw-bold mb-2">
-                            <i class="ti ti-info-circle me-1"></i>What happens next?
-                        </h6>
-                        <ol class="mb-0 small">
-                            <li>Check your email inbox (and spam folder)</li>
-                            <li>Click the verification link in the email</li>
-                            <li>Your accounts will be automatically merged</li>
-                            <li>You'll be able to log in with your new Discord email</li>
-                        </ol>
+                    <div class="c-alert c-alert--info" role="alert" data-alert>
+                        <div class="c-alert__icon">
+                            <i class="ti ti-info-circle"></i>
+                        </div>
+                        <div class="c-alert__content">
+                            <h6 class="c-alert__title">What happens next?</h6>
+                            <ol class="c-alert__list">
+                                <li>Check your email inbox (and spam folder)</li>
+                                <li>Click the verification link in the email</li>
+                                <li>Your accounts will be automatically merged</li>
+                                <li>You'll be able to log in with your new Discord email</li>
+                            </ol>
+                        </div>
                     </div>
 
-                    <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-outline-primary" id="resend-email-btn">
-                            <i class="ti ti-mail me-1"></i>Resend Email
+                    <div class="c-auth-actions c-auth-actions--stack">
+                        <button type="button"
+                                class="c-btn-modern c-btn-modern--secondary c-btn-modern--block js-resend-email"
+                                id="resend-email-btn"
+                                data-action="resend-email">
+                            <i class="ti ti-mail"></i>
+                            <span>Resend Email</span>
                         </button>
-                        <a href="{{ url_for('auth.login') }}" class="btn btn-secondary">
-                            <i class="ti ti-arrow-left me-1"></i>Back to Login
+                        <a href="{{ url_for('auth.login') }}"
+                           class="c-btn-modern c-btn-modern--ghost c-btn-modern--block"
+                           data-action="back-to-login">
+                            <i class="ti ti-arrow-left"></i>
+                            <span>Back to Login</span>
                         </a>
                     </div>
                 </div>
 
                 {% elif verification_token %}
                 <!-- Process Verification Token -->
-                <div class="text-center">
-                    <div class="mb-4">
-                        <i class="ti ti-loader-2 text-primary rotating" style="font-size: 4rem;"></i>
+                <div class="c-auth-status c-auth-status--loading">
+                    <div class="c-auth-status__icon c-auth-status__icon--loading">
+                        <i class="ti ti-loader-2"></i>
                     </div>
-                    <h4 class="mb-2 text-primary">Verifying Your Account...</h4>
-                    <p class="mb-4 text-muted">Please wait while we merge your accounts.</p>
+                    <h1 class="c-auth-status__title">Verifying Your Account...</h1>
+                    <p class="c-auth-status__description">Please wait while we merge your accounts.</p>
                 </div>
 
-                <form method="POST" id="verify-form">
+                <form method="POST" id="verify-form" data-form="verify-merge">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" name="token" value="{{ verification_token }}">
                 </form>
 
                 {% else %}
                 <!-- Invalid or Expired Link -->
-                <div class="text-center">
-                    <div class="mb-4">
-                        <i class="ti ti-alert-triangle text-warning" style="font-size: 4rem;"></i>
+                <div class="c-auth-status c-auth-status--warning">
+                    <div class="c-auth-status__icon">
+                        <i class="ti ti-alert-triangle"></i>
                     </div>
-                    <h4 class="mb-2 text-warning">Invalid Verification Link</h4>
-                    <p class="mb-4 text-muted">
+                    <h1 class="c-auth-status__title">Invalid Verification Link</h1>
+                    <p class="c-auth-status__description">
                         This verification link is invalid or has expired. Verification links are only valid for 24 hours.
                     </p>
 
-                    <div class="alert alert-warning text-start mb-4">
-                        <h6 class="alert-heading fw-bold mb-1">
-                            <i class="ti ti-clock me-1"></i>What can you do?
-                        </h6>
-                        <p class="mb-0 small">
-                            Try logging in with Discord again. If you see the duplicate check screen, 
-                            you can request a new verification email.
-                        </p>
+                    <div class="c-alert c-alert--warning" role="alert" data-alert>
+                        <div class="c-alert__icon">
+                            <i class="ti ti-clock"></i>
+                        </div>
+                        <div class="c-alert__content">
+                            <h6 class="c-alert__title">What can you do?</h6>
+                            <p class="c-alert__message">
+                                Try logging in with Discord again. If you see the duplicate check screen,
+                                you can request a new verification email.
+                            </p>
+                        </div>
                     </div>
 
-                    <div class="d-grid gap-2">
-                        <a href="{{ url_for('auth.login') }}" class="btn btn-primary">
-                            <i class="ti ti-login me-1"></i>Try Logging In Again
+                    <div class="c-auth-actions c-auth-actions--stack">
+                        <a href="{{ url_for('auth.login') }}"
+                           class="c-btn-modern c-btn-modern--primary c-btn-modern--block"
+                           data-action="retry-login">
+                            <i class="ti ti-login"></i>
+                            <span>Try Logging In Again</span>
                         </a>
-                        <a href="mailto:support@ecsfc.com" class="btn btn-outline-secondary">
-                            <i class="ti ti-mail me-1"></i>Contact Support
+                        <a href="mailto:support@ecsfc.com"
+                           class="c-btn-modern c-btn-modern--secondary c-btn-modern--block"
+                           data-action="contact-support">
+                            <i class="ti ti-mail"></i>
+                            <span>Contact Support</span>
                         </a>
                     </div>
                 </div>
@@ -104,9 +122,9 @@
 
                 {% if not verification_sent and not verification_token %}
                 <!-- Footer Help -->
-                <div class="text-center mt-4">
-                    <p class="text-muted small">
-                        Need help? <a href="mailto:support@ecsfc.com" class="text-primary">Contact Support</a>
+                <div class="c-auth-footer">
+                    <p class="c-auth-help-text">
+                        Need help? <a href="mailto:support@ecsfc.com" class="c-link">Contact Support</a>
                     </p>
                 </div>
                 {% endif %}
@@ -117,95 +135,16 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        
-        {% if verification_token %}
-        // Auto-submit verification form
-        setTimeout(function() {
-            document.getElementById('verify-form').submit();
-        }, 2000);
-        {% endif %}
-
-        // Handle resend email button
-        const resendBtn = document.getElementById('resend-email-btn');
-        if (resendBtn) {
-            resendBtn.addEventListener('click', function () {
-                const btn = this;
-                const originalText = btn.innerHTML;
-                
-                Swal.fire({
-                    title: 'Resend Verification Email?',
-                    text: 'We\'ll send another verification email to {{ old_email }}.',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : 'var(--ecs-primary)',
-                    cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-                    confirmButtonText: '<i class="ti ti-mail me-1"></i>Resend Email',
-                    cancelButtonText: 'Cancel'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Disable button and show loading
-                        btn.disabled = true;
-                        btn.innerHTML = '<i class="ti ti-loader-2 rotating me-1"></i>Sending...';
-                        
-                        // Make AJAX request to resend email
-                        fetch('{{ url_for("auth.resend_merge_verification") }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': '{{ csrf_token() }}'
-                            },
-                            body: JSON.stringify({
-                                'old_email': '{{ old_email }}',
-                                'merge_data': '{{ merge_data | tojson }}'
-                            })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                Swal.fire({
-                                    title: 'Email Sent!',
-                                    text: 'We\'ve sent another verification email. Please check your inbox.',
-                                    icon: 'success',
-                                    confirmButtonText: 'OK'
-                                });
-                            } else {
-                                throw new Error(data.message || 'Failed to send email');
-                            }
-                        })
-                        .catch(error => {
-                            Swal.fire({
-                                title: 'Error',
-                                text: 'Failed to send verification email. Please try again later.',
-                                icon: 'error',
-                                confirmButtonText: 'OK'
-                            });
-                        })
-                        .finally(() => {
-                            // Re-enable button
-                            btn.disabled = false;
-                            btn.innerHTML = originalText;
-                        });
-                    }
-                });
-            });
-        }
-    });
+    // Pass data to JavaScript
+    window.verifyMergeData = {
+        hasToken: {{ 'true' if verification_token else 'false' }},
+        oldEmail: "{{ old_email if old_email else '' }}",
+        csrfToken: "{{ csrf_token() }}",
+        resendUrl: "{{ url_for('auth.resend_merge_verification') }}",
+        mergeData: {{ merge_data | tojson if merge_data else '{}' }}
+    };
 </script>
-
-<style>
-    .rotating {
-        animation: rotate 2s linear infinite;
-    }
-    
-    @keyframes rotate {
-        from {
-            transform: rotate(0deg);
-        }
-        to {
-            transform: rotate(360deg);
-        }
-    }
-</style>
+<script src="{{ url_for('static', filename='custom_js/verify-merge.js') }}"></script>
 {% endblock %}

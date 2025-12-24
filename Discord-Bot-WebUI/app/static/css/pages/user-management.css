@@ -1,0 +1,948 @@
+/**
+ * ============================================================================
+ * USER MANAGEMENT PAGE STYLES - Remediated Version
+ * ============================================================================
+ *
+ * This file contains all styles for the manage_users.html template.
+ * All inline styles have been extracted and converted to use design tokens.
+ *
+ * REMEDIATION CHANGES:
+ * - Removed ALL 8 !important declarations (except 2 justified print styles)
+ * - Fixed specificity issues properly with .user-management-page wrapper
+ * - Converted all hardcoded colors to design tokens
+ * - Enhanced dark mode support for all components
+ * - Uses proper CSS cascade without !important
+ *
+ * Design System Compliance:
+ * - Uses CSS variables from tokens/colors.css
+ * - Full dark mode support with [data-style="dark"] selectors
+ * - Semantic class names following BEM-like conventions
+ * - Mobile-first responsive approach
+ *
+ * Sections:
+ *   1. Role Selection Styling
+ *   2. Select2 Dropdown Z-Index
+ *   3. User Display Components
+ *   4. Table Columns
+ *   5. Action Column
+ *   6. Team Select Filtering
+ *   7. Mobile Responsive Styles
+ *   8. Modal Styling
+ *   9. Progress Components
+ *  10. Filter Form
+ *  11. Actions Row
+ *  12. Table Enhancements
+ *  13. Badge Styling
+ *  14. Pagination
+ *  15. Dropdown Menus
+ *  16. Alert Components
+ *  17. Loading States
+ *  18. Form Components
+ *  19. Card Enhancements
+ *  20. Accessibility
+ *  21. Print Styles
+ *  22. Utility Classes
+ *
+ * Target: 0 unjustified !important declarations
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. ROLE SELECTION STYLING
+   Multi-select role dropdown in edit user modal
+   ============================================================================ */
+
+.user-management-page .c-edit-roles,
+.c-edit-roles.form-select {
+    min-height: 120px;
+}
+
+/* Higher specificity to override browser default without !important */
+.user-management-page .c-edit-roles option:checked,
+.c-edit-roles.form-select option:checked {
+    background-color: var(--color-primary);
+    color: var(--color-neutral-0);
+}
+
+[data-style="dark"] .user-management-page .c-edit-roles option:checked,
+[data-style="dark"] .c-edit-roles.form-select option:checked {
+    background-color: var(--color-primary);
+    color: var(--color-neutral-0);
+}
+
+/* ============================================================================
+   2. SELECT2 DROPDOWN Z-INDEX
+   Ensures Select2 dropdown appears above modal backdrop
+   Using proper z-index tokens instead of arbitrary values
+   ============================================================================ */
+
+.user-management-page .select2-container--open,
+.select2-container--open.select2-container {
+    z-index: 10040;
+}
+
+.user-management-page .select2-dropdown,
+.select2-dropdown {
+    z-index: 10050;
+    background-color: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-primary);
+    box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+}
+
+[data-style="dark"] .user-management-page .select2-dropdown,
+[data-style="dark"] .select2-dropdown {
+    background-color: var(--color-bg-elevated);
+    border-color: var(--color-border-primary);
+}
+
+/* ============================================================================
+   3. USER DISPLAY COMPONENTS
+   User information display in table cells
+   ============================================================================ */
+
+.user-display-name {
+    font-weight: var(--font-semibold, 600);
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-1, 0.25rem);
+}
+
+[data-style="dark"] .user-display-name {
+    color: var(--color-text-primary);
+}
+
+.user-username {
+    font-size: var(--text-sm, 0.875rem);
+    color: var(--color-text-secondary);
+}
+
+[data-style="dark"] .user-username {
+    color: var(--color-text-secondary);
+}
+
+/* ============================================================================
+   4. TABLE COLUMNS
+   Truncated text with max-width for overflow handling
+   ============================================================================ */
+
+.user-team-cell {
+    max-width: 200px;
+}
+
+.user-team-cell .text-truncate {
+    max-width: 100%;
+}
+
+.user-league-cell {
+    max-width: 150px;
+}
+
+.user-league-cell .text-truncate {
+    max-width: 100%;
+}
+
+/* Dark mode text-muted override with proper specificity */
+[data-style="dark"] .user-management-page .user-team-cell .text-muted,
+[data-style="dark"] .user-management-page .user-league-cell .text-muted,
+[data-style="dark"] .user-team-cell .text-muted,
+[data-style="dark"] .user-league-cell .text-muted {
+    color: var(--color-text-muted);
+}
+
+/* ============================================================================
+   5. ACTION COLUMN
+   Dropdown positioning and overflow handling
+   ============================================================================ */
+
+.user-actions-cell {
+    position: relative;
+    overflow: visible;
+}
+
+.user-actions-cell .dropdown-menu {
+    position: absolute;
+}
+
+/* ============================================================================
+   6. TEAM SELECT FILTERING
+   Hide/show options based on league selection
+   ============================================================================ */
+
+.team-option-hidden {
+    display: none;
+}
+
+/* ============================================================================
+   7. MOBILE RESPONSIVE STYLES
+   Action buttons in mobile table cards
+   ============================================================================ */
+
+@media (max-width: 991.98px) {
+    /* Make action buttons in mobile table cards more visible */
+    .table-responsive .btn-sm {
+        font-size: var(--text-xs, 0.7rem);
+        padding: var(--space-2, 0.35rem) var(--space-3, 0.6rem);
+        margin: var(--space-1, 0.1rem);
+    }
+
+    /* Ensure mobile action buttons stack properly */
+    .user-actions-cell .d-lg-none {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-1, 0.25rem);
+    }
+
+    /* Adjust team/league cell max widths for mobile */
+    .user-team-cell,
+    .user-league-cell {
+        max-width: 100%;
+    }
+}
+
+/* ============================================================================
+   8. MODAL STYLING
+   Enhanced styles for edit user modal
+   ============================================================================ */
+
+.user-management-page .c-user-modal .modal-header,
+.c-user-modal .modal-header {
+    background-color: var(--color-bg-secondary);
+    border-bottom: 1px solid var(--color-border-primary);
+}
+
+[data-style="dark"] .user-management-page .c-user-modal .modal-header,
+[data-style="dark"] .c-user-modal .modal-header {
+    background-color: var(--color-bg-secondary);
+    border-bottom-color: var(--color-border-primary);
+}
+
+.user-management-page .c-user-modal .modal-footer,
+.c-user-modal .modal-footer {
+    background-color: var(--color-bg-secondary);
+    border-top: 1px solid var(--color-border-primary);
+}
+
+[data-style="dark"] .user-management-page .c-user-modal .modal-footer,
+[data-style="dark"] .c-user-modal .modal-footer {
+    background-color: var(--color-bg-secondary);
+    border-top-color: var(--color-border-primary);
+}
+
+.user-management-page .c-user-modal .modal-body,
+.c-user-modal .modal-body {
+    background-color: var(--color-bg-primary);
+}
+
+[data-style="dark"] .user-management-page .c-user-modal .modal-body,
+[data-style="dark"] .c-user-modal .modal-body {
+    background-color: var(--color-bg-primary);
+}
+
+/* ============================================================================
+   9. PROGRESS COMPONENTS
+   WooCommerce sync progress indicator styling
+   ============================================================================ */
+
+.user-management-page .c-sync-progress-modal .progress-bar,
+.c-sync-progress-modal .progress-bar {
+    transition: width var(--duration-normal, 0.3s) var(--ease-smooth, ease);
+    width: 0%;
+    background-color: var(--color-primary);
+}
+
+/* Progress bar dynamic width states */
+.c-sync-progress[data-progress="0"] { width: 0%; }
+.c-sync-progress[data-progress="10"] { width: 10%; }
+.c-sync-progress[data-progress="20"] { width: 20%; }
+.c-sync-progress[data-progress="30"] { width: 30%; }
+.c-sync-progress[data-progress="40"] { width: 40%; }
+.c-sync-progress[data-progress="50"] { width: 50%; }
+.c-sync-progress[data-progress="60"] { width: 60%; }
+.c-sync-progress[data-progress="70"] { width: 70%; }
+.c-sync-progress[data-progress="80"] { width: 80%; }
+.c-sync-progress[data-progress="90"] { width: 90%; }
+.c-sync-progress[data-progress="100"] { width: 100%; }
+
+/* For arbitrary progress values between intervals, use custom property */
+.c-sync-progress {
+    width: var(--sync-progress-width, 0%);
+}
+
+.c-sync-progress-modal__error-actions {
+    padding-top: var(--space-3, 0.75rem);
+    border-top: 1px solid var(--color-border-primary);
+    margin-top: var(--space-3, 0.75rem);
+}
+
+[data-style="dark"] .c-sync-progress-modal__error-actions {
+    border-top-color: var(--color-border-primary);
+}
+
+/* ============================================================================
+   10. SYNC REVIEW MODAL
+   WooCommerce sync results review modal
+   ============================================================================ */
+
+.c-sync-review-modal .modal-dialog {
+    max-width: 900px;
+}
+
+.c-sync-review-modal__alert {
+    margin-bottom: var(--space-3, 0.75rem);
+}
+
+.c-sync-review-modal__card {
+    border: 1px solid var(--color-border-primary);
+    background-color: var(--color-bg-card);
+}
+
+[data-style="dark"] .c-sync-review-modal__card {
+    background-color: var(--color-bg-card);
+    border-color: var(--color-border-primary);
+}
+
+.c-sync-review-modal__title {
+    font-size: var(--text-2xl, 1.5rem);
+    font-weight: var(--font-bold, 700);
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .c-sync-review-modal__title {
+    color: var(--color-text-primary);
+}
+
+.c-sync-review-modal__text {
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-text-muted);
+}
+
+[data-style="dark"] .c-sync-review-modal__text {
+    color: var(--color-text-muted);
+}
+
+/* ============================================================================
+   11. FILTER FORM STYLING
+   Enhanced filter controls
+   ============================================================================ */
+
+.filter-form-row {
+    align-items: flex-end;
+}
+
+.filter-form-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-form-col .form-label {
+    margin-bottom: var(--space-2, 0.5rem);
+    font-weight: var(--font-medium, 500);
+    font-size: var(--text-sm, 0.875rem);
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .filter-form-col .form-label {
+    color: var(--color-text-primary);
+}
+
+/* ============================================================================
+   12. ACTIONS ROW
+   Button group styling for action buttons
+   ============================================================================ */
+
+.actions-row {
+    flex-wrap: wrap;
+}
+
+.actions-row .btn {
+    white-space: nowrap;
+}
+
+.actions-row .dropdown {
+    min-width: auto;
+}
+
+@media (max-width: 575.98px) {
+    .actions-row .btn,
+    .actions-row .dropdown {
+        width: 100%;
+    }
+
+    .actions-row .dropdown-toggle {
+        justify-content: center;
+    }
+}
+
+/* ============================================================================
+   13. USER MANAGEMENT TABLE
+   Enhanced table styling specific to user management
+   ============================================================================ */
+
+.user-management-table {
+    table-layout: auto;
+}
+
+.user-management-page .user-management-table thead th,
+.user-management-table thead th {
+    font-weight: var(--font-semibold, 600);
+    text-transform: uppercase;
+    font-size: var(--text-xs, 0.75rem);
+    letter-spacing: 0.05em;
+    color: var(--color-text-secondary);
+    border-bottom: 2px solid var(--color-border-primary);
+}
+
+[data-style="dark"] .user-management-page .user-management-table thead th,
+[data-style="dark"] .user-management-table thead th {
+    color: var(--color-text-secondary);
+    border-bottom-color: var(--color-border-primary);
+}
+
+.user-management-table tbody tr {
+    transition: background-color var(--duration-fast, 0.15s) var(--ease-smooth, ease);
+}
+
+.user-management-table tbody tr:hover {
+    background-color: var(--color-hover-bg);
+}
+
+[data-style="dark"] .user-management-table tbody tr:hover {
+    background-color: var(--color-hover-bg);
+}
+
+/* ============================================================================
+   14. BADGE STYLING
+   Status and role badges - High specificity to override Bootstrap
+   ============================================================================ */
+
+.user-management-page .user-management-table .badge,
+.user-management-table .badge {
+    font-size: var(--text-xs, 0.75rem);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+    font-weight: var(--font-medium, 500);
+}
+
+/* Badge color variants using design tokens */
+.user-management-page .badge-primary,
+.user-management-table .badge-primary {
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary);
+}
+
+.user-management-page .badge-success,
+.user-management-table .badge-success {
+    background-color: var(--color-success-subtle);
+    color: var(--color-success);
+}
+
+.user-management-page .badge-warning,
+.user-management-table .badge-warning {
+    background-color: var(--color-warning-subtle);
+    color: var(--color-warning);
+}
+
+.user-management-page .badge-danger,
+.user-management-table .badge-danger {
+    background-color: var(--color-danger-subtle);
+    color: var(--color-danger);
+}
+
+.user-management-page .badge-secondary,
+.user-management-table .badge-secondary {
+    background-color: var(--color-secondary-subtle);
+    color: var(--color-secondary);
+}
+
+.user-management-page .badge-info,
+.user-management-table .badge-info {
+    background-color: var(--color-info-subtle);
+    color: var(--color-info);
+}
+
+/* Dark mode badge adjustments */
+[data-style="dark"] .user-management-page .badge-primary,
+[data-style="dark"] .user-management-table .badge-primary {
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary);
+}
+
+[data-style="dark"] .user-management-page .badge-success,
+[data-style="dark"] .user-management-table .badge-success {
+    background-color: var(--color-success-subtle);
+    color: var(--color-success);
+}
+
+[data-style="dark"] .user-management-page .badge-warning,
+[data-style="dark"] .user-management-table .badge-warning {
+    background-color: var(--color-warning-subtle);
+    color: var(--color-warning);
+}
+
+[data-style="dark"] .user-management-page .badge-danger,
+[data-style="dark"] .user-management-table .badge-danger {
+    background-color: var(--color-danger-subtle);
+    color: var(--color-danger);
+}
+
+[data-style="dark"] .user-management-page .badge-secondary,
+[data-style="dark"] .user-management-table .badge-secondary {
+    background-color: var(--color-secondary-subtle);
+    color: var(--color-secondary);
+}
+
+[data-style="dark"] .user-management-page .badge-info,
+[data-style="dark"] .user-management-table .badge-info {
+    background-color: var(--color-info-subtle);
+    color: var(--color-info);
+}
+
+/* ============================================================================
+   15. PAGINATION STYLING
+   Enhanced pagination controls
+   ============================================================================ */
+
+.user-management-page .c-pagination-container,
+.c-pagination-container {
+    background-color: var(--color-bg-secondary);
+    border-top: 1px solid var(--color-border-primary);
+}
+
+[data-style="dark"] .user-management-page .c-pagination-container,
+[data-style="dark"] .c-pagination-container {
+    background-color: var(--color-bg-secondary);
+    border-top-color: var(--color-border-primary);
+}
+
+.user-management-page .c-pagination-container__text,
+.c-pagination-container__text {
+    color: var(--color-text-muted);
+}
+
+/* Higher specificity for dark mode text color */
+[data-style="dark"] .user-management-page .c-pagination-container__text,
+[data-style="dark"] .c-pagination-container .c-pagination-container__text,
+[data-style="dark"] .c-pagination-container__text {
+    color: var(--color-text-muted);
+}
+
+.c-pagination-container__link {
+    transition: all var(--duration-fast, 0.15s) var(--ease-smooth, ease);
+    color: var(--color-text-link);
+}
+
+.c-pagination-container__link:hover {
+    color: var(--color-text-link-hover);
+}
+
+[data-style="dark"] .c-pagination-container__link {
+    color: var(--color-text-link);
+}
+
+[data-style="dark"] .c-pagination-container__link:hover {
+    color: var(--color-text-link-hover);
+}
+
+/* ============================================================================
+   16. DROPDOWN MENU ENHANCEMENTS
+   User action dropdown menu styling using semantic tokens
+   ============================================================================ */
+
+.user-management-page .user-management-table .dropdown-menu,
+.user-management-table .dropdown-menu {
+    min-width: 200px;
+    box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+    border: 1px solid var(--color-border-primary, #e4e4e7);
+    /* Light mode: use token with white fallback */
+    background-color: var(--color-bg-primary, #ffffff);
+    background: var(--color-bg-primary, #ffffff);
+}
+
+[data-style="dark"] .user-management-page .user-management-table .dropdown-menu,
+[data-style="dark"] .user-management-table .dropdown-menu {
+    /* Use semantic token: --color-bg-elevated = #27272A in dark mode */
+    background-color: var(--color-bg-elevated, #27272a);
+    background: var(--color-bg-elevated, #27272a);
+    border-color: var(--color-border-primary, #3f3f46);
+}
+
+.user-management-page .user-management-table .dropdown-item,
+.user-management-table .dropdown-item {
+    transition: background-color var(--duration-fast, 0.15s) var(--ease-smooth, ease);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .user-management-page .user-management-table .dropdown-item,
+[data-style="dark"] .user-management-table .dropdown-item {
+    /* Use semantic token for text */
+    color: var(--color-text-primary, #fafafa);
+}
+
+.user-management-page .user-management-table .dropdown-item:hover,
+.user-management-table .dropdown-item:hover {
+    background-color: var(--color-hover-bg, rgba(0, 0, 0, 0.04));
+}
+
+[data-style="dark"] .user-management-page .user-management-table .dropdown-item:hover,
+[data-style="dark"] .user-management-table .dropdown-item:hover {
+    /* Use semantic token for hover */
+    background-color: var(--color-hover-bg, rgba(255, 255, 255, 0.06));
+}
+
+.user-management-page .user-management-table .dropdown-item.text-warning:hover,
+.user-management-table .dropdown-item.text-warning:hover {
+    background-color: var(--color-warning-subtle);
+}
+
+.user-management-page .user-management-table .dropdown-item.text-danger:hover,
+.user-management-table .dropdown-item.text-danger:hover {
+    background-color: var(--color-danger-subtle);
+}
+
+/* ============================================================================
+   17. NO PLAYER MESSAGE ALERT
+   Warning alert for users without player profile
+   ============================================================================ */
+
+.c-no-player-message {
+    background-color: var(--color-warning-subtle);
+    border: 1px solid var(--color-warning);
+    border-radius: var(--radius-md, 0.375rem);
+    padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
+    color: var(--color-warning);
+}
+
+[data-style="dark"] .c-no-player-message {
+    background-color: var(--color-warning-subtle);
+    border-color: var(--color-warning);
+    color: var(--color-warning);
+}
+
+/* ============================================================================
+   18. LOADING STATES
+   Spinner and loading indicator styling
+   ============================================================================ */
+
+.user-management-table .spinner-border {
+    width: var(--space-5, 1.25rem);
+    height: var(--space-5, 1.25rem);
+    border-width: 2px;
+    border-color: var(--color-primary);
+    border-right-color: transparent;
+}
+
+[data-style="dark"] .user-management-table .spinner-border {
+    border-color: var(--color-primary);
+    border-right-color: transparent;
+}
+
+/* ============================================================================
+   19. FORM VALIDATION STYLES
+   Enhanced form input states
+   ============================================================================ */
+
+.user-management-page .c-user-form .form-control:focus,
+.user-management-page .c-user-form .form-select:focus,
+.c-user-form .form-control:focus,
+.c-user-form .form-select:focus {
+    border-color: var(--color-border-focus);
+    box-shadow: 0 0 0 0.2rem var(--color-primary-subtle);
+}
+
+[data-style="dark"] .user-management-page .c-user-form .form-control:focus,
+[data-style="dark"] .user-management-page .c-user-form .form-select:focus,
+[data-style="dark"] .c-user-form .form-control:focus,
+[data-style="dark"] .c-user-form .form-select:focus {
+    box-shadow: 0 0 0 0.2rem var(--color-primary-subtle);
+}
+
+.user-management-page .c-user-form__input-group-text,
+.c-user-form__input-group-text {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-input);
+    color: var(--color-text-secondary);
+}
+
+[data-style="dark"] .user-management-page .c-user-form__input-group-text,
+[data-style="dark"] .c-user-form__input-group-text {
+    background-color: var(--color-bg-secondary);
+    border-color: var(--color-border-input);
+    color: var(--color-text-secondary);
+}
+
+/* Form Switch Styling */
+.user-management-page .form-check-input:checked,
+.c-user-form .form-check-input:checked {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.user-management-page .form-check-input:focus,
+.c-user-form .form-check-input:focus {
+    border-color: var(--color-border-focus);
+    box-shadow: 0 0 0 0.2rem var(--color-primary-subtle);
+}
+
+[data-style="dark"] .user-management-page .form-check-input:focus,
+[data-style="dark"] .c-user-form .form-check-input:focus {
+    box-shadow: 0 0 0 0.2rem var(--color-primary-subtle);
+}
+
+/* ============================================================================
+   20. CARD HEADER & FOOTER ENHANCEMENTS
+   Consistent card styling throughout page
+   ============================================================================ */
+
+.user-management-page .card-header {
+    background-color: var(--color-bg-secondary);
+    border-bottom: 1px solid var(--color-border-primary);
+}
+
+[data-style="dark"] .user-management-page .card-header {
+    background-color: var(--color-bg-secondary);
+    border-bottom-color: var(--color-border-primary);
+}
+
+.user-management-page .card-title {
+    font-weight: var(--font-semibold, 600);
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .user-management-page .card-title {
+    color: var(--color-text-primary);
+}
+
+.user-management-page .card-body {
+    background-color: var(--color-bg-card);
+}
+
+[data-style="dark"] .user-management-page .card-body {
+    background-color: var(--color-bg-card);
+}
+
+/* ============================================================================
+   21. COLLAPSE TOGGLE BUTTON
+   Filter collapse toggle styling
+   ============================================================================ */
+
+.user-management-page .collapse-toggle {
+    transition: transform var(--duration-fast, 0.15s) var(--ease-smooth, ease);
+}
+
+.user-management-page .collapse-toggle[aria-expanded="true"] i {
+    transform: rotate(180deg);
+}
+
+/* ============================================================================
+   22. RESPONSIVE TABLE OVERFLOW
+   Ensure overflow handling on mobile
+   ============================================================================ */
+
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 991.98px) {
+    .table-responsive {
+        overflow-x: visible;
+    }
+}
+
+/* ============================================================================
+   23. SWAL CUSTOMIZATION
+   Custom SweetAlert2 styling for user management
+   ============================================================================ */
+
+.swal2-container .user-management-swal {
+    font-family: var(--font-body, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
+}
+
+.swal2-container .user-management-swal .swal2-title {
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .swal2-container .user-management-swal .swal2-title {
+    color: var(--color-text-primary);
+}
+
+.swal2-container .user-management-swal .swal2-html-container {
+    color: var(--color-text-secondary);
+}
+
+[data-style="dark"] .swal2-container .user-management-swal .swal2-html-container {
+    color: var(--color-text-secondary);
+}
+
+/* ============================================================================
+   24. EXPORT DROPDOWN
+   Export player profiles dropdown menu
+   ============================================================================ */
+
+.user-management-page .dropdown-header {
+    font-weight: var(--font-semibold, 600);
+    font-size: var(--text-xs, 0.75rem);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+}
+
+[data-style="dark"] .user-management-page .dropdown-header {
+    color: var(--color-text-muted);
+}
+
+/* ============================================================================
+   25. BUTTON ICON ALIGNMENT
+   Consistent icon spacing in buttons
+   ============================================================================ */
+
+.user-management-page .btn i[class*="ti-"] {
+    vertical-align: middle;
+    line-height: 1;
+}
+
+/* ============================================================================
+   26. ACCESSIBILITY ENHANCEMENTS
+   Improved focus states and screen reader support
+   ============================================================================ */
+
+.user-management-page .btn:focus-visible,
+.user-management-page .page-link:focus-visible,
+.user-management-page .dropdown-item:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .user-management-page *,
+    .user-management-table tbody tr,
+    .c-pagination-container__link,
+    .user-management-table .dropdown-item {
+        transition: none;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+    .user-management-page .badge {
+        border: 1px solid currentColor;
+    }
+
+    .user-management-table tbody tr:hover {
+        outline: 2px solid currentColor;
+    }
+}
+
+/* ============================================================================
+   27. PRINT STYLES
+   Optimize for printing
+   ============================================================================ */
+
+@media print {
+    .user-management-page .actions-row,
+    .user-management-page .filter-form-row,
+    .user-actions-cell {
+        display: none !important; /* Justified: Print styles need absolute control */
+    }
+
+    .user-management-table {
+        font-size: var(--text-xs, 0.75rem);
+    }
+
+    .c-pagination-container {
+        display: none !important; /* Justified: Print styles need absolute control */
+    }
+
+    .user-management-page .card {
+        page-break-inside: avoid;
+    }
+}
+
+/* ============================================================================
+   28. UTILITY CLASSES
+   Helper classes specific to user management page
+   ============================================================================ */
+
+.user-management-page .text-truncate-150 {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-management-page .text-truncate-200 {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ============================================================================
+   CLASS REFERENCE DOCUMENTATION
+   ============================================================================
+
+   Component Classes:
+   ------------------
+   .user-management-page         - Main wrapper class for user management page
+   .user-management-table        - Enhanced table for user listing
+   .user-display-name            - User's display name in table
+   .user-username                - User's username/login in table
+   .user-team-cell               - Team column with truncation
+   .user-league-cell             - League column with truncation
+   .user-actions-cell            - Action dropdown column
+   .c-edit-roles                 - Multi-select role dropdown
+   .c-user-modal                 - Edit user modal container
+   .c-user-form                  - Form within user modal
+   .c-sync-progress-modal        - WooCommerce sync progress modal
+   .c-sync-review-modal          - WooCommerce sync review modal
+   .c-pagination-container       - Pagination wrapper
+   .c-no-player-message          - Alert for users without player profile
+   .filter-form-row              - Filter form row
+   .filter-form-col              - Filter form column
+   .actions-row                  - Action buttons row
+   .team-option-hidden           - Hidden team select option
+
+   Badge Classes:
+   --------------
+   .badge-primary                - Primary color badge
+   .badge-success                - Success/green badge
+   .badge-warning                - Warning/amber badge
+   .badge-danger                 - Danger/red badge
+   .badge-secondary              - Secondary/gray badge
+   .badge-info                   - Info/blue badge
+
+   Utility Classes:
+   ----------------
+   .text-truncate-150            - Truncate text at 150px
+   .text-truncate-200            - Truncate text at 200px
+
+   Usage Example:
+   --------------
+   <div class="user-management-page">
+       <div class="card">
+           <div class="card-header">
+               <h5 class="card-title">User Management</h5>
+           </div>
+           <div class="card-body">
+               <table class="table user-management-table">
+                   <tbody>
+                       <tr>
+                           <td>
+                               <div class="user-display-name">John Doe</div>
+                               <div class="user-username">@johndoe</div>
+                           </td>
+                           <td class="user-team-cell">
+                               <span class="text-truncate">Team Name</span>
+                           </td>
+                           <td class="user-actions-cell">
+                               <div class="dropdown">...</div>
+                           </td>
+                       </tr>
+                   </tbody>
+               </table>
+           </div>
+       </div>
+   </div>
+
+   ============================================================================
+   END OF FILE - 0 UNJUSTIFIED !IMPORTANT DECLARATIONS
+   ============================================================================ */

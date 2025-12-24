@@ -14,60 +14,60 @@
 <!-- Subscription Statistics -->
 <div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
+        <div class="c-card bg-success text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.active_subscriptions or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Active Subscriptions</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.active_subscriptions or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Active Subscriptions</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-bell" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-bell card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-secondary text-white">
-            <div class="card-body">
+        <div class="c-card bg-secondary text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.inactive_subscriptions or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Inactive Subscriptions</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.inactive_subscriptions or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Inactive Subscriptions</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-bell-off" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-bell-off card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
+        <div class="c-card bg-primary text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.new_subscriptions_week or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">New This Week</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.new_subscriptions_week or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">New This Week</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-trending-up" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-trending-up card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
+        <div class="c-card bg-info text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.total_subscriptions or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Total Subscriptions</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.total_subscriptions or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Total Subscriptions</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-device-mobile" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-device-mobile card-icon-stat"></i>
                     </div>
                 </div>
             </div>
@@ -78,17 +78,17 @@
 <!-- Subscription Filters -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-filter me-2"></i>Filter Subscriptions
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <form method="GET" class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label">Status</label>
-                        <select name="status" class="form-select">
+                        <select name="status" class="form-select" data-form-select>
                             <option value="">All Statuses</option>
                             <option value="active" {{ 'selected' if request.args.get('status') == 'active' }}>Active</option>
                             <option value="inactive" {{ 'selected' if request.args.get('status') == 'inactive' }}>Inactive</option>
@@ -96,7 +96,7 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Platform</label>
-                        <select name="platform" class="form-select">
+                        <select name="platform" class="form-select" data-form-select>
                             <option value="">All Platforms</option>
                             <option value="iOS" {{ 'selected' if request.args.get('platform') == 'iOS' }}>iOS</option>
                             <option value="Android" {{ 'selected' if request.args.get('platform') == 'Android' }}>Android</option>
@@ -104,7 +104,7 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Date Range</label>
-                        <select name="date_range" class="form-select">
+                        <select name="date_range" class="form-select" data-form-select>
                             <option value="">All Time</option>
                             <option value="today" {{ 'selected' if request.args.get('date_range') == 'today' }}>Today</option>
                             <option value="week" {{ 'selected' if request.args.get('date_range') == 'week' }}>This Week</option>
@@ -114,7 +114,7 @@
                     <div class="col-md-3">
                         <label class="form-label">&nbsp;</label>
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="c-btn c-btn--primary">
                                 <i class="ti ti-search me-1"></i>Filter
                             </button>
                         </div>
@@ -128,24 +128,24 @@
 <!-- Bulk Management -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-body">
+        <div class="c-card">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="mb-0">Subscription Management</h6>
                         <small class="text-muted">{{ device_tokens|length or 0 }} subscriptions shown</small>
                     </div>
                     <div class="btn-group">
-                        <button class="btn btn-outline-success" onclick="bulkActivate()">
+                        <button class="c-btn c-btn--outline-success js-bulk-activate" data-action="bulk-activate">
                             <i class="ti ti-check me-1"></i>Bulk Activate
                         </button>
-                        <button class="btn btn-outline-warning" onclick="bulkDeactivate()">
+                        <button class="c-btn c-btn--outline-warning js-bulk-deactivate" data-action="bulk-deactivate">
                             <i class="ti ti-x me-1"></i>Bulk Deactivate
                         </button>
-                        <button class="btn btn-outline-danger" onclick="cleanupInactive()">
+                        <button class="c-btn c-btn--outline-danger js-cleanup-inactive" data-action="cleanup-inactive">
                             <i class="ti ti-trash me-1"></i>Cleanup Inactive
                         </button>
-                        <button class="btn btn-outline-info" onclick="exportSubscriptions()">
+                        <button class="c-btn c-btn--outline-info js-export-subscriptions" data-action="export-subscriptions">
                             <i class="ti ti-download me-1"></i>Export
                         </button>
                     </div>
@@ -158,30 +158,30 @@
 <!-- Device Tokens Table -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-list me-2"></i>Push Subscriptions
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if device_tokens %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>
+                                <th scope="col">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="selectAll">
+                                        <input class="form-check-input" type="checkbox" id="push-subs-selectAll">
                                     </div>
                                 </th>
-                                <th>User</th>
-                                <th>Device Token</th>
-                                <th>Platform</th>
-                                <th>Status</th>
-                                <th>Created</th>
-                                <th>Last Updated</th>
-                                <th>Actions</th>
+                                <th scope="col">User</th>
+                                <th scope="col">Device Token</th>
+                                <th scope="col">Platform</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Created</th>
+                                <th scope="col">Last Updated</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -209,24 +209,24 @@
                                 </td>
                                 <td>
                                     <code class="small">{{ token.token[:20] }}...{{ token.token[-10:] if token.token|length > 30 else token.token }}</code>
-                                    <button class="btn btn-sm btn-outline-secondary ms-1" onclick="copyToken('{{ token.token }}')">
+                                    <button class="c-btn c-btn--sm c-btn--outline-secondary ms-1 js-copy-token" data-action="copy-token" data-token="{{ token.token }}">
                                         <i class="ti ti-copy"></i>
                                     </button>
                                 </td>
                                 <td>
                                     {% set platform = 'iOS' if 'iOS' in token.token or token.platform == 'iOS' else 'Android' %}
-                                    <span class="badge bg-{{ 'primary' if platform == 'iOS' else 'success' }}">
+                                    <span class="badge bg-{{ 'primary' if platform == 'iOS' else 'success' }}" data-badge>
                                         <i class="ti ti-{{ 'brand-apple' if platform == 'iOS' else 'brand-android' }} me-1"></i>
                                         {{ platform }}
                                     </span>
                                 </td>
                                 <td>
                                     {% if token.is_active %}
-                                        <span class="badge bg-success">
+                                        <span class="badge bg-success" data-badge>
                                             <i class="ti ti-check me-1"></i>Active
                                         </span>
                                     {% else %}
-                                        <span class="badge bg-secondary">
+                                        <span class="badge bg-secondary" data-badge>
                                             <i class="ti ti-x me-1"></i>Inactive
                                         </span>
                                     {% endif %}
@@ -239,22 +239,22 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-info" onclick="viewTokenDetails('{{ token.id }}')">
+                                        <button class="c-btn c-btn--outline-info js-view-token" data-action="view-token" data-token-id="{{ token.id }}">
                                             <i class="ti ti-eye"></i>
                                         </button>
-                                        <button class="btn btn-outline-primary" onclick="testNotification('{{ token.id }}')">
+                                        <button class="c-btn c-btn--outline-primary js-test-notification" data-action="test-notification" data-token-id="{{ token.id }}">
                                             <i class="ti ti-send"></i>
                                         </button>
                                         {% if token.is_active %}
-                                        <button class="btn btn-outline-warning" onclick="deactivateToken('{{ token.id }}')">
+                                        <button class="c-btn c-btn--outline-warning js-deactivate-token" data-action="deactivate-token" data-token-id="{{ token.id }}">
                                             <i class="ti ti-ban"></i>
                                         </button>
                                         {% else %}
-                                        <button class="btn btn-outline-success" onclick="activateToken('{{ token.id }}')">
+                                        <button class="c-btn c-btn--outline-success js-activate-token" data-action="activate-token" data-token-id="{{ token.id }}">
                                             <i class="ti ti-check"></i>
                                         </button>
                                         {% endif %}
-                                        <button class="btn btn-outline-danger" onclick="deleteToken('{{ token.id }}')">
+                                        <button class="c-btn c-btn--outline-danger js-delete-token" data-action="delete-token" data-token-id="{{ token.id }}">
                                             <i class="ti ti-trash"></i>
                                         </button>
                                     </div>
@@ -266,10 +266,10 @@
                 </div>
                 {% else %}
                 <div class="text-center py-5">
-                    <i class="ti ti-bell-off text-muted" style="font-size: 4rem;"></i>
+                    <i class="ti ti-bell-off text-muted icon-empty-state"></i>
                     <h5 class="text-muted mt-3">No Push Subscriptions</h5>
                     <p class="text-muted">No device tokens match the current filter criteria.</p>
-                    <a href="{{ url_for('admin_panel.push_subscriptions') }}" class="btn btn-outline-primary">
+                    <a href="{{ url_for('admin_panel.push_subscriptions') }}" class="c-btn c-btn--outline-primary">
                         <i class="ti ti-refresh me-1"></i>Clear Filters
                     </a>
                 </div>
@@ -282,12 +282,92 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
-// Select all functionality
-document.getElementById('selectAll').addEventListener('change', function() {
-    const checkboxes = document.querySelectorAll('.token-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = this.checked;
+// Event delegation for action buttons
+document.addEventListener('DOMContentLoaded', function() {
+    // Select all functionality
+    document.getElementById('selectAll').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.token-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+    });
+
+    // Bulk activate
+    document.querySelectorAll('.js-bulk-activate').forEach(btn => {
+        btn.addEventListener('click', function() {
+            bulkActivate();
+        });
+    });
+
+    // Bulk deactivate
+    document.querySelectorAll('.js-bulk-deactivate').forEach(btn => {
+        btn.addEventListener('click', function() {
+            bulkDeactivate();
+        });
+    });
+
+    // Cleanup inactive
+    document.querySelectorAll('.js-cleanup-inactive').forEach(btn => {
+        btn.addEventListener('click', function() {
+            cleanupInactive();
+        });
+    });
+
+    // Export subscriptions
+    document.querySelectorAll('.js-export-subscriptions').forEach(btn => {
+        btn.addEventListener('click', function() {
+            exportSubscriptions();
+        });
+    });
+
+    // Copy token
+    document.querySelectorAll('.js-copy-token').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const token = this.dataset.token;
+            copyToken(token);
+        });
+    });
+
+    // View token details
+    document.querySelectorAll('.js-view-token').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tokenId = this.dataset.tokenId;
+            viewTokenDetails(tokenId);
+        });
+    });
+
+    // Test notification
+    document.querySelectorAll('.js-test-notification').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tokenId = this.dataset.tokenId;
+            testNotification(tokenId);
+        });
+    });
+
+    // Activate token
+    document.querySelectorAll('.js-activate-token').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tokenId = this.dataset.tokenId;
+            activateToken(tokenId);
+        });
+    });
+
+    // Deactivate token
+    document.querySelectorAll('.js-deactivate-token').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tokenId = this.dataset.tokenId;
+            deactivateToken(tokenId);
+        });
+    });
+
+    // Delete token
+    document.querySelectorAll('.js-delete-token').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tokenId = this.dataset.tokenId;
+            deleteToken(tokenId);
+        });
     });
 });
 
@@ -299,7 +379,7 @@ function viewTokenDetails(tokenId) {
                 <div class="mb-3">
                     <strong>Token ID:</strong> ${tokenId}<br>
                     <strong>Platform:</strong> iOS<br>
-                    <strong>Status:</strong> <span class="badge bg-success">Active</span><br>
+                    <strong>Status:</strong> <span class="badge bg-success" data-badge>Active</span><br>
                     <strong>Created:</strong> 2024-01-15 10:30:00
                 </div>
                 <div class="mb-3">
@@ -318,7 +398,7 @@ function viewTokenDetails(tokenId) {
                 </div>
                 <div class="mb-3">
                     <strong>Token String:</strong><br>
-                    <textarea class="form-control font-monospace small" rows="3" readonly>a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2g3h4i5j6k7l8m9n0o1p2</textarea>
+                    <textarea class="form-control font-monospace small" rows="3" readonly data-form-control>a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2g3h4i5j6k7l8m9n0o1p2</textarea>
                 </div>
             </div>
         `,
@@ -334,7 +414,7 @@ function testNotification(tokenId) {
             <div class="text-start">
                 <div class="mb-3">
                     <label class="form-label">Test Message</label>
-                    <input type="text" class="form-control" id="testMessage" value="Test notification from admin panel" maxlength="160">
+                    <input type="text" class="form-control" id="testMessage" value="Test notification from admin panel" maxlength="160" data-form-control>
                     <div class="form-text">
                         <span id="testMessageCounter">37</span>/160 characters
                     </div>

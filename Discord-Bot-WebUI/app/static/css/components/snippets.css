@@ -1,0 +1,300 @@
+/**
+ * Snippets Component Styles
+ * BEM CSS for reusable template snippets
+ * Wave 9 Migration - 2025-12-18
+ */
+
+/* ============================================
+   Team Schedule Component
+   ============================================ */
+.c-team-schedule {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* ============================================
+   Match Card Component (from snippets)
+   ============================================ */
+.c-match-card {
+    border: 1px solid var(--ecs-neutral-20, #dee2e6);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background: var(--bs-white, #fff);
+    transition: box-shadow 0.2s ease;
+}
+
+.c-match-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.c-match-card__header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--ecs-neutral-10, #f0f0f0);
+}
+
+.c-match-card__icon {
+    font-size: 1.25rem;
+}
+
+.c-match-card__icon--primary {
+    color: var(--ecs-primary, #007bff);
+}
+
+.c-match-card__icon--success {
+    color: var(--ecs-success, #28a745);
+}
+
+.c-match-card__icon--warning {
+    color: var(--ecs-warning, #ffc107);
+}
+
+.c-match-card__icon--danger {
+    color: var(--ecs-danger, #dc3545);
+}
+
+.c-match-card__icon--info {
+    color: var(--ecs-info, #17a2b8);
+}
+
+.c-match-card__icon--secondary {
+    color: var(--ecs-secondary, #6c757d);
+}
+
+.c-match-card__title {
+    flex: 1;
+    margin: 0;
+    font-size: 1rem;
+}
+
+.c-match-card__badge {
+    /* Badge styles inherited */
+}
+
+.c-match-card__badge--result {
+    font-weight: 600;
+}
+
+.c-match-card__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.c-match-card__subtitle {
+    font-size: 0.875rem;
+    color: var(--ecs-neutral-70, #495057);
+}
+
+.c-match-card__date,
+.c-match-card__time,
+.c-match-card__location {
+    font-size: 0.875rem;
+    color: var(--ecs-neutral-60, #6c757d);
+}
+
+.c-match-card__score {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--ecs-neutral-90, #212529);
+}
+
+.c-match-card__alert {
+    margin-top: 0.5rem;
+    margin-bottom: 0;
+}
+
+.c-match-card__alert-icon {
+    margin-right: 0.25rem;
+}
+
+/* Match Card Type Modifiers */
+.c-match-card--playoff {
+    border-left: 4px solid var(--ecs-primary, #007bff);
+}
+
+.c-match-card--fun {
+    border-left: 4px solid var(--ecs-warning, #ffc107);
+}
+
+.c-match-card--tst {
+    border-left: 4px solid var(--ecs-info, #17a2b8);
+}
+
+.c-match-card--bye {
+    border-left: 4px solid var(--ecs-secondary, #6c757d);
+    opacity: 0.8;
+}
+
+.c-match-card--bonus {
+    border-left: 4px solid var(--ecs-primary, #007bff);
+}
+
+.c-match-card--practice {
+    border-left: 4px solid var(--ecs-success, #28a745);
+}
+
+.c-match-card--regular {
+    border-left: 4px solid var(--ecs-neutral-30, #ced4da);
+}
+
+/* ============================================
+   Week Summary Component
+   ============================================ */
+.c-week-summary {
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    background: var(--bs-white, #fff);
+    border: 1px solid var(--ecs-neutral-20, #dee2e6);
+}
+
+.c-week-summary__header {
+    margin-bottom: 1rem;
+}
+
+.c-week-summary__title {
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+}
+
+.c-week-summary__subtitle {
+    display: block;
+    font-size: 0.875rem;
+}
+
+.c-week-summary__playoff,
+.c-week-summary__special,
+.c-week-summary__matches {
+    /* Content wrappers */
+}
+
+.c-week-summary__alert {
+    margin-bottom: 0;
+}
+
+.c-week-summary__alert-icon {
+    margin-right: 0.5rem;
+}
+
+.c-week-summary__match-card {
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+    background: var(--ecs-neutral-5, #f8f9fa);
+    border: 1px solid var(--ecs-neutral-20, #dee2e6);
+}
+
+.c-week-summary__match-teams {
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.c-week-summary__match-info {
+    display: block;
+    color: var(--ecs-neutral-60, #6c757d);
+}
+
+.c-week-summary__match-note {
+    display: block;
+    font-style: italic;
+}
+
+/* Week Summary Type Modifiers */
+.c-week-summary--playoff {
+    border-left: 4px solid var(--ecs-primary, #007bff);
+}
+
+.c-week-summary--fun,
+.c-week-summary--tst,
+.c-week-summary--bye,
+.c-week-summary--bonus {
+    border-left: 4px solid var(--ecs-info, #17a2b8);
+}
+
+/* ============================================
+   Playoff Management Component
+   ============================================ */
+.c-playoff-mgmt {
+    margin-top: 2rem;
+}
+
+.c-playoff-mgmt__card {
+    /* Card styles inherited */
+}
+
+.c-playoff-mgmt__header {
+    background: var(--ecs-neutral-5, #f8f9fa);
+}
+
+.c-playoff-mgmt__title {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0;
+}
+
+.c-playoff-mgmt__icon {
+    margin-right: 0.5rem;
+}
+
+.c-playoff-mgmt__body {
+    /* Body styles inherited */
+}
+
+.c-playoff-mgmt__alert {
+    /* Alert styles inherited */
+}
+
+.c-playoff-mgmt__alert-icon {
+    margin-right: 0.5rem;
+}
+
+.c-playoff-mgmt__actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.c-playoff-mgmt__button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.c-playoff-mgmt__button-icon {
+    /* Icon styles */
+}
+
+/* ============================================
+   Responsive Styles
+   ============================================ */
+@media (max-width: 767.98px) {
+    .c-match-card__header {
+        flex-wrap: wrap;
+    }
+
+    .c-playoff-mgmt__actions {
+        flex-direction: column;
+    }
+
+    .c-playoff-mgmt__button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .c-week-summary__match-card {
+        font-size: 0.875rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .c-match-card {
+        padding: 0.75rem;
+    }
+
+    .c-week-summary {
+        padding: 1rem;
+    }
+}

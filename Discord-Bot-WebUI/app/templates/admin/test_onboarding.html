@@ -6,15 +6,15 @@
 <div class="container-xxl flex-grow-1 container-p-y">
     <div class="row">
         <div class="col-12">
-            <div class="card mb-4">
-                <div class="card-header">
+            <div class="c-card mb-4">
+                <div class="c-card__header">
                     <h5 class="mb-0">🧪 Onboarding System Testing Interface</h5>
                     <p class="text-muted mb-0">Test the complete onboarding flow step by step</p>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     
                     <!-- Test User Setup -->
-                    <div class="alert alert-info">
+                    <div class="alert alert-info" data-alert>
                         <h6><i class="ti ti-info-circle me-2"></i>Test Setup</h6>
                         <p class="mb-2">This interface lets you test the onboarding system using your own Discord account without going through the full registration process.</p>
                         {% if user_discord_id %}
@@ -32,7 +32,7 @@
                                 <label class="form-label">Discord ID to Test</label>
                                 <input type="text" class="form-control" name="discord_id" 
                                        value="{{ user_discord_id if user_discord_id else '' }}" 
-                                       placeholder="Enter Discord ID">
+                                       placeholder="Enter Discord ID" data-form-control>
                                 <small class="text-muted">Leave blank to use your own Discord ID</small>
                             </div>
                             <div class="col-md-6">
@@ -65,26 +65,26 @@
                         </div>
 
                         <!-- State Management -->
-                        <div class="card mb-4">
-                            <div class="card-header">
+                        <div class="c-card mb-4">
+                            <div class="c-card__header">
                                 <h6 class="mb-0">🔧 User State Management</h6>
                             </div>
-                            <div class="card-body">
+                            <div class="c-card__body">
                                 <div class="row">
                                     <div class="col-md-4 mb-2">
-                                        <button type="submit" name="action" value="reset_user_state" class="btn btn-warning btn-sm w-100">
+                                        <button type="submit" name="action" value="reset_user_state" class="c-btn c-btn--warning c-btn--sm w-100">
                                             🔄 Reset to Fresh
                                         </button>
                                         <small class="text-muted">Clear all onboarding data</small>
                                     </div>
                                     <div class="col-md-4 mb-2">
-                                        <button type="submit" name="action" value="apply_scenario_flags" class="btn btn-info btn-sm w-100">
+                                        <button type="submit" name="action" value="apply_scenario_flags" class="c-btn c-btn--info c-btn--sm w-100">
                                             🎭 Apply Scenario Flags
                                         </button>
                                         <small class="text-muted">Set user state based on flags above</small>
                                     </div>
                                     <div class="col-md-4 mb-2">
-                                        <button type="submit" name="action" value="show_current_state" class="btn btn-secondary btn-sm w-100">
+                                        <button type="submit" name="action" value="show_current_state" class="c-btn c-btn--secondary c-btn--sm w-100">
                                             📊 Show Current State
                                         </button>
                                         <small class="text-muted">Display user's onboarding status</small>
@@ -94,40 +94,40 @@
                         </div>
 
                         <!-- Onboarding Flow Testing -->
-                        <div class="card mb-4">
-                            <div class="card-header">
+                        <div class="c-card mb-4">
+                            <div class="c-card__header">
                                 <h6 class="mb-0">🚀 Onboarding Flow Testing</h6>
                             </div>
-                            <div class="card-body">
+                            <div class="c-card__body">
                                 <div class="row">
                                     <div class="col-md-4 mb-3">
-                                        <div class="card border-primary">
-                                            <div class="card-body text-center">
+                                        <div class="c-card border-primary">
+                                            <div class="c-card__body text-center">
                                                 <h6>🚪 Step 1: Join Discord</h6>
                                                 <p class="small text-muted">Simulate user joining server</p>
-                                                <button type="submit" name="action" value="test_user_join" class="btn btn-primary btn-sm">
+                                                <button type="submit" name="action" value="test_user_join" class="c-btn c-btn--primary c-btn--sm">
                                                     Simulate Join
                                                 </button>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-md-4 mb-3">
-                                        <div class="card border-success">
-                                            <div class="card-body text-center">
+                                        <div class="c-card border-success">
+                                            <div class="c-card__body text-center">
                                                 <h6>💬 Step 2: Send Welcome DM</h6>
                                                 <p class="small text-muted">Contextual welcome based on state</p>
-                                                <button type="submit" name="action" value="test_contextual_welcome" class="btn btn-success btn-sm">
+                                                <button type="submit" name="action" value="test_contextual_welcome" class="c-btn c-btn--success c-btn--sm">
                                                     Send Welcome DM
                                                 </button>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-md-4 mb-3">
-                                        <div class="card border-info">
-                                            <div class="card-body text-center">
+                                        <div class="c-card border-info">
+                                            <div class="c-card__body text-center">
                                                 <h6>📢 Step 3: New Player Alert</h6>
                                                 <p class="small text-muted">Post to #pl-new-players</p>
-                                                <button type="submit" name="action" value="test_new_player_notification" class="btn btn-info btn-sm">
+                                                <button type="submit" name="action" value="test_new_player_notification" class="c-btn c-btn--info c-btn--sm">
                                                     Send Notification
                                                 </button>
                                             </div>
@@ -138,18 +138,18 @@
                         </div>
 
                         <!-- League Selection Testing -->
-                        <div class="card mb-4">
-                            <div class="card-header">
+                        <div class="c-card mb-4">
+                            <div class="c-card__header">
                                 <h6 class="mb-0">🏆 League Selection Testing</h6>
                             </div>
-                            <div class="card-body">
+                            <div class="c-card__body">
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Test User Response to Bot</label>
-                                        <div class="input-group mb-2">
+                                        <div class="input-group mb-2" data-input-group>
                                             <input type="text" class="form-control" name="test_message" 
-                                                   placeholder="Test message (e.g., 'I want premier')" value="I think premier">
-                                            <button type="submit" name="action" value="test_league_selection" class="btn btn-outline-primary">
+                                                   placeholder="Test message (e.g., 'I want premier')" value="I think premier" data-form-control>
+                                            <button type="submit" name="action" value="test_league_selection" class="c-btn c-btn--outline-primary">
                                                 Process Message
                                             </button>
                                         </div>
@@ -158,16 +158,16 @@
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Quick League Tests</label>
                                         <div class="btn-group-vertical w-100" role="group">
-                                            <button type="submit" name="action" value="test_league_classic" class="btn btn-outline-warning btn-sm">
+                                            <button type="submit" name="action" value="test_league_classic" class="c-btn c-btn--outline-warning c-btn--sm">
                                                 Test "classic" response
                                             </button>
-                                            <button type="submit" name="action" value="test_league_premier" class="btn btn-outline-success btn-sm">
+                                            <button type="submit" name="action" value="test_league_premier" class="c-btn c-btn--outline-success c-btn--sm">
                                                 Test "premier" response  
                                             </button>
-                                            <button type="submit" name="action" value="test_league_ecs_fc" class="btn btn-outline-info btn-sm">
+                                            <button type="submit" name="action" value="test_league_ecs_fc" class="c-btn c-btn--outline-info c-btn--sm">
                                                 Test "ecs fc" response
                                             </button>
-                                            <button type="submit" name="action" value="test_league_unclear" class="btn btn-outline-secondary btn-sm">
+                                            <button type="submit" name="action" value="test_league_unclear" class="c-btn c-btn--outline-secondary c-btn--sm">
                                                 Test unclear response
                                             </button>
                                         </div>
@@ -176,13 +176,13 @@
                             </div>
                         </div>
                         <!-- Message Management -->
-                        <div class="card mb-4">
-                            <div class="card-header">
+                        <div class="c-card mb-4">
+                            <div class="c-card__header">
                                 <h6 class="mb-0">📝 Message Configuration</h6>
                             </div>
-                            <div class="card-body">
+                            <div class="c-card__body">
                                 <p class="text-muted mb-3">Manage and customize all onboarding messages</p>
-                                <button type="submit" name="action" value="manage_messages" class="btn btn-info">
+                                <button type="submit" name="action" value="manage_messages" class="c-btn c-btn--info">
                                     🔧 Manage Messages
                                 </button>
                             </div>
@@ -193,7 +193,7 @@
                     {% if results %}
                     <div class="mt-4">
                         <h6>📋 Test Results</h6>
-                        <div class="alert alert-light">
+                        <div class="alert alert-light" data-alert>
                             {% for result in results %}
                                 <div class="mb-2">
                                     <code>{{ result }}</code>
@@ -207,8 +207,8 @@
                     <div class="mt-4">
                         <h6>🔗 Quick Links for Monitoring</h6>
                         <div class="btn-group" role="group">
-                            <a href="{{ url_for('admin.user_approvals') }}" class="btn btn-outline-primary">User Approvals</a>
-                            <a href="#" onclick="alert('Check Discord #pl-new-players channel for notifications')" class="btn btn-outline-secondary">#pl-new-players</a>
+                            <a href="{{ url_for('admin.user_approvals') }}" class="c-btn c-btn--outline-primary">User Approvals</a>
+                            <a href="#" data-action="alert" data-value="Check Discord #pl-new-players channel for notifications" class="js-alert" class="c-btn c-btn--outline-secondary">#pl-new-players</a>
                         </div>
                     </div>
 

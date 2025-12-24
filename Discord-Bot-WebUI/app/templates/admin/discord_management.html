@@ -4,92 +4,100 @@
 
 {% block custom_css %}
 {{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/discord-management.css') }}">
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='custom_js/admin-discord-management.js') }}"></script>
 {% endblock %}
 
 {% block main_content %}
-<div class="container-xxl flex-grow-1 container-p-y dark-mode-applied">
+<div class="container-xxl flex-grow-1 container-p-y">
     <!-- Page Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h4 class="py-3 mb-2">
-                        <span class="text-muted fw-light">Discord Tools /</span> Discord Join Status
-                    </h4>
-                    <p class="text-muted mb-0">Track and manage players who haven't joined the Discord server yet</p>
-                </div>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-primary btn-sm" onclick="refreshAllStatus()">
-                        <i class="ti ti-refresh me-1"></i>
-                        Refresh All
-                    </button>
-                    {% if stats.unknown_status > 0 %}
-                    <button class="btn btn-warning btn-sm" onclick="refreshUnknownStatus()">
-                        <i class="ti ti-question-mark me-1"></i>
-                        Check Unknown ({{ stats.unknown_status }})
-                    </button>
-                    {% endif %}
-                </div>
+    <div class="c-admin-header" data-component="admin-header">
+        <div class="c-admin-header__content">
+            <div class="c-admin-header__breadcrumb">
+                <span class="c-admin-header__breadcrumb-item c-admin-header__breadcrumb-item--muted">Discord Tools /</span>
+                <span class="c-admin-header__breadcrumb-item">Discord Join Status</span>
             </div>
+            <h1 class="c-admin-header__title">Discord Join Status</h1>
+            <p class="c-admin-header__description">Track and manage players who haven't joined the Discord server yet</p>
+        </div>
+        <div class="c-admin-header__actions">
+            <button class="c-btn c-btn--primary c-btn--sm" data-action="refresh-all-discord-status">
+                <i class="ti ti-refresh me-1"></i>
+                Refresh All
+            </button>
+            {% if stats.unknown_status > 0 %}
+            <button class="c-btn c-btn--warning c-btn--sm" data-action="refresh-unknown-discord-status">
+                <i class="ti ti-question-mark me-1"></i>
+                Check Unknown ({{ stats.unknown_status }})
+            </button>
+            {% endif %}
         </div>
     </div>
 
     <!-- Statistics Cards (Clickable Filters) -->
     <div class="row mb-4">
-        <div class="col-lg-3 col-md-6 col-sm-6">
-            <a href="?status=all" class="stats-card total {{ 'active' if status_filter == 'all' }}">
-                <div class="stats-number">{{ stats.total_players }}</div>
-                <div class="stats-label">Total Players with Discord</div>
+        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
+            <a href="?status=all" class="c-stat-card c-stat-card--total {% if status_filter == 'all' %}is-active{% endif %}"
+               data-component="stat-card" data-status="all">
+                <div class="c-stat-card__value">{{ stats.total_players }}</div>
+                <div class="c-stat-card__label">Total Players with Discord</div>
             </a>
         </div>
-        <div class="col-lg-3 col-md-6 col-sm-6">
-            <a href="?status=in_server" class="stats-card in-server {{ 'active' if status_filter == 'in_server' }}">
-                <div class="stats-number">{{ stats.in_server }}</div>
-                <div class="stats-label">In Discord Server</div>
+        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
+            <a href="?status=in_server" class="c-stat-card c-stat-card--success {% if status_filter == 'in_server' %}is-active{% endif %}"
+               data-component="stat-card" data-status="in_server">
+                <div class="c-stat-card__value">{{ stats.in_server }}</div>
+                <div class="c-stat-card__label">In Discord Server</div>
             </a>
         </div>
-        <div class="col-lg-3 col-md-6 col-sm-6">
-            <a href="?status=not_in_server" class="stats-card not-in-server {{ 'active' if status_filter == 'not_in_server' }}">
-                <div class="stats-number">{{ stats.not_in_server }}</div>
-                <div class="stats-label">Not In Server</div>
+        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
+            <a href="?status=not_in_server" class="c-stat-card c-stat-card--warning {% if status_filter == 'not_in_server' %}is-active{% endif %}"
+               data-component="stat-card" data-status="not_in_server">
+                <div class="c-stat-card__value">{{ stats.not_in_server }}</div>
+                <div class="c-stat-card__label">Not In Server</div>
             </a>
         </div>
-        <div class="col-lg-3 col-md-6 col-sm-6">
-            <a href="?status=unknown" class="stats-card unknown {{ 'active' if status_filter == 'unknown' }}">
-                <div class="stats-number">{{ stats.unknown_status }}</div>
-                <div class="stats-label">Unknown Status</div>
+        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
+            <a href="?status=unknown" class="c-stat-card c-stat-card--info {% if status_filter == 'unknown' %}is-active{% endif %}"
+               data-component="stat-card" data-status="unknown">
+                <div class="c-stat-card__value">{{ stats.unknown_status }}</div>
+                <div class="c-stat-card__label">Unknown Status</div>
             </a>
         </div>
     </div>
 
     {% if error %}
-    <div class="alert alert-danger" role="alert">
-        <i class="ti ti-alert-circle me-2"></i>
-        Error loading Discord data: {{ error }}
+    <div class="c-alert c-alert--danger" role="alert" data-component="alert">
+        <i class="ti ti-alert-circle c-alert__icon"></i>
+        <span class="c-alert__text">Error loading Discord data: {{ error }}</span>
     </div>
     {% endif %}
 
     {% if players %}
     <!-- Filter and Pagination Controls -->
-    <div class="filter-controls">
-        <div class="d-flex align-items-center gap-3">
-            <h5 class="mb-0">{{ current_section }}</h5>
-            <div class="pagination-info">
-                Showing {{ ((pagination.page - 1) * pagination.per_page) + 1 }}-{{ 
-                    [pagination.page * pagination.per_page, pagination.total] | min 
+    <div class="c-filter-bar" data-component="filter-bar">
+        <div class="c-filter-bar__info">
+            <h5 class="c-filter-bar__title">{{ current_section }}</h5>
+            <div class="c-filter-bar__pagination-info">
+                Showing {{ ((pagination.page - 1) * pagination.per_page) + 1 }}-{{
+                    [pagination.page * pagination.per_page, pagination.total] | min
                 }} of {{ pagination.total }} players
             </div>
         </div>
-        
-        <div class="per-page-selector">
-            <label>Show:</label>
-            <select onchange="changePerPage(this.value)">
+
+        <div class="c-filter-bar__controls">
+            <label class="c-filter-bar__label">Show:</label>
+            <select class="form-select form-select-sm" data-action="change-per-page">
                 <option value="10" {{ 'selected' if per_page == 10 }}>10</option>
                 <option value="20" {{ 'selected' if per_page == 20 }}>20</option>
                 <option value="50" {{ 'selected' if per_page == 50 }}>50</option>
                 <option value="100" {{ 'selected' if per_page == 100 }}>100</option>
             </select>
-            <span>per page</span>
+            <span class="c-filter-bar__label">per page</span>
         </div>
     </div>
 
@@ -97,28 +105,29 @@
     <div class="row">
         <div class="col-12">
             {% for player in players %}
-            <div class="player-row">
-                <div class="player-header">
-                    <div class="player-main-info">
-                        <div class="player-avatar">
+            <div class="c-player-row" data-component="player-row" data-player-id="{{ player.id }}">
+                <div class="c-player-row__header">
+                    <div class="c-player-row__main">
+                        <div class="c-player-row__avatar">
                             {{ player.name[:2].upper() }}
                         </div>
-                        
-                        <div class="player-details">
-                            <h6 class="player-name">{{ player.name }}</h6>
-                            <div class="player-meta">
+
+                        <div class="c-player-row__details">
+                            <h6 class="c-player-row__name">{{ player.name }}</h6>
+                            <div class="c-player-row__meta">
                                 {% if player_current_teams.get(player.id) %}
                                     {% for team in player_current_teams[player.id] %}
-                                    <span class="team-badge">{{ team.name }}</span>
+                                    <span class="c-badge c-badge--primary" data-badge>{{ team.name }}</span>
                                     {% endfor %}
                                 {% else %}
-                                    <span class="text-muted">No current team assigned</span>
+                                    <span class="c-player-row__meta-muted">No current team assigned</span>
                                 {% endif %}
                             </div>
-                            
-                            <div class="discord-status {% if player.discord_in_server == True %}in-server{% elif player.discord_in_server == False %}not-in-server{% else %}unknown{% endif %}">
-                                <i class="ti ti-brand-discord"></i>
-                                <span>
+
+                            <div class="c-discord-status c-discord-status--{% if player.discord_in_server == True %}success{% elif player.discord_in_server == False %}warning{% else %}info{% endif %}"
+                                 data-component="discord-status">
+                                <i class="ti ti-brand-discord c-discord-status__icon"></i>
+                                <span class="c-discord-status__text">
                                     {% if player.discord_in_server == True %}
                                         In Discord Server
                                     {% elif player.discord_in_server == False %}
@@ -128,56 +137,70 @@
                                     {% endif %}
                                 </span>
                                 {% if player.discord_username %}
-                                <span class="text-muted">• {{ player.discord_username }}</span>
+                                <span class="c-discord-status__username">• {{ player.discord_username }}</span>
                                 {% endif %}
                             </div>
-                            
+
                             <!-- Contact Information -->
-                            <div class="contact-info">
+                            <div class="c-contact-info" data-component="contact-info">
                                 {% if player.user and player.user.email %}
-                                <div class="contact-item">
+                                <div class="c-contact-info__item">
                                     <i class="ti ti-mail"></i>
                                     <span>{{ player.user.email }}</span>
                                 </div>
                                 {% endif %}
-                                
+
                                 {% if player.phone %}
-                                <div class="contact-item">
+                                <div class="c-contact-info__item">
                                     <i class="ti ti-phone"></i>
                                     <span>{{ player.phone }}</span>
                                 </div>
                                 {% endif %}
                             </div>
-                            
+
                             {% if player.discord_last_checked %}
-                            <div class="last-checked">Last checked: {{ player.discord_last_checked.strftime('%Y-%m-%d %H:%M') }}</div>
+                            <div class="c-player-row__last-checked">Last checked: {{ player.discord_last_checked.strftime('%Y-%m-%d %H:%M') }}</div>
                             {% else %}
-                            <div class="last-checked">Never checked</div>
+                            <div class="c-player-row__last-checked">Never checked</div>
                             {% endif %}
                         </div>
                     </div>
-                    
-                    <div class="player-actions">
+
+                    <div class="c-player-row__actions">
                         {% if player.user and player.user.email %}
-                        <a href="mailto:{{ player.user.email }}" class="btn-action btn-email" title="Send Email">
+                        <a href="mailto:{{ player.user.email }}" class="c-action-btn c-action-btn--primary"
+                           title="Send Email" data-action="send-email">
                             <i class="ti ti-mail"></i>
                             <span>Email</span>
                         </a>
                         {% endif %}
-                        
+
                         {% if player.discord_id %}
-                        <button class="btn-action btn-discord" onclick="sendDiscordDM('{{ player.discord_id }}', '{{ player.name }}')" title="Send Discord DM">
+                        <button class="c-action-btn c-action-btn--discord"
+                                data-action="send-discord-dm"
+                                data-discord-id="{{ player.discord_id }}"
+                                data-player-name="{{ player.name }}"
+                                title="Send Discord DM"
+                                type="button">
                             <i class="ti ti-brand-discord"></i>
                             <span>DM</span>
                         </button>
                         {% endif %}
-                        
-                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="btn-action btn-profile" title="View Profile">
+
+                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}"
+                           class="c-action-btn c-action-btn--secondary"
+                           title="View Profile"
+                           data-action="view-profile">
                             <i class="ti ti-user"></i>
                             <span>Profile</span>
                         </a>
-                        
-                        <button class="btn-action btn-refresh" onclick="refreshPlayerStatus({{ player.id }}, '{{ player.name }}')" title="Refresh Status">
+
+                        <button class="c-action-btn c-action-btn--info"
+                                data-action="refresh-player-status"
+                                data-player-id="{{ player.id }}"
+                                data-player-name="{{ player.name }}"
+                                title="Refresh Status"
+                                type="button">
                             <i class="ti ti-refresh"></i>
                             <span>Refresh</span>
                         </button>
@@ -190,71 +213,72 @@
 
     <!-- Pagination -->
     {% if pagination.pages > 1 %}
-    <div class="d-flex justify-content-between align-items-center mt-4">
-        <div>
-            <nav aria-label="Player pagination">
-                <ul class="pagination pagination-sm mb-0">
-                    {% if pagination.has_prev %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ pagination.prev_num }}&status={{ status_filter }}&per_page={{ per_page }}">
-                            <i class="ti ti-chevron-left"></i>
-                        </a>
-                    </li>
-                    {% else %}
-                    <li class="page-item disabled">
-                        <span class="page-link"><i class="ti ti-chevron-left"></i></span>
-                    </li>
-                    {% endif %}
+    <div class="c-pagination" data-component="pagination">
+        <nav aria-label="Player pagination">
+            <ul class="c-pagination__list">
+                {% if pagination.has_prev %}
+                <li class="c-pagination__item">
+                    <a class="c-pagination__link" href="?page={{ pagination.prev_num }}&status={{ status_filter }}&per_page={{ per_page }}"
+                       aria-label="Previous page">
+                        <i class="ti ti-chevron-left"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="c-pagination__item is-disabled">
+                    <span class="c-pagination__link"><i class="ti ti-chevron-left"></i></span>
+                </li>
+                {% endif %}
 
-                    {% set start_page = [1, pagination.page - 2] | max %}
-                    {% set end_page = [pagination.pages, pagination.page + 2] | min %}
-                    
-                    {% if start_page > 1 %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page=1&status={{ status_filter }}&per_page={{ per_page }}">1</a>
-                    </li>
-                    {% if start_page > 2 %}
-                    <li class="page-item disabled">
-                        <span class="page-link">…</span>
-                    </li>
-                    {% endif %}
-                    {% endif %}
+                {% set start_page = [1, pagination.page - 2] | max %}
+                {% set end_page = [pagination.pages, pagination.page + 2] | min %}
 
-                    {% for page_num in range(start_page, end_page + 1) %}
-                    <li class="page-item {{ 'active' if page_num == pagination.page }}">
-                        <a class="page-link" href="?page={{ page_num }}&status={{ status_filter }}&per_page={{ per_page }}">
-                            {{ page_num }}
-                        </a>
-                    </li>
-                    {% endfor %}
+                {% if start_page > 1 %}
+                <li class="c-pagination__item">
+                    <a class="c-pagination__link" href="?page=1&status={{ status_filter }}&per_page={{ per_page }}">1</a>
+                </li>
+                {% if start_page > 2 %}
+                <li class="c-pagination__item is-disabled">
+                    <span class="c-pagination__link">…</span>
+                </li>
+                {% endif %}
+                {% endif %}
 
-                    {% if end_page < pagination.pages %}
-                    {% if end_page < pagination.pages - 1 %}
-                    <li class="page-item disabled">
-                        <span class="page-link">…</span>
-                    </li>
-                    {% endif %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ pagination.pages }}&status={{ status_filter }}&per_page={{ per_page }}">{{ pagination.pages }}</a>
-                    </li>
-                    {% endif %}
+                {% for page_num in range(start_page, end_page + 1) %}
+                <li class="c-pagination__item {% if page_num == pagination.page %}is-active{% endif %}">
+                    <a class="c-pagination__link" href="?page={{ page_num }}&status={{ status_filter }}&per_page={{ per_page }}"
+                       {% if page_num == pagination.page %}aria-current="page"{% endif %}>
+                        {{ page_num }}
+                    </a>
+                </li>
+                {% endfor %}
 
-                    {% if pagination.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ pagination.next_num }}&status={{ status_filter }}&per_page={{ per_page }}">
-                            <i class="ti ti-chevron-right"></i>
-                        </a>
-                    </li>
-                    {% else %}
-                    <li class="page-item disabled">
-                        <span class="page-link"><i class="ti ti-chevron-right"></i></span>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
-        </div>
-        
-        <div class="text-muted small">
+                {% if end_page < pagination.pages %}
+                {% if end_page < pagination.pages - 1 %}
+                <li class="c-pagination__item is-disabled">
+                    <span class="c-pagination__link">…</span>
+                </li>
+                {% endif %}
+                <li class="c-pagination__item">
+                    <a class="c-pagination__link" href="?page={{ pagination.pages }}&status={{ status_filter }}&per_page={{ per_page }}">{{ pagination.pages }}</a>
+                </li>
+                {% endif %}
+
+                {% if pagination.has_next %}
+                <li class="c-pagination__item">
+                    <a class="c-pagination__link" href="?page={{ pagination.next_num }}&status={{ status_filter }}&per_page={{ per_page }}"
+                       aria-label="Next page">
+                        <i class="ti ti-chevron-right"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="c-pagination__item is-disabled">
+                    <span class="c-pagination__link"><i class="ti ti-chevron-right"></i></span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+
+        <div class="c-pagination__info">
             Page {{ pagination.page }} of {{ pagination.pages }}
         </div>
     </div>
@@ -262,44 +286,44 @@
 
     {% else %}
     <!-- Empty State -->
-    <div class="text-center py-5">
+    <div class="c-empty-state" data-component="empty-state">
         {% if status_filter == 'not_in_server' and stats.not_in_server == 0 %}
-            <div class="mb-3">
-                <i class="ti ti-check-circle text-success empty-state-icon-lg"></i>
+            <div class="c-empty-state__icon c-empty-state__icon--success">
+                <i class="ti ti-check-circle"></i>
             </div>
-            <h3 class="text-success">All Players Are In Discord!</h3>
-            <p class="text-muted">All players with Discord accounts have successfully joined the server.</p>
+            <h3 class="c-empty-state__title c-empty-state__title--success">All Players Are In Discord!</h3>
+            <p class="c-empty-state__text">All players with Discord accounts have successfully joined the server.</p>
         {% elif stats.total_players == 0 %}
-            <div class="mb-3">
-                <i class="ti ti-users text-muted empty-state-icon-lg"></i>
+            <div class="c-empty-state__icon">
+                <i class="ti ti-users"></i>
             </div>
-            <h3 class="text-muted">No Discord Players Found</h3>
-            <p class="text-muted">No players have linked Discord accounts yet.</p>
+            <h3 class="c-empty-state__title">No Discord Players Found</h3>
+            <p class="c-empty-state__text">No players have linked Discord accounts yet.</p>
         {% else %}
-            <div class="mb-3">
-                <i class="ti ti-search text-muted empty-state-icon-lg"></i>
+            <div class="c-empty-state__icon">
+                <i class="ti ti-search"></i>
             </div>
-            <h3 class="text-muted">No Players Found</h3>
-            <p class="text-muted">No players match the current filter criteria.</p>
+            <h3 class="c-empty-state__title">No Players Found</h3>
+            <p class="c-empty-state__text">No players match the current filter criteria.</p>
         {% endif %}
     </div>
     {% endif %}
 </div>
 
 <!-- Discord DM Modal -->
-<div class="modal fade" id="discordDMModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Send Discord Direct Message</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal c-modal fade" data-modal id="discordDMModal" tabindex="-1" aria-hidden="true" aria-labelledby="discordDMModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="discordDMModalLabel">Send Discord Direct Message</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body>
                 <form id="dmForm">
                     <input type="hidden" id="dmDiscordId" name="discord_id">
                     <div class="mb-3">
                         <label for="dmMessage" class="form-label">Message</label>
-                        <textarea class="form-control" id="dmMessage" name="message" rows="5" 
+                        <textarea class="form-control" id="dmMessage" name="message" rows="5"
                                   placeholder="Hi! We noticed you haven't joined our Discord server yet..."></textarea>
                     </div>
                     <div class="form-text">
@@ -308,9 +332,9 @@
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitDM()">
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="c-btn c-btn--primary" data-action="submit-discord-dm">
                     <i class="ti ti-send me-1"></i>
                     Send Message
                 </button>
@@ -318,245 +342,4 @@
         </div>
     </div>
 </div>
-
-<script>
-function changePerPage(perPage) {
-    const url = new URL(window.location);
-    url.searchParams.set('per_page', perPage);
-    url.searchParams.set('page', '1'); // Reset to first page
-    window.location.href = url.toString();
-}
-
-function refreshAllStatus() {
-    Swal.fire({
-        title: 'Refresh All Discord Status',
-        text: 'This will refresh Discord status for all players. This may take a moment. Continue?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, refresh all',
-        cancelButtonText: 'Cancel',
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28c76f',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#ea5455'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Show loading state
-            const btn = event.target.closest('button');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i>Refreshing...';
-            btn.disabled = true;
-            
-            // Refresh all Discord status
-            fetch('/admin/refresh_all_discord_status', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': $('meta[name=csrf-token]').attr('content')
-                }
-            }).then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Status Updated',
-                        text: `Refreshed Discord status for ${data.success_count} players`,
-                        timer: 2000,
-                        showConfirmButton: false
-                    }).then(() => {
-                        location.reload();
-                    });
-                } else {
-                    throw new Error(data.message || 'Failed to refresh status');
-                }
-            }).catch(error => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to refresh status: ' + error.message,
-                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#ea5455'
-                });
-            }).finally(() => {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            });
-        }
-    });
-}
-
-function refreshPlayerStatus(playerId, playerName) {
-    const btn = event.target.closest('button');
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i><span>Checking...</span>';
-    btn.disabled = true;
-    
-    fetch(`/teams/player/${playerId}/refresh-discord-status`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': $('meta[name=csrf-token]').attr('content')
-        }
-    }).then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Show success message and reload
-            Swal.fire({
-                icon: 'success',
-                title: 'Status Updated',
-                text: `Discord status refreshed for ${playerName}`,
-                timer: 2000,
-                showConfirmButton: false
-            }).then(() => {
-                location.reload();
-            });
-        } else {
-            throw new Error(data.message || 'Failed to refresh status');
-        }
-    }).catch(error => {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Failed to refresh status: ' + error.message,
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#ea5455'
-        });
-    }).finally(() => {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    });
-}
-
-function sendDiscordDM(discordId, playerName) {
-    document.getElementById('dmDiscordId').value = discordId;
-    document.querySelector('#discordDMModal .modal-title').textContent = `Send Discord DM to ${playerName}`;
-    
-    // Set default message
-    const defaultMessage = `Hi ${playerName}! 👋
-
-We noticed you haven't joined our ECS FC Discord server yet. 
-
-Join us to:
-• Get match updates and announcements
-• Connect with your teammates
-• Participate in league discussions
-
-Join here: https://discord.gg/weareecs
-
-See you there!
-- ECS FC Admin Team`;
-    
-    document.getElementById('dmMessage').value = defaultMessage;
-    
-    const modal = new bootstrap.Modal(document.getElementById('discordDMModal'));
-    modal.show();
-}
-
-function submitDM() {
-    const discordId = document.getElementById('dmDiscordId').value;
-    const message = document.getElementById('dmMessage').value;
-    
-    if (!message.trim()) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Message Required',
-            text: 'Please enter a message before sending',
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ffab00'
-        });
-        return;
-    }
-    
-    const submitBtn = event.target;
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i>Sending...';
-    submitBtn.disabled = true;
-    
-    fetch('/admin/send_discord_dm', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': $('meta[name=csrf-token]').attr('content')
-        },
-        body: JSON.stringify({
-            discord_id: discordId,
-            message: message
-        })
-    }).then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            bootstrap.Modal.getInstance(document.getElementById('discordDMModal')).hide();
-            Swal.fire({
-                icon: 'success',
-                title: 'Message Sent',
-                text: 'Discord message sent successfully!',
-                timer: 2000,
-                showConfirmButton: false
-            });
-        } else {
-            throw new Error(data.message || 'Failed to send message');
-        }
-    }).catch(error => {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Failed to send Discord message: ' + error.message,
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#ea5455'
-        });
-    }).finally(() => {
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    });
-}
-
-function refreshUnknownStatus() {
-    Swal.fire({
-        title: 'Check Unknown Discord Status',
-        text: 'This will check Discord status for all players with unknown status. Continue?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, check unknown',
-        cancelButtonText: 'Cancel',
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ffab00',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#ea5455'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Show loading state
-            const btn = event.target.closest('button');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i>Checking...';
-            btn.disabled = true;
-            
-            // Check unknown Discord status
-            fetch('/admin/refresh_unknown_discord_status', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': $('meta[name=csrf-token]').attr('content')
-                }
-            }).then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Status Checked',
-                        text: `Checked Discord status for ${data.success_count} players with unknown status`,
-                        timer: 2000,
-                        showConfirmButton: false
-                    }).then(() => {
-                        location.reload();
-                    });
-                } else {
-                    throw new Error(data.message || 'Failed to check unknown status');
-                }
-            }).catch(error => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to check unknown status: ' + error.message,
-                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#ea5455'
-                });
-            }).finally(() => {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            });
-        }
-    });
-}
-</script>
 {% endblock %}

@@ -30,10 +30,15 @@ class SimpleCropper {
         // Set canvas size
         this.canvas.width = this.options.cropSize;
         this.canvas.height = this.options.cropSize;
-        this.canvas.style.border = `2px solid ${this.options.borderColor}`;
-        this.canvas.style.borderRadius = '8px';
-        this.canvas.style.cursor = 'move';
-        
+
+        // Apply cropper canvas styling via CSS classes
+        // JUSTIFICATION: Using CSS classes instead of inline styles for:
+        // - border: 2px solid [borderColor] -> .cropper-canvas class
+        // - borderRadius: 8px -> .cropper-canvas class
+        // - cursor: move -> .cropper-canvas class
+        // This provides consistent styling and theme support
+        this.canvas.classList.add('cropper-canvas');
+
         // Add event listeners
         this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
         this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));

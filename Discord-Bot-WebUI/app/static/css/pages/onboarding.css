@@ -1,0 +1,622 @@
+/**
+ * Onboarding Page - BEM Architecture
+ * Athletic/Stadium-inspired design with progressive disclosure
+ *
+ * Component Blocks:
+ * - c-onboarding: Main onboarding container
+ * - c-onboarding-form: Form sections and fields
+ * - c-onboarding-step: Step indicator and progress
+ * - c-discord-prompt: Discord join prompt
+ * - c-sms-verify: SMS verification section
+ */
+
+/* ============================================
+   CSS VARIABLES - Athletic Theme
+   ============================================ */
+:root {
+    /* Stadium Colors - Bold and Confident */
+    --onboard-primary: #00539F;
+    --onboard-primary-dark: #003A70;
+    --onboard-accent: #50C878;
+    --onboard-accent-bright: #5FE396;
+    --onboard-warning: #F59E0B;
+    --onboard-danger: #DC2626;
+
+    /* Pitch Neutrals */
+    --onboard-surface: #FFFFFF;
+    --onboard-surface-alt: #F8FAFC;
+    --onboard-border: #E2E8F0;
+    --onboard-border-strong: #CBD5E1;
+
+    /* Typography - Athletic Confidence */
+    --onboard-text-primary: #1E293B;
+    --onboard-text-secondary: #64748B;
+    --onboard-text-muted: #94A3B8;
+
+    /* Spacing - Stadium Scale */
+    --onboard-space-xs: 0.5rem;
+    --onboard-space-sm: 1rem;
+    --onboard-space-md: 1.5rem;
+    --onboard-space-lg: 2rem;
+    --onboard-space-xl: 3rem;
+
+    /* Effects - Dynamic Energy */
+    --onboard-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --onboard-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --onboard-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --onboard-shadow-focus: 0 0 0 3px rgba(0, 83, 159, 0.15);
+
+    /* Timing - Athletic Rhythm */
+    --onboard-duration-fast: 150ms;
+    --onboard-duration-base: 250ms;
+    --onboard-duration-slow: 400ms;
+    --onboard-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    --onboard-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ============================================
+   ONBOARDING CONTAINER
+   ============================================ */
+.c-onboarding {
+    position: relative;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.c-onboarding__header {
+    position: relative;
+    padding: var(--onboard-space-lg) var(--onboard-space-md);
+    background: linear-gradient(135deg, var(--onboard-primary) 0%, var(--onboard-primary-dark) 100%);
+    border-radius: 12px 12px 0 0;
+    color: white;
+    overflow: hidden;
+}
+
+/* Animated gradient accent */
+.c-onboarding__header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg,
+        var(--onboard-accent) 0%,
+        var(--onboard-accent-bright) 50%,
+        var(--onboard-accent) 100%);
+    background-size: 200% 100%;
+    animation: gradient-slide 3s ease infinite;
+}
+
+@keyframes gradient-slide {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+.c-onboarding__title {
+    font-size: 1.875rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.025em;
+}
+
+.c-onboarding__subtitle {
+    margin-top: var(--onboard-space-xs);
+    opacity: 0.9;
+    font-size: 1rem;
+}
+
+.c-onboarding__body {
+    background: var(--onboard-surface);
+    border-radius: 0 0 12px 12px;
+    box-shadow: var(--onboard-shadow-lg);
+}
+
+/* ============================================
+   DISCORD PROMPT - Urgent CTA
+   ============================================ */
+.c-discord-prompt {
+    position: relative;
+    padding: var(--onboard-space-lg);
+    background: linear-gradient(135deg, #5865F2 0%, #4752C4 100%);
+    border-radius: 12px;
+    margin-bottom: var(--onboard-space-lg);
+    color: white;
+    overflow: hidden;
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(88, 101, 242, 0.3); }
+    50% { box-shadow: 0 0 30px rgba(88, 101, 242, 0.5); }
+}
+
+.c-discord-prompt__icon {
+    font-size: 3rem;
+    margin-bottom: var(--onboard-space-sm);
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+.c-discord-prompt__title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 var(--onboard-space-sm);
+}
+
+.c-discord-prompt__description {
+    margin-bottom: var(--onboard-space-md);
+    opacity: 0.95;
+    line-height: 1.6;
+}
+
+.c-discord-prompt__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--onboard-space-xs);
+    padding: 0.875rem 2rem;
+    background: white;
+    color: #5865F2;
+    font-weight: 600;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all var(--onboard-duration-base) var(--onboard-ease-smooth);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.c-discord-prompt__btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    color: #5865F2;
+}
+
+/* ============================================
+   FORM SECTIONS - Organized Content
+   ============================================ */
+.c-onboarding-form {
+    padding: var(--onboard-space-lg);
+}
+
+.c-onboarding-form__section {
+    margin-bottom: var(--onboard-space-xl);
+}
+
+.c-onboarding-form__section-header {
+    display: flex;
+    align-items: center;
+    gap: var(--onboard-space-sm);
+    padding-bottom: var(--onboard-space-sm);
+    margin-bottom: var(--onboard-space-md);
+    border-bottom: 2px solid var(--onboard-primary);
+    position: relative;
+}
+
+/* Animated underline on section headers */
+.c-onboarding-form__section-header::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 60px;
+    height: 2px;
+    background: var(--onboard-accent);
+    transition: width var(--onboard-duration-slow) var(--onboard-ease-smooth);
+}
+
+.c-onboarding-form__section:hover .c-onboarding-form__section-header::after {
+    width: 120px;
+}
+
+.c-onboarding-form__section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--onboard-text-primary);
+    margin: 0;
+    letter-spacing: -0.015em;
+}
+
+.c-onboarding-form__section-icon {
+    font-size: 1.5rem;
+    color: var(--onboard-primary);
+}
+
+/* ============================================
+   LEAGUE SELECTION - Radio Cards
+   ============================================ */
+.c-league-selector {
+    display: grid;
+    gap: var(--onboard-space-md);
+}
+
+.c-league-option {
+    position: relative;
+    display: block;
+    cursor: pointer;
+}
+
+.c-league-option__input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.c-league-option__card {
+    position: relative;
+    padding: var(--onboard-space-md);
+    border: 2px solid var(--onboard-border);
+    border-radius: 12px;
+    background: var(--onboard-surface);
+    transition: all var(--onboard-duration-base) var(--onboard-ease-smooth);
+}
+
+.c-league-option__card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--onboard-primary), var(--onboard-accent));
+    opacity: 0;
+    transition: opacity var(--onboard-duration-base) var(--onboard-ease-smooth);
+    z-index: -1;
+}
+
+.c-league-option__input:checked ~ .c-league-option__card {
+    border-color: var(--onboard-primary);
+    background: linear-gradient(135deg, rgba(0, 83, 159, 0.05), rgba(80, 200, 120, 0.05));
+    transform: translateX(4px);
+    box-shadow: var(--onboard-shadow-md);
+}
+
+.c-league-option__card:hover {
+    border-color: var(--onboard-primary);
+    transform: translateX(2px);
+    box-shadow: var(--onboard-shadow-sm);
+}
+
+.c-league-option__title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--onboard-text-primary);
+    margin-bottom: var(--onboard-space-xs);
+}
+
+.c-league-option__description {
+    font-size: 0.875rem;
+    color: var(--onboard-text-secondary);
+    line-height: 1.5;
+}
+
+/* ============================================
+   SMS VERIFICATION - Progressive Disclosure
+   ============================================ */
+.c-sms-verify {
+    margin-top: var(--onboard-space-md);
+    padding: var(--onboard-space-md);
+    background: var(--onboard-surface-alt);
+    border: 1px solid var(--onboard-border);
+    border-radius: 12px;
+    animation: slide-in var(--onboard-duration-slow) var(--onboard-ease-smooth);
+}
+
+@keyframes slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.c-sms-verify__consent {
+    display: flex;
+    gap: var(--onboard-space-sm);
+    padding: var(--onboard-space-md);
+    background: white;
+    border-radius: 8px;
+    margin-bottom: var(--onboard-space-md);
+}
+
+.c-sms-verify__consent-checkbox {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: 0.125rem;
+    accent-color: var(--onboard-primary);
+    cursor: pointer;
+}
+
+.c-sms-verify__consent-label {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--onboard-text-secondary);
+}
+
+.c-sms-verify__workflow {
+    padding: var(--onboard-space-md);
+    border-top: 1px solid var(--onboard-border);
+}
+
+.c-sms-verify__title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--onboard-text-primary);
+    margin-bottom: var(--onboard-space-sm);
+}
+
+.c-sms-verify__description {
+    font-size: 0.875rem;
+    color: var(--onboard-text-secondary);
+    margin-bottom: var(--onboard-space-md);
+}
+
+.c-sms-verify__actions {
+    display: flex;
+    gap: var(--onboard-space-sm);
+    align-items: center;
+}
+
+.c-sms-verify__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--onboard-space-xs);
+    padding: 0.625rem 1.25rem;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all var(--onboard-duration-base) var(--onboard-ease-smooth);
+    border: none;
+    cursor: pointer;
+}
+
+.c-sms-verify__btn--primary {
+    background: var(--onboard-primary);
+    color: white;
+}
+
+.c-sms-verify__btn--primary:hover {
+    background: var(--onboard-primary-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--onboard-shadow-md);
+}
+
+.c-sms-verify__btn--success {
+    background: var(--onboard-accent);
+    color: white;
+}
+
+.c-sms-verify__btn--verified {
+    background: var(--onboard-accent);
+    color: white;
+    cursor: default;
+    pointer-events: none;
+}
+
+.c-sms-verify__input {
+    padding: 0.625rem 1rem;
+    border: 1px solid var(--onboard-border);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all var(--onboard-duration-fast) var(--onboard-ease-smooth);
+}
+
+.c-sms-verify__input:focus {
+    outline: none;
+    border-color: var(--onboard-primary);
+    box-shadow: var(--onboard-shadow-focus);
+}
+
+.c-sms-verify__link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--onboard-space-xs);
+    color: var(--onboard-primary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color var(--onboard-duration-fast) var(--onboard-ease-smooth);
+}
+
+.c-sms-verify__link:hover {
+    color: var(--onboard-primary-dark);
+    text-decoration: underline;
+}
+
+.c-sms-verify__timer {
+    font-size: 0.875rem;
+    color: var(--onboard-text-muted);
+    margin-left: var(--onboard-space-xs);
+}
+
+/* Alert States */
+.c-sms-verify__alert {
+    padding: var(--onboard-space-sm) var(--onboard-space-md);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: var(--onboard-space-xs);
+    margin-top: var(--onboard-space-md);
+}
+
+.c-sms-verify__alert--warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #B45309;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.c-sms-verify__alert--success {
+    background: rgba(80, 200, 120, 0.1);
+    color: #166534;
+    border: 1px solid rgba(80, 200, 120, 0.3);
+}
+
+/* ============================================
+   IMAGE CROPPER SECTION
+   ============================================ */
+.c-onboarding-cropper {
+    margin-top: var(--onboard-space-md);
+    padding: var(--onboard-space-md);
+    background: var(--onboard-surface-alt);
+    border-radius: 8px;
+}
+
+.c-onboarding-cropper__preview {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: var(--onboard-space-md);
+}
+
+.c-onboarding-cropper__preview-img {
+    max-height: 200px;
+    border-radius: 50%;
+    box-shadow: var(--onboard-shadow-md);
+}
+
+.c-onboarding-cropper__container {
+    max-height: 400px;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+/* ============================================
+   FORM ACTIONS - Submit Zone
+   ============================================ */
+.c-onboarding-form__actions {
+    display: flex;
+    gap: var(--onboard-space-sm);
+    padding-top: var(--onboard-space-lg);
+    border-top: 1px solid var(--onboard-border);
+    margin-top: var(--onboard-space-xl);
+}
+
+.c-onboarding-form__submit {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--onboard-space-xs);
+    padding: 0.875rem 2rem;
+    background: var(--onboard-primary);
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all var(--onboard-duration-base) var(--onboard-ease-smooth);
+    box-shadow: var(--onboard-shadow-sm);
+}
+
+.c-onboarding-form__submit:hover {
+    background: var(--onboard-primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--onboard-shadow-md);
+}
+
+.c-onboarding-form__submit:active {
+    transform: translateY(0);
+}
+
+.c-onboarding-form__cancel {
+    padding: 0.875rem 1.5rem;
+    background: transparent;
+    color: var(--onboard-text-secondary);
+    font-weight: 500;
+    border: 1px solid var(--onboard-border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all var(--onboard-duration-base) var(--onboard-ease-smooth);
+}
+
+.c-onboarding-form__cancel:hover {
+    background: var(--onboard-surface-alt);
+    color: var(--onboard-text-primary);
+    border-color: var(--onboard-border-strong);
+}
+
+/* ============================================
+   RESPONSIVE DESIGN - Mobile Optimization
+   ============================================ */
+@media (max-width: 768px) {
+    .c-onboarding__header {
+        padding: var(--onboard-space-md);
+    }
+
+    .c-onboarding__title {
+        font-size: 1.5rem;
+    }
+
+    .c-onboarding-form {
+        padding: var(--onboard-space-md);
+    }
+
+    .c-onboarding-form__section {
+        margin-bottom: var(--onboard-space-lg);
+    }
+
+    .c-onboarding-form__actions {
+        flex-direction: column;
+    }
+
+    .c-onboarding-form__submit,
+    .c-onboarding-form__cancel {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .c-discord-prompt {
+        padding: var(--onboard-space-md);
+    }
+
+    .c-discord-prompt__icon {
+        font-size: 2rem;
+    }
+
+    .c-discord-prompt__title {
+        font-size: 1.25rem;
+    }
+}
+
+/* ============================================
+   ACCESSIBILITY ENHANCEMENTS
+   ============================================ */
+.c-onboarding-form__input:focus,
+.c-onboarding-form__select:focus,
+.c-onboarding-form__textarea:focus {
+    outline: 2px solid var(--onboard-primary);
+    outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+    .c-league-option__card {
+        border-width: 3px;
+    }
+
+    .c-onboarding-form__section-header {
+        border-width: 3px;
+    }
+}

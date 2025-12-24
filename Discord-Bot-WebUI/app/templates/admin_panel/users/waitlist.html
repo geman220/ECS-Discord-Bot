@@ -13,283 +13,270 @@
 {% block panel_content %}
 
     <!-- Waitlist Overview -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ waitlist_users|length }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Total Waitlist</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-clipboard-list" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
-                </div>
+    <div class="l-grid l-grid--4-col u-mb-4">
+        <div class="c-stat-card c-stat-card--warning">
+            <div class="c-stat-card__content">
+                <div class="c-stat-card__value">{{ waitlist_users|length }}</div>
+                <div class="c-stat-card__label">Total Waitlist</div>
+            </div>
+            <div class="c-stat-card__icon">
+                <i class="ti ti-clipboard-list"></i>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ recent_waitlist|length }}</h5>
-                            <p class="card-text small opacity-75 mb-0">New This Week</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-user-plus" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
-                </div>
+        <div class="c-stat-card c-stat-card--info">
+            <div class="c-stat-card__content">
+                <div class="c-stat-card__value">{{ recent_waitlist|length }}</div>
+                <div class="c-stat-card__label">New This Week</div>
+            </div>
+            <div class="c-stat-card__icon">
+                <i class="ti ti-user-plus"></i>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ processed_count or 0 }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Processed This Month</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-check-circle" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
-                </div>
+        <div class="c-stat-card c-stat-card--success">
+            <div class="c-stat-card__content">
+                <div class="c-stat-card__value">{{ processed_count or 0 }}</div>
+                <div class="c-stat-card__label">Processed This Month</div>
+            </div>
+            <div class="c-stat-card__icon">
+                <i class="ti ti-check-circle"></i>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ avg_wait_time or 'N/A' }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Avg Wait Time</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-clock" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
-                </div>
+        <div class="c-stat-card c-stat-card--primary">
+            <div class="c-stat-card__content">
+                <div class="c-stat-card__value">{{ avg_wait_time or 'N/A' }}</div>
+                <div class="c-stat-card__label">Avg Wait Time</div>
+            </div>
+            <div class="c-stat-card__icon">
+                <i class="ti ti-clock"></i>
             </div>
         </div>
     </div>
 
     <!-- Waitlist Management Actions -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-clipboard-list me-2"></i>Waitlist Queue
-                    </h5>
-                    <div>
-                        <button class="btn btn-outline-secondary me-2" onclick="window.history.back()">
-                            <i class="ti ti-arrow-left me-1"></i>Back
-                        </button>
-                        <button class="btn btn-success" onclick="processAllFromWaitlist()" 
-                                {% if not waitlist_users %}disabled{% endif %}>
-                            <i class="ti ti-check-circle me-1"></i>Process All
-                        </button>
-                    </div>
+    <div class="l-container u-mb-4">
+        <div class="c-card-modern">
+            <div class="c-card-modern__header">
+                <div class="c-card-modern__title">
+                    <i class="ti ti-clipboard-list"></i>
+                    <span>Waitlist Queue</span>
                 </div>
-                <div class="card-body p-0">
-                    {% if waitlist_users %}
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>
-                                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
-                                    </th>
-                                    <th>User</th>
-                                    <th>Contact</th>
-                                    <th>Joined Waitlist</th>
-                                    <th>Wait Time</th>
-                                    <th>League Interest</th>
-                                    <th>Priority</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for user in waitlist_users %}
-                                <tr>
-                                    <td>
-                                        <input type="checkbox" class="user-checkbox" value="{{ user.id }}">
-                                    </td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="avatar avatar-sm me-2">
-                                                <span class="avatar-initial bg-label-primary rounded-circle">
-                                                    {{ (user.name or user.username or 'U')[0].upper() }}
-                                                </span>
-                                            </div>
-                                            <div>
-                                                <strong>{{ user.name or user.username or 'Unknown' }}</strong>
-                                                {% if user.discord_id %}
-                                                <br><small class="text-success">Discord Connected</small>
-                                                {% endif %}
-                                            </div>
+                <div class="c-card-modern__actions">
+                    <button class="c-btn-modern c-btn-modern--secondary c-btn-modern--sm" data-action="back">
+                        <i class="ti ti-arrow-left"></i>
+                        <span>Back</span>
+                    </button>
+                    <button class="c-btn-modern c-btn-modern--success c-btn-modern--sm" data-action="process-all"
+                            {% if not waitlist_users %}disabled{% endif %}>
+                        <i class="ti ti-check-circle"></i>
+                        <span>Process All</span>
+                    </button>
+                </div>
+            </div>
+            <div class="c-card-modern__body c-card-modern__body--no-padding">
+                {% if waitlist_users %}
+                <div class="c-table-modern__wrapper">
+                    <table class="c-table-modern">
+                        <thead class="c-table-modern__header">
+                            <tr class="c-table-modern__row">
+                                <th class="c-table-modern__cell c-table-modern__cell--header">
+                                    <input type="checkbox" class="c-form-modern__checkbox" data-action="toggle-select-all">
+                                </th>
+                                <th class="c-table-modern__cell c-table-modern__cell--header">User</th>
+                                <th class="c-table-modern__cell c-table-modern__cell--header">Contact</th>
+                                <th class="c-table-modern__cell c-table-modern__cell--header">Joined Waitlist</th>
+                                <th class="c-table-modern__cell c-table-modern__cell--header">Wait Time</th>
+                                <th class="c-table-modern__cell c-table-modern__cell--header">League Interest</th>
+                                <th class="c-table-modern__cell c-table-modern__cell--header">Priority</th>
+                                <th class="c-table-modern__cell c-table-modern__cell--header">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="c-table-modern__body">
+                            {% for user in waitlist_users %}
+                            <tr class="c-table-modern__row" data-user-id="{{ user.id }}">
+                                <td class="c-table-modern__cell" data-label="">
+                                    <input type="checkbox" class="c-form-modern__checkbox js-user-checkbox" value="{{ user.id }}">
+                                </td>
+                                <td class="c-table-modern__cell" data-label="User">
+                                    <div class="c-user-avatar">
+                                        <div class="c-user-avatar__image c-user-avatar__image--primary">
+                                            {{ (user.name or user.username or 'U')[0].upper() }}
                                         </div>
-                                    </td>
-                                    <td>
-                                        <div>
-                                            {% if user.email %}
-                                            <div><i class="ti ti-mail me-1"></i>{{ user.email }}</div>
-                                            {% endif %}
-                                            {% if user.discord_username %}
-                                            <div><i class="ti ti-brand-discord me-1"></i>{{ user.discord_username }}</div>
+                                        <div class="c-user-avatar__info">
+                                            <div class="c-user-avatar__name">{{ user.name or user.username or 'Unknown' }}</div>
+                                            {% if user.discord_id %}
+                                            <div class="c-user-avatar__meta u-text-success">Discord Connected</div>
                                             {% endif %}
                                         </div>
-                                    </td>
-                                    <td>
-                                        <small>{{ user.waitlist_joined_at.strftime('%Y-%m-%d %H:%M') if user.waitlist_joined_at else user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else 'Unknown' }}</small>
-                                    </td>
-                                    <td>
-                                        {% set wait_days = ((now - (user.waitlist_joined_at or user.created_at)).days) if (user.waitlist_joined_at or user.created_at) else 0 %}
-                                        <span class="badge bg-{% if wait_days > 30 %}danger{% elif wait_days > 14 %}warning{% else %}info{% endif %}">
-                                            {{ wait_days }} days
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-secondary">{{ user.preferred_league or 'Any' }}</span>
-                                    </td>
-                                    <td>
-                                        {% if wait_days > 30 %}
-                                        <span class="badge bg-danger">High</span>
-                                        {% elif wait_days > 14 %}
-                                        <span class="badge bg-warning">Medium</span>
-                                        {% else %}
-                                        <span class="badge bg-info">Normal</span>
+                                    </div>
+                                </td>
+                                <td class="c-table-modern__cell" data-label="Contact">
+                                    <div class="u-stack u-stack--sm">
+                                        {% if user.email %}
+                                        <div class="u-text-sm"><i class="ti ti-mail"></i> {{ user.email }}</div>
                                         {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-info" 
-                                                    onclick="viewWaitlistUser({{ user.id }}, '{{ user.name or user.username }}')">
-                                                <i class="ti ti-eye"></i>
-                                            </button>
-                                            <button class="btn btn-outline-success" 
-                                                    onclick="processFromWaitlist({{ user.id }}, '{{ user.name or user.username }}')">
-                                                <i class="ti ti-check"></i>
-                                            </button>
-                                            <button class="btn btn-outline-danger" 
-                                                    onclick="removeFromWaitlist({{ user.id }}, '{{ user.name or user.username }}')">
-                                                <i class="ti ti-x"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="text-center py-5">
-                        <i class="ti ti-clipboard-x text-muted" style="font-size: 4rem;"></i>
-                        <h5 class="text-muted mt-3">No users in waitlist</h5>
-                        <p class="text-muted">The waitlist is currently empty.</p>
-                    </div>
-                    {% endif %}
+                                        {% if user.discord_username %}
+                                        <div class="u-text-sm"><i class="ti ti-brand-discord"></i> {{ user.discord_username }}</div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="c-table-modern__cell" data-label="Joined Waitlist">
+                                    <span class="u-text-sm">{{ user.waitlist_joined_at.strftime('%Y-%m-%d %H:%M') if user.waitlist_joined_at else user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else 'Unknown' }}</span>
+                                </td>
+                                <td class="c-table-modern__cell" data-label="Wait Time">
+                                    {% set wait_days = ((now - (user.waitlist_joined_at or user.created_at)).days) if (user.waitlist_joined_at or user.created_at) else 0 %}
+                                    <span class="c-badge c-badge--{% if wait_days > 30 %}danger{% elif wait_days > 14 %}warning{% else %}info{% endif %}">
+                                        {{ wait_days }} days
+                                    </span>
+                                </td>
+                                <td class="c-table-modern__cell" data-label="League Interest">
+                                    <span class="c-badge c-badge--secondary">{{ user.preferred_league or 'Any' }}</span>
+                                </td>
+                                <td class="c-table-modern__cell" data-label="Priority">
+                                    {% if wait_days > 30 %}
+                                    <span class="c-badge c-badge--danger">High</span>
+                                    {% elif wait_days > 14 %}
+                                    <span class="c-badge c-badge--warning">Medium</span>
+                                    {% else %}
+                                    <span class="c-badge c-badge--info">Normal</span>
+                                    {% endif %}
+                                </td>
+                                <td class="c-table-modern__cell" data-label="Actions">
+                                    <div class="c-btn-group">
+                                        <button class="c-btn-modern c-btn-modern--info c-btn-modern--sm c-btn-modern--icon"
+                                                data-action="view-user"
+                                                data-user-id="{{ user.id }}"
+                                                data-user-name="{{ user.name or user.username }}">
+                                            <i class="ti ti-eye"></i>
+                                        </button>
+                                        <button class="c-btn-modern c-btn-modern--success c-btn-modern--sm c-btn-modern--icon"
+                                                data-action="process-user"
+                                                data-user-id="{{ user.id }}"
+                                                data-user-name="{{ user.name or user.username }}">
+                                            <i class="ti ti-check"></i>
+                                        </button>
+                                        <button class="c-btn-modern c-btn-modern--danger c-btn-modern--sm c-btn-modern--icon"
+                                                data-action="remove-user"
+                                                data-user-id="{{ user.id }}"
+                                                data-user-name="{{ user.name or user.username }}">
+                                            <i class="ti ti-x"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
+                {% else %}
+                <div class="c-empty-state">
+                    <i class="ti ti-clipboard-x c-empty-state__icon"></i>
+                    <h5 class="c-empty-state__title">No users in waitlist</h5>
+                    <p class="c-empty-state__text">The waitlist is currently empty.</p>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
 
     <!-- Waitlist Settings -->
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-settings me-2"></i>Waitlist Settings
-                    </h5>
+    <div class="l-grid l-grid--2-col">
+        <div class="c-card-modern">
+            <div class="c-card-modern__header">
+                <div class="c-card-modern__title">
+                    <i class="ti ti-settings"></i>
+                    <span>Waitlist Settings</span>
                 </div>
-                <div class="card-body">
-                    <div class="list-group list-group-flush">
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="ti ti-toggle-left me-2"></i>
-                                <span class="fw-medium">Waitlist Registration</span>
-                                <br><small class="text-muted">Allow new users to join waitlist</small>
+            </div>
+            <div class="c-card-modern__body c-card-modern__body--no-padding">
+                <div class="c-list-group">
+                    <div class="c-list-group__item">
+                        <div class="c-list-group__content">
+                            <div class="c-list-group__icon">
+                                <i class="ti ti-toggle-left"></i>
                             </div>
-                            <div>
-                                <span class="badge bg-{% if waitlist_registration_enabled %}success{% else %}danger{% endif %}">
-                                    {% if waitlist_registration_enabled %}Open{% else %}Closed{% endif %}
-                                </span>
-                                <a href="{{ url_for('admin_panel.feature_toggles') }}#registration" 
-                                   class="btn btn-sm btn-outline-primary ms-2">
-                                    <i class="ti ti-settings"></i>
-                                </a>
+                            <div class="c-list-group__text">
+                                <div class="c-list-group__title">Waitlist Registration</div>
+                                <div class="c-list-group__subtitle">Allow new users to join waitlist</div>
                             </div>
                         </div>
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="ti ti-bell me-2"></i>
-                                <span class="fw-medium">Auto Notifications</span>
-                                <br><small class="text-muted">Notify users when processed</small>
+                        <div class="c-list-group__actions">
+                            <span class="c-badge c-badge--{% if waitlist_registration_enabled %}success{% else %}danger{% endif %}">
+                                {% if waitlist_registration_enabled %}Open{% else %}Closed{% endif %}
+                            </span>
+                            <a href="{{ url_for('admin_panel.feature_toggles') }}#registration"
+                               class="c-btn-modern c-btn-modern--primary c-btn-modern--sm c-btn-modern--icon">
+                                <i class="ti ti-settings"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="c-list-group__item">
+                        <div class="c-list-group__content">
+                            <div class="c-list-group__icon">
+                                <i class="ti ti-bell"></i>
                             </div>
-                            <div>
-                                <span class="badge bg-success">Enabled</span>
-                                <a href="{{ url_for('admin_panel.feature_toggles') }}#notifications" 
-                                   class="btn btn-sm btn-outline-primary ms-2">
-                                    <i class="ti ti-settings"></i>
-                                </a>
+                            <div class="c-list-group__text">
+                                <div class="c-list-group__title">Auto Notifications</div>
+                                <div class="c-list-group__subtitle">Notify users when processed</div>
                             </div>
+                        </div>
+                        <div class="c-list-group__actions">
+                            <span class="c-badge c-badge--success">Enabled</span>
+                            <a href="{{ url_for('admin_panel.feature_toggles') }}#notifications"
+                               class="c-btn-modern c-btn-modern--primary c-btn-modern--sm c-btn-modern--icon">
+                                <i class="ti ti-settings"></i>
+                            </a>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <div class="col-md-6 mb-3">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-chart-bar me-2"></i>Waitlist Analytics
-                    </h5>
+
+        <div class="c-card-modern">
+            <div class="c-card-modern__header">
+                <div class="c-card-modern__title">
+                    <i class="ti ti-chart-bar"></i>
+                    <span>Waitlist Analytics</span>
                 </div>
-                <div class="card-body">
-                    <div class="list-group list-group-flush">
-                        <div class="list-group-item">
-                            <div class="row">
-                                <div class="col-sm-8">
-                                    <div class="d-flex align-items-center">
-                                        <i class="ti ti-clock me-2"></i>
-                                        <span>Average Wait Time</span>
-                                    </div>
-                                </div>
-                                <div class="col-sm-4 text-end">
-                                    <span class="badge bg-info">{{ avg_wait_time or '7 days' }}</span>
-                                </div>
+            </div>
+            <div class="c-card-modern__body c-card-modern__body--no-padding">
+                <div class="c-list-group">
+                    <div class="c-list-group__item">
+                        <div class="c-list-group__content">
+                            <div class="c-list-group__icon">
+                                <i class="ti ti-clock"></i>
+                            </div>
+                            <div class="c-list-group__text">
+                                <div class="c-list-group__title">Average Wait Time</div>
                             </div>
                         </div>
-                        <div class="list-group-item">
-                            <div class="row">
-                                <div class="col-sm-8">
-                                    <div class="d-flex align-items-center">
-                                        <i class="ti ti-check-circle me-2"></i>
-                                        <span>Processing Rate</span>
-                                    </div>
-                                </div>
-                                <div class="col-sm-4 text-end">
-                                    <span class="badge bg-success">{{ processing_rate or '85%' }}</span>
-                                </div>
+                        <div class="c-list-group__actions">
+                            <span class="c-badge c-badge--info">{{ avg_wait_time or '7 days' }}</span>
+                        </div>
+                    </div>
+                    <div class="c-list-group__item">
+                        <div class="c-list-group__content">
+                            <div class="c-list-group__icon">
+                                <i class="ti ti-check-circle"></i>
+                            </div>
+                            <div class="c-list-group__text">
+                                <div class="c-list-group__title">Processing Rate</div>
                             </div>
                         </div>
-                        <div class="list-group-item">
-                            <div class="row">
-                                <div class="col-sm-8">
-                                    <div class="d-flex align-items-center">
-                                        <i class="ti ti-users me-2"></i>
-                                        <span>Conversion Rate</span>
-                                    </div>
-                                </div>
-                                <div class="col-sm-4 text-end">
-                                    <span class="badge bg-primary">{{ conversion_rate or '92%' }}</span>
-                                </div>
+                        <div class="c-list-group__actions">
+                            <span class="c-badge c-badge--success">{{ processing_rate or '85%' }}</span>
+                        </div>
+                    </div>
+                    <div class="c-list-group__item">
+                        <div class="c-list-group__content">
+                            <div class="c-list-group__icon">
+                                <i class="ti ti-users"></i>
                             </div>
+                            <div class="c-list-group__text">
+                                <div class="c-list-group__title">Conversion Rate</div>
+                            </div>
+                        </div>
+                        <div class="c-list-group__actions">
+                            <span class="c-badge c-badge--primary">{{ conversion_rate or '92%' }}</span>
                         </div>
                     </div>
                 </div>
@@ -298,20 +285,21 @@
     </div>
 
     <!-- User Details Modal -->
-    <div class="modal fade" id="waitlistUserModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="waitlist_user_title">User Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="c-modal" id="waitlistUserModal" tabindex="-1" aria-labelledby="waitlist_user_title">
+        <div class="c-modal__dialog c-modal__dialog--lg">
+            <div class="c-modal__content">
+                <div class="c-modal__header">
+                    <h5 class="c-modal__title" id="waitlist_user_title">User Details</h5>
+                    <button type="button" class="c-modal__close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body" id="waitlist_user_content">
+                <div class="c-modal__body" id="waitlist_user_content">
                     <!-- User details will be loaded here -->
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-success" onclick="processUserFromModal()">
-                        <i class="ti ti-check me-1"></i>Process User
+                <div class="c-modal__footer">
+                    <button type="button" class="c-btn-modern c-btn-modern--secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="c-btn-modern c-btn-modern--success" data-action="process-from-modal">
+                        <i class="ti ti-check"></i>
+                        <span>Process User</span>
                     </button>
                 </div>
             </div>
@@ -320,60 +308,60 @@
 {% endblock %}
 
 {% block custom_css %}
-<style>
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.avatar {
-    width: 38px;
-    height: 38px;
-}
-
-.avatar-initial {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    width: 100%;
-    height: 100%;
-}
-
-@media (max-width: 768px) {
-    .btn-group-sm .btn {
-        padding: 0.25rem 0.4rem;
-        font-size: 0.75rem;
-    }
-    
-    .table-responsive {
-        font-size: 0.875rem;
-    }
-}
-</style>
+{{ super() }}
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
 let selectedUserId = null;
 
-function toggleSelectAll() {
-    const selectAll = document.getElementById('selectAll');
-    const checkboxes = document.querySelectorAll('.user-checkbox');
-    
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = selectAll.checked;
-    });
-}
+// Event delegation for all actions
+document.addEventListener('click', function(e) {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+
+    const action = target.dataset.action;
+    const userId = target.dataset.userId;
+    const userName = target.dataset.userName;
+
+    switch(action) {
+        case 'back':
+            window.history.back();
+            break;
+        case 'process-all':
+            processAllFromWaitlist();
+            break;
+        case 'view-user':
+            viewWaitlistUser(userId, userName);
+            break;
+        case 'process-user':
+            processFromWaitlist(userId, userName);
+            break;
+        case 'remove-user':
+            removeFromWaitlist(userId, userName);
+            break;
+        case 'process-from-modal':
+            processUserFromModal();
+            break;
+    }
+});
+
+document.addEventListener('change', function(e) {
+    if (e.target.matches('[data-action="toggle-select-all"]')) {
+        const checkboxes = document.querySelectorAll('.js-user-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = e.target.checked;
+        });
+    }
+});
 
 function viewWaitlistUser(userId, userName) {
     selectedUserId = userId;
     document.getElementById('waitlist_user_title').textContent = `Details for ${userName}`;
-    document.getElementById('waitlist_user_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
-    
-    const modal = new bootstrap.Modal(document.getElementById('waitlistUserModal'));
-    modal.show();
+    document.getElementById('waitlist_user_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status" data-spinner></div></div>';
+
+    ModalManager.show('waitlistUserModal');
     
     // Load user details via AJAX
     fetch(`{{ url_for('admin_panel.get_user_details') }}?user_id=${userId}`)
@@ -382,11 +370,11 @@ function viewWaitlistUser(userId, userName) {
             if (data.success) {
                 document.getElementById('waitlist_user_content').innerHTML = data.html;
             } else {
-                document.getElementById('waitlist_user_content').innerHTML = '<div class="alert alert-danger">Error loading user details</div>';
+                document.getElementById('waitlist_user_content').innerHTML = '<div class="alert alert-danger" data-alert>Error loading user details</div>';
             }
         })
         .catch(error => {
-            document.getElementById('waitlist_user_content').innerHTML = '<div class="alert alert-danger">Error loading user details</div>';
+            document.getElementById('waitlist_user_content').innerHTML = '<div class="alert alert-danger" data-alert>Error loading user details</div>';
         });
 }
 
@@ -471,7 +459,7 @@ function removeFromWaitlist(userId, userName) {
 }
 
 function processAllFromWaitlist() {
-    const checkboxes = document.querySelectorAll('.user-checkbox:checked');
+    const checkboxes = document.querySelectorAll('.js-user-checkbox:checked');
     const selectedCount = checkboxes.length;
     
     if (selectedCount === 0) {

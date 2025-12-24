@@ -11,7 +11,7 @@
 <!-- Substitute Pools Header -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="alert alert-info">
+        <div class="alert alert-info" data-alert>
             <div class="d-flex align-items-center">
                 <i class="ti ti-users-group me-2"></i>
                 <div>
@@ -27,18 +27,18 @@
 <div class="row">
     {% for league_type, data in pools_data.items() %}
     <div class="col-lg-4 col-md-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header" style="background: {{ data.config.color }}15; border-bottom: 3px solid {{ data.config.color }};">
+        <div class="c-card h-100">
+            <div class="c-card__header league-header" data-league-color="{{ data.config.color }}">
                 <div class="d-flex align-items-center justify-content-between">
-                    <h5 class="card-title mb-0" style="color: {{ data.config.color }};">
+                    <h5 class="c-card__title mb-0 league-title" data-league-color="{{ data.config.color }}">
                         <i class="{{ data.config.icon }} me-2"></i>{{ data.config.name }}
                     </h5>
-                    <span class="badge" style="background: {{ data.config.color }};">
+                    <span class="badge league-badge" data-league-color="{{ data.config.color }}" data-badge>
                         {{ data.total_active }} Active
                     </span>
                 </div>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <!-- Statistics -->
                 <div class="row mb-3">
                     <div class="col-6">
@@ -58,7 +58,7 @@
                 <!-- Top Substitutes Preview -->
                 {% if data.active_pools %}
                 <h6 class="text-muted mb-2">Top Substitutes</h6>
-                <div class="list-group list-group-flush mb-3" style="max-height: 150px; overflow-y: auto;">
+                <div class="list-group list-group-flush mb-3 scrollable-list">
                     {% for pool in data.active_pools[:5] %}
                     <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
                         <div>
@@ -66,20 +66,20 @@
                             <br>
                             <small class="text-muted">{{ pool.matches_played }} matches</small>
                         </div>
-                        <span class="badge bg-success">{{ pool.acceptance_rate|round(1) }}%</span>
+                        <span class="badge bg-success" data-badge>{{ pool.acceptance_rate|round(1) }}%</span>
                     </div>
                     {% endfor %}
                 </div>
                 {% else %}
                 <div class="text-center py-4 text-muted">
-                    <i class="ti ti-users-group" style="font-size: 2rem;"></i>
+                    <i class="ti ti-users-group icon-2x"></i>
                     <p class="mt-2 mb-0">No active substitutes</p>
                 </div>
                 {% endif %}
             </div>
-            <div class="card-footer">
+            <div class="c-card__footer">
                 <a href="{{ url_for('admin_panel.substitute_pool_detail', league_type=league_type) }}"
-                   class="btn w-100" style="background: {{ data.config.color }}; color: white;">
+                   class="c-btn w-100 league-btn" data-league-color="{{ data.config.color }}">
                     <i class="ti ti-settings me-1"></i>Manage Pool
                 </a>
             </div>
@@ -91,13 +91,13 @@
 <!-- Quick Stats Summary -->
 <div class="row mt-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-chart-bar me-2"></i>Overall Statistics
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row text-center">
                     <div class="col-md-3 col-6 mb-3">
                         <div class="border rounded p-3">
@@ -154,26 +154,26 @@
 <!-- Quick Actions -->
 <div class="row mt-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-bolt me-2"></i>Quick Actions
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-4 mb-3">
-                        <a href="{{ url_for('admin_panel.substitute_management') }}" class="btn btn-outline-primary w-100">
+                        <a href="{{ url_for('admin_panel.substitute_management') }}" class="c-btn c-btn--outline-primary w-100">
                             <i class="ti ti-clipboard-list me-1"></i>View Sub Requests
                         </a>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <button class="btn btn-outline-success w-100" onclick="searchPlayer()">
+                        <button class="c-btn c-btn--outline-success w-100 js-search-player" data-action="search-player">
                             <i class="ti ti-user-plus me-1"></i>Add Player to Pool
                         </button>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <a href="{{ url_for('admin_panel.match_operations') }}" class="btn btn-outline-info w-100">
+                        <a href="{{ url_for('admin_panel.match_operations') }}" class="c-btn c-btn--outline-info w-100">
                             <i class="ti ti-soccer-field me-1"></i>Match Operations
                         </a>
                     </div>
@@ -184,19 +184,19 @@
 </div>
 
 <!-- Player Search Modal -->
-<div class="modal fade" id="playerSearchModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
+<div class="modal c-modal fade" data-modal id="playerSearchModal" tabindex="-1" aria-labelledby="playerSearchModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="playerSearchModalLabel">
                     <i class="ti ti-user-search me-2"></i>Search Player to Add
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <div class="mb-3">
                     <input type="text" class="form-control" id="playerSearchInput"
-                           placeholder="Type player name or email...">
+                           placeholder="Type player name or email..." data-form-control>
                 </div>
                 <div id="playerSearchResults"></div>
             </div>
@@ -205,68 +205,127 @@
 </div>
 {% endblock %}
 
-{% block extra_js %}
-<script>
-function searchPlayer() {
-    const modal = new bootstrap.Modal(document.getElementById('playerSearchModal'));
-    modal.show();
-    document.getElementById('playerSearchInput').focus();
+{% block custom_css %}
+{{ super() }}
+<style>
+.scrollable-list {
+    max-height: 150px;
+    overflow-y: auto;
 }
 
-// Player search
-let searchTimeout;
-document.getElementById('playerSearchInput').addEventListener('input', function() {
-    clearTimeout(searchTimeout);
-    const query = this.value.trim();
+.league-header[data-league-color] {
+    border-bottom-width: 3px;
+    border-bottom-style: solid;
+}
 
-    if (query.length < 2) {
-        document.getElementById('playerSearchResults').innerHTML = '';
-        return;
+.league-title[data-league-color],
+.league-badge[data-league-color],
+.league-btn[data-league-color] {
+    color: white;
+}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Apply dynamic league colors
+    document.querySelectorAll('[data-league-color]').forEach(function(el) {
+        const color = el.dataset.leagueColor;
+        if (el.classList.contains('league-header')) {
+            el.style.background = color + '15';
+            el.style.borderBottomColor = color;
+        } else if (el.classList.contains('league-title')) {
+            el.style.color = color;
+        } else if (el.classList.contains('league-badge')) {
+            el.style.background = color;
+        } else if (el.classList.contains('league-btn')) {
+            el.style.background = color;
+        }
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle search player button
+    const searchPlayerBtn = document.querySelector('.js-search-player');
+    if (searchPlayerBtn) {
+        searchPlayerBtn.addEventListener('click', function() {
+            ModalManager.show('playerSearchModal');
+            document.getElementById('playerSearchInput').focus();
+        });
     }
 
-    searchTimeout = setTimeout(async () => {
-        try {
-            const response = await fetch(`{{ url_for('admin_panel.substitute_pool_player_search') }}?q=${encodeURIComponent(query)}`);
-            const data = await response.json();
-
-            if (data.success && data.players.length > 0) {
-                let html = '<div class="list-group">';
-                data.players.forEach(player => {
-                    html += `
-                        <div class="list-group-item">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong>${player.name}</strong>
-                                    <br>
-                                    <small class="text-muted">${player.email || 'No email'}</small>
-                                </div>
-                                <div class="btn-group">
-                                    ${player.can_add_to.map(lt => `
-                                        <button class="btn btn-sm btn-outline-primary"
-                                                onclick="addToPool(${player.id}, '${lt}')">
-                                            Add to ${lt}
-                                        </button>
-                                    `).join('')}
-                                </div>
-                            </div>
-                            <div class="mt-2">
-                                <small>
-                                    Current pools: ${player.current_pools.length > 0 ? player.current_pools.join(', ') : 'None'}
-                                </small>
-                            </div>
-                        </div>
-                    `;
-                });
-                html += '</div>';
-                document.getElementById('playerSearchResults').innerHTML = html;
-            } else {
-                document.getElementById('playerSearchResults').innerHTML =
-                    '<p class="text-center text-muted py-3">No players found</p>';
-            }
-        } catch (error) {
-            console.error('Search error:', error);
+    // Handle add to pool buttons (event delegation)
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.js-add-to-pool')) {
+            const btn = e.target.closest('.js-add-to-pool');
+            const playerId = btn.dataset.playerId;
+            const leagueType = btn.dataset.leagueType;
+            addToPool(playerId, leagueType);
         }
-    }, 300);
+    });
+
+    // Player search input
+    let searchTimeout;
+    const searchInput = document.getElementById('playerSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const query = this.value.trim();
+
+            if (query.length < 2) {
+                document.getElementById('playerSearchResults').innerHTML = '';
+                return;
+            }
+
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const response = await fetch(`{{ url_for('admin_panel.substitute_pool_player_search') }}?q=${encodeURIComponent(query)}`);
+                    const data = await response.json();
+
+                    if (data.success && data.players.length > 0) {
+                        let html = '<div class="list-group">';
+                        data.players.forEach(player => {
+                            html += `
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>${player.name}</strong>
+                                            <br>
+                                            <small class="text-muted">${player.email || 'No email'}</small>
+                                        </div>
+                                        <div class="btn-group">
+                                            ${player.can_add_to.map(lt => `
+                                                <button class="c-btn c-btn--sm c-btn--outline-primary js-add-to-pool"
+                                                        data-action="add-to-pool"
+                                                        data-player-id="${player.id}"
+                                                        data-league-type="${lt}">
+                                                    Add to ${lt}
+                                                </button>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small>
+                                            Current pools: ${player.current_pools.length > 0 ? player.current_pools.join(', ') : 'None'}
+                                        </small>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                        document.getElementById('playerSearchResults').innerHTML = html;
+                    } else {
+                        document.getElementById('playerSearchResults').innerHTML =
+                            '<p class="text-center text-muted py-3">No players found</p>';
+                    }
+                } catch (error) {
+                    console.error('Search error:', error);
+                }
+            }, 300);
+        });
+    }
 });
 
 async function addToPool(playerId, leagueType) {

@@ -3,6 +3,11 @@
 
 {% block title %}Season Overview{% endblock %}
 
+{% block custom_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/seasons.css') }}">
+{% endblock %}
+
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Page Header -->
@@ -14,7 +19,7 @@
                     <p class="text-muted">Comprehensive season statistics and analytics</p>
                 </div>
                 <div>
-                    <select class="form-select form-select-sm season-selector" id="seasonSelector">
+                    <select class="form-select form-select-sm season-selector" id="seasonSelector" data-form-select>
                         <option selected>{{ season.name }}</option>
                     </select>
                 </div>
@@ -25,7 +30,7 @@
     <!-- Tabs for Divisions -->
     <div class="row mb-3">
         <div class="col-12">
-            <ul class="nav nav-pills mb-3" id="division-tabs" role="tablist">
+            <ul class="nav nav-pills season-nav-pills mb-3" id="division-tabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="premier-tab" data-bs-toggle="pill" data-bs-target="#premier" 
                             type="button" role="tab" aria-controls="premier" aria-selected="true">
@@ -56,24 +61,24 @@
             <div class="row">
                 <!-- Standings Card -->
                 <div class="col-12 mb-4">
-                    <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">Premier Division Standings</h5>
+                    <div class="c-card">
+                        <div class="c-card__header d-flex justify-content-between align-items-center">
+                            <h5 class="c-card__title mb-0">Premier Division Standings</h5>
                         </div>
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead class="table-light">
+                        <div class="c-table-wrapper" data-table-responsive>
+                            <table class="c-table season-table-hover season-overview-table" data-table>
+                                <thead class="c-table--light" scope="col">
                                     <tr>
-                                        <th class="text-center" style="width: 5%;">#</th>
-                                        <th style="width: 25%;">Team</th>
-                                        <th class="text-center">P</th>
-                                        <th class="text-center">W</th>
-                                        <th class="text-center">D</th>
-                                        <th class="text-center">L</th>
-                                        <th class="text-center">GF</th>
-                                        <th class="text-center">GA</th>
-                                        <th class="text-center">GD</th>
-                                        <th class="text-center">Pts</th>
+                                        <th class="text-center season-standings-rank" scope="col">#</th>
+                                        <th class="season-standings-team" scope="col">Team</th>
+                                        <th class="text-center" scope="col">P</th>
+                                        <th class="text-center" scope="col">W</th>
+                                        <th class="text-center" scope="col">D</th>
+                                        <th class="text-center" scope="col">L</th>
+                                        <th class="text-center" scope="col">GF</th>
+                                        <th class="text-center" scope="col">GA</th>
+                                        <th class="text-center" scope="col">GD</th>
+                                        <th class="text-center" scope="col">Pts</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -85,7 +90,7 @@
                                             <div class="d-flex align-items-center">
                                                 {{ macros.team_avatar(standing.team, 'sm', 'bg-success me-2') }}
                                                 <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}"
-                                                   class="team-name">
+                                                   class="season-team-name">
                                                     {{ standing.team.name }}
                                                 </a>
                                             </div>
@@ -103,11 +108,11 @@
                                     {% if premier_standings|length == 0 %}
                                     <tr>
                                         <td colspan="10" class="text-center p-4">
-                                            <div class="empty-state">
-                                                <div class="empty-state-icon mb-3">
+                                            <div class="season-empty-state">
+                                                <div class="season-empty-state-icon">
                                                     <i class="ti ti-trophy"></i>
                                                 </div>
-                                                <p class="empty-state-message">No standings data available for Premier Division.</p>
+                                                <p class="season-empty-state-message">No standings data available for Premier Division.</p>
                                             </div>
                                         </td>
                                     </tr>
@@ -122,21 +127,21 @@
                 <div class="row mb-4">
                     <!-- Top Scorers Card -->
                     <div class="col-md-6 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5 class="card-title mb-0">
+                        <div class="c-card h-100">
+                            <div class="c-card__header d-flex justify-content-between align-items-center">
+                                <h5 class="c-card__title mb-0">
                                     <i class="ti ti-award text-warning me-2"></i>Golden Boot
                                 </h5>
-                                <span class="badge bg-label-warning">Premier Division</span>
+                                <span class="badge season-badge-warning" data-badge>Premier Division</span>
                             </div>
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0">
-                                    <thead class="table-light">
+                            <div class="c-table-wrapper" data-table-responsive>
+                                <table class="c-table c-table--hoverable mb-0" data-table>
+                                    <thead class="c-table--light" scope="col">
                                         <tr>
-                                            <th>#</th>
-                                            <th>Player</th>
-                                            <th>Team</th>
-                                            <th class="text-center">Goals</th>
+                                            <th scope="col">#</th>
+                                            <th scope="col">Player</th>
+                                            <th scope="col">Team</th>
+                                            <th class="text-center" scope="col">Goals</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -175,21 +180,21 @@
                     
                     <!-- Top Assisters Card -->
                     <div class="col-md-6 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5 class="card-title mb-0">
+                        <div class="c-card h-100">
+                            <div class="c-card__header d-flex justify-content-between align-items-center">
+                                <h5 class="c-card__title mb-0">
                                     <i class="ti ti-award text-secondary me-2"></i>Silver Boot
                                 </h5>
-                                <span class="badge bg-label-secondary">Premier Division</span>
+                                <span class="badge season-badge-secondary" data-badge>Premier Division</span>
                             </div>
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0">
-                                    <thead class="table-light">
+                            <div class="c-table-wrapper" data-table-responsive>
+                                <table class="c-table c-table--hoverable mb-0" data-table>
+                                    <thead class="c-table--light" scope="col">
                                         <tr>
-                                            <th>#</th>
-                                            <th>Player</th>
-                                            <th>Team</th>
-                                            <th class="text-center">Assists</th>
+                                            <th scope="col">#</th>
+                                            <th scope="col">Player</th>
+                                            <th scope="col">Team</th>
+                                            <th class="text-center" scope="col">Assists</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -231,21 +236,21 @@
                 <div class="row mb-4">
                     <!-- Yellow Cards Card -->
                     <div class="col-md-6 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5 class="card-title mb-0">
+                        <div class="c-card h-100">
+                            <div class="c-card__header d-flex justify-content-between align-items-center">
+                                <h5 class="c-card__title mb-0">
                                     <i class="ti ti-cards text-warning me-2"></i>Yellow Cards
                                 </h5>
-                                <span class="badge bg-label-warning">Premier Division</span>
+                                <span class="badge season-badge-warning" data-badge>Premier Division</span>
                             </div>
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0">
-                                    <thead class="table-light">
+                            <div class="c-table-wrapper" data-table-responsive>
+                                <table class="c-table c-table--hoverable mb-0" data-table>
+                                    <thead class="c-table--light" scope="col">
                                         <tr>
-                                            <th>#</th>
-                                            <th>Player</th>
-                                            <th>Team</th>
-                                            <th class="text-center">Cards</th>
+                                            <th scope="col">#</th>
+                                            <th scope="col">Player</th>
+                                            <th scope="col">Team</th>
+                                            <th class="text-center" scope="col">Cards</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -284,21 +289,21 @@
                     
                     <!-- Red Cards Card -->
                     <div class="col-md-6 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5 class="card-title mb-0">
+                        <div class="c-card h-100">
+                            <div class="c-card__header d-flex justify-content-between align-items-center">
+                                <h5 class="c-card__title mb-0">
                                     <i class="ti ti-cards text-danger me-2"></i>Red Cards
                                 </h5>
-                                <span class="badge bg-label-danger">Premier Division</span>
+                                <span class="badge season-badge-danger" data-badge>Premier Division</span>
                             </div>
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0">
-                                    <thead class="table-light">
+                            <div class="c-table-wrapper" data-table-responsive>
+                                <table class="c-table c-table--hoverable mb-0" data-table>
+                                    <thead class="c-table--light" scope="col">
                                         <tr>
-                                            <th>#</th>
-                                            <th>Player</th>
-                                            <th>Team</th>
-                                            <th class="text-center">Cards</th>
+                                            <th scope="col">#</th>
+                                            <th scope="col">Player</th>
+                                            <th scope="col">Team</th>
+                                            <th class="text-center" scope="col">Cards</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -344,24 +349,24 @@
             <div class="row">
                 <!-- Standings Card -->
                 <div class="col-12 mb-4">
-                    <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">Classic Division Standings</h5>
+                    <div class="c-card">
+                        <div class="c-card__header d-flex justify-content-between align-items-center">
+                            <h5 class="c-card__title mb-0">Classic Division Standings</h5>
                         </div>
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead class="table-light">
+                        <div class="c-table-wrapper" data-table-responsive>
+                            <table class="c-table season-table-hover season-overview-table" data-table>
+                                <thead class="c-table--light" scope="col">
                                     <tr>
-                                        <th class="text-center" style="width: 5%;">#</th>
-                                        <th style="width: 25%;">Team</th>
-                                        <th class="text-center">P</th>
-                                        <th class="text-center">W</th>
-                                        <th class="text-center">D</th>
-                                        <th class="text-center">L</th>
-                                        <th class="text-center">GF</th>
-                                        <th class="text-center">GA</th>
-                                        <th class="text-center">GD</th>
-                                        <th class="text-center">Pts</th>
+                                        <th class="text-center season-standings-rank" scope="col">#</th>
+                                        <th class="season-standings-team" scope="col">Team</th>
+                                        <th class="text-center" scope="col">P</th>
+                                        <th class="text-center" scope="col">W</th>
+                                        <th class="text-center" scope="col">D</th>
+                                        <th class="text-center" scope="col">L</th>
+                                        <th class="text-center" scope="col">GF</th>
+                                        <th class="text-center" scope="col">GA</th>
+                                        <th class="text-center" scope="col">GD</th>
+                                        <th class="text-center" scope="col">Pts</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -373,7 +378,7 @@
                                             <div class="d-flex align-items-center">
                                                 {{ macros.team_avatar(standing.team, 'sm', 'bg-primary me-2') }}
                                                 <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}"
-                                                   class="team-name">
+                                                   class="season-team-name">
                                                     {{ standing.team.name }}
                                                 </a>
                                             </div>
@@ -391,11 +396,11 @@
                                     {% if classic_standings|length == 0 %}
                                     <tr>
                                         <td colspan="10" class="text-center p-4">
-                                            <div class="empty-state">
-                                                <div class="empty-state-icon mb-3">
+                                            <div class="season-empty-state">
+                                                <div class="season-empty-state-icon">
                                                     <i class="ti ti-ball-football"></i>
                                                 </div>
-                                                <p class="empty-state-message">No standings data available for Classic Division.</p>
+                                                <p class="season-empty-state-message">No standings data available for Classic Division.</p>
                                             </div>
                                         </td>
                                     </tr>
@@ -410,21 +415,21 @@
                 <div class="row mb-4">
                     <!-- Top Scorers Card -->
                     <div class="col-md-6 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5 class="card-title mb-0">
+                        <div class="c-card h-100">
+                            <div class="c-card__header d-flex justify-content-between align-items-center">
+                                <h5 class="c-card__title mb-0">
                                     <i class="ti ti-award text-warning me-2"></i>Golden Boot
                                 </h5>
-                                <span class="badge bg-label-warning">Classic Division</span>
+                                <span class="badge season-badge-warning" data-badge>Classic Division</span>
                             </div>
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0">
-                                    <thead class="table-light">
+                            <div class="c-table-wrapper" data-table-responsive>
+                                <table class="c-table c-table--hoverable mb-0" data-table>
+                                    <thead class="c-table--light" scope="col">
                                         <tr>
-                                            <th>#</th>
-                                            <th>Player</th>
-                                            <th>Team</th>
-                                            <th class="text-center">Goals</th>
+                                            <th scope="col">#</th>
+                                            <th scope="col">Player</th>
+                                            <th scope="col">Team</th>
+                                            <th class="text-center" scope="col">Goals</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -463,21 +468,21 @@
                     
                     <!-- Top Assisters Card -->
                     <div class="col-md-6 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5 class="card-title mb-0">
+                        <div class="c-card h-100">
+                            <div class="c-card__header d-flex justify-content-between align-items-center">
+                                <h5 class="c-card__title mb-0">
                                     <i class="ti ti-award text-secondary me-2"></i>Silver Boot
                                 </h5>
-                                <span class="badge bg-label-secondary">Classic Division</span>
+                                <span class="badge season-badge-secondary" data-badge>Classic Division</span>
                             </div>
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0">
-                                    <thead class="table-light">
+                            <div class="c-table-wrapper" data-table-responsive>
+                                <table class="c-table c-table--hoverable mb-0" data-table>
+                                    <thead class="c-table--light" scope="col">
                                         <tr>
-                                            <th>#</th>
-                                            <th>Player</th>
-                                            <th>Team</th>
-                                            <th class="text-center">Assists</th>
+                                            <th scope="col">#</th>
+                                            <th scope="col">Player</th>
+                                            <th scope="col">Team</th>
+                                            <th class="text-center" scope="col">Assists</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -519,21 +524,21 @@
                 <div class="row mb-4">
                     <!-- Yellow Cards Card -->
                     <div class="col-md-6 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5 class="card-title mb-0">
+                        <div class="c-card h-100">
+                            <div class="c-card__header d-flex justify-content-between align-items-center">
+                                <h5 class="c-card__title mb-0">
                                     <i class="ti ti-cards text-warning me-2"></i>Yellow Cards
                                 </h5>
-                                <span class="badge bg-label-warning">Classic Division</span>
+                                <span class="badge season-badge-warning" data-badge>Classic Division</span>
                             </div>
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0">
-                                    <thead class="table-light">
+                            <div class="c-table-wrapper" data-table-responsive>
+                                <table class="c-table c-table--hoverable mb-0" data-table>
+                                    <thead class="c-table--light" scope="col">
                                         <tr>
-                                            <th>#</th>
-                                            <th>Player</th>
-                                            <th>Team</th>
-                                            <th class="text-center">Cards</th>
+                                            <th scope="col">#</th>
+                                            <th scope="col">Player</th>
+                                            <th scope="col">Team</th>
+                                            <th class="text-center" scope="col">Cards</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -572,21 +577,21 @@
                     
                     <!-- Red Cards Card -->
                     <div class="col-md-6 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5 class="card-title mb-0">
+                        <div class="c-card h-100">
+                            <div class="c-card__header d-flex justify-content-between align-items-center">
+                                <h5 class="c-card__title mb-0">
                                     <i class="ti ti-cards text-danger me-2"></i>Red Cards
                                 </h5>
-                                <span class="badge bg-label-danger">Classic Division</span>
+                                <span class="badge season-badge-danger" data-badge>Classic Division</span>
                             </div>
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0">
-                                    <thead class="table-light">
+                            <div class="c-table-wrapper" data-table-responsive>
+                                <table class="c-table c-table--hoverable mb-0" data-table>
+                                    <thead class="c-table--light" scope="col">
                                         <tr>
-                                            <th>#</th>
-                                            <th>Player</th>
-                                            <th>Team</th>
-                                            <th class="text-center">Cards</th>
+                                            <th scope="col">#</th>
+                                            <th scope="col">Player</th>
+                                            <th scope="col">Team</th>
+                                            <th class="text-center" scope="col">Cards</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -632,55 +637,55 @@
             <!-- Season Summary Statistics -->
             <div class="row mb-4">
                 <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">
+                    <div class="c-card">
+                        <div class="c-card__header">
+                            <h5 class="c-card__title mb-0">
                                 <i class="ti ti-chart-bar me-2"></i>Season Summary Statistics
                             </h5>
                         </div>
-                        <div class="card-body">
-                            <div class="row g-3">
+                        <div class="c-card__body">
+                            <div class="row g-3 season-stats-grid">
                                 <div class="col-md-3">
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar avatar-sm me-3 bg-danger">
-                                            <i class="ti ti-target text-white"></i>
+                                    <div class="season-stat-item">
+                                        <div class="season-stat-icon stat-danger">
+                                            <i class="ti ti-target"></i>
                                         </div>
-                                        <div>
-                                            <h6 class="mb-0">Total Own Goals</h6>
-                                            <span class="text-muted fw-bold">{{ total_own_goals }}</span>
+                                        <div class="season-stat-details">
+                                            <h6>Total Own Goals</h6>
+                                            <span class="season-stat-value">{{ total_own_goals }}</span>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-3">
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar avatar-sm me-3 bg-success">
-                                            <i class="ti ti-target text-white"></i>
+                                    <div class="season-stat-item">
+                                        <div class="season-stat-icon stat-success">
+                                            <i class="ti ti-target"></i>
                                         </div>
-                                        <div>
-                                            <h6 class="mb-0">Premier Own Goals</h6>
-                                            <span class="text-muted fw-bold">{{ premier_own_goals }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar avatar-sm me-3 bg-primary">
-                                            <i class="ti ti-target text-white"></i>
-                                        </div>
-                                        <div>
-                                            <h6 class="mb-0">Classic Own Goals</h6>
-                                            <span class="text-muted fw-bold">{{ classic_own_goals }}</span>
+                                        <div class="season-stat-details">
+                                            <h6>Premier Own Goals</h6>
+                                            <span class="season-stat-value">{{ premier_own_goals }}</span>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-3">
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar avatar-sm me-3 bg-warning">
-                                            <i class="ti ti-info-circle text-white"></i>
+                                    <div class="season-stat-item">
+                                        <div class="season-stat-icon stat-primary">
+                                            <i class="ti ti-target"></i>
                                         </div>
-                                        <div>
-                                            <h6 class="mb-0">Season</h6>
-                                            <span class="text-muted fw-bold">{{ season.name }}</span>
+                                        <div class="season-stat-details">
+                                            <h6>Classic Own Goals</h6>
+                                            <span class="season-stat-value">{{ classic_own_goals }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="season-stat-item">
+                                        <div class="season-stat-icon stat-warning">
+                                            <i class="ti ti-info-circle"></i>
+                                        </div>
+                                        <div class="season-stat-details">
+                                            <h6>Season</h6>
+                                            <span class="season-stat-value">{{ season.name }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -693,28 +698,28 @@
             <div class="row mb-4">
                 <!-- All Goal Scorers Card -->
                 <div class="col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">
+                    <div class="c-card h-100">
+                        <div class="c-card__header d-flex justify-content-between align-items-center">
+                            <h5 class="c-card__title mb-0">
                                 <i class="ti ti-ball-football me-2"></i>Top Goal Scorers (All Leagues)
                             </h5>
                             <!-- Search Input -->
-                            <div class="search-box">
-                                <div class="input-group input-group-merge">
+                            <div class="season-search-box">
+                                <div class="input-group input-group-merge" data-input-group>
                                     <span class="input-group-text" id="basic-addon-search"><i class="ti ti-search"></i></span>
-                                    <input type="text" class="form-control table-search" data-table="allGoalScorersTable" placeholder="Search..." aria-label="Search">
+                                    <input type="text" class="form-control table-search" data-table="allGoalScorersTable" placeholder="Search..." aria-label="Search" data-form-control>
                                 </div>
                             </div>
                         </div>
-                        <div class="table-responsive">
-                            <table class="table table-hover" id="allGoalScorersTable">
-                                <thead class="table-light">
+                        <div class="c-table-wrapper" data-table-responsive>
+                            <table class="c-table c-table--hoverable" id="allGoalScorersTable" data-table>
+                                <thead class="c-table--light" scope="col">
                                     <tr>
-                                        <th>#</th>
-                                        <th>Player</th>
-                                        <th>Team</th>
-                                        <th>Division</th>
-                                        <th class="text-center">Goals</th>
+                                        <th scope="col">#</th>
+                                        <th scope="col">Player</th>
+                                        <th scope="col">Team</th>
+                                        <th scope="col">Division</th>
+                                        <th class="text-center" scope="col">Goals</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -746,11 +751,11 @@
                                             {% if all_goal_scorers|length == 0 %}
                                             <tr>
                                                 <td colspan="5" class="text-center p-4">
-                                                    <div class="empty-state">
-                                                        <div class="empty-state-icon mb-3">
+                                                    <div class="season-empty-state">
+                                                        <div class="season-empty-state-icon">
                                                             <i class="ti ti-ball-football"></i>
                                                         </div>
-                                                        <p class="empty-state-message">No goal scorer data available.</p>
+                                                        <p class="season-empty-state-message">No goal scorer data available.</p>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -763,28 +768,28 @@
                         
                 <!-- All Assist Providers Card -->
                 <div class="col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">
+                    <div class="c-card h-100">
+                        <div class="c-card__header d-flex justify-content-between align-items-center">
+                            <h5 class="c-card__title mb-0">
                                 <i class="ti ti-hand-finger me-2"></i>Top Assist Providers (All Leagues)
                             </h5>
                             <!-- Search Input -->
-                            <div class="search-box">
-                                <div class="input-group input-group-merge">
+                            <div class="season-search-box">
+                                <div class="input-group input-group-merge" data-input-group>
                                     <span class="input-group-text" id="basic-addon-search"><i class="ti ti-search"></i></span>
-                                    <input type="text" class="form-control table-search" data-table="allAssistProvidersTable" placeholder="Search..." aria-label="Search">
+                                    <input type="text" class="form-control table-search" data-table="allAssistProvidersTable" placeholder="Search..." aria-label="Search" data-form-control>
                                 </div>
                             </div>
                         </div>
-                        <div class="table-responsive">
-                            <table class="table table-hover" id="allAssistProvidersTable">
-                                        <thead class="table-light">
+                        <div class="c-table-wrapper" data-table-responsive>
+                            <table class="c-table c-table--hoverable" id="allAssistProvidersTable" data-table>
+                                        <thead class="c-table--light" scope="col">
                                             <tr>
-                                                <th>#</th>
-                                                <th>Player</th>
-                                                <th>Team</th>
-                                                <th>Division</th>
-                                                <th class="text-center">Assists</th>
+                                                <th scope="col">#</th>
+                                                <th scope="col">Player</th>
+                                                <th scope="col">Team</th>
+                                                <th scope="col">Division</th>
+                                                <th class="text-center" scope="col">Assists</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -816,11 +821,11 @@
                                             {% if all_assist_providers|length == 0 %}
                                             <tr>
                                                 <td colspan="5" class="text-center p-4">
-                                                    <div class="empty-state">
-                                                        <div class="empty-state-icon mb-3">
+                                                    <div class="season-empty-state">
+                                                        <div class="season-empty-state-icon">
                                                             <i class="ti ti-hand-finger"></i>
                                                         </div>
-                                                        <p class="empty-state-message">No assist provider data available.</p>
+                                                        <p class="season-empty-state-message">No assist provider data available.</p>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -835,43 +840,43 @@
         </div>
     
     <!-- Legend -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
+    <div class="row mt-4 season-legend-container">
+        <div class="col-12 season-legend-col">
+            <div class="c-card season-legend-card">
+                <div class="c-card__body">
                     <h6 class="mb-3">Legend</h6>
                     <div class="d-flex flex-wrap gap-4">
-                        <div class="d-flex align-items-center">
-                            <span class="me-2">P:</span>
-                            <span class="text-muted">Played</span>
+                        <div class="season-legend-item">
+                            <span class="season-legend-label">P:</span>
+                            <span class="season-legend-value">Played</span>
                         </div>
-                        <div class="d-flex align-items-center">
-                            <span class="me-2">W:</span>
-                            <span class="text-muted">Won</span>
+                        <div class="season-legend-item">
+                            <span class="season-legend-label">W:</span>
+                            <span class="season-legend-value">Won</span>
                         </div>
-                        <div class="d-flex align-items-center">
-                            <span class="me-2">D:</span>
-                            <span class="text-muted">Drawn</span>
+                        <div class="season-legend-item">
+                            <span class="season-legend-label">D:</span>
+                            <span class="season-legend-value">Drawn</span>
                         </div>
-                        <div class="d-flex align-items-center">
-                            <span class="me-2">L:</span>
-                            <span class="text-muted">Lost</span>
+                        <div class="season-legend-item">
+                            <span class="season-legend-label">L:</span>
+                            <span class="season-legend-value">Lost</span>
                         </div>
-                        <div class="d-flex align-items-center">
-                            <span class="me-2">GF:</span>
-                            <span class="text-muted">Goals For</span>
+                        <div class="season-legend-item">
+                            <span class="season-legend-label">GF:</span>
+                            <span class="season-legend-value">Goals For</span>
                         </div>
-                        <div class="d-flex align-items-center">
-                            <span class="me-2">GA:</span>
-                            <span class="text-muted">Goals Against</span>
+                        <div class="season-legend-item">
+                            <span class="season-legend-label">GA:</span>
+                            <span class="season-legend-value">Goals Against</span>
                         </div>
-                        <div class="d-flex align-items-center">
-                            <span class="me-2">GD:</span>
-                            <span class="text-muted">Goal Difference</span>
+                        <div class="season-legend-item">
+                            <span class="season-legend-label">GD:</span>
+                            <span class="season-legend-value">Goal Difference</span>
                         </div>
-                        <div class="d-flex align-items-center">
-                            <span class="me-2">Pts:</span>
-                            <span class="text-muted">Points</span>
+                        <div class="season-legend-item">
+                            <span class="season-legend-label">Pts:</span>
+                            <span class="season-legend-value">Points</span>
                         </div>
                     </div>
                 </div>
@@ -880,135 +885,6 @@
     </div>
     </div>
 </div>
-{% endblock %}
-
-{% block custom_css %}
-<style>
-    /* Table header styling */
-    .table thead th {
-        font-size: 0.85rem;
-        font-weight: 600;
-    }
-    
-    /* Team styling */
-    .team-name {
-        font-weight: 500;
-        text-decoration: none;
-        color: var(--bs-body-color);
-    }
-    
-    .team-name:hover {
-        color: var(--bs-primary);
-    }
-    
-    /* Avatar styling */
-    .avatar {
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .team-initial {
-        font-weight: bold;
-        font-size: 0.85rem;
-    }
-    
-    /* Empty State Styling */
-    .empty-state {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        color: var(--bs-secondary);
-    }
-    
-    .empty-state-icon {
-        font-size: 2.5rem;
-        color: var(--bs-secondary);
-    }
-    
-    .empty-state-message {
-        font-size: 0.875rem;
-    }
-    
-    /* Badge styling */
-    .badge.bg-label-primary {
-        background-color: var(--ecs-primary-subtle, rgba(105, 108, 255, 0.16)) !important;
-        color: var(--ecs-primary, #696cff) !important;
-    }
-
-    .badge.bg-label-success {
-        background-color: var(--ecs-success-subtle, rgba(40, 199, 111, 0.16)) !important;
-        color: var(--ecs-success, #28c76f) !important;
-    }
-
-    .badge.bg-label-warning {
-        background-color: var(--ecs-warning-subtle, rgba(255, 159, 67, 0.16)) !important;
-        color: var(--ecs-warning, #ff9f43) !important;
-    }
-
-    .badge.bg-label-danger {
-        background-color: var(--ecs-danger-subtle, rgba(234, 84, 85, 0.16)) !important;
-        color: var(--ecs-danger, #ea5455) !important;
-    }
-
-    .badge.bg-label-secondary {
-        background-color: var(--ecs-secondary-subtle, rgba(108, 117, 125, 0.16)) !important;
-        color: var(--ecs-secondary, #6c757d) !important;
-    }
-    
-    /* Responsive Styling for Nav Pills */
-    @media (max-width: 767.98px) {
-        .nav-pills {
-            display: flex;
-            overflow-x: auto;
-            white-space: nowrap;
-            -webkit-overflow-scrolling: touch;
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-        }
-        
-        .nav-pills .nav-link {
-            padding: 0.4rem 0.8rem;
-            font-size: 0.875rem;
-        }
-        
-        .table thead th {
-            font-size: 0.75rem;
-        }
-    }
-    
-    /* Table hover effect */
-    .table-hover tbody tr:hover {
-        background-color: rgba(var(--bs-primary-rgb), 0.05);
-    }
-    
-    /* Season selector */
-    .season-selector {
-        min-width: 150px;
-        border-radius: 0.375rem;
-    }
-    
-    /* Override legend styling to match container width */
-    .row.mt-4 {
-        margin-left: 0;
-        margin-right: 0;
-        max-width: 100%;
-    }
-    
-    .row.mt-4 .col-12 {
-        padding-left: 0;
-        padding-right: 0;
-        max-width: 100%;
-    }
-    
-    .row.mt-4 .card {
-        max-width: 100% !important;
-        margin: 0 auto;
-    }
-</style>
 {% endblock %}
 
 {% block custom_js %}
@@ -1058,9 +934,9 @@
                 const tableId = this.getAttribute('data-table');
                 const table = document.getElementById(tableId);
                 if (!table) return;
-                
+
                 const rows = table.querySelectorAll('tbody tr');
-                
+
                 rows.forEach(function(row) {
                     let matchFound = false;
                     // Loop through all cells in the row except the first (index) and last (stats) columns
@@ -1071,8 +947,15 @@
                             break;
                         }
                     }
-                    
-                    row.style.display = matchFound ? '' : 'none';
+
+                    // Use CSS classes instead of inline styles
+                    if (matchFound) {
+                        row.classList.remove('season-search-filtered');
+                        row.classList.add('season-search-visible');
+                    } else {
+                        row.classList.remove('season-search-visible');
+                        row.classList.add('season-search-filtered');
+                    }
                 });
             });
         });

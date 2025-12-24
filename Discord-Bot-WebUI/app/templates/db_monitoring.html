@@ -12,10 +12,10 @@
                     <p class="text-muted">Track database connections and pool health</p>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <button id="refreshBtn" type="button" class="btn btn-icon btn-outline-primary btn-sm">
+                    <button id="refreshBtn" type="button" class="c-btn c-btn--icon-only c-btn--outline-primary c-btn--sm">
                         <i class="ti ti-refresh"></i>
                     </button>
-                    <a href="{{ url_for('monitoring.monitor_dashboard') }}" class="btn btn-outline-primary btn-sm">
+                    <a href="{{ url_for('monitoring.monitor_dashboard') }}" class="c-btn c-btn--outline-primary c-btn--sm">
                         <i class="ti ti-arrow-left me-1"></i>Back to Task Monitor
                     </a>
                 </div>
@@ -29,8 +29,8 @@
     <div class="row">
         <!-- Pool Size -->
         <div class="col-lg-3 col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
+            <div class="c-card h-100">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div class="card-info">
                             <h5 class="mb-0">Pool Size</h5>
@@ -42,12 +42,12 @@
                     </div>
                     <h2 class="mt-2 mb-0" id="poolSize">-</h2>
                     <div class="mt-1">
-                        <span class="badge bg-label-primary">
+                        <span class="badge bg-label-primary" data-badge>
                             <i class="ti ti-maximize me-1"></i>Max: <span id="maxPoolSize">-</span>
                         </span>
                     </div>
-                    <div class="progress mt-2" style="height: 8px;">
-                        <div id="poolSizeProgress" class="progress-bar bg-primary" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    <div class="progress mt-2 u-h-8">
+                        <div id="poolSizeProgress" class="progress-bar bg-primary" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                 </div>
             </div>
@@ -55,8 +55,8 @@
 
         <!-- Active Connections -->
         <div class="col-lg-3 col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
+            <div class="c-card h-100">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div class="card-info">
                             <h5 class="mb-0">Active Connections</h5>
@@ -68,12 +68,12 @@
                     </div>
                     <h2 class="mt-2 mb-0" id="activeConnections">-</h2>
                     <div class="mt-1">
-                        <span class="badge bg-label-info">
+                        <span class="badge bg-label-info" data-badge>
                             <i class="ti ti-exchange me-1"></i>Checkouts: <span id="totalCheckouts">-</span>
                         </span>
                     </div>
-                    <div class="progress mt-2" style="height: 8px;">
-                        <div id="activeConnectionsProgress" class="progress-bar bg-info" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    <div class="progress mt-2 u-h-8">
+                        <div id="activeConnectionsProgress" class="progress-bar bg-info" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                 </div>
             </div>
@@ -81,8 +81,8 @@
 
         <!-- Leaked Connections -->
         <div class="col-lg-3 col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
+            <div class="c-card h-100">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div class="card-info">
                             <h5 class="mb-0">Leaked Connections</h5>
@@ -94,12 +94,12 @@
                     </div>
                     <h2 class="mt-2 mb-0" id="leakedConnections">-</h2>
                     <div class="mt-1">
-                        <span class="badge bg-label-warning">
+                        <span class="badge bg-label-warning" data-badge>
                             <i class="ti ti-coffee me-1"></i>Idle: <span id="idleConnections">-</span>
                         </span>
                     </div>
-                    <div class="progress mt-2" style="height: 8px;">
-                        <div id="leakedConnectionsProgress" class="progress-bar bg-warning" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    <div class="progress mt-2 u-h-8">
+                        <div id="leakedConnectionsProgress" class="progress-bar bg-warning" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                 </div>
             </div>
@@ -107,8 +107,8 @@
 
         <!-- Idle Transactions -->
         <div class="col-lg-3 col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
+            <div class="c-card h-100">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div class="card-info">
                             <h5 class="mb-0">Idle Transactions</h5>
@@ -120,12 +120,12 @@
                     </div>
                     <h2 class="mt-2 mb-0" id="idleTransactions">-</h2>
                     <div class="mt-1">
-                        <span class="badge bg-label-danger">
+                        <span class="badge bg-label-danger" data-badge>
                             <i class="ti ti-clock me-1"></i>Oldest: <span id="oldestConnectionAge">-</span>
                         </span>
                     </div>
-                    <div class="progress mt-2" style="height: 8px;">
-                        <div id="idleTransactionsProgress" class="progress-bar bg-danger" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    <div class="progress mt-2 u-h-8">
+                        <div id="idleTransactionsProgress" class="progress-bar bg-danger" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                 </div>
             </div>
@@ -135,19 +135,19 @@
     <!-- Admin Actions -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-body">
+            <div class="c-card">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="mb-0">Admin Actions</h5>
                     </div>
                     <div class="row g-3">
                         <div class="col-lg-3 col-md-6">
-                            <button id="forceCleanup" class="btn btn-primary btn-sm w-100">
+                            <button id="forceCleanup" class="c-btn c-btn--primary c-btn--sm w-100 js-force-cleanup" data-action="force-cleanup">
                                 <i class="ti ti-clear-all me-1"></i>Force Connection Cleanup
                             </button>
                         </div>
                         <div class="col-lg-3 col-md-6">
-                            <button id="refreshDashboardBtn" class="btn btn-outline-primary btn-sm w-100" onclick="refreshDashboard()">
+                            <button id="refreshDashboardBtn" class="c-btn c-btn--outline-primary c-btn--sm w-100 js-refresh-dashboard" data-action="refresh-dashboard">
                                 <i class="ti ti-refresh me-1"></i>Refresh Statistics
                             </button>
                         </div>
@@ -160,32 +160,32 @@
     <!-- Active Connections -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header border-bottom">
+            <div class="c-card">
+                <div class="c-card__header border-bottom">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="ti ti-plug-connected me-2"></i>Active Connections</h5>
                     </div>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-light">
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead class="c-table--light" scope="col">
                             <tr>
-                                <th>PID</th>
-                                <th>Age</th>
-                                <th>State</th>
-                                <th>Source</th>
-                                <th>Tx Age</th>
-                                <th>Query Start</th>
-                                <th>Tx Start</th>
-                                <th>Query</th>
-                                <th>Stack</th>
-                                <th>Actions</th>
+                                <th scope="col">PID</th>
+                                <th scope="col">Age</th>
+                                <th scope="col">State</th>
+                                <th scope="col">Source</th>
+                                <th scope="col">Tx Age</th>
+                                <th scope="col">Query Start</th>
+                                <th scope="col">Tx Start</th>
+                                <th scope="col">Query</th>
+                                <th scope="col">Stack</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="activeConnectionsTable">
                             <tr>
                                 <td colspan="10" class="text-center py-4">
-                                    <div class="spinner-border text-primary" role="status">
+                                    <div class="spinner-border text-primary" role="status" data-spinner>
                                         <span class="visually-hidden">Loading...</span>
                                     </div>
                                 </td>
@@ -200,26 +200,26 @@
     <!-- Leaked Connections -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header border-bottom">
+            <div class="c-card">
+                <div class="c-card__header border-bottom">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="ti ti-plug-connected-x me-2"></i>Leaked Connections</h5>
                     </div>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-light">
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead class="c-table--light" scope="col">
                             <tr>
-                                <th>PID</th>
-                                <th>Transaction Name</th>
-                                <th>Leaked Duration</th>
-                                <th>Actions</th>
+                                <th scope="col">PID</th>
+                                <th scope="col">Transaction Name</th>
+                                <th scope="col">Leaked Duration</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="leakedConnectionsTable">
                             <tr>
                                 <td colspan="4" class="text-center py-4">
-                                    <div class="spinner-border text-primary" role="status">
+                                    <div class="spinner-border text-primary" role="status" data-spinner>
                                         <span class="visually-hidden">Loading...</span>
                                     </div>
                                 </td>
@@ -233,40 +233,40 @@
 </div>
 
 <!-- Stack Trace Modal -->
-<div class="modal fade" id="stackTraceModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
+<div class="modal c-modal fade" data-modal id="stackTraceModal" tabindex="-1" aria-labelledby="stackTraceModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="stackTraceModalLabel">
                     <i class="ti ti-stack me-2"></i>Stack Trace
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <pre class="stack-trace-content p-3 bg-body-tertiary rounded"></pre>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Query Modal -->
-<div class="modal fade" id="queryModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
+<div class="modal c-modal fade" data-modal id="queryModal" tabindex="-1" aria-labelledby="queryModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="queryModalLabel">
                     <i class="ti ti-sql me-2"></i>SQL Query
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <pre class="query-content p-3 bg-body-tertiary rounded"></pre>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
             </div>
         </div>
     </div>
@@ -274,6 +274,7 @@
 {% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
     /* Card styles */
     .card-icon {
@@ -311,11 +312,16 @@
         padding: 2rem;
         text-align: center;
     }
-    
+
     .empty-state-icon {
         font-size: 3rem;
         color: var(--bs-secondary);
         margin-bottom: 1rem;
+    }
+
+    /* Use utility class for icon sizing */
+    .icon-empty-state {
+        font-size: 3rem;
     }
     
     /* Status badges */
@@ -329,13 +335,35 @@
 
 {% block custom_js %}
 <script>
+    // Event delegation
+    document.addEventListener('click', function(e) {
+        const action = e.target.closest('[data-action]')?.dataset.action;
+        if (!action) return;
+
+        const target = e.target.closest('[data-action]');
+
+        switch(action) {
+            case 'force-cleanup':
+                handleForceCleanup();
+                break;
+            case 'refresh-dashboard':
+                refreshDashboard();
+                break;
+            case 'show-query':
+                showQuery(target.dataset.pid, target.dataset.query);
+                break;
+            case 'show-stack-trace':
+                showStackTrace(target.dataset.pid);
+                break;
+            case 'terminate-connection':
+                terminateConnection(parseInt(target.dataset.pid));
+                break;
+        }
+    });
+
     document.addEventListener('DOMContentLoaded', function () {
         refreshDashboard();
         setInterval(refreshDashboard, 10000);
-        
-        document.getElementById('forceCleanup').addEventListener('click', handleForceCleanup);
-        document.getElementById('refreshBtn').addEventListener('click', refreshDashboard);
-        document.getElementById('refreshDashboardBtn').addEventListener('click', refreshDashboard);
     });
 
     async function refreshDashboard() {
@@ -390,7 +418,7 @@
             <tr>
                 <td colspan="4" class="text-center py-4">
                     <div class="empty-state">
-                        <i class="ti ti-plug-connected-x empty-state-icon"></i>
+                        <i class="ti ti-plug-connected-x icon-empty-state"></i>
                         <h6 class="mt-1">No Leaked Connections</h6>
                         <p class="text-muted">Unable to retrieve leaked connections information.</p>
                     </div>
@@ -439,7 +467,7 @@
                 <tr>
                     <td colspan="10" class="text-center py-4">
                         <div class="empty-state">
-                            <i class="ti ti-database-off empty-state-icon"></i>
+                            <i class="ti ti-database-off icon-empty-state"></i>
                             <h6 class="mt-1">No Active Connections</h6>
                             <p class="text-muted">There are currently no active database connections.</p>
                         </div>
@@ -450,23 +478,23 @@
                 <tr>
                     <td><span class="fw-medium">${conn.pid}</span></td>
                     <td>${formatDuration(conn.age)}</td>
-                    <td><span class="badge bg-label-${getStateColor(conn.state)}">${conn.state}</span></td>
+                    <td><span class="badge bg-label-${getStateColor(conn.state)}" data-badge>${conn.state}</span></td>
                     <td>${escapeHtml(conn.usename || 'unknown')}@${escapeHtml(conn.client_addr || 'local')}</td>
                     <td>${formatDuration(conn.transaction_age)}</td>
                     <td>${conn.query_start ? new Date(conn.query_start).toLocaleTimeString() : '-'}</td>
                     <td>${conn.xact_start ? new Date(conn.xact_start).toLocaleTimeString() : '-'}</td>
                     <td>
-                        <button class="btn btn-sm btn-icon btn-outline-primary" onclick="showQuery(${conn.pid}, '${escapeJs(conn.query)}')" data-bs-toggle="tooltip" title="View Query">
+                        <button class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-primary js-show-query" data-action="show-query" data-pid="${conn.pid}" data-query="${escapeJs(conn.query)}" data-bs-toggle="tooltip" title="View Query">
                             <i class="ti ti-code"></i>
                         </button>
                     </td>
                     <td>
-                        <button class="btn btn-sm btn-icon btn-outline-info" onclick="showStackTrace('${conn.pid}')" data-bs-toggle="tooltip" title="View Stack Trace">
+                        <button class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-info js-show-stack" data-action="show-stack-trace" data-pid="${conn.pid}" data-bs-toggle="tooltip" title="View Stack Trace">
                             <i class="ti ti-stack"></i>
                         </button>
                     </td>
                     <td>
-                        <button class="btn btn-sm btn-icon btn-outline-danger" onclick="terminateConnection(${conn.pid})" data-bs-toggle="tooltip" title="Terminate Connection">
+                        <button class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-danger js-terminate-conn" data-action="terminate-connection" data-pid="${conn.pid}" data-bs-toggle="tooltip" title="Terminate Connection">
                             <i class="ti ti-x"></i>
                         </button>
                     </td>
@@ -480,7 +508,7 @@
                 <tr>
                     <td colspan="4" class="text-center py-4">
                         <div class="empty-state">
-                            <i class="ti ti-check-circle empty-state-icon text-success"></i>
+                            <i class="ti ti-check-circle icon-empty-state text-success"></i>
                             <h6 class="mt-1">No Leaked Connections</h6>
                             <p class="text-muted">There are currently no leaked database connections.</p>
                         </div>
@@ -493,10 +521,10 @@
                     <td>${escapeHtml(conn.transaction_name || '-')}</td>
                     <td>${formatDuration(conn.leaked_duration)}</td>
                     <td>
-                        <button class="btn btn-sm btn-icon btn-outline-info me-1" onclick="showStackTrace('${conn.pid}')" data-bs-toggle="tooltip" title="View Stack Trace">
+                        <button class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-info me-1 js-show-stack" data-action="show-stack-trace" data-pid="${conn.pid}" data-bs-toggle="tooltip" title="View Stack Trace">
                             <i class="ti ti-stack"></i>
                         </button>
-                        <button class="btn btn-sm btn-icon btn-outline-danger" onclick="terminateConnection(${conn.pid})" data-bs-toggle="tooltip" title="Terminate Connection">
+                        <button class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-danger js-terminate-conn" data-action="terminate-connection" data-pid="${conn.pid}" data-bs-toggle="tooltip" title="Terminate Connection">
                             <i class="ti ti-x"></i>
                         </button>
                     </td>
@@ -540,7 +568,7 @@
                 const modal = document.getElementById('stackTraceModal');
                 // Use data.details.stack_trace instead of data.stack_trace
                 modal.querySelector('.stack-trace-content').textContent = data.details?.stack_trace || 'No stack trace captured';
-                new bootstrap.Modal(modal).show();
+                ModalManager.show('stackTraceModal');
             } else {
                 showAlert('Failed to fetch stack trace: ' + (data.error || 'Unknown error'), 'danger');
             }
@@ -554,7 +582,7 @@
             const modal = document.getElementById('queryModal');
             const content = modal.querySelector('.query-content');
             content.textContent = query || 'No query available';
-            new bootstrap.Modal(modal).show();
+            ModalManager.show('queryModal');
         } catch (error) {
             console.error('Error showing query:', error);
             showAlert('Error displaying query: ' + error.message, 'danger');

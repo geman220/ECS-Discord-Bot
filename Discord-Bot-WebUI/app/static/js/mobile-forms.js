@@ -10,6 +10,9 @@
  * - Swipe-to-delete for repeated entries
  * - Form field collapsing/expanding
  * - Better select dropdown handling
+ *
+ * REFACTORED: All inline style manipulations replaced with CSS classes
+ * REFACTORED: All styling class selectors replaced with stable behavioral hooks
  */
 
 (function (window) {
@@ -27,21 +30,20 @@
      * Optimize modal sizes for mobile
      */
     optimizeModals: function () {
-      document.querySelectorAll('.modal').forEach(modal => {
+      document.querySelectorAll('[data-modal]').forEach(modal => {
         if (this.isMobile()) {
           // Convert large modals to full-screen on mobile
-          const modalDialog = modal.querySelector('.modal-dialog');
+          const modalDialog = modal.querySelector('[data-modal-dialog]');
           if (modalDialog) {
             // If modal-lg, make it responsive
             if (modalDialog.classList.contains('modal-lg')) {
               modalDialog.classList.add('mobile-optimized-modal');
             }
 
-            // Adjust modal content max-height
-            const modalContent = modal.querySelector('.modal-content');
+            // Adjust modal content max-height with CSS class
+            const modalContent = modal.querySelector('[data-modal-content]');
             if (modalContent) {
-              modalContent.style.maxHeight = 'calc(100vh - 32px)';
-              modalContent.style.overflowY = 'auto';
+              modalContent.classList.add('mobile-modal-content');
             }
           }
         }
@@ -52,31 +54,24 @@
      * Optimize input groups for touch (match reporting events)
      */
     optimizeInputGroups: function () {
-      document.querySelectorAll('.input-group').forEach(group => {
+      document.querySelectorAll('[data-input-group]').forEach(group => {
         if (this.isMobile()) {
           // Make select dropdowns full-width on mobile
           const selects = group.querySelectorAll('select');
           selects.forEach(select => {
-            select.style.minWidth = '0';
-            select.style.width = 'auto';
-            select.style.flex = '1';
+            select.classList.add('mobile-input-select');
           });
 
           // Make minute inputs larger on mobile
           const inputs = group.querySelectorAll('input[type="number"], input[placeholder*="Min"]');
           inputs.forEach(input => {
-            input.style.maxWidth = 'none';
-            input.style.width = '80px';
-            input.style.minWidth = '80px';
-            input.style.fontSize = '16px'; // Prevent iOS zoom
+            input.classList.add('mobile-input-number');
           });
 
           // Make remove buttons larger for touch
-          const removeButtons = group.querySelectorAll('.btn-close, button[onclick*="remove"]');
+          const removeButtons = group.querySelectorAll('[data-remove-btn], button[onclick*="remove"]');
           removeButtons.forEach(btn => {
-            btn.style.minWidth = '44px';
-            btn.style.minHeight = '44px';
-            btn.style.fontSize = '20px';
+            btn.classList.add('mobile-remove-btn');
           });
         }
       });
@@ -88,7 +83,7 @@
     setupSwipeToDelete: function () {
       if (!window.Hammer || !this.isMobile()) return;
 
-      document.querySelectorAll('.input-group[id*="event-"], .event-entry').forEach(entry => {
+      document.querySelectorAll('[data-input-group][id*="event-"], [data-event-entry]').forEach(entry => {
         const hammer = new Hammer(entry);
         hammer.get('swipe').set({ direction: Hammer.DIRECTION_LEFT, threshold: 50 });
 
@@ -97,38 +92,23 @@
           deleteIndicator = document.createElement('div');
           deleteIndicator.className = 'swipe-delete-indicator';
           deleteIndicator.innerHTML = '<i class="ti ti-trash"></i> Swipe to delete';
-          deleteIndicator.style.cssText = `
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            background: var(--bs-danger);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 20px;
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
-            z-index: 1;
-            gap: 8px;
-          `;
-          entry.style.position = 'relative';
-          entry.style.overflow = 'hidden';
+
+          // Apply CSS classes instead of inline styles
+          entry.classList.add('swipe-container');
           entry.appendChild(deleteIndicator);
         }
 
         hammer.on('swipeleft', () => {
           // Show delete indicator
-          deleteIndicator.style.transform = 'translateX(0)';
-          entry.style.transform = 'translateX(-100px)';
+          deleteIndicator.classList.add('swipe-visible');
+          entry.classList.add('swipe-active');
 
           if (window.Haptics) window.Haptics.warning();
 
           // Auto-hide after 3 seconds or on tap
           const hideTimeout = setTimeout(() => {
-            deleteIndicator.style.transform = 'translateX(100%)';
-            entry.style.transform = 'translateX(0)';
+            deleteIndicator.classList.remove('swipe-visible');
+            entry.classList.remove('swipe-active');
           }, 3000);
 
           // Tap to confirm delete
@@ -138,7 +118,7 @@
             if (window.Haptics) window.Haptics.delete();
 
             // Find and click the remove button
-            const removeBtn = entry.querySelector('.btn-close, button[onclick*="remove"]');
+            const removeBtn = entry.querySelector('[data-remove-btn], button[onclick*="remove"]');
             if (removeBtn) {
               removeBtn.click();
             }
@@ -147,8 +127,8 @@
 
         hammer.on('swiperight', () => {
           // Hide delete indicator
-          deleteIndicator.style.transform = 'translateX(100%)';
-          entry.style.transform = 'translateX(0)';
+          deleteIndicator.classList.remove('swipe-visible');
+          entry.classList.remove('swipe-active');
         });
       });
     },
@@ -187,8 +167,8 @@
       if (!this.isMobile()) return;
 
       // Find form sections with multiple input groups
-      document.querySelectorAll('.modal-body .row, .form-section').forEach(section => {
-        const inputGroups = section.querySelectorAll('.input-group');
+      document.querySelectorAll('[data-modal-body] .row, [data-form-section]').forEach(section => {
+        const inputGroups = section.querySelectorAll('[data-input-group]');
 
         if (inputGroups.length > 3) {
           // Create collapsible header
@@ -199,18 +179,9 @@
             <span class="fw-bold">${section.dataset.sectionTitle || 'Show/Hide Section'}</span>
             <i class="ti ti-chevron-down float-end"></i>
           `;
-          header.style.cssText = `
-            padding: 12px;
-            margin-bottom: 8px;
-            border: 1px solid var(--bs-border-color);
-            border-radius: 8px;
-          `;
 
           const content = document.createElement('div');
-          content.className = 'mobile-collapse-content';
-          content.style.maxHeight = '1000px';
-          content.style.overflow = 'hidden';
-          content.style.transition = 'max-height 0.3s ease';
+          content.className = 'mobile-collapse-content mobile-collapse-expanded';
 
           // Move input groups to content
           while (inputGroups.length > 0) {
@@ -227,11 +198,13 @@
             const icon = header.querySelector('i');
 
             if (isCollapsed) {
-              content.style.maxHeight = '0';
+              content.classList.remove('mobile-collapse-expanded');
+              content.classList.add('mobile-collapse-collapsed');
               icon.classList.remove('ti-chevron-down');
               icon.classList.add('ti-chevron-right');
             } else {
-              content.style.maxHeight = '1000px';
+              content.classList.remove('mobile-collapse-collapsed');
+              content.classList.add('mobile-collapse-expanded');
               icon.classList.remove('ti-chevron-right');
               icon.classList.add('ti-chevron-down');
             }
@@ -249,7 +222,7 @@
       if (!this.isMobile()) return;
 
       if (window.jQuery && jQuery.fn.DataTable) {
-        jQuery('.dataTable, table.table').each(function () {
+        jQuery('[data-table], .js-data-table').each(function () {
           const $table = jQuery(this);
 
           // Check if already initialized
@@ -300,12 +273,12 @@
     optimizeTextareas: function () {
       document.querySelectorAll('textarea').forEach(textarea => {
         if (this.isMobile()) {
-          // Increase minimum height
-          textarea.style.minHeight = '120px';
+          // Add CSS class for minimum height
+          textarea.classList.add('mobile-textarea');
 
           // Auto-expand on focus
           textarea.addEventListener('focus', () => {
-            textarea.style.minHeight = '200px';
+            textarea.classList.add('mobile-textarea-expanded');
           });
 
           // Character count if needed
@@ -315,14 +288,19 @@
             if (!counter) {
               counter = document.createElement('div');
               counter.className = 'char-counter text-muted small';
-              counter.style.cssText = 'text-align: right; margin-top: 4px;';
               textarea.parentElement.appendChild(counter);
             }
 
             const updateCounter = () => {
               const remaining = maxLength - textarea.value.length;
               counter.textContent = `${remaining} characters remaining`;
-              counter.style.color = remaining < 20 ? 'var(--bs-danger)' : '';
+
+              // Toggle warning class based on remaining characters
+              if (remaining < 20) {
+                counter.classList.add('char-counter-warning');
+              } else {
+                counter.classList.remove('char-counter-warning');
+              }
             };
 
             textarea.addEventListener('input', updateCounter);
@@ -338,11 +316,11 @@
     convertToFloatingLabels: function () {
       if (!this.isMobile()) return;
 
-      document.querySelectorAll('.form-group:not(.form-floating)').forEach(group => {
+      document.querySelectorAll('[data-form-group]:not(.form-floating)').forEach(group => {
         const label = group.querySelector('label');
         const input = group.querySelector('input, select, textarea');
 
-        if (label && input && !input.closest('.input-group')) {
+        if (label && input && !input.closest('[data-input-group]')) {
           // Convert to floating label
           group.classList.add('form-floating');
           group.appendChild(label); // Move label after input
@@ -366,7 +344,7 @@
             firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
             firstInvalid.focus();
 
-            // Visual feedback
+            // Visual feedback with CSS class
             firstInvalid.classList.add('shake-invalid');
             setTimeout(() => firstInvalid.classList.remove('shake-invalid'), 500);
 
@@ -419,23 +397,23 @@
             margin: 0;
           }
 
-          .mobile-optimized-modal .modal-content {
+          .mobile-optimized-modal [data-modal-content] {
             border-radius: 16px 16px 0 0;
           }
 
           /* Input group stacking */
-          .input-group {
+          [data-input-group] {
             flex-wrap: wrap;
             gap: 8px;
           }
 
-          .input-group > * {
+          [data-input-group] > * {
             flex: 1 1 auto;
             min-width: 0;
           }
 
-          .input-group .btn-close,
-          .input-group button[onclick*="remove"] {
+          [data-input-group] [data-remove-btn],
+          [data-input-group] button[onclick*="remove"] {
             flex: 0 0 44px;
             min-width: 44px !important;
             min-height: 44px !important;
@@ -468,29 +446,29 @@
           }
 
           /* Mobile form row stacking */
-          .modal-body .row.g-2 {
+          [data-modal-body] .row.g-2 {
             row-gap: 16px !important;
           }
 
-          .modal-body .col-md-6,
-          .modal-body .col-lg-6 {
+          [data-modal-body] .col-md-6,
+          [data-modal-body] .col-lg-6 {
             width: 100%;
           }
 
           /* Sticky submit button spacing */
-          .modal-footer {
+          [data-modal-footer] {
             padding-bottom: 0 !important;
           }
 
           /* Larger touch targets in modals */
-          .modal .btn {
+          [data-modal] .btn {
             min-height: 48px;
             font-size: 16px;
             padding: 12px 24px;
           }
 
-          .modal .form-control,
-          .modal .form-select {
+          [data-modal] .form-control,
+          [data-modal] .form-select {
             min-height: 44px;
             font-size: 16px;
           }
@@ -504,8 +482,8 @@
         }
 
         /* Entry transition for swipe */
-        .input-group,
-        .event-entry {
+        [data-input-group],
+        [data-event-entry] {
           transition: transform 0.3s ease;
         }
       `;
@@ -554,18 +532,29 @@
         }, 250);
       });
 
-      console.log('MobileForms: Initialized successfully');
+      console.log('MobileForms: Initialized successfully (refactored with CSS classes and stable selectors)');
     }
   };
 
-  // Auto-initialize
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => MobileForms.init());
-  } else {
-    MobileForms.init();
-  }
-
   // Expose globally
   window.MobileForms = MobileForms;
+
+  // Register with InitSystem if available
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('mobile-forms', function() {
+      MobileForms.init();
+    }, {
+      priority: 60,
+      description: 'Mobile form optimizations (input groups, swipe, quick actions)',
+      reinitializable: true
+    });
+  } else {
+    // Fallback: Auto-initialize
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => MobileForms.init());
+    } else {
+      MobileForms.init();
+    }
+  }
 
 })(window);

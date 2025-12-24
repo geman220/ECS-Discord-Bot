@@ -1,0 +1,549 @@
+/**
+ * ============================================================================
+ * USER WAITLIST PAGE STYLES
+ * ============================================================================
+ *
+ * This file contains all styles for the user_waitlist.html template.
+ * All inline styles have been extracted and converted to use design tokens.
+ *
+ * Design System Compliance:
+ * - Uses CSS variables from tokens/colors.css
+ * - Full dark mode support with [data-style="dark"] selectors
+ * - Semantic class names following BEM-like conventions
+ * - Mobile-first responsive approach
+ * - NO !important declarations (proper specificity via .waitlist-page wrapper)
+ *
+ * Components:
+ * 1. Card Hover Effects
+ * 2. Badge Styling
+ * 3. Table Styling
+ * 4. Modal Styling
+ * 5. Action Buttons
+ * 6. Stats Cards
+ * 7. Player Profile
+ * 8. Empty State
+ * 9. Responsive Adjustments
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. CARD HOVER EFFECTS
+   Smooth transitions for card interactions
+   ============================================================================ */
+
+.waitlist-page .waitlist-card.shadow-sm {
+    transition: all 0.2s ease;
+}
+
+.waitlist-page .waitlist-card.shadow-sm:hover {
+    box-shadow: var(--shadow-md);
+}
+
+[data-style="dark"] .waitlist-page .waitlist-card.shadow-sm:hover {
+    box-shadow: var(--shadow-md);
+}
+
+/* ============================================================================
+   2. BADGE STYLING
+   Status and label badges with semantic colors
+   ============================================================================ */
+
+.waitlist-page .waitlist-badge {
+    font-weight: normal;
+    font-size: var(--text-xs, 0.75rem);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+}
+
+/* Primary badge */
+.waitlist-page .waitlist-badge-primary {
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary);
+}
+
+[data-style="dark"] .waitlist-page .waitlist-badge-primary {
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary);
+}
+
+/* Success badge */
+.waitlist-page .waitlist-badge-success {
+    background-color: var(--color-success-subtle);
+    color: var(--color-success);
+}
+
+[data-style="dark"] .waitlist-page .waitlist-badge-success {
+    background-color: var(--color-success-subtle);
+    color: var(--color-success);
+}
+
+/* Warning badge */
+.waitlist-page .waitlist-badge-warning {
+    background-color: var(--color-warning-subtle);
+    color: var(--color-warning);
+}
+
+[data-style="dark"] .waitlist-page .waitlist-badge-warning {
+    background-color: var(--color-warning-subtle);
+    color: var(--color-warning);
+}
+
+/* Danger badge */
+.waitlist-page .waitlist-badge-danger {
+    background-color: var(--color-danger-subtle);
+    color: var(--color-danger);
+}
+
+[data-style="dark"] .waitlist-page .waitlist-badge-danger {
+    background-color: var(--color-danger-subtle);
+    color: var(--color-danger);
+}
+
+/* Info badge */
+.waitlist-page .waitlist-badge-info {
+    background-color: var(--color-info-subtle);
+    color: var(--color-info);
+}
+
+[data-style="dark"] .waitlist-page .waitlist-badge-info {
+    background-color: var(--color-info-subtle);
+    color: var(--color-info);
+}
+
+/* Secondary badge */
+.waitlist-page .waitlist-badge-secondary {
+    background-color: var(--color-secondary-subtle);
+    color: var(--color-secondary);
+}
+
+[data-style="dark"] .waitlist-page .waitlist-badge-secondary {
+    background-color: var(--color-secondary-subtle);
+    color: var(--color-secondary);
+}
+
+/* ============================================================================
+   3. STATUS BADGES
+   Specific status-based badge styling
+   ============================================================================ */
+
+.waitlist-page .waitlist-status-waitlist {
+    background-color: var(--color-warning-subtle);
+    color: var(--color-warning);
+}
+
+[data-style="dark"] .waitlist-page .waitlist-status-waitlist {
+    background-color: var(--color-warning-subtle);
+    color: var(--color-warning);
+}
+
+.waitlist-page .waitlist-status-pending {
+    background-color: var(--color-warning-subtle);
+    color: var(--color-warning);
+}
+
+[data-style="dark"] .waitlist-page .waitlist-status-pending {
+    background-color: var(--color-warning-subtle);
+    color: var(--color-warning);
+}
+
+.waitlist-page .waitlist-status-approved {
+    background-color: var(--color-info-subtle);
+    color: var(--color-info);
+}
+
+[data-style="dark"] .waitlist-page .waitlist-status-approved {
+    background-color: var(--color-info-subtle);
+    color: var(--color-info);
+}
+
+.waitlist-page .waitlist-status-denied {
+    background-color: var(--color-danger-subtle);
+    color: var(--color-danger);
+}
+
+[data-style="dark"] .waitlist-page .waitlist-status-denied {
+    background-color: var(--color-danger-subtle);
+    color: var(--color-danger);
+}
+
+/* ============================================================================
+   4. TABLE STYLING
+   Enhanced table appearance and layout
+   ============================================================================ */
+
+.waitlist-page .waitlist-table th {
+    border-top: none;
+    font-weight: var(--font-medium, 500);
+}
+
+.waitlist-page .waitlist-table td {
+    vertical-align: middle;
+}
+
+/* ============================================================================
+   5. MODAL STYLING
+   Enhanced modal headers and footers
+   ============================================================================ */
+
+.waitlist-page .waitlist-modal-header {
+    background-color: var(--color-neutral-100);
+    border-bottom: 1px solid var(--color-border-primary);
+}
+
+.waitlist-page .waitlist-modal-footer {
+    background-color: var(--color-neutral-100);
+    border-top: 1px solid var(--color-border-primary);
+}
+
+/* Dark mode modal styling */
+[data-style="dark"] .waitlist-page .waitlist-modal-header {
+    background-color: var(--color-neutral-100);
+    border-bottom: 1px solid var(--color-border-primary);
+}
+
+[data-style="dark"] .waitlist-page .waitlist-modal-footer {
+    background-color: var(--color-neutral-100);
+    border-top: 1px solid var(--color-border-primary);
+}
+
+[data-style="dark"] .waitlist-page .waitlist-modal-content {
+    background-color: var(--color-neutral-50);
+    color: var(--color-text-primary);
+}
+
+/* ============================================================================
+   6. ACTION BUTTONS
+   Custom button styles for waitlist actions
+   ============================================================================ */
+
+.waitlist-page .waitlist-btn-remove {
+    background-color: var(--color-danger);
+    border-color: var(--color-danger);
+    color: var(--color-neutral-0);
+}
+
+.waitlist-page .waitlist-btn-remove:hover {
+    background-color: var(--color-danger-700);
+    border-color: var(--color-danger-700);
+    color: var(--color-neutral-0);
+}
+
+.waitlist-page .waitlist-btn-remove:active,
+.waitlist-page .waitlist-btn-remove:focus {
+    background-color: var(--color-danger-800);
+    border-color: var(--color-danger-800);
+    color: var(--color-neutral-0);
+    box-shadow: var(--shadow-focus-danger);
+}
+
+.waitlist-page .waitlist-btn-contact {
+    background-color: var(--color-info);
+    border-color: var(--color-info);
+    color: var(--color-neutral-0);
+}
+
+.waitlist-page .waitlist-btn-contact:hover {
+    background-color: var(--color-info-700);
+    border-color: var(--color-info-700);
+    color: var(--color-neutral-0);
+}
+
+.waitlist-page .waitlist-btn-contact:active,
+.waitlist-page .waitlist-btn-contact:focus {
+    background-color: var(--color-info-800);
+    border-color: var(--color-info-800);
+    color: var(--color-neutral-0);
+    box-shadow: var(--shadow-focus-info);
+}
+
+/* ============================================================================
+   7. STATS CARDS
+   Gradient cards for statistics display
+   ============================================================================ */
+
+.waitlist-page .waitlist-stats-card {
+    background: linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-800) 100%);
+    color: var(--color-neutral-0);
+    border-radius: var(--radius-lg, 10px);
+    padding: var(--space-6, 1.5rem);
+    margin-bottom: var(--space-4, 1rem);
+    box-shadow: var(--shadow-md);
+}
+
+.waitlist-page .waitlist-stats-card-title {
+    margin-bottom: var(--space-2, 0.5rem);
+    font-size: var(--text-3xl, 2rem);
+    font-weight: var(--font-semibold, 600);
+}
+
+.waitlist-page .waitlist-stats-card-label {
+    margin-bottom: 0;
+    opacity: 0.9;
+}
+
+/* Waitlist variant */
+.waitlist-page .waitlist-stats-card-waitlist {
+    background: linear-gradient(135deg, var(--color-warning-600) 0%, var(--color-warning-800) 100%);
+}
+
+/* Registered variant */
+.waitlist-page .waitlist-stats-card-registered {
+    background: linear-gradient(135deg, var(--color-success-600) 0%, var(--color-success-800) 100%);
+}
+
+/* Approved variant */
+.waitlist-page .waitlist-stats-card-approved {
+    background: linear-gradient(135deg, var(--color-info-600) 0%, var(--color-info-800) 100%);
+}
+
+/* Dark mode adjustments for stats cards */
+[data-style="dark"] .waitlist-page .waitlist-stats-card {
+    box-shadow: var(--shadow-lg);
+}
+
+/* ============================================================================
+   8. PLAYER PROFILE
+   User profile display in table rows
+   ============================================================================ */
+
+.waitlist-page .waitlist-player-profile {
+    display: flex;
+    align-items: center;
+}
+
+.waitlist-page .waitlist-player-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-full, 50%);
+    object-fit: cover;
+    margin-right: var(--space-3, 0.75rem);
+}
+
+.waitlist-page .waitlist-player-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.waitlist-page .waitlist-player-name {
+    font-weight: var(--font-medium, 500);
+    margin-bottom: 0;
+    color: var(--color-text-primary);
+}
+
+.waitlist-page .waitlist-player-email {
+    font-size: var(--text-sm, 0.875rem);
+    color: var(--color-text-muted);
+    margin-bottom: 0;
+}
+
+[data-style="dark"] .waitlist-page .waitlist-player-name {
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .waitlist-page .waitlist-player-email {
+    color: var(--color-text-muted);
+}
+
+/* Avatar fallback */
+.waitlist-page .waitlist-avatar-fallback {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-full, 50%);
+    background-color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-neutral-0);
+    font-weight: var(--font-medium, 500);
+    margin-right: var(--space-3, 0.75rem);
+}
+
+[data-style="dark"] .waitlist-page .waitlist-avatar-fallback {
+    background-color: var(--color-primary);
+}
+
+/* ============================================================================
+   9. EMPTY STATE
+   No users message styling
+   ============================================================================ */
+
+.waitlist-page .waitlist-empty-state {
+    text-align: center;
+    padding: var(--space-8, 2rem) 0;
+}
+
+.waitlist-page .waitlist-empty-icon {
+    font-size: var(--text-5xl, 3rem);
+    color: var(--color-text-muted);
+}
+
+.waitlist-page .waitlist-empty-title {
+    margin-top: var(--space-2, 0.5rem);
+    color: var(--color-text-muted);
+}
+
+.waitlist-page .waitlist-empty-text {
+    color: var(--color-text-muted);
+}
+
+[data-style="dark"] .waitlist-page .waitlist-empty-icon,
+[data-style="dark"] .waitlist-page .waitlist-empty-title,
+[data-style="dark"] .waitlist-page .waitlist-empty-text {
+    color: var(--color-text-muted);
+}
+
+/* ============================================================================
+   10. RESPONSIVE ADJUSTMENTS
+   Mobile and tablet optimizations
+   ============================================================================ */
+
+@media (max-width: 768px) {
+    .waitlist-page .waitlist-stats-card {
+        padding: var(--space-4, 1rem);
+    }
+
+    .waitlist-page .waitlist-stats-card-title {
+        font-size: var(--text-2xl, 1.5rem);
+    }
+
+    .waitlist-page .waitlist-table-responsive {
+        font-size: var(--text-sm, 0.875rem);
+    }
+
+    .waitlist-page .waitlist-btn-sm {
+        padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+        font-size: var(--text-xs, 0.8rem);
+    }
+
+    .waitlist-page .waitlist-player-avatar,
+    .waitlist-page .waitlist-avatar-fallback {
+        width: 32px;
+        height: 32px;
+        margin-right: var(--space-2, 0.5rem);
+    }
+
+    .waitlist-page .waitlist-player-name {
+        font-size: var(--text-sm, 0.875rem);
+    }
+
+    .waitlist-page .waitlist-player-email {
+        font-size: var(--text-xs, 0.75rem);
+    }
+}
+
+/* ============================================================================
+   11. ADDITIONAL TEXT STYLES
+   Helper classes for consistent text styling
+   ============================================================================ */
+
+.waitlist-page .waitlist-text-muted {
+    color: var(--color-text-muted);
+}
+
+.waitlist-page .waitlist-text-primary {
+    color: var(--color-primary);
+}
+
+[data-style="dark"] .waitlist-page .waitlist-text-muted {
+    color: var(--color-text-muted);
+}
+
+[data-style="dark"] .waitlist-page .waitlist-text-primary {
+    color: var(--color-primary);
+}
+
+/* ============================================================================
+   12. BUTTON GROUP STYLING
+   Action button group in table rows
+   ============================================================================ */
+
+.waitlist-page .waitlist-btn-group {
+    display: flex;
+    gap: var(--space-1, 0.25rem);
+}
+
+.waitlist-page .waitlist-btn-group .btn {
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .waitlist-page .waitlist-btn-group {
+        flex-direction: column;
+        gap: var(--space-2, 0.5rem);
+    }
+
+    .waitlist-page .waitlist-btn-group .btn {
+        width: 100%;
+    }
+}
+
+/* ============================================================================
+   13. DISCORD BADGE
+   Special styling for Discord-linked indicator
+   ============================================================================ */
+
+.waitlist-page .waitlist-discord-badge {
+    color: var(--color-primary);
+    font-size: var(--text-xs, 0.75rem);
+}
+
+[data-style="dark"] .waitlist-page .waitlist-discord-badge {
+    color: var(--color-primary);
+}
+
+/* ============================================================================
+   14. TABLE HEADER STYLING
+   Light mode header background
+   ============================================================================ */
+
+.waitlist-page .waitlist-table thead.table-light {
+    background-color: var(--color-neutral-50);
+}
+
+[data-style="dark"] .waitlist-page .waitlist-table thead.table-light {
+    background-color: var(--color-neutral-100);
+}
+
+/* ============================================================================
+   15. REFRESH BUTTON
+   Special styling for the refresh action button
+   ============================================================================ */
+
+.waitlist-page .waitlist-refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1, 0.25rem);
+}
+
+/* ============================================================================
+   16. CARD HEADER
+   Page header styling
+   ============================================================================ */
+
+.waitlist-page .waitlist-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-4, 1rem) var(--space-6, 1.5rem);
+}
+
+.waitlist-page .waitlist-card-title {
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2, 0.5rem);
+}
+
+@media (max-width: 576px) {
+    .waitlist-page .waitlist-card-header {
+        flex-direction: column;
+        gap: var(--space-3, 0.75rem);
+        align-items: flex-start;
+    }
+
+    .waitlist-page .waitlist-refresh-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}

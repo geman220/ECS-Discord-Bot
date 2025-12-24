@@ -1,5 +1,5 @@
 // Service Worker for ECS Mobile App
-const CACHE_NAME = 'ecs-mobile-v1';
+const CACHE_NAME = 'ecs-mobile-v3';
 const urlsToCache = [
   '/',
   '/static/css/foundation.css',

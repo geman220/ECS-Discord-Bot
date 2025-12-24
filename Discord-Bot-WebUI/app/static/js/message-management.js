@@ -19,8 +19,7 @@
 
     // Preview message template
     window.previewTemplate = function(templateId) {
-        const modal = new bootstrap.Modal(document.getElementById('previewModal'));
-        modal.show();
+        ModalManager.show('previewModal');
         
         // Set loading state
         const previewContent = document.getElementById('previewContent');
@@ -46,16 +45,16 @@
         .then(data => {
             if (data.preview) {
                 previewContent.innerHTML = `
-                    <div class="mb-4">
+                    <div class="mb-4" data-role="preview-section">
                         <h6 class="text-muted mb-3">Discord Message Preview:</h6>
-                        <div class="discord-preview p-4 rounded">
+                        <div class="discord-preview p-4 rounded" data-role="discord-preview">
                             <div style="white-space: pre-wrap; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">${escapeHtml(data.preview)}</div>
                         </div>
                     </div>
                     ${data.variables_used ? `
-                    <div class="mt-4">
+                    <div class="mt-4" data-role="variables-section">
                         <h6 class="text-muted mb-2">Sample Variables Used:</h6>
-                        <div class="bg-light p-3 rounded">
+                        <div class="bg-light p-3 rounded" data-role="variables-display">
                             <pre class="mb-0 small">${JSON.stringify(data.variables_used, null, 2)}</pre>
                         </div>
                     </div>
@@ -107,9 +106,8 @@
             showToast('Warning', 'Please enter message content to preview.', 'warning');
             return;
         }
-        
-        const modal = new bootstrap.Modal(document.getElementById('previewModal'));
-        modal.show();
+
+        ModalManager.show('previewModal');
         
         // Create a preview with sample data
         const sampleData = {
@@ -130,15 +128,15 @@
         }
         
         document.getElementById('previewContent').innerHTML = `
-            <div class="mb-4">
+            <div class="mb-4" data-role="preview-section">
                 <h6 class="text-muted mb-3">Discord Message Preview:</h6>
-                <div class="discord-preview p-4 rounded">
+                <div class="discord-preview p-4 rounded" data-role="discord-preview">
                     <div style="white-space: pre-wrap; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">${escapeHtml(preview)}</div>
                 </div>
             </div>
-            <div class="mt-4">
+            <div class="mt-4" data-role="variables-section">
                 <h6 class="text-muted mb-2">Sample variables used:</h6>
-                <div class="bg-light p-3 rounded">
+                <div class="bg-light p-3 rounded" data-role="variables-display">
                     <pre class="mb-0 small">${JSON.stringify(sampleData, null, 2)}</pre>
                 </div>
             </div>
@@ -154,31 +152,48 @@
 
     // Show toast notification
     function showToast(title, message, type = 'info') {
-        const toastHtml = `
-            <div class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="d-flex">
-                    <div class="toast-body">
-                        <strong>${title}:</strong> ${message}
-                    </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-                </div>
-            </div>
-        `;
-        
         // Create container if it doesn't exist
-        let container = document.querySelector('.toast-container');
+        let container = document.querySelector('[data-role="toast-container"]');
         if (!container) {
             container = document.createElement('div');
             container.className = 'toast-container position-fixed top-0 end-0 p-3';
+            container.setAttribute('data-role', 'toast-container');
             document.body.appendChild(container);
         }
-        
+
+        // Create toast element
+        const toastElement = document.createElement('div');
+        toastElement.className = 'toast align-items-center text-white border-0';
+        toastElement.setAttribute('role', 'alert');
+        toastElement.setAttribute('aria-live', 'assertive');
+        toastElement.setAttribute('aria-atomic', 'true');
+        toastElement.setAttribute('data-toast-type', type);
+
+        // Map type to semantic class
+        const typeClasses = {
+            'success': 'bg-success',
+            'danger': 'bg-danger',
+            'warning': 'bg-warning',
+            'info': 'bg-info',
+            'primary': 'bg-primary',
+            'secondary': 'bg-secondary'
+        };
+        toastElement.classList.add(typeClasses[type] || 'bg-info');
+
+        toastElement.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    <strong>${title}:</strong> ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        `;
+
         // Add toast to container
-        container.insertAdjacentHTML('beforeend', toastHtml);
-        const toastElement = container.lastElementChild;
+        container.appendChild(toastElement);
         const toast = new bootstrap.Toast(toastElement);
         toast.show();
-        
+
         // Remove element after it's hidden
         toastElement.addEventListener('hidden.bs.toast', function() {
             toastElement.remove();

@@ -51,21 +51,34 @@ def create_message_template():
     """Create a new message template."""
     try:
         category_id = request.form.get('category_id')
+        key = request.form.get('key', '').strip().lower().replace(' ', '_')
         name = request.form.get('name')
         description = request.form.get('description')
         content = request.form.get('content')
+        channel_type = request.form.get('channel_type')
+        usage_context = request.form.get('usage_context')
         is_active = request.form.get('is_active') == 'on'
 
         if not name or not content:
             flash('Template name and content are required', 'error')
             return redirect(url_for('admin_panel.message_category', category_id=category_id))
 
+        # Auto-generate key from name if not provided
+        if not key:
+            key = name.lower().replace(' ', '_').replace('-', '_')
+            # Remove any non-alphanumeric characters except underscore
+            key = ''.join(c for c in key if c.isalnum() or c == '_')
+
         template = MessageTemplate(
+            key=key,
             name=name,
             description=description,
-            content=content,
+            message_content=content,  # Fixed: was 'content', should be 'message_content'
             category_id=category_id,
-            is_active=is_active
+            channel_type=channel_type or None,
+            usage_context=usage_context or None,
+            is_active=is_active,
+            created_by=current_user.id
         )
         db.session.add(template)
         db.session.commit()
@@ -99,6 +112,8 @@ def update_message_template():
         name = request.form.get('name')
         description = request.form.get('description')
         content = request.form.get('content')
+        channel_type = request.form.get('channel_type')
+        usage_context = request.form.get('usage_context')
         is_active = request.form.get('is_active') == 'on'
 
         template = MessageTemplate.query.get_or_404(template_id)
@@ -107,8 +122,11 @@ def update_message_template():
         template.name = name
         template.description = description
         template.message_content = content
+        template.channel_type = channel_type or None
+        template.usage_context = usage_context or None
         template.is_active = is_active
         template.updated_at = datetime.utcnow()
+        template.updated_by = current_user.id
         db.session.commit()
 
         # Log the action

@@ -1,17 +1,18 @@
 // ECS Soccer League PWA Service Worker
-const CACHE_NAME = 'ecs-soccer-v1';
+const CACHE_NAME = 'ecs-soccer-v2'; // Updated: v1 → v2 (route fixes + file path corrections)
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
   '/',
-  '/static/css/core.css',
-  '/static/css/theme-default.css',
+  // Note: Core CSS files removed - loaded dynamically per page
+  // '/static/css/core.css', // Doesn't exist
+  // '/static/css/theme-default.css', // Doesn't exist
   '/static/vendor/fonts/tabler-icons.css',
   '/static/vendor/fonts/fontawesome.css',
   '/static/js/config.js',
   '/static/js/helpers.js',
   '/static/js/menu.js',
-  '/static/vendor/js/bootstrap.js',
+  '/static/vendor/js/bootstrap.bundle.js', // Fixed: was bootstrap.js
   '/static/vendor/libs/jquery/jquery.js',
   '/static/custom_js/rsvp.js',
   '/static/custom_js/report_match.js',

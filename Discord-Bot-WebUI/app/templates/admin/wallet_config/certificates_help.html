@@ -11,17 +11,17 @@
             </h2>
             <p class="text-muted mb-0">How to obtain and configure Apple Wallet certificates</p>
         </div>
-        <a href="{{ url_for('wallet_config.certificates') }}" class="btn btn-outline-secondary">
+        <a href="{{ url_for('wallet_config.certificates') }}" class="c-btn c-btn--outline-secondary">
             <i class="ti ti-arrow-left me-1"></i> Back to Certificates
         </a>
     </div>
 
     <!-- Overview -->
-    <div class="card mb-4">
-        <div class="card-header">
+    <div class="c-card mb-4">
+        <div class="c-card__header">
             <h5 class="mb-0"><i class="ti ti-info-circle me-2"></i>Overview</h5>
         </div>
-        <div class="card-body">
+        <div class="c-card__body">
             <p>Apple Wallet passes must be cryptographically signed to be valid. This requires:</p>
             <ol>
                 <li><strong>Apple Developer Program membership</strong> ($99/year)</li>
@@ -33,22 +33,22 @@
     </div>
 
     <!-- Step by Step Guide -->
-    <div class="card mb-4">
-        <div class="card-header">
+    <div class="c-card mb-4">
+        <div class="c-card__header">
             <h5 class="mb-0"><i class="ti ti-list-numbers me-2"></i>Step-by-Step Guide</h5>
         </div>
-        <div class="card-body">
-            <div class="accordion" id="certSteps">
+        <div class="c-card__body">
+            <div class="accordion" id="certSteps" data-accordion>
                 <!-- Step 1 -->
-                <div class="accordion-item">
+                <div class="accordion-item" data-accordion>
                     <h2 class="accordion-header">
-                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#step1">
-                            <span class="badge bg-primary me-2">1</span>
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#step1" data-collapse-toggle>
+                            <span class="badge bg-primary me-2" data-badge>1</span>
                             Create a Pass Type ID
                         </button>
                     </h2>
-                    <div id="step1" class="accordion-collapse collapse show" data-bs-parent="#certSteps">
-                        <div class="accordion-body">
+                    <div id="step1" class="accordion-collapse collapse show" data-bs-parent="#certSteps" data-accordion>
+                        <div class="accordion-body" data-accordion>
                             <ol>
                                 <li>Log in to the <a href="https://developer.apple.com/account" target="_blank">Apple Developer Portal</a></li>
                                 <li>Go to <strong>Certificates, Identifiers & Profiles</strong></li>
@@ -63,15 +63,15 @@
                 </div>
 
                 <!-- Step 2 -->
-                <div class="accordion-item">
+                <div class="accordion-item" data-accordion>
                     <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step2">
-                            <span class="badge bg-primary me-2">2</span>
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step2" data-collapse-toggle>
+                            <span class="badge bg-primary me-2" data-badge>2</span>
                             Create a Pass Signing Certificate
                         </button>
                     </h2>
-                    <div id="step2" class="accordion-collapse collapse" data-bs-parent="#certSteps">
-                        <div class="accordion-body">
+                    <div id="step2" class="accordion-collapse collapse" data-bs-parent="#certSteps" data-accordion>
+                        <div class="accordion-body" data-accordion>
                             <ol>
                                 <li>In the Developer Portal, go to <strong>Certificates</strong></li>
                                 <li>Click the <strong>+</strong> button</li>
@@ -93,15 +93,15 @@
                 </div>
 
                 <!-- Step 3 -->
-                <div class="accordion-item">
+                <div class="accordion-item" data-accordion>
                     <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step3">
-                            <span class="badge bg-primary me-2">3</span>
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step3" data-collapse-toggle>
+                            <span class="badge bg-primary me-2" data-badge>3</span>
                             Export as .p12 File
                         </button>
                     </h2>
-                    <div id="step3" class="accordion-collapse collapse" data-bs-parent="#certSteps">
-                        <div class="accordion-body">
+                    <div id="step3" class="accordion-collapse collapse" data-bs-parent="#certSteps" data-accordion>
+                        <div class="accordion-body" data-accordion>
                             <ol>
                                 <li>Double-click the downloaded .cer file to install it in Keychain Access</li>
                                 <li>In Keychain Access, find your certificate under <strong>My Certificates</strong></li>
@@ -116,20 +116,20 @@
                 </div>
 
                 <!-- Step 4 -->
-                <div class="accordion-item">
+                <div class="accordion-item" data-accordion>
                     <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step4">
-                            <span class="badge bg-primary me-2">4</span>
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step4" data-collapse-toggle>
+                            <span class="badge bg-primary me-2" data-badge>4</span>
                             Download WWDR Certificate
                         </button>
                     </h2>
-                    <div id="step4" class="accordion-collapse collapse" data-bs-parent="#certSteps">
-                        <div class="accordion-body">
+                    <div id="step4" class="accordion-collapse collapse" data-bs-parent="#certSteps" data-accordion>
+                        <div class="accordion-body" data-accordion>
                             <p>Download Apple's Worldwide Developer Relations (WWDR) intermediate certificate:</p>
                             <ul>
                                 <li><a href="https://www.apple.com/certificateauthority/AppleWWDRCAG4.cer" target="_blank">WWDR G4 Certificate</a> (recommended for new passes)</li>
                             </ul>
-                            <div class="alert alert-info mt-3">
+                            <div class="alert alert-info mt-3" data-alert>
                                 <i class="ti ti-info-circle me-1"></i>
                                 The WWDR certificate is the same for all developers and doesn't require any account-specific setup.
                             </div>
@@ -138,15 +138,15 @@
                 </div>
 
                 <!-- Step 5 -->
-                <div class="accordion-item">
+                <div class="accordion-item" data-accordion>
                     <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step5">
-                            <span class="badge bg-primary me-2">5</span>
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step5" data-collapse-toggle>
+                            <span class="badge bg-primary me-2" data-badge>5</span>
                             Upload to This System
                         </button>
                     </h2>
-                    <div id="step5" class="accordion-collapse collapse" data-bs-parent="#certSteps">
-                        <div class="accordion-body">
+                    <div id="step5" class="accordion-collapse collapse" data-bs-parent="#certSteps" data-accordion>
+                        <div class="accordion-body" data-accordion>
                             <p>Upload your certificates to this system:</p>
                             <ol>
                                 <li>Go to <a href="{{ url_for('wallet_config.certificates') }}">Certificate Management</a></li>
@@ -162,11 +162,11 @@
     </div>
 
     <!-- Finding Your Identifiers -->
-    <div class="card mb-4">
-        <div class="card-header">
+    <div class="c-card mb-4">
+        <div class="c-card__header">
             <h5 class="mb-0"><i class="ti ti-search me-2"></i>Finding Your Identifiers</h5>
         </div>
-        <div class="card-body">
+        <div class="c-card__body">
             <div class="row">
                 <div class="col-md-6">
                     <h6>Team Identifier</h6>
@@ -186,17 +186,17 @@
     </div>
 
     <!-- Troubleshooting -->
-    <div class="card">
-        <div class="card-header">
+    <div class="c-card">
+        <div class="c-card__header">
             <h5 class="mb-0"><i class="ti ti-bug me-2"></i>Troubleshooting</h5>
         </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
+        <div class="c-card__body">
+            <div class="c-table-wrapper" data-table-responsive>
+                <table class="c-table" data-table>
+                    <thead scope="col">
                         <tr>
-                            <th>Issue</th>
-                            <th>Solution</th>
+                            <th scope="col">Issue</th>
+                            <th scope="col">Solution</th>
                         </tr>
                     </thead>
                     <tbody>

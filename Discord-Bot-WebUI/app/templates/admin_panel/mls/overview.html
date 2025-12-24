@@ -12,8 +12,8 @@
 <div class="row">
     <!-- Stats Cards -->
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-primary bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-primary bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-calendar fs-1 text-primary mb-2"></i>
                 <h3 class="mb-0">{{ stats.total_matches }}</h3>
                 <small class="text-muted">Total Matches</small>
@@ -21,8 +21,8 @@
         </div>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-info bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-info bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-clock fs-1 text-info mb-2"></i>
                 <h3 class="mb-0">{{ stats.upcoming_matches }}</h3>
                 <small class="text-muted">Upcoming</small>
@@ -30,8 +30,8 @@
         </div>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-warning bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-warning bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-broadcast fs-1 text-warning mb-2"></i>
                 <h3 class="mb-0">{{ stats.live_matches }}</h3>
                 <small class="text-muted">Live Now</small>
@@ -39,8 +39,8 @@
         </div>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-success bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-success bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-check fs-1 text-success mb-2"></i>
                 <h3 class="mb-0">{{ stats.finished_matches }}</h3>
                 <small class="text-muted">Finished</small>
@@ -50,29 +50,29 @@
 
     <!-- Quick Actions -->
     <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="ti ti-bolt me-2"></i>Quick Actions</h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.mls_matches') }}" class="btn btn-primary w-100">
+                        <a href="{{ url_for('admin_panel.mls_matches') }}" class="c-btn c-btn--primary w-100">
                             <i class="ti ti-list me-2"></i>All Matches
                         </a>
                     </div>
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <button id="fetch-espn-btn" class="btn btn-success w-100">
+                        <button id="fetch-espn-btn" class="c-btn c-btn--success w-100">
                             <i class="ti ti-download me-2"></i>Fetch from ESPN
                         </button>
                     </div>
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <button id="schedule-all-btn" class="btn btn-info w-100">
+                        <button id="schedule-all-btn" class="c-btn c-btn--info w-100">
                             <i class="ti ti-calendar-event me-2"></i>Schedule All
                         </button>
                     </div>
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.mls_task_monitoring') }}" class="btn btn-outline-secondary w-100">
+                        <a href="{{ url_for('admin_panel.mls_task_monitoring') }}" class="c-btn c-btn--outline-secondary w-100">
                             <i class="ti ti-list-check me-2"></i>Task Monitor
                         </a>
                     </div>
@@ -83,22 +83,22 @@
 
     <!-- Upcoming Matches -->
     <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="ti ti-calendar me-2"></i>Upcoming Matches</h5>
-                <a href="{{ url_for('admin_panel.mls_matches') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                <a href="{{ url_for('admin_panel.mls_matches') }}" class="c-btn c-btn--sm c-btn--outline-primary">View All</a>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if matches %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Match</th>
-                                <th>Date/Time</th>
-                                <th>Competition</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th scope="col">Match</th>
+                                <th scope="col">Date/Time</th>
+                                <th scope="col">Competition</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -119,26 +119,26 @@
                                     <small class="text-muted">{{ match.date_time.strftime('%I:%M %p') }} UTC</small>
                                 </td>
                                 <td>
-                                    <span class="badge bg-secondary">{{ match.competition or 'MLS' }}</span>
+                                    <span class="badge bg-secondary" data-badge>{{ match.competition or 'MLS' }}</span>
                                 </td>
                                 <td>
-                                    <span class="badge bg-{{ match.status_color }}">
+                                    <span class="badge bg-{{ match.status_color }}" data-badge>
                                         <i class="ti {{ match.status_icon }} me-1"></i>{{ match.status_display }}
                                     </span>
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
                                         {% if not match.thread_created %}
-                                        <button class="btn btn-outline-primary" onclick="createThread({{ match.id }})" title="Create Thread">
+                                        <button class="c-btn c-btn--outline-primary js-create-thread" data-action="create-thread" data-match-id="{{ match.id }}" title="Create Thread">
                                             <i class="ti ti-message-plus"></i>
                                         </button>
                                         {% endif %}
                                         {% if match.live_reporting_status != 'running' %}
-                                        <button class="btn btn-outline-success" onclick="startReporting({{ match.id }})" title="Start Reporting">
+                                        <button class="c-btn c-btn--outline-success js-start-reporting" data-action="start-reporting" data-match-id="{{ match.id }}" title="Start Reporting">
                                             <i class="ti ti-player-play"></i>
                                         </button>
                                         {% else %}
-                                        <button class="btn btn-outline-warning" onclick="stopReporting({{ match.id }})" title="Stop Reporting">
+                                        <button class="c-btn c-btn--outline-warning js-stop-reporting" data-action="stop-reporting" data-match-id="{{ match.id }}" title="Stop Reporting">
                                             <i class="ti ti-player-stop"></i>
                                         </button>
                                         {% endif %}
@@ -153,7 +153,7 @@
                 <div class="text-center py-4">
                     <i class="ti ti-calendar-off fs-1 text-muted mb-3"></i>
                     <p class="text-muted">No upcoming matches found.</p>
-                    <button id="fetch-espn-empty-btn" class="btn btn-success">
+                    <button id="fetch-espn-empty-btn" class="c-btn c-btn--success">
                         <i class="ti ti-download me-2"></i>Fetch Matches from ESPN
                     </button>
                 </div>
@@ -167,7 +167,50 @@
 {% block custom_js %}
 {{ super() }}
 <script>
-function fetchFromESPN() {
+document.addEventListener('DOMContentLoaded', function() {
+    // Fetch from ESPN buttons
+    const fetchBtns = document.querySelectorAll('#fetch-espn-btn, #fetch-espn-empty-btn');
+    fetchBtns.forEach(btn => {
+        btn.addEventListener('click', fetchFromESPN);
+    });
+
+    // Schedule all button
+    const scheduleBtn = document.getElementById('schedule-all-btn');
+    if (scheduleBtn) {
+        scheduleBtn.addEventListener('click', scheduleAll);
+    }
+
+    // Create thread buttons
+    document.querySelectorAll('.js-create-thread').forEach(btn => {
+        btn.addEventListener('click', function() {
+            createThread(this.dataset.matchId);
+        });
+    });
+
+    // Start reporting buttons
+    document.querySelectorAll('.js-start-reporting').forEach(btn => {
+        btn.addEventListener('click', function() {
+            startReporting(this.dataset.matchId);
+        });
+    });
+
+    // Stop reporting buttons
+    document.querySelectorAll('.js-stop-reporting').forEach(btn => {
+        btn.addEventListener('click', function() {
+            stopReporting(this.dataset.matchId);
+        });
+    });
+
+    // Add spin animation
+    const style = document.createElement('style');
+    style.textContent = `
+        .spin { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    `;
+    document.head.appendChild(style);
+});
+
+function fetchFromESPN(event) {
     const btn = event.currentTarget;
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i class="ti ti-loader spin me-2"></i>Fetching...';
@@ -192,10 +235,10 @@ function fetchFromESPN() {
         });
 }
 
-function scheduleAll() {
+function scheduleAll(event) {
     if (!confirm('This will schedule tasks for all upcoming matches. Continue?')) return;
 
-    const btn = document.getElementById('schedule-all-btn');
+    const btn = event.currentTarget;
     btn.innerHTML = '<i class="ti ti-loader spin me-2"></i>Scheduling...';
     btn.disabled = true;
 
@@ -266,19 +309,5 @@ function stopReporting(matchId) {
             AdminPanel.showMobileToast('Error stopping reporting', 'danger');
         });
 }
-
-document.getElementById('fetch-espn-btn').addEventListener('click', fetchFromESPN);
-document.getElementById('schedule-all-btn').addEventListener('click', scheduleAll);
-
-const emptyBtn = document.getElementById('fetch-espn-empty-btn');
-if (emptyBtn) emptyBtn.addEventListener('click', fetchFromESPN);
-
-// Add spin animation
-const style = document.createElement('style');
-style.textContent = `
-    .spin { animation: spin 1s linear infinite; }
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-`;
-document.head.appendChild(style);
 </script>
 {% endblock %}

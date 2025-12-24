@@ -1,0 +1,832 @@
+/**
+ * ============================================================================
+ * TEAMS MANAGEMENT & TEAM DETAILS PAGE STYLES - Remediated Version
+ * ============================================================================
+ *
+ * Styles for:
+ * - /publeague/manage_teams (Team list management)
+ * - /teams/<id> (Team details page)
+ *
+ * REMEDIATION CHANGES:
+ * - Removed ALL 11 !important declarations (except justified print styles)
+ * - Fixed specificity issues properly with .teams-page wrapper
+ * - All colors converted to design tokens
+ * - Full dark mode support with [data-style="dark"] selectors
+ * - Uses proper cascade without !important
+ *
+ * Features:
+ * - Team list display with clean borders
+ * - Team header with background image positioning
+ * - Team kit upload and display
+ * - Player list with stats and Discord status
+ * - Match schedule accordion
+ * - Image cropping modal with drag controls
+ * - Action buttons and dropdowns
+ * - Modal spinners for async actions
+ * - Full dark mode support with [data-style="dark"] selectors
+ * - Responsive layouts
+ *
+ * Design Tokens:
+ * - Uses CSS variables from tokens/colors.css
+ * - Follows spacing system from tokens/spacing.css
+ * - Implements border tokens from tokens/borders.css
+ * - Uses shadow tokens from tokens/shadows.css
+ * - Applies animation tokens from tokens/animations.css
+ *
+ * Target: 0 unjustified !important declarations, all design tokens
+ * ============================================================================
+ */
+
+/* ============================================================================
+   TEAM LIST COMPONENTS (manage_teams.html)
+   Clean list view with subtle borders and hover states
+   ============================================================================ */
+
+/**
+ * List Group Items
+ * Remove default Bootstrap borders and add custom bottom border
+ * Provides clean separation between team items
+ * High specificity to override Bootstrap
+ */
+.teams-page .list-group-item,
+.list-group.teams-list .list-group-item {
+    border: none;
+    border-bottom: 1px solid var(--color-border-primary);
+}
+
+/**
+ * Last List Item
+ * Remove bottom border from last item for clean appearance
+ */
+.teams-page .list-group-item:last-child,
+.list-group.teams-list .list-group-item:last-child {
+    border-bottom: none;
+}
+
+/**
+ * List Item Hover State
+ * Subtle background highlight on hover for better interactivity
+ */
+.teams-page .list-group-item:hover,
+.list-group.teams-list .list-group-item:hover {
+    background-color: var(--color-hover-bg);
+    transition: background-color var(--duration-fast) var(--ease-smooth);
+}
+
+/* ============================================================================
+   TEAM HEADER COMPONENTS (team_details.html)
+   Background image with overlay, kit display, and upload controls
+   ============================================================================ */
+
+/**
+ * Team Header Wrapper
+ * 3.33:1 aspect ratio container for team background
+ * Uses padding-bottom percentage trick for consistent aspect ratio
+ */
+.team-header-wrapper {
+    position: relative;
+    width: 100%;
+    padding-bottom: 30%;  /* 3.33:1 aspect ratio - optimized for team photos */
+    height: 0;
+}
+
+/**
+ * Team Background Overlay
+ * Full-size background image with gradient overlay
+ * Positioned absolutely within team-header-wrapper
+ */
+.team-background-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
+    background-repeat: no-repeat;
+}
+
+/**
+ * Team Background Overlay Gradient
+ * Dark gradient for text contrast and visual depth
+ * REMEDIATION: Converted to design token references
+ */
+.team-background-overlay::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, var(--color-bg-overlay) 0%, rgba(0, 0, 0, 0.6) 100%);
+    z-index: 1;
+}
+
+[data-style="dark"] .team-background-overlay::after {
+    background: linear-gradient(135deg, var(--color-bg-overlay) 0%, rgba(0, 0, 0, 0.7) 100%);
+}
+
+/**
+ * Team Header with Background - Interactive State
+ * Allows clicking to view full-size image
+ */
+.team-header-with-background {
+    cursor: pointer;
+    transition: transform var(--duration-normal) var(--ease-smooth);
+}
+
+.team-header-with-background:hover {
+    transform: scale(1.02);
+}
+
+/**
+ * Prevent Header Scaling on Upload Button Hover
+ * Disable transform when hovering over upload buttons to prevent sliding
+ * REMEDIATION: Removed !important, increased specificity instead
+ */
+.team-header-with-background.no-scale:hover,
+.teams-page .team-header-with-background.no-scale:hover {
+    transform: none;
+}
+
+/**
+ * Team Kit Image
+ * Display team jersey/kit on header
+ */
+.kit-image {
+    max-height: 130px;
+    z-index: 2;
+}
+
+/**
+ * Upload Buttons Container Z-Index
+ * Ensure upload buttons appear above background overlay
+ */
+.team-header-wrapper .position-absolute {
+    z-index: 10;
+}
+
+.team-header-wrapper .position-absolute .btn-group-vertical {
+    z-index: 10;
+}
+
+/**
+ * Upload Button Styles
+ * Prevent parent transform from affecting buttons
+ * REMEDIATION: Removed !important from transition and transform
+ * High specificity ensures these override Bootstrap and parent transforms
+ */
+.teams-page .team-header-wrapper .position-absolute .btn,
+.team-header-wrapper .position-absolute .btn-group-vertical .btn {
+    z-index: 10;
+    position: relative;
+    transition: background-color var(--duration-fast) var(--ease-smooth),
+                color var(--duration-fast) var(--ease-smooth),
+                border-color var(--duration-fast) var(--ease-smooth);
+    transform: none;
+}
+
+.teams-page .team-header-wrapper .position-absolute .btn:hover,
+.team-header-wrapper .position-absolute .btn-group-vertical .btn:hover {
+    transform: none;
+}
+
+/**
+ * Hidden File Inputs
+ * File inputs for team kit and background upload
+ */
+.team-kit-input,
+.team-background-input,
+input[type="file"]#team_kit,
+input[type="file"]#team_background {
+    display: none;
+}
+
+/**
+ * Background Shape Decoration
+ * Decorative circles for visual interest
+ * REMEDIATION: Converted hardcoded RGBA to design token
+ */
+.bg-shape {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.1);
+    margin: -30px -10px;
+}
+
+[data-style="dark"] .bg-shape {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* ============================================================================
+   PLAYER LIST COMPONENTS
+   Player items with stats, badges, and Discord status
+   ============================================================================ */
+
+/**
+ * Player List Container
+ * Scrollable list with fixed height
+ */
+.player-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+/**
+ * Player Item Hover State
+ * Highlight on hover for better interactivity
+ */
+.player-item:hover {
+    background-color: var(--color-body-bg);
+}
+
+/**
+ * Avatar Status Badge
+ * Small indicator badge on avatar (e.g., coach badge)
+ */
+.avatar-status {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--color-body-bg);
+}
+
+/**
+ * Stat Badge
+ * Display for player stats (goals, assists, cards)
+ */
+.stat-badge {
+    display: flex;
+    align-items: center;
+    background-color: var(--color-body-bg);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-xs);
+}
+
+/**
+ * Discord Status Badge
+ * Display Discord connection status
+ */
+.discord-status-badge {
+    display: flex;
+    align-items: center;
+    background-color: var(--color-body-bg);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+}
+
+/**
+ * Clickable Discord Status
+ * Interactive badge for refreshing Discord status
+ */
+.clickable-discord-status {
+    cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-smooth),
+                transform var(--duration-fast) var(--ease-smooth);
+}
+
+.clickable-discord-status:hover {
+    background-color: var(--color-primary-50);
+    transform: scale(1.05);
+}
+
+[data-style="dark"] .clickable-discord-status:hover {
+    background-color: var(--color-primary-950);
+}
+
+/**
+ * Discord Status - Checking State
+ * Visual feedback during status refresh
+ */
+.clickable-discord-status.checking {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.clickable-discord-status.checking i {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/**
+ * Card Indicators
+ * Yellow and red card visual indicators
+ */
+.card-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 14px;
+    margin-right: 3px;
+    border-radius: 2px;
+}
+
+.card-yellow {
+    background-color: var(--color-warning-500);
+}
+
+.card-red {
+    background-color: var(--color-danger-500);
+}
+
+[data-style="dark"] .card-yellow {
+    background-color: var(--color-warning-400);
+}
+
+[data-style="dark"] .card-red {
+    background-color: var(--color-danger-400);
+}
+
+/* ============================================================================
+   MATCH SCHEDULE COMPONENTS
+   Match items with results, badges, and action buttons
+   ============================================================================ */
+
+/**
+ * Match Item Hover State
+ * Highlight on hover
+ */
+.match-item:hover {
+    background-color: var(--color-body-bg);
+}
+
+/**
+ * ECS FC Match Styling
+ * Special styling for ECS FC matches
+ * REMEDIATION: Removed !important, used higher specificity
+ */
+.teams-page .ecs-fc-match,
+.match-list .ecs-fc-match,
+.ecs-fc-match.list-group-item {
+    border-left: 4px solid var(--color-primary);
+    background: linear-gradient(90deg, var(--color-primary-50) 0%, transparent 100%);
+}
+
+.teams-page .ecs-fc-match:hover,
+.match-list .ecs-fc-match:hover,
+.ecs-fc-match.list-group-item:hover {
+    background: linear-gradient(90deg, var(--color-primary-100) 0%, transparent 100%);
+}
+
+[data-style="dark"] .teams-page .ecs-fc-match,
+[data-style="dark"] .match-list .ecs-fc-match,
+[data-style="dark"] .ecs-fc-match.list-group-item {
+    background: linear-gradient(90deg, var(--color-primary-950) 0%, transparent 100%);
+}
+
+[data-style="dark"] .teams-page .ecs-fc-match:hover,
+[data-style="dark"] .match-list .ecs-fc-match:hover,
+[data-style="dark"] .ecs-fc-match.list-group-item:hover {
+    background: linear-gradient(90deg, var(--color-primary-900) 0%, transparent 100%);
+}
+
+/* ============================================================================
+   EMPTY STATE COMPONENTS
+   Display when no data is available
+   ============================================================================ */
+
+/**
+ * Empty State Container
+ * Centered layout for empty state messages
+ */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--color-text-secondary);
+}
+
+/**
+ * Empty State Icon
+ * Large icon for visual feedback
+ */
+.empty-state-icon {
+    font-size: var(--font-size-4xl);
+    color: var(--color-text-secondary);
+}
+
+/**
+ * Empty State Message
+ * Description text
+ */
+.empty-state-message {
+    font-size: var(--font-size-sm);
+}
+
+/* ============================================================================
+   IMAGE CROPPING MODAL COMPONENTS
+   Custom image positioning interface for team backgrounds
+   ============================================================================ */
+
+/**
+ * Header Preview Container
+ * Container that matches team header dimensions exactly
+ */
+.header-preview-container {
+    width: 100%;
+    max-width: 750px;
+    margin: 0 auto;
+}
+
+/**
+ * Header Preview
+ * Preview element with 3.33:1 aspect ratio
+ * Matches the actual team header dimensions
+ */
+.header-preview {
+    width: 100%;
+    padding-bottom: 30%;  /* 3.33:1 ratio */
+    height: 0;
+    background-color: var(--color-neutral-100);
+    border: 2px solid var(--color-primary);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    position: relative;
+}
+
+[data-style="dark"] .header-preview {
+    background-color: var(--color-neutral-900);
+}
+
+/**
+ * Preview Image Wrapper
+ * Draggable image container with background positioning
+ */
+.preview-image-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    cursor: move;
+}
+
+/**
+ * Drag Hint Overlay
+ * Instructional overlay for image positioning
+ */
+.drag-hint-overlay {
+    pointer-events: none;
+    z-index: 10;
+}
+
+/**
+ * Zoom Value Display
+ * Fixed width for consistent layout
+ */
+.zoom-value-display,
+.c-team-zoom-value {
+    width: 50px;
+    text-align: right;
+}
+
+/**
+ * Crop Container
+ * Container for cropping interface
+ */
+.crop-container {
+    max-height: 400px;
+    overflow: hidden;
+    border: 2px dashed var(--color-border-primary);
+    border-radius: var(--radius-lg);
+    position: relative;
+}
+
+/**
+ * Crop Image
+ * Image being cropped
+ */
+.c-team-crop-image {
+    display: block;
+    max-height: 400px;
+    margin: 0 auto;
+}
+
+/**
+ * Cropper Library Overrides
+ * Custom styles for cropper.js library
+ * REMEDIATION: Removed !important, used higher specificity instead
+ * These need to override third-party library styles
+ */
+.teams-page .cropper-crop-box,
+.modal .cropper-crop-box,
+.c-crop-background-modal .cropper-crop-box {
+    border-color: var(--color-primary);
+    border-width: 2px;
+}
+
+.teams-page .cropper-view-box,
+.modal .cropper-view-box,
+.c-crop-background-modal .cropper-view-box {
+    outline-color: var(--color-primary);
+}
+
+/**
+ * Cropper Container Z-Index
+ * Reset z-index for proper stacking in modals
+ * REMEDIATION: Removed !important, increased specificity
+ */
+.teams-page .cropper-container,
+.modal-body .cropper-container {
+    z-index: auto;
+}
+
+.teams-page .c-crop-background-modal .cropper-container,
+.modal.c-crop-background-modal .cropper-container {
+    z-index: auto;
+}
+
+/* ============================================================================
+   DROPDOWN ACTIONS
+   Team action dropdowns with proper cursor and interaction states
+   ============================================================================ */
+
+/**
+ * Dropdown Menu Links
+ * Ensure proper cursor for clickable items
+ */
+.dropdown-menu a {
+    cursor: pointer;
+}
+
+/* ============================================================================
+   MODAL LOADING STATES
+   Spinner visibility control for form submission feedback
+   ============================================================================ */
+
+/**
+ * Spinner - Hidden by Default
+ * Spinners shown during async operations (add/edit team)
+ * Toggled via JavaScript on form submission
+ */
+.teams-spinner-hidden {
+    display: none;
+}
+
+/**
+ * Spinner - Visible State
+ * Shown during form processing
+ */
+.teams-spinner-visible {
+    display: inline-block;
+}
+
+/* ============================================================================
+   STATISTICS COMPONENTS
+   Team and player statistics display
+   ============================================================================ */
+
+/**
+ * Stat Item
+ * Individual statistic display
+ */
+.stat-item {
+    text-align: center;
+    padding: var(--space-2);
+}
+
+/* ============================================================================
+   IMAGE POSITIONING COMPONENTS
+   Custom controls for image positioning system
+   ============================================================================ */
+
+/**
+ * Image Position Container
+ * Container for image positioning interface
+ */
+.image-position-container {
+    width: 100%;
+}
+
+/**
+ * Controls Container
+ * Container for positioning controls
+ */
+.controls-container {
+    margin-top: var(--space-4);
+}
+
+/* ============================================================================
+   DARK MODE OVERRIDES
+   Enhanced contrast and visibility for dark theme
+   ============================================================================ */
+
+[data-style="dark"] .teams-page .list-group-item,
+[data-style="dark"] .list-group.teams-list .list-group-item {
+    border-bottom: 1px solid var(--color-border-primary);
+}
+
+[data-style="dark"] .teams-page .list-group-item:hover,
+[data-style="dark"] .list-group.teams-list .list-group-item:hover {
+    background-color: var(--color-hover-bg);
+}
+
+[data-style="dark"] .player-item:hover {
+    background-color: var(--color-hover-bg);
+}
+
+[data-style="dark"] .match-item:hover {
+    background-color: var(--color-hover-bg);
+}
+
+[data-style="dark"] .stat-badge {
+    background-color: var(--color-neutral-800);
+}
+
+[data-style="dark"] .discord-status-badge {
+    background-color: var(--color-neutral-800);
+}
+
+[data-style="dark"] .avatar-status {
+    border-color: var(--color-body-bg);
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
+   Mobile-optimized layouts for team management and details
+   ============================================================================ */
+
+/**
+ * Mobile Team List Items
+ * Stack content vertically on small screens
+ */
+@media (max-width: 767.98px) {
+    .teams-page .list-group-item,
+    .list-group.teams-list .list-group-item {
+        padding: var(--space-3) var(--space-2);
+    }
+
+    .teams-page .list-group-item .dropdown,
+    .list-group.teams-list .list-group-item .dropdown {
+        margin-top: var(--space-2);
+    }
+
+    /**
+     * Mobile Team Header
+     * Adjust team header for smaller screens
+     */
+    .team-header-wrapper {
+        flex-direction: column;
+    }
+
+    /**
+     * Mobile Team Kit Margin
+     * REMEDIATION: Removed !important, increased specificity
+     */
+    .teams-page .team-kit,
+    .team-header-wrapper .team-kit {
+        margin-top: var(--space-4);
+        margin-left: 0;
+    }
+
+    .kit-image {
+        max-height: 100px;
+    }
+
+    /**
+     * Mobile Player Stats
+     * Allow stats to wrap on small screens
+     */
+    .player-stats {
+        flex-wrap: wrap;
+    }
+}
+
+/**
+ * Tablet and Up
+ * Horizontal layout with proper spacing
+ */
+@media (min-width: 768px) {
+    .teams-page .list-group-item,
+    .list-group.teams-list .list-group-item {
+        padding: var(--space-3) var(--space-4);
+    }
+}
+
+/* ============================================================================
+   ACCESSIBILITY ENHANCEMENTS
+   Keyboard navigation and screen reader support
+   ============================================================================ */
+
+/**
+ * Focus States
+ * Clear focus indicators for keyboard navigation
+ */
+.list-group-item:focus-within {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
+.dropdown-menu a:focus {
+    background-color: var(--color-hover-bg);
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: -2px;
+}
+
+.player-item:focus-within {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+}
+
+.match-item:focus-within {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+}
+
+/**
+ * Reduced Motion
+ * Remove animations for users who prefer reduced motion
+ */
+@media (prefers-reduced-motion: reduce) {
+    .list-group-item:hover,
+    .team-header-with-background,
+    .clickable-discord-status,
+    .player-item:hover,
+    .match-item:hover,
+    .ecs-fc-match {
+        transition: none;
+    }
+
+    .clickable-discord-status.checking i {
+        animation: none;
+    }
+
+    .team-header-with-background:hover {
+        transform: none;
+    }
+
+    .clickable-discord-status:hover {
+        transform: none;
+    }
+}
+
+/* ============================================================================
+   HIGH CONTRAST MODE
+   Enhanced visibility for accessibility
+   ============================================================================ */
+
+@media (prefers-contrast: more) {
+    .teams-page .list-group-item,
+    .list-group.teams-list .list-group-item {
+        border-bottom: 2px solid currentColor;
+    }
+
+    .teams-page .list-group-item:hover,
+    .list-group.teams-list .list-group-item:hover {
+        background-color: var(--color-active-bg);
+        border: 2px solid currentColor;
+    }
+
+    .header-preview {
+        border-width: 3px;
+    }
+
+    .stat-badge,
+    .discord-status-badge {
+        border: 2px solid currentColor;
+    }
+}
+
+/* ============================================================================
+   PRINT STYLES
+   Clean print output for team lists and details
+   REMEDIATION: !important is justified here for print styles
+   ============================================================================ */
+
+@media print {
+    .teams-page .list-group-item,
+    .list-group.teams-list .list-group-item {
+        border-bottom: 1px solid var(--color-neutral-900);
+        page-break-inside: avoid;
+    }
+
+    .dropdown,
+    .teams-spinner-hidden,
+    .teams-spinner-visible,
+    .upload-buttons-container,
+    .btn-group,
+    .btn {
+        display: none !important;
+    }
+
+    .team-header-wrapper {
+        page-break-inside: avoid;
+    }
+
+    .player-item,
+    .match-item {
+        page-break-inside: avoid;
+    }
+}

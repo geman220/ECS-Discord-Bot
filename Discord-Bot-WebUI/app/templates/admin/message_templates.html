@@ -23,19 +23,19 @@
     <!-- Category Info -->
     <div class="row">
         <div class="col-12">
-            <div class="card border-primary">
-                <div class="card-header bg-primary text-white">
+            <div class="c-card border-primary">
+                <div class="c-card__header bg-primary text-white">
                     <h5 class="mb-0">
                         <i class="fas fa-comments me-2"></i>{{ category.name }}
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     {% if category.description %}
                         <p class="mb-0">{{ category.description }}</p>
                     {% endif %}
                     <div class="mt-2">
-                        <span class="badge bg-info">{{ templates|length }} templates</span>
-                        <a href="{{ url_for('admin.message_config.list_categories') }}" class="btn btn-sm btn-outline-primary ms-2">
+                        <span class="badge bg-info" data-badge>{{ templates|length }} templates</span>
+                        <a href="{{ url_for('admin.message_config.list_categories') }}" class="c-btn c-btn--sm c-btn--outline-primary ms-2">
                             <i class="fas fa-arrow-left me-1"></i>Back to Categories
                         </a>
                     </div>
@@ -47,27 +47,27 @@
     <!-- Templates List -->
     <div class="row mt-3">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title mb-0">
                         <i class="fas fa-file-alt me-2"></i>Message Templates
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     {% if templates %}
                         <div class="row">
                             {% for template in templates %}
                             <div class="col-12 mb-3">
-                                <div class="card {% if not template.is_active %}border-warning{% else %}border-success{% endif %}">
-                                    <div class="card-body">
+                                <div class="c-card {% if not template.is_active %}border-warning{% else %}border-success{% endif %}">
+                                    <div class="c-card__body">
                                         <div class="row">
                                             <div class="col-md-8">
                                                 <div class="d-flex align-items-center mb-2">
                                                     <h6 class="mb-0 me-3">{{ template.name }}</h6>
                                                     {% if template.is_active %}
-                                                        <span class="badge bg-success">Active</span>
+                                                        <span class="badge bg-success" data-badge>Active</span>
                                                     {% else %}
-                                                        <span class="badge bg-warning">Inactive</span>
+                                                        <span class="badge bg-warning" data-badge>Inactive</span>
                                                     {% endif %}
                                                 </div>
                                                 
@@ -80,7 +80,7 @@
                                                 <!-- Message Preview -->
                                                 <div class="message-preview bg-light p-3 rounded small">
                                                     <strong>Message Content:</strong><br>
-                                                    <div class="mt-1" style="white-space: pre-wrap;">{{ template.message_content[:200] }}{% if template.message_content|length > 200 %}...{% endif %}</div>
+                                                    <div class="mt-1" class="u-white-space-pre-wrap">{{ template.message_content[:200] }}{% if template.message_content|length > 200 %}...{% endif %}</div>
                                                 </div>
                                                 
                                                 <!-- Variables -->
@@ -98,26 +98,26 @@
                                             <div class="col-md-4 text-end">
                                                 <div class="btn-group-vertical w-100" role="group">
                                                     <a href="{{ url_for('admin.message_config.edit_template', template_id=template.id) }}" 
-                                                       class="btn btn-primary btn-sm mb-2">
+                                                       class="c-btn c-btn--primary c-btn--sm mb-2">
                                                         <i class="fas fa-edit me-1"></i>Edit Message
                                                     </a>
                                                     
                                                     <button type="button" 
-                                                            class="btn btn-info btn-sm mb-2"
-                                                            onclick="previewTemplate({{ template.id }})">
+                                                            class="c-btn c-btn--info c-btn--sm mb-2"
+                                                            data-action="preview-template" data-id="{{ template.id }}" class="js-preview-template">
                                                         <i class="fas fa-eye me-1"></i>Preview
                                                     </button>
                                                     
                                                     <button type="button" 
-                                                            class="btn btn-secondary btn-sm"
-                                                            onclick="copyTemplate({{ template.id }})">
+                                                            class="c-btn c-btn--secondary c-btn--sm"
+                                                            data-action="copy-template" data-id="{{ template.id }}" class="js-copy-template">
                                                         <i class="fas fa-copy me-1"></i>Copy Content
                                                     </button>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="card-footer text-muted small">
+                                    <div class="c-card__footer text-muted small">
                                         Last updated: {{ template.updated_at.strftime('%b %d, %Y at %I:%M %p') }}
                                     </div>
                                 </div>
@@ -138,24 +138,24 @@
 </div>
 
 <!-- Preview Modal -->
-<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="previewModalLabel">Message Preview</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal c-modal fade" data-modal id="message-templates-previewModal" tabindex="-1" aria-labelledby="message-templates-previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="message-templates-previewModalLabel">Message Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <div id="previewContent">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
+                <div id="message-templates-previewContent">
                     <div class="text-center">
-                        <div class="spinner-border" role="status">
+                        <div class="spinner-border" role="status" data-spinner>
                             <span class="visually-hidden">Loading...</span>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
             </div>
         </div>
     </div>
@@ -163,11 +163,11 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
 function previewTemplate(templateId) {
     // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('previewModal'));
-    modal.show();
+    ModalManager.show('previewModal');
     
     // Load preview content
     fetch(`/admin/messages/api/preview/${templateId}`, {
@@ -183,7 +183,7 @@ function previewTemplate(templateId) {
             document.getElementById('previewContent').innerHTML = `
                 <div class="bg-light p-3 rounded">
                     <h6>Preview with sample data:</h6>
-                    <div style="white-space: pre-wrap; font-family: monospace;">${data.preview}</div>
+                    <div class="u-white-space-pre-wrap">${data.preview}</div>
                 </div>
                 ${data.variables_used ? `
                 <div class="mt-3">
@@ -194,13 +194,13 @@ function previewTemplate(templateId) {
             `;
         } else {
             document.getElementById('previewContent').innerHTML = `
-                <div class="alert alert-danger">Failed to load preview</div>
+                <div class="alert alert-danger" data-alert>Failed to load preview</div>
             `;
         }
     })
     .catch(error => {
         document.getElementById('previewContent').innerHTML = `
-            <div class="alert alert-danger">Error loading preview: ${error.message}</div>
+            <div class="alert alert-danger" data-alert>Error loading preview: ${error.message}</div>
         `;
     });
 }

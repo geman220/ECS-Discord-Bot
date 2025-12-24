@@ -12,18 +12,18 @@
 <!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="mb-0">Store Items</h4>
-    <a href="{{ url_for('admin_panel.create_store_item') }}" class="btn btn-primary">
+    <a href="{{ url_for('admin_panel.create_store_item') }}" class="c-btn c-btn--primary">
         <i class="ti ti-plus me-2"></i>Add New Item
     </a>
 </div>
 
 <!-- Filters -->
-<div class="card mb-4">
-    <div class="card-body">
-        <form method="GET" class="row g-3">
+<div class="c-card c-card-modern mb-4">
+    <div class="c-card__body c-card-modern__body">
+        <form method="GET" class="c-form-modern row g-3">
             <div class="col-md-3">
-                <label class="form-label">Category</label>
-                <select name="category" class="form-select">
+                <label class="c-form-modern__label">Category</label>
+                <select name="category" class="c-form-modern__select" data-form-select data-action="filter-category">
                     <option value="all" {% if current_filters.category == 'all' %}selected{% endif %}>All Categories</option>
                     {% for category in categories %}
                     <option value="{{ category }}" {% if current_filters.category == category %}selected{% endif %}>
@@ -33,16 +33,16 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label">Status</label>
-                <select name="status" class="form-select">
+                <label class="c-form-modern__label">Status</label>
+                <select name="status" class="c-form-modern__select" data-form-select data-action="filter-status">
                     <option value="all" {% if current_filters.status == 'all' %}selected{% endif %}>All Status</option>
                     <option value="active" {% if current_filters.status == 'active' %}selected{% endif %}>Active</option>
                     <option value="inactive" {% if current_filters.status == 'inactive' %}selected{% endif %}>Inactive</option>
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label">Sort By</label>
-                <select name="order_by" class="form-select">
+                <label class="c-form-modern__label">Sort By</label>
+                <select name="order_by" class="c-form-modern__select" data-form-select data-action="sort-items">
                     <option value="name" {% if current_filters.order_by == 'name' %}selected{% endif %}>Name</option>
                     <option value="category" {% if current_filters.order_by == 'category' %}selected{% endif %}>Category</option>
                     <option value="created_at" {% if current_filters.order_by == 'created_at' %}selected{% endif %}>Created Date</option>
@@ -50,10 +50,10 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label">Search</label>
-                <div class="input-group">
-                    <input type="text" name="search" class="form-control" placeholder="Search items..." value="{{ current_filters.search }}">
-                    <button type="submit" class="btn btn-outline-primary">
+                <label class="c-form-modern__label">Search</label>
+                <div class="c-form-modern__input-group" data-input-group>
+                    <input type="text" name="search" class="c-form-modern__input" placeholder="Search items..." value="{{ current_filters.search }}" data-form-control data-action="search-items">
+                    <button type="submit" class="c-button c-button--outline-primary">
                         <i class="ti ti-search"></i>
                     </button>
                 </div>
@@ -63,91 +63,95 @@
 </div>
 
 <!-- Items Table -->
-<div class="card">
-    <div class="card-body p-0">
+<div class="c-card c-card-modern">
+    <div class="c-card__body c-card-modern__body p-0">
         {% if items.items %}
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Image</th>
-                        <th>Name</th>
-                        <th>Category</th>
-                        <th>Price</th>
-                        <th>Status</th>
-                        <th>Colors/Sizes</th>
-                        <th>Created</th>
-                        <th>Actions</th>
+        <div class="c-table-modern__wrapper" data-table-responsive>
+            <table class="c-table-modern" data-table>
+                <thead class="c-table-modern__head" scope="col">
+                    <tr class="c-table-modern__row">
+                        <th scope="col" class="c-table-modern__header">Image</th>
+                        <th scope="col" class="c-table-modern__header">Name</th>
+                        <th scope="col" class="c-table-modern__header">Category</th>
+                        <th scope="col" class="c-table-modern__header">Price</th>
+                        <th scope="col" class="c-table-modern__header">Status</th>
+                        <th scope="col" class="c-table-modern__header">Colors/Sizes</th>
+                        <th scope="col" class="c-table-modern__header">Created</th>
+                        <th scope="col" class="c-table-modern__header">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="c-table-modern__body">
                     {% for item in items.items %}
-                    <tr>
-                        <td>
+                    <tr class="c-table-modern__row" data-item-id="{{ item.id }}">
+                        <td class="c-table-modern__cell" data-label="Image">
                             {% if item.image_url %}
-                            <img src="{{ item.image_url }}" alt="{{ item.name }}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
+                            <img src="{{ item.image_url }}" alt="{{ item.name }}" class="c-table-modern__thumbnail">
                             {% else %}
-                            <div class="bg-light d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; border-radius: 4px;">
-                                <i class="ti ti-package text-muted"></i>
+                            <div class="c-table-modern__thumbnail c-table-modern__thumbnail--placeholder">
+                                <i class="ti ti-package"></i>
                             </div>
                             {% endif %}
                         </td>
-                        <td>
-                            <strong>{{ item.name }}</strong>
+                        <td class="c-table-modern__cell" data-label="Name">
+                            <strong class="c-table-modern__cell-title">{{ item.name }}</strong>
                             {% if item.description %}
-                            <br><small class="text-muted">{{ item.description[:50] }}{% if item.description|length > 50 %}...{% endif %}</small>
+                            <br><small class="c-table-modern__cell-subtitle">{{ item.description[:50] }}{% if item.description|length > 50 %}...{% endif %}</small>
                             {% endif %}
                         </td>
-                        <td>
+                        <td class="c-table-modern__cell" data-label="Category">
                             {% if item.category %}
-                            <span class="badge bg-info">{{ item.category }}</span>
+                            <span class="c-badge c-badge--info" data-badge>{{ item.category }}</span>
                             {% else %}
-                            <span class="text-muted">Uncategorized</span>
+                            <span class="c-table-modern__cell-muted">Uncategorized</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td class="c-table-modern__cell" data-label="Price">
                             {% if item.price %}
-                            ${{ "%.2f"|format(item.price) }}
+                            <span class="c-table-modern__cell-value">${{ "%.2f"|format(item.price) }}</span>
                             {% else %}
-                            <span class="text-muted">N/A</span>
+                            <span class="c-table-modern__cell-muted">N/A</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td class="c-table-modern__cell" data-label="Status">
                             {% if item.is_active %}
-                            <span class="badge bg-success">Active</span>
+                            <span class="c-badge c-badge--success" data-badge>Active</span>
                             {% else %}
-                            <span class="badge bg-secondary">Inactive</span>
+                            <span class="c-badge c-badge--secondary" data-badge>Inactive</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td class="c-table-modern__cell" data-label="Colors/Sizes">
                             {% set colors = item.available_colors|from_json if item.available_colors else [] %}
                             {% set sizes = item.available_sizes|from_json if item.available_sizes else [] %}
-                            
+
                             {% if colors %}
-                            <small class="text-muted">Colors: {{ colors|length }}</small>
+                            <small class="c-table-modern__cell-meta">Colors: {{ colors|length }}</small>
                             {% endif %}
                             {% if colors and sizes %}
                             <br>
                             {% endif %}
                             {% if sizes %}
-                            <small class="text-muted">Sizes: {{ sizes|length }}</small>
+                            <small class="c-table-modern__cell-meta">Sizes: {{ sizes|length }}</small>
                             {% endif %}
-                            
+
                             {% if not colors and not sizes %}
-                            <span class="text-muted">None</span>
+                            <span class="c-table-modern__cell-muted">None</span>
                             {% endif %}
                         </td>
-                        <td>
-                            <small>{{ item.created_at.strftime('%Y-%m-%d') if item.created_at else 'Unknown' }}</small>
+                        <td class="c-table-modern__cell" data-label="Created">
+                            <small class="c-table-modern__cell-date">{{ item.created_at.strftime('%Y-%m-%d') if item.created_at else 'Unknown' }}</small>
                         </td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <a href="{{ url_for('admin_panel.edit_store_item', item_id=item.id) }}" 
-                                   class="btn btn-outline-primary" title="Edit">
+                        <td class="c-table-modern__cell c-table-modern__cell--actions" data-label="Actions">
+                            <div class="c-button-group c-button-group--sm">
+                                <a href="{{ url_for('admin_panel.edit_store_item', item_id=item.id) }}"
+                                   class="c-button c-button--sm c-button--outline-primary"
+                                   data-action="edit-item"
+                                   title="Edit">
                                     <i class="ti ti-edit"></i>
                                 </a>
-                                <button type="button" class="btn btn-outline-danger" 
-                                        onclick="confirmDelete({{ item.id }}, '{{ item.name }}')" title="Delete">
+                                <button type="button" class="c-button c-button--sm c-button--outline-danger js-confirm-delete"
+                                        data-action="confirm-delete"
+                                        data-item-id="{{ item.id }}"
+                                        data-item-name="{{ item.name }}" title="Delete">
                                     <i class="ti ti-trash"></i>
                                 </button>
                             </div>
@@ -160,11 +164,11 @@
         
         <!-- Pagination -->
         {% if items.pages > 1 %}
-        <div class="card-footer">
+        <div class="c-card__footer">
             <nav aria-label="Page navigation">
-                <ul class="pagination justify-content-center mb-0">
+                <ul class="pagination justify-content-center mb-0" data-pagination>
                     {% if items.has_prev %}
-                    <li class="page-item">
+                    <li class="page-item" data-page-item>
                         <a class="page-link" href="{{ url_for('admin_panel.store_items', page=items.prev_num, **current_filters) }}">Previous</a>
                     </li>
                     {% endif %}
@@ -172,23 +176,23 @@
                     {% for page_num in items.iter_pages() %}
                         {% if page_num %}
                             {% if page_num != items.page %}
-                            <li class="page-item">
+                            <li class="page-item" data-page-item>
                                 <a class="page-link" href="{{ url_for('admin_panel.store_items', page=page_num, **current_filters) }}">{{ page_num }}</a>
                             </li>
                             {% else %}
-                            <li class="page-item active">
+                            <li class="page-item active" data-page-item data-page-active>
                                 <span class="page-link">{{ page_num }}</span>
                             </li>
                             {% endif %}
                         {% else %}
-                        <li class="page-item disabled">
+                        <li class="page-item disabled" data-page-item data-page-disabled>
                             <span class="page-link">…</span>
                         </li>
                         {% endif %}
                     {% endfor %}
                     
                     {% if items.has_next %}
-                    <li class="page-item">
+                    <li class="page-item" data-page-item>
                         <a class="page-link" href="{{ url_for('admin_panel.store_items', page=items.next_num, **current_filters) }}">Next</a>
                     </li>
                     {% endif %}
@@ -198,11 +202,13 @@
         {% endif %}
         
         {% else %}
-        <div class="text-center py-5">
-            <i class="ti ti-package text-muted" style="font-size: 4rem;"></i>
-            <h5 class="text-muted mt-3">No Items Found</h5>
-            <p class="text-muted">No store items match your current filters.</p>
-            <a href="{{ url_for('admin_panel.create_store_item') }}" class="btn btn-primary">
+        <div class="c-empty-modern">
+            <div class="c-empty-modern__icon">
+                <i class="ti ti-package"></i>
+            </div>
+            <h5 class="c-empty-modern__title">No Items Found</h5>
+            <p class="c-empty-modern__text">No store items match your current filters.</p>
+            <a href="{{ url_for('admin_panel.create_store_item') }}" class="c-button c-button--primary" data-action="create-item">
                 <i class="ti ti-plus me-2"></i>Add First Item
             </a>
         </div>
@@ -213,36 +219,44 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
-function confirmDelete(itemId, itemName) {
-    Swal.fire({
-        title: 'Delete Store Item?',
-        text: `Are you sure you want to delete "${itemName}"? This action cannot be undone.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-        confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Create and submit form
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = `/admin-panel/store/items/${itemId}/delete`;
-            
-            // Add CSRF token if available
-            const csrfToken = document.querySelector('meta[name=csrf-token]');
-            if (csrfToken) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'csrf_token';
-                input.value = csrfToken.getAttribute('content');
-                form.appendChild(input);
+// Event delegation for delete button
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.js-confirm-delete')) {
+        const btn = e.target.closest('.js-confirm-delete');
+        const itemId = btn.dataset.itemId;
+        const itemName = btn.dataset.itemName;
+
+        Swal.fire({
+            title: 'Delete Store Item?',
+            text: `Are you sure you want to delete "${itemName}"? This action cannot be undone.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Create and submit form
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/admin-panel/store/items/${itemId}/delete`;
+
+                // Add CSRF token if available
+                const csrfToken = document.querySelector('meta[name=csrf-token]');
+                if (csrfToken) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'csrf_token';
+                    input.value = csrfToken.getAttribute('content');
+                    form.appendChild(input);
+                }
+
+                document.body.appendChild(form);
+                form.submit();
             }
-            
-            document.body.appendChild(form);
-            form.submit();
-        }
-    });
-}
+        });
+    }
+});
 </script>
 {% endblock %}

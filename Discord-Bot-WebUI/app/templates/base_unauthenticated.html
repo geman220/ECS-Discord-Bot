@@ -1,62 +1,78 @@
 <!DOCTYPE html>
-<html lang="en" class="light-style auth-page" dir="ltr" data-theme="theme-default" data-assets-path="{{ url_for('static', filename='assets/') }}">
+<html lang="en" class="light-style c-auth-layout" dir="ltr" data-theme="theme-default" data-assets-path="{{ url_for('static', filename='assets/') }}" data-component="auth-layout">
 <head>
     <!-- Meta Tags -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, maximum-scale=1.0" />
     <title>{{ title }}</title>
 
-    <!-- Fonts -->
+    <!-- Fonts - Poppins (display) and Inter (body) for Athletic Warmth theme -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
-    <!-- Critical CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/rtl/core.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/rtl/theme-default.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/foundation.css') }}?v={{ range(1, 1000000) | random }}" />
-    
-    <!-- Mobile UI Fix System -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-scale-system.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/component-mobile-fixes.css') }}" />
+    <!-- ============================================
+         CSS ARCHITECTURE - Clean Stack (No Sneat/Vuexy)
+         ============================================
+         1. Core tokens (design system variables)
+         2. Bootstrap minimal (grid, flex, spacing utilities only)
+         3. Component aliases (Bootstrap class → BEM styling)
+         4. Auth layout (BEM page-specific)
+         5. Components bundle (forms, buttons, cards)
+         ============================================ -->
+
+    <!-- 1. Core Tokens -->
+    {% assets "core_tokens" %}
+        <link rel="stylesheet" href="{{ ASSET_URL }}" />
+    {% endassets %}
+
+    <!-- 2. Foundation (Bootstrap Minimal + Component Aliases) -->
+    {% assets "foundation_css" %}
+        <link rel="stylesheet" href="{{ ASSET_URL }}" />
+    {% endassets %}
+
+    <!-- 3. Template Styles (legacy support) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/template-styles.css') }}" />
 
-    <!-- Deferred CSS - these will load after the page is initially rendered -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/tabler-icons.css') }}" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/fontawesome.css') }}" media="print" onload="this.media='all'"> 
-    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/demo.css') }}" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/libs/node-waves/node-waves.css') }}" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/libs/perfect-scrollbar/perfect-scrollbar.css') }}" media="print" onload="this.media='all'">
-    <!-- Commented out missing CSS files -->
-    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-components.css') }}?v={{ range(1, 1000000) | random }}" media="print" onload="this.media='all'"> -->
-    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-utilities.css') }}?v={{ range(1, 1000000) | random }}" media="print" onload="this.media='all'"> -->
+    <!-- 4. Auth Layout CSS (BEM) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout/auth-layout.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/authentication.css') }}" />
+
+    <!-- 5. Components CSS Bundle (forms, buttons, cards for login/register) -->
+    {% assets "components_css" %}
+        <link rel="stylesheet" href="{{ ASSET_URL }}" />
+    {% endassets %}
+
+    <!-- Mobile CSS Bundle (consolidated mobile fixes) -->
+    {% assets "mobile_css" %}
+        <link rel="stylesheet" href="{{ ASSET_URL }}" />
+    {% endassets %}
+
+    <!-- Icons (deferred to not block render) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/tabler-icons.css') }}" />
 
     <!-- Page-specific CSS (conditional loading) -->
     {% block page_css %}
     {% endblock %}
 
-    <!-- Helpers -->
-    <script src="{{ url_for('static', filename='vendor/js/helpers.js') }}"></script>
+    <!-- Config (theme settings, no Sneat helpers) -->
     <script src="{{ url_for('static', filename='js/config.js') }}"></script>
-    
+
     <!-- SweetAlert2 for nicer notifications -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
-<body class="auth-page">
+<body class="c-auth-layout__body" data-component="auth-body">
 
-    {% block main_content %}
-    <!-- Page-specific content will be injected here -->
-    {% endblock %}
+    <!-- Authentication container -->
+    <div class="c-auth-layout__container" data-component="auth-container">
+        {% block main_content %}
+        <!-- Page-specific content will be injected here -->
+        {% endblock %}
+    </div>
 
-    <!-- Core JS - load minimal JS needed for login -->
+    <!-- Core JS - Bootstrap bundle only (no Sneat/Vuexy) -->
     <script src="{{ url_for('static', filename='vendor/libs/jquery/jquery.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/libs/popper/popper.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/js/bootstrap.js') }}"></script>
-    
-    <!-- Defer non-essential JS -->
-    <script src="{{ url_for('static', filename='vendor/libs/node-waves/node-waves.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='custom_js/disable-waves.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='assets/js/main.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='vendor/js/bootstrap.bundle.js') }}"></script>
 
     <!-- Sweet Alerts -->
     <script>

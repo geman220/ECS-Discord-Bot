@@ -1,0 +1,188 @@
+{#
+  ============================================================================
+  FLOATING CHAT WIDGET
+  ============================================================================
+
+  Facebook Messenger-inspired floating chat widget with:
+  - Floating trigger button (bottom-right)
+  - Expandable panel with conversations
+  - Active chat view
+  - Online users display
+  - Search functionality
+  - Real-time WebSocket messaging
+
+  Features:
+  - Mobile responsive (full-screen on mobile)
+  - Smart positioning
+  - Unread badge
+  - Typing indicators
+  - Read receipts
+
+  Usage:
+    {% include 'components/_chat_widget.html' %}
+
+  Required CSS: /static/css/components/c-chat-widget.css
+  Required JS: /static/js/chat-widget.js
+
+  ============================================================================
+#}
+
+{% if current_user.is_authenticated %}
+<div class="c-chat-widget" data-state="closed" data-view="list">
+
+  {# ========================================================================
+     FLOATING TRIGGER BUTTON
+     ======================================================================== #}
+  <button class="c-chat-widget__trigger"
+          aria-label="Open messages"
+          aria-expanded="false"
+          aria-haspopup="dialog">
+    <i class="c-chat-widget__trigger-icon ti ti-message-circle" aria-hidden="true"></i>
+    <span class="c-chat-widget__badge" data-count="0" style="display: none;">0</span>
+  </button>
+
+  {# ========================================================================
+     EXPANDABLE PANEL
+     ======================================================================== #}
+  <div class="c-chat-widget__panel" role="dialog" aria-label="Messages">
+
+    {# ======================================================================
+       LIST VIEW - Conversations
+       ====================================================================== #}
+    <div class="c-chat-widget__list-view">
+
+      {# Header #}
+      <div class="c-chat-widget__header">
+        <h2 class="c-chat-widget__header-title">
+          <i class="c-chat-widget__header-icon ti ti-messages" aria-hidden="true"></i>
+          <span>Messages</span>
+        </h2>
+        <div class="c-chat-widget__header-actions">
+          <button class="c-chat-widget__header-btn"
+                  data-action="new-chat"
+                  aria-label="New conversation"
+                  title="Start new chat">
+            <i class="ti ti-edit" aria-hidden="true"></i>
+          </button>
+          <button class="c-chat-widget__header-btn"
+                  data-action="open-inbox"
+                  aria-label="Open inbox"
+                  title="Open full inbox">
+            <i class="ti ti-external-link" aria-hidden="true"></i>
+          </button>
+          <button class="c-chat-widget__header-btn"
+                  data-action="close-widget"
+                  aria-label="Close messages">
+            <i class="ti ti-x" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+
+      {# Search #}
+      <div class="c-chat-widget__search">
+        <div class="c-chat-widget__search-wrapper">
+          <i class="c-chat-widget__search-icon ti ti-search" aria-hidden="true"></i>
+          <input type="text"
+                 class="c-chat-widget__search-input"
+                 placeholder="Search users..."
+                 autocomplete="off"
+                 aria-label="Search users to message">
+        </div>
+        <div class="c-chat-widget__search-results" role="listbox" aria-label="Search results">
+          {# Search results populated by JS #}
+        </div>
+      </div>
+
+      {# Online Users (Horizontal Scroll) #}
+      <div class="c-chat-widget__online u-hidden">
+        <div class="c-chat-widget__online-label">Online Now</div>
+        <div class="c-chat-widget__online-list" role="list" aria-label="Online users">
+          {# Online users populated by JS #}
+        </div>
+      </div>
+
+      {# Conversation List #}
+      <div class="c-chat-widget__conversations" role="list" aria-label="Conversations">
+        {# Conversations populated by JS #}
+      </div>
+
+      {# Empty State #}
+      <div class="c-chat-widget__empty" style="display: none;">
+        <i class="c-chat-widget__empty-icon ti ti-message-off" aria-hidden="true"></i>
+        <div class="c-chat-widget__empty-title">No conversations yet</div>
+        <div class="c-chat-widget__empty-text">Search for a user above to start chatting</div>
+        <button class="c-chat-widget__empty-btn" data-action="new-chat">
+          <i class="ti ti-edit me-1" aria-hidden="true"></i>
+          Start a conversation
+        </button>
+      </div>
+
+    </div>
+
+    {# ======================================================================
+       CHAT VIEW - Active Conversation
+       ====================================================================== #}
+    <div class="c-chat-widget__chat">
+
+      {# Chat Header #}
+      <div class="c-chat-widget__chat-header">
+        <button class="c-chat-widget__back-btn" aria-label="Back to conversations">
+          <i class="ti ti-arrow-left" aria-hidden="true"></i>
+        </button>
+
+        <div class="c-chat-widget__chat-user">
+          <div class="c-chat-widget__chat-avatar">
+            <img src="/static/images/default-avatar.png" alt="User avatar">
+          </div>
+          <div class="c-chat-widget__chat-info">
+            <span class="c-chat-widget__chat-name">User Name</span>
+            <span class="c-chat-widget__chat-status">Offline</span>
+          </div>
+        </div>
+
+        <div class="c-chat-widget__header-actions">
+          <button class="c-chat-widget__header-btn"
+                  data-action="close-widget"
+                  aria-label="Close messages">
+            <i class="ti ti-x" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+
+      {# Messages Area #}
+      <div class="c-chat-widget__messages" aria-live="polite" aria-label="Message history">
+        {# Messages populated by JS #}
+      </div>
+
+      {# Typing Indicator #}
+      <div class="c-chat-widget__typing" style="display: none;" aria-live="polite">
+        <div class="c-chat-widget__typing-dots">
+          <span class="c-chat-widget__typing-dot"></span>
+          <span class="c-chat-widget__typing-dot"></span>
+          <span class="c-chat-widget__typing-dot"></span>
+        </div>
+        <span>typing...</span>
+      </div>
+
+      {# Message Composer #}
+      <div class="c-chat-widget__composer">
+        <textarea class="c-chat-widget__composer-input"
+                  placeholder="Type a message..."
+                  rows="1"
+                  maxlength="2000"
+                  aria-label="Message input"></textarea>
+        <button class="c-chat-widget__send-btn"
+                disabled
+                aria-label="Send message">
+          <i class="ti ti-send" aria-hidden="true"></i>
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+{# Add user ID meta tag for JS #}
+<meta name="user-id" content="{{ current_user.id }}">
+{% endif %}

@@ -1,124 +1,906 @@
 /**
- * Waitlist Registration Page CSS
- * Extracted from app/templates/waitlist_register_discord.html
- * 
- * Contains responsive design, cropper modal styles, and form optimizations
- * specific to the waitlist registration workflow.
+ * Waitlist Registration - Modern Soccer Club Aesthetic
+ *
+ * Design Direction: Warm, approachable sports club with modern polish
+ * Typography: Sharp sans-serif for headings, refined body text
+ * Colors: Soccer pitch greens, warm sunset gradients, vibrant accent pops
+ * Motion: Playful micro-interactions, smooth transitions
  */
 
-/* ===== PAGE LAYOUT ===== */
-/* Match app design language */
-.section-header {
-    border-bottom: 1px solid var(--ecs-neutral-20, #e0e0e0);
-    padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
+/* ============================================
+   CSS CUSTOM PROPERTIES
+   ============================================ */
+
+:root {
+    /* Waitlist Brand Colors - Soccer sunset palette */
+    --waitlist-primary: #2a9d8f;
+    --waitlist-primary-dark: #238276;
+    --waitlist-primary-light: #3fb5a5;
+    --waitlist-secondary: #e76f51;
+    --waitlist-accent: #f4a261;
+    --waitlist-success: #2a9d8f;
+    --waitlist-warning: #e9c46a;
+    --waitlist-info: #457b9d;
+
+    /* Waitlist Text Colors - Using design system for consistency */
+    --waitlist-text-primary: var(--color-text-primary, #18181B);
+    --waitlist-text-secondary: var(--color-text-secondary, #3F3F46);
+    --waitlist-text-muted: var(--color-text-muted, #52525B);
+
+    /* Gradient backgrounds - sunset soccer vibes */
+    --waitlist-gradient-warm: linear-gradient(135deg, #f4a261 0%, #e76f51 100%);
+    --waitlist-gradient-cool: linear-gradient(135deg, #2a9d8f 0%, #457b9d 100%);
+    --waitlist-gradient-sunset: linear-gradient(135deg, #e76f51 0%, #f4a261 50%, #e9c46a 100%);
+
+    /* Spacing - generous and breathable */
+    --waitlist-space-xs: 0.5rem;
+    --waitlist-space-sm: 0.75rem;
+    --waitlist-space-md: 1rem;
+    --waitlist-space-lg: 1.5rem;
+    --waitlist-space-xl: 2rem;
+    --waitlist-space-2xl: 3rem;
+
+    /* Typography scale */
+    --waitlist-font-display: 'Outfit', 'Space Grotesk', system-ui, -apple-system, sans-serif;
+    --waitlist-font-body: 'DM Sans', system-ui, -apple-system, sans-serif;
+    --waitlist-font-size-xs: 0.75rem;
+    --waitlist-font-size-sm: 0.875rem;
+    --waitlist-font-size-base: 1rem;
+    --waitlist-font-size-lg: 1.125rem;
+    --waitlist-font-size-xl: 1.25rem;
+    --waitlist-font-size-2xl: 1.5rem;
+    --waitlist-font-size-3xl: 2rem;
+
+    /* Shadows - soft and layered */
+    --waitlist-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --waitlist-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --waitlist-shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
+    --waitlist-shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.15);
+
+    /* Border radius - modern and friendly */
+    --waitlist-radius-sm: 8px;
+    --waitlist-radius-md: 12px;
+    --waitlist-radius-lg: 16px;
+    --waitlist-radius-xl: 24px;
+
+    /* Transitions - smooth and lively */
+    --waitlist-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --waitlist-transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    --waitlist-transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+    --waitlist-transition-bounce: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Desktop optimizations */
-@media (min-width: 769px) {
-    .main-container {
-        max-width: 800px;
-        margin: 0 auto;
+/* ============================================
+   WAITLIST WRAPPER - Full-screen gradient
+   ============================================ */
+
+.c-waitlist {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--waitlist-gradient-sunset);
+    padding: var(--waitlist-space-xl);
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Animated background pattern */
+.c-waitlist::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0px, transparent 1px, transparent 40px, rgba(255, 255, 255, 0.03) 41px),
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.03) 0px, transparent 1px, transparent 40px, rgba(255, 255, 255, 0.03) 41px);
+    opacity: 0.4;
+    animation: patternSlide 60s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes patternSlide {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(40px, 40px); }
+}
+
+/* ============================================
+   WAITLIST CARD - Elevated central panel
+   ============================================ */
+
+.c-waitlist__wrapper {
+    width: 100%;
+    max-width: 500px;
+    position: relative;
+    z-index: 1;
+    animation: cardFloatIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes cardFloatIn {
+    0% {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
     }
 }
 
-/* ===== IMAGE CONTAINER STYLING ===== */
-.img-container {
-    width: 100%;
-    max-height: 600px;
+.c-waitlist__card {
+    background: white;
+    border-radius: var(--waitlist-radius-xl);
+    box-shadow: var(--waitlist-shadow-xl);
     overflow: hidden;
+    transition: transform var(--waitlist-transition-base);
 }
 
-.img-container img {
+.c-waitlist__card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.18);
+}
+
+.c-waitlist__body {
+    padding: var(--waitlist-space-2xl);
+}
+
+/* ============================================
+   BRANDING - Logo and title area
+   ============================================ */
+
+.c-waitlist__brand {
+    text-align: center;
+    margin-bottom: var(--waitlist-space-xl);
+}
+
+.c-waitlist__brand-link {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--waitlist-space-md);
+    text-decoration: none;
+    transition: transform var(--waitlist-transition-base);
+}
+
+.c-waitlist__brand-link:hover {
+    transform: scale(1.05);
+}
+
+.c-waitlist__logo {
+    height: 64px;
+    width: auto;
+    filter: drop-shadow(0 4px 12px rgba(42, 157, 143, 0.2));
+    transition: filter var(--waitlist-transition-base);
+}
+
+.c-waitlist__brand-link:hover .c-waitlist__logo {
+    filter: drop-shadow(0 6px 16px rgba(42, 157, 143, 0.3));
+}
+
+.c-waitlist__brand-text {
+    font-family: var(--waitlist-font-display);
+    font-size: var(--waitlist-font-size-lg);
+    font-weight: 700;
+    color: var(--waitlist-text-primary);
+    letter-spacing: -0.02em;
+}
+
+/* Desktop branding with dual logos */
+.c-waitlist__branding {
+    text-align: center;
+    margin-bottom: var(--waitlist-space-xl);
+}
+
+.c-waitlist__branding--mobile {
+    display: none;
+}
+
+.c-waitlist__branding-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--waitlist-space-lg);
+}
+
+.c-waitlist__logo--primary,
+.c-waitlist__logo--secondary {
+    height: 56px;
+    width: auto;
+    filter: drop-shadow(0 4px 12px rgba(42, 157, 143, 0.15));
+    transition: all var(--waitlist-transition-base);
+}
+
+.c-waitlist__logo--mobile {
+    height: 48px;
+}
+
+/* ============================================
+   CONTENT - Headers and descriptions
+   ============================================ */
+
+.c-waitlist__content {
+    margin-bottom: var(--waitlist-space-xl);
+}
+
+.c-waitlist__title {
+    font-family: var(--waitlist-font-display);
+    font-size: var(--waitlist-font-size-3xl);
+    font-weight: 800;
+    color: var(--waitlist-text-primary);
+    margin: 0 0 var(--waitlist-space-sm) 0;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+    animation: titleSlideIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+}
+
+@keyframes titleSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.c-waitlist__description,
+.c-waitlist__subtitle {
+    font-family: var(--waitlist-font-body);
+    font-size: var(--waitlist-font-size-base);
+    color: var(--waitlist-text-muted);
+    line-height: 1.6;
+    margin: 0;
+    animation: fadeInUp 0.6s ease-out 0.3s both;
+}
+
+@keyframes fadeInUp {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================
+   SECTIONS - Login/register options
+   ============================================ */
+
+.c-waitlist__panel {
+    background: white;
+    border-radius: var(--waitlist-radius-xl);
+    box-shadow: var(--waitlist-shadow-xl);
+    overflow: hidden;
+    max-width: 540px;
+    width: 100%;
+}
+
+.c-waitlist__panel-content {
+    padding: var(--waitlist-space-2xl);
+}
+
+.c-waitlist__options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--waitlist-space-xl);
+}
+
+.c-waitlist__section {
+    padding: var(--waitlist-space-lg);
+    background: linear-gradient(135deg, rgba(42, 157, 143, 0.03) 0%, rgba(69, 123, 157, 0.03) 100%);
+    border-radius: var(--waitlist-radius-md);
+    border: 2px solid transparent;
+    transition: all var(--waitlist-transition-base);
+}
+
+.c-waitlist__section:hover {
+    border-color: rgba(42, 157, 143, 0.2);
+    background: linear-gradient(135deg, rgba(42, 157, 143, 0.05) 0%, rgba(69, 123, 157, 0.05) 100%);
+    transform: translateY(-2px);
+}
+
+.c-waitlist__section-title {
+    font-family: var(--waitlist-font-display);
+    font-size: var(--waitlist-font-size-xl);
+    font-weight: 700;
+    color: var(--waitlist-text-primary);
+    margin: 0 0 var(--waitlist-space-sm) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--waitlist-space-sm);
+}
+
+.c-waitlist__section-title i {
+    color: var(--waitlist-primary);
+}
+
+.c-waitlist__section-description {
+    font-family: var(--waitlist-font-body);
+    font-size: var(--waitlist-font-size-sm);
+    color: var(--waitlist-text-muted);
+    margin: 0 0 var(--waitlist-space-lg) 0;
+    line-height: 1.5;
+}
+
+/* ============================================
+   ACTIONS - Button container
+   ============================================ */
+
+.c-waitlist__actions {
+    margin: var(--waitlist-space-xl) 0;
+    animation: fadeInUp 0.6s ease-out 0.4s both;
+}
+
+/* ============================================
+   HELP TEXT - Informational sections
+   ============================================ */
+
+.c-waitlist__help-text {
+    font-family: var(--waitlist-font-body);
+    font-size: var(--waitlist-font-size-sm);
+    color: var(--waitlist-text-muted);
+    text-align: center;
+    padding: var(--waitlist-space-lg);
+    background: rgba(42, 157, 143, 0.04);
+    border-radius: var(--waitlist-radius-md);
+    margin: var(--waitlist-space-lg) 0;
+}
+
+.c-waitlist__help-text p {
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* ============================================
+   DIVIDER SECTION
+   ============================================ */
+
+.c-waitlist__divider-section {
+    margin: var(--waitlist-space-xl) 0;
+    padding: var(--waitlist-space-xl) 0;
+    border-top: 2px solid rgba(42, 157, 143, 0.1);
+    border-bottom: 2px solid rgba(42, 157, 143, 0.1);
+}
+
+/* ============================================
+   BENEFITS - Feature grid
+   ============================================ */
+
+.c-waitlist__benefits {
+    margin: var(--waitlist-space-xl) 0;
+    padding: var(--waitlist-space-xl);
+    background: linear-gradient(135deg, rgba(244, 162, 97, 0.05) 0%, rgba(233, 196, 106, 0.05) 100%);
+    border-radius: var(--waitlist-radius-lg);
+}
+
+.c-waitlist__benefits-title {
+    font-family: var(--waitlist-font-display);
+    font-size: var(--waitlist-font-size-xl);
+    font-weight: 700;
+    color: var(--waitlist-text-primary);
+    text-align: center;
+    margin: 0 0 var(--waitlist-space-lg) 0;
+}
+
+.c-waitlist__benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--waitlist-space-lg);
+}
+
+.c-waitlist__benefit-item {
+    text-align: center;
+    padding: var(--waitlist-space-md);
+    transition: transform var(--waitlist-transition-base);
+}
+
+.c-waitlist__benefit-item:hover {
+    transform: translateY(-4px);
+}
+
+.c-waitlist__benefit-icon {
+    font-size: 2rem;
+    color: var(--waitlist-primary);
+    margin-bottom: var(--waitlist-space-sm);
     display: block;
-    max-width: 100%;
-    height: auto;
+    animation: iconBounce 2s ease-in-out infinite;
 }
 
-/* ===== CROPPER MODAL STYLES ===== */
-#profileImageModal .modal-body {
-    min-height: 500px;
-    max-height: 80vh;
+@keyframes iconBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+.c-waitlist__benefit-item:nth-child(1) .c-waitlist__benefit-icon {
+    animation-delay: 0s;
+}
+
+.c-waitlist__benefit-item:nth-child(2) .c-waitlist__benefit-icon {
+    animation-delay: 0.2s;
+}
+
+.c-waitlist__benefit-item:nth-child(3) .c-waitlist__benefit-icon {
+    animation-delay: 0.4s;
+}
+
+.c-waitlist__benefit-text {
+    font-family: var(--waitlist-font-body);
+    font-size: var(--waitlist-font-size-sm);
+    color: var(--waitlist-text-primary);
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* ============================================
+   FOOTER - Back links
+   ============================================ */
+
+.c-waitlist__footer {
+    text-align: center;
+    margin-top: var(--waitlist-space-xl);
+    padding-top: var(--waitlist-space-xl);
+    border-top: 1px solid rgba(42, 157, 143, 0.1);
+}
+
+/* ============================================
+   AUTHENTICATED VARIANT - Dashboard style
+   ============================================ */
+
+.c-waitlist--authenticated {
+    background: #f8f9fa;
+    padding: 0;
+    min-height: 100vh;
+}
+
+.c-waitlist--authenticated .c-waitlist__container {
+    max-width: 800px;
+    margin: var(--waitlist-space-2xl) auto;
+    padding: 0 var(--waitlist-space-lg);
+}
+
+.c-waitlist__header {
+    text-align: center;
+    margin-bottom: var(--waitlist-space-xl);
+}
+
+/* Profile card for authenticated users */
+.c-waitlist__profile-card {
+    background: linear-gradient(135deg, rgba(42, 157, 143, 0.04) 0%, rgba(69, 123, 157, 0.04) 100%);
+    border-radius: var(--waitlist-radius-lg);
+    padding: var(--waitlist-space-lg);
+    margin: var(--waitlist-space-lg) 0;
+    border: 2px solid rgba(42, 157, 143, 0.1);
+}
+
+.c-waitlist__profile-body {
+    /* Styling handled by profile-info */
+}
+
+.c-waitlist__profile-info {
+    display: flex;
+    align-items: center;
+    gap: var(--waitlist-space-lg);
+}
+
+.c-waitlist__avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--waitlist-primary);
+    box-shadow: var(--waitlist-shadow-md);
+}
+
+.c-waitlist__avatar--placeholder {
+    background: var(--waitlist-gradient-cool);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.c-waitlist__avatar-text {
+    color: white;
+    font-size: var(--waitlist-font-size-xl);
+    font-weight: 700;
+    font-family: var(--waitlist-font-display);
+}
+
+.c-waitlist__profile-details {
+    flex: 1;
+}
+
+.c-waitlist__profile-name {
+    font-family: var(--waitlist-font-display);
+    font-size: var(--waitlist-font-size-lg);
+    font-weight: 700;
+    color: var(--waitlist-text-primary);
+    margin: 0 0 var(--waitlist-space-xs) 0;
+}
+
+.c-waitlist__profile-email {
+    font-size: var(--waitlist-font-size-sm);
+    color: var(--waitlist-text-muted);
+    margin: 0 0 var(--waitlist-space-xs) 0;
+}
+
+.c-waitlist__profile-league {
+    font-size: var(--waitlist-font-size-xs);
+    color: var(--waitlist-primary);
+    font-weight: 600;
+}
+
+.c-waitlist__profile-actions {
+    /* Flex handled by parent */
+}
+
+/* ============================================
+   DISCORD VARIANT - Form-focused layout
+   ============================================ */
+
+.c-waitlist--discord {
+    background: #f8f9fa;
+    padding: var(--waitlist-space-lg);
+    min-height: 100vh;
+}
+
+.c-waitlist--discord .c-waitlist__container {
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.c-waitlist__card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--waitlist-space-lg);
+    background: linear-gradient(135deg, rgba(42, 157, 143, 0.05) 0%, rgba(69, 123, 157, 0.05) 100%);
+    border-bottom: 2px solid rgba(42, 157, 143, 0.1);
+}
+
+.c-waitlist__header-content {
+    flex: 1;
+}
+
+.c-waitlist__header-logo {
+    flex-shrink: 0;
+}
+
+.c-waitlist__card-body {
+    padding: var(--waitlist-space-xl);
+}
+
+/* Form styling */
+.c-waitlist__form {
+    /* Form elements inherit from global form styles */
+}
+
+/* Next steps section */
+.c-waitlist__next-steps {
+    margin: var(--waitlist-space-2xl) 0 var(--waitlist-space-xl);
+}
+
+.c-waitlist__steps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--waitlist-space-lg);
+    margin-top: var(--waitlist-space-lg);
+}
+
+.c-waitlist__step {
+    text-align: center;
+    padding: var(--waitlist-space-md);
+}
+
+.c-waitlist__step-badge {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--waitlist-gradient-cool);
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--waitlist-font-size-xl);
+    font-weight: 700;
+    font-family: var(--waitlist-font-display);
+    margin-bottom: var(--waitlist-space-sm);
+    box-shadow: var(--waitlist-shadow-md);
+}
+
+.c-waitlist__step-text {
+    font-size: var(--waitlist-font-size-sm);
+    color: var(--waitlist-text-muted);
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* ============================================
+   CAROUSEL VARIANT - Multi-step form
+   ============================================ */
+
+.c-waitlist--carousel {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 0;
+    align-items: flex-start;
+    padding-top: var(--waitlist-space-2xl);
+}
+
+.c-waitlist__modal {
+    display: block;
+    position: relative;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.c-waitlist__modal-dialog {
+    /* Handled by modal structure */
+}
+
+.c-waitlist__modal-content {
+    background: white;
+    border-radius: var(--waitlist-radius-xl);
+    box-shadow: var(--waitlist-shadow-xl);
+    overflow: hidden;
+    animation: modalSlideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.95);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.c-waitlist__modal-header {
+    padding: var(--waitlist-space-lg);
+    background: linear-gradient(135deg, var(--waitlist-primary) 0%, var(--waitlist-info) 100%);
+    border-bottom: none;
+}
+
+.c-waitlist__modal-title {
+    font-family: var(--waitlist-font-display);
+    font-size: var(--waitlist-font-size-xl);
+    font-weight: 700;
+    color: white;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--waitlist-space-sm);
+}
+
+.c-waitlist__modal-title i {
+    font-size: var(--waitlist-font-size-2xl);
+}
+
+.c-waitlist__modal-body {
+    padding: 0;
+    max-height: 70vh;
     overflow-y: auto;
 }
 
-/* Make sure the image container is properly sized */
-#profileImageModal .img-container {
-    width: 100%;
-    min-height: 400px;
-    max-height: 500px;
+/* Alert in carousel */
+.c-waitlist__notice {
+    margin: var(--waitlist-space-lg);
+}
+
+/* Progress bar */
+.c-waitlist__progress {
+    height: 6px;
+    background: rgba(42, 157, 143, 0.1);
+    margin: 0 var(--waitlist-space-lg);
+    border-radius: 3px;
     overflow: hidden;
-    margin-top: 1rem;
 }
 
-/* ===== MOBILE RESPONSIVENESS ===== */
+.c-waitlist__progress-bar {
+    height: 100%;
+    background: var(--waitlist-gradient-cool);
+    width: 14%;
+    transition: width var(--waitlist-transition-slow);
+    position: relative;
+    overflow: hidden;
+}
+
+.c-waitlist__progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: progressShimmer 2s infinite;
+}
+
+@keyframes progressShimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.c-waitlist__progress-text {
+    text-align: center;
+    margin: var(--waitlist-space-sm) 0 var(--waitlist-space-lg);
+}
+
+.c-waitlist__progress-text small {
+    font-family: var(--waitlist-font-body);
+    font-size: var(--waitlist-font-size-xs);
+    color: var(--waitlist-text-muted);
+    font-weight: 600;
+}
+
+/* Carousel structure */
+.c-waitlist__carousel {
+    /* Bootstrap carousel compatibility */
+}
+
+.c-waitlist__carousel-inner {
+    /* Bootstrap carousel compatibility */
+}
+
+/* Carousel controls */
+.c-waitlist__carousel-controls {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--waitlist-space-lg);
+    margin-top: var(--waitlist-space-lg);
+    border-top: 2px solid rgba(42, 157, 143, 0.1);
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
 @media (max-width: 768px) {
-    .container-xxl {
-        padding: 1rem;
+    .c-waitlist {
+        padding: var(--waitlist-space-md);
     }
-    
-    .card {
-        border: none;
-        box-shadow: none;
+
+    .c-waitlist__wrapper {
+        max-width: 100%;
     }
-    
-    .card-header {
+
+    .c-waitlist__body {
+        padding: var(--waitlist-space-lg);
+    }
+
+    .c-waitlist__title {
+        font-size: var(--waitlist-font-size-2xl);
+    }
+
+    .c-waitlist__branding--desktop {
+        display: none;
+    }
+
+    .c-waitlist__branding--mobile {
+        display: block;
+    }
+
+    .c-waitlist__benefits-grid {
+        grid-template-columns: 1fr;
+        gap: var(--waitlist-space-md);
+    }
+
+    .c-waitlist__profile-info {
         flex-direction: column;
-        align-items: flex-start !important;
-        text-align: left;
+        text-align: center;
     }
-    
-    .card-header .ms-3 {
-        margin-left: 0 !important;
-        margin-top: 0.75rem;
-        align-self: flex-end;
+
+    .c-waitlist__steps-grid {
+        grid-template-columns: 1fr;
     }
-    
-    .section-header {
-        font-size: 1.1rem;
+
+    .c-waitlist__card-header {
+        flex-direction: column;
+        gap: var(--waitlist-space-md);
     }
-    
-    .form-control, 
-    .form-select {
-        font-size: 16px; /* Prevent zoom on iOS */
+
+    .c-waitlist--carousel {
+        padding-top: var(--waitlist-space-md);
     }
-    
-    .logo-sm {
-        max-height: 32px; /* Smaller on mobile */
+
+    .c-waitlist__modal-content {
+        border-radius: var(--waitlist-radius-md);
     }
 }
 
-/* ===== LOGO STYLING ===== */
-.logo-sm {
-    max-height: 40px;
-    height: auto;
-    width: auto;
-    object-fit: contain;
+@media (max-width: 576px) {
+    .c-waitlist__logo {
+        height: 48px;
+    }
+
+    .c-waitlist__brand-text {
+        font-size: var(--waitlist-font-size-base);
+    }
+
+    .c-waitlist__title {
+        font-size: var(--waitlist-font-size-xl);
+    }
+
+    .c-waitlist__section {
+        padding: var(--waitlist-space-md);
+    }
+
+    .c-waitlist__carousel-controls {
+        flex-direction: column;
+        gap: var(--waitlist-space-sm);
+    }
 }
 
-/* ===== CARD HEADER STYLING ===== */
-.card-header {
-    background-color: var(--bs-body-bg);
-    border-bottom: 1px solid var(--bs-border-color);
-    min-height: 60px;
+/* ============================================
+   DARK MODE SUPPORT
+   ============================================ */
+
+[data-style="dark"] .c-waitlist,
+[data-theme="dark"] .c-waitlist {
+    background: linear-gradient(135deg, #1a252f 0%, #264653 100%);
 }
 
-.card-header h5 {
-    color: var(--bs-heading-color);
-    line-height: 1.2;
+[data-style="dark"] .c-waitlist__card,
+[data-theme="dark"] .c-waitlist__card {
+    background: #2d3748;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
 }
 
-.card-header .logo-sm {
-    opacity: 0.8;
-    transition: opacity 0.2s ease;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+[data-style="dark"] .c-waitlist__title,
+[data-theme="dark"] .c-waitlist__title {
+    color: var(--color-text-primary, #FFFFFF);
 }
 
-.card-header .logo-sm:hover {
-    opacity: 1;
+[data-style="dark"] .c-waitlist__description,
+[data-style="dark"] .c-waitlist__subtitle,
+[data-theme="dark"] .c-waitlist__description,
+[data-theme="dark"] .c-waitlist__subtitle {
+    color: var(--color-text-secondary, #E2E8F0);
 }
 
-/* ===== DARK MODE SUPPORT ===== */
-html[data-style="dark"] .section-header {
-    border-bottom-color: var(--bs-border-color);
+[data-style="dark"] .c-waitlist__section,
+[data-theme="dark"] .c-waitlist__section {
+    background: rgba(42, 157, 143, 0.1);
+    border-color: rgba(42, 157, 143, 0.2);
+}
+
+[data-style="dark"] .c-waitlist__section:hover,
+[data-theme="dark"] .c-waitlist__section:hover {
+    background: rgba(42, 157, 143, 0.15);
+    border-color: rgba(42, 157, 143, 0.3);
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    .c-waitlist,
+    .c-waitlist__card,
+    .c-waitlist__title,
+    .c-waitlist__description,
+    .c-waitlist__actions,
+    .c-waitlist__benefit-icon,
+    .c-waitlist__progress-bar::after,
+    .c-waitlist::before {
+        animation: none;
+    }
+
+    * {
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Focus states for keyboard navigation */
+.c-waitlist a:focus-visible,
+.c-waitlist button:focus-visible {
+    outline: 3px solid var(--waitlist-primary);
+    outline-offset: 2px;
 }

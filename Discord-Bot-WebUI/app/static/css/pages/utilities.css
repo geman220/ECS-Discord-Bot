@@ -1,0 +1,140 @@
+/**
+ * Utility Pages Styles
+ * BEM Migration - Wave 9
+ * Components: cache-manager, sync-review, db-monitor
+ * Date: 2025-12-18
+ */
+
+/* ========================================
+   CSS Variables
+   ======================================== */
+:root {
+    --cache-spinner-size: 3rem;
+    --cache-card-max-width: 500px;
+    --cache-spacing: 1.5rem;
+}
+
+/* ========================================
+   Cache Manager Component
+   ======================================== */
+.c-cache-manager {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--cache-spacing);
+}
+
+.c-cache-manager__wrapper {
+    width: 100%;
+    max-width: var(--cache-card-max-width);
+}
+
+.c-cache-manager__inner {
+    width: 100%;
+}
+
+.c-cache-manager__card {
+    background: var(--bs-card-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.c-cache-manager__body {
+    padding: 2rem;
+}
+
+.c-cache-manager__brand {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.c-cache-manager__brand-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+.c-cache-manager__brand-logo img {
+    display: block;
+}
+
+.c-cache-manager__title {
+    margin-bottom: 0.5rem;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--bs-heading-color);
+}
+
+.c-cache-manager__subtitle {
+    margin-bottom: 2rem;
+    text-align: center;
+    color: var(--bs-secondary-color);
+}
+
+.c-cache-manager__status {
+    text-align: center;
+}
+
+.c-cache-manager__spinner {
+    display: inline-block;
+    width: var(--cache-spinner-size);
+    height: var(--cache-spinner-size);
+    border: 0.25rem solid var(--bs-primary);
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border 0.75s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spinner-border {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.c-cache-manager__message {
+    margin-bottom: 1rem;
+    font-size: 1.125rem;
+    color: var(--bs-body-color);
+}
+
+.c-cache-manager__note {
+    display: block;
+    color: var(--bs-secondary-color);
+    font-size: 0.875rem;
+}
+
+/* ========================================
+   DB Monitor Component (if needed)
+   ======================================== */
+.c-db-monitor {
+    /* DB monitoring already has good styles in db_monitoring.html */
+    /* No additional styles needed as template uses standard Bootstrap */
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+@media (max-width: 576px) {
+    .c-cache-manager {
+        padding: 1rem;
+    }
+
+    .c-cache-manager__body {
+        padding: 1.5rem;
+    }
+
+    .c-cache-manager__title {
+        font-size: 1.25rem;
+    }
+
+    .c-cache-manager__spinner {
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+}

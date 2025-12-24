@@ -16,14 +16,14 @@
     </h4>
 
     <!-- Poll Info Card -->
-    <div class="card mb-4">
-        <div class="card-body">
+    <div class="c-card mb-4">
+        <div class="c-card__body">
             <div class="row align-items-center">
                 <div class="col-md-8">
-                    <h5 class="card-title mb-1">{{ poll.title }}</h5>
+                    <h5 class="c-card__title mb-1">{{ poll.title }}</h5>
                     <p class="text-muted mb-2">{{ poll.question }}</p>
                     <div class="d-flex align-items-center gap-3">
-                        <span class="badge bg-{{ 'success' if poll.status == 'ACTIVE' else 'warning' }}">
+                        <span class="badge bg-{{ 'success' if poll.status == 'ACTIVE' else 'warning' }}" data-badge>
                             {{ poll.status }}
                         </span>
                         <small class="text-muted">
@@ -37,7 +37,7 @@
                     </div>
                 </div>
                 <div class="col-md-4 text-end">
-                    <a href="{{ url_for('admin.manage_polls') }}" class="btn btn-outline-secondary">
+                    <a href="{{ url_for('admin.manage_polls') }}" class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-arrow-left me-1"></i> Back to Polls
                     </a>
                 </div>
@@ -48,36 +48,36 @@
     <!-- Overall Stats -->
     <div class="row mb-4">
         <div class="col-md-3 col-sm-6 mb-3">
-            <div class="card h-100 text-center">
-                <div class="card-body">
-                    <i class="ti ti-users text-primary" style="font-size: 2rem;"></i>
+            <div class="c-card h-100 text-center">
+                <div class="c-card__body">
+                    <i class="ti ti-users text-primary" class="u-icon-xl"></i>
                     <h3 class="mt-2">{{ total_responses }}</h3>
                     <p class="text-muted mb-0">Total Responses</p>
                 </div>
             </div>
         </div>
         <div class="col-md-3 col-sm-6 mb-3">
-            <div class="card h-100 text-center">
-                <div class="card-body">
-                    <i class="ti ti-check text-success" style="font-size: 2rem;"></i>
+            <div class="c-card h-100 text-center">
+                <div class="c-card__body">
+                    <i class="ti ti-check text-success" class="u-icon-xl"></i>
                     <h3 class="mt-2 text-success">{{ response_counts.yes }}</h3>
                     <p class="text-muted mb-0">Yes Responses</p>
                 </div>
             </div>
         </div>
         <div class="col-md-3 col-sm-6 mb-3">
-            <div class="card h-100 text-center">
-                <div class="card-body">
-                    <i class="ti ti-x text-danger" style="font-size: 2rem;"></i>
+            <div class="c-card h-100 text-center">
+                <div class="c-card__body">
+                    <i class="ti ti-x text-danger" class="u-icon-xl"></i>
                     <h3 class="mt-2 text-danger">{{ response_counts.no }}</h3>
                     <p class="text-muted mb-0">No Responses</p>
                 </div>
             </div>
         </div>
         <div class="col-md-3 col-sm-6 mb-3">
-            <div class="card h-100 text-center">
-                <div class="card-body">
-                    <i class="ti ti-alert-triangle text-warning" style="font-size: 2rem;"></i>
+            <div class="c-card h-100 text-center">
+                <div class="c-card__body">
+                    <i class="ti ti-alert-triangle text-warning" class="u-icon-xl"></i>
                     <h3 class="mt-2 text-warning">{{ response_counts.maybe }}</h3>
                     <p class="text-muted mb-0">Maybe Responses</p>
                 </div>
@@ -88,16 +88,16 @@
     <div class="row">
         <!-- Overall Chart -->
         <div class="col-lg-4 mb-4">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Overall Results</h5>
+            <div class="c-card h-100">
+                <div class="c-card__header">
+                    <h5 class="c-card__title mb-0">Overall Results</h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     {% if total_responses > 0 %}
                     <canvas id="overallChart" width="400" height="400"></canvas>
                     {% else %}
                     <div class="text-center py-4">
-                        <i class="ti ti-chart-pie text-muted" style="font-size: 3rem;"></i>
+                        <i class="ti ti-chart-pie text-muted" class="u-icon-3xl"></i>
                         <p class="text-muted mt-2">No responses yet</p>
                     </div>
                     {% endif %}
@@ -107,22 +107,22 @@
 
         <!-- Team Breakdown -->
         <div class="col-lg-8 mb-4">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Team Breakdown</h5>
+            <div class="c-card h-100">
+                <div class="c-card__header">
+                    <h5 class="c-card__title mb-0">Team Breakdown</h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     {% if team_breakdown %}
-                    <div class="table-responsive">
-                        <table class="table table-striped" id="teamBreakdownTable">
-                            <thead>
+                    <div class="c-table-wrapper" data-table-responsive>
+                        <table class="c-table c-table--striped" id="teamBreakdownTable" data-table>
+                            <thead scope="col">
                                 <tr>
-                                    <th>Team</th>
-                                    <th class="text-center">Yes</th>
-                                    <th class="text-center">No</th>
-                                    <th class="text-center">Maybe</th>
-                                    <th class="text-center">Total</th>
-                                    <th>Response Rate</th>
+                                    <th scope="col">Team</th>
+                                    <th class="text-center" scope="col">Yes</th>
+                                    <th class="text-center" scope="col">No</th>
+                                    <th class="text-center" scope="col">Maybe</th>
+                                    <th class="text-center" scope="col">Total</th>
+                                    <th scope="col">Response Rate</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -130,24 +130,24 @@
                                 <tr>
                                     <td><strong>{{ team_name }}</strong></td>
                                     <td class="text-center">
-                                        <span class="badge bg-success">{{ data.yes }}</span>
+                                        <span class="badge bg-success" data-badge>{{ data.yes }}</span>
                                     </td>
                                     <td class="text-center">
-                                        <span class="badge bg-danger">{{ data.no }}</span>
+                                        <span class="badge bg-danger" data-badge>{{ data.no }}</span>
                                     </td>
                                     <td class="text-center">
-                                        <span class="badge bg-warning">{{ data.maybe }}</span>
+                                        <span class="badge bg-warning" data-badge>{{ data.maybe }}</span>
                                     </td>
                                     <td class="text-center">
                                         <strong>{{ data.total }}</strong>
                                     </td>
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                            <div class="progress flex-grow-1 me-2" class="u-progress-h-6">
                                                 {% if data.total > 0 %}
-                                                <div class="progress-bar bg-success" style="width: {{ (data.yes / data.total * 100)|round(1) }}%"></div>
-                                                <div class="progress-bar bg-danger" style="width: {{ (data.no / data.total * 100)|round(1) }}%"></div>
-                                                <div class="progress-bar bg-warning" style="width: {{ (data.maybe / data.total * 100)|round(1) }}%"></div>
+                                                <div class="progress-bar bg-success"></div>
+                                                <div class="progress-bar bg-danger"></div>
+                                                <div class="progress-bar bg-warning"></div>
                                                 {% endif %}
                                             </div>
                                             <small class="text-muted">{{ data.total }} players</small>
@@ -160,7 +160,7 @@
                     </div>
                     {% else %}
                     <div class="text-center py-4">
-                        <i class="ti ti-users text-muted" style="font-size: 3rem;"></i>
+                        <i class="ti ti-users text-muted" class="u-icon-3xl"></i>
                         <p class="text-muted mt-2">No team responses yet</p>
                     </div>
                     {% endif %}
@@ -171,19 +171,19 @@
 
     <!-- Individual Responses -->
     {% if responses %}
-    <div class="card">
-        <div class="card-header">
-            <h5 class="card-title mb-0">Individual Responses</h5>
+    <div class="c-card">
+        <div class="c-card__header">
+            <h5 class="c-card__title mb-0">Individual Responses</h5>
         </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped" id="responsesTable">
-                    <thead>
+        <div class="c-card__body">
+            <div class="c-table-wrapper" data-table-responsive>
+                <table class="c-table c-table--striped" id="responsesTable" data-table>
+                    <thead scope="col">
                         <tr>
-                            <th>Player</th>
-                            <th>Team</th>
-                            <th>Response</th>
-                            <th>Responded At</th>
+                            <th scope="col">Player</th>
+                            <th scope="col">Team</th>
+                            <th scope="col">Response</th>
+                            <th scope="col">Responded At</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -193,11 +193,11 @@
                             <td>{{ team.name }}</td>
                             <td>
                                 {% if response.response == 'yes' %}
-                                <span class="badge bg-success">✅ Yes</span>
+                                <span class="badge bg-success" data-badge>✅ Yes</span>
                                 {% elif response.response == 'no' %}
-                                <span class="badge bg-danger">❌ No</span>
+                                <span class="badge bg-danger" data-badge>❌ No</span>
                                 {% elif response.response == 'maybe' %}
-                                <span class="badge bg-warning">⚠️ Maybe</span>
+                                <span class="badge bg-warning" data-badge>⚠️ Maybe</span>
                                 {% endif %}
                             </td>
                             <td>

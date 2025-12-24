@@ -1,0 +1,873 @@
+/**
+ * ============================================================================
+ * BASE LAYOUT STYLES
+ * ============================================================================
+ *
+ * Core layout structure and styles for the base template.
+ * This file affects EVERY page in the application.
+ *
+ * Contains:
+ * - Layout wrapper and container structures
+ * - Content wrapper and spacing
+ * - Footer styling
+ * - Role impersonation banner
+ * - Notification/toast container
+ * - Modal overlay and backdrop
+ * - Button interaction fixes (desktop/mobile)
+ * - Autocomplete styling
+ * - Responsive utilities
+ *
+ * Design System:
+ * - Uses design tokens exclusively (--color-*, --space-*, etc.)
+ * - Full dark mode support via [data-style="dark"]
+ * - Responsive breakpoints with mobile-first approach
+ * - Accessibility features included
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   BASE LAYOUT COMPONENT (BEM)
+   Core body and structural elements
+   ============================================================================ */
+
+.c-base-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================================
+   LAYOUT WRAPPER & CONTAINERS
+   Core structural elements
+   ============================================================================ */
+
+.layout-wrapper,
+.c-base-layout__wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.layout-container,
+.c-base-layout__container {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  position: relative;
+  /* Removed min-height: 100vh - parent layout-wrapper handles this */
+}
+
+.layout-page,
+.c-base-layout__page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  min-width: 0; /* Prevent flex item overflow */
+}
+
+/* ============================================================================
+   CONTENT WRAPPER
+   Main content area with proper spacing
+   ============================================================================ */
+
+.content-wrapper,
+.c-base-layout__content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  padding: 0;
+  overflow: visible;
+  position: relative;
+  min-height: 0; /* Allow proper flex shrinking */
+}
+
+/* Main content area - grows to push footer to bottom */
+main,
+.c-base-layout__main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* Allow proper flex shrinking */
+}
+
+.container-fluid.flex-grow-1.container-p-y {
+  padding: var(--space-6) var(--space-4);
+  flex: 1;
+}
+
+/* Responsive content padding */
+@media (min-width: 768px) {
+  .container-fluid.flex-grow-1.container-p-y {
+    padding: var(--space-8) var(--space-6);
+  }
+}
+
+@media (min-width: 1200px) {
+  .container-fluid.flex-grow-1.container-p-y {
+    padding: var(--space-10) var(--space-8);
+  }
+}
+
+/* ============================================================================
+   ROLE IMPERSONATION BANNER (BEM)
+   Admin feature alert banner
+   ============================================================================ */
+
+.role-impersonation-banner,
+.c-role-banner {
+  margin: var(--space-3);
+  margin-bottom: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-warning-subtle);
+  border: 1px solid var(--color-warning);
+  padding: var(--space-4);
+}
+
+[data-style="dark"] .role-impersonation-banner,
+[data-style="dark"] .c-role-banner {
+  background: rgba(var(--color-warning-rgb), 0.1);
+  border-color: var(--color-warning-600);
+}
+
+.role-impersonation-banner .role-banner-content,
+.c-role-banner__content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.role-impersonation-banner .role-banner-icon,
+.c-role-banner__icon {
+  font-size: var(--text-xl);
+  color: var(--color-warning);
+  flex-shrink: 0;
+}
+
+.role-impersonation-banner .role-banner-text,
+.c-role-banner__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.role-impersonation-banner .role-banner-title,
+.c-role-banner__title {
+  font-weight: var(--font-semibold);
+  color: var(--color-warning-700);
+  margin: 0;
+}
+
+[data-style="dark"] .role-impersonation-banner .role-banner-title,
+[data-style="dark"] .c-role-banner__title {
+  color: var(--color-warning-300);
+}
+
+.role-impersonation-banner .role-banner-description,
+.c-role-banner__description {
+  margin: var(--space-1) 0 0 0;
+  color: var(--color-warning-600);
+  font-size: var(--text-sm);
+}
+
+[data-style="dark"] .role-impersonation-banner .role-banner-description,
+[data-style="dark"] .c-role-banner__description {
+  color: var(--color-warning-400);
+}
+
+.role-impersonation-banner .role-banner-roles,
+.c-role-banner__roles {
+  font-weight: var(--font-semibold);
+  color: var(--color-warning-700);
+}
+
+[data-style="dark"] .role-impersonation-banner .role-banner-roles,
+[data-style="dark"] .c-role-banner__roles {
+  color: var(--color-warning-200);
+}
+
+.role-impersonation-banner .role-banner-button,
+.c-role-banner__form {
+  flex-shrink: 0;
+  margin-left: var(--space-3);
+}
+
+/* Mobile responsive banner */
+@media (max-width: 767px) {
+  .role-impersonation-banner,
+  .c-role-banner {
+    margin: var(--space-2);
+    margin-bottom: 0;
+    padding: var(--space-3);
+  }
+
+  .role-impersonation-banner .role-banner-content,
+  .c-role-banner__content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .role-impersonation-banner .role-banner-button,
+  .c-role-banner__form {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .role-impersonation-banner .role-banner-button .btn,
+  .c-role-banner__form .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ============================================================================
+   FOOTER (BEM)
+   Content footer styling
+   ============================================================================ */
+
+.content-footer,
+.c-base-layout__footer {
+  margin-top: auto;
+  flex-shrink: 0; /* Don't shrink footer */
+  padding: 1rem 1.5rem;
+  background: var(--color-bg-card, #ffffff);
+  border-top: 1px solid var(--color-border-primary, #e2e8f0);
+  position: relative;
+  z-index: 10; /* Above content but below modals and widgets */
+  min-height: 60px; /* Ensure footer has minimum height */
+}
+
+/* Footer must respect sidebar width on desktop */
+@media (min-width: 1200px) {
+  .content-footer,
+  .c-base-layout__footer {
+    margin-left: 260px; /* Match sidebar width */
+    width: calc(100% - 260px);
+    transition: margin-left 0.3s ease, width 0.3s ease;
+  }
+
+  /* When sidebar is collapsed, adjust footer */
+  .layout-menu-collapsed .content-footer,
+  .layout-menu-collapsed .c-base-layout__footer {
+    margin-left: 72px; /* Match collapsed sidebar width */
+    width: calc(100% - 72px);
+  }
+}
+
+/* On mobile, footer is full width (sidebar overlays) */
+@media (max-width: 1199.98px) {
+  .content-footer,
+  .c-base-layout__footer {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+[data-style="dark"] .content-footer,
+[data-style="dark"] .c-base-layout__footer {
+  background: #1e293b;
+  border-top-color: #475569;
+}
+
+.footer-container,
+.c-base-layout__footer-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.5rem 0;
+}
+
+.c-base-layout__footer-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.5rem 0;
+}
+
+.footer-container .text-body,
+.c-base-layout__footer-copyright {
+  color: var(--color-text-secondary, #64748b) !important;
+  font-size: 0.875rem !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+[data-style="dark"] .footer-container .text-body,
+[data-style="dark"] .c-base-layout__footer-copyright {
+  color: #94a3b8;
+}
+
+.footer-container a,
+.c-base-layout__footer-link {
+  color: var(--color-primary, #2563eb);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+[data-style="dark"] .footer-container a,
+[data-style="dark"] .c-base-layout__footer-link {
+  color: #60a5fa;
+}
+
+.footer-container a:hover,
+.c-base-layout__footer-link:hover {
+  color: var(--color-primary-700);
+  text-decoration: underline;
+}
+
+[data-style="dark"] .footer-container a:hover,
+[data-style="dark"] .c-base-layout__footer-link:hover {
+  color: var(--color-primary-400);
+}
+
+.footer-link {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  margin-right: var(--space-4);
+  transition: color var(--duration-fast) var(--ease-smooth);
+}
+
+.footer-link:hover {
+  color: var(--color-primary);
+}
+
+.c-base-layout__footer-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4, 1rem);
+}
+
+/* Mobile footer responsive */
+@media (max-width: 767px) {
+  .footer-container,
+  .c-base-layout__footer-content {
+    flex-direction: column;
+    gap: var(--space-3);
+    text-align: center;
+  }
+
+  .footer-link,
+  .c-base-layout__footer-link {
+    margin-right: 0;
+  }
+}
+
+/* ============================================================================
+   CONTENT BACKDROP (BEM)
+   Overlay for modals and sidebars
+   ============================================================================ */
+
+.content-backdrop,
+.c-base-layout__backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: var(--z-overlay);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--duration-normal) var(--ease-smooth),
+              visibility var(--duration-normal) var(--ease-smooth);
+  pointer-events: none;
+}
+
+.content-backdrop.show,
+.c-base-layout__backdrop.show {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+[data-style="dark"] .content-backdrop,
+[data-style="dark"] .c-base-layout__backdrop {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+/* ============================================================================
+   LAYOUT OVERLAY (BEM)
+   Menu toggle overlay
+   ============================================================================ */
+
+.layout-overlay,
+.c-base-layout__overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: var(--z-overlay);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--duration-normal) var(--ease-smooth),
+              visibility var(--duration-normal) var(--ease-smooth);
+  pointer-events: none;
+  cursor: pointer;
+}
+
+.layout-overlay.show,
+.c-base-layout__overlay.show {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+[data-style="dark"] .layout-overlay,
+[data-style="dark"] .c-base-layout__overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+/* ============================================================================
+   MODAL CONTAINER
+   Container for dynamically loaded modals
+   ============================================================================ */
+
+.modal-container {
+  position: relative;
+  z-index: var(--z-modal);
+}
+
+/* ============================================================================
+   DESKTOP BUTTON FIXES
+   Prevent unwanted transform effects on desktop
+   ============================================================================ */
+
+@media (hover: hover) and (pointer: fine) {
+  /**
+   * JUSTIFIED !important usage:
+   * Desktop devices with precise mouse input should NOT have transform effects.
+   * This overrides various framework and component-level transforms that create
+   * undesirable "jump" effects on desktop browsers. The !important is necessary
+   * because button transforms may be set by:
+   * - Bootstrap framework utilities
+   * - Third-party component libraries
+   * - Legacy inline styles from templates
+   * - JavaScript-added active states
+   */
+  button,
+  .btn,
+  .ecs-btn,
+  [class*="btn-"] {
+    transform: none !important;
+    transition: background-color var(--duration-fast) var(--ease-smooth),
+                color var(--duration-fast) var(--ease-smooth),
+                border-color var(--duration-fast) var(--ease-smooth) !important;
+  }
+
+  button:active,
+  button:hover,
+  button:focus,
+  .btn:active,
+  .btn:hover,
+  .btn:focus,
+  .ecs-btn:active,
+  .ecs-btn:hover,
+  .ecs-btn:focus,
+  [class*="btn-"]:active,
+  [class*="btn-"]:hover,
+  [class*="btn-"]:focus {
+    transform: none !important;
+  }
+
+  /* Touch feedback for desktop - opacity only */
+  .touch-active {
+    transform: none !important;
+    opacity: 0.9;
+  }
+}
+
+/* Mobile button enhancements */
+@media (hover: none) and (pointer: coarse) {
+  button,
+  .btn,
+  .ecs-btn,
+  [class*="btn-"] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  button:active,
+  .btn:active,
+  .ecs-btn:active,
+  [class*="btn-"]:active {
+    opacity: 0.8;
+    transition: opacity var(--duration-fast) var(--ease-smooth);
+  }
+}
+
+/* ============================================================================
+   AUTOCOMPLETE STYLING
+   jQuery UI autocomplete customizations
+   ============================================================================ */
+
+/* Autocomplete container */
+.ui-autocomplete {
+  max-height: 300px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-dropdown);
+  padding: var(--space-2) 0;
+}
+
+[data-style="dark"] .ui-autocomplete {
+  background: var(--color-neutral-50);
+  border-color: var(--color-neutral-200);
+}
+
+/* Autocomplete items */
+.ui-autocomplete .ui-menu-item {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.ui-autocomplete .ui-menu-item-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-smooth);
+  border: none;
+  text-decoration: none;
+}
+
+.ui-autocomplete .ui-menu-item-wrapper:hover,
+.ui-autocomplete .ui-menu-item-wrapper.ui-state-active {
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+}
+
+[data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper {
+  color: var(--color-neutral-900);
+}
+
+[data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper:hover,
+[data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper.ui-state-active {
+  background: rgba(var(--color-primary-rgb), 0.1);
+  color: var(--color-primary-400);
+}
+
+/* Autocomplete profile image */
+.autocomplete-profile-img {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid var(--border-color-primary);
+}
+
+[data-style="dark"] .autocomplete-profile-img {
+  border-color: var(--color-neutral-200);
+}
+
+/* ============================================================================
+   TOAST NOTIFICATION CONTAINER
+   Flash messages and toasts
+   ============================================================================ */
+
+.c-flash-toast-container {
+  position: fixed;
+  top: var(--space-6);
+  right: var(--space-6);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 400px;
+  pointer-events: none;
+}
+
+.c-flash-toast-container .toast {
+  pointer-events: auto;
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color-primary);
+}
+
+[data-style="dark"] .c-flash-toast-container .toast {
+  background: var(--color-neutral-50);
+  border-color: var(--color-neutral-200);
+}
+
+/* Mobile toast positioning */
+@media (max-width: 767px) {
+  .c-flash-toast-container {
+    top: var(--space-4);
+    right: var(--space-4);
+    left: var(--space-4);
+    max-width: none;
+  }
+}
+
+/* ============================================================================
+   RESPONSIVE UTILITIES
+   Mobile-specific layout adjustments
+   ============================================================================ */
+
+/**
+ * JUSTIFIED !important usage:
+ * Responsive utility classes must override component styles regardless of specificity.
+ * Bootstrap's display utilities use !important to ensure responsive behavior works
+ * consistently across all components and third-party integrations.
+ */
+@media (max-width: 991px) {
+  .d-lg-inline-block {
+    display: none !important;
+  }
+}
+
+/* Layout menu state management */
+.layout-menu-expanded .layout-overlay {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Prevent body scroll when menu is open */
+body.layout-menu-expanded {
+  overflow: hidden;
+}
+
+/* ============================================================================
+   MODAL OPEN STATE
+   Hide footer and fix layout when modal is displayed
+   ============================================================================ */
+
+/**
+ * When a modal is open, Bootstrap adds body.modal-open which causes layout issues:
+ * - The fixed footer's stacking context conflicts with page content
+ * - Page content can appear ON TOP of the footer
+ *
+ * Solution: Hide the footer completely when modal is open - user can't interact
+ * with it anyway, and the modal backdrop should cover everything.
+ */
+body.modal-open .content-footer,
+body.modal-open .c-base-layout__footer,
+body.modal-open .c-base-layout__footer-container,
+body.modal-open .footer-container {
+  display: none;
+}
+
+/* Also ensure the layout page doesn't collapse when modal is open */
+body.modal-open .layout-page,
+body.modal-open .c-base-layout__page {
+  min-height: 100vh;
+}
+
+/* ============================================================================
+   ACCESSIBILITY FEATURES
+   Enhanced focus states and screen reader support
+   ============================================================================ */
+
+/* Focus visible for keyboard navigation */
+button:focus-visible,
+.btn:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+[data-style="dark"] button:focus-visible,
+[data-style="dark"] .btn:focus-visible,
+[data-style="dark"] a:focus-visible,
+[data-style="dark"] input:focus-visible,
+[data-style="dark"] select:focus-visible,
+[data-style="dark"] textarea:focus-visible {
+  outline-color: var(--color-primary-400);
+}
+
+/* Screen reader only content */
+.sr-only,
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Skip to content link (BEM) */
+.skip-to-content,
+.skip-link,
+.c-base-layout__skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  padding: var(--space-2) var(--space-4);
+  text-decoration: none;
+  z-index: var(--z-modal);
+  border-radius: var(--radius-md);
+  font-weight: var(--font-semibold);
+}
+
+.skip-to-content:focus,
+.skip-link:focus,
+.c-base-layout__skip-link:focus {
+  top: var(--space-4);
+  left: var(--space-4);
+}
+
+/* Dark mode: Ensure skip link has proper contrast */
+[data-style="dark"] .skip-to-content,
+[data-style="dark"] .skip-link,
+[data-style="dark"] .c-base-layout__skip-link {
+  background-color: var(--color-primary-600, #2563EB);
+  color: #FFFFFF;
+}
+
+/* ============================================================================
+   REDUCED MOTION SUPPORT
+   Respect user's motion preferences
+   ============================================================================ */
+
+/**
+ * JUSTIFIED !important usage:
+ * Accessibility requirement to override ALL animations and transitions when user
+ * has enabled "reduce motion" in their OS settings (prefers-reduced-motion: reduce).
+ * This is a WCAG guideline for motion sensitivity and vestibular disorders.
+ * Must use !important to override:
+ * - Inline styles from JavaScript animations
+ * - Third-party library animations
+ * - All component-level transitions
+ * - Framework utility classes
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================================================
+   PRINT STYLES
+   Optimize for printing
+   ============================================================================ */
+
+/**
+ * JUSTIFIED !important usage:
+ * Print styles must override all screen styles to ensure proper document printing.
+ * When printing, navigation and interactive elements must be hidden regardless of
+ * component specificity. Print optimization is critical for:
+ * - Match reports and schedules
+ * - Player rosters and statistics
+ * - Administrative documents
+ */
+@media print {
+  .layout-menu,
+  .navbar,
+  .sidebar,
+  .mobile-bottom-nav,
+  .footer,
+  .layout-overlay,
+  .content-backdrop,
+  .c-flash-toast-container,
+  .role-impersonation-banner {
+    display: none !important;
+  }
+
+  .content-wrapper {
+    padding: 0 !important;
+  }
+
+  .layout-page {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
+
+/* ============================================================================
+   HIGH CONTRAST MODE
+   Support for Windows High Contrast mode
+   ============================================================================ */
+
+@media (prefers-contrast: more) {
+  .layout-overlay,
+  .content-backdrop {
+    background: rgba(0, 0, 0, 0.9);
+  }
+
+  button,
+  .btn,
+  a {
+    outline: 2px solid currentColor;
+  }
+
+  .footer-container,
+  .content-footer {
+    border-top-width: 2px;
+  }
+}
+
+/* ============================================================================
+   SAFE AREA INSETS
+   Support for devices with notches (iPhone X+, etc.)
+   ============================================================================ */
+
+@supports (padding: max(0px)) {
+  .container-fluid.flex-grow-1.container-p-y {
+    padding-left: max(var(--space-4), env(safe-area-inset-left));
+    padding-right: max(var(--space-4), env(safe-area-inset-right));
+  }
+
+  .c-flash-toast-container {
+    right: max(var(--space-6), env(safe-area-inset-right));
+  }
+
+  @media (max-width: 767px) {
+    .c-flash-toast-container {
+      left: max(var(--space-4), env(safe-area-inset-left));
+      right: max(var(--space-4), env(safe-area-inset-right));
+    }
+  }
+}
+
+/* ============================================================================
+   MODERN THEME VARIANT OVERRIDES
+   Theme-specific adjustments
+   ============================================================================ */
+
+[data-theme-variant="modern"] .content-footer {
+  font-family: var(--font-body);
+  letter-spacing: 0.01em;
+}
+
+[data-theme-variant="modern"] .footer-container a {
+  font-weight: var(--font-medium);
+}
+
+/* ============================================================================
+   END OF FILE
+   ============================================================================ */

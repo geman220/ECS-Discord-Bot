@@ -3,32 +3,47 @@
 
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="fw-bold mb-0">Bulk Upload Help Topics</h4>
-        <a href="{{ url_for('help.admin_help_topics') }}" class="btn btn-secondary">Back to Help Topics</a>
+    <div class="c-page-header" data-component="page-header">
+        <h4 class="c-page-header__title">Bulk Upload Help Topics</h4>
+        <a href="{{ url_for('help.admin_help_topics') }}"
+           class="c-page-header__action c-btn-modern c-btn-modern--secondary c-btn c-btn--secondary">
+            Back to Help Topics
+        </a>
     </div>
-    
+
     <div class="row">
         <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Upload Multiple Help Topics</h5>
+            <div class="c-help-upload-card c-card" data-component="help-upload-card">
+                <div class="c-help-upload-card__header c-card__header">
+                    <h5 class="c-help-upload-card__title c-card__title mb-0">Upload Multiple Help Topics</h5>
                 </div>
-                <div class="card-body">
-                    <form method="POST" enctype="multipart/form-data">
+                <div class="c-help-upload-card__body c-card__body">
+                    <form method="POST"
+                          enctype="multipart/form-data"
+                          class="c-help-upload-form"
+                          data-component="help-upload-form">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        
-                        <div class="mb-3">
-                            <label for="files" class="form-label">Select Markdown Files</label>
-                            <input type="file" class="form-control" name="files" id="files" multiple accept=".md" required>
-                            <div class="form-text">
+
+                        <div class="c-help-upload-form__field mb-3">
+                            <label for="files" class="c-help-upload-form__label form-label">Select Markdown Files</label>
+                            <input type="file"
+                                   class="c-help-upload-form__input form-control"
+                                   name="files"
+                                   id="files"
+                                   multiple
+                                   accept=".md"
+                                   required
+                                   data-form-control>
+                            <div class="c-help-upload-form__help-text form-text">
                                 Select one or more markdown (.md) files to upload. Each file will become a separate help topic.
                             </div>
                         </div>
-                        
-                        <div class="alert alert-info">
-                            <h6><i class="ti ti-info-circle me-2"></i>File Format Requirements:</h6>
-                            <ul class="mb-0">
+
+                        <div class="c-help-upload-form__info alert alert-info" data-alert>
+                            <h6 class="c-help-upload-form__info-heading">
+                                <i class="ti ti-info-circle c-help-upload-form__info-icon"></i>File Format Requirements:
+                            </h6>
+                            <ul class="c-help-upload-form__info-list mb-0">
                                 <li>Files must have a <code>.md</code> extension</li>
                                 <li>Each file must start with a heading (e.g., <code># Topic Title</code>)</li>
                                 <li>Include <code>**Role Access**: Role Name</code> to specify which roles can access the topic</li>
@@ -37,24 +52,26 @@
                                 <li>If no role is specified, the topic will default to Global Admin access</li>
                             </ul>
                         </div>
-                        
-                        <div class="mb-3">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="ti ti-upload me-2"></i>Upload Help Topics
+
+                        <div class="c-help-upload-form__actions mb-3">
+                            <button type="submit"
+                                    class="c-help-upload-form__submit c-btn c-btn--primary"
+                                    data-action="upload-help-topics">
+                                <i class="ti ti-upload c-help-upload-form__submit-icon"></i>Upload Help Topics
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
-        
+
         <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Example Format</h5>
+            <div class="c-help-example-card c-card" data-component="help-example-card">
+                <div class="c-help-example-card__header c-card__header">
+                    <h5 class="c-help-example-card__title c-card__title mb-0">Example Format</h5>
                 </div>
-                <div class="card-body">
-                    <pre><code># Topic Title
+                <div class="c-help-example-card__body c-card__body">
+                    <pre class="c-help-example-card__code"><code># Topic Title
 
 **Role Access**: Global Admin, Pub League Admin
 **Priority**: High
@@ -86,27 +103,29 @@ This topic will be visible to all users
 regardless of their role.</code></pre>
                 </div>
             </div>
-            
-            <div class="card mt-3">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Available Roles</h5>
+
+            <div class="c-help-roles-card c-card mt-3" data-component="help-roles-card">
+                <div class="c-help-roles-card__header c-card__header">
+                    <h5 class="c-help-roles-card__title c-card__title mb-0">Available Roles</h5>
                 </div>
-                <div class="card-body">
-                    <ul class="list-unstyled">
-                        <li><code>Public</code> <span class="text-muted">(visible to all users)</span></li>
-                        <li><code>Global Admin</code></li>
-                        <li><code>Pub League Admin</code></li>
-                        <li><code>ECS FC Coach</code></li>
-                        <li><code>Pub League Coach</code></li>
-                        <li><code>Discord Admin</code></li>
-                        <li><code>pl-classic</code></li>
-                        <li><code>pl-premier</code></li>
-                        <li><code>pl-ecs-fc</code></li>
-                        <li><code>Classic Sub</code></li>
-                        <li><code>Premier Sub</code></li>
-                        <li><code>ECS FC Sub</code></li>
+                <div class="c-help-roles-card__body c-card__body">
+                    <ul class="c-help-roles-card__list list-unstyled">
+                        <li class="c-help-roles-card__item">
+                            <code>Public</code> <span class="c-help-roles-card__description text-muted">(visible to all users)</span>
+                        </li>
+                        <li class="c-help-roles-card__item"><code>Global Admin</code></li>
+                        <li class="c-help-roles-card__item"><code>Pub League Admin</code></li>
+                        <li class="c-help-roles-card__item"><code>ECS FC Coach</code></li>
+                        <li class="c-help-roles-card__item"><code>Pub League Coach</code></li>
+                        <li class="c-help-roles-card__item"><code>Discord Admin</code></li>
+                        <li class="c-help-roles-card__item"><code>pl-classic</code></li>
+                        <li class="c-help-roles-card__item"><code>pl-premier</code></li>
+                        <li class="c-help-roles-card__item"><code>pl-ecs-fc</code></li>
+                        <li class="c-help-roles-card__item"><code>Classic Sub</code></li>
+                        <li class="c-help-roles-card__item"><code>Premier Sub</code></li>
+                        <li class="c-help-roles-card__item"><code>ECS FC Sub</code></li>
                     </ul>
-                    <div class="form-text">
+                    <div class="c-help-roles-card__help-text form-text">
                         You can specify multiple roles separated by commas, or use "Public" for all users.
                     </div>
                 </div>
@@ -117,24 +136,31 @@ regardless of their role.</code></pre>
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
-document.getElementById('files').addEventListener('change', function(e) {
-    const files = e.target.files;
-    const fileList = Array.from(files);
-    
-    // Check if all files are markdown
-    const nonMarkdownFiles = fileList.filter(file => !file.name.endsWith('.md'));
-    if (nonMarkdownFiles.length > 0) {
-        alert('Please select only markdown (.md) files.');
-        e.target.value = '';
-        return;
-    }
-    
-    // Show selected files count
-    if (files.length > 0) {
-        const fileNames = fileList.map(file => file.name).join(', ');
-        console.log(`Selected ${files.length} file(s): ${fileNames}`);
-    }
+document.addEventListener('DOMContentLoaded', function() {
+    // File validation using event delegation
+    document.addEventListener('change', function(e) {
+        const fileInput = e.target.closest('#files');
+        if (!fileInput) return;
+
+        const files = fileInput.files;
+        const fileList = Array.from(files);
+
+        // Check if all files are markdown
+        const nonMarkdownFiles = fileList.filter(file => !file.name.endsWith('.md'));
+        if (nonMarkdownFiles.length > 0) {
+            alert('Please select only markdown (.md) files.');
+            fileInput.value = '';
+            return;
+        }
+
+        // Show selected files count
+        if (files.length > 0) {
+            const fileNames = fileList.map(file => file.name).join(', ');
+            console.log(`Selected ${files.length} file(s): ${fileNames}`);
+        }
+    });
 });
 </script>
 {% endblock %}

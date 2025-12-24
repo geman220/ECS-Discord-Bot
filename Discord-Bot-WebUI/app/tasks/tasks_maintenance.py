@@ -51,6 +51,14 @@ def setup_periodic_tasks(sender, **kwargs):
         name='cleanup-old-scheduled-messages'
     )
 
+    # Presence SET cleanup - every 5 minutes
+    # Removes stale entries from Redis SET (handles server crashes, etc.)
+    sender.add_periodic_task(
+        300.0,  # 300 seconds = 5 minutes
+        cleanup_presence_set.s(),
+        name='cleanup-presence-set'
+    )
+
 
 @celery.task
 def cleanup_database_connections():
@@ -169,6 +177,27 @@ def cleanup_old_scheduled_messages(self, session):
         }
     except Exception as e:
         logger.error(f"Error cleaning up old scheduled messages: {str(e)}", exc_info=True)
+        return {"status": "error", "message": str(e)}
+
+
+@celery.task
+def cleanup_presence_set():
+    """
+    Periodic task to clean up stale presence SET entries.
+
+    Handles edge cases where the presence SET gets out of sync with actual
+    presence keys (e.g., after server crash or Redis connection issues).
+
+    Returns:
+        dict: Status with count of stale entries removed
+    """
+    logger.info("Running scheduled presence SET cleanup")
+    try:
+        from app.sockets.presence import PresenceManager
+        removed = PresenceManager.cleanup_stale_set_members()
+        return {"status": "success", "removed": removed}
+    except Exception as e:
+        logger.error(f"Error in presence cleanup task: {e}", exc_info=True)
         return {"status": "error", "message": str(e)}
 
 

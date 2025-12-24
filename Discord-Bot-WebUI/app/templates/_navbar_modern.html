@@ -1,0 +1,390 @@
+{#
+  ============================================================================
+  MODERN NAVBAR COMPONENT - REFINED SPORTS TECH
+  ============================================================================
+
+  Modern, accessible navbar with glass-morphism design and smooth interactions.
+
+  Features:
+  - Mobile-first responsive design
+  - Glass-morphism dropdowns with backdrop blur
+  - Smooth micro-interactions
+  - Keyboard accessible (Escape, Arrow keys)
+  - Event delegation compatible (data-* hooks)
+  - Zero inline styles
+
+  Usage:
+    {% include '_navbar_modern.html' %}
+
+  Required CSS: /static/css/components/navbar-modern.css
+  Required JS: /static/js/navbar-modern.js
+
+  ============================================================================
+#}
+
+<nav class="layout-navbar c-navbar-modern" role="navigation" aria-label="Main navigation">
+    <div class="c-navbar-modern__container">
+
+        {# Mobile Menu Toggle #}
+        <button class="c-navbar-modern__menu-toggle"
+                data-action="toggle-menu"
+                aria-label="Toggle menu"
+                aria-expanded="false">
+            <i class="c-navbar-modern__menu-icon ti ti-menu-2" aria-hidden="true"></i>
+        </button>
+
+        {# Search Form #}
+        <div class="c-navbar-modern__search">
+            <form data-form-search role="search" aria-label="Player search">
+                <label for="player-search" class="visually-hidden">Search players</label>
+                <input type="text"
+                       id="player-search"
+                       name="query"
+                       class="c-navbar-modern__search-input"
+                       placeholder="Search players"
+                       autocomplete="off"
+                       data-form-control>
+            </form>
+        </div>
+
+        {# Navigation Actions #}
+        <ul class="c-navbar-modern__actions" role="list">
+
+            {# Theme Switcher #}
+            <li role="listitem">
+                <button class="c-navbar-modern__action-btn"
+                        data-action="toggle-dropdown"
+                        data-dropdown="theme"
+                        aria-label="Theme settings"
+                        aria-expanded="false"
+                        aria-haspopup="true">
+                    <i class="c-navbar-modern__theme-icon ti ti-moon-stars"
+                       data-role="theme-icon"
+                       aria-hidden="true"></i>
+                </button>
+
+                {# Theme Dropdown #}
+                <div class="c-navbar-modern__dropdown"
+                     data-dropdown-id="theme"
+                     role="menu"
+                     aria-hidden="true">
+                    <div class="c-navbar-modern__dropdown-header">
+                        <h6 class="c-navbar-modern__dropdown-title">Theme</h6>
+                    </div>
+                    <div class="c-navbar-modern__dropdown-content">
+                        <button class="c-navbar-modern__dropdown-item"
+                                data-action="switch-theme"
+                                data-theme="light"
+                                role="menuitem">
+                            <i class="ti ti-sun" aria-hidden="true"></i>
+                            <span>Light</span>
+                        </button>
+                        <button class="c-navbar-modern__dropdown-item is-active"
+                                data-action="switch-theme"
+                                data-theme="dark"
+                                role="menuitem">
+                            <i class="ti ti-moon-stars" aria-hidden="true"></i>
+                            <span>Dark</span>
+                        </button>
+                        <button class="c-navbar-modern__dropdown-item"
+                                data-action="switch-theme"
+                                data-theme="system"
+                                role="menuitem">
+                            <i class="ti ti-device-desktop" aria-hidden="true"></i>
+                            <span>System</span>
+                        </button>
+                    </div>
+                </div>
+            </li>
+
+            {# Role Impersonation (Global Admin Only) #}
+            {% if safe_current_user.has_role('Global Admin') %}
+            <li role="listitem" class="c-navbar-modern__action-btn--hide-mobile">
+                <button class="c-navbar-modern__action-btn"
+                        data-action="toggle-dropdown"
+                        data-dropdown="impersonation"
+                        aria-label="Role impersonation"
+                        aria-expanded="false"
+                        aria-haspopup="true">
+                    <i class="ti ti-user-check" aria-hidden="true"></i>
+                    <span class="c-navbar-modern__badge c-navbar-modern__badge--warning u-hidden"
+                          data-badge="impersonation"></span>
+                </button>
+
+                {# Impersonation Dropdown #}
+                <div class="c-navbar-modern__dropdown c-navbar-modern__dropdown--wide"
+                     data-dropdown-id="impersonation"
+                     role="menu"
+                     aria-hidden="true">
+                    <div class="c-navbar-modern__dropdown-header">
+                        <h6 class="c-navbar-modern__dropdown-title">
+                            <i class="ti ti-eye me-2"></i>Role Testing
+                        </h6>
+                        <button class="c-navbar-modern__action-btn"
+                                data-action="refresh-roles"
+                                aria-label="Refresh roles"
+                                title="Refresh role list">
+                            <i class="ti ti-refresh ti-xs" aria-hidden="true"></i>
+                        </button>
+                    </div>
+
+                    <div class="c-navbar-modern__dropdown-content">
+                        {# Current Status - Normal View #}
+                        <div id="currentRoleStatus" class="c-role-status" data-status="normal">
+                            <div class="c-role-status__icon c-role-status__icon--normal">
+                                <i class="ti ti-shield-check"></i>
+                            </div>
+                            <div class="c-role-status__content">
+                                <div class="c-role-status__title">Normal View</div>
+                                <div class="c-role-status__subtitle">Using your actual permissions</div>
+                            </div>
+                        </div>
+
+                        {# Active Impersonation Status (hidden by default) #}
+                        <div id="activeImpersonationStatus" class="c-role-status c-role-status--active u-hidden" data-status="impersonating">
+                            <div class="c-role-status__icon c-role-status__icon--active">
+                                <i class="ti ti-eye"></i>
+                            </div>
+                            <div class="c-role-status__content">
+                                <div class="c-role-status__title">Testing As:</div>
+                                <div class="c-role-status__roles" id="activeRolesList"></div>
+                            </div>
+                            <button class="c-role-status__stop-btn"
+                                    id="stopImpersonationBtn"
+                                    data-action="stop-impersonation"
+                                    title="Stop testing mode">
+                                <i class="ti ti-x"></i>
+                            </button>
+                        </div>
+
+                        <div class="c-role-selector">
+                            <div class="c-role-selector__header">
+                                <span class="c-role-selector__label">Select roles to test:</span>
+                                <button class="c-role-selector__clear" data-action="clear-role-selection">Clear</button>
+                            </div>
+
+                            <div class="c-role-selector__list" id="roleCheckboxList">
+                                {# Group: Admin Roles #}
+                                {% set admin_roles = available_roles|selectattr('name', 'in', ['Global Admin', 'Pub League Admin', 'Discord Admin'])|list %}
+                                {% if admin_roles %}
+                                <div class="c-role-selector__group">
+                                    <div class="c-role-selector__group-title"><i class="ti ti-shield"></i> Admin</div>
+                                    {% for role in admin_roles %}
+                                    <label class="c-role-selector__item">
+                                        <input type="checkbox" name="impersonate_roles" value="{{ role.name }}" data-permissions="{{ role.permission_count }}">
+                                        <span class="c-role-selector__checkbox"></span>
+                                        <span class="c-role-selector__name">{{ role.name|replace('Pub League ', '')|replace('Discord ', '') }}</span>
+                                        <span class="c-role-selector__badge">{{ role.permission_count }}</span>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+
+                                {# Group: Coach Roles #}
+                                {% set coach_roles = available_roles|selectattr('name', 'in', ['Pub League Coach', 'ECS FC Coach'])|list %}
+                                {% if coach_roles %}
+                                <div class="c-role-selector__group">
+                                    <div class="c-role-selector__group-title"><i class="ti ti-trophy"></i> Coach</div>
+                                    {% for role in coach_roles %}
+                                    <label class="c-role-selector__item">
+                                        <input type="checkbox" name="impersonate_roles" value="{{ role.name }}" data-permissions="{{ role.permission_count }}">
+                                        <span class="c-role-selector__checkbox"></span>
+                                        <span class="c-role-selector__name">{{ role.name|replace('Pub League ', 'PL ')|replace('ECS FC ', 'ECS ') }}</span>
+                                        <span class="c-role-selector__badge">{{ role.permission_count }}</span>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+
+                                {# Group: Player Roles #}
+                                {% set player_roles = available_roles|selectattr('name', 'in', ['Pub League Player', 'pl-premier', 'pl-classic', 'pl-ecs-fc', 'pl-unverified', 'pl-waitlist'])|list %}
+                                {% if player_roles %}
+                                <div class="c-role-selector__group">
+                                    <div class="c-role-selector__group-title"><i class="ti ti-users"></i> Player</div>
+                                    {% for role in player_roles %}
+                                    <label class="c-role-selector__item">
+                                        <input type="checkbox" name="impersonate_roles" value="{{ role.name }}" data-permissions="{{ role.permission_count }}">
+                                        <span class="c-role-selector__checkbox"></span>
+                                        <span class="c-role-selector__name">{{ role.name }}</span>
+                                        <span class="c-role-selector__badge">{{ role.permission_count }}</span>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+
+                                {# Group: Other Roles #}
+                                {% set other_roles = available_roles|rejectattr('name', 'in', ['Global Admin', 'Pub League Admin', 'Discord Admin', 'Pub League Coach', 'ECS FC Coach', 'Pub League Player', 'pl-premier', 'pl-classic', 'pl-ecs-fc', 'pl-unverified', 'pl-waitlist'])|list %}
+                                {% if other_roles %}
+                                <div class="c-role-selector__group">
+                                    <div class="c-role-selector__group-title"><i class="ti ti-tag"></i> Other</div>
+                                    {% for role in other_roles %}
+                                    <label class="c-role-selector__item">
+                                        <input type="checkbox" name="impersonate_roles" value="{{ role.name }}" data-permissions="{{ role.permission_count }}">
+                                        <span class="c-role-selector__checkbox"></span>
+                                        <span class="c-role-selector__name">{{ role.name }}</span>
+                                        <span class="c-role-selector__badge">{{ role.permission_count }}</span>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="c-role-selector__footer">
+                                <span class="c-role-selector__count"><span id="selectedRoleCount">0</span> selected</span>
+                                <button class="c-btn c-btn--sm c-btn--primary" id="startImpersonationBtn" data-action="start-impersonation" disabled>
+                                    <i class="ti ti-player-play me-1"></i> Start
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="c-role-selector__help">
+                            <i class="ti ti-info-circle"></i>
+                            Test the app with different permissions. Your actual permissions are restored when you stop.
+                        </div>
+                    </div>
+                </div>
+            </li>
+            {% endif %}
+
+            {# Notifications #}
+            <li role="listitem">
+                <button class="c-navbar-modern__action-btn"
+                        data-action="toggle-dropdown"
+                        data-dropdown="notifications"
+                        aria-label="Notifications"
+                        aria-expanded="false"
+                        aria-haspopup="true">
+                    <i class="ti ti-bell" aria-hidden="true"></i>
+                    <span class="c-navbar-modern__badge u-hidden"
+                          data-badge="notification-count"
+                          aria-label="Unread notifications">0</span>
+                </button>
+
+                {# Notifications Dropdown #}
+                <div class="c-navbar-modern__dropdown c-navbar-modern__dropdown--notifications"
+                     data-dropdown-id="notifications"
+                     role="menu"
+                     aria-hidden="true">
+                    <div class="c-navbar-modern__dropdown-header">
+                        <h6 class="c-navbar-modern__dropdown-title">Notifications</h6>
+                        <div class="c-navbar-modern__dropdown-actions">
+                            <button class="c-navbar-modern__action-btn"
+                                    data-action="mark-all-read"
+                                    aria-label="Mark all as read"
+                                    title="Mark all as read">
+                                <i class="ti ti-mail-opened" aria-hidden="true"></i>
+                            </button>
+                            <button class="c-navbar-modern__action-btn c-navbar-modern__action-btn--danger"
+                                    data-action="clear-all-notifications"
+                                    aria-label="Clear all notifications"
+                                    title="Clear all">
+                                <i class="ti ti-trash" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="c-navbar-modern__dropdown-content" id="notifications-list">
+                        {# Loading state #}
+                        <div class="c-navbar-modern__notification-loading" data-state="loading">
+                            <div class="c-navbar-modern__spinner"></div>
+                            <span>Loading notifications...</span>
+                        </div>
+
+                        {# Empty state (hidden by default) #}
+                        <div class="c-navbar-modern__notification-empty u-hidden" data-state="empty">
+                            <i class="ti ti-bell-off"></i>
+                            <p>No notifications</p>
+                        </div>
+
+                        {# Notifications will be loaded here dynamically #}
+                    </div>
+
+                    <div class="c-navbar-modern__dropdown-footer">
+                        <a href="/notifications" class="c-btn c-btn--sm c-btn--primary w-100">
+                            View All Notifications
+                        </a>
+                    </div>
+                </div>
+            </li>
+
+            {# User Profile #}
+            <li role="listitem">
+                {# Extract initials for avatar fallback #}
+                {% set display_name = safe_current_user.player.name if safe_current_user.player else safe_current_user.username %}
+                {% set name_parts = display_name.split() %}
+                {% set initials = (name_parts[0][0] + (name_parts[-1][0] if name_parts|length > 1 else '')) | upper if name_parts else 'U' %}
+
+                <button class="c-navbar-modern__action-btn c-navbar-modern__action-btn--avatar"
+                        data-action="toggle-dropdown"
+                        data-dropdown="profile"
+                        aria-label="User profile"
+                        aria-expanded="false"
+                        aria-haspopup="true">
+                    <div class="c-navbar-modern__avatar">
+                        {% if safe_current_user.player and safe_current_user.player.profile_picture_url %}
+                        <img src="{{ safe_current_user.player.profile_picture_url }}"
+                             alt="{{ safe_current_user.player.name }}"
+                             class="c-navbar-modern__avatar-img"
+                             onerror="this.classList.add('is-hidden'); this.nextElementSibling.classList.remove('is-hidden');">
+                        <div class="c-navbar-modern__avatar-initials is-hidden" data-fallback="initials">{{ initials }}</div>
+                        {% else %}
+                        <div class="c-navbar-modern__avatar-initials">{{ initials }}</div>
+                        {% endif %}
+                        <span class="c-navbar-modern__avatar-status" aria-label="Checking status" title="Checking connection status..."></span>
+                    </div>
+                </button>
+
+                {# Profile Dropdown #}
+                <div class="c-navbar-modern__dropdown"
+                     data-dropdown-id="profile"
+                     role="menu"
+                     aria-hidden="true">
+                    {# User Info Header #}
+                    <div class="c-navbar-modern__dropdown-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="c-navbar-modern__avatar c-navbar-modern__avatar--lg">
+                                {% if safe_current_user.player and safe_current_user.player.profile_picture_url %}
+                                <img src="{{ safe_current_user.player.profile_picture_url }}"
+                                     alt="{{ safe_current_user.player.name }}"
+                                     class="c-navbar-modern__avatar-img"
+                                     onerror="this.classList.add('is-hidden'); this.nextElementSibling.classList.remove('is-hidden');">
+                                <div class="c-navbar-modern__avatar-initials is-hidden" data-fallback="initials">{{ initials }}</div>
+                                {% else %}
+                                <div class="c-navbar-modern__avatar-initials">{{ initials }}</div>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <h6 class="mb-0">{{ display_name }}</h6>
+                                <small class="text-muted">{{ safe_current_user.email }}</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="c-navbar-modern__dropdown-content">
+                        <a href="/players/profile/{{ safe_current_user.player.id if safe_current_user.player else safe_current_user.id }}"
+                           class="c-navbar-modern__dropdown-item"
+                           role="menuitem">
+                            <i class="ti ti-user" aria-hidden="true"></i>
+                            <span>My Profile</span>
+                        </a>
+                        <a href="/account/settings"
+                           class="c-navbar-modern__dropdown-item"
+                           role="menuitem">
+                            <i class="ti ti-settings" aria-hidden="true"></i>
+                            <span>Settings</span>
+                        </a>
+                        <form action="/auth/logout" method="post" id="logout-form" class="d-none">
+                            {{ csrf_token() }}
+                        </form>
+                        <button class="c-navbar-modern__dropdown-item"
+                                data-action="logout"
+                                role="menuitem">
+                            <i class="ti ti-logout" aria-hidden="true"></i>
+                            <span>Logout</span>
+                        </button>
+                    </div>
+                </div>
+            </li>
+        </ul>
+    </div>
+</nav>

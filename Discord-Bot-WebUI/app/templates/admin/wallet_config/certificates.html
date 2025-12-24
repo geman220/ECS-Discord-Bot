@@ -14,16 +14,16 @@
                     <p class="text-muted mb-0">Manage certificates used for signing wallet passes</p>
                 </div>
                 <div>
-                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="btn btn-outline-secondary">
+                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-arrow-left me-1"></i> Back to Dashboard
                     </a>
-                    <a href="{{ url_for('wallet_config.certificates_help') }}" class="btn btn-primary ms-2">
+                    <a href="{{ url_for('wallet_config.certificates_help') }}" class="c-btn c-btn--primary ms-2">
                         <i class="ti ti-help me-1"></i> Setup Guide
                     </a>
                 </div>
             </div>
 
-            <div class="alert alert-info d-flex align-items-start">
+            <div class="alert alert-info d-flex align-items-start" data-alert>
                 <i class="ti ti-info-circle me-3 fs-3"></i>
                 <div>
                     <h6 class="alert-heading mb-1">Certificate Requirements</h6>
@@ -40,7 +40,7 @@
     <div class="row">
         <div class="col-12">
             <div class="nav-align-top mb-4">
-                <ul class="nav nav-tabs" role="tablist">
+                <ul class="nav nav-tabs" role="tablist" data-tabs>
                     <li class="nav-item">
                         <button
                             type="button"
@@ -71,27 +71,27 @@
                 
                 <div class="tab-content">
                     <!-- Apple Wallet Tab -->
-                    <div class="tab-pane fade show active" id="apple-cert-tab" role="tabpanel">
-                        <div class="card border-0">
-                            <div class="card-body">
+                    <div class="tab-pane fade show active" id="apple-cert-tab" role="tabpanel" data-tab-pane>
+                        <div class="c-card border-0">
+                            <div class="c-card__body">
                                 <h5 class="mb-4">Apple Wallet Certificates</h5>
                                 
                                 <div class="row mb-4">
                                     <div class="col-md-6">
-                                        <div class="card bg-body-tertiary">
-                                            <div class="card-body">
-                                                <h6 class="card-title">Certificate Status</h6>
-                                                <p class="card-text">
+                                        <div class="c-card bg-body-tertiary">
+                                            <div class="c-card__body">
+                                                <h6 class="c-card__title">Certificate Status</h6>
+                                                <p class="c-card__description">
                                                     {% if has_complete_apple %}
-                                                    <span class="badge bg-label-success"><i class="ti ti-check me-1"></i> Complete</span>
+                                                    <span class="badge bg-label-success" data-badge><i class="ti ti-check me-1"></i> Complete</span>
                                                     {% else %}
-                                                    <span class="badge bg-label-warning"><i class="ti ti-alert-triangle me-1"></i> Incomplete</span>
+                                                    <span class="badge bg-label-warning" data-badge><i class="ti ti-alert-triangle me-1"></i> Incomplete</span>
                                                     {% endif %}
                                                 </p>
-                                                <div class="progress mb-3" style="height: 8px;">
+                                                <div class="progress mb-3" class="u-progress-h-8">
                                                     {% set cert_count = apple_certs|length %}
                                                     {% set percentage = (cert_count / 3 * 100)|int if cert_count < 3 else 100 %}
-                                                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ percentage }}%" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    <div class="progress-bar bg-primary" role="progressbar" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
                                                 </div>
                                                 <p class="mb-0 small">
                                                     {{ cert_count }} of 3 required certificates uploaded.
@@ -100,14 +100,14 @@
                                         </div>
                                     </div>
                                     <div class="col-md-6">
-                                        <div class="card bg-body-tertiary">
-                                            <div class="card-body">
-                                                <h6 class="card-title">Quick Upload</h6>
+                                        <div class="c-card bg-body-tertiary">
+                                            <div class="c-card__body">
+                                                <h6 class="c-card__title">Quick Upload</h6>
                                                 <form action="{{ url_for('wallet_config.upload_certificate') }}" method="post" enctype="multipart/form-data">
                                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                     <div class="mb-3">
                                                         <label class="form-label">Certificate Type</label>
-                                                        <select name="cert_type" class="form-select">
+                                                        <select name="cert_type" class="form-select" data-form-select>
                                                             <option value="certificate">Pass Type ID Certificate</option>
                                                             <option value="key">Private Key</option>
                                                             <option value="wwdr">Apple WWDR Certificate</option>
@@ -115,22 +115,22 @@
                                                     </div>
                                                     <div class="mb-3">
                                                         <label class="form-label">Certificate Name</label>
-                                                        <input type="text" class="form-control" name="name" required placeholder="Descriptive name">
+                                                        <input type="text" class="form-control" name="name" required placeholder="Descriptive name" data-form-control>
                                                     </div>
                                                     <div class="mb-3">
                                                         <label class="form-label">Certificate File</label>
-                                                        <input type="file" class="form-control" name="certificate_file" required>
+                                                        <input type="file" class="form-control" name="certificate_file" required data-form-control>
                                                     </div>
                                                     <input type="hidden" name="platform" value="apple">
                                                     <div class="mb-3">
                                                         <label class="form-label">Team Identifier</label>
-                                                        <input type="text" class="form-control" name="team_identifier" placeholder="From Apple Developer account">
+                                                        <input type="text" class="form-control" name="team_identifier" placeholder="From Apple Developer account" data-form-control>
                                                     </div>
                                                     <div class="mb-3">
                                                         <label class="form-label">Pass Type Identifier</label>
-                                                        <input type="text" class="form-control" name="pass_type_identifier" placeholder="e.g., pass.com.ecsfc.membership">
+                                                        <input type="text" class="form-control" name="pass_type_identifier" placeholder="e.g., pass.com.ecsfc.membership" data-form-control>
                                                     </div>
-                                                    <button type="submit" class="btn btn-primary">Upload Certificate</button>
+                                                    <button type="submit" class="c-btn c-btn--primary">Upload Certificate</button>
                                                 </form>
                                             </div>
                                         </div>
@@ -138,15 +138,15 @@
                                 </div>
                                 
                                 <h6 class="mb-3">Uploaded Certificates</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
+                                <div class="c-table-wrapper" data-table-responsive>
+                                    <table class="c-table c-table--hoverable" data-table>
+                                        <thead scope="col">
                                             <tr>
-                                                <th>Type</th>
-                                                <th>Name</th>
-                                                <th>Status</th>
-                                                <th>Uploaded</th>
-                                                <th>Actions</th>
+                                                <th scope="col">Type</th>
+                                                <th scope="col">Name</th>
+                                                <th scope="col">Status</th>
+                                                <th scope="col">Uploaded</th>
+                                                <th scope="col">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -154,19 +154,19 @@
                                             <tr>
                                                 <td>
                                                     {% if cert.type == 'certificate' %}
-                                                    <span class="badge bg-label-primary">Certificate</span>
+                                                    <span class="badge bg-label-primary" data-badge>Certificate</span>
                                                     {% elif cert.type == 'key' %}
-                                                    <span class="badge bg-label-danger">Private Key</span>
+                                                    <span class="badge bg-label-danger" data-badge>Private Key</span>
                                                     {% elif cert.type == 'wwdr' %}
-                                                    <span class="badge bg-label-info">WWDR</span>
+                                                    <span class="badge bg-label-info" data-badge>WWDR</span>
                                                     {% endif %}
                                                 </td>
                                                 <td>{{ cert.name }}</td>
                                                 <td>
                                                     {% if cert.is_active %}
-                                                    <span class="badge bg-label-success">Active</span>
+                                                    <span class="badge bg-label-success" data-badge>Active</span>
                                                     {% else %}
-                                                    <span class="badge bg-label-secondary">Inactive</span>
+                                                    <span class="badge bg-label-secondary" data-badge>Inactive</span>
                                                     {% endif %}
                                                 </td>
                                                 <td>{{ cert.created_at.strftime('%Y-%m-%d') }}</td>
@@ -174,7 +174,7 @@
                                                     <div class="btn-group">
                                                         <form action="{{ url_for('wallet_config.toggle_certificate', cert_id=cert.id) }}" method="post" class="d-inline">
                                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                            <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                            <button type="submit" class="c-btn c-btn--sm c-btn--outline-primary">
                                                                 {% if cert.is_active %}Deactivate{% else %}Activate{% endif %}
                                                             </button>
                                                         </form>
@@ -182,7 +182,7 @@
                                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                             <input type="hidden" name="cert_name" value="{{ cert.name }}">
                                                             <input type="hidden" name="cert_type" value="certificate">
-                                                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                                            <button type="submit" class="c-btn c-btn--sm c-btn--outline-danger">Delete</button>
                                                         </form>
                                                     </div>
                                                 </td>
@@ -190,7 +190,7 @@
                                             {% else %}
                                             <tr>
                                                 <td colspan="5" class="text-center py-4">
-                                                    <i class="ti ti-certificate text-muted" style="font-size: 3rem;"></i>
+                                                    <i class="ti ti-certificate text-muted" class="u-icon-3xl"></i>
                                                     <h6 class="mt-3 mb-1">No certificates uploaded</h6>
                                                     <p class="text-muted mb-0">Upload your Apple Wallet certificates to get started</p>
                                                 </td>
@@ -204,27 +204,27 @@
                     </div>
 
                     <!-- Google Wallet Tab -->
-                    <div class="tab-pane fade" id="google-cert-tab" role="tabpanel">
-                        <div class="card border-0">
-                            <div class="card-body">
+                    <div class="tab-pane fade" id="google-cert-tab" role="tabpanel" data-tab-pane>
+                        <div class="c-card border-0">
+                            <div class="c-card__body">
                                 <h5 class="mb-4">Google Wallet Credentials</h5>
                                 
                                 <div class="row mb-4">
                                     <div class="col-md-6">
-                                        <div class="card bg-body-tertiary">
-                                            <div class="card-body">
-                                                <h6 class="card-title">Google Wallet Status</h6>
-                                                <p class="card-text">
+                                        <div class="c-card bg-body-tertiary">
+                                            <div class="c-card__body">
+                                                <h6 class="c-card__title">Google Wallet Status</h6>
+                                                <p class="c-card__description">
                                                     {% if has_complete_google %}
-                                                    <span class="badge bg-label-success"><i class="ti ti-check me-1"></i> Complete</span>
+                                                    <span class="badge bg-label-success" data-badge><i class="ti ti-check me-1"></i> Complete</span>
                                                     {% else %}
-                                                    <span class="badge bg-label-warning"><i class="ti ti-alert-triangle me-1"></i> Incomplete</span>
+                                                    <span class="badge bg-label-warning" data-badge><i class="ti ti-alert-triangle me-1"></i> Incomplete</span>
                                                     {% endif %}
                                                 </p>
-                                                <div class="progress mb-3" style="height: 8px;">
+                                                <div class="progress mb-3" class="u-progress-h-8">
                                                     {% set google_cert_count = google_certs|length %}
                                                     {% set google_percentage = (google_cert_count / 1 * 100)|int if google_cert_count < 1 else 100 %}
-                                                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ google_percentage }}%" aria-valuenow="{{ google_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    <div class="progress-bar bg-primary" role="progressbar" aria-valuenow="{{ google_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
                                                 </div>
                                                 <p class="mb-0 small">
                                                     {{ google_cert_count }} of 1 required credential file uploaded.
@@ -233,26 +233,26 @@
                                         </div>
                                     </div>
                                     <div class="col-md-6">
-                                        <div class="card bg-body-tertiary">
-                                            <div class="card-body">
-                                                <h6 class="card-title">Upload Credentials</h6>
+                                        <div class="c-card bg-body-tertiary">
+                                            <div class="c-card__body">
+                                                <h6 class="c-card__title">Upload Credentials</h6>
                                                 <form action="{{ url_for('wallet_config.upload_certificate') }}" method="post" enctype="multipart/form-data">
                                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                     <div class="mb-3">
                                                         <label class="form-label">Credential Name</label>
-                                                        <input type="text" class="form-control" name="name" required placeholder="Descriptive name">
+                                                        <input type="text" class="form-control" name="name" required placeholder="Descriptive name" data-form-control>
                                                     </div>
                                                     <div class="mb-3">
                                                         <label class="form-label">Credential File (.json)</label>
-                                                        <input type="file" class="form-control" name="certificate_file" required accept=".json">
+                                                        <input type="file" class="form-control" name="certificate_file" required accept=".json" data-form-control>
                                                     </div>
                                                     <input type="hidden" name="platform" value="google">
                                                     <input type="hidden" name="cert_type" value="credentials">
                                                     <div class="mb-3">
                                                         <label class="form-label">Issuer ID</label>
-                                                        <input type="text" class="form-control" name="issuer_id" placeholder="From Google Pay and Wallet Console">
+                                                        <input type="text" class="form-control" name="issuer_id" placeholder="From Google Pay and Wallet Console" data-form-control>
                                                     </div>
-                                                    <button type="submit" class="btn btn-primary">Upload Credentials</button>
+                                                    <button type="submit" class="c-btn c-btn--primary">Upload Credentials</button>
                                                 </form>
                                             </div>
                                         </div>
@@ -260,15 +260,15 @@
                                 </div>
                                 
                                 <h6 class="mb-3">Uploaded Credentials</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
+                                <div class="c-table-wrapper" data-table-responsive>
+                                    <table class="c-table c-table--hoverable" data-table>
+                                        <thead scope="col">
                                             <tr>
-                                                <th>Name</th>
-                                                <th>Status</th>
-                                                <th>Issuer ID</th>
-                                                <th>Uploaded</th>
-                                                <th>Actions</th>
+                                                <th scope="col">Name</th>
+                                                <th scope="col">Status</th>
+                                                <th scope="col">Issuer ID</th>
+                                                <th scope="col">Uploaded</th>
+                                                <th scope="col">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -277,9 +277,9 @@
                                                 <td>{{ cert.name }}</td>
                                                 <td>
                                                     {% if cert.is_active %}
-                                                    <span class="badge bg-label-success">Active</span>
+                                                    <span class="badge bg-label-success" data-badge>Active</span>
                                                     {% else %}
-                                                    <span class="badge bg-label-secondary">Inactive</span>
+                                                    <span class="badge bg-label-secondary" data-badge>Inactive</span>
                                                     {% endif %}
                                                 </td>
                                                 <td>{{ cert.issuer_id }}</td>
@@ -288,7 +288,7 @@
                                                     <div class="btn-group">
                                                         <form action="{{ url_for('wallet_config.toggle_certificate', cert_id=cert.id) }}" method="post" class="d-inline">
                                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                            <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                            <button type="submit" class="c-btn c-btn--sm c-btn--outline-primary">
                                                                 {% if cert.is_active %}Deactivate{% else %}Activate{% endif %}
                                                             </button>
                                                         </form>
@@ -296,7 +296,7 @@
                                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                             <input type="hidden" name="cert_name" value="{{ cert.name }}">
                                                             <input type="hidden" name="cert_type" value="credential">
-                                                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                                            <button type="submit" class="c-btn c-btn--sm c-btn--outline-danger">Delete</button>
                                                         </form>
                                                     </div>
                                                 </td>
@@ -304,7 +304,7 @@
                                             {% else %}
                                             <tr>
                                                 <td colspan="5" class="text-center py-4">
-                                                    <i class="ti ti-brand-google text-muted" style="font-size: 3rem;"></i>
+                                                    <i class="ti ti-brand-google text-muted" class="u-icon-3xl"></i>
                                                     <h6 class="mt-3 mb-1">No credentials uploaded</h6>
                                                     <p class="text-muted mb-0">Upload your Google Wallet credentials to get started</p>
                                                 </td>

@@ -1497,6 +1497,61 @@ def cleanup_team_discord_resources_task(self, session, team_id: int):
         raise self.retry(exc=e, countdown=30)
 
 
+@celery_task(name='app.tasks.tasks_discord.delete_discord_resources_by_ids_task', queue='discord')
+def delete_discord_resources_by_ids_task(self, session, channel_id: str = None, player_role_id: str = None, coach_role_id: str = None):
+    """
+    Delete Discord resources by their IDs directly.
+
+    This task doesn't require the team to exist in the database - useful for cleanup
+    after team deletion.
+
+    Args:
+        session: Database session (not used but required by decorator).
+        channel_id: Discord channel ID to delete.
+        player_role_id: Discord player role ID to delete.
+        coach_role_id: Discord coach role ID to delete.
+
+    Returns:
+        A dictionary indicating success or failure.
+    """
+    results = {'channel': None, 'player_role': None, 'coach_role': None}
+
+    try:
+        from app.utils.sync_discord_client import get_sync_discord_client
+        discord_client = get_sync_discord_client()
+
+        if channel_id:
+            result = discord_client.delete_channel(channel_id)
+            results['channel'] = result.get('success', False)
+            if results['channel']:
+                logger.info(f"Deleted Discord channel {channel_id}")
+            else:
+                logger.warning(f"Failed to delete Discord channel {channel_id}: {result.get('message', 'Unknown error')}")
+
+        if player_role_id:
+            result = discord_client.delete_role(player_role_id)
+            results['player_role'] = result.get('success', False)
+            if results['player_role']:
+                logger.info(f"Deleted Discord player role {player_role_id}")
+            else:
+                logger.warning(f"Failed to delete Discord player role {player_role_id}: {result.get('message', 'Unknown error')}")
+
+        if coach_role_id:
+            result = discord_client.delete_role(coach_role_id)
+            results['coach_role'] = result.get('success', False)
+            if results['coach_role']:
+                logger.info(f"Deleted Discord coach role {coach_role_id}")
+            else:
+                logger.warning(f"Failed to delete Discord coach role {coach_role_id}: {result.get('message', 'Unknown error')}")
+
+        return {'success': True, 'results': results}
+
+    except Exception as e:
+        logger.error(f"Error deleting Discord resources by IDs: {str(e)}")
+        # Return failure rather than retry - resources may already be gone
+        return {'success': False, 'message': str(e), 'results': results}
+
+
 def _extract_update_team_data(session, team_id: int, new_team_name: str):
     """Extract team data for Discord resource update."""
     team = session.query(Team).options(joinedload(Team.league)).get(team_id)

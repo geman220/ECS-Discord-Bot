@@ -4,15 +4,15 @@
 <div class="container-xxl flex-grow-1 container-p-y">
     <div class="row">
         <div class="col-12">
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="c-card mb-4">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Responsive Tables Demo</h5>
                     <small class="text-muted float-end">Mobile-friendly table patterns</small>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <p>View this page on a mobile device or narrow your browser window to see how tables transform into card views.</p>
                     
-                    <div class="alert alert-info mb-4">
+                    <div class="alert alert-info mb-4" data-alert>
                         <h6>How to use responsive tables:</h6>
                         <ol class="mb-0">
                             <li>Add the <code>mobile-card-table</code> class to your table element</li>
@@ -22,16 +22,16 @@
                     </div>
 
                     <h6 class="mb-3">Basic Example</h6>
-                    <div class="table-responsive">
-                        <table class="table table-striped mobile-card-table">
-                            <thead>
+                    <div class="c-table-wrapper" data-table-responsive>
+                        <table class="c-table c-table--striped mobile-card-table" data-table>
+                            <thead scope="col">
                                 <tr>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Phone</th>
-                                    <th>Jersey Size</th>
-                                    <th>Primary League</th>
-                                    <th>Actions</th>
+                                    <th scope="col">Name</th>
+                                    <th scope="col">Email</th>
+                                    <th scope="col">Phone</th>
+                                    <th scope="col">Jersey Size</th>
+                                    <th scope="col">Primary League</th>
+                                    <th scope="col">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -42,8 +42,8 @@
                                     <td data-label="Jersey Size">XL</td>
                                     <td data-label="Primary League">Premier</td>
                                     <td data-label="Actions" class="table-actions">
-                                        <a href="#" class="btn btn-sm btn-primary">View</a>
-                                        <button type="button" class="btn btn-sm btn-danger">Delete</button>
+                                        <a href="#" class="c-btn c-btn--sm c-btn--primary">View</a>
+                                        <button type="button" class="c-btn c-btn--sm c-btn--danger">Delete</button>
                                     </td>
                                 </tr>
                                 <tr>
@@ -53,8 +53,8 @@
                                     <td data-label="Jersey Size">S</td>
                                     <td data-label="Primary League">Classic</td>
                                     <td data-label="Actions" class="table-actions">
-                                        <a href="#" class="btn btn-sm btn-primary">View</a>
-                                        <button type="button" class="btn btn-sm btn-danger">Delete</button>
+                                        <a href="#" class="c-btn c-btn--sm c-btn--primary">View</a>
+                                        <button type="button" class="c-btn c-btn--sm c-btn--danger">Delete</button>
                                     </td>
                                 </tr>
                                 <tr>
@@ -64,8 +64,8 @@
                                     <td data-label="Jersey Size">L</td>
                                     <td data-label="Primary League">Premier</td>
                                     <td data-label="Actions" class="table-actions">
-                                        <a href="#" class="btn btn-sm btn-primary">View</a>
-                                        <button type="button" class="btn btn-sm btn-danger">Delete</button>
+                                        <a href="#" class="c-btn c-btn--sm c-btn--primary">View</a>
+                                        <button type="button" class="c-btn c-btn--sm c-btn--danger">Delete</button>
                                     </td>
                                 </tr>
                             </tbody>
@@ -74,20 +74,20 @@
                 </div>
             </div>
 
-            <div class="card mb-4">
-                <div class="card-header">
+            <div class="c-card mb-4">
+                <div class="c-card__header">
                     <h5 class="mb-0">Table with Status Colors</h5>
                 </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table mobile-card-table">
-                            <thead>
+                <div class="c-card__body">
+                    <div class="c-table-wrapper" data-table-responsive>
+                        <table class="c-table mobile-card-table" data-table>
+                            <thead scope="col">
                                 <tr>
-                                    <th>Match</th>
-                                    <th>Date</th>
-                                    <th>Location</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
+                                    <th scope="col">Match</th>
+                                    <th scope="col">Date</th>
+                                    <th scope="col">Location</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -96,10 +96,10 @@
                                     <td data-label="Date">May 15, 2025</td>
                                     <td data-label="Location">Memorial Stadium</td>
                                     <td data-label="Status">
-                                        <span class="badge bg-success">Confirmed</span>
+                                        <span class="badge bg-success" data-badge>Confirmed</span>
                                     </td>
                                     <td data-label="Actions" class="table-actions">
-                                        <button class="btn btn-sm btn-info">Details</button>
+                                        <button class="c-btn c-btn--sm c-btn--info">Details</button>
                                     </td>
                                 </tr>
                                 <tr class="table-warning">
@@ -107,10 +107,10 @@
                                     <td data-label="Date">May 22, 2025</td>
                                     <td data-label="Location">Starfire Complex</td>
                                     <td data-label="Status">
-                                        <span class="badge bg-warning">Pending</span>
+                                        <span class="badge bg-warning" data-badge>Pending</span>
                                     </td>
                                     <td data-label="Actions" class="table-actions">
-                                        <button class="btn btn-sm btn-info">Details</button>
+                                        <button class="c-btn c-btn--sm c-btn--info">Details</button>
                                     </td>
                                 </tr>
                                 <tr class="table-danger">
@@ -118,10 +118,10 @@
                                     <td data-label="Date">May 29, 2025</td>
                                     <td data-label="Location">Tacoma Soccer Center</td>
                                     <td data-label="Status">
-                                        <span class="badge bg-danger">Cancelled</span>
+                                        <span class="badge bg-danger" data-badge>Cancelled</span>
                                     </td>
                                     <td data-label="Actions" class="table-actions">
-                                        <button class="btn btn-sm btn-info">Details</button>
+                                        <button class="c-btn c-btn--sm c-btn--info">Details</button>
                                     </td>
                                 </tr>
                             </tbody>
@@ -130,15 +130,15 @@
                 </div>
             </div>
 
-            <div class="card">
-                <div class="card-header">
+            <div class="c-card">
+                <div class="c-card__header">
                     <h5 class="mb-0">Implementation Guide</h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <h6>HTML Structure:</h6>
                     <pre><code class="language-html">
-&lt;div class="table-responsive"&gt;
-    &lt;table class="table table-striped mobile-card-table"&gt;
+&lt;div class="c-table-wrapper"&gt;
+    &lt;table class="c-table c-table--striped mobile-card-table"&gt;
         &lt;thead&gt;
             &lt;tr&gt;
                 &lt;th&gt;Name&lt;/th&gt;
@@ -151,8 +151,8 @@
                 &lt;td data-label="Name"&gt;John Doe&lt;/td&gt;
                 &lt;td data-label="Email"&gt;john@example.com&lt;/td&gt;
                 &lt;td data-label="Actions" class="table-actions"&gt;
-                    &lt;a href="#" class="btn btn-sm btn-primary"&gt;View&lt;/a&gt;
-                    &lt;button class="btn btn-sm btn-danger"&gt;Delete&lt;/button&gt;
+                    &lt;a href="#" class="c-btn c-btn--sm c-btn--primary"&gt;View&lt;/a&gt;
+                    &lt;button class="c-btn c-btn--sm c-btn--danger"&gt;Delete&lt;/button&gt;
                 &lt;/td&gt;
             &lt;/tr&gt;
         &lt;/tbody&gt;
@@ -160,7 +160,7 @@
 &lt;/div&gt;
                     </code></pre>
                     
-                    <div class="alert alert-success mt-4">
+                    <div class="alert alert-success mt-4" data-alert>
                         <h6>Benefits of this approach:</h6>
                         <ul class="mb-0">
                             <li>No horizontal scrolling on mobile devices</li>
@@ -178,6 +178,7 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Highlight code blocks

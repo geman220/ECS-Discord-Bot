@@ -2,7 +2,7 @@
 {# Manage partner locations for location-based notifications #}
 
 <!-- Location Limit Info -->
-<div class="alert alert-{{ 'warning' if location_count >= 8 else 'info' }} mb-4">
+<div class="alert alert-{{ 'warning' if location_count >= 8 else 'info' }} mb-4" data-alert>
     <div class="d-flex">
         <i class="ti ti-map-pin me-2 fs-4"></i>
         <div>
@@ -23,25 +23,25 @@
 <!-- Add Location Button -->
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h6 class="mb-0">Partner Locations</h6>
-    <button type="button" class="btn btn-primary btn-sm" onclick="addLocation()" {{ 'disabled' if location_count >= 10 }}>
+    <button type="button" class="c-btn c-btn--primary c-btn--sm" data-action="add-location" class="js-add-location" {{ 'disabled' if location_count >= 10 }}>
         <i class="ti ti-plus me-1"></i> Add Location
     </button>
 </div>
 
 <!-- Locations List -->
-<div class="card">
-    <div class="card-body p-0">
+<div class="c-card">
+    <div class="c-card__body p-0">
         {% if locations %}
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead>
+        <div class="c-table-wrapper" data-table-responsive>
+            <table class="c-table c-table--hoverable mb-0" data-table>
+                <thead scope="col">
                     <tr>
-                        <th>Name</th>
-                        <th>Address</th>
-                        <th>Notification Text</th>
-                        <th>Applies To</th>
-                        <th>Status</th>
-                        <th>Actions</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Address</th>
+                        <th scope="col">Notification Text</th>
+                        <th scope="col">Applies To</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -67,27 +67,26 @@
                             <small>{{ location.relevant_text }}</small>
                         </td>
                         <td>
-                            <span class="badge bg-label-{{ 'primary' if location.applies_to == 'all' else 'success' if location.applies_to == 'ecs_membership' else 'info' }}">
+                            <span class="badge bg-label-{{ 'primary' if location.applies_to == 'all' else 'success' if location.applies_to == 'ecs_membership' else 'info' }}" data-badge>
                                 {{ 'All Passes' if location.applies_to == 'all' else 'ECS Only' if location.applies_to == 'ecs_membership' else 'Pub League' }}
                             </span>
                         </td>
                         <td>
                             {% if location.is_active %}
-                            <span class="badge bg-success">Active</span>
+                            <span class="badge bg-success" data-badge>Active</span>
                             {% else %}
-                            <span class="badge bg-secondary">Inactive</span>
+                            <span class="badge bg-secondary" data-badge>Inactive</span>
                             {% endif %}
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <button type="button" class="btn btn-outline-primary" onclick="editLocation({{ location.id }})">
+                                <button type="button" class="c-btn c-btn--outline-primary" data-action="edit-location" data-id="{{ location.id }}" class="js-edit-location">
                                     <i class="ti ti-edit"></i>
                                 </button>
-                                <button type="button" class="btn btn-outline-{{ 'warning' if location.is_active else 'success' }}"
-                                        onclick="toggleLocation({{ location.id }}, {{ 'false' if location.is_active else 'true' }})">
+                                <button type="button" class="c-btn btn-outline-{{ 'warning' if location.is_active else 'success' }}" data-action="toggle-location" data-id="{{ location.id }}" data-active="{{ 'false' if location.is_active else 'true' }}" class="js-toggle-location">
                                     <i class="ti ti-{{ 'eye-off' if location.is_active else 'eye' }}"></i>
                                 </button>
-                                <button type="button" class="btn btn-outline-danger" onclick="deleteLocation({{ location.id }}, '{{ location.name }}')">
+                                <button type="button" class="c-btn c-btn--outline-danger" data-action="delete-location" data-id="{{ location.id }}" data-name="{{ location.name }}" class="js-delete-location">
                                     <i class="ti ti-trash"></i>
                                 </button>
                             </div>
@@ -102,7 +101,7 @@
             <i class="ti ti-map-pin fs-1 text-muted"></i>
             <p class="mt-3 text-muted">No locations configured yet.</p>
             <p class="text-muted small">Add partner venues to enable location-based notifications.</p>
-            <button type="button" class="btn btn-primary" onclick="addLocation()">
+            <button type="button" class="c-btn c-btn--primary" data-action="add-location" class="js-add-location">
                 <i class="ti ti-plus me-1"></i> Add First Location
             </button>
         </div>
@@ -112,6 +111,14 @@
 
 <!-- Location data for JavaScript -->
 <script>
+// Event delegation
+document.addEventListener('click', function(e) {
+    const toggleBtn = e.target.closest('[data-action="toggle-location"]');
+    if (toggleBtn) {
+        toggleLocation(toggleBtn.dataset.id, toggleBtn.dataset.active === 'true');
+    }
+});
+
 const locationsData = [
     {% for location in locations %}
     {
@@ -137,40 +144,40 @@ function addLocation() {
             <div class="text-start">
                 <div class="mb-3">
                     <label class="form-label">Name <span class="text-danger">*</span></label>
-                    <input type="text" id="loc-name" class="form-control" placeholder="e.g., Hellbent Brewing">
+                    <input type="text" id="loc-name" class="form-control" placeholder="e.g., Hellbent Brewing" data-form-control>
                 </div>
                 <div class="row">
                     <div class="col-6 mb-3">
                         <label class="form-label">Latitude <span class="text-danger">*</span></label>
-                        <input type="number" id="loc-lat" class="form-control" step="0.0001" placeholder="47.7240">
+                        <input type="number" id="loc-lat" class="form-control" step="0.0001" placeholder="47.7240" data-form-control>
                     </div>
                     <div class="col-6 mb-3">
                         <label class="form-label">Longitude <span class="text-danger">*</span></label>
-                        <input type="number" id="loc-lng" class="form-control" step="0.0001" placeholder="-122.2958">
+                        <input type="number" id="loc-lng" class="form-control" step="0.0001" placeholder="-122.2958" data-form-control>
                     </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Notification Text</label>
-                    <input type="text" id="loc-text" class="form-control" placeholder="Text shown when user is nearby">
+                    <input type="text" id="loc-text" class="form-control" placeholder="Text shown when user is nearby" data-form-control>
                     <small class="text-muted">Leave blank to use the location name</small>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Address (optional)</label>
-                    <input type="text" id="loc-address" class="form-control" placeholder="123 Main St">
+                    <input type="text" id="loc-address" class="form-control" placeholder="123 Main St" data-form-control>
                 </div>
                 <div class="row">
                     <div class="col-6 mb-3">
                         <label class="form-label">City</label>
-                        <input type="text" id="loc-city" class="form-control" placeholder="Seattle">
+                        <input type="text" id="loc-city" class="form-control" placeholder="Seattle" data-form-control>
                     </div>
                     <div class="col-6 mb-3">
                         <label class="form-label">State</label>
-                        <input type="text" id="loc-state" class="form-control" placeholder="WA">
+                        <input type="text" id="loc-state" class="form-control" placeholder="WA" data-form-control>
                     </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Applies To</label>
-                    <select id="loc-applies" class="form-select">
+                    <select id="loc-applies" class="form-select" data-form-select>
                         <option value="{{ pass_type_code }}">This pass type only</option>
                         <option value="all">All pass types</option>
                     </select>
@@ -237,39 +244,39 @@ function editLocation(locationId) {
             <div class="text-start">
                 <div class="mb-3">
                     <label class="form-label">Name <span class="text-danger">*</span></label>
-                    <input type="text" id="edit-loc-name" class="form-control" value="${loc.name}">
+                    <input type="text" id="edit-loc-name" class="form-control" value="${loc.name}" data-form-control>
                 </div>
                 <div class="row">
                     <div class="col-6 mb-3">
                         <label class="form-label">Latitude <span class="text-danger">*</span></label>
-                        <input type="number" id="edit-loc-lat" class="form-control" step="0.0001" value="${loc.latitude}">
+                        <input type="number" id="edit-loc-lat" class="form-control" step="0.0001" value="${loc.latitude}" data-form-control>
                     </div>
                     <div class="col-6 mb-3">
                         <label class="form-label">Longitude <span class="text-danger">*</span></label>
-                        <input type="number" id="edit-loc-lng" class="form-control" step="0.0001" value="${loc.longitude}">
+                        <input type="number" id="edit-loc-lng" class="form-control" step="0.0001" value="${loc.longitude}" data-form-control>
                     </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Notification Text</label>
-                    <input type="text" id="edit-loc-text" class="form-control" value="${loc.relevant_text}">
+                    <input type="text" id="edit-loc-text" class="form-control" value="${loc.relevant_text}" data-form-control>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Address</label>
-                    <input type="text" id="edit-loc-address" class="form-control" value="${loc.address}">
+                    <input type="text" id="edit-loc-address" class="form-control" value="${loc.address}" data-form-control>
                 </div>
                 <div class="row">
                     <div class="col-6 mb-3">
                         <label class="form-label">City</label>
-                        <input type="text" id="edit-loc-city" class="form-control" value="${loc.city}">
+                        <input type="text" id="edit-loc-city" class="form-control" value="${loc.city}" data-form-control>
                     </div>
                     <div class="col-6 mb-3">
                         <label class="form-label">State</label>
-                        <input type="text" id="edit-loc-state" class="form-control" value="${loc.state}">
+                        <input type="text" id="edit-loc-state" class="form-control" value="${loc.state}" data-form-control>
                     </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Applies To</label>
-                    <select id="edit-loc-applies" class="form-select">
+                    <select id="edit-loc-applies" class="form-select" data-form-select>
                         <option value="ecs_membership" ${loc.applies_to === 'ecs_membership' ? 'selected' : ''}>ECS Only</option>
                         <option value="pub_league" ${loc.applies_to === 'pub_league' ? 'selected' : ''}>Pub League Only</option>
                         <option value="all" ${loc.applies_to === 'all' ? 'selected' : ''}>All pass types</option>

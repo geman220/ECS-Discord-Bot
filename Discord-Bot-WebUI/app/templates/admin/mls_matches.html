@@ -9,7 +9,7 @@ TODO: Remove this template after new system is verified in production
 
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Deprecation Notice -->
-    <div class="alert alert-warning alert-dismissible" role="alert">
+    <div class="alert alert-warning alert-dismissible" role="alert" data-alert>
         <h6 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Deprecated Page</h6>
         <p>This page has been replaced by the new <a href="{{ url_for('admin.match_management') }}" class="alert-link">Match Management</a> interface, which combines thread scheduling and live reporting in one unified view.</p>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -19,25 +19,25 @@ TODO: Remove this template after new system is verified in production
         <span class="text-muted fw-light">Discord /</span> MLS Matches [DEPRECATED]
     </h4>
 
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="c-card">
+        <div class="c-card__header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">MLS Matches and Thread Scheduling</h5>
             <div>
-                <button class="btn btn-primary" onclick="scheduleAllMatches()">Schedule All Matches</button>
+                <button class="c-btn c-btn--primary" data-action="schedule-all-matches" class="js-schedule-all-matches">Schedule All Matches</button>
             </div>
         </div>
 
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
+        <div class="c-card__body">
+            <div class="c-table-wrapper" data-table-responsive>
+                <table class="c-table" data-table>
+                    <thead scope="col">
                         <tr>
-                            <th>Match</th>
-                            <th>Date & Time</th>
-                            <th>Competition</th>
-                            <th>Thread Status</th>
-                            <th>Live Reporting</th>
-                            <th>Actions</th>
+                            <th scope="col">Match</th>
+                            <th scope="col">Date & Time</th>
+                            <th scope="col">Competition</th>
+                            <th scope="col">Thread Status</th>
+                            <th scope="col">Live Reporting</th>
+                            <th scope="col">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -54,7 +54,7 @@ TODO: Remove this template after new system is verified in production
                             <td>{{ match.competition }}</td>
                             <td>
                                 <div class="d-flex flex-column">
-                                    <span class="badge bg-{{ 'success' if match.thread_created else 'warning' }}">
+                                    <span class="badge bg-{{ 'success' if match.thread_created else 'warning' }}" data-badge>
                                         {{ 'Thread Created' if match.thread_created else 'Pending' }}
                                     </span>
                                     {% if match.thread_creation_time %}
@@ -66,7 +66,7 @@ TODO: Remove this template after new system is verified in production
                             </td>
                             <td>
                                 <div class="d-flex flex-column">
-                                    <span class="badge bg-{{ 'success' if match.live_reporting_started else 'warning' }}">
+                                    <span class="badge bg-{{ 'success' if match.live_reporting_started else 'warning' }}" data-badge>
                                         {{ match.live_reporting_status|title }}
                                     </span>
                                     {% if match.live_reporting_scheduled and not match.live_reporting_started %}
@@ -80,30 +80,30 @@ TODO: Remove this template after new system is verified in production
                                 <div class="btn-group">
                                     {% if not match.thread_created %}
                                     {% if match.live_reporting_scheduled %}
-                                    <button class="btn btn-sm btn-primary schedule-btn" data-match-id="{{ match.id }}">
+                                    <button class="c-btn c-btn--sm c-btn--primary schedule-btn" data-match-id="{{ match.id }}">
                                         Re-schedule
                                     </button>
                                     {% else %}
-                                    <button class="btn btn-sm btn-primary schedule-btn" data-match-id="{{ match.id }}">
+                                    <button class="c-btn c-btn--sm c-btn--primary schedule-btn" data-match-id="{{ match.id }}">
                                         Schedule
                                     </button>
                                     {% endif %}
-                                    <button class="btn btn-sm btn-success create-thread-btn" data-match-id="{{ match.id }}">
+                                    <button class="c-btn c-btn--sm c-btn--success create-thread-btn" data-match-id="{{ match.id }}">
                                         Create Now
                                     </button>
                                     {% else %}
                                     <a href="https://discord.com/channels/{{ config.SERVER_ID }}/{{ config.MATCH_CHANNEL_ID }}/{{ match.discord_thread_id }}"
-                                       class="btn btn-sm btn-info" target="_blank">View Thread</a>
+                                       class="c-btn c-btn--sm c-btn--info" target="_blank">View Thread</a>
                                     {% endif %}
 
                                     {% if not match.live_reporting_started %}
-                                    <button class="btn btn-sm btn-warning toggle-reporting-btn"
+                                    <button class="c-btn c-btn--sm c-btn--warning toggle-reporting-btn"
                                             data-match-id="{{ match.id }}"
                                             data-action="start">
                                         Start Reporting
                                     </button>
                                     {% else %}
-                                    <button class="btn btn-sm btn-danger toggle-reporting-btn"
+                                    <button class="c-btn c-btn--sm c-btn--danger toggle-reporting-btn"
                                             data-match-id="{{ match.id }}"
                                             data-action="stop">
                                         Stop Reporting
@@ -121,16 +121,16 @@ TODO: Remove this template after new system is verified in production
 </div>
 
 <!-- Status Modal -->
-<div class="modal fade" id="taskStatusModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Task Status</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal c-modal fade" data-modal id="taskStatusModal" tabindex="-1" aria-labelledby="taskStatusModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="taskStatusModalLabel">Task Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <div class="d-flex align-items-center">
-                    <div class="spinner-border text-primary me-2" role="status">
+                    <div class="spinner-border text-primary me-2" role="status" data-spinner>
                         <span class="visually-hidden">Loading...</span>
                     </div>
                     <span id="taskStatusMessage">Processing...</span>
@@ -142,6 +142,7 @@ TODO: Remove this template after new system is verified in production
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
     // Define a showToast function to display notifications using Bootstrap toasts
     function showToast(title, message) {

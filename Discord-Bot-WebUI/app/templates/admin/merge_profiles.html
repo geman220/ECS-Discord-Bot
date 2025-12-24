@@ -3,6 +3,7 @@
 {% block title %}Merge Profiles - Alert #{{ alert.id }}{% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
     .field-comparison {
         border: 2px solid var(--ecs-neutral-10, #e7eaf3);
@@ -74,7 +75,7 @@
                     <p class="text-muted mb-0">Combine information from both profiles into one unified player</p>
                 </div>
                 <div>
-                    <a href="{{ url_for('duplicate_management.duplicate_registration_detail', alert_id=alert.id) }}" class="btn btn-outline-secondary">
+                    <a href="{{ url_for('duplicate_management.duplicate_registration_detail', alert_id=alert.id) }}" class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-arrow-left me-2"></i>Back to Alert
                     </a>
                 </div>
@@ -161,7 +162,7 @@
                         {% if alert.new_discord_email and not existing_player.discord_id %}
                         <div class="field-comparison">
                             <h6 class="mb-3">Discord Account</h6>
-                            <div class="alert alert-info">
+                            <div class="alert alert-info" data-alert>
                                 <h6 class="alert-heading">Link Discord Account</h6>
                                 <p class="mb-2">The new registration includes Discord information that can be linked to the existing player:</p>
                                 <ul class="mb-0">
@@ -175,15 +176,15 @@
                         {% endif %}
 
                         <!-- Submit Button -->
-                        <div class="card">
-                            <div class="card-body">
+                        <div class="c-card">
+                            <div class="c-card__body">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <h6 class="mb-1">Ready to Merge?</h6>
                                         <small class="text-muted">This action cannot be undone. Please review your selections carefully.</small>
                                     </div>
                                     <div>
-                                        <button type="submit" class="btn btn-primary">
+                                        <button type="submit" class="c-btn c-btn--primary">
                                             <i class="ti ti-git-merge me-2"></i>Execute Merge
                                         </button>
                                     </div>
@@ -196,11 +197,11 @@
                 <!-- Merge Summary Sidebar -->
                 <div class="col-lg-4">
                     <div class="merge-summary">
-                        <div class="card">
-                            <div class="card-header">
+                        <div class="c-card">
+                            <div class="c-card__header">
                                 <h6 class="mb-0">Merge Summary</h6>
                             </div>
-                            <div class="card-body">
+                            <div class="c-card__body">
                                 <div class="mb-3">
                                     <small class="text-muted">Target Player</small>
                                     <p class="fw-bold mb-0">{{ existing_player.name }}</p>
@@ -216,8 +217,8 @@
                                 <div class="mb-3">
                                     <small class="text-muted">Match Details</small>
                                     <div>
-                                        <span class="badge match-type-{{ alert.match_type }}">{{ alert.match_type.replace('_', ' ').title() }}</span>
-                                        <span class="badge bg-label-primary">{{ (alert.confidence_score * 100)|round|int }}% Match</span>
+                                        <span class="badge match-type-{{ alert.match_type }}" data-badge>{{ alert.match_type.replace('_', ' ').title() }}</span>
+                                        <span class="badge bg-label-primary" data-badge>{{ (alert.confidence_score * 100)|round|int }}% Match</span>
                                     </div>
                                 </div>
 
@@ -232,8 +233,8 @@
                             </div>
                         </div>
 
-                        <div class="card mt-3">
-                            <div class="card-body">
+                        <div class="c-card mt-3">
+                            <div class="c-card__body">
                                 <h6 class="text-warning mb-2">
                                     <i class="ti ti-alert-triangle me-2"></i>Important Notes
                                 </h6>
@@ -251,56 +252,8 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Handle field selection visual feedback
-    document.querySelectorAll('.value-option').forEach(option => {
-        option.addEventListener('click', function() {
-            const field = this.dataset.field;
-            const value = this.dataset.value;
-            
-            // Remove selected class from other options for this field
-            document.querySelectorAll(`[data-field="${field}"]`).forEach(opt => {
-                opt.classList.remove('selected');
-            });
-            
-            // Add selected class to clicked option
-            this.classList.add('selected');
-            
-            // Check the radio button
-            this.querySelector('input[type="radio"]').checked = true;
-            
-            // Update preview
-            updateMergePreview();
-        });
-    });
-    
-    // Update merge preview
-    function updateMergePreview() {
-        const updatesList = document.getElementById('updatesList');
-        const updates = [];
-        
-        document.querySelectorAll('input[type="radio"]:checked').forEach(radio => {
-            const field = radio.name.replace('field_', '');
-            const value = radio.value;
-            
-            if (value === 'new') {
-                updates.push(`<small class="d-block text-primary">Update ${field.replace('_', ' ')}</small>`);
-            } else if (value === 'combine') {
-                updates.push(`<small class="d-block text-warning">Combine ${field.replace('_', ' ')}</small>`);
-            }
-        });
-        
-        if (updates.length > 0) {
-            updatesList.innerHTML = updates.join('');
-        } else {
-            updatesList.innerHTML = '<p class="text-muted mb-0"><em>No changes selected</em></p>';
-        }
-    }
-    
-    // Initialize with current selections
-    updateMergePreview();
-});
-</script>
+{% block custom_js %}
+<script src="{{ url_for('static', filename='custom_js/merge-profiles.js') }}"></script>
 {% endblock %}

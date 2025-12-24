@@ -12,8 +12,8 @@
 <div class="row">
     <!-- Stats Cards -->
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-primary bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-primary bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-list-numbers fs-1 text-primary mb-2"></i>
                 <h3 class="mb-0">{{ stats.total_picks }}</h3>
                 <small class="text-muted">Total Draft Picks</small>
@@ -21,8 +21,8 @@
         </div>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-success bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-success bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-calendar fs-1 text-success mb-2"></i>
                 <h3 class="mb-0">{{ stats.current_season_picks }}</h3>
                 <small class="text-muted">Current Season Picks</small>
@@ -30,8 +30,8 @@
         </div>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-info bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-info bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-trophy fs-1 text-info mb-2"></i>
                 <h3 class="mb-0">{{ stats.seasons_count }}</h3>
                 <small class="text-muted">Seasons</small>
@@ -39,8 +39,8 @@
         </div>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-warning bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-warning bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-users fs-1 text-warning mb-2"></i>
                 <h3 class="mb-0">{{ stats.leagues_count }}</h3>
                 <small class="text-muted">Leagues</small>
@@ -50,24 +50,24 @@
 
     <!-- Quick Actions -->
     <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header">
+        <div class="c-card">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-bolt me-2"></i>Quick Actions</h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-4 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.draft_history') }}" class="btn btn-primary w-100">
+                        <a href="{{ url_for('admin_panel.draft_history') }}" class="c-btn c-btn--primary w-100">
                             <i class="ti ti-history me-2"></i>View Draft History
                         </a>
                     </div>
                     <div class="col-md-4 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.draft_history', season=current_season.id if current_season else '') }}" class="btn btn-success w-100">
+                        <a href="{{ url_for('admin_panel.draft_history', season=current_season.id if current_season else '') }}" class="c-btn c-btn--success w-100">
                             <i class="ti ti-calendar me-2"></i>Current Season Draft
                         </a>
                     </div>
                     <div class="col-md-4 col-sm-6 mb-3">
-                        <button id="export-btn" class="btn btn-outline-secondary w-100">
+                        <button id="export-btn" class="c-btn c-btn--outline-secondary w-100">
                             <i class="ti ti-download me-2"></i>Export Draft Data
                         </button>
                     </div>
@@ -78,18 +78,18 @@
 
     <!-- Season/League Selection -->
     <div class="col-md-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
+        <div class="c-card h-100">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-calendar me-2"></i>Seasons</h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="list-group list-group-flush">
                     {% for season in seasons[:5] %}
                     <a href="{{ url_for('admin_panel.draft_history', season=season.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                         <span>
                             {{ season.name }}
                             {% if season.is_current %}
-                            <span class="badge bg-success ms-2">Current</span>
+                            <span class="badge bg-success ms-2" data-badge>Current</span>
                             {% endif %}
                         </span>
                         <i class="ti ti-chevron-right"></i>
@@ -106,11 +106,11 @@
     </div>
 
     <div class="col-md-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
+        <div class="c-card h-100">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-trophy me-2"></i>Leagues</h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="list-group list-group-flush">
                     {% for league in leagues[:5] %}
                     <a href="{{ url_for('admin_panel.draft_history', league=league.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
@@ -130,11 +130,11 @@
 
     <!-- Information -->
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
+        <div class="c-card">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-info-circle me-2"></i>Draft Management Information</h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-6">
                         <h6>Features</h6>

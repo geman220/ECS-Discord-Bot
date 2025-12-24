@@ -1,0 +1,598 @@
+/**
+ * ============================================================================
+ * SEASON OVERVIEW PAGE STYLES - Remediated Version
+ * ============================================================================
+ *
+ * Complete styling for the season overview page with full dark mode support.
+ * All styles use design tokens (CSS variables) for consistency.
+ *
+ * REMEDIATION CHANGES:
+ * - Removed ALL 21 !important declarations
+ * - Fixed specificity issues properly with .seasons-page wrapper
+ * - All colors use design tokens
+ * - Maintained dark mode support
+ * - Uses proper cascade without !important
+ *
+ * Sections:
+ *   1. Table Styling
+ *   2. Team Components
+ *   3. Avatar Components
+ *   4. Empty State Components
+ *   5. Badge Components
+ *   6. Navigation Pills
+ *   7. Table Hover Effects
+ *   8. Season Selector
+ *   9. Legend Styling
+ *   10. Search Box Styling
+ *   11. Statistics Summary Components
+ *   12. Responsive Styles
+ *   13. Print Styles
+ *   14. Accessibility Enhancements
+ *   15. Search Filter Utilities
+ *
+ * Target: 100% inline style elimination, 0 !important declarations
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. TABLE STYLING
+   ============================================================================ */
+
+.season-overview-table thead th {
+    font-size: var(--text-sm, 0.85rem);
+    font-weight: var(--font-semibold, 600);
+}
+
+/* Standings table column widths */
+.season-standings-rank {
+    width: 5%;
+}
+
+.season-standings-team {
+    width: 25%;
+}
+
+/* ============================================================================
+   2. TEAM COMPONENTS
+   ============================================================================ */
+
+.season-team-name {
+    font-weight: var(--font-medium, 500);
+    text-decoration: none;
+    color: var(--color-text-primary);
+    transition: color var(--duration-fast, 150ms) var(--ease-smooth, ease-in-out);
+}
+
+.season-team-name:hover {
+    color: var(--color-primary);
+}
+
+[data-style="dark"] .season-team-name {
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .season-team-name:hover {
+    color: var(--color-primary);
+}
+
+/* ============================================================================
+   3. AVATAR COMPONENTS
+   ============================================================================ */
+
+.season-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-full, 50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.season-avatar-initial {
+    font-weight: var(--font-bold, 700);
+    font-size: var(--text-sm, 0.85rem);
+}
+
+/* ============================================================================
+   4. EMPTY STATE COMPONENTS
+   ============================================================================ */
+
+.season-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--color-secondary);
+}
+
+.season-empty-state-icon {
+    font-size: var(--text-5xl, 2.5rem);
+    color: var(--color-secondary);
+    margin-bottom: var(--space-3, 0.75rem);
+}
+
+.season-empty-state-message {
+    font-size: var(--text-sm, 0.875rem);
+    margin: 0;
+}
+
+[data-style="dark"] .season-empty-state {
+    color: var(--color-secondary);
+}
+
+[data-style="dark"] .season-empty-state-icon {
+    color: var(--color-secondary);
+}
+
+/* ============================================================================
+   5. BADGE COMPONENTS
+   ============================================================================ */
+
+/* Badge color variants using design tokens - High specificity to override Bootstrap */
+.seasons-page .season-badge-primary,
+.season-badge-primary.badge {
+    background-color: var(--color-primary-subtle, rgba(37, 99, 235, 0.16));
+    color: var(--color-primary);
+}
+
+.seasons-page .season-badge-success,
+.season-badge-success.badge {
+    background-color: var(--color-success-subtle, rgba(16, 185, 129, 0.16));
+    color: var(--color-success);
+}
+
+.seasons-page .season-badge-warning,
+.season-badge-warning.badge {
+    background-color: var(--color-warning-subtle, rgba(245, 158, 11, 0.16));
+    color: var(--color-warning);
+}
+
+.seasons-page .season-badge-danger,
+.season-badge-danger.badge {
+    background-color: var(--color-danger-subtle, rgba(239, 68, 68, 0.16));
+    color: var(--color-danger);
+}
+
+.seasons-page .season-badge-secondary,
+.season-badge-secondary.badge {
+    background-color: var(--color-secondary-subtle, rgba(100, 116, 139, 0.16));
+    color: var(--color-secondary);
+}
+
+/* Dark mode badge adjustments */
+[data-style="dark"] .seasons-page .season-badge-primary,
+[data-style="dark"] .season-badge-primary.badge {
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary);
+}
+
+[data-style="dark"] .seasons-page .season-badge-success,
+[data-style="dark"] .season-badge-success.badge {
+    background-color: var(--color-success-subtle);
+    color: var(--color-success);
+}
+
+[data-style="dark"] .seasons-page .season-badge-warning,
+[data-style="dark"] .season-badge-warning.badge {
+    background-color: var(--color-warning-subtle);
+    color: var(--color-warning);
+}
+
+[data-style="dark"] .seasons-page .season-badge-danger,
+[data-style="dark"] .season-badge-danger.badge {
+    background-color: var(--color-danger-subtle);
+    color: var(--color-danger);
+}
+
+[data-style="dark"] .seasons-page .season-badge-secondary,
+[data-style="dark"] .season-badge-secondary.badge {
+    background-color: var(--color-secondary-subtle);
+    color: var(--color-secondary);
+}
+
+/* ============================================================================
+   6. NAVIGATION PILLS
+   ============================================================================ */
+
+.season-nav-pills {
+    display: flex;
+    margin-bottom: var(--space-4, 1rem);
+}
+
+.season-nav-pills .nav-link {
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
+    font-size: var(--text-base, 1rem);
+    transition: all var(--duration-fast, 150ms) var(--ease-smooth, ease-in-out);
+}
+
+/* Responsive nav pills for mobile */
+@media (max-width: 767.98px) {
+    .season-nav-pills {
+        display: flex;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: var(--space-4, 1rem);
+        padding-bottom: var(--space-2, 0.5rem);
+        scrollbar-width: thin;
+        scrollbar-color: var(--color-border-primary) transparent;
+    }
+
+    .season-nav-pills::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    .season-nav-pills::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .season-nav-pills::-webkit-scrollbar-thumb {
+        background-color: var(--color-border-primary);
+        border-radius: var(--radius-full, 50px);
+    }
+
+    .season-nav-pills .nav-link {
+        padding: var(--space-2, 0.4rem) var(--space-3, 0.8rem);
+        font-size: var(--text-sm, 0.875rem);
+    }
+
+    .season-overview-table thead th {
+        font-size: var(--text-xs, 0.75rem);
+    }
+}
+
+/* ============================================================================
+   7. TABLE HOVER EFFECTS
+   ============================================================================ */
+
+.season-table-hover tbody tr {
+    transition: background-color var(--duration-fast, 150ms) var(--ease-smooth, ease-in-out);
+}
+
+.season-table-hover tbody tr:hover {
+    background-color: rgba(var(--color-primary-rgb, 37, 99, 235), 0.05);
+}
+
+[data-style="dark"] .season-table-hover tbody tr:hover {
+    background-color: rgba(var(--color-primary-rgb, 96, 165, 250), 0.08);
+}
+
+/* ============================================================================
+   8. SEASON SELECTOR
+   ============================================================================ */
+
+.season-selector {
+    min-width: 150px;
+    border-radius: var(--radius-md, 0.375rem);
+    transition: border-color var(--duration-fast, 150ms) var(--ease-smooth, ease-in-out),
+                box-shadow var(--duration-fast, 150ms) var(--ease-smooth, ease-in-out);
+}
+
+.season-selector:focus {
+    border-color: var(--color-border-focus);
+    box-shadow: 0 0 0 0.2rem rgba(var(--color-primary-rgb), 0.25);
+}
+
+[data-style="dark"] .season-selector:focus {
+    box-shadow: 0 0 0 0.2rem rgba(var(--color-primary-rgb), 0.35);
+}
+
+/* ============================================================================
+   9. LEGEND STYLING
+   ============================================================================ */
+
+.season-legend-container {
+    margin-left: 0;
+    margin-right: 0;
+    max-width: 100%;
+}
+
+.season-legend-col {
+    padding-left: 0;
+    padding-right: 0;
+    max-width: 100%;
+}
+
+/* Removed !important - use higher specificity instead */
+.seasons-page .season-legend-card,
+.season-legend-card.card {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.season-legend-item {
+    display: flex;
+    align-items: center;
+}
+
+.season-legend-label {
+    margin-right: var(--space-2, 0.5rem);
+    font-weight: var(--font-medium, 500);
+}
+
+.season-legend-value {
+    color: var(--color-text-muted);
+}
+
+/* ============================================================================
+   10. SEARCH BOX STYLING
+   ============================================================================ */
+
+.season-search-box {
+    min-width: 200px;
+}
+
+.season-search-box .input-group {
+    transition: box-shadow var(--duration-fast, 150ms) var(--ease-smooth, ease-in-out);
+}
+
+.season-search-box .input-group:focus-within {
+    box-shadow: 0 0 0 0.2rem rgba(var(--color-primary-rgb), 0.15);
+    border-radius: var(--radius-md, 0.375rem);
+}
+
+.season-search-box input {
+    border-left: 0;
+}
+
+.season-search-box .input-group-text {
+    background-color: var(--color-bg-primary);
+    border-right: 0;
+    color: var(--color-text-muted);
+}
+
+[data-style="dark"] .season-search-box .input-group-text {
+    background-color: var(--color-bg-tertiary);
+    border-color: var(--color-border-primary);
+}
+
+/* ============================================================================
+   11. STATISTICS SUMMARY COMPONENTS
+   ============================================================================ */
+
+.season-stat-item {
+    display: flex;
+    align-items: center;
+}
+
+.season-stat-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md, 0.375rem);
+    margin-right: var(--space-3, 0.75rem);
+}
+
+.season-stat-icon i {
+    font-size: var(--text-lg, 1.125rem);
+    color: var(--color-neutral-0, #ffffff);
+}
+
+.season-stat-icon.stat-danger {
+    background-color: var(--color-danger);
+}
+
+.season-stat-icon.stat-success {
+    background-color: var(--color-success);
+}
+
+.season-stat-icon.stat-primary {
+    background-color: var(--color-primary);
+}
+
+.season-stat-icon.stat-warning {
+    background-color: var(--color-warning);
+}
+
+.season-stat-details h6 {
+    margin-bottom: var(--space-1, 0.25rem);
+    font-size: var(--text-sm, 0.875rem);
+    font-weight: var(--font-semibold, 600);
+    color: var(--color-text-primary);
+}
+
+.season-stat-value {
+    color: var(--color-text-muted);
+    font-weight: var(--font-bold, 700);
+    font-size: var(--text-base, 1rem);
+}
+
+[data-style="dark"] .season-stat-details h6 {
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .season-stat-value {
+    color: var(--color-text-muted);
+}
+
+/* ============================================================================
+   12. RESPONSIVE STYLES
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+    /* Mobile table optimizations */
+    .season-standings-rank {
+        width: 10%;
+    }
+
+    .season-standings-team {
+        width: 40%;
+    }
+
+    /* Compact search box on mobile */
+    .season-search-box {
+        min-width: 150px;
+        margin-top: var(--space-2, 0.5rem);
+    }
+
+    /* Stack legend items on mobile */
+    .season-legend-item {
+        flex-direction: column;
+        align-items: flex-start;
+        margin-bottom: var(--space-2, 0.5rem);
+    }
+
+    .season-legend-label {
+        margin-bottom: var(--space-1, 0.25rem);
+    }
+
+    /* Compact statistics on mobile */
+    .season-stat-icon {
+        width: 32px;
+        height: 32px;
+        margin-right: var(--space-2, 0.5rem);
+    }
+
+    .season-stat-icon i {
+        font-size: var(--text-base, 1rem);
+    }
+
+    .season-stat-details h6 {
+        font-size: var(--text-xs, 0.75rem);
+    }
+
+    .season-stat-value {
+        font-size: var(--text-sm, 0.875rem);
+    }
+}
+
+@media (max-width: 576px) {
+    /* Extra small devices */
+    .season-selector {
+        min-width: 120px;
+        font-size: var(--text-sm, 0.875rem);
+    }
+
+    .season-search-box {
+        width: 100%;
+        min-width: unset;
+    }
+
+    /* Full width stats grid on mobile */
+    .season-stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (min-width: 768px) {
+    /* Desktop: Restore standard layout */
+    .season-legend-item {
+        flex-direction: row;
+    }
+
+    /* Grid layout for statistics on larger screens */
+    .season-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: var(--space-3, 0.75rem);
+    }
+}
+
+/* ============================================================================
+   13. PRINT STYLES
+   ============================================================================ */
+
+@media print {
+    .season-nav-pills,
+    .season-selector,
+    .season-search-box {
+        display: none;
+    }
+
+    .season-overview-table {
+        font-size: var(--text-xs, 0.75rem);
+    }
+
+    .season-legend-card {
+        page-break-before: avoid;
+        page-break-inside: avoid;
+    }
+}
+
+/* ============================================================================
+   14. ACCESSIBILITY ENHANCEMENTS
+   ============================================================================ */
+
+/* Focus visible styles for keyboard navigation */
+.season-team-name:focus-visible,
+.season-selector:focus-visible,
+.season-nav-pills .nav-link:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm, 0.25rem);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .season-team-name,
+    .season-table-hover tbody tr,
+    .season-selector,
+    .season-nav-pills .nav-link,
+    .season-search-box .input-group {
+        transition: none;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+    .season-badge-primary,
+    .season-badge-success,
+    .season-badge-warning,
+    .season-badge-danger,
+    .season-badge-secondary {
+        border: 1px solid currentColor;
+    }
+
+    .season-team-name:hover {
+        text-decoration: underline;
+    }
+}
+
+/* ============================================================================
+   15. SEARCH FILTER UTILITIES
+   ============================================================================ */
+
+/* Hidden row state for search filtering */
+.season-search-filtered {
+    display: none;
+}
+
+/* Visible row state (default) */
+.season-search-visible {
+    display: table-row;
+}
+
+/* Animation for search results - optional */
+@media (prefers-reduced-motion: no-preference) {
+    .season-search-filtered {
+        animation: fadeOut var(--duration-fast, 150ms) var(--ease-smooth, ease-in-out);
+    }
+
+    .season-search-visible {
+        animation: fadeIn var(--duration-fast, 150ms) var(--ease-smooth, ease-in-out);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-4px);
+        display: none;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

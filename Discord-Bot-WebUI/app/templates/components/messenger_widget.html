@@ -1,0 +1,128 @@
+{#
+  ============================================================================
+  MESSENGER WIDGET - Sidebar Messaging Component
+  ============================================================================
+
+  Facebook Messenger-style sidebar widget combining online users and messaging.
+
+  Usage:
+    {% include 'components/messenger_widget.html' %}
+
+  Required CSS:
+    app/static/css/components/c-messenger-widget.css
+
+  Required JS:
+    app/static/js/messenger-widget.js
+
+  API Endpoints Used:
+    GET  /api/notifications/presence/online-users
+    GET  /api/messages
+    GET  /api/messages/<user_id>
+    POST /api/messages/<user_id>
+    DELETE /api/messages/message/<message_id>
+    GET  /api/messages/unread-count
+    GET  /api/messages/users/search
+
+  ============================================================================
+#}
+
+<div class="c-messenger" data-component="messenger-widget">
+
+  {# Header #}
+  <div class="c-messenger__header">
+    <button class="c-messenger__header-btn c-messenger__header-back"
+            data-action="back"
+            aria-label="Back to conversations"
+            title="Back">
+      <i class="ti ti-arrow-left" aria-hidden="true"></i>
+    </button>
+
+    <h6 class="c-messenger__header-title" data-header-title>
+      <i class="ti ti-messages c-messenger__header-icon" aria-hidden="true"></i>
+      <span>Messages</span>
+    </h6>
+
+    <div class="c-messenger__header-actions">
+      <span class="c-messenger__badge u-hidden" data-badge="unread" aria-label="Unread messages">0</span>
+      <button class="c-messenger__header-btn"
+              data-action="new-chat"
+              aria-label="Start new chat"
+              title="New conversation">
+        <i class="ti ti-edit" aria-hidden="true"></i>
+      </button>
+      <a href="{{ url_for('messages_pages.messages_inbox') }}"
+         class="c-messenger__header-btn"
+         aria-label="Open full messages"
+         title="Open messages page">
+        <i class="ti ti-external-link" aria-hidden="true"></i>
+      </a>
+    </div>
+  </div>
+
+  {# Online Users Section #}
+  <div class="c-messenger__online">
+    <div class="c-messenger__online-header">
+      <h6 class="c-messenger__online-title">
+        <span class="c-messenger__online-dot" aria-hidden="true"></span>
+        Online Now
+      </h6>
+      <span class="c-messenger__online-count" data-online-count>0</span>
+    </div>
+    <div class="c-messenger__online-list" data-online-list aria-label="Online users">
+      {# Populated by JS #}
+    </div>
+  </div>
+
+  {# Search #}
+  <div class="c-messenger__search">
+    <input type="text"
+           class="c-messenger__search-input"
+           data-input="search"
+           placeholder="Search users..."
+           autocomplete="off"
+           aria-label="Search users">
+  </div>
+
+  {# Conversation List #}
+  <div class="c-messenger__list" data-conversation-list>
+    {# Loading State #}
+    <div class="c-messenger__loading u-hidden" data-state="loading">
+      <div class="c-messenger__loading-spinner" aria-hidden="true"></div>
+      <span>Loading...</span>
+    </div>
+
+    {# Empty State #}
+    <div class="c-messenger__empty u-hidden" data-state="empty">
+      <i class="ti ti-message-off c-messenger__empty-icon" aria-hidden="true"></i>
+      <p class="c-messenger__empty-text">No conversations yet</p>
+      <button class="c-btn c-btn--sm c-btn--primary" data-action="new-chat">
+        Start a conversation
+      </button>
+    </div>
+
+    {# Conversations populated by JS #}
+  </div>
+
+  {# Chat Panel (slides in when chatting) #}
+  <div class="c-messenger__chat">
+    <div class="c-messenger__messages" data-messages>
+      {# Messages populated by JS #}
+    </div>
+
+    <div class="c-messenger__input">
+      <textarea class="c-messenger__input-field"
+                data-input="message"
+                placeholder="Type a message..."
+                rows="1"
+                maxlength="2000"
+                aria-label="Message input"></textarea>
+      <button class="c-messenger__input-send"
+              data-action="send-message"
+              aria-label="Send message"
+              title="Send">
+        <i class="ti ti-send" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+
+</div>

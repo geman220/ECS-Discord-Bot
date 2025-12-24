@@ -1,8 +1,14 @@
 /**
  * Substitute Request Management
  * JavaScript for managing substitute requests and notifications
- * 
+ *
  * Dependencies: jQuery, Bootstrap 5, toastr or showAlert function
+ *
+ * Refactoring Notes:
+ * - Replaced all inline style manipulations with CSS utility classes
+ * - Icon sizing now uses .icon-lg class from utilities/sizing-utils.css
+ * - All empty state icons use consistent sizing via utility classes
+ * - 100% reduction in inline style usage (4 instances removed, 0 remaining)
  */
 
 // Utility functions
@@ -141,7 +147,7 @@ function loadRecentActivity(league) {
                         <br>
                         <small class="text-muted">Status: ${xhr.status} - ${error}</small>
                         <br>
-                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="loadRecentActivity('${league}')">
+                        <button class="js-retry-activity mt-2" data-action="retry-activity" onclick="loadRecentActivity('${league}')">
                             <i class="ti ti-refresh me-1"></i>Retry
                         </button>
                     </td>
@@ -159,7 +165,7 @@ function displayRecentActivity(activities) {
         tbody.html(`
             <tr>
                 <td colspan="4" class="text-center py-4">
-                    <i class="ti ti-clock-off text-muted mb-2 d-block" style="font-size: 2rem;"></i>
+                    <i class="ti ti-clock-off text-muted mb-2 d-block icon-lg"></i>
                     <span class="text-muted">No recent activity for this pool</span>
                     <br>
                     <small class="text-muted">Activities will appear here when players are added or removed</small>
@@ -179,7 +185,7 @@ function displayRecentActivity(activities) {
         const row = `
             <tr>
                 <td><small>${formatDateTime(activity.performed_at)}</small></td>
-                <td><span class="badge ${badgeClass}">${activity.action}</span></td>
+                <td><span data-component="action-badge" class="${badgeClass}">${activity.action}</span></td>
                 <td>${activity.player_name || 'Unknown'}</td>
                 <td>${activity.performer_name || 'System'}</td>
             </tr>
@@ -221,7 +227,7 @@ function loadSubstituteRequests(league) {
                         <i class="ti ti-alert-circle text-warning me-2"></i>
                         <span class="text-muted">Unable to load substitute requests</span>
                         <br>
-                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="loadSubstituteRequests('${league}')">
+                        <button class="js-retry-requests mt-2" data-action="retry-requests" onclick="loadSubstituteRequests('${league}')">
                             <i class="ti ti-refresh me-1"></i>Retry
                         </button>
                     </td>
@@ -239,7 +245,7 @@ function displaySubstituteRequests(requests) {
         tbody.html(`
             <tr>
                 <td colspan="5" class="text-center py-4">
-                    <i class="ti ti-message-off text-muted mb-2 d-block" style="font-size: 2rem;"></i>
+                    <i class="ti ti-message-off text-muted mb-2 d-block icon-lg"></i>
                     <span class="text-muted">No recent substitute requests</span>
                     <br>
                     <small class="text-muted">Substitute requests will appear here when teams request subs</small>
@@ -291,19 +297,19 @@ function displaySubstituteRequests(requests) {
                     ${request.positions_needed ? `<br><small class="text-muted">${request.positions_needed}</small>` : ''}
                 </td>
                 <td>
-                    <span class="badge ${statusBadge}">${statusText}</span>
+                    <span data-component="status-badge" class="${statusBadge}">${statusText}</span>
                 </td>
                 <td>
                     <span class="fw-bold">${request.response_rate}</span>
-                    ${request.available_responses > 0 ? 
-                        `<br><small class="text-success">${request.available_responses} available</small>` : 
+                    ${request.available_responses > 0 ?
+                        `<br><small class="text-success">${request.available_responses} available</small>` :
                         '<br><small class="text-muted">No responses</small>'
                     }
                 </td>
                 <td>
-                    <div class="btn-group btn-group-sm">
+                    <div data-component="action-buttons">
                         ${canResend ? `
-                            <button class="btn btn-outline-primary resend-request-btn" 
+                            <button data-action="resend-request" 
                                     data-request-id="${request.id}" 
                                     data-league="${request.league_type}"
                                     data-team="${request.team_name}"
@@ -313,7 +319,7 @@ function displaySubstituteRequests(requests) {
                             </button>
                         ` : ''}
                         ${canCancel ? `
-                            <button class="btn btn-outline-danger cancel-request-btn" 
+                            <button data-action="cancel-request" 
                                     data-request-id="${request.id}" 
                                     data-league="${request.league_type}"
                                     data-team="${request.team_name}"
@@ -322,15 +328,15 @@ function displaySubstituteRequests(requests) {
                             </button>
                         ` : ''}
                         ${canDelete ? `
-                            <button class="btn btn-outline-danger delete-request-btn" 
-                                    data-request-id="${request.id}" 
+                            <button data-action="delete-request"
+                                    data-request-id="${request.id}"
                                     data-league="${request.league_type}"
                                     data-team="${request.team_name}"
                                     title="Delete cancelled request">
                                 <i class="ti ti-trash"></i>
                             </button>
                         ` : ''}
-                        <button class="btn btn-outline-info view-request-details-btn" 
+                        <button data-action="view-request-details" 
                                 data-request-id="${request.id}" 
                                 title="View details">
                             <i class="ti ti-eye"></i>
@@ -378,7 +384,7 @@ function resendSubstituteRequest(requestId, league, teamName, createdAt) {
 }
 
 function performResendRequest(requestId, league) {
-    const btn = $(`.resend-request-btn[data-request-id="${requestId}"]`);
+    const btn = $(`[data-action="resend-request"][data-request-id="${requestId}"]`);
     const originalText = btn.html();
     
     btn.prop('disabled', true);
@@ -432,8 +438,8 @@ function cancelSubstituteRequest(requestId, league, teamName) {
     if (!confirm(`Are you sure you want to cancel the substitute request for ${teamName}?`)) {
         return;
     }
-    
-    const btn = $(`.cancel-request-btn[data-request-id="${requestId}"]`);
+
+    const btn = $(`[data-action="cancel-request"][data-request-id="${requestId}"]`);
     const originalText = btn.html();
     
     btn.prop('disabled', true);
@@ -498,7 +504,7 @@ function loadMatchSubstituteRequests(matchId) {
                         <i class="ti ti-alert-circle text-warning me-2"></i>
                         <span class="text-muted">Unable to load substitute requests</span>
                         <br>
-                        <button class="btn btn-sm btn-outline-primary mt-2" data-match-id="${matchId}" onclick="loadMatchSubstituteRequests(this.dataset.matchId)">
+                        <button class="js-retry-match-requests mt-2" data-action="retry-match-requests" data-match-id="${matchId}" onclick="loadMatchSubstituteRequests(this.dataset.matchId)">
                             <i class="ti ti-refresh me-1"></i>Retry
                         </button>
                     </td>
@@ -516,7 +522,7 @@ function displayMatchSubstituteRequests(requests) {
         tbody.html(`
             <tr>
                 <td colspan="5" class="text-center py-4">
-                    <i class="ti ti-message-off text-muted mb-2 d-block" style="font-size: 2rem;"></i>
+                    <i class="ti ti-message-off text-muted mb-2 d-block icon-lg"></i>
                     <span class="text-muted">No substitute requests for this match</span>
                     <br>
                     <small class="text-muted">Create a new request to notify substitutes</small>
@@ -568,19 +574,19 @@ function displayMatchSubstituteRequests(requests) {
                     ${request.positions_needed ? `<br><small class="text-muted">${request.positions_needed}</small>` : ''}
                 </td>
                 <td>
-                    <span class="badge ${statusBadge}">${statusText}</span>
+                    <span data-component="status-badge" class="${statusBadge}">${statusText}</span>
                 </td>
                 <td>
                     <span class="fw-bold">${request.response_rate}</span>
-                    ${request.available_responses > 0 ? 
-                        `<br><small class="text-success">${request.available_responses} available</small>` : 
+                    ${request.available_responses > 0 ?
+                        `<br><small class="text-success">${request.available_responses} available</small>` :
                         '<br><small class="text-muted">No responses</small>'
                     }
                 </td>
                 <td>
-                    <div class="btn-group btn-group-sm">
+                    <div data-component="action-buttons">
                         ${canResend ? `
-                            <button class="btn btn-outline-primary resend-match-request-btn" 
+                            <button data-action="resend-match-request" 
                                     data-request-id="${request.id}" 
                                     data-league="${request.league_type}"
                                     data-team="${request.team_name}"
@@ -590,7 +596,7 @@ function displayMatchSubstituteRequests(requests) {
                             </button>
                         ` : ''}
                         ${canCancel ? `
-                            <button class="btn btn-outline-danger cancel-match-request-btn" 
+                            <button data-action="cancel-match-request" 
                                     data-request-id="${request.id}" 
                                     data-league="${request.league_type}"
                                     data-team="${request.team_name}"
@@ -599,15 +605,15 @@ function displayMatchSubstituteRequests(requests) {
                             </button>
                         ` : ''}
                         ${canDelete ? `
-                            <button class="btn btn-outline-danger delete-request-btn" 
-                                    data-request-id="${request.id}" 
+                            <button data-action="delete-request"
+                                    data-request-id="${request.id}"
                                     data-league="${request.league_type}"
                                     data-team="${request.team_name}"
                                     title="Delete cancelled request">
                                 <i class="ti ti-trash"></i>
                             </button>
                         ` : ''}
-                        <button class="btn btn-outline-info view-match-request-details-btn" 
+                        <button data-action="view-match-request-details" 
                                 data-request-id="${request.id}" 
                                 title="View details">
                             <i class="ti ti-eye"></i>
@@ -621,7 +627,7 @@ function displayMatchSubstituteRequests(requests) {
 }
 
 // Event handlers for substitute requests
-$(document).on('click', '.resend-request-btn', function() {
+$(document).on('click', '[data-action="resend-request"]', function() {
     const requestId = $(this).data('request-id');
     const league = $(this).data('league');
     const teamName = $(this).data('team');
@@ -629,28 +635,28 @@ $(document).on('click', '.resend-request-btn', function() {
     resendSubstituteRequest(requestId, league, teamName, createdAt);
 });
 
-$(document).on('click', '.cancel-request-btn', function() {
+$(document).on('click', '[data-action="cancel-request"]', function() {
     const requestId = $(this).data('request-id');
     const league = $(this).data('league');
     const teamName = $(this).data('team');
     cancelSubstituteRequest(requestId, league, teamName);
 });
 
-$(document).on('click', '#refreshRequestsBtn', function() {
+$(document).on('click', '[data-action="refresh-requests"]', function() {
     const league = $('#leagueManagementModal').data('current-league');
     if (league) {
         loadSubstituteRequests(league);
     }
 });
 
-$(document).on('click', '.view-request-details-btn', function() {
+$(document).on('click', '[data-action="view-request-details"]', function() {
     const requestId = $(this).data('request-id');
     const league = $('#leagueManagementModal').data('current-league');
     viewRequestDetails(requestId, league);
 });
 
 // Event handlers for match-specific requests
-$(document).on('click', '.resend-match-request-btn', function() {
+$(document).on('click', '[data-action="resend-match-request"]', function() {
     const requestId = $(this).data('request-id');
     const league = $(this).data('league');
     const teamName = $(this).data('team');
@@ -658,27 +664,27 @@ $(document).on('click', '.resend-match-request-btn', function() {
     resendMatchSubstituteRequest(requestId, league, teamName, createdAt);
 });
 
-$(document).on('click', '.cancel-match-request-btn', function() {
+$(document).on('click', '[data-action="cancel-match-request"]', function() {
     const requestId = $(this).data('request-id');
     const league = $(this).data('league');
     const teamName = $(this).data('team');
     cancelMatchSubstituteRequest(requestId, league, teamName);
 });
 
-$(document).on('click', '.delete-request-btn', function() {
+$(document).on('click', '[data-action="delete-request"]', function() {
     const requestId = $(this).data('request-id');
     const league = $(this).data('league');
     const teamName = $(this).data('team');
     deleteSubstituteRequest(requestId, league, teamName);
 });
 
-$(document).on('click', '#refreshMatchRequestsBtn', function() {
+$(document).on('click', '[data-action="refresh-match-requests"]', function() {
     if (typeof matchId !== 'undefined') {
         loadMatchSubstituteRequests(matchId);
     }
 });
 
-$(document).on('click', '.view-match-request-details-btn', function() {
+$(document).on('click', '[data-action="view-match-request-details"]', function() {
     const requestId = $(this).data('request-id');
     // Determine league type from the current page context
     const league = 'ECS FC'; // Default for match pages, could be made dynamic
@@ -720,7 +726,7 @@ function resendMatchSubstituteRequest(requestId, league, teamName, createdAt) {
 }
 
 function performMatchResendRequest(requestId, league) {
-    const btn = $(`.resend-match-request-btn[data-request-id="${requestId}"]`);
+    const btn = $(`[data-action="resend-match-request"][data-request-id="${requestId}"]`);
     const originalText = btn.html();
     
     btn.prop('disabled', true);
@@ -775,8 +781,8 @@ function cancelMatchSubstituteRequest(requestId, league, teamName) {
     if (!confirm(`Are you sure you want to cancel the substitute request for ${teamName}?`)) {
         return;
     }
-    
-    const btn = $(`.cancel-match-request-btn[data-request-id="${requestId}"]`);
+
+    const btn = $(`[data-action="cancel-match-request"][data-request-id="${requestId}"]`);
     const originalText = btn.html();
     
     btn.prop('disabled', true);
@@ -836,7 +842,7 @@ function performDeleteRequest(requestId, league) {
                 showNotification('success', 'Request deleted successfully');
                 
                 // Immediately remove the row from the UI
-                $(`.delete-request-btn[data-request-id="${requestId}"]`).closest('tr').fadeOut(300, function() {
+                $(`[data-action="delete-request"][data-request-id="${requestId}"]`).closest('tr').fadeOut(300, function() {
                     $(this).remove();
                     
                     // Check if table is empty after removal
@@ -845,7 +851,7 @@ function performDeleteRequest(requestId, league) {
                         tbody.html(`
                             <tr>
                                 <td colspan="5" class="text-center py-4">
-                                    <i class="ti ti-message-off text-muted mb-2 d-block" style="font-size: 2rem;"></i>
+                                    <i class="ti ti-message-off text-muted mb-2 d-block icon-lg"></i>
                                     <span class="text-muted">No substitute requests</span>
                                 </td>
                             </tr>
@@ -947,7 +953,7 @@ $(document).on('click', '#savePoolSettings', function() {
 // Utility function for bulk operations
 function bulkApproveAllPending(league) {
     // Get all pending player IDs for this league
-    const pendingCards = $(`.player-list-item[data-league="${league}"][data-status="pending"], .player-card[data-league="${league}"][data-status="pending"]`);
+    const pendingCards = $(`[data-component="player-item"][data-league="${league}"][data-status="pending"]`);
     const playerIds = [];
     
     pendingCards.each(function() {
@@ -1038,7 +1044,7 @@ function displayRequestDetailsModal(request) {
                         </div>
                         <div>
                             ${canAssign ? `
-                                <button class="btn btn-sm btn-success assign-substitute-btn" 
+                                <button data-action="assign-substitute" 
                                         data-request-id="${request.id}" 
                                         data-player-id="${response.player_id}"
                                         data-player-name="${response.player_name}"
@@ -1164,9 +1170,9 @@ function displayRequestDetailsModal(request) {
                         ${responsesHtml}
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" data-action="close-modal" data-bs-dismiss="modal">Close</button>
                         ${request.status === 'OPEN' ? `
-                            <button type="button" class="btn btn-primary resend-from-details-btn" 
+                            <button type="button" data-action="resend-from-details" 
                                     data-request-id="${request.id}" 
                                     data-league="${request.league_type}"
                                     data-team="${request.team_name}"
@@ -1189,7 +1195,7 @@ function displayRequestDetailsModal(request) {
 }
 
 // Handle assignment from details modal
-$(document).on('click', '.assign-substitute-btn', function() {
+$(document).on('click', '[data-action="assign-substitute"]', function() {
     const requestId = $(this).data('request-id');
     const playerId = $(this).data('player-id');
     const playerName = $(this).data('player-name');
@@ -1255,7 +1261,7 @@ function assignSubstitute(requestId, playerId, league, position) {
 }
 
 // Handle resend from details modal
-$(document).on('click', '.resend-from-details-btn', function() {
+$(document).on('click', '[data-action="resend-from-details"]', function() {
     const requestId = $(this).data('request-id');
     const league = $(this).data('league');
     const teamName = $(this).data('team');

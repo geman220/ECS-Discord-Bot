@@ -1,6 +1,29 @@
 {% extends "base.html" %}
 
+{% block title %}{{ title }}{% endblock %}
+
+{% block custom_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/roles.css') }}">
+{% endblock %}
+
 {% block main_content %}
-<h1>{{ title }}</h1>
-<p>This is the {{ title }} page.</p>
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Page Header -->
+    <div class="c-header-modern" data-component="header">
+        <div class="c-header-modern__content">
+            <h1 class="c-header-modern__title">{{ title }}</h1>
+            <p class="c-header-modern__subtitle">Team and league role management</p>
+        </div>
+    </div>
+
+    <!-- Content Placeholder -->
+    <div class="c-empty-state" data-component="empty-state">
+        <div class="c-empty-state__icon">
+            <i class="ti ti-shield-check"></i>
+        </div>
+        <h3 class="c-empty-state__title">Roles Management</h3>
+        <p class="c-empty-state__text">This page is under construction. Use the admin panel to manage roles.</p>
+    </div>
+</div>
 {% endblock %}

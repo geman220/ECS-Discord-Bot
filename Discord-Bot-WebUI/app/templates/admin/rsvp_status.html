@@ -3,657 +3,16 @@
 {% block title %}Match RSVP Status{% endblock %}
 
 {% block custom_css %}
-<style>
-    /* Card hover effect */
-    .shadow-sm {
-        transition: all 0.2s ease;
-    }
-    
-    .shadow-sm:hover {
-        box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45) !important;
-    }
-    
-    /* Badge styling */
-    .badge {
-        padding: 0.4rem 0.65rem;
-        font-weight: 500;
-    }
-    
-    /* Avatar styling */
-    .avatar {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 38px;
-        width: 38px;
-        overflow: hidden;
-        border-radius: 50%;
-    }
-    
-    .avatar img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        border-radius: 50%;
-    }
-    
-    /* Override the default background color for avatars */
-    .avatar.avatar-sm, 
-    .avatar.avatar-md {
-        background-color: transparent !important;
-    }
-    
-    /* Add a subtle shadow to avatars for better visual separation */
-    .avatar.avatar-sm img, 
-    .avatar.avatar-md img {
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .avatar-sm {
-        height: 30px;
-        width: 30px;
-    }
-    
-    .avatar-md {
-        height: 42px;
-        width: 42px;
-    }
-    
-    .avatar-initial {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.2rem;
-    }
-    
-    .avatar-sm .avatar-initial {
-        font-size: 0.9rem;
-    }
-    
-    .avatar-md .avatar-initial {
-        font-size: 1.3rem;
-    }
-    
-    .bg-label-primary {
-        background-color: var(--ecs-primary-subtle, rgba(105, 108, 255, 0.16)) !important;
-        color: var(--ecs-primary, #696cff) !important;
-    }
-
-    .bg-label-indigo {
-        background-color: var(--ecs-primary-subtle, rgba(80, 102, 235, 0.16)) !important;
-        color: var(--ecs-primary, #5066eb) !important;
-    }
-
-    .bg-label-success {
-        background-color: var(--ecs-success-subtle, rgba(113, 221, 55, 0.16)) !important;
-        color: var(--ecs-success, #71dd37) !important;
-    }
-
-    .bg-label-warning {
-        background-color: var(--ecs-warning-subtle, rgba(255, 171, 0, 0.16)) !important;
-        color: var(--ecs-warning, #ffab00) !important;
-    }
-
-    .bg-label-danger {
-        background-color: var(--ecs-danger-subtle, rgba(255, 62, 29, 0.16)) !important;
-        color: var(--ecs-danger, #ff3e1d) !important;
-    }
-
-    .bg-label-info {
-        background-color: var(--ecs-info-subtle, rgba(3, 195, 236, 0.16)) !important;
-        color: var(--ecs-info, #03c3ec) !important;
-    }
-
-    .bg-label-secondary {
-        background-color: var(--ecs-secondary-subtle, rgba(133, 146, 163, 0.16)) !important;
-        color: var(--ecs-secondary, #8592a3) !important;
-    }
-
-    /* Nav tab styling */
-    .nav-tabs .nav-link.active {
-        background: none;
-        border-bottom-color: var(--ecs-primary, #696cff);
-        color: var(--ecs-primary, #696cff);
-    }
-
-    .nav-tabs .nav-link {
-        color: var(--ecs-neutral-60, #566a7f);
-    }
-    
-    /* Mobile adaptations */
-    @media (max-width: 767.98px) {
-        .flex-column-mobile {
-            flex-direction: column !important;
-        }
-        
-        .w-100-mobile {
-            width: 100% !important;
-        }
-        
-        .mb-mobile-3 {
-            margin-bottom: 1rem !important;
-        }
-        
-        /* Mobile-first RSVP Card System */
-        .rsvp-mobile-card {
-            background: white;
-            border: 1px solid var(--ecs-neutral-20, #dee2e6);
-            border-radius: 8px;
-            margin-bottom: 0.75rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            transition: all 0.2s ease;
-            overflow: hidden;
-        }
-        
-        .rsvp-mobile-card:hover {
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            transform: translateY(-1px);
-        }
-        
-        .rsvp-card-header {
-            padding: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: var(--ecs-neutral-5, #f8f9fa);
-            border-bottom: 1px solid var(--ecs-neutral-20, #dee2e6);
-        }
-        
-        .rsvp-card-main {
-            padding: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        .rsvp-card-body {
-            padding: 0 1rem 1rem;
-            display: none; /* Hidden by default, shown when expanded */
-        }
-        
-        .rsvp-card-body.show {
-            display: block;
-        }
-        
-        .player-info-mobile {
-            display: flex;
-            align-items: center;
-            flex: 1;
-            min-width: 0;
-        }
-        
-        .player-name-mobile {
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-            font-size: 1rem;
-        }
-        
-        .player-meta-mobile {
-            font-size: 0.875rem;
-            color: var(--ecs-neutral-50, #6c757d);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-        
-        .response-badge-mobile {
-            padding: 0.375rem 0.75rem;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.875rem;
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-        }
-        
-        .expand-button {
-            background: none;
-            border: none;
-            color: var(--ecs-neutral-50, #6c757d);
-            padding: 0.5rem;
-            cursor: pointer;
-            border-radius: 50%;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 32px;
-            height: 32px;
-        }
-
-        .expand-button:hover {
-            background: var(--ecs-neutral-5, #f8f9fa);
-            color: var(--ecs-neutral-60, #495057);
-        }
-        
-        .expand-button.expanded {
-            transform: rotate(180deg);
-        }
-        
-        .quick-actions-mobile {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 0.75rem;
-            flex-wrap: wrap;
-        }
-        
-        .quick-action-btn {
-            flex: 1;
-            min-width: 120px;
-            padding: 0.5rem 0.75rem;
-            border-radius: 6px;
-            font-size: 0.875rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.25rem;
-            transition: all 0.2s ease;
-        }
-        
-        .contact-actions-mobile {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
-            margin-top: 0.75rem;
-        }
-        
-        .contact-action-btn {
-            padding: 0.75rem;
-            border-radius: 8px;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-        
-        .rsvp-actions-mobile {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
-            margin-top: 0.75rem;
-        }
-        
-        .rsvp-action-btn {
-            padding: 0.75rem;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            font-size: 0.875rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            transition: all 0.2s ease;
-        }
-        
-        /* Hide desktop table on mobile */
-        .table-responsive {
-            display: none !important;
-        }
-        
-        /* Show mobile cards only on mobile */
-        .rsvp-mobile-list {
-            display: block;
-        }
-    }
-    
-    /* Desktop styles */
-    @media (min-width: 768px) {
-        .rsvp-mobile-list {
-            display: none;
-        }
-        
-        .table-responsive {
-            display: block !important;
-        }
-        
-        /* Enhanced desktop table */
-        .table th {
-            font-weight: 600;
-            color: var(--ecs-neutral-60, #495057);
-            border-bottom: 2px solid var(--ecs-neutral-20, #dee2e6);
-        }
-        
-        .table td {
-            vertical-align: middle;
-            padding: 1rem 0.75rem;
-        }
-        
-        .player-item-desktop {
-            display: flex;
-            align-items: center;
-        }
-        
-        .player-item-desktop .avatar {
-            margin-right: 0.75rem;
-        }
-        
-        .dropdown-menu {
-            border-radius: 8px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-            border: none;
-            padding: 0.5rem 0;
-        }
-        
-        .dropdown-item {
-            padding: 0.5rem 1rem;
-            font-size: 0.875rem;
-        }
-        
-        .dropdown-item:hover {
-            background-color: var(--ecs-neutral-5, #f8f9fa);
-        }
-    }
-    
-    /* Page loader */
-    #page-loader {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(255, 255, 255, 0.9);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 99999;
-        transition: opacity 0.5s ease-out;
-    }
-    
-    #page-loader.hidden {
-        opacity: 0;
-        pointer-events: none;
-    }
-    
-    .loader-spinner {
-        width: 48px;
-        height: 48px;
-        border: 5px solid var(--ecs-primary, #696cff);
-        border-bottom-color: transparent;
-        border-radius: 50%;
-        display: inline-block;
-        box-sizing: border-box;
-        animation: rotation 1s linear infinite;
-    }
-    
-    @keyframes rotation {
-        0% {
-            transform: rotate(0deg);
-        }
-        100% {
-            transform: rotate(360deg);
-        }
-    }
-    
-    /* Modal styling for SMS and Discord DM */
-    .modal-content {
-        border-radius: 0.5rem;
-        overflow: hidden;
-    }
-    
-    .modal-header.bg-primary,
-    .btn-primary {
-        background-color: var(--ecs-primary, #5066eb) !important;
-        border-color: var(--ecs-primary, #5066eb) !important;
-    }
-    
-    .modal-header.bg-indigo,
-    .btn-indigo {
-        background-color: var(--ecs-info, #17a2b8) !important;
-        border-color: var(--ecs-info, #17a2b8) !important;
-        color: white;
-    }
-    
-    .border-indigo {
-        border-color: var(--ecs-info, #17a2b8) !important;
-    }
-    
-    .text-indigo {
-        color: var(--ecs-info, #17a2b8) !important;
-    }
-    
-    .bg-indigo {
-        background-color: var(--ecs-info, #17a2b8) !important;
-    }
-    
-    textarea.form-control {
-        resize: none;
-        transition: all 0.2s ease;
-    }
-    
-    textarea.form-control:focus {
-        box-shadow: 0 0 0 0.25rem var(--ecs-primary-subtle, rgba(80, 102, 235, 0.25));
-    }
-
-    .form-text {
-        color: var(--ecs-neutral-50, #6c757d);
-    }
-    
-    .avatar {
-        transition: all 0.2s ease;
-    }
-    
-    .avatar:hover {
-        transform: scale(1.05);
-    }
-    
-    /* CRITICAL: Direct dropdown menu fixes for this page */
-    .table-responsive {
-        overflow: visible !important;
-    }
-    
-    .card {
-        overflow: visible !important;
-    }
-    
-    .dropdown-menu {
-        z-index: 99999 !important;
-        position: absolute !important;
-    }
-    
-    .tab-content {
-        overflow: visible !important;
-    }
-    
-    .tab-pane {
-        overflow: visible !important;
-    }
-    
-    table td {
-        position: relative !important;
-    }
-    
-    /* Specific fix for action column dropdowns */
-    table td:last-child .dropdown-menu {
-        right: 0 !important;
-        left: auto !important;
-    }
-    
-    /* =====================================================================
-       DARK MODE STYLES FOR RSVP STATUS PAGE
-       ===================================================================== */
-    
-    /* Cards and main content */
-    [data-style="dark"] .card,
-    [data-style="dark"] .shadow-sm {
-        background-color: var(--ecs-neutral-100, #1a1a1a) !important;
-        border-color: var(--ecs-neutral-80, #3a3a3a) !important;
-        color: var(--ecs-neutral-30, #e5e5e5) !important;
-    }
-    
-    [data-style="dark"] .card-header {
-        background-color: var(--ecs-neutral-95, #2a2a2a) !important;
-        border-bottom-color: var(--ecs-neutral-80, #3a3a3a) !important;
-        color: var(--ecs-neutral-30, #e5e5e5) !important;
-    }
-    
-    [data-style="dark"] .card-body {
-        background-color: var(--ecs-neutral-100, #1a1a1a) !important;
-        color: var(--ecs-neutral-30, #e5e5e5) !important;
-    }
-    
-    /* Navigation tabs */
-    [data-style="dark"] .nav-tabs .nav-link {
-        color: var(--ecs-neutral-40, #cccccc) !important;
-        border-color: transparent !important;
-    }
-    
-    [data-style="dark"] .nav-tabs .nav-link.active {
-        color: var(--ecs-primary, #696cff) !important;
-        border-bottom-color: var(--ecs-primary, #696cff) !important;
-        background-color: transparent !important;
-    }
-    
-    [data-style="dark"] .nav-tabs {
-        border-bottom-color: var(--ecs-neutral-80, #3a3a3a) !important;
-    }
-    
-    /* Mobile RSVP Cards */
-    [data-style="dark"] .rsvp-mobile-card {
-        background: var(--ecs-neutral-100, #1a1a1a) !important;
-        border-color: var(--ecs-neutral-80, #3a3a3a) !important;
-        color: var(--ecs-neutral-30, #e5e5e5) !important;
-    }
-    
-    [data-style="dark"] .rsvp-card-header {
-        background: var(--ecs-neutral-95, #2a2a2a) !important;
-        border-bottom-color: var(--ecs-neutral-80, #3a3a3a) !important;
-    }
-    
-    [data-style="dark"] .player-meta-mobile {
-        color: var(--ecs-neutral-50, #999999) !important;
-    }
-    
-    /* Table styling */
-    [data-style="dark"] .table {
-        color: var(--ecs-neutral-30, #e5e5e5) !important;
-    }
-    
-    [data-style="dark"] .table th {
-        background-color: var(--ecs-neutral-95, #2a2a2a) !important;
-        border-bottom-color: var(--ecs-neutral-80, #3a3a3a) !important;
-        color: var(--ecs-neutral-30, #e5e5e5) !important;
-    }
-    
-    [data-style="dark"] .table td {
-        border-top-color: var(--ecs-neutral-80, #3a3a3a) !important;
-        color: var(--ecs-neutral-30, #e5e5e5) !important;
-    }
-    
-    [data-style="dark"] .table-striped > tbody > tr:nth-of-type(odd) > td,
-    [data-style="dark"] .table-striped > tbody > tr:nth-of-type(odd) > th {
-        background-color: var(--ecs-neutral-95, #2a2a2a) !important;
-    }
-    
-    /* Dropdown menus */
-    [data-style="dark"] .dropdown-menu {
-        background-color: var(--ecs-neutral-100, #1a1a1a) !important;
-        border-color: var(--ecs-neutral-80, #3a3a3a) !important;
-    }
-    
-    [data-style="dark"] .dropdown-item {
-        color: var(--ecs-neutral-30, #e5e5e5) !important;
-    }
-    
-    [data-style="dark"] .dropdown-item:hover {
-        background-color: var(--ecs-neutral-95, #2a2a2a) !important;
-        color: var(--ecs-neutral-30, #e5e5e5) !important;
-    }
-    
-    /* Badge colors for dark mode */
-    [data-style="dark"] .bg-label-success {
-        background-color: var(--ecs-success-subtle, rgba(113, 221, 55, 0.2)) !important;
-        color: var(--ecs-success, #71dd37) !important;
-    }
-
-    [data-style="dark"] .bg-label-warning {
-        background-color: var(--ecs-warning-subtle, rgba(255, 171, 0, 0.2)) !important;
-        color: var(--ecs-warning, #ffab00) !important;
-    }
-
-    [data-style="dark"] .bg-label-danger {
-        background-color: var(--ecs-danger-subtle, rgba(255, 62, 29, 0.2)) !important;
-        color: var(--ecs-danger, #ff3e1d) !important;
-    }
-
-    [data-style="dark"] .bg-label-secondary {
-        background-color: var(--ecs-secondary-subtle, rgba(133, 146, 163, 0.2)) !important;
-        color: var(--ecs-secondary, #8592a3) !important;
-    }
-
-    [data-style="dark"] .bg-label-primary {
-        background-color: var(--ecs-primary-subtle, rgba(105, 108, 255, 0.2)) !important;
-        color: var(--ecs-primary, #696cff) !important;
-    }
-
-    [data-style="dark"] .bg-label-info {
-        background-color: var(--ecs-info-subtle, rgba(3, 195, 236, 0.2)) !important;
-        color: var(--ecs-info, #03c3ec) !important;
-    }
-    
-    /* Text and general elements */
-    [data-style="dark"] .text-muted {
-        color: var(--ecs-neutral-50, #999999) !important;
-    }
-    
-    [data-style="dark"] .border-bottom {
-        border-bottom-color: var(--ecs-neutral-80, #3a3a3a) !important;
-    }
-    
-    [data-style="dark"] .shadow-sm:hover {
-        box-shadow: 0 0.25rem 1rem rgba(255, 255, 255, 0.1) !important;
-    }
-</style>
+{{ super() }}
+<!-- RSVP Status Page Styles -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/rsvp-status.css') }}" />
 <!-- Toastr CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
 {% endblock %}
 
-<!-- Inline style for dropdown fixes -->
-<style>
-    /* CRITICAL: Direct dropdown menu fixes */
-    .table-responsive {
-        overflow: visible !important;
-    }
-    
-    .card {
-        overflow: visible !important;
-    }
-    
-    .dropdown-menu {
-        z-index: 99999 !important;
-        position: absolute !important;
-    }
-    
-    .tab-content {
-        overflow: visible !important;
-    }
-    
-    .tab-pane {
-        overflow: visible !important;
-    }
-    
-    table td {
-        position: relative !important;
-    }
-    
-    /* Specific fix for action column dropdowns */
-    table td:last-child .dropdown-menu {
-        right: 0 !important;
-        left: auto !important;
-    }
-</style>
-
 {% block main_content %}
 <!-- Page Loader -->
-<div id="page-loader">
+<div id="page-loader" class="c-page-loader">
     <span class="loader-spinner"></span>
 </div>
 <!-- Store user role data for JavaScript -->
@@ -669,8 +28,8 @@
     <!-- Match Info Card -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-body">
+            <div class="c-card shadow-sm">
+                <div class="c-card__body">
                     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
                         <div class="mb-3 mb-md-0">
                             {% if is_ecs_fc_match %}
@@ -715,19 +74,19 @@
                         </div>
                         <div class="d-flex gap-2">
                             {% if is_ecs_fc_match %}
-                            <a href="{{ url_for('match_pages.view_match', match_id='ecs_' + ecs_match.id|string) }}" class="btn btn-primary ecs-btn ecs-btn-icon">
+                            <a href="{{ url_for('match_pages.view_match', match_id='ecs_' + ecs_match.id|string) }}" class="c-btn c-btn--primary ecs-btn ecs-btn-icon">
                             {% else %}
-                            <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-primary ecs-btn ecs-btn-icon">
+                            <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="c-btn c-btn--primary ecs-btn ecs-btn-icon">
                             {% endif %}
                                 <i class="ti ti-eye me-1"></i> View Match Page
                             </a>
                             {% if has_role('Global Admin') or has_role('Pub League Admin') %}
-                            <button type="button" class="btn btn-success ecs-btn ecs-btn-icon" data-bs-toggle="modal" data-bs-target="#assignSubModalRSVP">
+                            <button type="button" class="c-btn c-btn--success ecs-btn ecs-btn-icon" data-bs-toggle="modal" data-bs-target="#assignSubModalRSVP">
                                 <i class="ti ti-user-plus me-1"></i> Assign Substitute
                             </button>
                             {% endif %}
                             {% if has_role('Pub League Coach') or has_role('Global Admin') or has_role('Pub League Admin') or has_role('ECS FC Coach') %}
-                            <button type="button" class="btn btn-warning ecs-btn ecs-btn-icon" data-bs-toggle="modal" data-bs-target="#requestSubModal">
+                            <button type="button" class="c-btn c-btn--warning ecs-btn ecs-btn-icon" data-bs-toggle="modal" data-bs-target="#requestSubModal">
                                 <i class="ti ti-hand-stop me-1"></i> Request Substitute
                             </button>
                             {% endif %}
@@ -746,8 +105,8 @@
         {% set total_count = rsvps|count %}
 
         <div class="col-md-3 col-sm-6 mb-3">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
+            <div class="c-card h-100 shadow-sm">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-md me-2">
                             <div class="avatar-initial rounded bg-label-primary">
@@ -763,8 +122,8 @@
             </div>
         </div>
         <div class="col-md-3 col-sm-6 mb-3">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
+            <div class="c-card h-100 shadow-sm">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-md me-2">
                             <div class="avatar-initial rounded bg-label-success">
@@ -780,8 +139,8 @@
             </div>
         </div>
         <div class="col-md-3 col-sm-6 mb-3">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
+            <div class="c-card h-100 shadow-sm">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-md me-2">
                             <div class="avatar-initial rounded bg-label-warning">
@@ -797,8 +156,8 @@
             </div>
         </div>
         <div class="col-md-3 col-sm-6 mb-3">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
+            <div class="c-card h-100 shadow-sm">
+                <div class="c-card__body">
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-md me-2">
                             <div class="avatar-initial rounded bg-label-danger">
@@ -818,9 +177,9 @@
     <!-- Team Tabs -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header border-bottom">
-                    <ul class="nav nav-tabs card-header-tabs" role="tablist">
+            <div class="c-card shadow-sm">
+                <div class="c-card__header border-bottom">
+                    <ul class="nav nav-tabs c-card__header c-card__header--tabs" role="tablist" data-tabs>
                         <li class="nav-item">
                             <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-responses" type="button" role="tab" aria-controls="all-responses" aria-selected="true">
                                 All Responses
@@ -849,51 +208,51 @@
                         {% endif %}
                     </ul>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <div class="tab-content">
-                        <div class="tab-pane fade show active" id="all-responses" role="tabpanel" aria-labelledby="all-tab">
+                        <div class="tab-pane fade show active" id="all-responses" role="tabpanel" aria-labelledby="all-tab" data-tab-pane>
                             <!-- Mobile Card Layout -->
                             <div class="rsvp-mobile-list">
                                 {% for rsvp in rsvps %}
                                 <div class="rsvp-mobile-card" data-player-id="{{ rsvp['player'].id }}">
                                     <div class="rsvp-card-main">
                                         <div class="player-info-mobile">
-                                            <div class="avatar avatar-sm me-3" style="background-color: transparent;">
+                                            <div class="avatar avatar-sm me-3 rsvp-avatar">
                                                 {% if rsvp['player'].profile_picture_url %}
-                                                    <img src="{{ rsvp['player'].profile_picture_url }}" alt="Avatar" class="rounded-circle" style="object-fit: cover; border: 1px solid rgba(255,255,255,0.3);">
+                                                    <img src="{{ rsvp['player'].profile_picture_url }}" alt="Avatar" class="rounded-circle rsvp-avatar-image">
                                                 {% else %}
                                                     <div class="avatar-initial rounded-circle bg-label-secondary">
                                                         {{ rsvp['player'].name[:1]|upper }}
                                                     </div>
                                                 {% endif %}
                                             </div>
-                                            <div style="flex: 1; min-width: 0;">
+                                            <div class="rsvp-player-container">
                                                 <div class="player-name-mobile">{{ rsvp['player'].name }}</div>
                                                 <div class="player-meta-mobile">
                                                     {% if is_ecs_fc_match %}
-                                                    <span class="badge bg-primary">{{ rsvp['team'].name }}</span>
+                                                    <span class="badge bg-primary" data-badge>{{ rsvp['team'].name }}</span>
                                                     {% else %}
-                                                    <span class="badge bg-{{ 'primary' if rsvp['team'].id == match.home_team.id else 'info' }}">{{ rsvp['team'].name }}</span>
+                                                    <span class="badge bg-{{ 'primary' if rsvp['team'].id == match.home_team.id else 'info' }}" data-badge>{{ rsvp['team'].name }}</span>
                                                     {% endif %}
                                                     {% if rsvp['is_temp_sub'] %}
-                                                    <span class="badge bg-label-info">
+                                                    <span class="badge bg-label-info" data-badge>
                                                         <i class="ti ti-replace"></i> SUB
                                                     </span>
                                                     {% endif %}
                                                     {% if rsvp['discord_synced'] %}
-                                                    <span class="badge bg-label-info">
+                                                    <span class="badge bg-label-info" data-badge>
                                                         <i class="ti ti-brand-discord"></i>
                                                     </span>
                                                     {% endif %}
                                                 </div>
                                             </div>
                                         </div>
-                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                            <span class="response-badge-mobile {{ 'bg-success text-white' if rsvp['response'] == 'yes' else 'bg-danger text-white' if rsvp['response'] == 'no' else 'bg-warning text-white' if rsvp['response'] == 'maybe' else 'bg-secondary text-white' }}">
+                                        <div class="rsvp-actions-wrapper">
+                                            <span class="response-badge-mobile {{ 'bg-success text-white' if rsvp['response'] == 'yes' else 'bg-danger text-white' if rsvp['response'] == 'no' else 'bg-warning text-white' if rsvp['response'] == 'maybe' else 'bg-secondary text-white' }}" data-badge>
                                                 <i class="ti ti-{{ 'check' if rsvp['response'] == 'yes' else 'x' if rsvp['response'] == 'no' else 'help' if rsvp['response'] == 'maybe' else 'minus' }}"></i>
                                                 {{ rsvp['response']|capitalize }}
                                             </span>
-                                            <button class="expand-button" onclick="toggleCardExpansion(this)">
+                                            <button class="expand-button js-toggle-card-expansion" data-action="toggle-card-expansion">
                                                 <i class="ti ti-chevron-down"></i>
                                             </button>
                                         </div>
@@ -901,12 +260,12 @@
                                     
                                     <div class="rsvp-card-body">
                                         <!-- Response Time -->
-                                        <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: var(--ecs-neutral-5, #f8f9fa); border-radius: 6px;">
-                                            <small class="text-muted d-block" style="font-size: 0.75rem;">Response Time</small>
+                                        <div class="rsvp-response-time-box">
+                                            <small class="text-muted d-block rsvp-response-time-label">Response Time</small>
                                             {% if rsvp['responded_at'] %}
-                                                <div style="font-weight: 500;">{{ rsvp['responded_at'].strftime('%b %d, %Y at %I:%M %p') }}</div>
+                                                <div class="rsvp-response-time-value">{{ rsvp['responded_at'].strftime('%b %d, %Y at %I:%M %p') }}</div>
                                             {% else %}
-                                                <div style="color: var(--ecs-neutral-50, #6c757d);">No response yet</div>
+                                                <div class="rsvp-no-response-text">No response yet</div>
                                             {% endif %}
                                         </div>
                                         
@@ -918,13 +277,13 @@
                                         {% if has_sms or has_discord or has_email %}
                                         <div class="contact-actions-mobile">
                                             {% if has_sms %}
-                                            <button class="contact-action-btn bg-primary text-white send-sms-btn" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-phone="{{ rsvp['player'].phone }}">
+                                            <button class="contact-action-btn bg-primary text-white" data-action="rsvp-request-sms" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-phone="{{ rsvp['player'].phone }}">
                                                 <i class="ti ti-message"></i> SMS
                                             </button>
                                             {% endif %}
                                             
                                             {% if has_discord %}
-                                            <button class="contact-action-btn bg-indigo text-white" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-discord-id="{{ rsvp['player'].discord_id }}">
+                                            <button class="contact-action-btn bg-indigo text-white" data-action="rsvp-request-discord-dm" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-discord-id="{{ rsvp['player'].discord_id }}">
                                                 <i class="ti ti-brand-discord"></i> Discord
                                             </button>
                                             {% endif %}
@@ -943,24 +302,24 @@
                                         
                                         <!-- RSVP Actions -->
                                         <div class="rsvp-actions-mobile">
-                                            <button class="rsvp-action-btn bg-success text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="yes">
+                                            <button class="rsvp-action-btn bg-success text-white" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="yes">
                                                 <i class="ti ti-check"></i> Set Yes
                                             </button>
-                                            <button class="rsvp-action-btn bg-danger text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no">
+                                            <button class="rsvp-action-btn bg-danger text-white" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no">
                                                 <i class="ti ti-x"></i> Set No
                                             </button>
-                                            <button class="rsvp-action-btn bg-warning text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="maybe">
+                                            <button class="rsvp-action-btn bg-warning text-white" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="maybe">
                                                 <i class="ti ti-help"></i> Maybe
                                             </button>
-                                            <button class="rsvp-action-btn bg-secondary text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no_response">
+                                            <button class="rsvp-action-btn bg-secondary text-white" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no_response">
                                                 <i class="ti ti-trash"></i> Clear
                                             </button>
                                         </div>
                                         
                                         <!-- Sub Management (if applicable) -->
                                         {% if rsvp['is_temp_sub'] %}
-                                        <div style="margin-top: 0.75rem;">
-                                            <form action="{{ url_for('admin.remove_sub', assignment_id=rsvp.get('assignment_id', 0)) }}" method="POST" style="margin: 0;">
+                                        <div class="rsvp-sub-form">
+                                            <form action="{{ url_for('admin.remove_sub', assignment_id=rsvp.get('assignment_id', 0)) }}" method="POST" class="rsvp-sub-form-inline">
                                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                 <input type="hidden" name="redirect_to" value="rsvp_status">
                                                 <button type="submit" class="contact-action-btn bg-danger text-white w-100">
@@ -975,15 +334,15 @@
                             </div>
                             
                             <!-- Desktop Table Layout -->
-                            <div class="table-responsive">
-                                <table id="rsvpStatusTable" class="table table-striped table-hover border-top">
-                                    <thead>
+                            <div class="c-table-wrapper" data-table-responsive>
+                                <table id="rsvpStatusTable" class="c-table c-table--striped c-table--hoverable border-top" data-table>
+                                    <thead scope="col">
                                         <tr>
-                                            <th>Player</th>
-                                            <th>Team</th>
-                                            <th>Response</th>
-                                            <th>Responded At</th>
-                                            <th>Actions</th>
+                                            <th scope="col">Player</th>
+                                            <th scope="col">Team</th>
+                                            <th scope="col">Response</th>
+                                            <th scope="col">Responded At</th>
+                                            <th scope="col">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -991,9 +350,9 @@
                                         <tr>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <div class="avatar avatar-sm me-2" style="background-color: transparent;">
+                                                    <div class="avatar avatar-sm me-2 rsvp-avatar">
                                                         {% if rsvp['player'].profile_picture_url %}
-                                                            <img src="{{ rsvp['player'].profile_picture_url }}" alt="Avatar" class="rounded-circle" style="object-fit: cover; border: 1px solid rgba(255,255,255,0.3);">
+                                                            <img src="{{ rsvp['player'].profile_picture_url }}" alt="Avatar" class="rounded-circle rsvp-avatar-image">
                                                         {% else %}
                                                             <div class="avatar-initial rounded-circle bg-label-secondary">
                                                                 {{ rsvp['player'].name[:1]|upper }}
@@ -1004,7 +363,7 @@
                                                         <div class="d-flex align-items-center">
                                                             <span class="fw-semibold">{{ rsvp['player'].name }}</span>
                                                             {% if rsvp['is_temp_sub'] %}
-                                                            <span class="badge bg-label-info ms-2" data-bs-toggle="tooltip" title="Temporary substitute assigned by {{ rsvp['assigned_by'] }}">
+                                                            <span class="badge bg-label-info ms-2" data-bs-toggle="tooltip" title="Temporary substitute assigned by {{ rsvp['assigned_by'] }}" data-badge>
                                                                 <i class="ti ti-replace me-1"></i>SUB
                                                             </span>
                                                             {% endif %}
@@ -1019,22 +378,22 @@
                                             </td>
                                             <td>
                                                 {% if is_ecs_fc_match %}
-                                                <span class="badge bg-primary">
+                                                <span class="badge bg-primary" data-badge>
                                                     {{ rsvp['team'].name }}
                                                 </span>
                                                 {% else %}
-                                                <span class="badge bg-{{ 'primary' if rsvp['team'].id == match.home_team.id else 'info' }}">
+                                                <span class="badge bg-{{ 'primary' if rsvp['team'].id == match.home_team.id else 'info' }}" data-badge>
                                                     {{ rsvp['team'].name }}
                                                 </span>
                                                 {% endif %}
                                             </td>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <span class="badge {{ 'bg-success' if rsvp['response'] == 'yes' else 'bg-danger' if rsvp['response'] == 'no' else 'bg-warning' if rsvp['response'] == 'maybe' else 'bg-secondary' }} me-2">
+                                                    <span class="badge {{ 'bg-success' if rsvp['response'] == 'yes' else 'bg-danger' if rsvp['response'] == 'no' else 'bg-warning' if rsvp['response'] == 'maybe' else 'bg-secondary' }} me-2" data-badge>
                                                         {{ rsvp['response']|capitalize }}
                                                     </span>
                                                     {% if rsvp['discord_synced'] %}
-                                                        <span class="badge bg-label-info" data-bs-toggle="tooltip" data-bs-placement="top" title="Synced with Discord">
+                                                        <span class="badge bg-label-info" data-bs-toggle="tooltip" data-bs-placement="top" title="Synced with Discord" data-badge>
                                                             <i class="ti ti-brand-discord"></i>
                                                         </span>
                                                     {% endif %}
@@ -1052,10 +411,10 @@
                                             </td>
                                             <td>
                                                 <div class="dropdown">
-                                                    <button type="button" class="btn btn-sm btn-icon btn-outline-secondary dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                                    <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary dropdown-toggle hide-arrow" data-bs-toggle="dropdown" data-dropdown-toggle>
                                                         <i class="ti ti-dots-vertical"></i>
                                                     </button>
-                                                    <div class="dropdown-menu dropdown-menu-end">
+                                                    <div class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
                                                         <a class="dropdown-item" href="{{ url_for('players.player_profile', player_id=rsvp['player'].id) }}">
                                                             <i class="ti ti-user me-1"></i> View Profile
                                                         </a>
@@ -1070,13 +429,13 @@
                                                         <h6 class="dropdown-header">Contact Options</h6>
                                                         
                                                         {% if has_sms %}
-                                                        <a class="dropdown-item send-sms-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-phone="{{ rsvp['player'].phone }}">
+                                                        <a class="dropdown-item" href="javascript:void(0);" data-action="rsvp-request-sms" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-phone="{{ rsvp['player'].phone }}">
                                                             <i class="ti ti-message me-1"></i> Send SMS
                                                         </a>
                                                         {% endif %}
 
                                                         {% if has_discord %}
-                                                        <a class="dropdown-item send-discord-dm-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-discord-id="{{ rsvp['player'].discord_id }}">
+                                                        <a class="dropdown-item" href="javascript:void(0);" data-action="rsvp-request-discord-dm" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-discord-id="{{ rsvp['player'].discord_id }}">
                                                             <i class="ti ti-brand-discord me-1"></i> Send Discord DM
                                                         </a>
                                                         {% endif %}
@@ -1092,16 +451,16 @@
                                                         <div class="dropdown-divider"></div>
                                                         <h6 class="dropdown-header">Update RSVP</h6>
                                                         
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="yes">
+                                                        <a class="dropdown-item" href="javascript:void(0);" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="yes">
                                                             <i class="ti ti-check text-success me-1"></i> Set as Yes
                                                         </a>
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="maybe">
+                                                        <a class="dropdown-item" href="javascript:void(0);" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="maybe">
                                                             <i class="ti ti-help text-warning me-1"></i> Set as Maybe
                                                         </a>
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no">
+                                                        <a class="dropdown-item" href="javascript:void(0);" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no">
                                                             <i class="ti ti-x text-danger me-1"></i> Set as No
                                                         </a>
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no_response">
+                                                        <a class="dropdown-item" href="javascript:void(0);" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no_response">
                                                             <i class="ti ti-trash me-1"></i> Clear Response
                                                         </a>
                                                         
@@ -1135,45 +494,45 @@
                                 </table>
                             </div>
                         </div>
-                        <div class="tab-pane fade" id="home-team" role="tabpanel" aria-labelledby="home-tab">
+                        <div class="tab-pane fade" id="home-team" role="tabpanel" aria-labelledby="home-tab" data-tab-pane>
                             <!-- Mobile Card Layout for Home Team -->
                             <div class="rsvp-mobile-list">
                                 {% for rsvp in home_team_responses %}
                                 <div class="rsvp-mobile-card" data-player-id="{{ rsvp['player'].id }}">
                                     <div class="rsvp-card-main">
                                         <div class="player-info-mobile">
-                                            <div class="avatar avatar-sm me-3" style="background-color: transparent;">
+                                            <div class="avatar avatar-sm me-3 rsvp-avatar">
                                                 {% if rsvp['player'].profile_picture_url %}
-                                                    <img src="{{ rsvp['player'].profile_picture_url }}" alt="Avatar" class="rounded-circle" style="object-fit: cover; border: 1px solid rgba(255,255,255,0.3);">
+                                                    <img src="{{ rsvp['player'].profile_picture_url }}" alt="Avatar" class="rounded-circle rsvp-avatar-image">
                                                 {% else %}
                                                     <div class="avatar-initial rounded-circle bg-label-secondary">
                                                         {{ rsvp['player'].name[:1]|upper }}
                                                     </div>
                                                 {% endif %}
                                             </div>
-                                            <div style="flex: 1; min-width: 0;">
+                                            <div class="rsvp-player-container">
                                                 <div class="player-name-mobile">{{ rsvp['player'].name }}</div>
                                                 <div class="player-meta-mobile">
-                                                    <span class="badge bg-primary">{{ rsvp['team'].name }}</span>
+                                                    <span class="badge bg-primary" data-badge>{{ rsvp['team'].name }}</span>
                                                     {% if rsvp['is_temp_sub'] %}
-                                                    <span class="badge bg-label-info">
+                                                    <span class="badge bg-label-info" data-badge>
                                                         <i class="ti ti-replace"></i> SUB
                                                     </span>
                                                     {% endif %}
                                                     {% if rsvp['discord_synced'] %}
-                                                    <span class="badge bg-label-info">
+                                                    <span class="badge bg-label-info" data-badge>
                                                         <i class="ti ti-brand-discord"></i>
                                                     </span>
                                                     {% endif %}
                                                 </div>
                                             </div>
                                         </div>
-                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                            <span class="response-badge-mobile {{ 'bg-success text-white' if rsvp['response'] == 'yes' else 'bg-danger text-white' if rsvp['response'] == 'no' else 'bg-warning text-white' if rsvp['response'] == 'maybe' else 'bg-secondary text-white' }}">
+                                        <div class="rsvp-actions-wrapper">
+                                            <span class="response-badge-mobile {{ 'bg-success text-white' if rsvp['response'] == 'yes' else 'bg-danger text-white' if rsvp['response'] == 'no' else 'bg-warning text-white' if rsvp['response'] == 'maybe' else 'bg-secondary text-white' }}" data-badge>
                                                 <i class="ti ti-{{ 'check' if rsvp['response'] == 'yes' else 'x' if rsvp['response'] == 'no' else 'help' if rsvp['response'] == 'maybe' else 'minus' }}"></i>
                                                 {{ rsvp['response']|capitalize }}
                                             </span>
-                                            <button class="expand-button" onclick="toggleCardExpansion(this)">
+                                            <button class="expand-button js-toggle-card-expansion" data-action="toggle-card-expansion">
                                                 <i class="ti ti-chevron-down"></i>
                                             </button>
                                         </div>
@@ -1181,12 +540,12 @@
                                     
                                     <div class="rsvp-card-body">
                                         <!-- Response Time -->
-                                        <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: var(--ecs-neutral-5, #f8f9fa); border-radius: 6px;">
-                                            <small class="text-muted d-block" style="font-size: 0.75rem;">Response Time</small>
+                                        <div class="rsvp-response-time-box">
+                                            <small class="text-muted d-block rsvp-response-time-label">Response Time</small>
                                             {% if rsvp['responded_at'] %}
-                                                <div style="font-weight: 500;">{{ rsvp['responded_at'].strftime('%b %d, %Y at %I:%M %p') }}</div>
+                                                <div class="rsvp-response-time-value">{{ rsvp['responded_at'].strftime('%b %d, %Y at %I:%M %p') }}</div>
                                             {% else %}
-                                                <div style="color: var(--ecs-neutral-50, #6c757d);">No response yet</div>
+                                                <div class="rsvp-no-response-text">No response yet</div>
                                             {% endif %}
                                         </div>
                                         
@@ -1198,13 +557,13 @@
                                         {% if has_sms or has_discord or has_email %}
                                         <div class="contact-actions-mobile">
                                             {% if has_sms %}
-                                            <button class="contact-action-btn bg-primary text-white send-sms-btn" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-phone="{{ rsvp['player'].phone }}">
+                                            <button class="contact-action-btn bg-primary text-white" data-action="rsvp-request-sms" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-phone="{{ rsvp['player'].phone }}">
                                                 <i class="ti ti-message"></i> SMS
                                             </button>
                                             {% endif %}
                                             
                                             {% if has_discord %}
-                                            <button class="contact-action-btn bg-indigo text-white" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-discord-id="{{ rsvp['player'].discord_id }}">
+                                            <button class="contact-action-btn bg-indigo text-white" data-action="rsvp-request-discord-dm" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-discord-id="{{ rsvp['player'].discord_id }}">
                                                 <i class="ti ti-brand-discord"></i> Discord
                                             </button>
                                             {% endif %}
@@ -1223,24 +582,24 @@
                                         
                                         <!-- RSVP Actions -->
                                         <div class="rsvp-actions-mobile">
-                                            <button class="rsvp-action-btn bg-success text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="yes">
+                                            <button class="rsvp-action-btn bg-success text-white" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="yes">
                                                 <i class="ti ti-check"></i> Set Yes
                                             </button>
-                                            <button class="rsvp-action-btn bg-danger text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no">
+                                            <button class="rsvp-action-btn bg-danger text-white" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no">
                                                 <i class="ti ti-x"></i> Set No
                                             </button>
-                                            <button class="rsvp-action-btn bg-warning text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="maybe">
+                                            <button class="rsvp-action-btn bg-warning text-white" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="maybe">
                                                 <i class="ti ti-help"></i> Maybe
                                             </button>
-                                            <button class="rsvp-action-btn bg-secondary text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no_response">
+                                            <button class="rsvp-action-btn bg-secondary text-white" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no_response">
                                                 <i class="ti ti-trash"></i> Clear
                                             </button>
                                         </div>
                                         
                                         <!-- Sub Management (if applicable) -->
                                         {% if rsvp['is_temp_sub'] %}
-                                        <div style="margin-top: 0.75rem;">
-                                            <form action="{{ url_for('admin.remove_sub', assignment_id=rsvp.get('assignment_id', 0)) }}" method="POST" style="margin: 0;">
+                                        <div class="rsvp-sub-form">
+                                            <form action="{{ url_for('admin.remove_sub', assignment_id=rsvp.get('assignment_id', 0)) }}" method="POST" class="rsvp-sub-form-inline">
                                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                 <input type="hidden" name="redirect_to" value="rsvp_status">
                                                 <button type="submit" class="contact-action-btn bg-danger text-white w-100">
@@ -1255,14 +614,14 @@
                             </div>
                             
                             <!-- Desktop Table Layout for Home Team -->
-                            <div class="table-responsive">
-                                <table id="homeTeamTable" class="table table-striped table-hover border-top">
-                                    <thead>
+                            <div class="c-table-wrapper" data-table-responsive>
+                                <table id="homeTeamTable" class="c-table c-table--striped c-table--hoverable border-top" data-table>
+                                    <thead scope="col">
                                         <tr>
-                                            <th>Player</th>
-                                            <th>Response</th>
-                                            <th>Responded At</th>
-                                            <th>Actions</th>
+                                            <th scope="col">Player</th>
+                                            <th scope="col">Response</th>
+                                            <th scope="col">Responded At</th>
+                                            <th scope="col">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1270,9 +629,9 @@
                                         <tr>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <div class="avatar avatar-sm me-2" style="background-color: transparent;">
+                                                    <div class="avatar avatar-sm me-2 rsvp-avatar">
                                                         {% if rsvp['player'].profile_picture_url %}
-                                                            <img src="{{ rsvp['player'].profile_picture_url }}" alt="Avatar" class="rounded-circle" style="object-fit: cover; border: 1px solid rgba(255,255,255,0.3);">
+                                                            <img src="{{ rsvp['player'].profile_picture_url }}" alt="Avatar" class="rounded-circle rsvp-avatar-image">
                                                         {% else %}
                                                             <div class="avatar-initial rounded-circle bg-label-secondary">
                                                                 {{ rsvp['player'].name[:1]|upper }}
@@ -1283,7 +642,7 @@
                                                         <div class="d-flex align-items-center">
                                                             <span class="fw-semibold">{{ rsvp['player'].name }}</span>
                                                             {% if rsvp['is_temp_sub'] %}
-                                                            <span class="badge bg-label-info ms-2" data-bs-toggle="tooltip" title="Temporary substitute assigned by {{ rsvp['assigned_by'] }}">
+                                                            <span class="badge bg-label-info ms-2" data-bs-toggle="tooltip" title="Temporary substitute assigned by {{ rsvp['assigned_by'] }}" data-badge>
                                                                 <i class="ti ti-replace me-1"></i>SUB
                                                             </span>
                                                             {% endif %}
@@ -1297,7 +656,7 @@
                                                 </div>
                                             </td>
                                             <td>
-                                                <span class="badge {{ 'bg-success' if rsvp['response'] == 'yes' else 'bg-danger' if rsvp['response'] == 'no' else 'bg-warning' if rsvp['response'] == 'maybe' else 'bg-secondary' }}">
+                                                <span class="badge {{ 'bg-success' if rsvp['response'] == 'yes' else 'bg-danger' if rsvp['response'] == 'no' else 'bg-warning' if rsvp['response'] == 'maybe' else 'bg-secondary' }}" data-badge>
                                                     {{ rsvp['response']|capitalize }}
                                                 </span>
                                             </td>
@@ -1313,10 +672,10 @@
                                             </td>
                                             <td>
                                                 <div class="dropdown">
-                                                    <button type="button" class="btn btn-sm btn-icon btn-outline-secondary dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                                    <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary dropdown-toggle hide-arrow" data-bs-toggle="dropdown" data-dropdown-toggle>
                                                         <i class="ti ti-dots-vertical"></i>
                                                     </button>
-                                                    <div class="dropdown-menu dropdown-menu-end">
+                                                    <div class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
                                                         <a class="dropdown-item" href="{{ url_for('players.player_profile', player_id=rsvp['player'].id) }}">
                                                             <i class="ti ti-user me-1"></i> View Profile
                                                         </a>
@@ -1331,13 +690,13 @@
                                                         <h6 class="dropdown-header">Contact Options</h6>
                                                         
                                                         {% if has_sms %}
-                                                        <a class="dropdown-item send-sms-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-phone="{{ rsvp['player'].phone }}">
+                                                        <a class="dropdown-item" href="javascript:void(0);" data-action="rsvp-request-sms" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-phone="{{ rsvp['player'].phone }}">
                                                             <i class="ti ti-message me-1"></i> Send SMS
                                                         </a>
                                                         {% endif %}
 
                                                         {% if has_discord %}
-                                                        <a class="dropdown-item send-discord-dm-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-discord-id="{{ rsvp['player'].discord_id }}">
+                                                        <a class="dropdown-item" href="javascript:void(0);" data-action="rsvp-request-discord-dm" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-discord-id="{{ rsvp['player'].discord_id }}">
                                                             <i class="ti ti-brand-discord me-1"></i> Send Discord DM
                                                         </a>
                                                         {% endif %}
@@ -1353,16 +712,16 @@
                                                         <div class="dropdown-divider"></div>
                                                         <h6 class="dropdown-header">Update RSVP</h6>
                                                         
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="yes">
+                                                        <a class="dropdown-item" href="javascript:void(0);" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="yes">
                                                             <i class="ti ti-check text-success me-1"></i> Set as Yes
                                                         </a>
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="maybe">
+                                                        <a class="dropdown-item" href="javascript:void(0);" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="maybe">
                                                             <i class="ti ti-help text-warning me-1"></i> Set as Maybe
                                                         </a>
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no">
+                                                        <a class="dropdown-item" href="javascript:void(0);" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no">
                                                             <i class="ti ti-x text-danger me-1"></i> Set as No
                                                         </a>
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no_response">
+                                                        <a class="dropdown-item" href="javascript:void(0);" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no_response">
                                                             <i class="ti ti-trash me-1"></i> Clear Response
                                                         </a>
                                                         
@@ -1396,45 +755,45 @@
                                 </table>
                             </div>
                         </div>
-                        <div class="tab-pane fade" id="away-team" role="tabpanel" aria-labelledby="away-tab">
+                        <div class="tab-pane fade" id="away-team" role="tabpanel" aria-labelledby="away-tab" data-tab-pane>
                             <!-- Mobile Card Layout for Away Team -->
                             <div class="rsvp-mobile-list">
                                 {% for rsvp in away_team_responses %}
                                 <div class="rsvp-mobile-card" data-player-id="{{ rsvp['player'].id }}">
                                     <div class="rsvp-card-main">
                                         <div class="player-info-mobile">
-                                            <div class="avatar avatar-sm me-3" style="background-color: transparent;">
+                                            <div class="avatar avatar-sm me-3 rsvp-avatar">
                                                 {% if rsvp['player'].profile_picture_url %}
-                                                    <img src="{{ rsvp['player'].profile_picture_url }}" alt="Avatar" class="rounded-circle" style="object-fit: cover; border: 1px solid rgba(255,255,255,0.3);">
+                                                    <img src="{{ rsvp['player'].profile_picture_url }}" alt="Avatar" class="rounded-circle rsvp-avatar-image">
                                                 {% else %}
                                                     <div class="avatar-initial rounded-circle bg-label-secondary">
                                                         {{ rsvp['player'].name[:1]|upper }}
                                                     </div>
                                                 {% endif %}
                                             </div>
-                                            <div style="flex: 1; min-width: 0;">
+                                            <div class="rsvp-player-container">
                                                 <div class="player-name-mobile">{{ rsvp['player'].name }}</div>
                                                 <div class="player-meta-mobile">
-                                                    <span class="badge bg-info">{{ rsvp['team'].name }}</span>
+                                                    <span class="badge bg-info" data-badge>{{ rsvp['team'].name }}</span>
                                                     {% if rsvp['is_temp_sub'] %}
-                                                    <span class="badge bg-label-info">
+                                                    <span class="badge bg-label-info" data-badge>
                                                         <i class="ti ti-replace"></i> SUB
                                                     </span>
                                                     {% endif %}
                                                     {% if rsvp['discord_synced'] %}
-                                                    <span class="badge bg-label-info">
+                                                    <span class="badge bg-label-info" data-badge>
                                                         <i class="ti ti-brand-discord"></i>
                                                     </span>
                                                     {% endif %}
                                                 </div>
                                             </div>
                                         </div>
-                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                            <span class="response-badge-mobile {{ 'bg-success text-white' if rsvp['response'] == 'yes' else 'bg-danger text-white' if rsvp['response'] == 'no' else 'bg-warning text-white' if rsvp['response'] == 'maybe' else 'bg-secondary text-white' }}">
+                                        <div class="rsvp-actions-wrapper">
+                                            <span class="response-badge-mobile {{ 'bg-success text-white' if rsvp['response'] == 'yes' else 'bg-danger text-white' if rsvp['response'] == 'no' else 'bg-warning text-white' if rsvp['response'] == 'maybe' else 'bg-secondary text-white' }}" data-badge>
                                                 <i class="ti ti-{{ 'check' if rsvp['response'] == 'yes' else 'x' if rsvp['response'] == 'no' else 'help' if rsvp['response'] == 'maybe' else 'minus' }}"></i>
                                                 {{ rsvp['response']|capitalize }}
                                             </span>
-                                            <button class="expand-button" onclick="toggleCardExpansion(this)">
+                                            <button class="expand-button js-toggle-card-expansion" data-action="toggle-card-expansion">
                                                 <i class="ti ti-chevron-down"></i>
                                             </button>
                                         </div>
@@ -1442,12 +801,12 @@
                                     
                                     <div class="rsvp-card-body">
                                         <!-- Response Time -->
-                                        <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: var(--ecs-neutral-5, #f8f9fa); border-radius: 6px;">
-                                            <small class="text-muted d-block" style="font-size: 0.75rem;">Response Time</small>
+                                        <div class="rsvp-response-time-box">
+                                            <small class="text-muted d-block rsvp-response-time-label">Response Time</small>
                                             {% if rsvp['responded_at'] %}
-                                                <div style="font-weight: 500;">{{ rsvp['responded_at'].strftime('%b %d, %Y at %I:%M %p') }}</div>
+                                                <div class="rsvp-response-time-value">{{ rsvp['responded_at'].strftime('%b %d, %Y at %I:%M %p') }}</div>
                                             {% else %}
-                                                <div style="color: var(--ecs-neutral-50, #6c757d);">No response yet</div>
+                                                <div class="rsvp-no-response-text">No response yet</div>
                                             {% endif %}
                                         </div>
                                         
@@ -1459,13 +818,13 @@
                                         {% if has_sms or has_discord or has_email %}
                                         <div class="contact-actions-mobile">
                                             {% if has_sms %}
-                                            <button class="contact-action-btn bg-primary text-white send-sms-btn" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-phone="{{ rsvp['player'].phone }}">
+                                            <button class="contact-action-btn bg-primary text-white" data-action="rsvp-request-sms" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-phone="{{ rsvp['player'].phone }}">
                                                 <i class="ti ti-message"></i> SMS
                                             </button>
                                             {% endif %}
                                             
                                             {% if has_discord %}
-                                            <button class="contact-action-btn bg-indigo text-white" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-discord-id="{{ rsvp['player'].discord_id }}">
+                                            <button class="contact-action-btn bg-indigo text-white" data-action="rsvp-request-discord-dm" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-discord-id="{{ rsvp['player'].discord_id }}">
                                                 <i class="ti ti-brand-discord"></i> Discord
                                             </button>
                                             {% endif %}
@@ -1484,24 +843,24 @@
                                         
                                         <!-- RSVP Actions -->
                                         <div class="rsvp-actions-mobile">
-                                            <button class="rsvp-action-btn bg-success text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="yes">
+                                            <button class="rsvp-action-btn bg-success text-white" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="yes">
                                                 <i class="ti ti-check"></i> Set Yes
                                             </button>
-                                            <button class="rsvp-action-btn bg-danger text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no">
+                                            <button class="rsvp-action-btn bg-danger text-white" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no">
                                                 <i class="ti ti-x"></i> Set No
                                             </button>
-                                            <button class="rsvp-action-btn bg-warning text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="maybe">
+                                            <button class="rsvp-action-btn bg-warning text-white" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="maybe">
                                                 <i class="ti ti-help"></i> Maybe
                                             </button>
-                                            <button class="rsvp-action-btn bg-secondary text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no_response">
+                                            <button class="rsvp-action-btn bg-secondary text-white" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no_response">
                                                 <i class="ti ti-trash"></i> Clear
                                             </button>
                                         </div>
                                         
                                         <!-- Sub Management (if applicable) -->
                                         {% if rsvp['is_temp_sub'] %}
-                                        <div style="margin-top: 0.75rem;">
-                                            <form action="{{ url_for('admin.remove_sub', assignment_id=rsvp.get('assignment_id', 0)) }}" method="POST" style="margin: 0;">
+                                        <div class="rsvp-sub-form">
+                                            <form action="{{ url_for('admin.remove_sub', assignment_id=rsvp.get('assignment_id', 0)) }}" method="POST" class="rsvp-sub-form-inline">
                                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                 <input type="hidden" name="redirect_to" value="rsvp_status">
                                                 <button type="submit" class="contact-action-btn bg-danger text-white w-100">
@@ -1516,14 +875,14 @@
                             </div>
                             
                             <!-- Desktop Table Layout for Away Team -->
-                            <div class="table-responsive">
-                                <table id="awayTeamTable" class="table table-striped table-hover border-top">
-                                    <thead>
+                            <div class="c-table-wrapper" data-table-responsive>
+                                <table id="awayTeamTable" class="c-table c-table--striped c-table--hoverable border-top" data-table>
+                                    <thead scope="col">
                                         <tr>
-                                            <th>Player</th>
-                                            <th>Response</th>
-                                            <th>Responded At</th>
-                                            <th>Actions</th>
+                                            <th scope="col">Player</th>
+                                            <th scope="col">Response</th>
+                                            <th scope="col">Responded At</th>
+                                            <th scope="col">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1531,9 +890,9 @@
                                         <tr>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <div class="avatar avatar-sm me-2" style="background-color: transparent;">
+                                                    <div class="avatar avatar-sm me-2 rsvp-avatar">
                                                         {% if rsvp['player'].profile_picture_url %}
-                                                            <img src="{{ rsvp['player'].profile_picture_url }}" alt="Avatar" class="rounded-circle" style="object-fit: cover; border: 1px solid rgba(255,255,255,0.3);">
+                                                            <img src="{{ rsvp['player'].profile_picture_url }}" alt="Avatar" class="rounded-circle rsvp-avatar-image">
                                                         {% else %}
                                                             <div class="avatar-initial rounded-circle bg-label-secondary">
                                                                 {{ rsvp['player'].name[:1]|upper }}
@@ -1544,7 +903,7 @@
                                                         <div class="d-flex align-items-center">
                                                             <span class="fw-semibold">{{ rsvp['player'].name }}</span>
                                                             {% if rsvp['is_temp_sub'] %}
-                                                            <span class="badge bg-label-info ms-2" data-bs-toggle="tooltip" title="Temporary substitute assigned by {{ rsvp['assigned_by'] }}">
+                                                            <span class="badge bg-label-info ms-2" data-bs-toggle="tooltip" title="Temporary substitute assigned by {{ rsvp['assigned_by'] }}" data-badge>
                                                                 <i class="ti ti-replace me-1"></i>SUB
                                                             </span>
                                                             {% endif %}
@@ -1558,7 +917,7 @@
                                                 </div>
                                             </td>
                                             <td>
-                                                <span class="badge {{ 'bg-success' if rsvp['response'] == 'yes' else 'bg-danger' if rsvp['response'] == 'no' else 'bg-warning' if rsvp['response'] == 'maybe' else 'bg-secondary' }}">
+                                                <span class="badge {{ 'bg-success' if rsvp['response'] == 'yes' else 'bg-danger' if rsvp['response'] == 'no' else 'bg-warning' if rsvp['response'] == 'maybe' else 'bg-secondary' }}" data-badge>
                                                     {{ rsvp['response']|capitalize }}
                                                 </span>
                                             </td>
@@ -1574,10 +933,10 @@
                                             </td>
                                             <td>
                                                 <div class="dropdown">
-                                                    <button type="button" class="btn btn-sm btn-icon btn-outline-secondary dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                                    <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary dropdown-toggle hide-arrow" data-bs-toggle="dropdown" data-dropdown-toggle>
                                                         <i class="ti ti-dots-vertical"></i>
                                                     </button>
-                                                    <div class="dropdown-menu dropdown-menu-end">
+                                                    <div class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
                                                         <a class="dropdown-item" href="{{ url_for('players.player_profile', player_id=rsvp['player'].id) }}">
                                                             <i class="ti ti-user me-1"></i> View Profile
                                                         </a>
@@ -1592,13 +951,13 @@
                                                         <h6 class="dropdown-header">Contact Options</h6>
                                                         
                                                         {% if has_sms %}
-                                                        <a class="dropdown-item send-sms-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-phone="{{ rsvp['player'].phone }}">
+                                                        <a class="dropdown-item" href="javascript:void(0);" data-action="rsvp-request-sms" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-phone="{{ rsvp['player'].phone }}">
                                                             <i class="ti ti-message me-1"></i> Send SMS
                                                         </a>
                                                         {% endif %}
 
                                                         {% if has_discord %}
-                                                        <a class="dropdown-item send-discord-dm-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-discord-id="{{ rsvp['player'].discord_id }}">
+                                                        <a class="dropdown-item" href="javascript:void(0);" data-action="rsvp-request-discord-dm" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-discord-id="{{ rsvp['player'].discord_id }}">
                                                             <i class="ti ti-brand-discord me-1"></i> Send Discord DM
                                                         </a>
                                                         {% endif %}
@@ -1614,16 +973,16 @@
                                                         <div class="dropdown-divider"></div>
                                                         <h6 class="dropdown-header">Update RSVP</h6>
                                                         
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="yes">
+                                                        <a class="dropdown-item" href="javascript:void(0);" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="yes">
                                                             <i class="ti ti-check text-success me-1"></i> Set as Yes
                                                         </a>
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="maybe">
+                                                        <a class="dropdown-item" href="javascript:void(0);" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="maybe">
                                                             <i class="ti ti-help text-warning me-1"></i> Set as Maybe
                                                         </a>
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no">
+                                                        <a class="dropdown-item" href="javascript:void(0);" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no">
                                                             <i class="ti ti-x text-danger me-1"></i> Set as No
                                                         </a>
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no_response">
+                                                        <a class="dropdown-item" href="javascript:void(0);" data-action="rsvp-update-status" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no_response">
                                                             <i class="ti ti-trash me-1"></i> Clear Response
                                                         </a>
                                                         
@@ -1665,17 +1024,17 @@
 </div>
 
 <!-- SMS Modal -->
-<div class="modal fade" id="sendSmsModal" tabindex="-1" aria-labelledby="sendSmsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg border-0">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="sendSmsModalLabel">
+<div class="modal c-modal fade" data-modal id="sendSmsModal" tabindex="-1" aria-labelledby="sendSmsModalLabel" aria-hidden="true">
+    <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+        <div class="modal-content c-modal__content shadow-lg border-0" data-modal-content>
+            <div class="modal-header c-modal__header bg-primary text-white" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="sendSmsModalLabel">
                     <i class="ti ti-message-circle me-2"></i>Text Message
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
             </div>
             <form id="sendSmsForm" action="{{ url_for('admin.send_custom_sms') }}" method="POST">
-                <div class="modal-body p-4">
+                <div class="modal-body c-modal__body p-4" data-modal-body>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="player_id" id="smsPlayerId">
                     <input type="hidden" name="match_id" value="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}">
@@ -1705,7 +1064,7 @@
                     <!-- Message Box -->
                     <div class="mb-3">
                         <label for="smsMessage" class="form-label fw-semibold">Message</label>
-                        <textarea class="form-control border-primary" id="smsMessage" name="message" rows="5" placeholder="Type your message here..." required></textarea>
+                        <textarea class="form-control border-primary" id="smsMessage" name="message" rows="5" placeholder="Type your message here..." required data-form-control></textarea>
                         <div class="form-text mt-2">
                             <i class="ti ti-info-circle me-1"></i> This message will be sent as an SMS directly to the player's phone.
                         </div>
@@ -1716,11 +1075,11 @@
                         <small class="text-muted"><span id="smsCharCount">0</span>/160 characters</small>
                     </div>
                 </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                <div class="modal-footer c-modal__footer bg-light" data-modal-footer>
+                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>
                         <i class="ti ti-x me-1"></i>Cancel
                     </button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="c-btn c-btn--primary">
                         <i class="ti ti-send me-1"></i>Send Message
                     </button>
                 </div>
@@ -1730,17 +1089,17 @@
 </div>
 
 <!-- Discord DM Modal -->
-<div class="modal fade" id="sendDiscordDmModal" tabindex="-1" aria-labelledby="sendDiscordDmModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg border-0">
-            <div class="modal-header bg-indigo text-white">
-                <h5 class="modal-title" id="sendDiscordDmModalLabel">
+<div class="modal c-modal fade" data-modal id="sendDiscordDmModal" tabindex="-1" aria-labelledby="sendDiscordDmModalLabel" aria-hidden="true">
+    <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+        <div class="modal-content c-modal__content shadow-lg border-0" data-modal-content>
+            <div class="modal-header c-modal__header bg-indigo text-white" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="sendDiscordDmModalLabel">
                     <i class="ti ti-brand-discord me-2"></i>Discord Message
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
             </div>
             <form id="sendDiscordDmForm" action="{{ url_for('admin.send_discord_dm') }}" method="POST">
-                <div class="modal-body p-4">
+                <div class="modal-body c-modal__body p-4" data-modal-body>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="player_id" id="discordPlayerId">
                     <input type="hidden" name="match_id" value="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}">
@@ -1770,7 +1129,7 @@
                     <!-- Message Box -->
                     <div class="mb-3">
                         <label for="discordMessage" class="form-label fw-semibold">Message</label>
-                        <textarea class="form-control border-indigo" id="discordMessage" name="message" rows="5" placeholder="Type your message here..." required></textarea>
+                        <textarea class="form-control border-indigo" id="discordMessage" name="message" rows="5" placeholder="Type your message here..." required data-form-control></textarea>
                         <div class="form-text mt-2">
                             <i class="ti ti-info-circle me-1"></i> This message will be sent as a Discord Direct Message through the bot.
                         </div>
@@ -1781,11 +1140,11 @@
                         <small class="text-muted"><span id="discordCharCount">0</span>/2000 characters</small>
                     </div>
                 </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                <div class="modal-footer c-modal__footer bg-light" data-modal-footer>
+                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>
                         <i class="ti ti-x me-1"></i>Cancel
                     </button>
-                    <button type="submit" class="btn btn-indigo">
+                    <button type="submit" class="c-btn btn-indigo">
                         <i class="ti ti-send me-1"></i>Send Message
                     </button>
                 </div>
@@ -1795,17 +1154,17 @@
 </div>
 
 <!-- Assign Sub Modal -->
-<div class="modal fade" id="assignSubModalRSVP" tabindex="-1" aria-labelledby="assignSubModalRSVPLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content shadow-lg border-0">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title" id="assignSubModalRSVPLabel">
+<div class="modal c-modal fade" data-modal id="assignSubModalRSVP" tabindex="-1" aria-labelledby="assignSubModalRSVPLabel" aria-hidden="true">
+    <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content shadow-lg border-0" data-modal-content>
+            <div class="modal-header c-modal__header bg-success text-white" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="assignSubModalRSVPLabel">
                     <i class="ti ti-user-plus me-2"></i>Assign Substitute
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
             </div>
             <form id="assignSubFormRSVP" action="{% if is_ecs_fc_match and ecs_sub_request %}{{ url_for('admin.ecs_fc_subs.assign_substitute', request_id=ecs_sub_request.id) }}{% else %}{{ url_for('admin.assign_sub') }}{% endif %}" method="POST">
-                <div class="modal-body p-4">
+                <div class="modal-body c-modal__body p-4" data-modal-body>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="match_id" value="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}">
                     <input type="hidden" name="redirect_to" value="rsvp_status">
@@ -1813,7 +1172,7 @@
                     <div class="row mb-4">
                         <!-- Match Info -->
                         <div class="col-12 mb-4">
-                            <div class="alert alert-info">
+                            <div class="alert alert-info" data-alert>
                                 <div class="d-flex align-items-center">
                                     <i class="ti ti-info-circle me-2 fs-3"></i>
                                     <div>
@@ -1826,7 +1185,7 @@
                         
                         <div class="col-md-6">
                             <label for="subPlayerRSVP" class="form-label fw-semibold">Substitute Player</label>
-                            <select class="form-select" id="subPlayerRSVP" name="player_id" required>
+                            <select class="form-select" id="subPlayerRSVP" name="player_id" required data-form-select>
                                 <option value="" selected disabled>Select a substitute player...</option>
                                 <!-- AJAX will populate this -->
                                 <option value="loading" disabled>Loading available substitutes...</option>
@@ -1838,7 +1197,7 @@
                         
                         <div class="col-md-6">
                             <label for="subTeamRSVP" class="form-label fw-semibold">Team</label>
-                            <select class="form-select" id="subTeamRSVP" name="team_id" required>
+                            <select class="form-select" id="subTeamRSVP" name="team_id" required data-form-select>
                                 <option value="" selected disabled>Select a team for this match...</option>
                                 {% if is_ecs_fc_match %}
                                 <option value="{{ ecs_match.team_id }}">{{ ecs_match.team.name }}</option>
@@ -1850,11 +1209,11 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                <div class="modal-footer c-modal__footer bg-light" data-modal-footer>
+                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>
                         <i class="ti ti-x me-1"></i>Cancel
                     </button>
-                    <button type="submit" class="btn btn-success">
+                    <button type="submit" class="c-btn c-btn--success">
                         <i class="ti ti-user-plus me-1"></i>Assign Substitute
                     </button>
                 </div>
@@ -1864,31 +1223,31 @@
 </div>
 
 <!-- Sub List Modal -->
-<div class="modal fade" id="viewSubsModal" tabindex="-1" aria-labelledby="viewSubsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content shadow-lg border-0">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="viewSubsModalLabel">
+<div class="modal c-modal fade" data-modal id="viewSubsModal" tabindex="-1" aria-labelledby="viewSubsModalLabel" aria-hidden="true">
+    <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content shadow-lg border-0" data-modal-content>
+            <div class="modal-header c-modal__header bg-primary text-white" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="viewSubsModalLabel">
                     <i class="ti ti-users me-2"></i>Available Substitutes
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
             </div>
-            <div class="modal-body p-4">
-                <div id="subListContainer" class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
+            <div class="modal-body c-modal__body p-4" data-modal-body>
+                <div id="subListContainer" class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--striped" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Player</th>
-                                <th>Primary Team</th>
-                                <th>Contact</th>
-                                <th>Actions</th>
+                                <th scope="col">Player</th>
+                                <th scope="col">Primary Team</th>
+                                <th scope="col">Contact</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="subListTableBody">
                             <!-- AJAX will populate this -->
                             <tr>
                                 <td colspan="4" class="text-center py-3">
-                                    <div class="spinner-border text-primary" role="status">
+                                    <div class="spinner-border text-primary" role="status" data-spinner>
                                         <span class="visually-hidden">Loading...</span>
                                     </div>
                                     <p class="mt-2">Loading available substitutes...</p>
@@ -1898,8 +1257,8 @@
                     </table>
                 </div>
             </div>
-            <div class="modal-footer bg-light">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            <div class="modal-footer c-modal__footer bg-light" data-modal-footer>
+                <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>
                     <i class="ti ti-x me-1"></i>Close
                 </button>
             </div>
@@ -1909,24 +1268,24 @@
 
 <!-- Request Sub Modal -->
 {% if has_role('Pub League Coach') or has_role('Global Admin') or has_role('Pub League Admin') or has_role('ECS FC Coach') %}
-<div class="modal fade" id="requestSubModal" tabindex="-1" aria-labelledby="requestSubModalLabel" aria-hidden="true" 
+<div class="modal c-modal fade" data-modal id="requestSubModal" tabindex="-1" aria-labelledby="requestSubModalLabel" aria-hidden="true" 
     {% if is_ecs_fc_match %}
     data-team-id="{{ ecs_match.team_id }}" data-team-name="{{ ecs_match.team.name }}" data-league-type="ECS FC"
     {% else %}
     data-home-team-id="{{ match.home_team_id }}" data-away-team-id="{{ match.away_team_id }}"
     data-home-team-name="{{ match.home_team.name }}" data-away-team-name="{{ match.away_team.name }}" data-league-type="Classic"
-    {% endif %}>
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content shadow-lg border-0">
-            <div class="modal-header bg-warning text-white">
-                <h5 class="modal-title" id="requestSubModalLabel">
+    {% endif %} aria-labelledby="requestSubModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content shadow-lg border-0" data-modal-content>
+            <div class="modal-header c-modal__header bg-warning text-white" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="requestSubModalLabel">
                     <i class="ti ti-hand-stop me-2"></i>Substitute Request Management
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
             </div>
-            <div class="modal-body p-0">
+            <div class="modal-body c-modal__body p-0" data-modal-body>
                 <!-- Tab Navigation -->
-                <ul class="nav nav-tabs" id="subRequestTabs" role="tablist">
+                <ul class="nav nav-tabs" id="subRequestTabs" role="tablist" data-tabs>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="existing-requests-tab" data-bs-toggle="tab" data-bs-target="#existing-requests" type="button" role="tab">
                             <i class="ti ti-list me-1"></i>Current Requests
@@ -1942,26 +1301,26 @@
                 <!-- Tab Content -->
                 <div class="tab-content" id="subRequestTabContent">
                     <!-- Existing Requests Tab -->
-                    <div class="tab-pane fade show active" id="existing-requests" role="tabpanel">
+                    <div class="tab-pane fade show active" id="existing-requests" role="tabpanel" data-tab-pane>
                         <div class="p-4">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h6 class="mb-0">
                                     <i class="ti ti-messages me-2"></i>Recent Substitute Requests for this Match
                                 </h6>
-                                <button class="btn btn-sm btn-outline-primary" id="refreshMatchRequestsBtn">
+                                <button class="c-btn c-btn--sm c-btn--outline-primary" id="refreshMatchRequestsBtn">
                                     <i class="ti ti-refresh"></i>
                                 </button>
                             </div>
                             
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
+                            <div class="c-table-wrapper" data-table-responsive>
+                                <table class="c-table c-table--compact" data-table>
+                                    <thead scope="col">
                                         <tr>
-                                            <th>Created</th>
-                                            <th>Team</th>
-                                            <th>Status</th>
-                                            <th>Responses</th>
-                                            <th>Actions</th>
+                                            <th scope="col">Created</th>
+                                            <th scope="col">Team</th>
+                                            <th scope="col">Status</th>
+                                            <th scope="col">Responses</th>
+                                            <th scope="col">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="matchSubstituteRequestsTable">
@@ -1975,14 +1334,14 @@
                     </div>
                     
                     <!-- New Request Tab -->
-                    <div class="tab-pane fade" id="new-request" role="tabpanel">
+                    <div class="tab-pane fade" id="new-request" role="tabpanel" data-tab-pane>
                         <form id="requestSubForm" action="{{ url_for('admin.request_sub') }}" method="POST">
                             <div class="p-4">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="match_id" value="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}">
                                 
                                 <div class="mb-4">
-                                    <div class="alert alert-info">
+                                    <div class="alert alert-info" data-alert>
                                         <div class="d-flex align-items-center">
                                             <i class="ti ti-info-circle me-2 fs-3"></i>
                                             <div>
@@ -1995,7 +1354,7 @@
                                 
                                 <div class="mb-3">
                                     <label for="team_id" class="form-label fw-semibold">Team Needing Substitute</label>
-                                    <select class="form-select" id="team_id" name="team_id" required>
+                                    <select class="form-select" id="team_id" name="team_id" required data-form-select>
                                         <option value="" selected disabled>Select team...</option>
                                         {% if is_ecs_fc_match %}
                                             <option value="{{ ecs_match.team_id }}">{{ ecs_match.team.name }}</option>
@@ -2022,7 +1381,7 @@
                                 <!-- ECS FC Advanced System -->
                                 <div class="mb-3">
                                     <label for="substitutes_needed" class="form-label fw-semibold">Number of Substitutes Needed</label>
-                                    <select class="form-select" id="substitutes_needed" name="substitutes_needed" onchange="updateSubstituteSlots()">
+                                    <select class="form-select js-substitute-slots" id="substitutes_needed" name="substitutes_needed" data-action="update-substitute-slots" data-form-select>
                                         <option value="1" selected>1 substitute</option>
                                         <option value="2">2 substitutes</option>
                                         <option value="3">3 substitutes</option>
@@ -2050,7 +1409,7 @@
                                 </div>
                                 {% else %}
                                 <!-- Pub League Simple System -->
-                                <div class="alert alert-info">
+                                <div class="alert alert-info" data-alert>
                                     <div class="d-flex align-items-center">
                                         <i class="ti ti-info-circle me-2 fs-4"></i>
                                         <div>
@@ -2062,7 +1421,7 @@
                                 
                                 <div class="mb-3">
                                     <label for="substitutes_needed" class="form-label fw-semibold">Number of Substitutes Needed</label>
-                                    <select class="form-select" id="substitutes_needed" name="substitutes_needed">
+                                    <select class="form-select" id="substitutes_needed" name="substitutes_needed" data-form-select>
                                         <option value="1" selected>1 substitute</option>
                                         <option value="2">2 substitutes</option>
                                         <option value="3">3 substitutes</option>
@@ -2074,7 +1433,7 @@
                                 
                                 <div class="mb-3">
                                     <label for="positions_needed" class="form-label fw-semibold">Position Preferences (Optional)</label>
-                                    <input type="text" class="form-control" id="positions_needed" name="positions_needed" placeholder="e.g., Goalkeeper, Defender, Midfielder">
+                                    <input type="text" class="form-control" id="positions_needed" name="positions_needed" placeholder="e.g., Goalkeeper, Defender, Midfielder" data-form-control>
                                     <div class="form-text">Let admins know if you need specific positions covered</div>
                                 </div>
                                 {% endif %}
@@ -2082,15 +1441,15 @@
                                 <div class="mb-3">
                                     <label for="notes" class="form-label fw-semibold">Additional Notes</label>
                                     <textarea class="form-control" id="notes" name="notes" rows="3" 
-                                              placeholder="{% if is_ecs_fc_match %}e.g., Bring black shirt, meet at north parking lot, game starts at 7pm sharp...{% else %}e.g., Need sub for injured player, specific position preferences, etc.{% endif %}"></textarea>
+                                              placeholder="{% if is_ecs_fc_match %}e.g., Bring black shirt, meet at north parking lot, game starts at 7pm sharp...{% else %}e.g., Need sub for injured player, specific position preferences, etc.{% endif %}" data-form-control></textarea>
                                     <div class="form-text">{% if is_ecs_fc_match %}Optional: Include any special instructions for all substitutes{% else %}Optional: Include details about why you need a substitute or position preferences{% endif %}</div>
                                 </div>
                             </div>
-                            <div class="modal-footer bg-light">
-                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                            <div class="modal-footer c-modal__footer bg-light" data-modal-footer>
+                                <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>
                                     <i class="ti ti-x me-1"></i>Cancel
                                 </button>
-                                <button type="submit" class="btn btn-warning">
+                                <button type="submit" class="c-btn c-btn--warning">
                                     <i class="ti ti-hand-stop me-1"></i>{% if is_ecs_fc_match %}Request Substitute{% else %}Send Request to Admin{% endif %}
                                 </button>
                             </div>
@@ -2133,10 +1492,10 @@ function updateSubstituteSlots() {
         const slotHtml = `
             <div class="row mb-2 substitute-slot" data-slot="${i}">
                 <div class="col-1">
-                    <span class="badge bg-primary">${i}</span>
+                    <span class="badge bg-primary" data-badge>${i}</span>
                 </div>
                 <div class="col-6">
-                    <select class="form-select form-select-sm" name="slot_${i}_position">
+                    <select class="form-select form-select-sm" name="slot_${i}_position" data-form-select>
                         <option value="">Any Position</option>
                         <option value="Goalkeeper">Goalkeeper</option>
                         <option value="Center Back">Center Back</option>
@@ -2154,7 +1513,7 @@ function updateSubstituteSlots() {
                     </select>
                 </div>
                 <div class="col-5">
-                    <select class="form-select form-select-sm" name="slot_${i}_gender">
+                    <select class="form-select form-select-sm" name="slot_${i}_gender" data-form-select>
                         <option value="">Any Gender</option>
                         <option value="male">Male</option>
                         <option value="female">Female</option>

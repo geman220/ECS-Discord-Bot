@@ -9,188 +9,198 @@
 <li class="breadcrumb-item active">Match Reports</li>
 {% endblock %}
 
+{% block custom_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/match-operations/seasons.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/match-operations/match-reports.css') }}">
+{% endblock %}
+
 {% block panel_content %}
 
-<!-- Reports Overview -->
-<div class="row mb-4">
-    <div class="col-md-3 col-sm-6 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-title text-white mb-1">Total Matches</h6>
-                        <h3 class="text-white mb-0">{{ reports_data.total_matches if reports_data else 0 }}</h3>
-                    </div>
-                    <div class="avatar bg-white bg-opacity-20">
-                        <i class="ti ti-calendar text-white"></i>
-                    </div>
-                </div>
+<!-- Reports Overview Statistics -->
+<div class="c-stats-grid" data-component="stats-grid">
+    <div class="c-stat-card c-stat-card--primary">
+        <div class="c-stat-card__content">
+            <div class="c-stat-card__body">
+                <h5 class="c-stat-card__value">{{ reports_data.total_matches if reports_data else 0 }}</h5>
+                <p class="c-stat-card__label">Total Matches</p>
             </div>
+            <i class="ti ti-calendar c-stat-card__icon"></i>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-title text-white mb-1">Completed</h6>
-                        <h3 class="text-white mb-0">{{ reports_data.completed_matches if reports_data else 0 }}</h3>
-                    </div>
-                    <div class="avatar bg-white bg-opacity-20">
-                        <i class="ti ti-check text-white"></i>
-                    </div>
-                </div>
+    <div class="c-stat-card c-stat-card--success">
+        <div class="c-stat-card__content">
+            <div class="c-stat-card__body">
+                <h5 class="c-stat-card__value">{{ reports_data.completed_matches if reports_data else 0 }}</h5>
+                <p class="c-stat-card__label">Completed</p>
             </div>
+            <i class="ti ti-check c-stat-card__icon"></i>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-title text-white mb-1">Pending</h6>
-                        <h3 class="text-white mb-0">{{ reports_data.pending_matches if reports_data else 0 }}</h3>
-                    </div>
-                    <div class="avatar bg-white bg-opacity-20">
-                        <i class="ti ti-clock text-white"></i>
-                    </div>
-                </div>
+    <div class="c-stat-card c-stat-card--warning">
+        <div class="c-stat-card__content">
+            <div class="c-stat-card__body">
+                <h5 class="c-stat-card__value">{{ reports_data.pending_matches if reports_data else 0 }}</h5>
+                <p class="c-stat-card__label">Pending</p>
             </div>
+            <i class="ti ti-clock c-stat-card__icon"></i>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-title text-white mb-1">Total Teams</h6>
-                        <h3 class="text-white mb-0">{{ reports_data.total_teams if reports_data else 0 }}</h3>
-                    </div>
-                    <div class="avatar bg-white bg-opacity-20">
-                        <i class="ti ti-users text-white"></i>
-                    </div>
-                </div>
+    <div class="c-stat-card c-stat-card--info">
+        <div class="c-stat-card__content">
+            <div class="c-stat-card__body">
+                <h5 class="c-stat-card__value">{{ reports_data.total_teams if reports_data else 0 }}</h5>
+                <p class="c-stat-card__label">Total Teams</p>
             </div>
+            <i class="ti ti-users c-stat-card__icon"></i>
         </div>
     </div>
 </div>
 
 <!-- Report Actions -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-report me-2"></i>Generate Reports
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <button class="btn btn-primary w-100" onclick="generateMatchReport()">
-                            <i class="ti ti-file-text me-2"></i>Match Summary
-                        </button>
-                    </div>
-                    <div class="col-md-3">
-                        <button class="btn btn-success w-100" onclick="generateLeagueReport()">
-                            <i class="ti ti-trophy me-2"></i>League Statistics
-                        </button>
-                    </div>
-                    <div class="col-md-3">
-                        <button class="btn btn-warning w-100" onclick="generateTeamReport()">
-                            <i class="ti ti-users me-2"></i>Team Performance
-                        </button>
-                    </div>
-                    <div class="col-md-3">
-                        <button class="btn btn-info w-100" onclick="generateCustomReport()">
-                            <i class="ti ti-chart-bar me-2"></i>Custom Report
-                        </button>
-                    </div>
-                </div>
+<div class="c-panel-section">
+    <div class="c-card">
+        <div class="c-card__header">
+            <h5 class="c-card__title">
+                <i class="ti ti-report"></i>
+                Generate Reports
+            </h5>
+        </div>
+        <div class="c-card__body">
+            <div class="c-report-actions" data-component="report-actions">
+                <button class="c-report-actions__button" data-action="generate-match-report">
+                    <i class="ti ti-file-text c-report-actions__icon"></i>
+                    <span class="c-report-actions__label">Match Summary</span>
+                </button>
+                <button class="c-report-actions__button" data-action="generate-league-report">
+                    <i class="ti ti-trophy c-report-actions__icon"></i>
+                    <span class="c-report-actions__label">League Statistics</span>
+                </button>
+                <button class="c-report-actions__button" data-action="generate-team-report">
+                    <i class="ti ti-users c-report-actions__icon"></i>
+                    <span class="c-report-actions__label">Team Performance</span>
+                </button>
+                <button class="c-report-actions__button" data-action="generate-custom-report">
+                    <i class="ti ti-chart-bar c-report-actions__icon"></i>
+                    <span class="c-report-actions__label">Custom Report</span>
+                </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Quick Reports -->
-<div class="row mb-4">
-    <div class="col-md-6 mb-3">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-clock-fast me-2"></i>Quick Reports
+<!-- Quick Reports and Export Options -->
+<div class="c-report-grid" data-component="report-grid">
+    <!-- Quick Reports -->
+    <div class="c-report-grid__column">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title">
+                    <i class="ti ti-clock-fast"></i>
+                    Quick Reports
                 </h5>
             </div>
-            <div class="card-body">
-                <div class="list-group list-group-flush">
-                    <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" onclick="viewRecentMatches()">
-                        <div>
-                            <i class="ti ti-calendar-event me-2"></i>Recent Matches
-                            <small class="text-muted d-block">Last 7 days activity</small>
+            <div class="c-card__body c-card__body--no-padding">
+                <div class="c-quick-report">
+                    <button class="c-quick-report__item" data-action="view-recent-matches">
+                        <div class="c-quick-report__content">
+                            <i class="ti ti-calendar-event c-quick-report__icon"></i>
+                            <div class="c-quick-report__details">
+                                <div class="c-quick-report__title">Recent Matches</div>
+                                <div class="c-quick-report__subtitle">Last 7 days activity</div>
+                            </div>
                         </div>
-                        <span class="badge bg-primary">{{ reports_data.recent_matches|length if reports_data and reports_data.recent_matches else 0 }}</span>
+                        <span class="c-quick-report__value">
+                            <span class="c-badge c-badge--primary">{{ reports_data.recent_matches|length if reports_data and reports_data.recent_matches else 0 }}</span>
+                        </span>
                     </button>
-                    <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" onclick="viewUpcomingMatches()">
-                        <div>
-                            <i class="ti ti-calendar-plus me-2"></i>Upcoming Matches
-                            <small class="text-muted d-block">Next 7 days schedule</small>
+                    <button class="c-quick-report__item" data-action="view-upcoming-matches">
+                        <div class="c-quick-report__content">
+                            <i class="ti ti-calendar-plus c-quick-report__icon"></i>
+                            <div class="c-quick-report__details">
+                                <div class="c-quick-report__title">Upcoming Matches</div>
+                                <div class="c-quick-report__subtitle">Next 7 days schedule</div>
+                            </div>
                         </div>
-                        <span class="badge bg-success">{{ reports_data.upcoming_matches if reports_data else 0 }}</span>
+                        <span class="c-quick-report__value">
+                            <span class="c-badge c-badge--success">{{ reports_data.upcoming_matches if reports_data else 0 }}</span>
+                        </span>
                     </button>
-                    <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" onclick="viewTopScorers()">
-                        <div>
-                            <i class="ti ti-trophy me-2"></i>Top Scorers
-                            <small class="text-muted d-block">Highest scoring teams</small>
+                    <button class="c-quick-report__item" data-action="view-top-scorers">
+                        <div class="c-quick-report__content">
+                            <i class="ti ti-trophy c-quick-report__icon"></i>
+                            <div class="c-quick-report__details">
+                                <div class="c-quick-report__title">Top Scorers</div>
+                                <div class="c-quick-report__subtitle">Highest scoring teams</div>
+                            </div>
                         </div>
-                        <i class="ti ti-chevron-right"></i>
+                        <i class="ti ti-chevron-right c-quick-report__chevron"></i>
                     </button>
-                    <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" onclick="viewLeagueStandings()">
-                        <div>
-                            <i class="ti ti-list-numbers me-2"></i>League Standings
-                            <small class="text-muted d-block">Current league positions</small>
+                    <button class="c-quick-report__item" data-action="view-league-standings">
+                        <div class="c-quick-report__content">
+                            <i class="ti ti-list-numbers c-quick-report__icon"></i>
+                            <div class="c-quick-report__details">
+                                <div class="c-quick-report__title">League Standings</div>
+                                <div class="c-quick-report__subtitle">Current league positions</div>
+                            </div>
                         </div>
-                        <i class="ti ti-chevron-right"></i>
+                        <i class="ti ti-chevron-right c-quick-report__chevron"></i>
                     </button>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-6 mb-3">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-download me-2"></i>Export Options
+
+    <!-- Export Options -->
+    <div class="c-report-grid__column">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title">
+                    <i class="ti ti-download"></i>
+                    Export Options
                 </h5>
             </div>
-            <div class="card-body">
-                <div class="list-group list-group-flush">
-                    <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" onclick="exportPDF()">
-                        <div>
-                            <i class="ti ti-file-type-pdf me-2"></i>PDF Report
-                            <small class="text-muted d-block">Formatted report document</small>
+            <div class="c-card__body c-card__body--no-padding">
+                <div class="c-quick-report">
+                    <button class="c-quick-report__item" data-action="export-pdf">
+                        <div class="c-quick-report__content">
+                            <i class="ti ti-file-type-pdf c-quick-report__icon"></i>
+                            <div class="c-quick-report__details">
+                                <div class="c-quick-report__title">PDF Report</div>
+                                <div class="c-quick-report__subtitle">Formatted report document</div>
+                            </div>
                         </div>
-                        <i class="ti ti-chevron-right"></i>
+                        <i class="ti ti-chevron-right c-quick-report__chevron"></i>
                     </button>
-                    <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" onclick="exportExcel()">
-                        <div>
-                            <i class="ti ti-file-spreadsheet me-2"></i>Excel Spreadsheet
-                            <small class="text-muted d-block">Data for analysis</small>
+                    <button class="c-quick-report__item" data-action="export-excel">
+                        <div class="c-quick-report__content">
+                            <i class="ti ti-file-spreadsheet c-quick-report__icon"></i>
+                            <div class="c-quick-report__details">
+                                <div class="c-quick-report__title">Excel Spreadsheet</div>
+                                <div class="c-quick-report__subtitle">Data for analysis</div>
+                            </div>
                         </div>
-                        <i class="ti ti-chevron-right"></i>
+                        <i class="ti ti-chevron-right c-quick-report__chevron"></i>
                     </button>
-                    <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" onclick="exportCSV()">
-                        <div>
-                            <i class="ti ti-file-text me-2"></i>CSV Export
-                            <small class="text-muted d-block">Raw data export</small>
+                    <button class="c-quick-report__item" data-action="export-csv">
+                        <div class="c-quick-report__content">
+                            <i class="ti ti-file-text c-quick-report__icon"></i>
+                            <div class="c-quick-report__details">
+                                <div class="c-quick-report__title">CSV Export</div>
+                                <div class="c-quick-report__subtitle">Raw data export</div>
+                            </div>
                         </div>
-                        <i class="ti ti-chevron-right"></i>
+                        <i class="ti ti-chevron-right c-quick-report__chevron"></i>
                     </button>
-                    <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" onclick="scheduleReport()">
-                        <div>
-                            <i class="ti ti-calendar-time me-2"></i>Schedule Report
-                            <small class="text-muted d-block">Automated reports</small>
+                    <button class="c-quick-report__item" data-action="schedule-report">
+                        <div class="c-quick-report__content">
+                            <i class="ti ti-calendar-time c-quick-report__icon"></i>
+                            <div class="c-quick-report__details">
+                                <div class="c-quick-report__title">Schedule Report</div>
+                                <div class="c-quick-report__subtitle">Automated reports</div>
+                            </div>
                         </div>
-                        <i class="ti ti-chevron-right"></i>
+                        <i class="ti ti-chevron-right c-quick-report__chevron"></i>
                     </button>
                 </div>
             </div>
@@ -200,78 +210,75 @@
 
 <!-- Recent Match Results -->
 {% if reports_data and reports_data.recent_matches %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-history me-2"></i>Recent Match Results
-                    </h5>
-                    <button class="btn btn-outline-primary btn-sm" onclick="viewAllMatches()">
-                        <i class="ti ti-eye me-1"></i>View All
-                    </button>
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Home Team</th>
-                                <th>Score</th>
-                                <th>Away Team</th>
-                                <th>League</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for match in reports_data.recent_matches[:10] %}
-                            <tr>
-                                <td>
-                                    {{ match.date.strftime('%Y-%m-%d') if match.date else 'N/A' }}
-                                    {% if match.time %}
-                                        <br><small class="text-muted">{{ match.time.strftime('%H:%M') }}</small>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <strong>{{ match.home_team.name if match.home_team else 'TBD' }}</strong>
-                                </td>
-                                <td>
-                                    {% if match.home_score is not none and match.away_score is not none %}
-                                        <span class="badge bg-{{ 'success' if match.home_score > match.away_score else 'info' if match.home_score == match.away_score else 'secondary' }} fs-6">
-                                            {{ match.home_score }} - {{ match.away_score }}
-                                        </span>
-                                    {% else %}
-                                        <span class="badge bg-warning">Pending</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {{ match.away_team.name if match.away_team else 'TBD' }}
-                                </td>
-                                <td>
-                                    {% if match.league %}
-                                        <span class="badge bg-info">{{ match.league.name }}</span>
-                                    {% else %}
-                                        <span class="text-muted">No League</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-info" onclick="viewMatchReport({{ match.id }})">
-                                            <i class="ti ti-eye"></i>
-                                        </button>
-                                        <button class="btn btn-outline-primary" onclick="generateMatchReport({{ match.id }})">
-                                            <i class="ti ti-file-text"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+<div class="c-panel-section">
+    <div class="c-card">
+        <div class="c-card__header c-card__header--action">
+            <h5 class="c-card__title">
+                <i class="ti ti-history"></i>
+                Recent Match Results
+            </h5>
+            <button class="c-btn c-btn--outline-primary c-btn--sm" data-action="view-all-matches">
+                <i class="ti ti-eye"></i>View All
+            </button>
+        </div>
+        <div class="c-card__body">
+            <div class="c-table-responsive">
+                <table class="c-table">
+                    <thead class="c-table__head">
+                        <tr>
+                            <th class="c-table__header">Date</th>
+                            <th class="c-table__header">Home Team</th>
+                            <th class="c-table__header">Score</th>
+                            <th class="c-table__header">Away Team</th>
+                            <th class="c-table__header">League</th>
+                            <th class="c-table__header">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="c-table__body">
+                        {% for match in reports_data.recent_matches[:10] %}
+                        <tr class="c-table__row">
+                            <td class="c-table__cell">
+                                {{ match.date.strftime('%Y-%m-%d') if match.date else 'N/A' }}
+                                {% if match.time %}
+                                    <br><small class="c-text-muted">{{ match.time.strftime('%H:%M') }}</small>
+                                {% endif %}
+                            </td>
+                            <td class="c-table__cell">
+                                <strong>{{ match.home_team.name if match.home_team else 'TBD' }}</strong>
+                            </td>
+                            <td class="c-table__cell">
+                                {% if match.home_score is not none and match.away_score is not none %}
+                                    <span class="c-badge c-badge--{{ 'success' if match.home_score > match.away_score else 'info' if match.home_score == match.away_score else 'secondary' }}">
+                                        {{ match.home_score }} - {{ match.away_score }}
+                                    </span>
+                                {% else %}
+                                    <span class="c-badge c-badge--warning">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td class="c-table__cell">
+                                {{ match.away_team.name if match.away_team else 'TBD' }}
+                            </td>
+                            <td class="c-table__cell">
+                                {% if match.league %}
+                                    <span class="c-badge c-badge--info">{{ match.league.name }}</span>
+                                {% else %}
+                                    <span class="c-text-muted">No League</span>
+                                {% endif %}
+                            </td>
+                            <td class="c-table__cell">
+                                <div class="c-btn-group">
+                                    <button class="c-btn c-btn--icon c-btn--outline-info" data-action="view-match-report" data-match-id="{{ match.id }}" aria-label="View match">
+                                        <i class="ti ti-eye"></i>
+                                    </button>
+                                    <button class="c-btn c-btn--icon c-btn--outline-info" data-action="generate-match-report" data-match-id="{{ match.id }}" aria-label="Generate report">
+                                        <i class="ti ti-file-text"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -279,119 +286,104 @@
 {% endif %}
 
 <!-- Statistics Charts -->
-<div class="row mb-4">
-    <div class="col-md-6 mb-3">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-chart-pie me-2"></i>Match Status Distribution
-                </h5>
-            </div>
-            <div class="card-body">
-                <canvas id="matchStatusChart" width="400" height="300"></canvas>
-            </div>
-        </div>
+<div class="c-chart-grid" data-component="chart-grid">
+    <div class="c-chart-container">
+        <h5 class="c-chart-container__title">
+            <i class="ti ti-chart-pie"></i>
+            Match Status Distribution
+        </h5>
+        <canvas id="matchStatusChart" class="c-chart-container__canvas"></canvas>
     </div>
-    <div class="col-md-6 mb-3">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-chart-line me-2"></i>Matches per Week
-                </h5>
-            </div>
-            <div class="card-body">
-                <canvas id="matchesPerWeekChart" width="400" height="300"></canvas>
-            </div>
-        </div>
+    <div class="c-chart-container">
+        <h5 class="c-chart-container__title">
+            <i class="ti ti-chart-line"></i>
+            Matches per Week
+        </h5>
+        <canvas id="matchesPerWeekChart" class="c-chart-container__canvas"></canvas>
     </div>
 </div>
 
 <!-- Team Performance Summary -->
 {% if reports_data and reports_data.teams %}
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-users me-2"></i>Team Performance Summary
-                    </h5>
-                    <div class="btn-group" role="group">
-                        <input type="radio" class="btn-check" name="performanceView" id="viewWins" autocomplete="off" checked>
-                        <label class="btn btn-outline-primary" for="viewWins">Wins</label>
-
-                        <input type="radio" class="btn-check" name="performanceView" id="viewGoals" autocomplete="off">
-                        <label class="btn btn-outline-primary" for="viewGoals">Goals</label>
-
-                        <input type="radio" class="btn-check" name="performanceView" id="viewMatches" autocomplete="off">
-                        <label class="btn btn-outline-primary" for="viewMatches">Matches</label>
-                    </div>
-                </div>
+<div class="c-panel-section">
+    <div class="c-card">
+        <div class="c-card__header c-card__header--action">
+            <h5 class="c-card__title">
+                <i class="ti ti-users"></i>
+                Team Performance Summary
+            </h5>
+            <div class="c-performance-toggle" data-component="performance-toggle">
+                <input type="radio" class="btn-check" name="performanceView" id="viewWins" autocomplete="off" checked>
+                <label class="c-btn c-btn--outline-primary c-btn--sm" for="viewWins">Wins</label>
+                <input type="radio" class="btn-check" name="performanceView" id="viewGoals" autocomplete="off">
+                <label class="c-btn c-btn--outline-primary c-btn--sm" for="viewGoals">Goals</label>
+                <input type="radio" class="btn-check" name="performanceView" id="viewMatches" autocomplete="off">
+                <label class="c-btn c-btn--outline-primary c-btn--sm" for="viewMatches">Matches</label>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Team</th>
-                                <th>League</th>
-                                <th>Played</th>
-                                <th>Won</th>
-                                <th>Lost</th>
-                                <th>Goals For</th>
-                                <th>Goals Against</th>
-                                <th>Goal Difference</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for team in reports_data.teams[:10] %}
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar avatar-sm me-2">
-                                            <span class="avatar-initial bg-primary">{{ team.name[0] if team.name else 'T' }}</span>
-                                        </div>
-                                        <strong>{{ team.name }}</strong>
+        </div>
+        <div class="c-card__body">
+            <div class="c-table-responsive">
+                <table class="c-table">
+                    <thead class="c-table__head">
+                        <tr>
+                            <th class="c-table__header">Team</th>
+                            <th class="c-table__header">League</th>
+                            <th class="c-table__header">Played</th>
+                            <th class="c-table__header">Won</th>
+                            <th class="c-table__header">Lost</th>
+                            <th class="c-table__header">Goals For</th>
+                            <th class="c-table__header">Goals Against</th>
+                            <th class="c-table__header">Goal Difference</th>
+                            <th class="c-table__header">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="c-table__body">
+                        {% for team in reports_data.teams[:10] %}
+                        <tr class="c-table__row">
+                            <td class="c-table__cell">
+                                <div class="c-team-name">
+                                    <div class="c-team-avatar">
+                                        <span class="c-team-avatar__initial">{{ team.name[0] if team.name else 'T' }}</span>
                                     </div>
-                                </td>
-                                <td>
-                                    {% if team.league %}
-                                        <span class="badge bg-info">{{ team.league.name }}</span>
-                                    {% else %}
-                                        <span class="text-muted">No League</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ team.matches_played if team.matches_played else 0 }}</td>
-                                <td>
-                                    <span class="badge bg-success">{{ team.wins if team.wins else 0 }}</span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-danger">{{ team.losses if team.losses else 0 }}</span>
-                                </td>
-                                <td>{{ team.goals_for if team.goals_for else 0 }}</td>
-                                <td>{{ team.goals_against if team.goals_against else 0 }}</td>
-                                <td>
-                                    {% set goal_diff = (team.goals_for or 0) - (team.goals_against or 0) %}
-                                    <span class="badge bg-{{ 'success' if goal_diff > 0 else 'danger' if goal_diff < 0 else 'secondary' }}">
-                                        {{ '+' + goal_diff|string if goal_diff > 0 else goal_diff }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-info" onclick="viewTeamReport({{ team.id }})">
-                                            <i class="ti ti-eye"></i>
-                                        </button>
-                                        <button class="btn btn-outline-primary" onclick="generateTeamReport({{ team.id }})">
-                                            <i class="ti ti-file-text"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                                    <strong>{{ team.name }}</strong>
+                                </div>
+                            </td>
+                            <td class="c-table__cell">
+                                {% if team.league %}
+                                    <span class="c-badge c-badge--info">{{ team.league.name }}</span>
+                                {% else %}
+                                    <span class="c-text-muted">No League</span>
+                                {% endif %}
+                            </td>
+                            <td class="c-table__cell">{{ team.matches_played if team.matches_played else 0 }}</td>
+                            <td class="c-table__cell">
+                                <span class="c-badge c-badge--success">{{ team.wins if team.wins else 0 }}</span>
+                            </td>
+                            <td class="c-table__cell">
+                                <span class="c-badge c-badge--danger">{{ team.losses if team.losses else 0 }}</span>
+                            </td>
+                            <td class="c-table__cell">{{ team.goals_for if team.goals_for else 0 }}</td>
+                            <td class="c-table__cell">{{ team.goals_against if team.goals_against else 0 }}</td>
+                            <td class="c-table__cell">
+                                {% set goal_diff = (team.goals_for or 0) - (team.goals_against or 0) %}
+                                <span class="c-badge c-badge--{{ 'success' if goal_diff > 0 else 'danger' if goal_diff < 0 else 'secondary' }}">
+                                    {{ '+' + goal_diff|string if goal_diff > 0 else goal_diff }}
+                                </span>
+                            </td>
+                            <td class="c-table__cell">
+                                <div class="c-btn-group">
+                                    <button class="c-btn c-btn--icon c-btn--outline-info" data-action="view-team-report" data-team-id="{{ team.id }}" aria-label="View team">
+                                        <i class="ti ti-eye"></i>
+                                    </button>
+                                    <button class="c-btn c-btn--icon c-btn--outline-info" data-action="generate-team-report" data-team-id="{{ team.id }}" aria-label="Generate report">
+                                        <i class="ti ti-file-text"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -401,454 +393,7 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-// Initialize charts
-document.addEventListener('DOMContentLoaded', function() {
-    initializeCharts();
-});
-
-function initializeCharts() {
-    // Match Status Distribution Chart
-    const statusCtx = document.getElementById('matchStatusChart').getContext('2d');
-    new Chart(statusCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Completed', 'Upcoming', 'Live', 'Cancelled'],
-            datasets: [{
-                data: [
-                    {{ reports_data.completed_matches if reports_data else 0 }},
-                    {{ reports_data.pending_matches if reports_data else 0 }},
-                    {{ reports_data.live_matches if reports_data else 0 }},
-                    {{ reports_data.cancelled_matches if reports_data else 0 }}
-                ],
-                backgroundColor: [
-                    (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
-                    (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ffc107',
-                    (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#007bff',
-                    (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
-                ]
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            }
-        }
-    });
-
-    // Matches per Week Chart
-    const weekCtx = document.getElementById('matchesPerWeekChart').getContext('2d');
-    new Chart(weekCtx, {
-        type: 'line',
-        data: {
-            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
-            datasets: [{
-                label: 'Matches Played',
-                data: [12, 19, 3, 5, 2, 15],
-                borderColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#007bff',
-                backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-}
-
-// Report generation functions
-function generateMatchReport(matchId = null) {
-    let title = matchId ? 'Generate Match Report' : 'Generate Match Summary Report';
-    
-    Swal.fire({
-        title: title,
-        html: `
-            <div class="row g-3">
-                ${!matchId ? `
-                <div class="col-12">
-                    <label class="form-label">Date Range</label>
-                    <div class="row">
-                        <div class="col-6">
-                            <input type="date" class="form-control" id="reportStartDate">
-                        </div>
-                        <div class="col-6">
-                            <input type="date" class="form-control" id="reportEndDate">
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12">
-                    <label class="form-label">League Filter</label>
-                    <select class="form-select" id="reportLeague">
-                        <option value="">All Leagues</option>
-                        {% for league in leagues %}
-                        <option value="{{ league.id }}">{{ league.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                ` : ''}
-                <div class="col-12">
-                    <label class="form-label">Report Format</label>
-                    <select class="form-select" id="reportFormat">
-                        <option value="pdf">PDF Document</option>
-                        <option value="excel">Excel Spreadsheet</option>
-                        <option value="csv">CSV File</option>
-                    </select>
-                </div>
-                <div class="col-12">
-                    <label class="form-label">Include</label>
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="includeStats" checked>
-                        <label class="form-check-label" for="includeStats">Match Statistics</label>
-                    </div>
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="includeScores" checked>
-                        <label class="form-check-label" for="includeScores">Detailed Scores</label>
-                    </div>
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="includeTeams">
-                        <label class="form-check-label" for="includeTeams">Team Information</label>
-                    </div>
-                </div>
-            </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Generate Report',
-        width: 600
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const format = document.getElementById('reportFormat').value;
-            let url = `/admin/match-operations/reports/match?format=${format}`;
-            
-            if (matchId) {
-                url += `&match_id=${matchId}`;
-            }
-            
-            window.open(url, '_blank');
-            showToast('Report Generated', 'Your report is being prepared for download.', 'success');
-        }
-    });
-}
-
-function generateLeagueReport() {
-    Swal.fire({
-        title: 'Generate League Statistics Report',
-        html: `
-            <div class="row g-3">
-                <div class="col-12">
-                    <label class="form-label">League</label>
-                    <select class="form-select" id="leagueSelect">
-                        <option value="">All Leagues</option>
-                        {% for league in leagues %}
-                        <option value="{{ league.id }}">{{ league.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-12">
-                    <label class="form-label">Season</label>
-                    <select class="form-select" id="seasonSelect">
-                        <option value="current">Current Season</option>
-                        <option value="all">All Seasons</option>
-                    </select>
-                </div>
-                <div class="col-12">
-                    <label class="form-label">Statistics to Include</label>
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="includeStandings" checked>
-                        <label class="form-check-label" for="includeStandings">League Standings</label>
-                    </div>
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="includeTopScorers" checked>
-                        <label class="form-check-label" for="includeTopScorers">Top Scorers</label>
-                    </div>
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="includeMatchResults">
-                        <label class="form-check-label" for="includeMatchResults">All Match Results</label>
-                    </div>
-                </div>
-            </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Generate Report'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.open('/admin/match-operations/reports/league', '_blank');
-            showToast('Report Generated', 'League statistics report is being prepared.', 'success');
-        }
-    });
-}
-
-function generateTeamReport(teamId = null) {
-    let title = teamId ? 'Generate Team Report' : 'Generate Team Performance Report';
-    
-    Swal.fire({
-        title: title,
-        html: `
-            <div class="row g-3">
-                ${!teamId ? `
-                <div class="col-12">
-                    <label class="form-label">Team</label>
-                    <select class="form-select" id="teamSelect">
-                        <option value="">All Teams</option>
-                        {% for team in reports_data.teams %}
-                        <option value="{{ team.id }}">{{ team.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                ` : ''}
-                <div class="col-12">
-                    <label class="form-label">Report Period</label>
-                    <select class="form-select" id="reportPeriod">
-                        <option value="season">Current Season</option>
-                        <option value="month">Last Month</option>
-                        <option value="all">All Time</option>
-                    </select>
-                </div>
-                <div class="col-12">
-                    <label class="form-label">Include</label>
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="includePerformance" checked>
-                        <label class="form-check-label" for="includePerformance">Performance Statistics</label>
-                    </div>
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="includeMatches" checked>
-                        <label class="form-check-label" for="includeMatches">Match History</label>
-                    </div>
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="includeRoster">
-                        <label class="form-check-label" for="includeRoster">Team Roster</label>
-                    </div>
-                </div>
-            </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Generate Report'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            let url = '/admin/match-operations/reports/team';
-            if (teamId) {
-                url += `?team_id=${teamId}`;
-            }
-            window.open(url, '_blank');
-            showToast('Report Generated', 'Team performance report is being prepared.', 'success');
-        }
-    });
-}
-
-function generateCustomReport() {
-    Swal.fire({
-        title: 'Generate Custom Report',
-        html: `
-            <div class="row g-3">
-                <div class="col-12">
-                    <label class="form-label">Report Type</label>
-                    <select class="form-select" id="customReportType">
-                        <option value="attendance">Attendance Report</option>
-                        <option value="referee">Referee Report</option>
-                        <option value="venue">Venue Usage Report</option>
-                        <option value="goals">Goals Analysis</option>
-                        <option value="disciplinary">Disciplinary Report</option>
-                    </select>
-                </div>
-                <div class="col-12">
-                    <label class="form-label">Date Range</label>
-                    <div class="row">
-                        <div class="col-6">
-                            <input type="date" class="form-control" id="customStartDate">
-                        </div>
-                        <div class="col-6">
-                            <input type="date" class="form-control" id="customEndDate">
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12">
-                    <label class="form-label">Output Format</label>
-                    <div class="d-flex gap-2">
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="customFormat" id="customPDF" value="pdf" checked>
-                            <label class="form-check-label" for="customPDF">PDF</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="customFormat" id="customExcel" value="excel">
-                            <label class="form-check-label" for="customExcel">Excel</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="customFormat" id="customCSV" value="csv">
-                            <label class="form-check-label" for="customCSV">CSV</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Generate Custom Report'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.open('/admin/match-operations/reports/custom', '_blank');
-            showToast('Report Generated', 'Custom report is being prepared.', 'success');
-        }
-    });
-}
-
-// Quick report functions
-function viewRecentMatches() {
-    window.location.href = "{{ url_for('admin_panel.view_matches', date_from=(moment().subtract(7, 'days').format('YYYY-MM-DD'))) }}";
-}
-
-function viewUpcomingMatches() {
-    window.location.href = "{{ url_for('admin_panel.upcoming_matches') }}";
-}
-
-function viewTopScorers() {
-    Swal.fire({
-        title: 'Top Scorers',
-        html: `
-            <div class="table-responsive">
-                <table class="table table-sm">
-                    <thead>
-                        <tr>
-                            <th>Rank</th>
-                            <th>Team</th>
-                            <th>Goals</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>1</td><td>Team Alpha</td><td>25</td></tr>
-                        <tr><td>2</td><td>Team Beta</td><td>22</td></tr>
-                        <tr><td>3</td><td>Team Gamma</td><td>20</td></tr>
-                        <tr><td>4</td><td>Team Delta</td><td>18</td></tr>
-                        <tr><td>5</td><td>Team Epsilon</td><td>15</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        `,
-        width: 600,
-        showConfirmButton: false,
-        showCancelButton: true,
-        cancelButtonText: 'Close'
-    });
-}
-
-function viewLeagueStandings() {
-    window.location.href = "{{ url_for('admin_panel.league_standings') }}";
-}
-
-// Export functions
-function exportPDF() {
-    window.open('/admin/match-operations/reports/export?format=pdf', '_blank');
-}
-
-function exportExcel() {
-    window.open('/admin/match-operations/reports/export?format=excel', '_blank');
-}
-
-function exportCSV() {
-    window.open('/admin/match-operations/reports/export?format=csv', '_blank');
-}
-
-function scheduleReport() {
-    Swal.fire({
-        title: 'Schedule Automated Report',
-        html: `
-            <div class="row g-3">
-                <div class="col-12">
-                    <label class="form-label">Report Type</label>
-                    <select class="form-select" id="scheduleType">
-                        <option value="weekly">Weekly Summary</option>
-                        <option value="monthly">Monthly Statistics</option>
-                        <option value="season">Season Report</option>
-                    </select>
-                </div>
-                <div class="col-12">
-                    <label class="form-label">Delivery Method</label>
-                    <select class="form-select" id="deliveryMethod">
-                        <option value="email">Email</option>
-                        <option value="discord">Discord Channel</option>
-                        <option value="both">Both</option>
-                    </select>
-                </div>
-                <div class="col-12">
-                    <label class="form-label">Recipients</label>
-                    <textarea class="form-control" id="recipients" rows="3" placeholder="Enter email addresses or Discord channels"></textarea>
-                </div>
-            </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Schedule Report'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire('Scheduled!', 'Automated report has been scheduled successfully.', 'success');
-        }
-    });
-}
-
-// Individual item functions
-function viewMatchReport(matchId) {
-    window.location.href = `/admin/match-operations/match/${matchId}/report`;
-}
-
-function viewTeamReport(teamId) {
-    window.location.href = `/admin/match-operations/team/${teamId}/report`;
-}
-
-function viewAllMatches() {
-    window.location.href = "{{ url_for('admin_panel.view_matches') }}";
-}
-
-// Utility functions
-function showToast(title, message, type) {
-    const toast = document.createElement('div');
-    toast.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} position-fixed`;
-    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-    toast.innerHTML = `
-        <strong>${title}</strong><br>
-        ${message}
-        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
-    `;
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        if (toast.parentElement) {
-            toast.remove();
-        }
-    }, 5000);
-}
-</script>
-
-<style>
-.form-check-group {
-    max-height: 200px;
-    overflow-y: auto;
-    border: 1px solid #e9ecef;
-    border-radius: 0.375rem;
-    padding: 0.5rem;
-}
-
-.form-check {
-    margin-bottom: 0.25rem;
-}
-
-#matchStatusChart, #matchesPerWeekChart {
-    max-height: 300px;
-}
-
-.avatar-initial {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: 600;
-    border-radius: 50%;
-}
-</style>
+<script src="{{ url_for('static', filename='js/match-operations/match-reports.js') }}"></script>
 {% endblock %}

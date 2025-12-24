@@ -1,0 +1,115 @@
+/**
+ * Z-Index Scale - SINGLE SOURCE OF TRUTH
+ *
+ * This file defines the official z-index scale for the entire application.
+ * ALL z-index values should reference these variables.
+ *
+ * DO NOT use hardcoded z-index values like 9999 or 999999.
+ * If you need a new layer, add it here with documentation.
+ *
+ * Scale is based on Bootstrap 5's z-index conventions:
+ * https://getbootstrap.com/docs/5.3/layout/z-index/
+ */
+
+:root {
+  /* ============================================
+   * Base Layers (0-999)
+   * ============================================ */
+
+  /* Default stacking context */
+  --z-base: 0;
+
+  /* Slightly elevated elements (cards with hover, etc.) */
+  --z-elevated: 1;
+
+  /* ============================================
+   * Component Layers (1000-1039)
+   * ============================================ */
+
+  /* Dropdown menus - standard context */
+  --z-dropdown: 1000;
+
+  /* Sticky elements (sticky headers, etc.) */
+  --z-sticky: 1020;
+
+  /* Navbar - below sidebar */
+  --z-navbar: 1025;
+
+  /* Fixed elements (fixed nav, etc.) */
+  --z-fixed: 1030;
+
+  /* Sidebar - above navbar, below modal backdrop */
+  --z-sidebar: 1035;
+
+  /* ============================================
+   * Overlay Layers (1040-1089)
+   * ============================================ */
+
+  /* Modal backdrop - must be below modal */
+  --z-modal-backdrop: 1040;
+
+  /* Modal content */
+  --z-modal: 1050;
+
+  /* Dropdowns inside modals - must be above modal */
+  --z-modal-dropdown: 1055;
+
+  /* Offcanvas backdrop */
+  --z-offcanvas-backdrop: 1040;
+
+  /* Offcanvas content */
+  --z-offcanvas: 1050;
+
+  /* Popovers */
+  --z-popover: 1070;
+
+  /* Tooltips */
+  --z-tooltip: 1080;
+
+  /* ============================================
+   * Notification Layers (1090-1099)
+   * ============================================ */
+
+  /* Toast notifications */
+  --z-toast: 1090;
+
+  /* SweetAlert modals (should be above regular modals) */
+  --z-sweetalert: 1095;
+
+  /* ============================================
+   * Emergency Layers (1100+)
+   * Use sparingly - only for truly critical UI
+   * ============================================ */
+
+  /* Page loader overlay */
+  --z-loader: 1100;
+
+  /* Critical system alerts */
+  --z-critical: 1110;
+
+  /* Priority override (use ONLY for debugging) */
+  --z-priority: 9999;
+
+  /* ============================================
+   * Bootstrap Variable Mappings
+   * Map our variables to Bootstrap's expected names
+   * ============================================ */
+
+  --bs-dropdown-zindex: var(--z-dropdown);
+  --bs-sticky-zindex: var(--z-sticky);
+  --bs-fixed-zindex: var(--z-fixed);
+  --bs-modal-backdrop-zindex: var(--z-modal-backdrop);
+  --bs-modal-zindex: var(--z-modal);
+  --bs-offcanvas-backdrop-zindex: var(--z-offcanvas-backdrop);
+  --bs-offcanvas-zindex: var(--z-offcanvas);
+  --bs-popover-zindex: var(--z-popover);
+  --bs-tooltip-zindex: var(--z-tooltip);
+  --bs-toast-zindex: var(--z-toast);
+}
+
+/* ============================================
+ * Dark Mode - Z-index values don't change
+ * ============================================ */
+[data-style="dark"] {
+  /* Z-index scale remains the same in dark mode */
+}

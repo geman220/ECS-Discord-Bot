@@ -1,0 +1,717 @@
+/**
+ * ============================================================================
+ * ECS NAVBAR STYLES
+ * ============================================================================
+ *
+ * Complete navbar styling using design tokens.
+ * Extracted from inline styles in navbar.html template.
+ *
+ * Features:
+ *   - Semantic class-based styling
+ *   - Full dark mode support
+ *   - Responsive mobile menu
+ *   - Accessible focus states
+ *   - Search autocomplete styling
+ *   - Role impersonation UI
+ *   - Notification dropdown
+ *   - User profile menu
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. NAVBAR CONTAINER
+   ============================================================================ */
+
+.layout-navbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background-color: var(--color-bg-primary);
+  border-bottom: var(--border-width) solid var(--border-color-primary);
+  padding: var(--space-3) var(--space-4);
+  z-index: var(--z-navbar, 1025);
+}
+
+[data-style="dark"] .layout-navbar {
+  background-color: var(--color-bg-primary, #0F172A);        /* Slate-950 */
+  border-bottom-color: var(--color-border-primary, #475569); /* Slate-700 */
+}
+
+/* Modern navbar exception - no border or shadow */
+.layout-navbar.c-navbar-modern {
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+/* ============================================================================
+   2. PLAYER SEARCH INPUT
+   ============================================================================ */
+
+/* Search form container */
+.navbar-nav-right > form {
+  flex: 1;
+  min-width: 0; /* Allows flexbox to shrink properly */
+  margin-right: var(--space-3);
+}
+
+.c-navbar__search-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-base);
+  border: none;
+  background: transparent;
+  outline: none;
+  box-shadow: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  color: var(--color-text-primary);
+  transition: box-shadow var(--duration-fast) var(--ease-smooth);
+}
+
+.c-navbar__search-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.c-navbar__search-input:focus {
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+[data-style="dark"] .c-navbar__search-input {
+  color: var(--color-neutral-100);
+}
+
+[data-style="dark"] .c-navbar__search-input::placeholder {
+  color: var(--color-neutral-500);
+}
+
+/* Responsive search input widths */
+@media (max-width: 991px) {
+  .c-navbar__search-input {
+    max-width: 600px;
+  }
+}
+
+@media (min-width: 992px) {
+  .c-navbar__search-input {
+    max-width: 1200px;
+  }
+}
+
+/* ============================================================================
+   3. AUTOCOMPLETE DROPDOWN
+   ============================================================================ */
+
+.ui-autocomplete {
+  max-height: 250px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-2) 0;
+  font-size: var(--text-base);
+  box-shadow: var(--shadow-lg);
+  border: var(--border-width) solid var(--border-color-primary);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  z-index: var(--z-popover);
+}
+
+[data-style="dark"] .ui-autocomplete {
+  background-color: var(--color-bg-elevated, #334155);       /* Slate-800 */
+  color: var(--color-text-primary, #f8fafc);                 /* Slate-50 */
+  border-color: var(--color-border-primary, #475569);        /* Slate-700 */
+}
+
+.ui-menu-item-wrapper {
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  color: var(--color-text-primary);
+  transition: background-color var(--duration-fast) var(--ease-smooth);
+}
+
+[data-style="dark"] .ui-menu-item-wrapper {
+  color: var(--color-text-primary, #fafafa);
+}
+
+.ui-menu-item-wrapper:hover,
+.ui-state-active {
+  background: var(--color-neutral-100);
+}
+
+[data-style="dark"] .ui-menu-item-wrapper:hover,
+[data-style="dark"] .ui-state-active {
+  background: var(--color-bg-tertiary, #475569);             /* Slate-700 */
+}
+
+.ui-menu-item-wrapper img {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-full);
+  margin-right: var(--space-2);
+  vertical-align: middle;
+}
+
+/* ============================================================================
+   4. ROLE IMPERSONATION DROPDOWN
+   ============================================================================ */
+
+.dropdown-role-impersonation .dropdown-menu {
+  box-shadow: var(--shadow-lg);
+  min-width: 320px;
+}
+
+.dropdown-role-impersonation .dropdown-header {
+  display: flex;
+  align-items: center;
+  padding: var(--space-3);
+}
+
+.dropdown-role-impersonation .dropdown-header h6 {
+  margin-bottom: 0;
+  margin-right: auto;
+}
+
+/* Role select styling */
+.c-navbar__role-select {
+  min-height: 80px;
+  max-height: 120px;
+  overflow-y: auto;
+  height: auto;
+}
+
+/* Active impersonation badge */
+.c-navbar__impersonation-badge {
+  display: none;
+}
+
+.impersonation-active .c-navbar__impersonation-badge {
+  display: block;
+}
+
+.impersonation-active .c-navbar__role-icon {
+  color: var(--color-warning);
+}
+
+/* Stop impersonation button */
+.c-navbar__stop-impersonation-btn {
+  display: none;
+}
+
+/* Role status card */
+.role-status-card {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-600) 0%,
+    var(--color-primary-700) 100%
+  );
+  color: var(--color-neutral-0);
+  border: none;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+}
+
+.role-status-card.impersonating {
+  background: linear-gradient(
+    135deg,
+    var(--color-warning-600) 0%,
+    var(--color-warning-700) 100%
+  );
+}
+
+[data-style="dark"] .role-status-card {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-500) 0%,
+    var(--color-primary-600) 100%
+  );
+}
+
+[data-style="dark"] .role-status-card.impersonating {
+  background: linear-gradient(
+    135deg,
+    var(--color-warning-500) 0%,
+    var(--color-warning-600) 100%
+  );
+}
+
+/* Current role status styling */
+.c-navbar__current-role-status {
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background-color: var(--color-neutral-100);
+}
+
+[data-style="dark"] .c-navbar__current-role-status {
+  background-color: var(--color-bg-elevated, #334155);       /* Slate-800 */
+}
+
+/* ============================================================================
+   5. NOTIFICATION BADGE
+   ============================================================================ */
+
+.c-navbar__review-count {
+  display: none;
+}
+
+.c-navbar__review-count.visible {
+  display: inline-block;
+}
+
+.badge-notifications {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+}
+
+/* ============================================================================
+   6. USER PROFILE MENU
+   ============================================================================ */
+
+.navbar-dropdown.dropdown-user .avatar {
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-smooth);
+}
+
+.navbar-dropdown.dropdown-user .avatar:hover {
+  transform: scale(1.05);
+}
+
+/* ============================================================================
+   7. LOGOUT FORM (HIDDEN)
+   ============================================================================ */
+
+.c-navbar__logout-form {
+  display: none;
+}
+
+/* ============================================================================
+   8. MOBILE MENU TOGGLE
+   ============================================================================ */
+
+.layout-menu-toggle {
+  display: none;
+  flex-shrink: 0; /* Prevent toggle from shrinking */
+}
+
+@media (max-width: 1199px) {
+  .layout-menu-toggle {
+    display: flex;
+  }
+}
+
+.layout-menu-toggle .nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  transition: background-color var(--duration-fast) var(--ease-smooth),
+              opacity var(--duration-fast) var(--ease-smooth);
+}
+
+.layout-menu-toggle .nav-link:hover {
+  background-color: var(--color-neutral-100);
+  opacity: 0.9;
+}
+
+[data-style="dark"] .layout-menu-toggle .nav-link:hover {
+  background-color: var(--color-bg-elevated, #334155);
+}
+
+.layout-menu-toggle .c-navbar__menu-toggle-icon {
+  font-size: var(--text-2xl);
+  color: var(--color-text-primary);
+}
+
+[data-style="dark"] .layout-menu-toggle .c-navbar__menu-toggle-icon {
+  color: var(--color-text-primary, #fafafa);
+}
+
+/* ============================================================================
+   9. NAVBAR NAVIGATION
+   ============================================================================ */
+
+.navbar-nav-right {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  width: 100%;
+  gap: var(--space-2);
+}
+
+.navbar-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex-shrink: 0; /* Prevent nav items from shrinking */
+}
+
+/* Nav buttons - consistent styling */
+.navbar-nav .nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-full);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-smooth),
+              color var(--duration-fast) var(--ease-smooth),
+              transform var(--duration-fast) var(--ease-smooth);
+  transform: none; /* Explicitly reset any transforms */
+}
+
+.navbar-nav .nav-link:hover {
+  background-color: var(--color-neutral-100);
+  color: var(--color-text-primary);
+  transform: none; /* No transform on hover - keep stable */
+}
+
+[data-style="dark"] .navbar-nav .nav-link {
+  color: var(--color-text-secondary, #a1a1aa);
+}
+
+[data-style="dark"] .navbar-nav .nav-link:hover {
+  background-color: var(--color-bg-elevated, #334155);
+  color: var(--color-text-primary, #F8FAFC);
+}
+
+/* User avatar - special case (should not have fixed width) */
+.navbar-dropdown.dropdown-user .nav-link {
+  width: auto;
+  height: auto;
+  padding: 0;
+}
+
+/* ============================================================================
+   10. DROPDOWN MENUS
+   ============================================================================ */
+
+.dropdown-menu {
+  background-color: var(--color-bg-card);
+  border: var(--border-width) solid var(--border-color-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-2) 0;
+  z-index: var(--z-dropdown);
+}
+
+/* Dark mode dropdown - using CSS variables with slate fallbacks */
+[data-style="dark"] .dropdown-menu {
+  background-color: var(--color-bg-elevated, #334155);       /* Slate-800 */
+  border-color: var(--color-border-primary, #475569);        /* Slate-700 */
+}
+
+.dropdown-item {
+  padding: var(--space-2) var(--space-4);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  display: block;
+  transition: background-color var(--duration-fast) var(--ease-smooth);
+}
+
+[data-style="dark"] .dropdown-item {
+  color: var(--color-text-primary, #fafafa);
+}
+
+.dropdown-item:hover {
+  background-color: var(--color-neutral-100);
+  color: var(--color-text-primary);
+}
+
+[data-style="dark"] .dropdown-item:hover {
+  background-color: var(--color-bg-tertiary, #475569);       /* Slate-700 */
+  color: var(--color-text-primary, #f8fafc);                 /* Slate-50 */
+}
+
+.dropdown-divider {
+  height: 0;
+  margin: var(--space-1) var(--space-2);
+  overflow: hidden;
+  border-top: var(--border-width) solid var(--border-color-primary);
+}
+
+[data-style="dark"] .dropdown-divider {
+  border-top-color: var(--color-border-primary, #475569);    /* Slate-700 */
+}
+
+.dropdown-header {
+  display: flex;
+  align-items: center;
+  padding: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+}
+
+/* ============================================================================
+   11. STYLE SWITCHER (THEME TOGGLE)
+   ============================================================================ */
+
+.dropdown-style-switcher .dropdown-styles {
+  min-width: 160px;
+}
+
+.dropdown-style-switcher .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dropdown-style-switcher .dropdown-item.active {
+  background-color: var(--color-primary-50);
+  color: var(--color-primary);
+}
+
+[data-style="dark"] .dropdown-style-switcher .dropdown-item.active {
+  background-color: var(--color-primary-900);
+  color: var(--color-primary-300);
+}
+
+.theme-switcher-icon {
+  font-size: var(--text-xl);
+}
+
+/* ============================================================================
+   12. NOTIFICATIONS DROPDOWN
+   ============================================================================ */
+
+.dropdown-notifications .dropdown-menu {
+  width: 380px;
+  max-height: 500px;
+  padding: 0;
+}
+
+.dropdown-menu-header {
+  position: sticky;
+  top: 0;
+  background-color: var(--color-bg-card);
+  z-index: 1;
+  border-bottom: var(--border-width) solid var(--border-color-primary);
+}
+
+[data-style="dark"] .dropdown-menu-header {
+  background-color: var(--color-bg-elevated, #334155);       /* Slate-800 */
+  border-bottom-color: var(--color-border-primary, #475569); /* Slate-700 */
+}
+
+.dropdown-notifications-list {
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.dropdown-notifications-item {
+  padding: var(--space-3);
+  border-bottom: var(--border-width) solid var(--border-color-primary);
+  transition: background-color var(--duration-fast) var(--ease-smooth);
+}
+
+[data-style="dark"] .dropdown-notifications-item {
+  border-bottom-color: var(--color-border-primary, #475569); /* Slate-700 */
+}
+
+.dropdown-notifications-item:hover {
+  background-color: var(--color-neutral-50);
+}
+
+[data-style="dark"] .dropdown-notifications-item:hover {
+  background-color: var(--color-bg-tertiary, #475569);       /* Slate-700 */
+}
+
+.dropdown-notifications-item.bg-light {
+  background-color: var(--color-primary-50);
+}
+
+[data-style="dark"] .dropdown-notifications-item.bg-light {
+  background-color: var(--color-primary-900);
+}
+
+/* ============================================================================
+   13. TOAST NOTIFICATIONS (FOR ROLE IMPERSONATION)
+   ============================================================================ */
+
+.toast-container {
+  position: fixed;
+  top: 0;
+  right: 0;
+  padding: var(--space-3);
+  z-index: var(--z-toast);
+  pointer-events: none;
+}
+
+.toast {
+  background-color: var(--color-bg-card);
+  border: var(--border-width) solid var(--border-color-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xl);
+  pointer-events: auto;
+  margin-bottom: var(--space-2);
+  min-width: 250px;
+}
+
+[data-style="dark"] .toast {
+  background-color: var(--color-bg-elevated, #334155);       /* Slate-800 */
+  border-color: var(--color-border-primary, #475569);        /* Slate-700 */
+}
+
+.toast-body {
+  padding: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-primary);
+}
+
+[data-style="dark"] .toast-body {
+  color: var(--color-text-primary, #fafafa);
+}
+
+/* ============================================================================
+   14. RESPONSIVE BEHAVIOR
+   ============================================================================ */
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .layout-navbar {
+    padding: var(--space-2) var(--space-3);
+    gap: var(--space-2);
+  }
+
+  .navbar-nav-right {
+    gap: var(--space-1);
+  }
+
+  .navbar-nav-right > form {
+    margin-right: var(--space-2);
+  }
+
+  .dropdown-notifications .dropdown-menu {
+    width: calc(100vw - var(--space-6));
+    max-width: 380px;
+  }
+
+  .dropdown-role-impersonation .dropdown-menu {
+    width: calc(100vw - var(--space-6));
+    max-width: 320px;
+  }
+
+  .navbar-nav {
+    gap: 0;
+  }
+
+  /* Slightly smaller nav buttons on mobile */
+  .navbar-nav .nav-link {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .layout-navbar {
+    padding: var(--space-3);
+  }
+}
+
+/* Desktop adjustments */
+@media (min-width: 1200px) {
+  .layout-navbar {
+    padding: var(--space-3) var(--space-6);
+  }
+
+  .navbar-nav {
+    gap: var(--space-2);
+  }
+}
+
+/* ============================================================================
+   15. ACCESSIBILITY FEATURES
+   ============================================================================ */
+
+/* Focus states for keyboard navigation */
+.nav-link:focus,
+.dropdown-item:focus,
+.btn:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Skip to main content link (screen readers) */
+.skip-to-main {
+  position: absolute;
+  left: -9999px;
+  top: var(--space-2);
+  z-index: var(--z-priority);
+  padding: var(--space-2) var(--space-4);
+  background-color: var(--color-primary);
+  color: var(--color-neutral-0);
+  text-decoration: none;
+  border-radius: var(--radius-md);
+}
+
+.skip-to-main:focus {
+  left: var(--space-4);
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+  .layout-navbar {
+    border-bottom-width: 2px;
+  }
+
+  .dropdown-menu {
+    border-width: 2px;
+  }
+
+  .nav-link:focus,
+  .dropdown-item:focus,
+  .btn:focus {
+    outline-width: 3px;
+  }
+}
+
+/**
+ * JUSTIFIED !important usage:
+ * Accessibility requirement to override ALL animations and transitions when user
+ * has enabled "reduce motion" in their OS settings (prefers-reduced-motion: reduce).
+ * This is a WCAG guideline for motion sensitivity and vestibular disorders.
+ * Must use !important to override:
+ * - Inline styles from JavaScript animations
+ * - Third-party library animations
+ * - All component-level transitions
+ * - Framework utility classes
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================================
+   16. PRINT STYLES
+   ============================================================================ */
+
+@media print {
+  .layout-navbar {
+    display: none;
+  }
+
+  .toast-container {
+    display: none;
+  }
+}

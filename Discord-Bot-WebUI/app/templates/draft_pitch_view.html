@@ -3,8 +3,9 @@
 {% block title %}{{ title }} - Pitch View{% endblock %}
 
 {% block custom_css %}
-<!-- Draft System Styles -->
-<link rel="stylesheet" href="{{ url_for('static', filename='css/draft-system.css') }}?v={{ range(1, 1000000) | random }}">
+{{ super() }}
+<!-- Draft System Styles (consolidated) -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/features/draft.css') }}?v={{ range(1, 1000000) | random }}">
 <!-- Pitch View Styles -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/features/pitch-view.css') }}?v={{ range(1, 1000000) | random }}">
 {% endblock %}
@@ -14,27 +15,29 @@
     <!-- Header -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-body">
+            <div class="c-card pitch-header-card">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h2 class="text-primary mb-1">{{ title }} - Pitch View</h2>
                             <p class="text-muted mb-0">Visualize your team formation and draft players to positions</p>
                         </div>
                         <div class="d-flex gap-2">
-                            <a href="{{ url_for('draft_enhanced.draft_league', league_name=league_name) }}" 
-                               class="btn btn-outline-secondary">
+                            <a href="{{ url_for('draft_enhanced.draft_league', league_name=league_name) }}"
+                               class="c-btn c-btn--outline-secondary">
                                 <i class="ti ti-list me-1"></i>List View
                             </a>
                             <div class="dropdown">
-                                <button class="btn btn-primary dropdown-toggle" type="button" 
-                                        data-bs-toggle="dropdown" aria-expanded="false">
+                                <button class="c-btn c-btn--primary dropdown-toggle" type="button"
+                                        data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle>
                                     <i class="ti ti-user-check me-1"></i>Coach View
                                 </button>
-                                <ul class="dropdown-menu">
+                                <ul class="dropdown-menu dropdown-menu-end">
                                     {% for team in teams %}
                                     <li>
-                                        <a class="dropdown-item" href="#" onclick="switchTeamView({{ team.id }})">
+                                        <a class="dropdown-item js-switch-team-view" href="#"
+                                           data-action="switch-team-view"
+                                           data-team-id="{{ team.id }}">
                                             {{ team.name }}
                                         </a>
                                     </li>
@@ -48,56 +51,55 @@
         </div>
     </div>
 
-    <!-- Team Selection / Current Team View -->
+    <!-- Team Selection Tabs -->
     <div class="row mb-4">
         <div class="col-12">
-            <nav class="navbar navbar-expand navbar-light bg-body-tertiary rounded-3 shadow-sm p-2 p-lg-3">
-                <div class="container-fluid px-0">
-                    <div class="team-nav-scroll w-100">
-                        <ul class="navbar-nav flex-row flex-nowrap" id="team-tabs" role="tablist">
-                            {% for team in teams %}
-                            <li class="nav-item">
-                                <button class="nav-link {% if loop.first %}active{% endif %}"
-                                        id="team-{{ team.id }}-tab" data-bs-toggle="pill"
-                                        data-bs-target="#team-{{ team.id }}-pitch" type="button"
-                                        role="tab" aria-selected="{% if loop.first %}true{% else %}false{% endif %}"
-                                        data-team-id="{{ team.id }}">
-                                    <span class="team-name">{{ team.name }}</span>
-                                    <span class="badge bg-secondary ms-1" id="teamPitchCount{{ team.id }}">
-                                        {{ drafted_players_by_team[team.id]|length if drafted_players_by_team[team.id] else 0 }}
-                                    </span>
-                                </button>
-                            </li>
-                            {% endfor %}
-                        </ul>
+            <div class="c-card">
+                <div class="c-card__body p-2">
+                    <div class="c-tabs c-tabs--pills" id="team-tabs" role="tablist">
+                        {% for team in teams %}
+                        <button class="c-tabs__item {% if loop.first %}active{% endif %}"
+                                id="team-{{ team.id }}-tab"
+                                data-bs-toggle="pill"
+                                data-bs-target="#team-{{ team.id }}-pitch"
+                                type="button"
+                                role="tab"
+                                aria-selected="{% if loop.first %}true{% else %}false{% endif %}"
+                                data-team-id="{{ team.id }}">
+                            {{ team.name }}
+                            <span class="c-badge c-badge--secondary c-badge--sm" id="teamPitchCount{{ team.id }}">
+                                {{ drafted_players_by_team[team.id]|length if drafted_players_by_team[team.id] else 0 }}
+                            </span>
+                        </button>
+                        {% endfor %}
                     </div>
                 </div>
-            </nav>
+            </div>
         </div>
     </div>
 
     <div class="row">
         <!-- Available Players Pool -->
         <div class="col-lg-4">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="c-card h-100">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <i class="ti ti-users me-2"></i>
                         Available Players
                     </h5>
-                    <span class="badge bg-primary" id="availablePlayerCount">{{ available_players|length }}</span>
+                    <span class="badge bg-primary" id="availablePlayerCount" data-badge>{{ available_players|length }}</span>
                 </div>
-                <div class="card-body p-2">
+                <div class="c-card__body p-2">
                     <!-- Search and Filter -->
                     <div class="mb-3">
-                        <div class="input-group input-group-sm">
+                        <div class="input-group input-group-sm" data-input-group>
                             <span class="input-group-text"><i class="ti ti-search"></i></span>
                             <input type="text" id="playerSearchPitch" class="form-control" 
-                                   placeholder="Search players..." autocomplete="off">
+                                   placeholder="Search players..." autocomplete="off" data-form-control>
                         </div>
                     </div>
                     <div class="mb-3">
-                        <select id="positionFilterPitch" class="form-select form-select-sm">
+                        <select id="positionFilterPitch" class="form-select form-select-sm" data-form-select>
                             <option value="">All Positions</option>
                             <option value="goalkeeper">Goalkeeper</option>
                             <option value="defender">Defender</option>
@@ -108,31 +110,49 @@
                     </div>
                     
                     <!-- Players List -->
-                    <div id="availablePlayersList" class="available-players-list">
+                    <div id="availablePlayersList" class="pitch-players-list">
                         {% for player in available_players %}
-                        <div class="player-item" data-player-id="{{ player.id }}"
+                        <div class="pitch-player-card js-draggable-player"
+                             data-player-id="{{ player.id }}"
                              data-player-name="{{ player.name|lower }}"
                              data-position="{{ (player.favorite_position or '')|lower }}"
-                             draggable="true" 
-                             ondragstart="handlePlayerDragStart(event, {{ player.id }})"
-                             ondragend="handlePlayerDragEnd(event)">
-                            <div class="player-avatar-container">
-                                <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}" 
-                                     alt="{{ player.name }}" class="player-avatar"
-                                     onerror="this.src='/static/img/default_player.png';">
+                             draggable="true">
+                            <div class="pitch-player-card__avatar">
+                                <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}"
+                                     alt="{{ player.name }}" class="js-player-image"
+                                     data-fallback="/static/img/default_player.png">
                             </div>
-                            <div class="player-info">
-                                <div class="player-name">{{ player.name }}</div>
-                                <div class="player-position">{{ player.favorite_position or 'Any' }}</div>
-                                <div class="player-stats">
-                                    <span class="stat-item">{{ player.career_goals }}G</span>
-                                    <span class="stat-item">{{ player.career_assists }}A</span>
+                            <div class="pitch-player-card__content">
+                                <div class="pitch-player-card__header">
+                                    <span class="pitch-player-card__name">{{ player.name }}</span>
+                                    <span class="pitch-player-card__position">{{ player.favorite_position or 'Any' }}</span>
+                                </div>
+                                <div class="pitch-player-card__stats">
+                                    <span class="pitch-player-card__stat pitch-player-card__stat--goals" title="Goals">
+                                        <i class="ti ti-ball-football"></i> {{ player.career_goals }}
+                                    </span>
+                                    <span class="pitch-player-card__stat pitch-player-card__stat--assists" title="Assists">
+                                        <i class="ti ti-shoe"></i> {{ player.career_assists }}
+                                    </span>
+                                    {% if player.yellow_cards is defined %}
+                                    <span class="pitch-player-card__stat pitch-player-card__stat--yellow" title="Yellow Cards">
+                                        <i class="ti ti-rectangle-vertical-filled"></i> {{ player.yellow_cards or 0 }}
+                                    </span>
+                                    {% endif %}
+                                    {% if player.red_cards is defined %}
+                                    <span class="pitch-player-card__stat pitch-player-card__stat--red" title="Red Cards">
+                                        <i class="ti ti-rectangle-vertical-filled"></i> {{ player.red_cards or 0 }}
+                                    </span>
+                                    {% endif %}
                                     {% if player.attendance_estimate is not none %}
-                                    <span class="stat-item attendance-{{ 'high' if player.attendance_estimate >= 80 else 'medium' if player.attendance_estimate >= 60 else 'low' }}">
-                                        {{ "%.0f"|format(player.attendance_estimate) }}%
+                                    <span class="pitch-player-card__stat pitch-player-card__stat--attendance attendance-{{ 'high' if player.attendance_estimate >= 80 else 'medium' if player.attendance_estimate >= 60 else 'low' }}" title="Attendance">
+                                        <i class="ti ti-calendar-check"></i> {{ "%.0f"|format(player.attendance_estimate) }}%
                                     </span>
                                     {% endif %}
                                 </div>
+                            </div>
+                            <div class="pitch-player-card__drag-handle">
+                                <i class="ti ti-grip-vertical"></i>
                             </div>
                         </div>
                         {% endfor %}
@@ -147,13 +167,13 @@
                 {% for team in teams %}
                 <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
                      id="team-{{ team.id }}-pitch" role="tabpanel" 
-                     aria-labelledby="team-{{ team.id }}-tab">
+                     aria-labelledby="team-{{ team.id }}-tab" data-tab-pane>
                     
-                    <div class="card">
-                        <div class="card-header">
+                    <div class="c-card">
+                        <div class="c-card__header">
                             <h5 class="mb-0">{{ team.name }} Formation</h5>
                         </div>
-                        <div class="card-body p-3">
+                        <div class="c-card__body p-3">
                             <!-- Soccer Pitch -->
                             <div class="soccer-pitch" id="pitch-{{ team.id }}" data-team-id="{{ team.id }}">
                                 <!-- Pitch Background -->
@@ -171,149 +191,97 @@
                                     <div class="penalty-area penalty-area-bottom"></div>
                                 </div>
 
-                                <!-- Position Zones -->
-                                <!-- Goalkeeper -->
-                                <div class="position-zone goalkeeper-zone"
-                                     data-position="gk" data-max-players="1" data-team-id="{{ team.id }}"
-                                     ondrop="handlePositionDrop(event, 'gk', {{ team.id }})"
-                                     ondragover="handlePositionDragOver(event)"
-                                     ondragleave="handlePositionDragLeave(event)">
-                                    <div class="position-label">
-                                        GK
-                                        <span class="capacity-indicator">
-                                            <span class="current">0</span>/<span class="recommended">1</span>
-                                        </span>
-                                    </div>
-                                    <div class="position-players" id="position-gk-{{ team.id }}"></div>
-                                </div>
-
-                                <!-- Left Back -->
-                                <div class="position-zone leftback-zone"
-                                     data-position="lb" data-max-players="2" data-team-id="{{ team.id }}"
-                                     ondrop="handlePositionDrop(event, 'lb', {{ team.id }})"
-                                     ondragover="handlePositionDragOver(event)"
-                                     ondragleave="handlePositionDragLeave(event)">
-                                    <div class="position-label">
-                                        LB
-                                        <span class="capacity-indicator">
-                                            <span class="current">0</span>/<span class="recommended">1</span>
-                                        </span>
-                                    </div>
-                                    <div class="position-players" id="position-lb-{{ team.id }}"></div>
-                                </div>
-
-                                <!-- Center Back -->
-                                <div class="position-zone centerback-zone"
-                                     data-position="cb" data-max-players="3" data-team-id="{{ team.id }}"
-                                     ondrop="handlePositionDrop(event, 'cb', {{ team.id }})"
-                                     ondragover="handlePositionDragOver(event)"
-                                     ondragleave="handlePositionDragLeave(event)">
-                                    <div class="position-label">
-                                        CB
-                                        <span class="capacity-indicator">
-                                            <span class="current">0</span>/<span class="recommended">2</span>
-                                        </span>
-                                    </div>
-                                    <div class="position-players" id="position-cb-{{ team.id }}"></div>
-                                </div>
-
-                                <!-- Right Back -->
-                                <div class="position-zone rightback-zone" 
-                                     data-position="rb" data-max-players="2"
-                                     ondrop="handlePositionDrop(event, 'rb', {{ team.id }})" 
-                                     ondragover="handlePositionDragOver(event)"
-                                     ondragleave="handlePositionDragLeave(event)">
-                                    <div class="position-label">RB</div>
-                                    <div class="position-players" id="position-rb-{{ team.id }}"></div>
-                                </div>
-
-                                <!-- Left Wing Back -->
-                                <div class="position-zone leftwingback-zone" 
-                                     data-position="lwb" data-max-players="2"
-                                     ondrop="handlePositionDrop(event, 'lwb', {{ team.id }})" 
-                                     ondragover="handlePositionDragOver(event)"
-                                     ondragleave="handlePositionDragLeave(event)">
-                                    <div class="position-label">LWB</div>
-                                    <div class="position-players" id="position-lwb-{{ team.id }}"></div>
-                                </div>
-
-                                <!-- Right Wing Back -->
-                                <div class="position-zone rightwingback-zone" 
-                                     data-position="rwb" data-max-players="2"
-                                     ondrop="handlePositionDrop(event, 'rwb', {{ team.id }})" 
-                                     ondragover="handlePositionDragOver(event)"
-                                     ondragleave="handlePositionDragLeave(event)">
-                                    <div class="position-label">RWB</div>
-                                    <div class="position-players" id="position-rwb-{{ team.id }}"></div>
-                                </div>
-
-                                <!-- Center Defensive Midfielder -->
-                                <div class="position-zone cdm-zone" 
-                                     data-position="cdm" data-max-players="2"
-                                     ondrop="handlePositionDrop(event, 'cdm', {{ team.id }})" 
-                                     ondragover="handlePositionDragOver(event)"
-                                     ondragleave="handlePositionDragLeave(event)">
-                                    <div class="position-label">CDM</div>
-                                    <div class="position-players" id="position-cdm-{{ team.id }}"></div>
-                                </div>
-
-                                <!-- Center Midfielder -->
-                                <div class="position-zone cm-zone" 
-                                     data-position="cm" data-max-players="3"
-                                     ondrop="handlePositionDrop(event, 'cm', {{ team.id }})" 
-                                     ondragover="handlePositionDragOver(event)"
-                                     ondragleave="handlePositionDragLeave(event)">
-                                    <div class="position-label">CM</div>
-                                    <div class="position-players" id="position-cm-{{ team.id }}"></div>
-                                </div>
-
-                                <!-- Center Attacking Midfielder -->
-                                <div class="position-zone cam-zone" 
-                                     data-position="cam" data-max-players="2"
-                                     ondrop="handlePositionDrop(event, 'cam', {{ team.id }})" 
-                                     ondragover="handlePositionDragOver(event)"
-                                     ondragleave="handlePositionDragLeave(event)">
-                                    <div class="position-label">CAM</div>
-                                    <div class="position-players" id="position-cam-{{ team.id }}"></div>
+                                <!-- Position Zones - Layout from bottom (GK) to top (ST) -->
+                                <!-- Striker/Forward - TOP of pitch (attacking) -->
+                                <div class="position-zone striker-zone js-position-drop-zone"
+                                     data-position="st" data-team-id="{{ team.id }}">
+                                    <div class="position-label">ST <span class="position-count">(0)</span></div>
+                                    <div class="position-players" id="position-st-{{ team.id }}"></div>
                                 </div>
 
                                 <!-- Left Wing -->
-                                <div class="position-zone leftwing-zone" 
-                                     data-position="lw" data-max-players="2"
-                                     ondrop="handlePositionDrop(event, 'lw', {{ team.id }})" 
-                                     ondragover="handlePositionDragOver(event)"
-                                     ondragleave="handlePositionDragLeave(event)">
-                                    <div class="position-label">LW</div>
+                                <div class="position-zone leftwing-zone js-position-drop-zone"
+                                     data-position="lw" data-team-id="{{ team.id }}">
+                                    <div class="position-label">LW <span class="position-count">(0)</span></div>
                                     <div class="position-players" id="position-lw-{{ team.id }}"></div>
                                 </div>
 
                                 <!-- Right Wing -->
-                                <div class="position-zone rightwing-zone" 
-                                     data-position="rw" data-max-players="2"
-                                     ondrop="handlePositionDrop(event, 'rw', {{ team.id }})" 
-                                     ondragover="handlePositionDragOver(event)"
-                                     ondragleave="handlePositionDragLeave(event)">
-                                    <div class="position-label">RW</div>
+                                <div class="position-zone rightwing-zone js-position-drop-zone"
+                                     data-position="rw" data-team-id="{{ team.id }}">
+                                    <div class="position-label">RW <span class="position-count">(0)</span></div>
                                     <div class="position-players" id="position-rw-{{ team.id }}"></div>
                                 </div>
 
-                                <!-- Striker/Forward -->
-                                <div class="position-zone striker-zone" 
-                                     data-position="st" data-max-players="3"
-                                     ondrop="handlePositionDrop(event, 'st', {{ team.id }})" 
-                                     ondragover="handlePositionDragOver(event)"
-                                     ondragleave="handlePositionDragLeave(event)">
-                                    <div class="position-label">ST</div>
-                                    <div class="position-players" id="position-st-{{ team.id }}"></div>
+                                <!-- Center Attacking Midfielder -->
+                                <div class="position-zone cam-zone js-position-drop-zone"
+                                     data-position="cam" data-team-id="{{ team.id }}">
+                                    <div class="position-label">CAM <span class="position-count">(0)</span></div>
+                                    <div class="position-players" id="position-cam-{{ team.id }}"></div>
                                 </div>
 
-                                <!-- Bench/Substitutes -->
-                                <div class="position-zone bench-zone" 
-                                     data-position="bench" data-max-players="10"
-                                     ondrop="handlePositionDrop(event, 'bench', {{ team.id }})" 
-                                     ondragover="handlePositionDragOver(event)"
-                                     ondragleave="handlePositionDragLeave(event)">
-                                    <div class="position-label">BENCH</div>
+                                <!-- Center Midfielder -->
+                                <div class="position-zone cm-zone js-position-drop-zone"
+                                     data-position="cm" data-team-id="{{ team.id }}">
+                                    <div class="position-label">CM <span class="position-count">(0)</span></div>
+                                    <div class="position-players" id="position-cm-{{ team.id }}"></div>
+                                </div>
+
+                                <!-- Center Defensive Midfielder -->
+                                <div class="position-zone cdm-zone js-position-drop-zone"
+                                     data-position="cdm" data-team-id="{{ team.id }}">
+                                    <div class="position-label">CDM <span class="position-count">(0)</span></div>
+                                    <div class="position-players" id="position-cdm-{{ team.id }}"></div>
+                                </div>
+
+                                <!-- Left Wing Back -->
+                                <div class="position-zone leftwingback-zone js-position-drop-zone"
+                                     data-position="lwb" data-team-id="{{ team.id }}">
+                                    <div class="position-label">LWB <span class="position-count">(0)</span></div>
+                                    <div class="position-players" id="position-lwb-{{ team.id }}"></div>
+                                </div>
+
+                                <!-- Right Wing Back -->
+                                <div class="position-zone rightwingback-zone js-position-drop-zone"
+                                     data-position="rwb" data-team-id="{{ team.id }}">
+                                    <div class="position-label">RWB <span class="position-count">(0)</span></div>
+                                    <div class="position-players" id="position-rwb-{{ team.id }}"></div>
+                                </div>
+
+                                <!-- Left Back -->
+                                <div class="position-zone leftback-zone js-position-drop-zone"
+                                     data-position="lb" data-team-id="{{ team.id }}">
+                                    <div class="position-label">LB <span class="position-count">(0)</span></div>
+                                    <div class="position-players" id="position-lb-{{ team.id }}"></div>
+                                </div>
+
+                                <!-- Center Back -->
+                                <div class="position-zone centerback-zone js-position-drop-zone"
+                                     data-position="cb" data-team-id="{{ team.id }}">
+                                    <div class="position-label">CB <span class="position-count">(0)</span></div>
+                                    <div class="position-players" id="position-cb-{{ team.id }}"></div>
+                                </div>
+
+                                <!-- Right Back -->
+                                <div class="position-zone rightback-zone js-position-drop-zone"
+                                     data-position="rb" data-team-id="{{ team.id }}">
+                                    <div class="position-label">RB <span class="position-count">(0)</span></div>
+                                    <div class="position-players" id="position-rb-{{ team.id }}"></div>
+                                </div>
+
+                                <!-- Goalkeeper - BOTTOM of pitch (defending) -->
+                                <div class="position-zone goalkeeper-zone js-position-drop-zone"
+                                     data-position="gk" data-team-id="{{ team.id }}">
+                                    <div class="position-label">GK <span class="position-count">(0)</span></div>
+                                    <div class="position-players" id="position-gk-{{ team.id }}"></div>
+                                </div>
+                            </div>
+
+                            <!-- Bench - OUTSIDE the pitch -->
+                            <div class="bench-container mt-3">
+                                <div class="position-zone bench-zone js-position-drop-zone"
+                                     data-position="bench" data-team-id="{{ team.id }}">
+                                    <div class="position-label">BENCH <span class="position-count">(0)</span></div>
                                     <div class="position-players" id="position-bench-{{ team.id }}"></div>
                                 </div>
                             </div>
@@ -363,7 +331,7 @@
 </div>
 
 <!-- Loading Overlay -->
-<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+<div id="loadingOverlay" class="loading-overlay is-hidden">
     <div class="text-center">
         <div class="loading-spinner mx-auto mb-3"></div>
         <p class="text-muted">Processing...</p>
@@ -378,20 +346,45 @@
 <!-- Pitch View JavaScript -->
 <script src="{{ url_for('static', filename='js/pitch-view.js') }}?v={{ range(1, 1000000) | random }}"></script>
 
-<script>
-// Initialize the pitch view system
-document.addEventListener('DOMContentLoaded', function() {
-    initializePitchView('{{ league_name }}', {{ teams_json|tojson }}, {{ drafted_players_by_team|tojson }});
-    
-    console.log('🏟️ Pitch View System loaded successfully');
-});
-
-// Team data for JavaScript
-window.teamsData = {{ teams_json|tojson }};
-window.draftedPlayersByTeam = {{ drafted_players_by_team|tojson }};
-window.leagueName = '{{ league_name }}';
-</script>
-
 <!-- Mobile Draft Enhancements -->
 <script src="{{ url_for('static', filename='js/mobile-draft.js') }}"></script>
+
+<!--
+MIGRATION NOTE: Inline JavaScript has been extracted to /app/static/js/pitch-view.js
+All event handlers now use data-* attributes and .js-* classes for binding
+Functions migrated:
+- initializePitchView()
+- handlePlayerDragStart()
+- handlePlayerDragEnd()
+- handlePositionDrop()
+- handlePositionDragOver()
+- handlePositionDragLeave()
+- switchTeamView()
+- updateFormationStats()
+
+Event delegation replaces inline handlers:
+- → .js-switch-team-view with data-team-id
+- ondragstart/ondragend → .js-draggable-player event listeners
+- ondrop/ondragover/ondragleave → .js-position-drop-zone event listeners
+- onerror on images → .js-player-image error event listeners
+-->
+
+<script data-league-name="{{ league_name }}"
+        data-teams='{{ teams_json|tojson }}'
+        data-drafted-players='{{ drafted_players_by_team|tojson }}'>
+// Initialize pitch view with league data from data attributes
+// NOTE: Capture scriptTag at top level - document.currentScript is null inside event listeners
+(function() {
+    const scriptTag = document.currentScript;
+    const leagueName = scriptTag.getAttribute('data-league-name');
+    const teamsData = JSON.parse(scriptTag.getAttribute('data-teams'));
+    const draftedPlayers = JSON.parse(scriptTag.getAttribute('data-drafted-players'));
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof initializePitchView === 'function') {
+            initializePitchView(leagueName, teamsData, draftedPlayers);
+        }
+    });
+})();
+</script>
 {% endblock %}

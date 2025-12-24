@@ -14,9 +14,9 @@
     <h4 class="mb-0">Store Analytics</h4>
     <div class="d-flex gap-2">
         <form method="GET" class="d-flex gap-2">
-            <input type="date" name="start_date" class="form-control" value="{{ analytics.date_range.start }}">
-            <input type="date" name="end_date" class="form-control" value="{{ analytics.date_range.end }}">
-            <button type="submit" class="btn btn-primary">Update</button>
+            <input type="date" name="start_date" class="form-control" value="{{ analytics.date_range.start }}" data-form-control>
+            <input type="date" name="end_date" class="form-control" value="{{ analytics.date_range.end }}" data-form-control>
+            <button type="submit" class="c-btn c-btn--primary">Update</button>
         </form>
     </div>
 </div>
@@ -24,66 +24,66 @@
 <!-- Summary Cards -->
 <div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
+        <div class="c-card bg-primary text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">
+                        <h5 class="c-card__title text-white mb-1">
                             {{ analytics.status_stats.values() | sum if analytics.status_stats else 0 }}
                         </h5>
-                        <p class="card-text small opacity-75 mb-0">Total Orders</p>
+                        <p class="c-card__description small opacity-75 mb-0">Total Orders</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-shopping-cart" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-shopping-cart card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
+        <div class="c-card bg-success text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">
+                        <h5 class="c-card__title text-white mb-1">
                             {{ analytics.status_stats.get('DELIVERED', 0) }}
                         </h5>
-                        <p class="card-text small opacity-75 mb-0">Delivered</p>
+                        <p class="c-card__description small opacity-75 mb-0">Delivered</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-truck-delivery" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-truck-delivery card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
+        <div class="c-card bg-warning text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">
+                        <h5 class="c-card__title text-white mb-1">
                             {{ analytics.status_stats.get('PENDING', 0) + analytics.status_stats.get('PROCESSING', 0) }}
                         </h5>
-                        <p class="card-text small opacity-75 mb-0">In Progress</p>
+                        <p class="c-card__description small opacity-75 mb-0">In Progress</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-clock" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-clock card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
+        <div class="c-card bg-info text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ analytics.top_customers | length }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Active Customers</p>
+                        <h5 class="c-card__title text-white mb-1">{{ analytics.top_customers | length }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Active Customers</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-users" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-users card-icon-stat"></i>
                     </div>
                 </div>
             </div>
@@ -94,25 +94,25 @@
 <!-- Charts Row -->
 <div class="row mb-4">
     <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-chart-line me-2"></i>Orders Over Time
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <canvas id="ordersChart" height="100"></canvas>
             </div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-chart-pie me-2"></i>Order Status Distribution
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <canvas id="statusChart" height="200"></canvas>
             </div>
         </div>
@@ -122,13 +122,13 @@
 <!-- Popular Items & Categories -->
 <div class="row mb-4">
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-star me-2"></i>Popular Items
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if analytics.popular_items %}
                     {% for item in analytics.popular_items %}
                     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -138,9 +138,9 @@
                             <small class="text-muted">{{ item.orders }} orders • {{ item.quantity }} items</small>
                         </div>
                         <div class="text-end">
-                            <div class="progress" style="width: 100px; height: 8px;">
-                                <div class="progress-bar bg-primary" 
-                                     style="width: {% if analytics.popular_items %}{{ (item.orders / analytics.popular_items[0].orders * 100) }}%{% else %}0%{% endif %}">
+                            <div class="progress u-w-100 u-h-8">
+                                <div class="progress-bar bg-primary"
+                                     data-width-percent="{% if analytics.popular_items %}{{ (item.orders / analytics.popular_items[0].orders * 100) }}{% else %}0{% endif %}">
                                 </div>
                             </div>
                         </div>
@@ -154,13 +154,13 @@
     </div>
     
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-category me-2"></i>Category Performance
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if analytics.category_stats %}
                     {% for category in analytics.category_stats %}
                     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -170,9 +170,9 @@
                             <small class="text-muted">{{ category.orders }} orders • {{ category.quantity }} items</small>
                         </div>
                         <div class="text-end">
-                            <div class="progress" style="width: 100px; height: 8px;">
-                                <div class="progress-bar bg-info" 
-                                     style="width: {% if analytics.category_stats %}{{ (category.orders / analytics.category_stats[0].orders * 100) }}%{% else %}0%{% endif %}">
+                            <div class="progress u-w-100 u-h-8">
+                                <div class="progress-bar bg-info"
+                                     data-width-percent="{% if analytics.category_stats %}{{ (category.orders / analytics.category_stats[0].orders * 100) }}{% else %}0{% endif %}">
                                 </div>
                             </div>
                         </div>
@@ -189,23 +189,23 @@
 <!-- Top Customers -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-trophy me-2"></i>Top Customers
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if analytics.top_customers %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Rank</th>
-                                <th>Customer</th>
-                                <th>Orders</th>
-                                <th>Total Items</th>
-                                <th>Activity</th>
+                                <th scope="col">Rank</th>
+                                <th scope="col">Customer</th>
+                                <th scope="col">Orders</th>
+                                <th scope="col">Total Items</th>
+                                <th scope="col">Activity</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -226,9 +226,9 @@
                                 <td>{{ customer.orders }}</td>
                                 <td>{{ customer.items }}</td>
                                 <td>
-                                    <div class="progress" style="height: 8px;">
-                                        <div class="progress-bar bg-{% if loop.index == 1 %}warning{% elif loop.index <= 3 %}info{% else %}primary{% endif %}" 
-                                             style="width: {{ (customer.orders / analytics.top_customers[0].orders * 100) }}%">
+                                    <div class="progress u-h-8">
+                                        <div class="progress-bar bg-{% if loop.index == 1 %}warning{% elif loop.index <= 3 %}info{% else %}primary{% endif %}"
+                                             data-width-percent="{{ (customer.orders / analytics.top_customers[0].orders * 100) }}">
                                         </div>
                                     </div>
                                 </td>
@@ -248,8 +248,21 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Apply dynamic progress bar widths
+    applyProgressBarWidths();
+});
+
+function applyProgressBarWidths() {
+    document.querySelectorAll('[data-width-percent]').forEach(bar => {
+        const width = bar.getAttribute('data-width-percent');
+        bar.style.width = width + '%';
+    });
+}
+
 // Orders Over Time Chart
 const ordersData = {{ analytics.daily_orders | tojson }};
 const ordersCtx = document.getElementById('ordersChart').getContext('2d');

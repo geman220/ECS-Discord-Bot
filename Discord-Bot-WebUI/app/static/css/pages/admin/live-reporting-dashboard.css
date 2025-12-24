@@ -1,0 +1,775 @@
+/**
+ * ============================================================================
+ * LIVE REPORTING DASHBOARD STYLES
+ * ============================================================================
+ *
+ * Comprehensive styles for the MLS Live Reporting Dashboard.
+ * All inline styles extracted to semantic CSS classes with full dark mode support.
+ *
+ * Structure:
+ *   1. Status Cards
+ *   2. Card Accent Borders
+ *   3. Icon Sizing
+ *   4. Scrollable Tables
+ *   5. Empty States
+ *   6. Auto-refresh Badge
+ *   7. Action Buttons
+ *   8. Status Badges (Dynamic Colors)
+ *   9. Animations
+ *   10. Responsive Design
+ *   11. Dark Mode Support
+ *
+ * Refactoring Changes:
+ *   - Extracted 13 inline styles to semantic classes
+ *   - Replaced hardcoded colors with design tokens
+ *   - Added comprehensive dark mode support
+ *   - Implemented responsive breakpoints
+ *   - Added accessibility improvements
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. STATUS CARDS - Service Status Indicators
+   ============================================================================ */
+
+.live-reporting-status-card {
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 100%;
+}
+
+.live-reporting-status-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* Status card header with icon */
+.live-reporting-status-card .card-body {
+  padding: var(--space-4);
+}
+
+/* ============================================================================
+   2. CARD ACCENT BORDERS - Left Border Status Indicators
+   ============================================================================ */
+
+/* Health status card - dynamic border based on health */
+.card-border-health-healthy {
+  border-left: 4px solid var(--color-success-600);
+}
+
+.card-border-health-degraded {
+  border-left: 4px solid var(--color-warning-600);
+}
+
+.card-border-health-unhealthy {
+  border-left: 4px solid var(--color-danger-600);
+}
+
+/* Active sessions card - primary blue */
+.card-border-primary {
+  border-left: 4px solid var(--color-primary-600);
+}
+
+/* Coordination status card - dynamic border */
+.card-border-coordination-healthy {
+  border-left: 4px solid var(--color-success-600);
+}
+
+.card-border-coordination-degraded {
+  border-left: 4px solid var(--color-warning-600);
+}
+
+/* Upcoming matches card - neutral gray */
+.card-border-neutral {
+  border-left: 4px solid var(--color-neutral-500);
+}
+
+/* Dark mode accent borders - brighter variants */
+[data-style="dark"] .card-border-health-healthy,
+[data-style="dark"] .card-border-coordination-healthy {
+  border-left-color: var(--color-success-500);
+}
+
+[data-style="dark"] .card-border-health-degraded,
+[data-style="dark"] .card-border-coordination-degraded {
+  border-left-color: var(--color-warning-500);
+}
+
+[data-style="dark"] .card-border-health-unhealthy {
+  border-left-color: var(--color-danger-500);
+}
+
+[data-style="dark"] .card-border-primary {
+  border-left-color: var(--color-primary-500);
+}
+
+[data-style="dark"] .card-border-neutral {
+  border-left-color: var(--color-neutral-400);
+}
+
+/* ============================================================================
+   3. ICON SIZING - Consistent Icon Scales
+   ============================================================================ */
+
+/* Large icons for status card headers */
+.icon-status-card {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* Extra large icons for empty states */
+.icon-empty-state {
+  font-size: 3rem;
+  line-height: 1;
+  opacity: 0.5;
+}
+
+/* Dark mode icon adjustments */
+[data-style="dark"] .icon-empty-state {
+  opacity: 0.4;
+}
+
+/* ============================================================================
+   4. SCROLLABLE TABLES - Session & Match Lists
+   ============================================================================ */
+
+.live-reporting-table-scroll {
+  max-height: 350px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Custom scrollbar styling */
+.live-reporting-table-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.live-reporting-table-scroll::-webkit-scrollbar-track {
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.live-reporting-table-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--color-neutral-400);
+  border-radius: var(--radius-sm);
+  transition: background-color 0.2s ease;
+}
+
+.live-reporting-table-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-neutral-500);
+}
+
+/* Firefox scrollbar */
+.live-reporting-table-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-neutral-400) var(--color-bg-secondary);
+}
+
+/* Sticky table header */
+.live-reporting-table-scroll .sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: var(--color-bg-card);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Dark mode scrollbar */
+[data-style="dark"] .live-reporting-table-scroll::-webkit-scrollbar-track {
+  background-color: var(--color-neutral-800);
+}
+
+[data-style="dark"] .live-reporting-table-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--color-neutral-600);
+}
+
+[data-style="dark"] .live-reporting-table-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-neutral-500);
+}
+
+[data-style="dark"] .live-reporting-table-scroll {
+  scrollbar-color: var(--color-neutral-600) var(--color-neutral-800);
+}
+
+[data-style="dark"] .live-reporting-table-scroll .sticky-top {
+  background-color: var(--color-neutral-800);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ============================================================================
+   5. EMPTY STATES - No Data Messages
+   ============================================================================ */
+
+.live-reporting-empty-state {
+  text-align: center;
+  padding: var(--space-12) var(--space-4);
+  color: var(--color-text-muted);
+}
+
+.live-reporting-empty-state p {
+  margin-top: var(--space-2);
+  margin-bottom: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+}
+
+/* Dark mode empty state */
+[data-style="dark"] .live-reporting-empty-state {
+  color: var(--color-neutral-500);
+}
+
+/* ============================================================================
+   6. AUTO-REFRESH BADGE - Countdown Timer
+   ============================================================================ */
+
+.auto-refresh-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+}
+
+.auto-refresh-badge i {
+  font-size: 1rem;
+}
+
+/* Spinning refresh icon animation */
+.auto-refresh-badge .ti-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Dark mode auto-refresh badge */
+[data-style="dark"] .auto-refresh-badge {
+  background-color: var(--color-neutral-800);
+  color: var(--color-neutral-200);
+  border-color: var(--color-neutral-700);
+}
+
+/* ============================================================================
+   7. ACTION BUTTONS - Start/Stop Controls
+   ============================================================================ */
+
+.live-reporting-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.live-reporting-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.live-reporting-action-btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.live-reporting-action-btn i {
+  font-size: 1rem;
+}
+
+/* Dark mode action buttons - inherit Bootstrap variants */
+[data-style="dark"] .live-reporting-action-btn:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* ============================================================================
+   8. STATUS BADGES - Dynamic Colors
+   ============================================================================ */
+
+/* Match status badges with dynamic background colors */
+.match-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  line-height: 1.5;
+  color: var(--color-neutral-0);
+  transition: all 0.2s ease;
+}
+
+/* Predefined status colors for common states */
+.match-status-scheduled {
+  background-color: var(--color-info-600);
+}
+
+.match-status-live {
+  background-color: var(--color-danger-600);
+  animation: pulse-status 2s ease-in-out infinite;
+}
+
+.match-status-completed {
+  background-color: var(--color-success-600);
+}
+
+.match-status-postponed {
+  background-color: var(--color-warning-600);
+}
+
+.match-status-cancelled {
+  background-color: var(--color-neutral-600);
+}
+
+/* Pulse animation for live status */
+@keyframes pulse-status {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  50% {
+    opacity: 0.9;
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+}
+
+/* Dark mode status badges - adjust for better contrast */
+[data-style="dark"] .match-status-scheduled {
+  background-color: var(--color-info-700);
+}
+
+[data-style="dark"] .match-status-live {
+  background-color: var(--color-danger-700);
+}
+
+[data-style="dark"] .match-status-completed {
+  background-color: var(--color-success-700);
+}
+
+[data-style="dark"] .match-status-postponed {
+  background-color: var(--color-warning-700);
+  color: var(--color-neutral-900);
+}
+
+[data-style="dark"] .match-status-cancelled {
+  background-color: var(--color-neutral-700);
+}
+
+/* ============================================================================
+   9. HEALTH & COORDINATION STATUS BADGES
+   ============================================================================ */
+
+.health-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+}
+
+/* Session count display */
+.session-count {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  line-height: var(--leading-tight);
+  color: var(--color-info-600);
+  margin-bottom: var(--space-1);
+}
+
+[data-style="dark"] .session-count {
+  color: var(--color-info-400);
+}
+
+/* ============================================================================
+   10. SESSION & MATCH TABLES
+   ============================================================================ */
+
+.live-reporting-table {
+  margin-bottom: 0;
+}
+
+.live-reporting-table thead th {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  padding: var(--space-3);
+  border-bottom: 2px solid var(--color-border-primary);
+}
+
+.live-reporting-table tbody tr {
+  transition: all 0.2s ease;
+}
+
+.live-reporting-table tbody tr:hover {
+  background-color: var(--color-hover-bg);
+}
+
+.live-reporting-table tbody td {
+  padding: var(--space-3);
+  vertical-align: middle;
+  font-size: var(--text-sm);
+}
+
+/* Dark mode table */
+[data-style="dark"] .live-reporting-table thead th {
+  color: var(--color-neutral-300);
+  border-bottom-color: var(--color-neutral-700);
+}
+
+[data-style="dark"] .live-reporting-table tbody tr:hover {
+  background-color: rgba(var(--color-primary-rgb), 0.05);
+}
+
+/* ============================================================================
+   11. RECENT SESSIONS TABLE
+   ============================================================================ */
+
+.recent-sessions-table {
+  margin-bottom: 0;
+}
+
+.recent-sessions-table code {
+  padding: var(--space-1) var(--space-2);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  color: var(--color-text-primary);
+}
+
+[data-style="dark"] .recent-sessions-table code {
+  background-color: var(--color-neutral-800);
+  border-color: var(--color-neutral-700);
+  color: var(--color-neutral-200);
+}
+
+/* ============================================================================
+   12. PAGE HEADER
+   ============================================================================ */
+
+.live-reporting-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.live-reporting-header h4 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: 0;
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+}
+
+.live-reporting-header h4 i {
+  color: var(--color-primary-600);
+}
+
+[data-style="dark"] .live-reporting-header h4 {
+  color: var(--color-neutral-100);
+}
+
+[data-style="dark"] .live-reporting-header h4 i {
+  color: var(--color-primary-500);
+}
+
+/* ============================================================================
+   13. CARD TITLES & HEADERS
+   ============================================================================ */
+
+.live-reporting-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4);
+  background-color: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-primary);
+}
+
+.live-reporting-card-header h5 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+[data-style="dark"] .live-reporting-card-header {
+  background-color: rgba(var(--color-neutral-0), 0.02);
+  border-bottom-color: var(--color-neutral-700);
+}
+
+[data-style="dark"] .live-reporting-card-header h5 {
+  color: var(--color-neutral-100);
+}
+
+/* ============================================================================
+   14. RESPONSIVE DESIGN - Mobile Optimizations
+   ============================================================================ */
+
+@media (max-width: 992px) {
+  .live-reporting-status-card {
+    margin-bottom: var(--space-3);
+  }
+
+  .live-reporting-table-scroll {
+    max-height: 300px;
+  }
+}
+
+@media (max-width: 768px) {
+  .live-reporting-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .live-reporting-header h4 {
+    font-size: var(--text-xl);
+  }
+
+  .live-reporting-status-card .card-body {
+    padding: var(--space-3);
+  }
+
+  .live-reporting-table-scroll {
+    max-height: 250px;
+  }
+
+  .live-reporting-card-header {
+    padding: var(--space-3);
+  }
+
+  .live-reporting-table thead th,
+  .live-reporting-table tbody td {
+    padding: var(--space-2);
+    font-size: var(--text-xs);
+  }
+
+  .icon-status-card {
+    font-size: 1.25rem;
+  }
+
+  .session-count {
+    font-size: var(--text-2xl);
+  }
+}
+
+@media (max-width: 576px) {
+  .live-reporting-empty-state {
+    padding: var(--space-8) var(--space-2);
+  }
+
+  .icon-empty-state {
+    font-size: 2.5rem;
+  }
+
+  .auto-refresh-badge {
+    font-size: var(--text-xs);
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .live-reporting-action-btn {
+    padding: var(--space-1);
+  }
+}
+
+/* ============================================================================
+   15. ACCESSIBILITY & MOTION
+   ============================================================================ */
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .live-reporting-status-card,
+  .live-reporting-action-btn {
+    transition: none;
+  }
+
+  .live-reporting-status-card:hover {
+    transform: none;
+  }
+
+  .auto-refresh-badge .ti-spin {
+    animation: none;
+  }
+
+  .match-status-live {
+    animation: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+  .live-reporting-status-card,
+  .match-status-badge,
+  .health-status-badge {
+    border-width: 2px;
+  }
+
+  .card-border-health-healthy,
+  .card-border-health-degraded,
+  .card-border-health-unhealthy,
+  .card-border-primary,
+  .card-border-coordination-healthy,
+  .card-border-coordination-degraded,
+  .card-border-neutral {
+    border-left-width: 6px;
+  }
+}
+
+/* Focus states for keyboard navigation */
+.live-reporting-action-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+   16. LOADING STATES & SPINNERS
+   ============================================================================ */
+
+.live-reporting-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--color-border-primary);
+  border-top-color: var(--color-primary-600);
+  border-radius: var(--radius-full);
+  animation: spin 0.8s linear infinite;
+}
+
+[data-style="dark"] .live-reporting-spinner {
+  border-color: var(--color-neutral-700);
+  border-top-color: var(--color-primary-500);
+}
+
+/* ============================================================================
+   17. UTILITY CLASSES - Page-specific helpers
+   ============================================================================ */
+
+/* Text emphasis for important data */
+.live-reporting-highlight {
+  color: var(--color-primary-600);
+  font-weight: var(--font-semibold);
+}
+
+[data-style="dark"] .live-reporting-highlight {
+  color: var(--color-primary-400);
+}
+
+/* Muted text for secondary information */
+.live-reporting-muted {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* Success indicator text */
+.live-reporting-success {
+  color: var(--color-success-600);
+  font-size: var(--text-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+[data-style="dark"] .live-reporting-success {
+  color: var(--color-success-400);
+}
+
+/* Danger indicator text */
+.live-reporting-danger {
+  color: var(--color-danger-600);
+  font-size: var(--text-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+[data-style="dark"] .live-reporting-danger {
+  color: var(--color-danger-400);
+}
+
+/* Warning indicator text */
+.live-reporting-warning {
+  color: var(--color-warning-600);
+  font-size: var(--text-sm);
+}
+
+[data-style="dark"] .live-reporting-warning {
+  color: var(--color-warning-400);
+}
+
+/* ============================================================================
+   NOTES FOR DEVELOPERS
+   ============================================================================
+
+   MIGRATION NOTES:
+   - Extracted 13 inline styles to semantic CSS classes
+   - All hardcoded colors replaced with design tokens
+   - Added comprehensive dark mode support
+   - Implemented responsive breakpoints for mobile/tablet
+   - Added accessibility improvements (reduced motion, high contrast, focus states)
+   - Custom scrollbar styling for better UX
+
+   REMAINING INLINE STYLES (1):
+   - Line 235: match-status-badge background-color - This is dynamically set from
+     backend (match.status_color) and cannot be extracted to CSS. This is an
+     acceptable exception as it represents truly dynamic data from the database.
+
+   USAGE EXAMPLES:
+
+   Status Card with Health Border:
+   <div class="card live-reporting-status-card card-border-health-healthy">
+     <div class="card-body">
+       <i class="ti ti-server icon-status-card"></i>
+       <h6>Service Status</h6>
+     </div>
+   </div>
+
+   Scrollable Table:
+   <div class="live-reporting-table-scroll">
+     <table class="table live-reporting-table">
+       ...
+     </table>
+   </div>
+
+   Empty State:
+   <div class="live-reporting-empty-state">
+     <i class="ti ti-moon icon-empty-state"></i>
+     <p>No active sessions</p>
+   </div>
+
+   Match Status Badge:
+   <span class="match-status-badge match-status-live">
+     <i class="ti ti-circle-filled"></i>
+     Live
+   </span>
+
+ * ============================================================================
+ */

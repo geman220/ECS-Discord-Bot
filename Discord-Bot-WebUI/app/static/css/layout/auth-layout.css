@@ -1,0 +1,143 @@
+/**
+ * ============================================================================
+ * AUTHENTICATION LAYOUT STYLES
+ * ============================================================================
+ *
+ * Styles for unauthenticated pages (login, register, forgot password).
+ * This file affects login/register/authentication pages only.
+ *
+ * Contains:
+ * - Auth layout structure
+ * - Auth container and body styling
+ * - Centered card layouts for auth forms
+ * - Background patterns and gradients
+ *
+ * Design System:
+ * - Uses design tokens exclusively (--color-*, --space-*, etc.)
+ * - Full dark mode support via [data-style="dark"]
+ * - Responsive breakpoints with mobile-first approach
+ * - Accessibility features included
+ *
+ * BEM Structure:
+ * - c-auth-layout: Root HTML element class
+ * - c-auth-layout__body: Body element
+ * - c-auth-layout__container: Main content container
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   AUTH LAYOUT ROOT
+   Root HTML element styling - minimal to allow page-specific styles
+   ============================================================================ */
+
+.c-auth-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  /* Background is handled by page-specific CSS (authentication.css) */
+}
+
+/* ============================================================================
+   AUTH BODY
+   Body element styling - Minimal base to allow page-specific CSS to define look
+   ============================================================================ */
+
+.c-auth-layout__body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Background is handled by page-specific CSS (authentication.css) */
+  position: relative;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+/* ============================================================================
+   AUTH CONTAINER
+   Main content container - flexible to accommodate different page layouts
+   ============================================================================ */
+
+.c-auth-layout__container {
+  width: 100%;
+  /* Allow page-specific max-width via .c-auth-wrapper */
+  max-width: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Mobile padding */
+@media (max-width: 575.98px) {
+  .c-auth-layout__container {
+    padding: 1rem;
+  }
+}
+
+/* ============================================================================
+   LEGACY SUPPORT
+   Support for .auth-page class (maintains backwards compatibility)
+   ============================================================================ */
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6) var(--space-4);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-50) 0%,
+    var(--color-bg-body) 50%,
+    var(--color-secondary-50) 100%
+  );
+  background-attachment: fixed;
+}
+
+[data-style="dark"] .auth-page {
+  background: linear-gradient(
+    135deg,
+    var(--color-neutral-100) 0%,
+    var(--color-neutral-50) 50%,
+    var(--color-neutral-100) 100%
+  );
+}
+
+/* ============================================================================
+   REDUCED MOTION SUPPORT
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .c-auth-layout__container {
+    animation: none;
+  }
+
+  .c-auth-layout__body::before {
+    animation: none;
+  }
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+@media print {
+  .c-auth-layout__body,
+  .auth-page {
+    background: white !important;
+    padding: 0 !important;
+  }
+
+  .c-auth-layout__body::before {
+    display: none !important;
+  }
+}
+
+/* ============================================================================
+   END OF FILE
+   ============================================================================ */

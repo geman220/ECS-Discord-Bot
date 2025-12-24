@@ -2,43 +2,45 @@
 
 {% block title %}Feedback #{{ feedback.id }} - View Feedback{% endblock %}
 
+{% block page_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/feedback.css') }}" />
+{% endblock %}
+
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Page Header with Back Button -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <div>
-                    <h2 class="text-primary mb-1">Feedback Details</h2>
-                    <p class="text-muted">Viewing feedback #{{ feedback.id }}</p>
-                </div>
-                <a href="{{ url_for('feedback.submit_feedback') }}" class="btn btn-outline-primary">
-                    <i class="ti ti-arrow-left me-1"></i>Back to Feedbacks
-                </a>
-            </div>
+    <div class="c-page-header c-page-header--with-back" data-component="page-header">
+        <div class="c-page-header__content">
+            <h1 class="c-page-header__title">Feedback Details</h1>
+            <p class="c-page-header__description">Viewing feedback #{{ feedback.id }}</p>
+        </div>
+        <div class="c-page-header__actions">
+            <a href="{{ url_for('feedback.submit_feedback') }}" class="c-btn c-btn--outline" data-action="back">
+                <i class="ti ti-arrow-left c-btn__icon"></i>Back to Feedbacks
+            </a>
         </div>
     </div>
     
     <div class="row">
         <div class="col-xl-9 col-lg-8 col-md-12">
             <!-- Main Feedback Card -->
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">{{ feedback.title }}</h5>
+            <div class="c-card mb-4 c-feedback-detail" data-component="feedback-detail" data-feedback-id="{{ feedback.id }}">
+                <div class="c-card__header bg-primary text-white c-feedback-detail__header">
+                    <h5 class="c-feedback-detail__title">{{ feedback.title }}</h5>
                     <div>
                         {% if feedback.status == 'Open' %}
-                        <span class="badge bg-white text-primary">{{ feedback.status }}</span>
+                        <span class="badge bg-white text-primary" data-badge>{{ feedback.status }}</span>
                         {% elif feedback.status == 'In Progress' %}
-                        <span class="badge bg-white text-info">{{ feedback.status }}</span>
+                        <span class="badge bg-white text-info" data-badge>{{ feedback.status }}</span>
                         {% elif feedback.status == 'Closed' %}
-                        <span class="badge bg-white text-secondary">{{ feedback.status }}</span>
+                        <span class="badge bg-white text-secondary" data-badge>{{ feedback.status }}</span>
                         {% else %}
-                        <span class="badge bg-white text-dark">{{ feedback.status }}</span>
+                        <span class="badge bg-white text-dark" data-badge>{{ feedback.status }}</span>
                         {% endif %}
                     </div>
                 </div>
                 
-                <div class="card-body">
+                <div class="c-card__body">
                     <div class="feedback-description mb-4">
                         <h6 class="text-muted mb-3">Description</h6>
                         <div class="p-3 bg-body-tertiary rounded">
@@ -49,19 +51,19 @@
             </div>
             
             <!-- Replies Section -->
-            <div class="card mb-4">
-                <div class="card-header border-bottom">
-                    <h5 class="card-title mb-0">
+            <div class="c-card mb-4" data-component="feedback-conversation">
+                <div class="c-card__header border-bottom">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-messages me-2"></i>Conversation
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     {% if feedback.replies %}
-                        <div class="timeline">
+                        <div class="c-conversation" data-component="conversation">
                             {% for reply in feedback.replies %}
-                            <div class="timeline-item mb-4">
-                                <div class="timeline-item-header mb-2">
-                                    <div class="d-flex align-items-center">
+                            <div class="c-conversation__item" data-reply-id="{{ reply.id }}">
+                                <div class="c-conversation__header">
+                                    <div class="c-conversation__author">
                                         <div class="avatar avatar-sm me-2 {% if reply.is_admin_reply %}bg-label-danger{% else %}bg-label-primary{% endif %}">
                                             <span class="avatar-initial rounded-circle {% if reply.is_admin_reply %}text-danger{% else %}text-primary{% endif %}">
                                                 {% if reply.is_admin_reply %}A{% else %}{{ feedback.name[0]|upper if feedback.name else 'U' }}{% endif %}
@@ -110,15 +112,15 @@
                                 {% endfor %}
                             </div>
                             <div class="d-flex justify-content-between">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="ti ti-send me-1"></i>Send Reply
+                                <button type="submit" class="c-btn c-btn--primary" data-action="send-reply">
+                                    <i class="ti ti-send c-btn__icon"></i>Send Reply
                                 </button>
-                                
+
                                 {% if feedback.status != 'Closed' %}
                                 <form method="POST" action="{{ url_for('feedback.close_feedback', feedback_id=feedback.id) }}">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                                    <button type="submit" class="btn btn-outline-danger">
-                                        <i class="ti ti-x-circle me-1"></i>Close Feedback
+                                    <button type="submit" class="c-btn c-btn--outline-danger" data-action="close-feedback">
+                                        <i class="ti ti-x-circle c-btn__icon"></i>Close Feedback
                                     </button>
                                 </form>
                                 {% endif %}
@@ -126,7 +128,7 @@
                         </form>
                     </div>
                     {% else %}
-                    <div class="alert alert-secondary mt-4">
+                    <div class="alert alert-secondary mt-4" data-alert>
                         <div class="d-flex align-items-center">
                             <i class="ti ti-lock me-2"></i>
                             <div>
@@ -142,13 +144,13 @@
         
         <!-- Sidebar with Feedback Details -->
         <div class="col-xl-3 col-lg-4 col-md-12">
-            <div class="card mb-4">
-                <div class="card-header border-bottom">
-                    <h5 class="card-title mb-0">
+            <div class="c-card mb-4">
+                <div class="c-card__header border-bottom">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-info-circle me-2"></i>Details
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <ul class="list-group list-group-flush">
                         <li class="list-group-item px-0">
                             <div class="d-flex justify-content-between">
@@ -161,13 +163,13 @@
                                 <span class="text-muted">Status:</span>
                                 <span>
                                     {% if feedback.status == 'Open' %}
-                                    <span class="badge bg-label-primary">{{ feedback.status }}</span>
+                                    <span class="badge bg-label-primary" data-badge>{{ feedback.status }}</span>
                                     {% elif feedback.status == 'In Progress' %}
-                                    <span class="badge bg-label-info">{{ feedback.status }}</span>
+                                    <span class="badge bg-label-info" data-badge>{{ feedback.status }}</span>
                                     {% elif feedback.status == 'Closed' %}
-                                    <span class="badge bg-label-secondary">{{ feedback.status }}</span>
+                                    <span class="badge bg-label-secondary" data-badge>{{ feedback.status }}</span>
                                     {% else %}
-                                    <span class="badge bg-label-dark">{{ feedback.status }}</span>
+                                    <span class="badge bg-label-dark" data-badge>{{ feedback.status }}</span>
                                     {% endif %}
                                 </span>
                             </div>
@@ -177,13 +179,13 @@
                                 <span class="text-muted">Priority:</span>
                                 <span>
                                     {% if feedback.priority == 'Low' %}
-                                    <span class="badge bg-label-success">{{ feedback.priority }}</span>
+                                    <span class="badge bg-label-success" data-badge>{{ feedback.priority }}</span>
                                     {% elif feedback.priority == 'Medium' %}
-                                    <span class="badge bg-label-warning">{{ feedback.priority }}</span>
+                                    <span class="badge bg-label-warning" data-badge>{{ feedback.priority }}</span>
                                     {% elif feedback.priority == 'High' %}
-                                    <span class="badge bg-label-danger">{{ feedback.priority }}</span>
+                                    <span class="badge bg-label-danger" data-badge>{{ feedback.priority }}</span>
                                     {% else %}
-                                    <span class="badge bg-label-secondary">{{ feedback.priority }}</span>
+                                    <span class="badge bg-label-secondary" data-badge>{{ feedback.priority }}</span>
                                     {% endif %}
                                 </span>
                             </div>
@@ -205,13 +207,13 @@
             </div>
             
             <!-- Timeline & Activity -->
-            <div class="card mb-4">
-                <div class="card-header border-bottom">
-                    <h5 class="card-title mb-0">
+            <div class="c-card mb-4">
+                <div class="c-card__header border-bottom">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-timeline me-2"></i>Activity
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <ul class="timeline-with-icons">
                         <li class="timeline-item pb-4">
                             <span class="timeline-indicator bg-primary">
@@ -266,91 +268,8 @@
 {% endblock %}
 
 {% block custom_css %}
-<style>
-    /* Avatar styling */
-    .avatar {
-        width: 38px;
-        height: 38px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-    }
-    
-    .avatar-initial {
-        font-weight: 500;
-    }
-    
-    /* Timeline styling */
-    .timeline-item {
-        position: relative;
-    }
-    
-    .timeline-with-icons {
-        list-style: none;
-        padding-left: 0;
-    }
-    
-    .timeline-with-icons .timeline-item {
-        position: relative;
-        padding-left: 3rem;
-    }
-    
-    .timeline-with-icons .timeline-item:not(:last-child) {
-        border-left: 1px solid #e9ecef;
-        margin-left: 1.25rem;
-    }
-    
-    .timeline-with-icons .timeline-indicator {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 2.5rem;
-        height: 2.5rem;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 1rem;
-    }
-    
-    .timeline-with-icons .timeline-event {
-        padding-bottom: 1.5rem;
-        margin-left: 1.5rem;
-    }
-    
-    /* Empty State Styling */
-    .empty-state {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        color: var(--bs-secondary);
-    }
-    
-    .empty-state-icon {
-        font-size: 2.5rem;
-        color: var(--bs-secondary);
-    }
-    
-    .empty-state-message {
-        font-size: 1rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    /* Responsive adjustments */
-    @media (max-width: 767.98px) {
-        .timeline-with-icons .timeline-item {
-            padding-left: 2.5rem;
-        }
-        
-        .timeline-with-icons .timeline-indicator {
-            width: 2rem;
-            height: 2rem;
-            font-size: 0.875rem;
-        }
-    }
-</style>
+{{ super() }}
+<!-- All styles now consolidated in feedback.css - no inline CSS needed -->
 {% endblock %}
 
 {% block custom_js %}

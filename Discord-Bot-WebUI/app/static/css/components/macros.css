@@ -1,0 +1,108 @@
+/* ==================================================================
+   MACROS TEMPLATE - COMPONENT UTILITIES
+   Refactored inline styles for /templates/macros.html
+   ================================================================== */
+
+/* ===================
+   Form Width Constraints
+   =================== */
+.form-select-player {
+    min-width: 200px;
+}
+
+.form-input-minute {
+    max-width: 80px;
+}
+
+/* ===================
+   Card Indicator Badges
+   =================== */
+.card-indicator {
+    min-width: 32px;
+    padding: 0.375rem 0.25rem;
+}
+
+/* ===================
+   Player Avatar
+   =================== */
+.player-avatar-img {
+    width: 50px;
+    height: 50px;
+    margin-right: var(--ecs-spacing-4, 15px);
+}
+
+/* ===================
+   Onboarding Progress Bar
+   =================== */
+.onboarding-progress-bar {
+    width: 0%;
+}
+
+/* ===================
+   Onboarding Images
+   =================== */
+.onboarding-welcome-img {
+    max-width: 300px;
+    height: auto;
+}
+
+.onboarding-discord-img {
+    max-width: 150px;
+}
+
+/* ===================
+   Onboarding Icons
+   =================== */
+.onboarding-icon-large {
+    font-size: 2.5rem;
+}
+
+/* ===================
+   Profile Picture Preview
+   =================== */
+.profile-picture-preview {
+    width: 200px;
+    height: 200px;
+    overflow: hidden;
+    border-radius: 50%;
+    border: 3px solid var(--bs-primary, var(--ecs-primary, #696cff));
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profile-picture-preview img,
+.profile-picture-preview-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* ===================
+   Cropper Canvas
+   =================== */
+.cropper-canvas {
+    max-width: 300px;
+}
+
+/* ===================
+   Hidden Elements (for JS control)
+   =================== */
+/* REMOVED: .js-hidden styling - js- classes must NOT have styling (Phase 2.3 Critical Fix)
+   Use .u-hidden or .is-hidden instead for hiding elements
+   Keep .js-hidden as a pure JavaScript hook with NO styling */
+
+/* ===================
+   Team Kit Avatar
+   =================== */
+.team-kit-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* ===================
+   Dark Mode Support
+   =================== */
+[data-style="dark"] .profile-picture-preview {
+    border-color: var(--bs-primary, var(--ecs-primary, #696cff));
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}

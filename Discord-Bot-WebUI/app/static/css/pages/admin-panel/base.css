@@ -1,0 +1,455 @@
+/* ============================================================================
+   ADMIN PANEL BASE LAYOUT - BEM ARCHITECTURE
+   ============================================================================
+
+   BEM Component: c-admin-panel-base
+
+   Purpose: Base layout structure for all admin panel pages
+   Features:
+   - Responsive header with role badges
+   - Mobile navigation toggle
+   - Breadcrumb navigation
+   - Network status indicator
+   - Toast notification container
+
+   ============================================================================ */
+
+/* Component Root
+   ========================================================================== */
+[data-component="admin-panel-base"] {
+    position: relative;
+    min-height: 100vh;
+}
+
+/* Header Section
+   ========================================================================== */
+.c-admin-panel-base__header-wrapper {
+    margin-bottom: 1.5rem;
+}
+
+.c-admin-panel-base__header-container {
+    width: 100%;
+}
+
+.c-admin-panel-base__header {
+    /* Use ECS primary colors (blue in modern theme) for consistent branding */
+    background: linear-gradient(135deg, var(--ecs-primary, #2563EB) 0%, var(--ecs-primary-dark, #1D4ED8) 100%);
+    border-radius: var(--border-radius-lg, 0.5rem);
+    padding: 1.5rem;
+    color: white;
+    box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.1));
+}
+
+.c-admin-panel-base__header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+@media (min-width: 768px) {
+    .c-admin-panel-base__header-content {
+        flex-direction: row;
+    }
+}
+
+/* Header Text */
+.c-admin-panel-base__header-text {
+    text-align: center;
+}
+
+@media (min-width: 768px) {
+    .c-admin-panel-base__header-text {
+        text-align: left;
+    }
+}
+
+.c-admin-panel-base__title {
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+@media (min-width: 768px) {
+    .c-admin-panel-base__title {
+        font-size: 2rem;
+        justify-content: flex-start;
+    }
+}
+
+.c-admin-panel-base__title-icon {
+    font-size: inherit;
+}
+
+.c-admin-panel-base__description {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+/* Header Meta (Role & User Info) */
+.c-admin-panel-base__header-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: center;
+}
+
+@media (min-width: 768px) {
+    .c-admin-panel-base__header-meta {
+        align-items: flex-end;
+        text-align: right;
+    }
+}
+
+.c-admin-panel-base__role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: white;
+    color: var(--ecs-primary, #2563EB);
+    padding: 0.375rem 0.75rem;
+    border-radius: var(--border-radius-sm, 0.25rem);
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.c-admin-panel-base__role-icon {
+    font-size: 1rem;
+}
+
+.c-admin-panel-base__role-text--mobile {
+    display: inline;
+}
+
+.c-admin-panel-base__role-text--desktop {
+    display: none;
+}
+
+@media (min-width: 576px) {
+    .c-admin-panel-base__role-text--mobile {
+        display: none;
+    }
+
+    .c-admin-panel-base__role-text--desktop {
+        display: inline;
+    }
+}
+
+.c-admin-panel-base__user-info {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.875rem;
+}
+
+.c-admin-panel-base__user-label--desktop {
+    display: none;
+}
+
+@media (min-width: 768px) {
+    .c-admin-panel-base__user-label--desktop {
+        display: inline;
+    }
+}
+
+.c-admin-panel-base__user-name--mobile {
+    display: inline;
+}
+
+.c-admin-panel-base__user-name--desktop {
+    display: none;
+}
+
+@media (min-width: 768px) {
+    .c-admin-panel-base__user-name--mobile {
+        display: none;
+    }
+
+    .c-admin-panel-base__user-name--desktop {
+        display: inline;
+    }
+}
+
+/* Mobile Navigation Toggle
+   ========================================================================== */
+.c-admin-panel-base__mobile-nav-toggle {
+    display: block;
+    margin-bottom: 1rem;
+}
+
+@media (min-width: 992px) {
+    .c-admin-panel-base__mobile-nav-toggle {
+        display: none;
+    }
+}
+
+.c-admin-panel-base__mobile-nav-icon {
+    margin-right: 0.5rem;
+}
+
+.c-admin-panel-base__mobile-nav-text {
+    font-weight: 500;
+}
+
+/* Navigation Section
+   ========================================================================== */
+.c-admin-panel-base__navigation {
+    margin-bottom: 1.5rem;
+    /* Ensure navigation is always visible and not affected by Bootstrap */
+    display: block;
+    visibility: visible;
+    height: auto;
+    overflow: visible;
+}
+
+/* Mobile collapsed state - controlled by JS adding is-collapsed class */
+@media (max-width: 991px) {
+    .c-admin-panel-base__navigation.is-collapsed {
+        display: none;
+    }
+}
+
+.c-admin-panel-base__navigation-container {
+    width: 100%;
+}
+
+/* Breadcrumb Navigation
+   ========================================================================== */
+.c-admin-panel-base__breadcrumb {
+    margin-bottom: 1.5rem;
+}
+
+.c-breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 0.75rem 1rem;
+    margin: 0;
+    list-style: none;
+    background-color: var(--bs-gray-100, #f8f9fa);
+    border-radius: var(--border-radius-sm, 0.25rem);
+}
+
+.c-breadcrumb__item {
+    display: flex;
+    align-items: center;
+}
+
+.c-breadcrumb__item + .c-breadcrumb__item::before {
+    content: "/";
+    padding: 0 0.5rem;
+    color: var(--bs-gray-500, #6c757d);
+}
+
+.c-breadcrumb__link {
+    color: var(--bs-primary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.c-breadcrumb__link:hover {
+    color: var(--bs-primary-dark, #0056b3);
+    text-decoration: underline;
+}
+
+.c-breadcrumb__item.is-active {
+    color: var(--bs-gray-700, #495057);
+}
+
+/* Bootstrap breadcrumb-item compatibility within c-breadcrumb container
+   This allows templates to use either BEM (c-breadcrumb__item) or Bootstrap (breadcrumb-item)
+   ========================================================================== */
+.c-breadcrumb .breadcrumb-item {
+    display: flex;
+    align-items: center;
+}
+
+.c-breadcrumb .breadcrumb-item + .breadcrumb-item::before {
+    content: "/";
+    padding: 0 0.5rem;
+    color: var(--bs-gray-500, #6c757d);
+    float: none;
+}
+
+.c-breadcrumb .breadcrumb-item a {
+    color: var(--bs-primary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.c-breadcrumb .breadcrumb-item a:hover {
+    color: var(--bs-primary-dark, #0056b3);
+    text-decoration: underline;
+}
+
+.c-breadcrumb .breadcrumb-item.active {
+    color: var(--bs-gray-700, #495057);
+}
+
+/* Content Section
+   ========================================================================== */
+.c-admin-panel-base__content {
+    margin-bottom: 2rem;
+}
+
+/* Network Status Indicator
+   ========================================================================== */
+.c-admin-panel-base__network-status {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--bs-success, #28a745);
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.3);
+    z-index: 1050;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.c-admin-panel-base__network-status--online {
+    background-color: var(--bs-success, #28a745);
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.3);
+}
+
+.c-admin-panel-base__network-status--offline {
+    background-color: var(--bs-danger, #dc3545);
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.3);
+    animation: pulse-danger 2s infinite;
+}
+
+@keyframes pulse-danger {
+    0%, 100% {
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 0 6px rgba(220, 53, 69, 0.1);
+    }
+}
+
+/* Toast Container
+   ========================================================================== */
+.c-admin-panel-base__toast-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1080;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: none;
+}
+
+.c-admin-panel-base__toast-container > * {
+    pointer-events: auto;
+}
+
+/* Mobile Optimizations
+   ========================================================================== */
+@media (max-width: 767px) {
+    .c-admin-panel-base__header {
+        padding: 1rem;
+    }
+
+    .c-admin-panel-base__title {
+        font-size: 1.25rem;
+    }
+
+    .c-admin-panel-base__description {
+        font-size: 0.75rem;
+    }
+
+    .c-admin-panel-base__toast-container {
+        top: 0.5rem;
+        right: 0.5rem;
+        left: 0.5rem;
+    }
+}
+
+/* Dark Mode Support
+   ========================================================================== */
+[data-style="dark"] .c-admin-panel-base__header {
+    /* Use ECS primary colors (blue in modern theme) */
+    background: linear-gradient(135deg, var(--ecs-primary-light, #60A5FA) 0%, var(--ecs-primary, #2563EB) 100%);
+}
+
+/* Modern theme dark mode - explicit override */
+[data-theme-variant="modern"][data-style="dark"] .c-admin-panel-base__header,
+html[data-theme-variant="modern"][data-style="dark"] .c-admin-panel-base__header {
+    background: linear-gradient(135deg, var(--ecs-primary-light, #60A5FA) 0%, var(--ecs-primary, #2563EB) 100%);
+    box-shadow: 0 4px 12px rgba(96, 165, 250, 0.15);
+}
+
+/* Role badge dark mode - ensure proper contrast */
+[data-style="dark"] .c-admin-panel-base__role-badge {
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--ecs-primary, #2563EB);
+}
+
+[data-theme-variant="modern"][data-style="dark"] .c-admin-panel-base__role-badge {
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--ecs-primary, #2563EB);
+}
+
+/* Breadcrumb dark mode - slate palette */
+[data-style="dark"] .c-breadcrumb {
+    background-color: var(--color-bg-card, #1E293B);
+}
+
+/* BEM breadcrumb dark mode */
+[data-style="dark"] .c-breadcrumb__link {
+    color: var(--ecs-primary-light, #60A5FA);
+}
+
+[data-style="dark"] .c-breadcrumb__link:hover {
+    color: var(--ecs-primary, #93C5FD);
+}
+
+[data-style="dark"] .c-breadcrumb__item + .c-breadcrumb__item::before {
+    color: var(--color-text-muted, #94A3B8);
+}
+
+[data-style="dark"] .c-breadcrumb__item.is-active {
+    color: var(--color-text-secondary, #CBD5E1);
+}
+
+/* Bootstrap breadcrumb-item dark mode compatibility */
+[data-style="dark"] .c-breadcrumb .breadcrumb-item a {
+    color: var(--ecs-primary-light, #60A5FA);
+}
+
+[data-style="dark"] .c-breadcrumb .breadcrumb-item a:hover {
+    color: var(--ecs-primary, #93C5FD);
+}
+
+[data-style="dark"] .c-breadcrumb .breadcrumb-item + .breadcrumb-item::before {
+    color: var(--color-text-muted, #94A3B8);
+}
+
+[data-style="dark"] .c-breadcrumb .breadcrumb-item.active {
+    color: var(--color-text-secondary, #CBD5E1);
+}
+
+/* Print Styles
+   ========================================================================== */
+@media print {
+    .c-admin-panel-base__mobile-nav-toggle,
+    .c-admin-panel-base__navigation,
+    .c-admin-panel-base__network-status,
+    .c-admin-panel-base__toast-container {
+        display: none !important;
+    }
+
+    .c-admin-panel-base__header {
+        background: none !important;
+        color: black !important;
+        box-shadow: none !important;
+        border: 1px solid #000;
+    }
+}

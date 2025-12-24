@@ -40,5 +40,7 @@ def register_communication_routes():
         notification_groups,
         campaigns,
         direct_messaging,
+        messaging_settings,
+        league_settings,  # League-specific settings for Discord bot
         ajax,
     )

@@ -14,24 +14,24 @@
 <!-- Season Info and Filters -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
+        <div class="c-card">
+            <div class="c-card__header">
                 <div class="d-flex justify-content-between align-items-center flex-wrap">
-                    <h5 class="card-title mb-0">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-filter me-2"></i>Filter Matches
                     </h5>
                     {% if current_season %}
-                    <span class="badge bg-info">
+                    <span class="badge bg-info" data-badge>
                         <i class="ti ti-calendar me-1"></i>{{ current_season.name }}
                     </span>
                     {% endif %}
                 </div>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <form method="GET" class="row g-3">
                     <div class="col-md-2">
                         <label class="form-label">League / Division</label>
-                        <select name="league_id" class="form-select">
+                        <select name="league_id" class="form-select" data-form-select>
                             <option value="">All Leagues</option>
                             {% for league in leagues %}
                             <option value="{{ league.id }}" {% if current_league_id == league.id %}selected{% endif %}>
@@ -42,7 +42,7 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Week</label>
-                        <select name="week" class="form-select">
+                        <select name="week" class="form-select" data-form-select>
                             <option value="">All Weeks</option>
                             {% for week in weeks %}
                             <option value="{{ week }}" {% if current_week == week %}selected{% endif %}>
@@ -53,7 +53,7 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Status</label>
-                        <select name="status" class="form-select">
+                        <select name="status" class="form-select" data-form-select>
                             <option value="">All Statuses</option>
                             <option value="upcoming" {% if current_status == 'upcoming' %}selected{% endif %}>Upcoming</option>
                             <option value="past" {% if current_status == 'past' %}selected{% endif %}>Past</option>
@@ -63,19 +63,19 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">From Date</label>
-                        <input type="date" name="date_from" class="form-control" value="{{ request.args.get('date_from', '') }}">
+                        <input type="date" name="date_from" class="form-control" value="{{ request.args.get('date_from', '') }}" data-form-control>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">To Date</label>
-                        <input type="date" name="date_to" class="form-control" value="{{ request.args.get('date_to', '') }}">
+                        <input type="date" name="date_to" class="form-control" value="{{ request.args.get('date_to', '') }}" data-form-control>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">&nbsp;</label>
                         <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary flex-grow-1">
+                            <button type="submit" class="c-btn c-btn--primary flex-grow-1">
                                 <i class="ti ti-search me-1"></i>Filter
                             </button>
-                            <a href="{{ url_for('admin_panel.view_matches') }}" class="btn btn-outline-secondary">
+                            <a href="{{ url_for('admin_panel.view_matches') }}" class="c-btn c-btn--outline-secondary">
                                 <i class="ti ti-x"></i>
                             </a>
                         </div>
@@ -89,25 +89,25 @@
 <!-- Matches Table -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-calendar me-2"></i>All Matches
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if matches.items %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Date</th>
-                                <th>Time</th>
-                                <th>Home Team</th>
-                                <th>Away Team</th>
-                                <th>Score</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th scope="col">Date</th>
+                                <th scope="col">Time</th>
+                                <th scope="col">Home Team</th>
+                                <th scope="col">Away Team</th>
+                                <th scope="col">Score</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -135,30 +135,30 @@
                                 </td>
                                 <td>
                                     {% if match.home_team_score is not none and match.away_team_score is not none %}
-                                        <span class="badge bg-success">{{ match.home_team_score }} - {{ match.away_team_score }}</span>
+                                        <span class="badge bg-success" data-badge>{{ match.home_team_score }} - {{ match.away_team_score }}</span>
                                     {% else %}
-                                        <span class="badge bg-secondary">-</span>
+                                        <span class="badge bg-secondary" data-badge>-</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if match.date %}
                                         {% if match.home_team_score is not none and match.away_team_score is not none %}
-                                            <span class="badge bg-success">Completed</span>
+                                            <span class="badge bg-success" data-badge>Completed</span>
                                         {% elif match.date >= today_date %}
-                                            <span class="badge bg-info">Upcoming</span>
+                                            <span class="badge bg-info" data-badge>Upcoming</span>
                                         {% else %}
-                                            <span class="badge bg-secondary">Past</span>
+                                            <span class="badge bg-secondary" data-badge>Past</span>
                                         {% endif %}
                                     {% else %}
-                                        <span class="badge bg-secondary">Unscheduled</span>
+                                        <span class="badge bg-secondary" data-badge>Unscheduled</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-info" onclick="viewMatchDetails({{ match.id }})">
+                                        <button class="c-btn c-btn--outline-info" data-action="view-match-details" data-match-id="{{ match.id }}">
                                             <i class="ti ti-eye"></i>
                                         </button>
-                                        <button class="btn btn-outline-warning" onclick="editMatch({{ match.id }})">
+                                        <button class="c-btn c-btn--outline-warning" data-action="edit-match" data-match-id="{{ match.id }}">
                                             <i class="ti ti-edit"></i>
                                         </button>
                                     </div>
@@ -172,9 +172,9 @@
                 <!-- Pagination -->
                 {% if matches.pages > 1 %}
                 <nav class="mt-4">
-                    <ul class="pagination justify-content-center">
+                    <ul class="pagination justify-content-center" data-pagination>
                         {% if matches.has_prev %}
-                        <li class="page-item">
+                        <li class="page-item" data-page-item>
                             <a class="page-link" href="{{ url_for('admin_panel.view_matches', page=matches.prev_num, **request.args) }}">
                                 <i class="ti ti-chevron-left"></i>
                             </a>
@@ -184,23 +184,23 @@
                         {% for page_num in matches.iter_pages() %}
                             {% if page_num %}
                                 {% if page_num != matches.page %}
-                                <li class="page-item">
+                                <li class="page-item" data-page-item>
                                     <a class="page-link" href="{{ url_for('admin_panel.view_matches', page=page_num, **request.args) }}">{{ page_num }}</a>
                                 </li>
                                 {% else %}
-                                <li class="page-item active">
+                                <li class="page-item active" data-page-item data-page-active>
                                     <span class="page-link">{{ page_num }}</span>
                                 </li>
                                 {% endif %}
                             {% else %}
-                            <li class="page-item disabled">
+                            <li class="page-item disabled" data-page-item data-page-disabled>
                                 <span class="page-link">…</span>
                             </li>
                             {% endif %}
                         {% endfor %}
                         
                         {% if matches.has_next %}
-                        <li class="page-item">
+                        <li class="page-item" data-page-item>
                             <a class="page-link" href="{{ url_for('admin_panel.view_matches', page=matches.next_num, **request.args) }}">
                                 <i class="ti ti-chevron-right"></i>
                             </a>
@@ -212,10 +212,10 @@
                 
                 {% else %}
                 <div class="text-center py-5">
-                    <i class="ti ti-calendar-off text-muted" style="font-size: 4rem;"></i>
+                    <i class="ti ti-calendar-off text-muted icon-empty-large"></i>
                     <h5 class="text-muted mt-3">No Matches Found</h5>
                     <p class="text-muted">No matches match the current filter criteria.</p>
-                    <a href="{{ url_for('admin_panel.view_matches') }}" class="btn btn-outline-primary">
+                    <a href="{{ url_for('admin_panel.view_matches') }}" class="c-btn c-btn--outline-primary">
                         <i class="ti ti-refresh me-1"></i>Clear Filters
                     </a>
                 </div>
@@ -228,12 +228,36 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
+// Event delegation for view matches actions
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        const matchId = target.dataset.matchId;
+
+        switch(action) {
+            case 'view-match-details':
+                viewMatchDetails(matchId);
+                break;
+            case 'edit-match':
+                editMatch(matchId);
+                break;
+            case 'verify-match':
+                verifyMatch(matchId);
+                break;
+        }
+    });
+});
+
 function viewMatchDetails(matchId) {
     // Show loading
     Swal.fire({
         title: 'Loading Match Details',
-        html: '<div class="text-center"><div class="spinner-border text-primary" role="status"></div></div>',
+        html: '<div class="text-center"><div class="spinner-border text-primary" role="status" data-spinner></div></div>',
         allowOutsideClick: false,
         showConfirmButton: false
     });
@@ -276,13 +300,13 @@ function editMatch(matchId) {
             <div class="text-start">
                 <p>What would you like to do?</p>
                 <div class="d-grid gap-2">
-                    <a href="{{ url_for('admin_panel.match_results') }}?match_id=${matchId}" class="btn btn-primary">
+                    <a href="{{ url_for('admin_panel.match_results') }}?match_id=${matchId}" class="c-btn c-btn--primary">
                         <i class="ti ti-pencil me-2"></i>Enter/Update Results
                     </a>
-                    <a href="{{ url_for('admin_panel.match_schedule') }}" class="btn btn-outline-secondary">
+                    <a href="{{ url_for('admin_panel.match_schedule') }}" class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-calendar me-2"></i>Reschedule Match
                     </a>
-                    <button onclick="verifyMatch(${matchId})" class="btn btn-outline-success">
+                    <button data-action="verify-match" data-match-id="${matchId}" class="c-btn c-btn--outline-success">
                         <i class="ti ti-check me-2"></i>Verify Match
                     </button>
                 </div>

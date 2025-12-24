@@ -9,7 +9,7 @@
 class SimpleThemeSwitcher {
   constructor() {
     this.themes = ['light', 'dark', 'system'];
-    this.variants = ['classic', 'modern'];
+    this.variants = ['modern'];
     this.currentTheme = 'light';
     this.currentVariant = 'modern';
     this.init();
@@ -101,22 +101,42 @@ class SimpleThemeSwitcher {
   setupEventListeners() {
     // Handle dropdown clicks - only listen to actual theme elements
     document.addEventListener('click', (e) => {
-      // Only process if the actual clicked element has data-theme attribute
+      // Check for data-action="set-theme" (settings page buttons)
+      const actionElement = e.target.closest('[data-action="set-theme"]');
+      if (actionElement) {
+        e.preventDefault();
+        const theme = actionElement.getAttribute('data-theme');
+        if (theme) {
+          console.log('Theme switching to (action):', theme);
+          this.setTheme(theme);
+
+          // Update button states in settings page
+          document.querySelectorAll('[data-action="set-theme"]').forEach(btn => {
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-outline-secondary');
+          });
+          actionElement.classList.remove('btn-outline-secondary');
+          actionElement.classList.add('btn-primary');
+        }
+        return;
+      }
+
+      // Handle data-role="theme-option" (navbar dropdown)
       if (e.target.hasAttribute('data-theme') || e.target.closest('[data-theme]')) {
         const themeElement = e.target.hasAttribute('data-theme') ? e.target : e.target.closest('[data-theme]');
-        
+
         // Make sure this is actually a theme dropdown item, not just any element with data-theme
-        if (themeElement && themeElement.classList.contains('dropdown-item')) {
+        if (themeElement && themeElement.hasAttribute('data-role') && themeElement.getAttribute('data-role') === 'theme-option') {
           e.preventDefault();
           e.stopPropagation();
           const theme = themeElement.getAttribute('data-theme');
           console.log('Theme switching to:', theme); // Debug log
           this.setTheme(theme);
-          
+
           // Close dropdown manually if needed
-          const dropdown = themeElement.closest('.dropdown-menu');
+          const dropdown = themeElement.closest('[data-role="theme-dropdown-menu"]');
           if (dropdown) {
-            const toggle = document.querySelector('.dropdown-style-switcher [data-bs-toggle="dropdown"]');
+            const toggle = document.querySelector('[data-role="theme-dropdown-toggle"]');
             if (toggle && window.bootstrap) {
               const dropdownInstance = window.bootstrap.Dropdown.getInstance(toggle);
               if (dropdownInstance) {
@@ -165,7 +185,7 @@ class SimpleThemeSwitcher {
    * Update the theme switcher icon
    */
   updateThemeIcon(theme) {
-    const icon = document.querySelector('.theme-switcher-icon');
+    const icon = document.querySelector('[data-role="theme-icon"]');
     if (icon) {
       let iconClass;
       switch (theme) {
@@ -178,7 +198,8 @@ class SimpleThemeSwitcher {
         default:
           iconClass = 'ti-sun';
       }
-      icon.className = `ti ${iconClass} ti-md theme-switcher-icon`;
+      icon.className = `ti ${iconClass} ti-md`;
+      icon.setAttribute('data-role', 'theme-icon');
     }
   }
   
@@ -244,12 +265,12 @@ class SimpleThemeSwitcher {
   }
 
   // ========================================================================
-  // THEME VARIANT METHODS (Classic / Modern)
+  // THEME VARIANT METHODS (Modern Only)
   // ========================================================================
 
   /**
-   * Set the theme variant (classic or modern)
-   * @param {string} variant - 'classic' or 'modern'
+   * Set the theme variant (modern only)
+   * @param {string} variant - 'modern'
    * @param {boolean} save - Whether to save to localStorage and server
    */
   setVariant(variant, save = true) {
@@ -264,8 +285,8 @@ class SimpleThemeSwitcher {
     // Apply variant to document
     document.documentElement.setAttribute('data-theme-variant', variant);
 
-    // Update variant class
-    document.documentElement.classList.remove('theme-classic', 'theme-modern');
+    // Update variant class (modern only)
+    document.documentElement.classList.remove('theme-modern');
     document.documentElement.classList.add(`theme-${variant}`);
 
     if (save) {
@@ -359,11 +380,11 @@ class SimpleThemeSwitcher {
   }
 
   /**
-   * Toggle between classic and modern
+   * Toggle between modern variants (currently only 'modern' is available)
    */
   toggleVariant() {
-    const newVariant = this.currentVariant === 'classic' ? 'modern' : 'classic';
-    this.setVariant(newVariant);
+    // Only modern variant is available
+    this.setVariant('modern');
   }
 }
 

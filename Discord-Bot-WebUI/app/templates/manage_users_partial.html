@@ -5,31 +5,31 @@
     <td>{{ user.roles | join(', ') }}</td>
     <td>{{ user.league }}</td>
     <td>
-        <span class="badge {{ 'badge-success' if user.is_current_player else 'badge-secondary' }}">
+        <span class="badge {{ 'badge-success' if user.is_current_player else 'badge-secondary' }}" data-badge>
             {{ 'Yes' if user.is_current_player else 'No' }}
         </span>
     </td>
     <td>
-        <span class="badge {{ 'badge-success' if user.is_approved else 'badge-secondary' }}">
+        <span class="badge {{ 'badge-success' if user.is_approved else 'badge-secondary' }}" data-badge>
             {{ 'Yes' if user.is_approved else 'No' }}
         </span>
     </td>
     <td>
-        <form method="post" style="display:inline;">
+        <form method="post" class="d-inline">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="user_id" value="{{ user.id }}">
             {% if not user.is_approved %}
-            <button name="action" value="approve" class="btn btn-success btn-sm">
+            <button name="action" value="approve" class="c-btn c-btn--success c-btn--sm">
                 <i class="fa-solid fa-check"></i> Approve
             </button>
             {% endif %}
-            <button type="button" class="btn btn-primary btn-sm edit-user-btn" data-user-id="{{ user.id }}">
+            <button type="button" class="c-btn c-btn--primary c-btn--sm edit-user-btn" data-user-id="{{ user.id }}">
                 <i class="fa-solid fa-edit"></i> Edit
             </button>
-            <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#resetPasswordModal" onclick="setUserForResetPassword('{{ user.id }}', '{{ user.username }}')">
+            <button type="button" class="c-btn c-btn--warning c-btn--sm js-reset-password-btn" data-bs-toggle="modal" data-bs-target="#resetPasswordModal" data-action="reset-password" data-user-id="{{ user.id }}" data-username="{{ user.username }}">
                 <i class="fa-solid fa-key"></i> Reset Password
             </button>
-            <button name="action" value="remove" class="btn btn-danger btn-sm">
+            <button name="action" value="remove" class="c-btn c-btn--danger c-btn--sm">
                 <i class="fa-solid fa-trash"></i> Remove
             </button>
         </form>

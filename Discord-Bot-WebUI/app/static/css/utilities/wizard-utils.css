@@ -1,0 +1,86 @@
+/**
+ * WIZARD UTILITIES
+ * ================
+ * Utility classes for wizard components and toast notifications
+ *
+ * Classes:
+ * - Toast utilities (.toast-*)
+ * - Theme-aware CSS custom properties
+ *
+ * Usage:
+ * - Provides consistent styling for wizard toasts
+ * - Replaces inline style z-index and sizing declarations
+ * - Supports responsive layouts and theme integration
+ */
+
+/* ============================================
+   TOAST UTILITIES
+   ============================================ */
+
+/**
+ * Toast overlay positioning
+ * Ensures toasts appear above all content including modals
+ */
+.toast-overlay {
+    z-index: 9999 !important;
+}
+
+/**
+ * Toast minimum width for consistent sizing
+ * Ensures readable toast width across different message lengths
+ */
+.toast-min-width {
+    min-width: 300px !important;
+}
+
+/**
+ * Combined toast utility class
+ * Use this for quick toast styling with both z-index and min-width
+ */
+.toast-styled {
+    z-index: 9999 !important;
+    min-width: 300px !important;
+}
+
+/* ============================================
+   THEME-AWARE CUSTOM PROPERTIES
+   ============================================ */
+
+/**
+ * CSS Custom Property Utilities
+ * For elements that need dynamic theme colors
+ */
+
+/**
+ * Drop indicator color support
+ * This class ensures the --drop-indicator-color custom property
+ * is properly initialized with theme colors
+ */
+.theme-drop-indicator {
+    --drop-indicator-color: var(--bs-primary, #0d6efd);
+}
+
+/* Dark mode support for drop indicators */
+[data-style="dark"] .theme-drop-indicator {
+    --drop-indicator-color: var(--bs-primary, #3d8bfd);
+}
+
+/* ============================================
+   RESPONSIVE UTILITIES
+   ============================================ */
+
+/* Mobile adjustments for toast sizing */
+@media (max-width: 576px) {
+    .toast-min-width,
+    .toast-styled {
+        min-width: 250px !important;
+    }
+}
+
+/* Tablet adjustments */
+@media (min-width: 577px) and (max-width: 768px) {
+    .toast-min-width,
+    .toast-styled {
+        min-width: 280px !important;
+    }
+}

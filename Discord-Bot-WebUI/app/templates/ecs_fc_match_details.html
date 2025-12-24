@@ -13,8 +13,8 @@
     <!-- Match Information Card -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-body">
+            <div class="c-card">
+                <div class="c-card__body">
                     <div class="row">
                         <div class="col-md-8">
                             <div class="d-flex align-items-center mb-3">
@@ -26,10 +26,10 @@
                                 <div>
                                     <h3 class="mb-1">{{ match.team.name }} vs {{ match.opponent_name }}</h3>
                                     <div class="text-muted">
-                                        <span class="badge {{ 'bg-success' if match.is_home_match else 'bg-primary' }} me-2">
+                                        <span class="badge {{ 'bg-success' if match.is_home_match else 'bg-primary' }} me-2" data-badge>
                                             {{ 'Home' if match.is_home_match else 'Away' }} Match
                                         </span>
-                                        <span class="badge bg-label-{{ 'success' if match.status == 'COMPLETED' else 'warning' if match.status == 'SCHEDULED' else 'danger' }}">
+                                        <span class="badge bg-label-{{ 'success' if match.status == 'COMPLETED' else 'warning' if match.status == 'SCHEDULED' else 'danger' }}" data-badge>
                                             {{ match.status }}
                                         </span>
                                     </div>
@@ -39,11 +39,11 @@
                         <div class="col-md-4 text-md-end">
                             {% if can_manage %}
                             <div class="btn-group" role="group">
-                                <button type="button" class="btn btn-primary btn-sm" onclick="editMatch({{ match.id }})">
+                                <button type="button" class="c-btn c-btn--primary c-btn--sm js-edit-match" data-action="edit-match" data-match-id="{{ match.id }}">
                                     <i class="ti ti-{% if match.status == 'COMPLETED' %}edit{% else %}report{% endif %} me-1"></i>
                                     {% if match.status == 'COMPLETED' %}Edit Match Report{% else %}Report Match Results{% endif %}
                                 </button>
-                                <button type="button" class="btn btn-outline-warning btn-sm" onclick="sendReminder({{ match.id }})">
+                                <button type="button" class="c-btn c-btn--outline-warning c-btn--sm js-send-reminder" data-action="send-reminder" data-match-id="{{ match.id }}">
                                     <i class="ti ti-bell me-1"></i>Send Reminder
                                 </button>
                             </div>
@@ -99,7 +99,7 @@
                     {% if match.notes %}
                     <div class="mt-3">
                         <h6>Match Notes</h6>
-                        <div class="alert alert-info">
+                        <div class="alert alert-info" data-alert>
                             {{ match.notes }}
                         </div>
                     </div>
@@ -112,8 +112,8 @@
     <!-- RSVP Summary Cards -->
     <div class="row mb-4">
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card text-center">
-                <div class="card-body">
+            <div class="c-card text-center">
+                <div class="c-card__body">
                     <div class="avatar avatar-md mx-auto mb-2">
                         <div class="avatar-initial rounded-circle bg-label-success">
                             <i class="ti ti-check"></i>
@@ -125,8 +125,8 @@
             </div>
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card text-center">
-                <div class="card-body">
+            <div class="c-card text-center">
+                <div class="c-card__body">
                     <div class="avatar avatar-md mx-auto mb-2">
                         <div class="avatar-initial rounded-circle bg-label-danger">
                             <i class="ti ti-x"></i>
@@ -138,8 +138,8 @@
             </div>
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card text-center">
-                <div class="card-body">
+            <div class="c-card text-center">
+                <div class="c-card__body">
                     <div class="avatar avatar-md mx-auto mb-2">
                         <div class="avatar-initial rounded-circle bg-label-warning">
                             <i class="ti ti-help"></i>
@@ -151,8 +151,8 @@
             </div>
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card text-center">
-                <div class="card-body">
+            <div class="c-card text-center">
+                <div class="c-card__body">
                     <div class="avatar avatar-md mx-auto mb-2">
                         <div class="avatar-initial rounded-circle bg-label-secondary">
                             <i class="ti ti-clock"></i>
@@ -166,24 +166,24 @@
     </div>
 
     <!-- RSVP Details Table -->
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="c-card">
+        <div class="c-card__header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Player Availability</h5>
             {% if can_manage %}
-            <a href="{{ url_for('admin.ecs_fc_rsvp_status', match_id=match.id) }}" class="btn btn-primary btn-sm">
+            <a href="{{ url_for('admin.ecs_fc_rsvp_status', match_id=match.id) }}" class="c-btn c-btn--primary c-btn--sm">
                 <i class="ti ti-settings me-1"></i>Manage RSVPs
             </a>
             {% endif %}
         </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
+        <div class="c-card__body">
+            <div class="c-table-wrapper" data-table-responsive>
+                <table class="c-table c-table--hoverable" data-table>
+                    <thead scope="col">
                         <tr>
-                            <th>Player</th>
-                            <th>Response</th>
-                            <th>Response Time</th>
-                            <th>Notes</th>
+                            <th scope="col">Player</th>
+                            <th scope="col">Response</th>
+                            <th scope="col">Response Time</th>
+                            <th scope="col">Notes</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -211,11 +211,11 @@
                             </td>
                             <td>
                                 {% if availability %}
-                                <span class="badge {% if availability.response == 'yes' %}bg-success{% elif availability.response == 'no' %}bg-danger{% elif availability.response == 'maybe' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                <span class="badge {% if availability.response == 'yes' %}bg-success{% elif availability.response == 'no' %}bg-danger{% elif availability.response == 'maybe' %}bg-warning{% else %}bg-secondary{% endif %}" data-badge>
                                     {% if availability.response == 'yes' %}Available{% elif availability.response == 'no' %}Unavailable{% elif availability.response == 'maybe' %}Maybe{% else %}No Response{% endif %}
                                 </span>
                                 {% else %}
-                                <span class="badge bg-secondary">No Response</span>
+                                <span class="badge bg-secondary" data-badge>No Response</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -243,7 +243,27 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Event delegation for match actions
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+
+        switch(action) {
+            case 'edit-match':
+                editMatch(target.dataset.matchId);
+                break;
+            case 'send-reminder':
+                sendReminder(target.dataset.matchId);
+                break;
+        }
+    });
+});
+
 function editMatch(matchId) {
     // Implement edit match modal
     alert('Edit match functionality would go here');

@@ -1,0 +1,597 @@
+/**
+ * ============================================================================
+ * ECS COLOR TOKENS - Complete Color System
+ * ============================================================================
+ *
+ * Comprehensive color palette with 50-900 scales for all brand colors.
+ * Provides flexibility for component variants and states.
+ *
+ * Structure:
+ *   1. Brand Colors (Primary, Secondary, Accent) - 11 shades each
+ *   2. Semantic Colors (Success, Warning, Danger, Info) - 11 shades each
+ *   3. Neutral Scale (0-900) - 11 shades
+ *   4. Semantic Mappings for components
+ *
+ * ============================================================================
+ */
+
+:root {
+  /* ========================================================================
+     1. PRIMARY COLOR SCALE - Deep Blue
+     Professional blue that conveys trust, reliability, and sports excellence
+     ======================================================================== */
+
+  --color-primary-50: #EFF6FF;
+  --color-primary-100: #DBEAFE;
+  --color-primary-200: #BFDBFE;
+  --color-primary-300: #93C5FD;
+  --color-primary-400: #60A5FA;
+  --color-primary-500: #3B82F6;  /* Lighter primary */
+  --color-primary-600: #2563EB;  /* Base primary */
+  --color-primary-700: #1D4ED8;
+  --color-primary-800: #1E40AF;
+  --color-primary-900: #1E3A8A;
+  --color-primary-950: #172554;
+
+  --color-primary: var(--color-primary-600);
+  --color-primary-rgb: 37, 99, 235;
+
+  /* ========================================================================
+     2. SECONDARY COLOR SCALE - Slate Gray
+     Neutral professional gray for secondary UI elements
+     ======================================================================== */
+
+  --color-secondary-50: #F8FAFC;
+  --color-secondary-100: #F1F5F9;
+  --color-secondary-200: #E2E8F0;
+  --color-secondary-300: #CBD5E1;
+  --color-secondary-400: #94A3B8;
+  --color-secondary-500: #718096;  /* Lighter secondary */
+  --color-secondary-600: #64748B;  /* Base secondary */
+  --color-secondary-700: #475569;
+  --color-secondary-800: #334155;
+  --color-secondary-900: #1E293B;
+  --color-secondary-950: #0F172A;
+
+  --color-secondary: var(--color-secondary-600);
+  --color-secondary-rgb: 100, 116, 139;
+
+  /* ========================================================================
+     3. ACCENT COLOR SCALE - Amber
+     Warm accent color for CTAs and highlights
+     ======================================================================== */
+
+  --color-accent-50: #FFFBEB;
+  --color-accent-100: #FEF3C7;
+  --color-accent-200: #FDE68A;
+  --color-accent-300: #FCD34D;
+  --color-accent-400: #FBBF24;
+  --color-accent-500: #F9A825;  /* Lighter accent (golden amber) */
+  --color-accent-600: #F59E0B;  /* Base accent */
+  --color-accent-700: #D97706;
+  --color-accent-800: #B45309;
+  --color-accent-900: #92400E;
+  --color-accent-950: #78350F;
+
+  --color-accent: var(--color-accent-600);
+  --color-accent-rgb: 245, 158, 11;
+
+  /* ========================================================================
+     4. SUCCESS COLOR SCALE - Emerald Green
+     Positive actions, confirmations, successful states
+     ======================================================================== */
+
+  --color-success-50: #ECFDF5;
+  --color-success-100: #D1FAE5;
+  --color-success-200: #A7F3D0;
+  --color-success-300: #6EE7B7;
+  --color-success-400: #34D399;
+  --color-success-500: #10B981;  /* Base success */
+  --color-success-600: #10B981;
+  --color-success-700: #059669;
+  --color-success-800: #047857;
+  --color-success-900: #065F46;
+  --color-success-950: #064E3B;
+
+  --color-success: var(--color-success-600);
+  --color-success-rgb: 16, 185, 129;
+
+  /* ========================================================================
+     5. WARNING COLOR SCALE - Amber/Orange
+     Caution, alerts, important notices
+     ======================================================================== */
+
+  --color-warning-50: #FFF7ED;
+  --color-warning-100: #FFEDD5;
+  --color-warning-200: #FED7AA;
+  --color-warning-300: #FDBA74;
+  --color-warning-400: #FB923C;
+  --color-warning-500: #F97316;  /* Lighter warning (orange) */
+  --color-warning-600: #EA580C;  /* Base warning */
+  --color-warning-700: #C2410C;
+  --color-warning-800: #9A3412;
+  --color-warning-900: #7C2D12;
+  --color-warning-950: #431407;
+
+  --color-warning: var(--color-warning-600);
+  --color-warning-rgb: 234, 88, 12;
+
+  /* ========================================================================
+     6. DANGER/ERROR COLOR SCALE - Red
+     Errors, destructive actions, critical alerts
+     ======================================================================== */
+
+  --color-danger-50: #FEF2F2;
+  --color-danger-100: #FEE2E2;
+  --color-danger-200: #FECACA;
+  --color-danger-300: #FCA5A5;
+  --color-danger-400: #F87171;
+  --color-danger-500: #F56565;  /* Lighter danger */
+  --color-danger-600: #EF4444;  /* Base danger */
+  --color-danger-700: #DC2626;
+  --color-danger-800: #B91C1C;
+  --color-danger-900: #991B1B;
+  --color-danger-950: #7F1D1D;
+
+  --color-danger: var(--color-danger-600);
+  --color-danger-rgb: 239, 68, 68;
+
+  /* ========================================================================
+     7. INFO COLOR SCALE - Blue
+     Informational messages, helpful tips, neutral notifications
+     ======================================================================== */
+
+  --color-info-50: #EFF6FF;
+  --color-info-100: #DBEAFE;
+  --color-info-200: #BFDBFE;
+  --color-info-300: #93C5FD;
+  --color-info-400: #60A5FA;
+  --color-info-500: #4F90E8;  /* Lighter info */
+  --color-info-600: #3B82F6;  /* Base info */
+  --color-info-700: #2563EB;
+  --color-info-800: #1D4ED8;
+  --color-info-900: #1E40AF;
+  --color-info-950: #1E3A8A;
+
+  --color-info: var(--color-info-600);
+  --color-info-rgb: 59, 130, 246;
+
+  /* ========================================================================
+     8. NEUTRAL/GRAY SCALE - Pure Grays (No Color Tint)
+     Used for text, backgrounds, borders, and UI elements
+     ======================================================================== */
+
+  --color-neutral-0: #FFFFFF;
+  --color-neutral-50: #FAFAFA;
+  --color-neutral-100: #F4F4F5;
+  --color-neutral-200: #E4E4E7;
+  --color-neutral-300: #D4D4D8;
+  --color-neutral-400: #A1A1AA;
+  --color-neutral-500: #71717A;
+  --color-neutral-600: #52525B;
+  --color-neutral-700: #3F3F46;
+  --color-neutral-800: #27272A;
+  --color-neutral-900: #18181B;
+  --color-neutral-950: #09090B;
+
+  /* ========================================================================
+     9. SEMANTIC COLOR MAPPINGS
+     Abstract color purpose for component use
+     ======================================================================== */
+
+  /* Text Colors - Maximum Readability (WCAG AAA compliant)
+     Headings: #18181B (16.1:1 on white)
+     Body: #3F3F46 (9.6:1 on white)
+     Muted: #52525B (7.0:1 on white) */
+  --color-text-primary: #18181B;
+  --color-text-secondary: #3F3F46;
+  --color-text-muted: #52525B;
+  --color-text-inverse: var(--color-neutral-0);
+  --color-text-link: var(--color-primary-600);
+  --color-text-link-hover: var(--color-primary-700);
+
+  /* Text-on-Color (for buttons, badges with colored backgrounds) */
+  --color-text-on-primary: var(--color-neutral-0);
+  --color-text-on-secondary: var(--color-neutral-0);
+  --color-text-on-success: var(--color-neutral-0);
+  --color-text-on-warning: var(--color-neutral-900);
+  --color-text-on-danger: var(--color-neutral-0);
+  --color-text-on-info: var(--color-neutral-0);
+  --color-text-on-accent: var(--color-neutral-900);
+
+  /* Background Colors */
+  --color-bg-primary: var(--color-neutral-0);
+  --color-bg-secondary: var(--color-neutral-50);
+  --color-bg-tertiary: var(--color-neutral-100);
+  --color-bg-card: var(--color-neutral-0);
+  --color-bg-elevated: var(--color-neutral-0);
+  --color-bg-overlay: rgba(0, 0, 0, 0.5);
+
+  /* Border Colors */
+  --color-border-primary: var(--color-neutral-200);
+  --color-border-secondary: var(--color-neutral-300);
+  --color-border-input: var(--color-neutral-300);
+  --color-border-focus: var(--color-primary-600);
+
+  /* Interactive Colors */
+  --color-hover-bg: var(--color-neutral-100);
+  --color-active-bg: var(--color-neutral-200);
+  --color-focus-ring: var(--color-primary-500);
+
+  /* Subtle Background Variants (for badges, alerts, etc.) */
+  --color-primary-subtle: var(--color-primary-100);
+  --color-secondary-subtle: var(--color-secondary-100);
+  --color-success-subtle: var(--color-success-100);
+  --color-warning-subtle: var(--color-warning-100);
+  --color-danger-subtle: var(--color-danger-100);
+  --color-info-subtle: var(--color-info-100);
+  --color-accent-subtle: var(--color-primary-100);
+
+  /* Additional Semantic Colors (used by various components) */
+  --color-bg-subtle: var(--color-neutral-100);
+  --color-bg-muted: var(--color-neutral-200);
+  --color-bg-body: var(--color-bg-primary);
+  --color-bg-hover: var(--color-hover-bg);
+  --color-bg-input: var(--color-neutral-0);
+  --color-surface: var(--color-bg-card);
+  --color-surface-raised: var(--color-bg-elevated);
+  --color-surface-overlay: rgba(0, 0, 0, 0.5);
+  --color-white: #FFFFFF;
+
+  /* Text Aliases */
+  --color-text: var(--color-text-primary);
+  --color-text-tertiary: var(--color-neutral-400);
+  --color-text-disabled: var(--color-neutral-300);
+
+  /* Border Aliases */
+  --color-border: var(--color-border-primary);
+  --color-border-subtle: var(--color-neutral-100);
+  --color-border-muted: var(--color-neutral-200);
+  --color-border-hover: var(--color-neutral-400);
+
+  /* Alpha Variants (for focus rings, overlays) */
+  --color-primary-alpha: rgba(37, 99, 235, 0.2);
+  --color-secondary-alpha: rgba(100, 116, 139, 0.2);
+  --color-success-alpha: rgba(16, 185, 129, 0.2);
+  --color-warning-alpha: rgba(245, 158, 11, 0.2);
+  --color-danger-alpha: rgba(239, 68, 68, 0.2);
+  --color-info-alpha: rgba(59, 130, 246, 0.2);
+
+  /* Status Text/Background (for season status, match status, etc.) */
+  --color-success-bg: var(--color-success-subtle);
+  --color-success-text: var(--color-success-700);
+  --color-warning-bg: var(--color-warning-subtle);
+  --color-warning-text: var(--color-warning-700);
+  --color-danger-bg: var(--color-danger-subtle);
+  --color-danger-text: var(--color-danger-700);
+  --color-info-bg: var(--color-info-subtle);
+  --color-info-text: var(--color-info-700);
+
+  /* ========================================================================
+     10. BOOTSTRAP INTEGRATION
+     Map ECS color tokens to Bootstrap variables for compatibility
+     ======================================================================== */
+
+  --bs-primary: var(--color-primary);
+  --bs-primary-rgb: var(--color-primary-rgb);
+  --bs-secondary: var(--color-secondary);
+  --bs-secondary-rgb: var(--color-secondary-rgb);
+  --bs-success: var(--color-success);
+  --bs-success-rgb: var(--color-success-rgb);
+  --bs-warning: var(--color-warning);
+  --bs-warning-rgb: var(--color-warning-rgb);
+  --bs-danger: var(--color-danger);
+  --bs-danger-rgb: var(--color-danger-rgb);
+  --bs-info: var(--color-info);
+  --bs-info-rgb: var(--color-info-rgb);
+  --bs-body-bg: var(--color-bg-primary);
+  --bs-body-color: var(--color-text-secondary);
+  --bs-heading-color: var(--color-text-primary);
+  --bs-border-color: var(--color-border-primary);
+
+  /* ========================================================================
+     11. SPECIAL PURPOSE COLORS
+     ======================================================================== */
+
+  /* Discord Brand Colors */
+  --color-discord: #5865F2;
+  --color-discord-rgb: 88, 101, 242;
+  --color-discord-600: #7289DA;
+  --color-discord-700: #5b6eae;
+  --color-discord-800: #4e5d94;
+  --color-discord-hover: #4752C4;
+
+  /* Google Brand Colors */
+  --color-google: #4285F4;
+  --color-google-600: #4285F4;
+  --color-google-700: #357ae8;
+
+  /* GitHub Brand Colors */
+  --color-github: #24292e;
+  --color-github-600: #24292e;
+  --color-github-700: #1b1f23;
+
+  /* Social Media */
+  --color-twitter: #1DA1F2;
+  --color-facebook: #1877F2;
+  --color-instagram: #E4405F;
+}
+
+/* ============================================================================
+   DARK MODE COLOR OVERRIDES
+   All colors adjusted for optimal visibility on dark backgrounds
+   ============================================================================ */
+
+[data-style="dark"] {
+  /* ========================================================================
+     DARK MODE BRAND COLORS - Deep Blue
+     Brighter versions for better visibility on dark backgrounds
+     ======================================================================== */
+
+  --color-primary-50: #172554;
+  --color-primary-100: #1E3A8A;
+  --color-primary-200: #1E40AF;
+  --color-primary-300: #1D4ED8;
+  --color-primary-400: #2563EB;
+  --color-primary-500: #3B82F6;  /* Brighter for dark mode */
+  --color-primary-600: #60A5FA;  /* Base for dark mode - brighter blue */
+  --color-primary-700: #93C5FD;
+  --color-primary-800: #BFDBFE;
+  --color-primary-900: #DBEAFE;
+  --color-primary-950: #EFF6FF;
+
+  --color-primary: var(--color-primary-600);
+  --color-primary-rgb: 96, 165, 250;
+
+  /* Secondary - Lighter grays for dark mode */
+  --color-secondary-500: #A8B5C8;
+  --color-secondary-600: #94A3B8;
+  --color-secondary-700: #CBD5E1;
+
+  /* Accent - Brighter amber */
+  --color-accent-500: #FCD34D;
+  --color-accent-600: #FBBF24;
+  --color-accent-700: #FDE68A;
+
+  /* Success - Brighter green */
+  --color-success-500: #4ADE80;
+  --color-success-600: #34D399;
+  --color-success-700: #6EE7B7;
+
+  /* Warning - Brighter orange */
+  --color-warning-500: #FB923C;
+  --color-warning-600: #F97316;
+  --color-warning-700: #FDBA74;
+
+  /* Danger - Brighter red */
+  --color-danger-500: #FCA5A5;
+  --color-danger-600: #F87171;
+  --color-danger-700: #FECACA;
+
+  /* Info - Brighter blue */
+  --color-info-500: #93C5FD;
+  --color-info-600: #60A5FA;
+  --color-info-700: #93C5FD;
+
+  /* ========================================================================
+     DARK MODE NEUTRAL SCALE (Slate-based for modern look)
+     Using Tailwind Slate palette instead of pure zinc/black
+     ======================================================================== */
+
+  --color-neutral-0: #0F172A;    /* Slate-950 - Deep navy-slate (was #09090B) */
+  --color-neutral-50: #1E293B;   /* Slate-900 - Primary dark bg */
+  --color-neutral-100: #334155;  /* Slate-800 - Elevated surfaces */
+  --color-neutral-200: #475569;  /* Slate-700 - Borders, dividers */
+  --color-neutral-300: #64748B;  /* Slate-600 - Secondary borders */
+  --color-neutral-400: #94A3B8;  /* Slate-400 - Muted text */
+  --color-neutral-500: #CBD5E1;  /* Slate-300 - Secondary text */
+  --color-neutral-600: #E2E8F0;  /* Slate-200 - Primary text */
+  --color-neutral-700: #F1F5F9;  /* Slate-100 - Emphasized text */
+  --color-neutral-800: #F8FAFC;  /* Slate-50 - Bright text */
+  --color-neutral-900: #FFFFFF;  /* White - Headings */
+  --color-neutral-950: #FFFFFF;  /* White - Maximum contrast */
+
+  /* ========================================================================
+     DARK MODE SEMANTIC MAPPINGS
+     ======================================================================== */
+
+  /* Text Colors */
+  --color-text-primary: var(--color-neutral-900);
+  --color-text-secondary: var(--color-neutral-500);
+  --color-text-muted: var(--color-neutral-400);
+  --color-text-inverse: var(--color-neutral-0);
+
+  /* Text-on-Color (same as light mode - buttons/badges keep contrast) */
+  --color-text-on-primary: #FFFFFF;
+  --color-text-on-secondary: #FFFFFF;
+  --color-text-on-success: #FFFFFF;
+  --color-text-on-warning: #18181B;
+  --color-text-on-danger: #FFFFFF;
+  --color-text-on-info: #FFFFFF;
+  --color-text-on-accent: #18181B;
+
+  /* Background Colors */
+  --color-bg-primary: var(--color-neutral-0);
+  --color-bg-secondary: var(--color-neutral-50);
+  --color-bg-tertiary: var(--color-neutral-100);
+  --color-bg-card: var(--color-neutral-50);
+  --color-bg-elevated: var(--color-neutral-100);
+  --color-bg-overlay: rgba(0, 0, 0, 0.7);
+
+  /* Border Colors */
+  --color-border-primary: var(--color-neutral-200);
+  --color-border-secondary: var(--color-neutral-300);
+  --color-border-input: var(--color-neutral-200);
+
+  /* Interactive Colors */
+  --color-hover-bg: var(--color-neutral-100);
+  --color-active-bg: var(--color-neutral-200);
+
+  /* Subtle Backgrounds (darker in dark mode) */
+  --color-primary-subtle: rgba(96, 165, 250, 0.15);
+  --color-secondary-subtle: rgba(148, 163, 184, 0.15);
+  --color-success-subtle: rgba(52, 211, 153, 0.15);
+  --color-warning-subtle: rgba(251, 191, 36, 0.15);
+  --color-danger-subtle: rgba(248, 113, 113, 0.15);
+  --color-info-subtle: rgba(96, 165, 250, 0.15);
+  --color-accent-subtle: rgba(251, 191, 36, 0.15);
+
+  /* Additional Semantic Colors - Dark Mode */
+  --color-bg-subtle: var(--color-neutral-100);
+  --color-bg-muted: var(--color-neutral-200);
+  --color-bg-body: var(--color-bg-primary);
+  --color-bg-hover: var(--color-hover-bg);
+  --color-bg-input: var(--color-neutral-100);
+  --color-surface: var(--color-bg-card);
+  --color-surface-raised: var(--color-bg-elevated);
+  --color-surface-overlay: rgba(0, 0, 0, 0.7);
+  --color-white: #FFFFFF;
+
+  /* Text Aliases - Dark Mode */
+  --color-text: var(--color-text-primary);
+  --color-text-tertiary: var(--color-neutral-400);
+  --color-text-disabled: var(--color-neutral-500);
+
+  /* Border Aliases - Dark Mode */
+  --color-border: var(--color-border-primary);
+  --color-border-subtle: var(--color-neutral-200);
+  --color-border-muted: var(--color-neutral-300);
+  --color-border-hover: var(--color-neutral-400);
+
+  /* Alpha Variants - Dark Mode (brighter for visibility) */
+  --color-primary-alpha: rgba(96, 165, 250, 0.25);
+  --color-secondary-alpha: rgba(148, 163, 184, 0.25);
+  --color-success-alpha: rgba(52, 211, 153, 0.25);
+  --color-warning-alpha: rgba(251, 191, 36, 0.25);
+  --color-danger-alpha: rgba(248, 113, 113, 0.25);
+  --color-info-alpha: rgba(96, 165, 250, 0.25);
+
+  /* Status Text/Background - Dark Mode */
+  --color-success-bg: var(--color-success-subtle);
+  --color-success-text: var(--color-success-500);
+  --color-warning-bg: var(--color-warning-subtle);
+  --color-warning-text: var(--color-warning-500);
+  --color-danger-bg: var(--color-danger-subtle);
+  --color-danger-text: var(--color-danger-500);
+  --color-info-bg: var(--color-info-subtle);
+  --color-info-text: var(--color-info-500);
+
+  /* Brand Colors - Dark Mode (Slightly brighter for visibility) */
+  --color-discord-600: #8b9aee;
+  --color-discord-700: #7289DA;
+  --color-discord-hover: #5865F2;
+
+  --color-google-600: #5b9bff;
+  --color-google-700: #4285F4;
+
+  --color-github-600: #3d4449;
+  --color-github-700: #24292e;
+
+  /* Bootstrap Integration */
+  --bs-body-bg: var(--color-bg-primary);
+  --bs-body-color: var(--color-text-secondary);
+  --bs-heading-color: var(--color-text-primary);
+  --bs-border-color: var(--color-border-primary);
+}
+
+/* ============================================================================
+   LEGACY COMPATIBILITY
+   Support old variable names for gradual migration
+   ============================================================================ */
+
+:root {
+  /* ECS prefix legacy support */
+  --ecs-primary: var(--color-primary);
+  --ecs-primary-rgb: var(--color-primary-rgb);
+  --ecs-secondary: var(--color-secondary);
+  --ecs-success: var(--color-success);
+  --ecs-warning: var(--color-warning);
+  --ecs-danger: var(--color-danger);
+  --ecs-info: var(--color-info);
+
+  /* Neutral legacy */
+  --ecs-neutral-0: var(--color-neutral-0);
+  --ecs-neutral-5: var(--color-neutral-50);
+  --ecs-neutral-10: var(--color-neutral-100);
+  --ecs-neutral-20: var(--color-neutral-200);
+  --ecs-neutral-30: var(--color-neutral-300);
+  --ecs-neutral-40: var(--color-neutral-400);
+  --ecs-neutral-50: var(--color-neutral-500);
+  --ecs-neutral-60: var(--color-neutral-600);
+  --ecs-neutral-70: var(--color-neutral-700);
+  --ecs-neutral-80: var(--color-neutral-800);
+  --ecs-neutral-90: var(--color-neutral-900);
+
+  /* Component legacy */
+  --ecs-bg-body: var(--color-bg-secondary);
+  --ecs-bg-card: var(--color-bg-card);
+  --ecs-text-body: var(--color-text-secondary);
+  --ecs-text-heading: var(--color-text-primary);
+  --ecs-text-muted: var(--color-text-muted);
+  --ecs-border-color: var(--color-border-primary);
+}
+
+/* ============================================================================
+   DARK MODE LEGACY COMPATIBILITY
+   ECS prefix dark mode variables (used in legacy code)
+   ============================================================================ */
+
+[data-style="dark"] {
+  /* Dark mode background colors */
+  --ecs-dark-bg: #0f172a;
+  --ecs-dark-bg-elevated: #1e293b;
+  --ecs-dark-bg-card: #1e293b;
+  --ecs-dark-bg-secondary: #334155;
+  --ecs-dark-bg-tertiary: #475569;
+
+  /* Dark mode text colors */
+  --ecs-dark-text-primary: #f8fafc;
+  --ecs-dark-text-secondary: #94a3b8;
+  --ecs-dark-text-muted: #64748b;
+
+  /* Dark mode border colors */
+  --ecs-dark-border: #475569;
+  --ecs-dark-border-subtle: rgba(255, 255, 255, 0.1);
+
+  /* Primary light variant for dark mode */
+  --ecs-primary-light: #60A5FA;
+  --ecs-primary-lighter: #93C5FD;
+
+  /* Status color light variants for dark mode */
+  --ecs-success-light: #34d399;
+  --ecs-warning-light: #fbbf24;
+  --ecs-danger-light: #f87171;
+  --ecs-info-light: #22d3ee;
+
+  /* RGB variants for rgba() usage */
+  --ecs-dark-bg-rgb: 15, 23, 42;
+  --ecs-dark-text-rgb: 248, 250, 252;
+}
+
+/* ============================================================================
+   ADMIN THEME VARIABLES - SINGLE SOURCE OF TRUTH
+   Semantic color aliases for admin panel styling
+   ============================================================================ */
+
+:root {
+  /* Admin semantic colors - map to design tokens */
+  --admin-primary: var(--color-primary, #2563EB);
+  --admin-secondary: var(--color-secondary, #64748b);
+  --admin-success: var(--color-success, #10b981);
+  --admin-warning: var(--color-warning, #f59e0b);
+  --admin-danger: var(--color-danger, #ef4444);
+  --admin-info: var(--color-info, #06b6d4);
+  --admin-light: var(--color-neutral-50, #f8fafc);
+  --admin-dark: var(--color-neutral-900, #0f172a);
+
+  /* Admin styling tokens */
+  --admin-border-radius: var(--radius-lg, 0.75rem);
+  --admin-box-shadow: var(--shadow-xs);
+  --admin-box-shadow-hover: var(--shadow-lg);
+}
+
+/* Dark mode admin theme - swap light/dark */
+[data-style="dark"] {
+  --admin-light: var(--color-neutral-900, #0f172a);
+  --admin-dark: var(--color-neutral-50, #f8fafc);
+}

@@ -8,8 +8,8 @@
 <div class="container-xxl">
     <div class="authentication-wrapper authentication-basic container-p-y">
         <div class="authentication-inner py-4">
-            <div class="card">
-                <div class="card-body text-center py-4">
+            <div class="c-card">
+                <div class="c-card__body text-center py-4">
                     <!-- Success Icon -->
                     <div class="mb-4">
                         <span class="avatar-initial rounded-circle bg-label-success wallet-success-icon">
@@ -22,8 +22,8 @@
                     <p class="text-muted mb-4">Add your card to Apple Wallet or Google Wallet</p>
 
                     <!-- Pass Details Card -->
-                    <div class="card bg-label-primary mb-4">
-                        <div class="card-body py-3">
+                    <div class="c-card bg-label-primary mb-4">
+                        <div class="c-card__body py-3">
                             <div class="row text-start">
                                 <div class="col-12 mb-2">
                                     <small class="text-muted d-block">Member Name</small>
@@ -31,13 +31,13 @@
                                 </div>
                                 <div class="col-6">
                                     <small class="text-muted d-block">Type</small>
-                                    <span class="badge bg-primary">
+                                    <span class="badge bg-primary" data-badge>
                                         {{ wallet_pass.pass_type.name if wallet_pass.pass_type else 'Membership' }}
                                     </span>
                                 </div>
                                 <div class="col-6">
                                     <small class="text-muted d-block">Validity</small>
-                                    <span class="badge bg-success">{{ wallet_pass.display_validity }}</span>
+                                    <span class="badge bg-success" data-badge>{{ wallet_pass.display_validity }}</span>
                                 </div>
                                 {% if wallet_pass.team_name %}
                                 <div class="col-12 mt-2">
@@ -51,30 +51,30 @@
 
                     <!-- Status Badge -->
                     {% if wallet_pass.is_valid %}
-                    <div class="alert alert-success d-flex align-items-center mb-4" role="alert">
+                    <div class="alert alert-success d-flex align-items-center mb-4" role="alert" data-alert>
                         <i class="ti ti-circle-check me-2"></i>
                         <span>Your membership card is <strong>active</strong></span>
                     </div>
                     {% elif wallet_pass.status == 'voided' %}
-                    <div class="alert alert-danger d-flex align-items-center mb-4" role="alert">
+                    <div class="alert alert-danger d-flex align-items-center mb-4" role="alert" data-alert>
                         <i class="ti ti-ban me-2"></i>
                         <span>This membership card has been <strong>voided</strong></span>
                     </div>
                     {% elif wallet_pass.is_expired %}
-                    <div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
+                    <div class="alert alert-warning d-flex align-items-center mb-4" role="alert" data-alert>
                         <i class="ti ti-clock me-2"></i>
                         <span>This membership card has <strong>expired</strong></span>
                     </div>
                     {% endif %}
 
                     <!-- iOS Non-Safari Warning (hidden by default, shown via JS) -->
-                    <div id="safari-warning" class="alert alert-warning d-none mb-4" role="alert">
+                    <div id="safari-warning" class="alert alert-warning d-none mb-4" role="alert" data-alert>
                         <div class="d-flex align-items-start">
                             <i class="ti ti-alert-triangle me-2 mt-1"></i>
                             <div class="flex-grow-1">
                                 <strong>Safari Required for Apple Wallet</strong>
                                 <p class="mb-2 small">Apple Wallet passes can only be added from Safari on iOS. Please copy this link and open it in Safari.</p>
-                                <button type="button" class="btn btn-sm btn-warning" onclick="copyPageLink()">
+                                <button type="button" class="c-btn c-btn--sm c-btn--warning js-copy-link" data-action="copy-link">
                                     <i class="ti ti-copy me-1"></i>Copy Link for Safari
                                 </button>
                                 <span id="copy-feedback" class="ms-2 text-success d-none">
@@ -88,15 +88,15 @@
                     {% if wallet_pass.is_valid %}
                     <div class="d-grid gap-3">
                         <a href="{{ url_for('public_wallet.download_pass_by_token', token=download_token, platform='apple') }}"
-                           class="btn btn-dark btn-lg">
+                           class="c-btn c-btn--dark c-btn--lg">
                             <i class="ti ti-brand-apple me-2"></i>
                             Add to Apple Wallet
                         </a>
                         <a href="{{ url_for('public_wallet.download_pass_by_token', token=download_token, platform='google') }}"
-                           class="btn btn-outline-primary btn-lg">
+                           class="c-btn c-btn--outline-primary c-btn--lg">
                             <i class="ti ti-brand-google me-2"></i>
                             Add to Google Wallet
-                            <span class="badge bg-label-warning ms-2">Coming Soon</span>
+                            <span class="badge bg-label-warning ms-2" data-badge>Coming Soon</span>
                         </a>
                     </div>
 
@@ -109,18 +109,18 @@
                     {% endif %}
 
                     <!-- Instructions -->
-                    <div class="accordion mt-4" id="walletInstructions">
-                        <div class="accordion-item">
+                    <div class="accordion mt-4" id="walletInstructions" data-accordion>
+                        <div class="accordion-item" data-accordion>
                             <h2 class="accordion-header">
                                 <button class="accordion-button collapsed" type="button"
-                                        data-bs-toggle="collapse" data-bs-target="#appleInstructions">
+                                        data-bs-toggle="collapse" data-bs-target="#appleInstructions" data-collapse-toggle>
                                     <i class="ti ti-brand-apple me-2"></i>
                                     Apple Wallet Instructions
                                 </button>
                             </h2>
                             <div id="appleInstructions" class="accordion-collapse collapse"
-                                 data-bs-parent="#walletInstructions">
-                                <div class="accordion-body text-start small">
+                                 data-bs-parent="#walletInstructions" data-accordion>
+                                <div class="accordion-body text-start small" data-accordion>
                                     <ol class="mb-0">
                                         <li>Tap "Add to Apple Wallet" button above</li>
                                         <li>Your iPhone will download the pass file</li>
@@ -130,17 +130,17 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="accordion-item">
+                        <div class="accordion-item" data-accordion>
                             <h2 class="accordion-header">
                                 <button class="accordion-button collapsed" type="button"
-                                        data-bs-toggle="collapse" data-bs-target="#googleInstructions">
+                                        data-bs-toggle="collapse" data-bs-target="#googleInstructions" data-collapse-toggle>
                                     <i class="ti ti-brand-google me-2"></i>
                                     Google Wallet Instructions
                                 </button>
                             </h2>
                             <div id="googleInstructions" class="accordion-collapse collapse"
-                                 data-bs-parent="#walletInstructions">
-                                <div class="accordion-body text-start small">
+                                 data-bs-parent="#walletInstructions" data-accordion>
+                                <div class="accordion-body text-start small" data-accordion>
                                     <ol class="mb-0">
                                         <li>Tap "Add to Google Wallet" button above</li>
                                         <li>Sign in to your Google account if prompted</li>
@@ -173,19 +173,27 @@
 </div>
 
 <script>
-// Detect iOS + non-Safari browser and show warning
-(function() {
-    const ua = navigator.userAgent;
-    const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-    const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+document.addEventListener('DOMContentLoaded', function() {
+    // Detect iOS + non-Safari browser and show warning
+    (function() {
+        const ua = navigator.userAgent;
+        const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+        const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
 
-    if (isIOS && !isSafari) {
-        const warning = document.getElementById('safari-warning');
-        if (warning) {
-            warning.classList.remove('d-none');
+        if (isIOS && !isSafari) {
+            const warning = document.getElementById('safari-warning');
+            if (warning) {
+                warning.classList.remove('d-none');
+            }
         }
+    })();
+
+    // Handle copy link button
+    const copyBtn = document.querySelector('.js-copy-link');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', copyPageLink);
     }
-})();
+});
 
 function copyPageLink() {
     navigator.clipboard.writeText(window.location.href).then(function() {

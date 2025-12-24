@@ -1,0 +1,441 @@
+/**
+ * ============================================================================
+ * MODERN TOOLTIPS COMPONENT - ATHLETIC PRECISION
+ * ============================================================================
+ *
+ * Design: Floating tooltips with smooth fade-in
+ * - Arrow indicators pointing to trigger
+ * - Smooth fade-in animation
+ * - Multiple positioning options
+ * - Rich content support
+ * - Keyboard accessible
+ *
+ * Architecture:
+ * - BEM naming: c-tooltip-modern, c-tooltip-modern__arrow, etc.
+ * - Design tokens only
+ * - State classes: is-visible, is-hidden
+ * - Event delegation: data-tooltip="content", data-tooltip-position="top"
+ * - Zero !important
+ *
+ * Features:
+ * - Positions: top, bottom, left, right
+ * - Arrow indicators
+ * - Auto-positioning (flips if overflow)
+ * - Smooth fade-in/out
+ * - Dark variant
+ * - Multi-line support
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   TOOLTIP BASE
+   ============================================================================ */
+
+.c-tooltip-modern {
+  position: absolute;
+  z-index: var(--z-tooltip);
+
+  max-width: 250px;
+  padding: var(--space-2) var(--space-3);
+
+  /* Glass-morphism */
+  background: linear-gradient(
+    135deg,
+    rgba(30, 30, 35, 0.98) 0%,
+    rgba(30, 30, 35, 0.95) 100%
+  );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+
+  /* Typography */
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-neutral-200);
+  line-height: var(--leading-normal);
+  text-align: left;
+
+  /* Animation */
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.95);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Prevent overflow */
+  word-wrap: break-word;
+  pointer-events: none;
+}
+
+.c-tooltip-modern.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+}
+
+/* Light variant */
+.c-tooltip-modern--light {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(255, 255, 255, 0.95) 100%
+  );
+  border-color: rgba(0, 0, 0, 0.08);
+  color: var(--color-text-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* ============================================================================
+   ARROW INDICATOR
+   ============================================================================ */
+
+.c-tooltip-modern__arrow {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: rgba(30, 30, 35, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transform: rotate(45deg);
+}
+
+.c-tooltip-modern--light .c-tooltip-modern__arrow {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* ============================================================================
+   POSITIONING - Top
+   ============================================================================ */
+
+.c-tooltip-modern--top {
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px) scale(0.95);
+  margin-bottom: var(--space-2);
+}
+
+.c-tooltip-modern--top.is-visible {
+  transform: translateX(-50%) translateY(-8px) scale(1);
+}
+
+.c-tooltip-modern--top .c-tooltip-modern__arrow {
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  border-top: none;
+  border-left: none;
+}
+
+/* ============================================================================
+   POSITIONING - Bottom
+   ============================================================================ */
+
+.c-tooltip-modern--bottom {
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px) scale(0.95);
+  margin-top: var(--space-2);
+}
+
+.c-tooltip-modern--bottom.is-visible {
+  transform: translateX(-50%) translateY(8px) scale(1);
+}
+
+.c-tooltip-modern--bottom .c-tooltip-modern__arrow {
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  border-bottom: none;
+  border-right: none;
+}
+
+/* ============================================================================
+   POSITIONING - Left
+   ============================================================================ */
+
+.c-tooltip-modern--left {
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%) translateX(-8px) scale(0.95);
+  margin-right: var(--space-2);
+}
+
+.c-tooltip-modern--left.is-visible {
+  transform: translateY(-50%) translateX(-8px) scale(1);
+}
+
+.c-tooltip-modern--left .c-tooltip-modern__arrow {
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%) rotate(45deg);
+  border-left: none;
+  border-bottom: none;
+}
+
+/* ============================================================================
+   POSITIONING - Right
+   ============================================================================ */
+
+.c-tooltip-modern--right {
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%) translateX(8px) scale(0.95);
+  margin-left: var(--space-2);
+}
+
+.c-tooltip-modern--right.is-visible {
+  transform: translateY(-50%) translateX(8px) scale(1);
+}
+
+.c-tooltip-modern--right .c-tooltip-modern__arrow {
+  left: -4px;
+  top: 50%;
+  transform: translateY(-50%) rotate(45deg);
+  border-right: none;
+  border-top: none;
+}
+
+/* ============================================================================
+   TOOLTIP TRIGGER - Element that shows tooltip on hover
+   ============================================================================ */
+
+.c-tooltip-modern__trigger {
+  position: relative;
+  display: inline-block;
+  cursor: help;
+}
+
+/* ============================================================================
+   RICH CONTENT SUPPORT
+   ============================================================================ */
+
+.c-tooltip-modern--rich {
+  max-width: 350px;
+  padding: var(--space-4);
+  text-align: left;
+}
+
+.c-tooltip-modern__title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: white;
+}
+
+.c-tooltip-modern--light .c-tooltip-modern__title {
+  color: var(--color-text-primary);
+}
+
+.c-tooltip-modern__content {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: var(--leading-relaxed);
+}
+
+.c-tooltip-modern__content p:last-child {
+  margin-bottom: 0;
+}
+
+/* ============================================================================
+   INTERACTIVE TOOLTIPS - Can contain clickable elements
+   ============================================================================ */
+
+.c-tooltip-modern--interactive {
+  pointer-events: auto;
+}
+
+.c-tooltip-modern__link {
+  color: var(--color-primary-400);
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.c-tooltip-modern__link:hover {
+  color: var(--color-primary);
+}
+
+.c-tooltip-modern--light .c-tooltip-modern__link {
+  color: var(--color-primary);
+}
+
+/* ============================================================================
+   SIZE VARIANTS
+   ============================================================================ */
+
+.c-tooltip-modern--sm {
+  max-width: 150px;
+  padding: var(--space-1) var(--space-2);
+  font-size: 0.625rem;
+}
+
+.c-tooltip-modern--lg {
+  max-width: 400px;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+}
+
+/* ============================================================================
+   COLOR VARIANTS
+   ============================================================================ */
+
+.c-tooltip-modern--success {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.98) 0%,
+    rgba(5, 150, 105, 0.95) 100%
+  );
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.c-tooltip-modern--success .c-tooltip-modern__arrow {
+  background: rgba(16, 185, 129, 0.98);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.c-tooltip-modern--error {
+  background: linear-gradient(
+    135deg,
+    rgba(239, 68, 68, 0.98) 0%,
+    rgba(220, 38, 38, 0.95) 100%
+  );
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.c-tooltip-modern--error .c-tooltip-modern__arrow {
+  background: rgba(239, 68, 68, 0.98);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.c-tooltip-modern--warning {
+  background: linear-gradient(
+    135deg,
+    rgba(245, 158, 11, 0.98) 0%,
+    rgba(217, 119, 6, 0.95) 100%
+  );
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--color-neutral-900);
+}
+
+.c-tooltip-modern--warning .c-tooltip-modern__arrow {
+  background: rgba(245, 158, 11, 0.98);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.c-tooltip-modern--info {
+  background: linear-gradient(
+    135deg,
+    rgba(14, 165, 233, 0.98) 0%,
+    rgba(2, 132, 199, 0.95) 100%
+  );
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.c-tooltip-modern--info .c-tooltip-modern__arrow {
+  background: rgba(14, 165, 233, 0.98);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================================================
+   MOBILE ADJUSTMENTS
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .c-tooltip-modern {
+    max-width: calc(100vw - var(--space-8));
+  }
+
+  .c-tooltip-modern--rich,
+  .c-tooltip-modern--lg {
+    max-width: calc(100vw - var(--space-8));
+  }
+}
+
+/* Touch devices - show on tap, hide on second tap */
+@media (hover: none) and (pointer: coarse) {
+  .c-tooltip-modern__trigger {
+    cursor: pointer;
+  }
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+.c-tooltip-modern[role="tooltip"] {
+  /* Ensure proper ARIA role */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .c-tooltip-modern {
+    transition: opacity 0.1s ease;
+    transform: none;
+  }
+
+  .c-tooltip-modern.is-visible {
+    transform: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .c-tooltip-modern {
+    border-width: 2px;
+  }
+
+  .c-tooltip-modern__arrow {
+    border-width: 2px;
+  }
+}
+
+/* ============================================================================
+   LOADING STATE - Optional spinner in tooltip
+   ============================================================================ */
+
+.c-tooltip-modern.is-loading {
+  min-width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3);
+}
+
+.c-tooltip-modern.is-loading::after {
+  content: '';
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================================
+   DELAY CLASSES - For staggered appearance
+   ============================================================================ */
+
+.c-tooltip-modern--delay-short {
+  transition-delay: 0.1s;
+}
+
+.c-tooltip-modern--delay-medium {
+  transition-delay: 0.3s;
+}
+
+.c-tooltip-modern--delay-long {
+  transition-delay: 0.5s;
+}
+
+/* ============================================================================
+   NO-ARROW VARIANT
+   ============================================================================ */
+
+.c-tooltip-modern--no-arrow .c-tooltip-modern__arrow {
+  display: none;
+}

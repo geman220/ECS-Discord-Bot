@@ -72,9 +72,9 @@
                     
                     <h4>Quick Actions</h4>
                     <div class="button-group stacked">
-                        <button class="button" onclick="testConfiguration()">Test Configuration</button>
-                        <button class="button" onclick="exportConfig()">Export Settings</button>
-                        <button class="button" onclick="resetToDefaults()">Reset to Defaults</button>
+                        <button class="button js-test-config" data-action="test-config">Test Configuration</button>
+                        <button class="button js-export-config" data-action="export-config">Export Settings</button>
+                        <button class="button js-reset-config" data-action="reset-config">Reset to Defaults</button>
                     </div>
                 </div>
             </div>
@@ -83,23 +83,41 @@
 </div>
 
 <script>
-document.getElementById('mobile-config-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    alert('Configuration save feature will be implemented here');
-});
-
-function testConfiguration() {
-    alert('Configuration test feature will be implemented here');
-}
-
-function exportConfig() {
-    alert('Configuration export feature will be implemented here');
-}
-
-function resetToDefaults() {
-    if (confirm('Are you sure you want to reset to default settings?')) {
-        alert('Reset feature will be implemented here');
+document.addEventListener('DOMContentLoaded', function() {
+    // Form submission
+    const form = document.getElementById('mobile-config-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Configuration save feature will be implemented here');
+        });
     }
-}
+
+    // Test configuration button
+    const testBtn = document.querySelector('.js-test-config');
+    if (testBtn) {
+        testBtn.addEventListener('click', function() {
+            alert('Configuration test feature will be implemented here');
+        });
+    }
+
+    // Export config button
+    const exportBtn = document.querySelector('.js-export-config');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+            alert('Configuration export feature will be implemented here');
+        });
+    }
+
+    // Reset to defaults button
+    const resetBtn = document.querySelector('.js-reset-config');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to reset to default settings?')) {
+                alert('Reset feature will be implemented here');
+            }
+        });
+    }
+});
 </script>
 {% endblock %}

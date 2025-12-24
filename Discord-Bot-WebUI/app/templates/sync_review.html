@@ -3,74 +3,7 @@
 {% block title %}WooCommerce Sync Review{% endblock %}
 
 {% block page_css %}
-<style>
-.issue-card {
-    border-left: 4px solid;
-    transition: all 0.3s ease;
-}
-.issue-resolved {
-    border-left-color: var(--ecs-success, #28a745) !important;
-    background-color: rgba(40, 167, 69, 0.1);
-}
-.issue-pending {
-    border-left-color: var(--ecs-warning, #ffc107);
-}
-.issue-error {
-    border-left-color: var(--ecs-danger, #dc3545);
-}
-.player-assignment {
-    background: var(--bs-gray-50);
-    border: 1px solid var(--bs-border-color);
-    border-radius: 0.375rem;
-    padding: 0.75rem;
-    margin: 0.5rem 0;
-}
-.order-details {
-    background: var(--bs-gray-100);
-    padding: 0.5rem;
-    border-radius: 0.25rem;
-    margin: 0.25rem 0;
-    font-size: 0.9em;
-}
-.resolution-actions {
-    background: rgba(255, 243, 205, 0.5);
-    border: 1px solid var(--bs-warning-border-subtle);
-    border-radius: 0.375rem;
-    padding: 1rem;
-    margin: 1rem 0;
-}
-.commit-section {
-    background: rgba(209, 236, 241, 0.5);
-    border: 1px solid var(--bs-info-border-subtle);
-    border-radius: 0.375rem;
-    padding: 2rem;
-    margin: 2rem 0;
-    text-align: center;
-}
-.status-badge {
-    font-size: 0.8em;
-    padding: 0.25rem 0.5rem;
-}
-.progress-detailed {
-    height: 30px;
-    font-size: 0.9rem;
-}
-.stats-card {
-    transition: transform 0.2s;
-}
-.stats-card:hover {
-    transform: translateY(-2px);
-}
-.nav-tabs .nav-link {
-    position: relative;
-}
-.nav-tabs .nav-link .badge {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    font-size: 0.7em;
-}
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/sync-review.css') }}">
 {% endblock %}
 
 {% block main_content %}
@@ -88,10 +21,10 @@
                     </div>
                 </div>
                 <div class="d-flex gap-2">
-                    <a href="{{ url_for('user_management.manage_users') }}" class="btn btn-outline-secondary">
+                    <a href="{{ url_for('user_management.manage_users') }}" class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-arrow-left me-1"></i> Back to User Management
                     </a>
-                    <button type="button" class="btn btn-outline-primary" onclick="refreshSyncData()">
+                    <button type="button" class="c-btn c-btn--outline-primary js-refresh-sync" data-action="refresh-sync">
                         <i class="ti ti-refresh me-1"></i> Refresh Data
                     </button>
                 </div>
@@ -102,11 +35,11 @@
     <!-- Progress Card -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <h6 class="card-title mb-3">Resolution Progress</h6>
-                    <div class="progress progress-detailed" style="height: 30px;">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated" id="resolutionProgress" role="progressbar" style="width: 0%">
+            <div class="c-card">
+                <div class="c-card__body">
+                    <h6 class="c-card__title mb-3">Resolution Progress</h6>
+                    <div class="progress progress-detailed">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" id="resolutionProgress" role="progressbar">
                             <span id="progressText" class="fw-semibold">0% Complete</span>
                         </div>
                     </div>
@@ -118,50 +51,50 @@
     <!-- Stats Overview Cards -->
     <div class="row mb-4">
         <div class="col-md-2">
-            <div class="card stats-card text-center shadow-sm">
-                <div class="card-body py-3">
-                    <h3 class="card-title text-primary mb-1" id="newPlayersCount">{{ sync_data.new_players|length }}</h3>
-                    <p class="card-text text-muted mb-0">New Players</p>
+            <div class="c-card stats-card text-center shadow-sm">
+                <div class="c-card__body py-3">
+                    <h3 class="c-card__title text-primary mb-1" id="newPlayersCount">{{ sync_data.new_players|length }}</h3>
+                    <p class="c-card__description text-muted mb-0">New Players</p>
                 </div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="card stats-card text-center shadow-sm">
-                <div class="card-body py-3">
-                    <h3 class="card-title text-success mb-1" id="existingPlayersCount">{{ sync_data.player_league_updates|length }}</h3>
-                    <p class="card-text text-muted mb-0">Existing Players</p>
+            <div class="c-card stats-card text-center shadow-sm">
+                <div class="c-card__body py-3">
+                    <h3 class="c-card__title text-success mb-1" id="existingPlayersCount">{{ sync_data.player_league_updates|length }}</h3>
+                    <p class="c-card__description text-muted mb-0">Existing Players</p>
                 </div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="card stats-card text-center shadow-sm">
-                <div class="card-body py-3">
-                    <h3 class="card-title text-warning mb-1" id="flaggedOrdersCount">{{ sync_data.flagged_multi_orders|length }}</h3>
-                    <p class="card-text text-muted mb-0">Multi-Orders</p>
+            <div class="c-card stats-card text-center shadow-sm">
+                <div class="c-card__body py-3">
+                    <h3 class="c-card__title text-warning mb-1" id="flaggedOrdersCount">{{ sync_data.flagged_multi_orders|length }}</h3>
+                    <p class="c-card__description text-muted mb-0">Multi-Orders</p>
                 </div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="card stats-card text-center shadow-sm">
-                <div class="card-body py-3">
-                    <h3 class="card-title text-danger mb-1" id="emailMismatchCount">{{ sync_data.email_mismatch_players|length }}</h3>
-                    <p class="card-text text-muted mb-0">Email Mismatches</p>
+            <div class="c-card stats-card text-center shadow-sm">
+                <div class="c-card__body py-3">
+                    <h3 class="c-card__title text-danger mb-1" id="emailMismatchCount">{{ sync_data.email_mismatch_players|length }}</h3>
+                    <p class="c-card__description text-muted mb-0">Email Mismatches</p>
                 </div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="card stats-card text-center shadow-sm">
-                <div class="card-body py-3">
-                    <h3 class="card-title text-info mb-1" id="potentialInactiveCount">{{ sync_data.potential_inactive|length }}</h3>
-                    <p class="card-text text-muted mb-0">Potential Inactive</p>
+            <div class="c-card stats-card text-center shadow-sm">
+                <div class="c-card__body py-3">
+                    <h3 class="c-card__title text-info mb-1" id="potentialInactiveCount">{{ sync_data.potential_inactive|length }}</h3>
+                    <p class="c-card__description text-muted mb-0">Potential Inactive</p>
                 </div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="card stats-card text-center shadow-sm">
-                <div class="card-body py-3">
-                    <h3 class="card-title text-secondary mb-1" id="issuesResolvedCount">0</h3>
-                    <p class="card-text text-muted mb-0">Issues Resolved</p>
+            <div class="c-card stats-card text-center shadow-sm">
+                <div class="c-card__body py-3">
+                    <h3 class="c-card__title text-secondary mb-1" id="issuesResolvedCount">0</h3>
+                    <p class="c-card__description text-muted mb-0">Issues Resolved</p>
                 </div>
             </div>
         </div>
@@ -170,37 +103,37 @@
     <!-- Main Issues Card with Tabs -->
     <div class="row">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header border-bottom">
-                    <ul class="nav nav-tabs card-header-tabs" id="issuesTab" role="tablist">
+            <div class="c-card">
+                <div class="c-card__header border-bottom">
+                    <ul class="nav nav-tabs c-card__header c-card__header--tabs" id="issuesTab" role="tablist" data-tabs>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="multi-orders-tab" data-bs-toggle="tab" data-bs-target="#multi-orders" type="button" role="tab">
                                 <i class="ti ti-users me-1"></i>Multi-Person Orders
-                                <span class="badge bg-warning ms-2" id="multiOrdersBadge">{{ sync_data.flagged_multi_orders|length }}</span>
+                                <span class="badge bg-warning ms-2" id="multiOrdersBadge" data-badge>{{ sync_data.flagged_multi_orders|length }}</span>
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="new-players-tab" data-bs-toggle="tab" data-bs-target="#new-players" type="button" role="tab">
                                 <i class="ti ti-user-plus me-1"></i>New Players
-                                <span class="badge bg-primary ms-2" id="newPlayersBadge">{{ sync_data.new_players|length }}</span>
+                                <span class="badge bg-primary ms-2" id="newPlayersBadge" data-badge>{{ sync_data.new_players|length }}</span>
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="email-mismatches-tab" data-bs-toggle="tab" data-bs-target="#email-mismatches" type="button" role="tab">
                                 <i class="ti ti-mail me-1"></i>Email Mismatches
-                                <span class="badge bg-danger ms-2" id="emailMismatchBadge">{{ sync_data.email_mismatch_players|length }}</span>
+                                <span class="badge bg-danger ms-2" id="emailMismatchBadge" data-badge>{{ sync_data.email_mismatch_players|length }}</span>
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="existing-players-tab" data-bs-toggle="tab" data-bs-target="#existing-players" type="button" role="tab">
                                 <i class="ti ti-user-check me-1"></i>Existing Players
-                                <span class="badge bg-success ms-2" id="existingPlayersBadge">{{ sync_data.player_league_updates|length }}</span>
+                                <span class="badge bg-success ms-2" id="existingPlayersBadge" data-badge>{{ sync_data.player_league_updates|length }}</span>
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="inactive-players-tab" data-bs-toggle="tab" data-bs-target="#inactive-players" type="button" role="tab">
                                 <i class="ti ti-user-off me-1"></i>Mark Inactive
-                                <span class="badge bg-warning ms-2" id="inactivePlayersBadge">{{ sync_data.players_to_inactivate|length }}</span>
+                                <span class="badge bg-warning ms-2" id="inactivePlayersBadge" data-badge>{{ sync_data.players_to_inactivate|length }}</span>
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
@@ -213,10 +146,10 @@
 
                 <div class="tab-content">
                     <!-- Multi-Person Orders Tab -->
-                    <div class="tab-pane fade show active" id="multi-orders" role="tabpanel">
-                        <div class="card-body">
+                    <div class="tab-pane fade show active" id="multi-orders" role="tabpanel" data-tab-pane>
+                        <div class="c-card__body">
                             {% if sync_data.flagged_multi_orders|length > 0 %}
-                                <div class="alert alert-warning border-start border-warning border-3 py-3 px-4 mb-4">
+                                <div class="alert alert-warning border-start border-warning border-3 py-3 px-4 mb-4" data-alert>
                                     <div class="d-flex align-items-center">
                                         <i class="ti ti-alert-triangle me-2 fs-4"></i>
                                         <div>
@@ -234,7 +167,7 @@
                                             <div class="d-flex align-items-center mb-2">
                                                 <i class="ti ti-user me-2 text-primary"></i>
                                                 <h5 class="mb-0">{{ order.buyer_info.name }}</h5>
-                                                <span class="status-badge badge bg-warning ms-3">Pending Assignment</span>
+                                                <span class="status-badge badge bg-warning ms-3" data-badge>Pending Assignment</span>
                                             </div>
                                             <p class="text-muted mb-3">
                                                 <i class="ti ti-mail me-1"></i>{{ order.buyer_info.email }}<br>
@@ -253,7 +186,7 @@
                                                 <div class="d-flex justify-content-between align-items-start">
                                                     <div class="flex-grow-1">
                                                         <strong class="text-dark">Order #{{ ord.order.order_id }}</strong>
-                                                        <span class="badge bg-light text-dark ms-2">Qty: {{ ord.order.quantity }}</span>
+                                                        <span class="badge bg-light text-dark ms-2" data-badge>Qty: {{ ord.order.quantity }}</span>
                                                         <br>
                                                         <div class="mt-2 p-2 bg-light rounded">
                                                             <h6 class="mb-1 text-primary"><i class="ti ti-info-circle me-1"></i>Order Information:</h6>
@@ -282,14 +215,14 @@
                                                         <label class="form-label fw-semibold">Order #{{ ord.order.order_id }}:</label>
                                                         
                                                         <!-- Current Assignment Display -->
-                                                        <div class="current-assignment mb-2" id="current-assignment-{{ outer_loop.index0 }}-{{ loop.index0 }}" style="display: none;">
-                                                            <div class="alert alert-success py-2 mb-2">
+                                                        <div class="current-assignment mb-2" id="current-assignment-{{ outer_loop.index0 }}-{{ loop.index0 }}">
+                                                            <div class="alert alert-success py-2 mb-2" data-alert>
                                                                 <div class="d-flex justify-content-between align-items-center">
                                                                     <div>
                                                                         <i class="ti ti-check-circle me-1"></i>
                                                                         <span class="assignment-text"></span>
                                                                     </div>
-                                                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeAssignment({{ outer_loop.index0 }}, {{ loop.index0 }})">
+                                                                    <button type="button" class="c-btn c-btn--sm c-btn--outline-danger js-remove-assignment" data-action="remove-assignment" data-issue-id="{{ outer_loop.index0 }}" data-order-index="{{ loop.index0 }}">
                                                                         <i class="ti ti-x me-1"></i>Remove
                                                                     </button>
                                                                 </div>
@@ -300,7 +233,7 @@
                                                         <div class="assignment-selection" id="assignment-selection-{{ outer_loop.index0 }}-{{ loop.index0 }}">
                                                             <select class="form-select assignment-select mb-2" 
                                                                     data-issue-id="{{ outer_loop.index0 }}" 
-                                                                    data-order-index="{{ loop.index0 }}">
+                                                                    data-order-index="{{ loop.index0 }}" data-form-select>
                                                                 <option value="">Select Assignment...</option>
                                                                 <option value="new">Create New Player Profile</option>
                                                                 <option value="search">Assign to Existing Player</option>
@@ -309,22 +242,22 @@
                                                         
                                                         <!-- New Player Creation Form -->
                                                         <div class="d-none" id="create-new-{{ outer_loop.index0 }}-{{ loop.index0 }}">
-                                                            <div class="card border-success border-2 mt-2">
-                                                                <div class="card-header bg-success text-white py-2">
+                                                            <div class="c-card border-success border-2 mt-2">
+                                                                <div class="c-card__header bg-success text-white py-2">
                                                                     <h6 class="mb-0"><i class="ti ti-user-plus me-1"></i>Create New Player from WooCommerce Order</h6>
                                                                 </div>
-                                                                <div class="card-body p-3">
+                                                                <div class="c-card__body p-3">
                                                                     <div class="mb-2">
                                                                         <label class="form-label fw-semibold">Player Name *</label>
-                                                                        <input type="text" class="form-control form-control-sm new-player-name" value="{{ ord.player_info.name }}" required>
+                                                                        <input type="text" class="form-control form-control-sm new-player-name" value="{{ ord.player_info.name }}" required data-form-control>
                                                                         <div class="form-text">Pre-filled from WooCommerce order - edit if needed</div>
                                                                     </div>
                                                                     
                                                                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                                                                        <button class="btn btn-success btn-sm" onclick="createNewPlayerFromForm({{ outer_loop.index0 }}, {{ loop.index0 }})">
+                                                                        <button class="c-btn c-btn--success c-btn--sm js-create-player-form" data-action="create-player-form" data-issue-id="{{ outer_loop.index0 }}" data-order-index="{{ loop.index0 }}">
                                                                             <i class="ti ti-plus me-1"></i>Create Player with Order Data
                                                                         </button>
-                                                                        <button class="btn btn-secondary btn-sm" onclick="cancelPlayerCreation({{ outer_loop.index0 }}, {{ loop.index0 }})">Cancel</button>
+                                                                        <button class="c-btn c-btn--secondary c-btn--sm js-cancel-creation" data-action="cancel-creation" data-issue-id="{{ outer_loop.index0 }}" data-order-index="{{ loop.index0 }}">Cancel</button>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -332,18 +265,18 @@
                                                         
                                                         <!-- Player Search Form -->
                                                         <div class="d-none" id="search-{{ outer_loop.index0 }}-{{ loop.index0 }}">
-                                                            <div class="card border-primary border-2 mt-2">
-                                                                <div class="card-header bg-primary text-white py-2">
+                                                            <div class="c-card border-primary border-2 mt-2">
+                                                                <div class="c-card__header bg-primary text-white py-2">
                                                                     <h6 class="mb-0"><i class="ti ti-search me-1"></i>Search Existing Players</h6>
                                                                 </div>
-                                                                <div class="card-body p-3">
+                                                                <div class="c-card__body p-3">
                                                                     <div class="mb-2">
-                                                                        <input type="text" class="form-control form-control-sm player-search" placeholder="Search by name, email, or phone..." onkeyup="searchPlayersDelayed(this, {{ outer_loop.index0 }}, {{ loop.index0 }})">
+                                                                        <input type="text" class="form-control form-control-sm player-search js-player-search" data-issue-id="{{ outer_loop.index0 }}" data-order-index="{{ loop.index0 }}" placeholder="Search by name, email, or phone..." data-form-control>
                                                                         <div class="form-text">Type at least 2 characters to search</div>
                                                                     </div>
                                                                     <div class="search-results" id="search-results-{{ outer_loop.index0 }}-{{ loop.index0 }}"></div>
                                                                     <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-2">
-                                                                        <button class="btn btn-secondary btn-sm" onclick="cancelPlayerSearch({{ outer_loop.index0 }}, {{ loop.index0 }})">Cancel</button>
+                                                                        <button class="c-btn c-btn--secondary c-btn--sm js-cancel-search" data-action="cancel-search" data-issue-id="{{ outer_loop.index0 }}" data-order-index="{{ loop.index0 }}">Cancel</button>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -351,7 +284,7 @@
                                                     </div>
                                                     {% endfor %}
                                                 </div>
-                                                <button class="btn btn-success" onclick="resolveMultiOrder({{ outer_loop.index0 }})">
+                                                <button class="c-btn c-btn--success js-resolve-multi-order" data-action="resolve-multi-order" data-issue-id="{{ outer_loop.index0 }}">
                                                     <i class="ti ti-check me-1"></i> Save Assignments
                                                 </button>
                                             </div>
@@ -361,7 +294,7 @@
                                 {% endfor %}
                             {% else %}
                                 <div class="text-center py-5">
-                                    <i class="ti ti-circle-check text-success" style="font-size: 4rem;"></i>
+                                    <i class="ti ti-circle-check text-success empty-state-icon"></i>
                                     <h4 class="text-success mt-3">No Multi-Person Orders!</h4>
                                     <p class="text-muted">All orders have single assignments.</p>
                                 </div>
@@ -370,10 +303,10 @@
                     </div>
 
                     <!-- New Players Tab -->
-                    <div class="tab-pane fade" id="new-players" role="tabpanel">
-                        <div class="card-body">
+                    <div class="tab-pane fade" id="new-players" role="tabpanel" data-tab-pane>
+                        <div class="c-card__body">
                             {% if sync_data.new_players|length > 0 %}
-                                <div class="alert alert-info border-start border-info border-3 py-3 px-4 mb-4">
+                                <div class="alert alert-info border-start border-info border-3 py-3 px-4 mb-4" data-alert>
                                     <div class="d-flex align-items-center">
                                         <i class="ti ti-info-circle me-2 fs-4"></i>
                                         <div>
@@ -389,7 +322,7 @@
                                         <div class="d-flex align-items-center">
                                             <i class="ti ti-user-plus me-2 text-primary"></i>
                                             <h5 class="mb-0">{{ player.info.name }}</h5>
-                                            <span class="status-badge badge bg-primary ms-3">New Player</span>
+                                            <span class="status-badge badge bg-primary ms-3" data-badge>New Player</span>
                                         </div>
                                     </div>
                                     
@@ -429,7 +362,7 @@
                                                 </div>
                                             </div>
                                             {% if player.reason %}
-                                            <div class="alert alert-warning py-2 px-3">
+                                            <div class="alert alert-warning py-2 px-3" data-alert>
                                                 <small><i class="ti ti-alert-triangle me-1"></i>{{ player.reason }}</small>
                                             </div>
                                             {% endif %}
@@ -440,18 +373,18 @@
                                                     <i class="ti ti-tools me-1"></i>Resolution Options
                                                 </h6>
                                                 <div class="d-grid gap-2">
-                                                    <button class="btn btn-success" onclick="createNewPlayer({{ loop.index0 }})">
+                                                    <button class="c-btn c-btn--success js-create-new-player" data-action="create-new-player" data-issue-id="{{ loop.index0 }}">
                                                         <i class="ti ti-user-plus me-1"></i> Create New Player Profile
                                                     </button>
-                                                    <button class="btn btn-warning" onclick="searchExistingPlayers({{ loop.index0 }})">
+                                                    <button class="c-btn c-btn--warning js-search-existing" data-action="search-existing" data-issue-id="{{ loop.index0 }}">
                                                         <i class="ti ti-search me-1"></i> Search for Existing Player
                                                     </button>
-                                                    <button class="btn btn-danger" onclick="flagAsInvalid({{ loop.index0 }})">
+                                                    <button class="c-btn c-btn--danger js-flag-invalid" data-action="flag-invalid" data-issue-id="{{ loop.index0 }}">
                                                         <i class="ti ti-x me-1"></i> Mark as Invalid Order
                                                     </button>
                                                 </div>
                                                 <div class="mt-3 d-none" id="player-search-{{ loop.index0 }}">
-                                                    <input type="text" class="form-control" placeholder="Search existing players...">
+                                                    <input type="text" class="form-control" placeholder="Search existing players..." data-form-control>
                                                     <div class="search-results mt-2"></div>
                                                 </div>
                                             </div>
@@ -461,7 +394,7 @@
                                 {% endfor %}
                             {% else %}
                                 <div class="text-center py-5">
-                                    <i class="ti ti-circle-check text-success" style="font-size: 4rem;"></i>
+                                    <i class="ti ti-circle-check text-success empty-state-icon"></i>
                                     <h4 class="text-success mt-3">No New Players!</h4>
                                     <p class="text-muted">All players were found in the existing database.</p>
                                 </div>
@@ -470,10 +403,10 @@
                     </div>
 
                     <!-- Email Mismatches Tab -->
-                    <div class="tab-pane fade" id="email-mismatches" role="tabpanel">
-                        <div class="card-body">
+                    <div class="tab-pane fade" id="email-mismatches" role="tabpanel" data-tab-pane>
+                        <div class="c-card__body">
                             {% if sync_data.email_mismatch_players|length > 0 %}
-                                <div class="alert alert-danger border-start border-danger border-3 py-3 px-4 mb-4">
+                                <div class="alert alert-danger border-start border-danger border-3 py-3 px-4 mb-4" data-alert>
                                     <div class="d-flex align-items-center">
                                         <i class="ti ti-mail-x me-2 fs-4"></i>
                                         <div>
@@ -489,10 +422,10 @@
                                         <div class="d-flex align-items-center">
                                             <i class="ti ti-mail-x me-2 text-danger"></i>
                                             <h5 class="mb-0">{{ player.existing_player.name }}</h5>
-                                            <span class="status-badge badge bg-danger ms-3">Email Mismatch</span>
+                                            <span class="status-badge badge bg-danger ms-3" data-badge>Email Mismatch</span>
                                         </div>
                                         <div>
-                                            <a href="/players/profile/{{ player.existing_player.id }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                            <a href="/players/profile/{{ player.existing_player.id }}" target="_blank" class="c-btn c-btn--outline-primary c-btn--sm">
                                                 <i class="ti ti-external-link me-1"></i>View Profile
                                             </a>
                                         </div>
@@ -505,7 +438,7 @@
                                             </h6>
                                             
                                             <!-- Database Player Info -->
-                                            <div class="alert alert-info py-2 mb-3">
+                                            <div class="alert alert-info py-2 mb-3" data-alert>
                                                 <h6 class="mb-1"><i class="ti ti-database me-1"></i>Database Player:</h6>
                                                 <div class="small">
                                                     <strong>Name:</strong> {{ player.existing_player.name }}<br>
@@ -515,7 +448,7 @@
                                             </div>
                                             
                                             <!-- WooCommerce Order Info -->
-                                            <div class="alert alert-warning py-2 mb-3">
+                                            <div class="alert alert-warning py-2 mb-3" data-alert>
                                                 <h6 class="mb-1"><i class="ti ti-shopping-cart me-1"></i>WooCommerce Order:</h6>
                                                 <div class="small">
                                                     <strong>Name:</strong> {{ player.order_info.woo_name }}<br>
@@ -532,9 +465,9 @@
                                                 <div class="row g-2 small">
                                                     <div class="col-sm-6">
                                                         {% if player.existing_player.name|lower == player.order_info.woo_name|lower %}
-                                                            <span class="badge bg-success"><i class="ti ti-check me-1"></i>Name Match</span>
+                                                            <span class="badge bg-success" data-badge><i class="ti ti-check me-1"></i>Name Match</span>
                                                         {% else %}
-                                                            <span class="badge bg-secondary"><i class="ti ti-x me-1"></i>Name Similar</span>
+                                                            <span class="badge bg-secondary" data-badge><i class="ti ti-x me-1"></i>Name Similar</span>
                                                         {% endif %}
                                                     </div>
                                                     <div class="col-sm-6">
@@ -547,14 +480,14 @@
                                                             {% set woo_phone = woo_phone[1:] %}
                                                         {% endif %}
                                                         {% if player.existing_player.phone and player.order_info.woo_phone and db_phone == woo_phone %}
-                                                            <span class="badge bg-success"><i class="ti ti-check me-1"></i>Phone Match</span>
+                                                            <span class="badge bg-success" data-badge><i class="ti ti-check me-1"></i>Phone Match</span>
                                                         {% else %}
-                                                            <span class="badge bg-danger"><i class="ti ti-x me-1"></i>Phone Differs</span>
+                                                            <span class="badge bg-danger" data-badge><i class="ti ti-x me-1"></i>Phone Differs</span>
                                                         {% endif %}
                                                     </div>
                                                     <div class="col-12 mt-2">
-                                                        <span class="badge bg-danger"><i class="ti ti-mail-x me-1"></i>Email Mismatch</span>
-                                                        <span class="badge bg-info ms-2">Confidence: {{ (player.match_details.confidence * 100)|round|int }}%</span>
+                                                        <span class="badge bg-danger" data-badge><i class="ti ti-mail-x me-1"></i>Email Mismatch</span>
+                                                        <span class="badge bg-info ms-2" data-badge>Confidence: {{ (player.match_details.confidence * 100)|round|int }}%</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -565,11 +498,11 @@
                                                     <i class="ti ti-tools me-1"></i>Resolution Options
                                                 </h6>
                                                 <div class="d-grid gap-2">
-                                                    <button class="btn btn-success" onclick="confirmPlayerMatch({{ loop.index0 }})">
+                                                    <button class="c-btn c-btn--success js-confirm-match" data-action="confirm-match" data-issue-id="{{ loop.index0 }}">
                                                         <i class="ti ti-check-circle me-1"></i> Confirm This Match
                                                         <div class="small">Keep database email as authoritative</div>
                                                     </button>
-                                                    <button class="btn btn-warning" onclick="createSeparatePlayer({{ loop.index0 }})">
+                                                    <button class="c-btn c-btn--warning js-create-separate" data-action="create-separate" data-issue-id="{{ loop.index0 }}">
                                                         <i class="ti ti-user-plus me-1"></i> Create Separate Player
                                                         <div class="small">These are different people</div>
                                                     </button>
@@ -581,7 +514,7 @@
                                 {% endfor %}
                             {% else %}
                                 <div class="text-center py-5">
-                                    <i class="ti ti-circle-check text-success" style="font-size: 4rem;"></i>
+                                    <i class="ti ti-circle-check text-success empty-state-icon"></i>
                                     <h4 class="text-success mt-3">No Email Mismatches!</h4>
                                     <p class="text-muted">All player emails match between database and WooCommerce.</p>
                                 </div>
@@ -590,10 +523,10 @@
                     </div>
 
                     <!-- Existing Players Tab -->
-                    <div class="tab-pane fade" id="existing-players" role="tabpanel">
-                        <div class="card-body">
+                    <div class="tab-pane fade" id="existing-players" role="tabpanel" data-tab-pane>
+                        <div class="c-card__body">
                             {% if sync_data.player_league_updates|length > 0 %}
-                                <div class="alert alert-info border-start border-info border-3 py-3 px-4 mb-4">
+                                <div class="alert alert-info border-start border-info border-3 py-3 px-4 mb-4" data-alert>
                                     <div class="d-flex align-items-center">
                                         <i class="ti ti-user-check me-2 fs-4"></i>
                                         <div>
@@ -624,20 +557,20 @@
                                         </div>
                                         <div class="col-md-4">
                                             <div class="match-details">
-                                                <span class="badge bg-success">{{ update.match_type }}</span>
+                                                <span class="badge bg-success" data-badge>{{ update.match_type }}</span>
                                                 <small class="d-block text-muted mt-1">
                                                     Confidence: {{ "%.0f"|format(update.confidence * 100) }}%
                                                 </small>
                                                 {% if update.name_updated %}
                                                 <div class="mt-1">
-                                                    <span class="badge bg-warning">Name Updated</span>
+                                                    <span class="badge bg-warning" data-badge>Name Updated</span>
                                                     <small class="d-block text-muted mt-1">{{ update.name_update_reason }}</small>
                                                 </div>
                                                 {% endif %}
                                                 {% if update.flags %}
                                                 <div class="mt-1">
                                                     {% for flag in update.flags %}
-                                                    <span class="badge bg-secondary badge-sm">{{ flag }}</span>
+                                                    <span class="badge bg-secondary badge-sm" data-badge>{{ flag }}</span>
                                                     {% endfor %}
                                                 </div>
                                                 {% endif %}
@@ -648,7 +581,7 @@
                                 {% endfor %}
                             {% else %}
                                 <div class="text-center py-5">
-                                    <i class="ti ti-users text-muted" style="font-size: 4rem;"></i>
+                                    <i class="ti ti-users text-muted empty-state-icon"></i>
                                     <h4 class="text-muted mt-3">No Existing Players Found</h4>
                                     <p class="text-muted">All orders are for new players or flagged for review.</p>
                                 </div>
@@ -657,10 +590,10 @@
                     </div>
 
                     <!-- Inactive Players Tab -->
-                    <div class="tab-pane fade" id="inactive-players" role="tabpanel">
-                        <div class="card-body">
+                    <div class="tab-pane fade" id="inactive-players" role="tabpanel" data-tab-pane>
+                        <div class="c-card__body">
                             {% if sync_data.players_to_inactivate|length > 0 %}
-                                <div class="alert alert-warning border-start border-warning border-3 py-3 px-4 mb-4">
+                                <div class="alert alert-warning border-start border-warning border-3 py-3 px-4 mb-4" data-alert>
                                     <div class="d-flex align-items-center">
                                         <i class="ti ti-user-off me-2 fs-4"></i>
                                         <div>
@@ -687,7 +620,7 @@
                                 </div>
 
                                 {% for player in sync_data.players_to_inactivate %}
-                                <div class="issue-card border rounded p-3 mb-3" style="border-left-color: #ffc107;">
+                                <div class="issue-card inactive-player-card border rounded p-3 mb-3">
                                     <div class="row align-items-center">
                                         <div class="col-md-4">
                                             <h6 class="mb-1">
@@ -701,11 +634,11 @@
                                         </div>
                                         <div class="col-md-4">
                                             <div class="text-center">
-                                                <span class="badge bg-success">Currently Active</span>
+                                                <span class="badge bg-success" data-badge>Currently Active</span>
                                                 <div class="mt-2">
                                                     <i class="ti ti-arrow-down text-warning"></i>
                                                 </div>
-                                                <span class="badge bg-warning">Will be Inactive</span>
+                                                <span class="badge bg-warning" data-badge>Will be Inactive</span>
                                             </div>
                                         </div>
                                         <div class="col-md-4">
@@ -720,7 +653,7 @@
                                 {% endfor %}
                             {% else %}
                                 <div class="text-center py-5">
-                                    <i class="ti ti-circle-check text-success" style="font-size: 4rem;"></i>
+                                    <i class="ti ti-circle-check text-success empty-state-icon"></i>
                                     <h4 class="text-success mt-3">No Players to Mark Inactive!</h4>
                                     <p class="text-muted">All currently active players have current WooCommerce memberships.</p>
                                 </div>
@@ -729,10 +662,10 @@
                     </div>
 
                     <!-- Final Review Tab -->
-                    <div class="tab-pane fade" id="summary" role="tabpanel">
-                        <div class="card-body">
+                    <div class="tab-pane fade" id="summary" role="tabpanel" data-tab-pane>
+                        <div class="c-card__body">
                             <div id="commitValidation">
-                                <div class="alert alert-warning border-start border-warning border-3 py-3 px-4">
+                                <div class="alert alert-warning border-start border-warning border-3 py-3 px-4" data-alert>
                                     <div class="d-flex align-items-center">
                                         <i class="ti ti-alert-circle me-2 fs-4"></i>
                                         <div>
@@ -752,9 +685,9 @@
                                     
                                     <div class="row text-start mb-4">
                                         <div class="col-md-6">
-                                            <div class="card border-start border-success border-3">
-                                                <div class="card-body">
-                                                    <h6 class="card-title text-success">
+                                            <div class="c-card border-start border-success border-3">
+                                                <div class="c-card__body">
+                                                    <h6 class="c-card__title text-success">
                                                         <i class="ti ti-users me-1"></i>Player Updates
                                                     </h6>
                                                     <ul id="playerUpdatesSummary" class="list-unstyled mb-0">
@@ -763,9 +696,9 @@
                                             </div>
                                         </div>
                                         <div class="col-md-6">
-                                            <div class="card border-start border-info border-3">
-                                                <div class="card-body">
-                                                    <h6 class="card-title text-info">
+                                            <div class="c-card border-start border-info border-3">
+                                                <div class="c-card__body">
+                                                    <h6 class="c-card__title text-info">
                                                         <i class="ti ti-toggle-left me-1"></i>Status Changes
                                                     </h6>
                                                     <ul id="statusChangesSummary" class="list-unstyled mb-0">
@@ -783,7 +716,7 @@
                                         </label>
                                     </div>
                                     
-                                    <button class="btn btn-success btn-lg" id="finalCommitBtn" onclick="commitAllChanges()">
+                                    <button class="c-btn c-btn--success c-btn--lg js-commit-changes" id="finalCommitBtn" data-action="commit-changes">
                                         <i class="ti ti-database-import me-2"></i> Commit All Changes
                                     </button>
                                 </div>
@@ -797,17 +730,17 @@
 </div>
 
 <!-- Player Search Modal -->
-<div class="modal fade" id="playerSearchModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
+<div class="modal c-modal fade" id="playerSearchModal" tabindex="-1" data-modal aria-labelledby="playerSearchModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="playerSearchModalLabel">
                     <i class="ti ti-search me-2"></i>Search for Existing Player
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body">
-                <input type="text" class="form-control mb-3" id="playerSearchInput" placeholder="Type to search players by name or email...">
+            <div class="modal-body c-modal__body" data-modal-body>
+                <input type="text" class="form-control mb-3" id="playerSearchInput" placeholder="Type to search players by name or email..." data-form-control>
                 <div id="playerSearchResults"></div>
             </div>
         </div>
@@ -831,7 +764,98 @@ let playersWithOrders = new Set();
 document.addEventListener('DOMContentLoaded', function() {
     updateProgressBar();
     checkCommitReadiness();
-    
+
+    // Event delegation for sync review actions
+    document.querySelectorAll('.js-refresh-sync').forEach(btn => {
+        btn.addEventListener('click', refreshSyncData);
+    });
+
+    document.querySelectorAll('.js-remove-assignment').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const issueId = this.dataset.issueId;
+            const orderIndex = this.dataset.orderIndex;
+            removeAssignment(issueId, orderIndex);
+        });
+    });
+
+    document.querySelectorAll('.js-create-player-form').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const issueId = this.dataset.issueId;
+            const orderIndex = this.dataset.orderIndex;
+            createNewPlayerFromForm(issueId, orderIndex);
+        });
+    });
+
+    document.querySelectorAll('.js-cancel-creation').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const issueId = this.dataset.issueId;
+            const orderIndex = this.dataset.orderIndex;
+            cancelPlayerCreation(issueId, orderIndex);
+        });
+    });
+
+    document.querySelectorAll('.js-player-search').forEach(input => {
+        input.addEventListener('keyup', function() {
+            const issueId = this.dataset.issueId;
+            const orderIndex = this.dataset.orderIndex;
+            searchPlayersDelayed(this, issueId, orderIndex);
+        });
+    });
+
+    document.querySelectorAll('.js-cancel-search').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const issueId = this.dataset.issueId;
+            const orderIndex = this.dataset.orderIndex;
+            cancelPlayerSearch(issueId, orderIndex);
+        });
+    });
+
+    document.querySelectorAll('.js-resolve-multi-order').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const issueId = this.dataset.issueId;
+            resolveMultiOrder(issueId);
+        });
+    });
+
+    document.querySelectorAll('.js-create-new-player').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const issueId = this.dataset.issueId;
+            createNewPlayer(issueId);
+        });
+    });
+
+    document.querySelectorAll('.js-search-existing').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const issueId = this.dataset.issueId;
+            searchExistingPlayers(issueId);
+        });
+    });
+
+    document.querySelectorAll('.js-flag-invalid').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const issueId = this.dataset.issueId;
+            flagAsInvalid(issueId);
+        });
+    });
+
+    document.querySelectorAll('.js-confirm-match').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const issueId = this.dataset.issueId;
+            confirmPlayerMatch(issueId);
+        });
+    });
+
+    document.querySelectorAll('.js-create-separate').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const issueId = this.dataset.issueId;
+            createSeparatePlayer(issueId);
+        });
+    });
+
+    document.querySelectorAll('.js-commit-changes').forEach(btn => {
+        btn.addEventListener('click', commitAllChanges);
+    });
+
     // Initialize assignment select handlers
     document.querySelectorAll('.assignment-select').forEach(select => {
         select.addEventListener('change', function() {
@@ -862,8 +886,9 @@ function updateProgressBar() {
     
     const progressBar = document.getElementById('resolutionProgress');
     const progressText = document.getElementById('progressText');
-    
-    progressBar.style.width = percentage + '%';
+
+    progressBar.setAttribute('style', `width: ${percentage}%`);
+    progressBar.setAttribute('aria-valuenow', percentage);
     progressText.textContent = `${percentage}% Complete (${resolvedIssues}/${totalIssues} resolved)`;
     document.getElementById('issuesResolvedCount').textContent = resolvedIssues + '/' + totalIssues;
     
@@ -924,7 +949,7 @@ function updateInactivePlayersDisplay(remainingInactive, assignedPlayerIds) {
     if (remainingInactive.length === 0) {
         cardBody.innerHTML = `
             <div class="text-center py-5">
-                <i class="ti ti-circle-check text-success" style="font-size: 4rem;"></i>
+                <i class="ti ti-circle-check text-success empty-state-icon"></i>
                 <h4 class="text-success mt-3">No Players to Mark Inactive!</h4>
                 <p class="text-muted">All currently active players have current WooCommerce memberships.</p>
             </div>
@@ -933,7 +958,7 @@ function updateInactivePlayersDisplay(remainingInactive, assignedPlayerIds) {
     }
     
     let html = `
-        <div class="alert alert-warning border-start border-warning border-3 py-3 px-4 mb-4">
+        <div class="alert alert-warning border-start border-warning border-3 py-3 px-4 mb-4" data-alert>
             <div class="d-flex align-items-center">
                 <i class="ti ti-user-off me-2 fs-4"></i>
                 <div>
@@ -966,7 +991,7 @@ function updateInactivePlayersDisplay(remainingInactive, assignedPlayerIds) {
     
     if (excludedPlayers.length > 0) {
         html += `
-            <div class="alert alert-info border-start border-info border-3 py-3 px-4 mb-4">
+            <div class="alert alert-info border-start border-info border-3 py-3 px-4 mb-4" data-alert>
                 <div class="d-flex align-items-center">
                     <i class="ti ti-info-circle me-2 fs-4"></i>
                     <div>
@@ -982,7 +1007,7 @@ function updateInactivePlayersDisplay(remainingInactive, assignedPlayerIds) {
     // Add remaining inactive players
     remainingInactive.forEach(player => {
         html += `
-            <div class="issue-card border rounded p-3 mb-3" style="border-left-color: #ffc107;">
+            <div class="issue-card inactive-player-card border rounded p-3 mb-3">
                 <div class="row align-items-center">
                     <div class="col-md-4">
                         <h6 class="mb-1">
@@ -996,11 +1021,11 @@ function updateInactivePlayersDisplay(remainingInactive, assignedPlayerIds) {
                     </div>
                     <div class="col-md-4">
                         <div class="text-center">
-                            <span class="badge bg-success">Currently Active</span>
+                            <span class="badge bg-success" data-badge>Currently Active</span>
                             <div class="mt-2">
                                 <i class="ti ti-arrow-down text-warning"></i>
                             </div>
-                            <span class="badge bg-warning">Will be Inactive</span>
+                            <span class="badge bg-warning" data-badge>Will be Inactive</span>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -1252,12 +1277,24 @@ function searchPlayersDelayed(input, issueId, orderIndex) {
     }
     
     // Show loading
-    resultsDiv.innerHTML = '<div class="text-muted small"><i class="spinner-border spinner-border-sm me-1"></i>Searching...</div>';
+    resultsDiv.innerHTML = '<div class="text-muted small" data-spinner><i class="spinner-border spinner-border-sm me-1"></i>Searching...</div>';
     
     searchTimeout = setTimeout(() => {
         searchPlayers(query, issueId, orderIndex);
     }, 300); // 300ms delay
 }
+
+// Event delegation for dynamically added player results
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.js-assign-player')) {
+        const playerResult = e.target.closest('.js-assign-player');
+        const issueId = playerResult.dataset.issueId;
+        const orderIndex = playerResult.dataset.orderIndex;
+        const playerId = playerResult.dataset.playerId;
+        const playerName = playerResult.dataset.playerName;
+        assignToPlayer(issueId, orderIndex, playerId, playerName);
+    }
+});
 
 function searchPlayers(query, issueId, orderIndex) {
     fetch('/user_management/search_players', {
@@ -1279,8 +1316,8 @@ function searchPlayers(query, issueId, orderIndex) {
             
             data.players.forEach(player => {
                 const statusBadge = player.is_current ? 
-                    '<span class="badge bg-success">Active</span>' : 
-                    '<span class="badge bg-warning">Inactive</span>';
+                    '<span class="badge bg-success" data-badge>Active</span>' : 
+                    '<span class="badge bg-warning" data-badge>Inactive</span>';
                 
                 let playerDetails = `Email: ${player.email}<br>Phone: ${player.phone}<br>League: ${player.league}`;
                 if (player.jersey_size && player.jersey_size !== 'N/A') {
@@ -1288,7 +1325,7 @@ function searchPlayers(query, issueId, orderIndex) {
                 }
                 
                 html += `
-                    <div class="border rounded p-2 mb-2 player-result" style="cursor: pointer;" onclick="assignToPlayer(${issueId}, ${orderIndex}, ${player.id}, '${player.name}')">
+                    <div class="border rounded p-2 mb-2 player-result js-assign-player" data-action="assign-player" data-issue-id="${issueId}" data-order-index="${orderIndex}" data-player-id="${player.id}" data-player-name="${player.name}">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <strong>${player.name}</strong> ${statusBadge}
@@ -1306,13 +1343,13 @@ function searchPlayers(query, issueId, orderIndex) {
         } else if (data.success && data.players.length === 0) {
             resultsDiv.innerHTML = '<div class="text-warning small"><i class="ti ti-search me-1"></i>No players found matching "' + query + '"</div>';
         } else {
-            resultsDiv.innerHTML = '<div class="text-danger small"><i class="ti ti-alert-circle me-1"></i>Error searching: ' + (data.error || 'Unknown error') + '</div>';
+            resultsDiv.innerHTML = '<div class="text-danger small" data-alert><i class="ti ti-alert-circle me-1"></i>Error searching: ' + (data.error || 'Unknown error') + '</div>';
         }
     })
     .catch(error => {
         console.error('Search error:', error);
         document.getElementById(`search-results-${issueId}-${orderIndex}`).innerHTML = 
-            '<div class="text-danger small"><i class="ti ti-alert-circle me-1"></i>Search failed</div>';
+            '<div class="text-danger small" data-alert><i class="ti ti-alert-circle me-1"></i>Search failed</div>';
     });
 }
 
@@ -1487,43 +1524,48 @@ function removeAssignment(issueId, orderIndex) {
     // Remove from resolutions
     if (resolutions.multiOrders[issueId]) {
         resolutions.multiOrders[issueId] = resolutions.multiOrders[issueId].filter(a => a.orderIndex !== orderIndex);
-        
+
         // If no assignments left for this issue, remove the entire entry
         if (resolutions.multiOrders[issueId].length === 0) {
             delete resolutions.multiOrders[issueId];
         }
     }
-    
+
     // Hide current assignment display
-    document.getElementById(`current-assignment-${issueId}-${orderIndex}`).style.display = 'none';
-    
+    document.getElementById(`current-assignment-${issueId}-${orderIndex}`).classList.add('sr-hidden');
+    document.getElementById(`current-assignment-${issueId}-${orderIndex}`).classList.remove('sr-visible');
+
     // Show assignment selection dropdown
-    document.getElementById(`assignment-selection-${issueId}-${orderIndex}`).style.display = 'block';
-    
+    document.getElementById(`assignment-selection-${issueId}-${orderIndex}`).classList.remove('sr-hidden');
+    document.getElementById(`assignment-selection-${issueId}-${orderIndex}`).classList.add('sr-visible');
+
     // Reset dropdown
     const select = document.querySelector(`[data-issue-id="${issueId}"][data-order-index="${orderIndex}"]`);
     select.value = '';
-    
+
     // Hide any open forms
     document.getElementById(`search-${issueId}-${orderIndex}`).classList.add('d-none');
     document.getElementById(`create-new-${issueId}-${orderIndex}`).classList.add('d-none');
-    
+
     // Update progress and inactive counts since we removed an assignment
     updateProgressBar();
     checkCommitReadiness();
-    
+
     showSuccessToast('Assignment removed successfully');
 }
 
 function showAssignment(issueId, orderIndex, assignmentText) {
     // Hide assignment selection dropdown
-    document.getElementById(`assignment-selection-${issueId}-${orderIndex}`).style.display = 'none';
-    
+    const assignmentSelection = document.getElementById(`assignment-selection-${issueId}-${orderIndex}`);
+    assignmentSelection.classList.add('sr-hidden');
+    assignmentSelection.classList.remove('sr-visible');
+
     // Show current assignment display
     const currentAssignmentDiv = document.getElementById(`current-assignment-${issueId}-${orderIndex}`);
-    currentAssignmentDiv.style.display = 'block';
+    currentAssignmentDiv.classList.remove('sr-hidden');
+    currentAssignmentDiv.classList.add('sr-visible');
     currentAssignmentDiv.querySelector('.assignment-text').textContent = assignmentText;
-    
+
     // Hide any open forms
     document.getElementById(`search-${issueId}-${orderIndex}`).classList.add('d-none');
     document.getElementById(`create-new-${issueId}-${orderIndex}`).classList.add('d-none');

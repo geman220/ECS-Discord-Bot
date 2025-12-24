@@ -41,10 +41,13 @@ function refreshStatuses() {
 function updateMatchRow(match) {
     const statusBadge = document.getElementById(`status-${match.id}`);
     if (statusBadge) {
-        statusBadge.className = `badge bg-${match.status_color}`;
+        // Set stable structure first
+        statusBadge.className = 'badge'; // Keep styling class for CSS
+        statusBadge.classList.add(`bg-${match.status_color}`); // Keep visual styling
+        statusBadge.setAttribute('data-status', match.status); // For JS behavior
         statusBadge.innerHTML = `<i class="fas ${match.status_icon}"></i> ${match.status_display}`;
     }
-    
+
     // Update task details with real-time data
     loadMatchTaskDetails(match.id);
 }
@@ -106,11 +109,11 @@ function createTaskCard(taskType, task, matchId) {
     const statusIcon = getStatusIcon(task.status);
     const typeName = task.type || (taskType === 'thread' ? 'Thread Creation' : 'Live Reporting');
     const typeIcon = taskType === 'thread' ? 'fa-comments' : 'fa-broadcast-tower';
-    
+
     // Use human-readable message if available (from fallback logic)
     const displayMessage = task.message || typeName;
     const isFallback = task.fallback === true;
-    
+
     // Format countdown
     let countdown = 'N/A';
     if (task.ttl && task.ttl > 0) {
@@ -121,7 +124,7 @@ function createTaskCard(taskType, task, matchId) {
         const diff = Math.max(0, Math.floor((etaTime - now) / 1000));
         countdown = diff > 0 ? formatDuration(diff) : 'Due now';
     }
-    
+
     // Special handling for different status types
     let statusDisplay = task.status;
     if (isFallback) {
@@ -131,13 +134,16 @@ function createTaskCard(taskType, task, matchId) {
         if (task.status === 'FINISHED') statusDisplay = 'Completed';
         if (task.status === 'MISSING') statusDisplay = 'Issue';
     }
-    
+
     const fallbackIndicator = isFallback ? '<i class="fas fa-info-circle text-muted" title="Status derived from match data"></i>' : '';
-    
+
+    // Escape data for safe HTML attribute embedding
+    const taskDataJson = JSON.stringify(task).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
     return `
-        <div class="task-card mb-2 p-2 border rounded ${isFallback ? 'border-info' : ''}">
+        <div data-component="task-card" data-task-type="${taskType}" data-match-id="${matchId}" class="mb-2 p-2 border rounded ${isFallback ? 'border-info' : ''}">
             <div class="d-flex justify-content-between align-items-center mb-1">
-                <span class="badge bg-${statusColor}">
+                <span class="badge bg-${statusColor}" data-status="${task.status}">
                     <i class="fas ${statusIcon}"></i> ${statusDisplay}
                 </span>
                 <small class="text-muted">${countdown} ${fallbackIndicator}</small>
@@ -151,14 +157,25 @@ function createTaskCard(taskType, task, matchId) {
             </div>
             ${task.result ? `<div class="mb-2"><small class="text-muted"><strong>Details:</strong> ${task.result}</small></div>` : ''}
             <div class="task-actions">
-                <button class="btn btn-xs btn-outline-info me-1" onclick="showTaskInfo('${task.task_id}', '${typeName}', ${JSON.stringify(task).replace(/"/g, '&quot;')})">
+                <button class="btn btn-xs btn-outline-info me-1"
+                        data-action="show-task-info"
+                        data-task-id="${task.task_id}"
+                        data-task-type="${typeName}"
+                        data-task-data='${taskDataJson}'>
                     <i class="fas fa-info-circle"></i>
                 </button>
                 ${!isFallback && task.task_id !== 'unknown' && task.task_id !== 'scheduled' ? `
-                <button class="btn btn-xs btn-outline-danger me-1" onclick="revokeTask('${task.task_id}', '${matchId}', '${taskType}')">
+                <button class="btn btn-xs btn-outline-danger me-1"
+                        data-action="revoke-task"
+                        data-task-id="${task.task_id}"
+                        data-match-id="${matchId}"
+                        data-task-type="${taskType}">
                     <i class="fas fa-times"></i>
                 </button>` : ''}
-                <button class="btn btn-xs btn-outline-warning" onclick="rescheduleTask('${matchId}', '${taskType}')">
+                <button class="btn btn-xs btn-outline-warning"
+                        data-action="reschedule-task"
+                        data-match-id="${matchId}"
+                        data-task-type="${taskType}">
                     <i class="fas fa-redo"></i>
                 </button>
             </div>
@@ -170,14 +187,14 @@ function createTaskCard(taskType, task, matchId) {
 function createNoTaskCard(taskName, message) {
     const typeIcon = taskName.includes('Thread') ? 'fa-comments' : 'fa-broadcast-tower';
     return `
-        <div class="no-task-card mb-1 p-2 border rounded bg-light">
+        <div data-component="no-task-card" data-task-name="${taskName}" class="mb-1 p-2 border rounded bg-light">
             <div class="d-flex align-items-center">
                 <i class="fas ${typeIcon} me-2 text-muted"></i>
                 <div class="flex-grow-1">
                     <small class="fw-bold text-muted">${taskName}</small><br>
                     <small class="text-muted">${message}</small>
                 </div>
-                <span class="badge bg-secondary">Not Scheduled</span>
+                <span class="badge bg-secondary" data-status="not-scheduled">Not Scheduled</span>
             </div>
         </div>
     `;
@@ -324,7 +341,7 @@ function showTaskInfo(taskId, taskType, taskData) {
             <h6><i class="fas fa-info-circle"></i> ${taskType}</h6>
             <table class="table table-sm">
                 <tr><td><strong>Task ID:</strong></td><td><code>${taskObj.task_id || 'N/A'}</code></td></tr>
-                <tr><td><strong>Status:</strong></td><td><span class="badge bg-${getStatusColor(taskObj.status)}">${taskObj.status}</span></td></tr>
+                <tr><td><strong>Status:</strong></td><td><span class="badge bg-${getStatusColor(taskObj.status)}" data-status="${taskObj.status}">${taskObj.status}</span></td></tr>
                 <tr><td><strong>ETA:</strong></td><td>${taskObj.eta ? new Date(taskObj.eta).toLocaleString() : 'N/A'}</td></tr>
                 <tr><td><strong>TTL:</strong></td><td>${taskObj.ttl ? formatDuration(taskObj.ttl) : 'N/A'}</td></tr>
                 <tr><td><strong>Redis Key:</strong></td><td><code>${taskObj.redis_key || 'N/A'}</code></td></tr>
@@ -345,18 +362,18 @@ function showTaskInfo(taskId, taskType, taskData) {
 // Load task details for all matches on the page
 function loadAllTaskDetails() {
     // Find all match rows and load their task details, but exclude historical matches unless expanded
-    const matchRows = document.querySelectorAll('[data-match-id]:not(.historical-match)');
+    const matchRows = document.querySelectorAll('[data-match-id]:not([data-match-type="historical"])');
     matchRows.forEach(row => {
         const matchId = row.getAttribute('data-match-id');
         if (matchId) {
             loadMatchTaskDetails(matchId);
         }
     });
-    
+
     // Also load for expanded historical matches
     const historicalSection = document.getElementById('historicalMatches');
     if (historicalSection && historicalSection.classList.contains('show')) {
-        const historicalRows = document.querySelectorAll('.historical-match[data-match-id]');
+        const historicalRows = document.querySelectorAll('[data-match-type="historical"][data-match-id]');
         historicalRows.forEach(row => {
             const matchId = row.getAttribute('data-match-id');
             if (matchId) {
@@ -441,7 +458,7 @@ function formatScheduledTime(isoString) {
 
 function formatScheduledTimes() {
     // Format all scheduled time elements on the page
-    document.querySelectorAll('.scheduled-time').forEach(element => {
+    document.querySelectorAll('[data-time][data-component="scheduled-time"]').forEach(element => {
         const isoTime = element.getAttribute('data-time');
         element.textContent = formatScheduledTime(isoTime);
     });
@@ -836,7 +853,7 @@ function displayQueueStatus(data) {
                 <tr>
                     <td><code>${task.task_id.substring(0, 8)}...</code></td>
                     <td>${task.name || 'Unknown'}</td>
-                    <td><span class="badge bg-${getTaskStatusColor(task.state)}">${task.state}</span></td>
+                    <td><span class="badge bg-${getTaskStatusColor(task.state)}" data-task-state="${task.state}">${task.state}</span></td>
                     <td>${task.worker || 'Unknown'}</td>
                     <td>${task.eta ? formatTaskETA(task.eta) : 'N/A'}</td>
                 </tr>
@@ -873,11 +890,11 @@ function displayQueueStatus(data) {
         Object.entries(data.worker_stats).forEach(([worker, stats]) => {
             html += `
                 <div class="col-md-6 mb-2">
-                    <div class="card">
+                    <div data-component="worker-stats-card" data-worker="${worker}" class="card">
                         <div class="card-body p-2">
                             <h6 class="card-title mb-1">${worker}</h6>
                             <small class="text-muted">
-                                Active: ${stats.active || 0} | 
+                                Active: ${stats.active || 0} |
                                 Processed: ${stats.processed || 0}
                             </small>
                         </div>
@@ -1008,7 +1025,7 @@ $(document).ready(function() {
             
             // Load task details for historical matches when expanded
             setTimeout(() => {
-                document.querySelectorAll('.historical-match[data-match-id]').forEach(card => {
+                document.querySelectorAll('[data-match-type="historical"][data-match-id]').forEach(card => {
                     const matchId = card.dataset.matchId;
                     if (matchId) {
                         loadMatchTaskDetails(matchId);
@@ -1044,7 +1061,7 @@ function showCacheStatus() {
                                 <div class="modal-body">
                                     <div class="row mb-3">
                                         <div class="col-md-6">
-                                            <div class="card bg-primary text-white">
+                                            <div data-component="cache-stat-card" data-stat-type="entries" class="card bg-primary text-white">
                                                 <div class="card-body text-center">
                                                     <h3 class="card-title">${stats.total_entries}</h3>
                                                     <p class="card-text mb-0">Cached Entries</p>
@@ -1052,7 +1069,7 @@ function showCacheStatus() {
                                             </div>
                                         </div>
                                         <div class="col-md-6">
-                                            <div class="card bg-success text-white">
+                                            <div data-component="cache-stat-card" data-stat-type="coverage" class="card bg-success text-white">
                                                 <div class="card-body text-center">
                                                     <h3 class="card-title">${stats.cache_coverage_percent.toFixed(1)}%</h3>
                                                     <p class="card-text mb-0">Coverage</p>
@@ -1062,7 +1079,7 @@ function showCacheStatus() {
                                     </div>
                                     <div class="row mb-3">
                                         <div class="col-md-6">
-                                            <div class="card bg-info text-white">
+                                            <div data-component="cache-stat-card" data-stat-type="health" class="card bg-info text-white">
                                                 <div class="card-body text-center">
                                                     <h3 class="card-title">${stats.health_score_percent.toFixed(1)}%</h3>
                                                     <p class="card-text mb-0">Health Score</p>
@@ -1070,7 +1087,7 @@ function showCacheStatus() {
                                             </div>
                                         </div>
                                         <div class="col-md-6">
-                                            <div class="card bg-warning text-white">
+                                            <div data-component="cache-stat-card" data-stat-type="ttl" class="card bg-warning text-white">
                                                 <div class="card-body text-center">
                                                     <h3 class="card-title">${Math.round(stats.ttl_seconds / 60)}min</h3>
                                                     <p class="card-text mb-0">Cache TTL</p>
@@ -1114,8 +1131,7 @@ function showCacheStatus() {
                 document.body.insertAdjacentHTML('beforeend', modalHtml);
                 
                 // Show modal
-                const modal = new bootstrap.Modal(document.getElementById('cacheStatusModal'));
-                modal.show();
+                ModalManager.show('cacheStatusModal');
                 
                 // Clean up when modal is hidden
                 document.getElementById('cacheStatusModal').addEventListener('hidden.bs.modal', function () {

@@ -63,20 +63,24 @@
 
         hammer.on('panstart', (ev) => {
           startY = ev.center.y;
-          modalDialog.style.transition = 'none';
+          // REFACTORED: Using utility classes for transitions
+          modalDialog.classList.add('transition-none');
         });
 
         hammer.on('panmove', (ev) => {
           if (ev.center.y > startY && ev.center.y < 100) {
             const deltaY = ev.center.y - startY;
             if (deltaY > 0 && deltaY < 200) {
+              // Note: Dynamic transform value, kept as inline style
               modalDialog.style.transform = `translateY(${deltaY}px)`;
             }
           }
         });
 
         hammer.on('panend', (ev) => {
-          modalDialog.style.transition = 'transform 0.3s ease';
+          // REFACTORED: Using utility classes for transitions
+          modalDialog.classList.remove('transition-none');
+          modalDialog.classList.add('transition-transform');
           const deltaY = ev.center.y - startY;
 
           if (deltaY > 100) {
@@ -87,8 +91,9 @@
               bootstrapModal.hide();
             }
           } else {
-            // Snap back
-            modalDialog.style.transform = 'translateY(0)';
+            // Snap back - REFACTORED: Using utility classes
+            modalDialog.classList.add('translate-y-0');
+            modalDialog.style.transform = '';
           }
         });
       });
@@ -142,30 +147,20 @@
         let isPulling = false;
         let refreshThreshold = 80;
 
-        // Create refresh indicator
+        // Create refresh indicator - REFACTORED: Using utility classes
         let refreshIndicator = container.querySelector('.pull-refresh-indicator');
         if (!refreshIndicator) {
           refreshIndicator = document.createElement('div');
-          refreshIndicator.className = 'pull-refresh-indicator';
+          refreshIndicator.className = 'pull-refresh-indicator position-absolute left-50 translate-middle-x d-flex align-items-center justify-content-center text-white opacity-0 z-index-1000';
           refreshIndicator.innerHTML = '<i class="ti ti-refresh"></i>';
-          refreshIndicator.style.cssText = `
-            position: absolute;
-            top: -50px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--bs-primary);
-            color: white;
-            border-radius: 50%;
-            opacity: 0;
-            transition: opacity 0.3s, top 0.3s;
-            z-index: 1000;
-          `;
-          container.style.position = 'relative';
+          // Note: top, width, height, background, borderRadius, transition use specific values, kept as inline styles
+          refreshIndicator.style.top = '-50px';
+          refreshIndicator.style.width = '40px';
+          refreshIndicator.style.height = '40px';
+          refreshIndicator.style.background = 'var(--bs-primary)';
+          refreshIndicator.style.borderRadius = '50%';
+          refreshIndicator.style.transition = 'opacity 0.3s, top 0.3s';
+          container.classList.add('position-relative');
           container.insertBefore(refreshIndicator, container.firstChild);
         }
 
@@ -182,11 +177,11 @@
 
           const deltaY = ev.center.y - startY;
           if (deltaY > 0 && deltaY < refreshThreshold * 1.5) {
-            // Show indicator
+            // Show indicator - Note: Dynamic opacity and top values, kept as inline styles
             refreshIndicator.style.opacity = Math.min(deltaY / refreshThreshold, 1);
             refreshIndicator.style.top = `${-50 + deltaY}px`;
 
-            // Rotate icon
+            // Rotate icon - Note: Dynamic rotation value, kept as inline style
             const icon = refreshIndicator.querySelector('i');
             if (icon) {
               icon.style.transform = `rotate(${deltaY * 3}deg)`;
@@ -217,13 +212,14 @@
 
             // Auto-hide after 2 seconds (or listen for custom event)
             setTimeout(() => {
-              refreshIndicator.style.opacity = 0;
+              // REFACTORED: Using utility classes for opacity
+              refreshIndicator.classList.add('opacity-0');
               refreshIndicator.style.top = '-50px';
               if (icon) icon.classList.remove('ti-spin');
             }, 2000);
           } else {
-            // Snap back
-            refreshIndicator.style.opacity = 0;
+            // Snap back - REFACTORED: Using utility classes for opacity
+            refreshIndicator.classList.add('opacity-0');
             refreshIndicator.style.top = '-50px';
           }
 
@@ -277,23 +273,25 @@
             if (window.Haptics) window.Haptics.doubleTap();
 
             if (!isZoomed) {
-              // Zoom in
+              // Zoom in - REFACTORED: Using utility classes
+              element.classList.add('transition-transform', 'z-index-1000');
+              // Note: Dynamic scale value, kept as inline style
               element.style.transform = 'scale(2)';
-              element.style.transition = 'transform 0.3s ease';
-              element.style.zIndex = '1000';
               isZoomed = true;
             } else {
-              // Zoom out
-              element.style.transform = 'scale(1)';
-              element.style.zIndex = '';
+              // Zoom out - REFACTORED: Using utility classes
+              element.classList.remove('z-index-1000');
+              element.classList.add('scale-1');
+              element.style.transform = '';
               isZoomed = false;
             }
 
-            // Reset after 3 seconds
+            // Reset after 3 seconds - REFACTORED: Using utility classes
             setTimeout(() => {
               if (isZoomed) {
-                element.style.transform = 'scale(1)';
-                element.style.zIndex = '';
+                element.classList.remove('z-index-1000');
+                element.classList.add('scale-1');
+                element.style.transform = '';
                 isZoomed = false;
               }
             }, 3000);
@@ -316,24 +314,14 @@
 
         let actionsRevealed = false;
 
-        // Create action buttons container if not exists
+        // Create action buttons container if not exists - REFACTORED: Using utility classes
         let actionsContainer = row.querySelector('.swipe-actions');
         if (!actionsContainer) {
           actionsContainer = document.createElement('div');
-          actionsContainer.className = 'swipe-actions';
-          actionsContainer.style.cssText = `
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 0 16px;
-            background: var(--bs-danger);
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
-          `;
+          actionsContainer.className = 'swipe-actions position-absolute right-0 top-0 bottom-0 d-flex align-items-center gap-2 translate-x-100 transition-transform';
+          // Note: padding, background use specific values, kept as inline styles
+          actionsContainer.style.padding = '0 16px';
+          actionsContainer.style.background = 'var(--bs-danger)';
 
           // Add default actions (can be customized with data attributes)
           const deleteBtn = document.createElement('button');
@@ -346,14 +334,16 @@
           };
           actionsContainer.appendChild(deleteBtn);
 
-          row.style.position = 'relative';
-          row.style.overflow = 'hidden';
+          row.classList.add('position-relative', 'overflow-hidden');
           row.appendChild(actionsContainer);
         }
 
         hammer.on('swipeleft', () => {
           if (!actionsRevealed) {
-            actionsContainer.style.transform = 'translateX(0)';
+            // REFACTORED: Using utility classes
+            actionsContainer.classList.remove('translate-x-100');
+            actionsContainer.classList.add('translate-x-0');
+            // Note: Dynamic translate value, kept as inline style
             row.style.transform = 'translateX(-100px)';
             actionsRevealed = true;
             if (window.Haptics) window.Haptics.swipe();
@@ -362,18 +352,23 @@
 
         hammer.on('swiperight', () => {
           if (actionsRevealed) {
-            actionsContainer.style.transform = 'translateX(100%)';
-            row.style.transform = 'translateX(0)';
+            // REFACTORED: Using utility classes
+            actionsContainer.classList.remove('translate-x-0');
+            actionsContainer.classList.add('translate-x-100');
+            row.classList.add('translate-x-0');
+            row.style.transform = '';
             actionsRevealed = false;
             if (window.Haptics) window.Haptics.swipe();
           }
         });
 
-        // Close on tap outside
+        // Close on tap outside - REFACTORED: Using utility classes
         document.addEventListener('click', (e) => {
           if (actionsRevealed && !row.contains(e.target)) {
-            actionsContainer.style.transform = 'translateX(100%)';
-            row.style.transform = 'translateX(0)';
+            actionsContainer.classList.remove('translate-x-0');
+            actionsContainer.classList.add('translate-x-100');
+            row.classList.add('translate-x-0');
+            row.style.transform = '';
             actionsRevealed = false;
           }
         });
@@ -393,22 +388,27 @@
         let lastScale = 1;
 
         hammer.on('pinchstart', () => {
-          element.style.transition = 'none';
+          // REFACTORED: Using utility classes
+          element.classList.add('transition-none');
         });
 
         hammer.on('pinchmove', (ev) => {
           const scale = Math.max(1, Math.min(lastScale * ev.scale, 4)); // 1x to 4x
+          // Note: Dynamic scale value, kept as inline style
           element.style.transform = `scale(${scale})`;
         });
 
         hammer.on('pinchend', (ev) => {
-          element.style.transition = 'transform 0.3s ease';
+          // REFACTORED: Using utility classes
+          element.classList.remove('transition-none');
+          element.classList.add('transition-transform');
           lastScale = Math.max(1, Math.min(lastScale * ev.scale, 4));
 
-          // Reset to 1x after 3 seconds if zoomed
+          // Reset to 1x after 3 seconds if zoomed - REFACTORED: Using utility classes
           if (lastScale > 1) {
             setTimeout(() => {
-              element.style.transform = 'scale(1)';
+              element.classList.add('scale-1');
+              element.style.transform = '';
               lastScale = 1;
             }, 3000);
           }

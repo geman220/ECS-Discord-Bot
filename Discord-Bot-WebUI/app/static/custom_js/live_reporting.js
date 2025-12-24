@@ -193,12 +193,12 @@ function setupSocketListeners() {
         }
         
         showNotification(`Final report submitted by ${data.submitted_by_name}`, 'success');
-        
+
         // Disable reporting controls
         disableReportingControls();
-        
+
         // Show completion message
-        $('#reportCompleteMessage').removeClass('d-none');
+        $('#reportCompleteMessage').removeClass('u-hidden');
     });
     
     socket.on('report_submission_error', (data) => {
@@ -297,10 +297,10 @@ function setupUIListeners() {
     });
     
     // Player shift toggles
-    $('#playerShiftsContainer').on('click', '.player-shift-toggle', function() {
+    $('#playerShiftsContainer').on('click', '.js-player-shift-toggle', function() {
         const playerId = $(this).data('player-id');
         const isActive = $(this).data('active') !== true;
-        
+
         // Toggle the active state
         togglePlayerShift(playerId, isActive);
     });
@@ -318,19 +318,19 @@ function setupUIListeners() {
     // Event type changes UI elements shown
     $('#eventType').on('change', function() {
         const eventType = $(this).val();
-        
+
         // Show/hide player selection based on event type
         if (['GOAL', 'YELLOW_CARD', 'RED_CARD', 'SUBSTITUTION'].includes(eventType)) {
-            $('#playerSelectGroup').removeClass('d-none');
+            $('#playerSelectGroup').removeClass('u-hidden');
         } else {
-            $('#playerSelectGroup').addClass('d-none');
+            $('#playerSelectGroup').addClass('u-hidden');
         }
-        
+
         // Show additional fields for substitutions
         if (eventType === 'SUBSTITUTION') {
-            $('#substitutionFields').removeClass('d-none');
+            $('#substitutionFields').removeClass('u-hidden');
         } else {
-            $('#substitutionFields').addClass('d-none');
+            $('#substitutionFields').addClass('u-hidden');
         }
     });
 }
@@ -410,20 +410,20 @@ function toggleTimer(shouldRun) {
             
             // Update UI
             $('#startStopTimer').text('Pause Timer');
-            $('#startStopTimer').removeClass('btn-success').addClass('btn-warning');
+            $('#startStopTimer').removeClass('timer-stopped').addClass('timer-running');
         } else {
             // Stop the timer locally
             if (timerInterval) {
                 clearInterval(timerInterval);
                 timerInterval = null;
             }
-            
+
             // Update the server
             updateTimer(matchState.elapsed_seconds, false);
-            
+
             // Update UI
             $('#startStopTimer').text('Start Timer');
-            $('#startStopTimer').removeClass('btn-warning').addClass('btn-success');
+            $('#startStopTimer').removeClass('timer-running').addClass('timer-stopped');
         }
     }
 }
@@ -504,7 +504,7 @@ function updateMatchUI(state) {
     // If report is already submitted, disable controls
     if (state.report_submitted) {
         disableReportingControls();
-        $('#reportCompleteMessage').removeClass('d-none');
+        $('#reportCompleteMessage').removeClass('u-hidden');
     }
 }
 
@@ -552,15 +552,15 @@ function updateTimerDisplay(elapsedSeconds) {
 function updateEventsUI(events) {
     const $eventsList = $('#eventsList');
     $eventsList.empty();
-    
+
     if (!events || events.length === 0) {
         $eventsList.append('<li class="list-group-item">No events recorded yet</li>');
         return;
     }
-    
+
     // Sort events by timestamp (most recent first)
     events.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    
+
     events.forEach(event => {
         let eventText = `${event.event_type}`;
         if (event.player_name) {
@@ -572,20 +572,20 @@ function updateEventsUI(events) {
         if (event.minute) {
             eventText += ` - ${event.minute}'`;
         }
-        
-        let eventClass = 'list-group-item';
+
+        let eventClass = 'list-group-item js-event-item';
         switch (event.event_type) {
             case 'GOAL':
-                eventClass += ' list-group-item-success';
+                eventClass += ' event-type-goal';
                 break;
             case 'YELLOW_CARD':
-                eventClass += ' list-group-item-warning';
+                eventClass += ' event-type-yellow-card';
                 break;
             case 'RED_CARD':
-                eventClass += ' list-group-item-danger';
+                eventClass += ' event-type-red-card';
                 break;
         }
-        
+
         $eventsList.append(`<li class="${eventClass}">${eventText}</li>`);
     });
 }
@@ -595,22 +595,22 @@ function updateEventsUI(events) {
  */
 function updateMatchStatusUI(status) {
     $('#matchStatus').text(status);
-    
-    let statusClass = 'badge ';
+
+    let statusClass = 'badge js-match-status-badge ';
     switch (status) {
         case 'in_progress':
-            statusClass += 'bg-success';
+            statusClass += 'match-status-in-progress';
             break;
         case 'completed':
-            statusClass += 'bg-primary';
+            statusClass += 'match-status-completed';
             break;
         case 'canceled':
-            statusClass += 'bg-danger';
+            statusClass += 'match-status-canceled';
             break;
         default:
-            statusClass += 'bg-secondary';
+            statusClass += 'match-status-unknown';
     }
-    
+
     $('#matchStatusBadge').attr('class', statusClass);
 }
 
@@ -620,20 +620,20 @@ function updateMatchStatusUI(status) {
 function updateReportersUI(reporters) {
     const $reportersList = $('#reportersList');
     $reportersList.empty();
-    
+
     if (!reporters || reporters.length === 0) {
         $reportersList.append('<li class="list-group-item">No other reporters</li>');
         return;
     }
-    
+
     reporters.forEach(reporter => {
         const lastActive = new Date(reporter.last_active);
         const timeSince = timeSinceLastActive(lastActive);
-        
+
         $reportersList.append(`
-            <li class="list-group-item d-flex justify-content-between align-items-center">
+            <li class="list-group-item js-reporter-item d-flex justify-content-between align-items-center">
                 ${reporter.username} (${reporter.team_name})
-                <span class="badge bg-secondary">${timeSince}</span>
+                <span class="badge bg-secondary reporter-time-badge">${timeSince}</span>
             </li>
         `);
     });
@@ -680,41 +680,41 @@ function updateShiftsUI(shifts) {
         $shiftsContainer.append('<p>No active players</p>');
     } else {
         const $activeList = $('<div class="row"></div>');
-        
+
         activeShifts.forEach(shift => {
             $activeList.append(`
                 <div class="col-md-6 mb-2">
-                    <button class="btn btn-success w-100 player-shift-toggle" 
-                            data-player-id="${shift.player_id}" 
+                    <button class="btn btn-success w-100 js-player-shift-toggle"
+                            data-player-id="${shift.player_id}"
                             data-active="true">
                         ${shift.player_name}
                     </button>
                 </div>
             `);
         });
-        
+
         $shiftsContainer.append($activeList);
     }
-    
+
     // Add inactive players section
     $shiftsContainer.append('<h5 class="mt-3">Available Players</h5>');
     if (inactiveShifts.length === 0) {
         $shiftsContainer.append('<p>No available players</p>');
     } else {
         const $inactiveList = $('<div class="row"></div>');
-        
+
         inactiveShifts.forEach(shift => {
             $inactiveList.append(`
                 <div class="col-md-6 mb-2">
-                    <button class="btn btn-outline-secondary w-100 player-shift-toggle" 
-                            data-player-id="${shift.player_id}" 
+                    <button class="btn btn-outline-secondary w-100 js-player-shift-toggle"
+                            data-player-id="${shift.player_id}"
                             data-active="false">
                         ${shift.player_name}
                     </button>
                 </div>
             `);
         });
-        
+
         $shiftsContainer.append($inactiveList);
     }
 }
@@ -761,7 +761,7 @@ function disableReportingControls() {
     $('#addEventForm :input').prop('disabled', true);
     
     // Disable player shifts
-    $('.player-shift-toggle').prop('disabled', true);
+    $('.js-player-shift-toggle').prop('disabled', true);
     
     // Disable submit report button
     $('#submitReportBtn').prop('disabled', true);

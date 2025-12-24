@@ -1,157 +1,194 @@
-{% extends "base.html" %}
+{% extends "base_unauthenticated.html" %}
 
-{% block content %}
-<div class="login-page-container d-flex justify-content-center align-items-center vh-100">
-    <!-- Unique class for login page -->
-    <div class="container">
+{% block page_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/authentication.css') }}" />
+{% endblock %}
 
-        <!-- Outer Row -->
-        <div class="row justify-content-center">
+{% block main_content %}
 
-            <div class="col-xl-10 col-lg-12 col-md-9">
+<div class="c-auth-wrapper c-auth-wrapper--narrow" data-component="auth-wrapper">
+    <!-- ECS Logo -->
+    <div class="c-auth-logo" data-component="auth-logo">
+        <img src="{{ url_for('static', filename='img/ecs_logo.png') }}"
+             alt="ECS Logo"
+             class="c-auth-logo__image">
+    </div>
 
-                <div class="card o-hidden border-0 shadow-lg my-5">
-                    <div class="card-body p-0">
-                        <!-- Nested Row within Card Body -->
-                        <div class="row">
-                            <div class="col-lg-5 d-none d-lg-block bg-login-image"></div>
-                            <div class="col-lg-7">
-                                <div class="p-5">
-                                    <div class="text-center">
-                                        <h1 class="h4 text-gray-900 mb-4">Create an Account!</h1>
-                                    </div>
+    <!-- Registration Form -->
+    <div class="c-auth-form" data-component="auth-form">
+        <div class="c-auth-form__header">
+            <h1 class="c-auth-form__title">Create Account</h1>
+            <p class="c-auth-form__subtitle">Join the ECS FC and Pub League</p>
+        </div>
 
-                                    <!-- Liability Waiver and Code of Conduct -->
-                                    <div class="waiver-section mb-4">
-                                        <div class="alert alert-info">
-                                            <h5>⚠️ Please Read Before Registering</h5>
-                                            <p class="small mb-0">Registration requires acceptance of our liability waiver and code of conduct.</p>
-                                        </div>
-                                        
-                                        <div class="waiver-content">
-                                            <h6><strong>Waiver of Liability and Hold Harmless Agreement</strong></h6>
-                                            <p class="small">"Participant" hereby releases, waives, discharges and covenants not to sue ECS Pub League, a Washington nonprofit organization, and its affiliated associations, officers, directors, employees, agents, and contractors (collectively, the "Released Parties") from any and all liability, claims, demands, actions and causes of action whatsoever arising out of or related to any loss, damage, or injury, including death, that may be sustained by Participant, or to any property belonging to Participant, whether caused by the negligence of the Released Parties, or otherwise, while participating in such athletic and related event activities, or while in, on or upon the premises where the activities are being conducted.</p>
-                                            
-                                            <p class="small">Participant is fully aware of risks and hazards connected with the proposed soccer activity, including the risk of injury to a participant's neck, back, spine, knees or other parts of their body, and Participant hereby elects to participate as a voluntary participant in said activity, and to enter the premises of the various fields used to conduct soccer games or training and engage in such activity knowing that the activity may be hazardous to Participant or Participant's property. PARTICIPANT VOLUNTARILY ASSUMES FULL RESPONSIBILITY FOR ANY RISKS OF LOSS, PROPERTY DAMAGE OR PERSONAL INJURY, INCLUDING DEATH, that may be sustained by any of its players, coaches, opponents, or fans, or any loss or damage to property owned by Participant, as a result of being engaged in such an activity, whether caused by the negligence of the Released Parties or otherwise.</p>
-                                            
-                                            <p class="small">Participant acknowledges that ECS Pub League does not carry insurance on behalf of the Participant. Participant further hereby agrees to indemnify and hold harmless the Released Parties from and against any loss, liability, damage or costs, including court costs and attorney's fees, that they may incur due to Participant's participation in the proposed league activities, whether caused by the negligence of the Released Parties or otherwise. Participant agrees that this Waiver of Liability and Hold Harmless Agreement shall be construed in accordance with the laws of the State of Washington. Participant acknowledges full, adequate and complete consideration and intends to be bound by the terms contained herein.</p>
-                                            
-                                            <h6><strong>ECS Pub League Code of Conduct</strong></h6>
-                                            <p class="small">Participant further acknowledges and accepts as a condition of participation that ECS Pub League is a 21+ adult recreational league for very casual no/low contact soccer for beginners and beginner-friendly low-intermediate recreational players. We're not for everyone. Our level of skill, physicality, and competitiveness is typically well below even the lowest divisions of other leagues.</p>
-                                            
-                                            <p class="small">We do not discriminate based on race, color, religion, gender, gender expression, age, national origin, ancestry, disability, marital status, sexual orientation, or military status, in any of our activities or operations.</p>
-                                            
-                                            <p class="small">We do, however, reserve the right to deny play at any time for anyone who is deemed a poor fit for the league's mission and the culture of the unique community we serve because of skill, experience, physicality, competitiveness, or similar reasons.</p>
-                                            
-                                            <p class="small"><strong>More serious infractions may result in yellow cards, red cards, suspensions, or expulsion from the league:</strong></p>
-                                            <ul class="small">
-                                                <li>Excessive physical play and tackling, whether called as fouls or not. The bar is set intentionally lower in this league.</li>
-                                                <li>Repeated dissent and/or unsporting behavior by words or action, including excessive arguing with referees and/or other players.</li>
-                                                <li>Playing in a dangerous manner that causes or threatens to cause injury.</li>
-                                            </ul>
-                                            
-                                            <p class="small"><strong>Less serious infractions will be handled in private conversations with coaches and/or league leadership. Further corrective action up to expulsion from the league may be implemented if infractions continue after verbal warnings and discussions:</strong></p>
-                                            <ul class="small">
-                                                <li>Regularly ball hogging and excessive dribbling rather than passing.</li>
-                                                <li>Regularly playing out of position to get themselves more directly involved in play.</li>
-                                                <li>Regularly dribbling through multiple opponents, especially those who are less skilled.</li>
-                                                <li>Regularly passing to only more talented players and not involving the whole team.</li>
-                                                <li>Excessive shooting, especially when passing was a better decision.</li>
-                                                <li>Running up the score, or excessive celebration on and off the field, including on social media.</li>
-                                                <li>In Classic: Not giving new players enough space and time to dribble or pass.</li>
-                                            </ul>
-                                            
-                                            <p class="small">This is intentionally not an exhaustive list, because it's not about players merely adhering to the letter of the law or finding loopholes, it's about playing to maintain the Spirit of Pub League. Ultimately, a player's suitability for either division is up to a group decision of league management, taking into consideration feedback from coaches and other players, with a particular focus on regularly exhibited patterns and consistent behaviors.</p>
-                                            
-                                            <p class="small"><strong>PARTICIPANT HAS READ THIS WAIVER OF LIABILITY AND CODE OF CONDUCT AND FULLY UNDERSTAND ITS TERMS, UNDERSTANDS THAT THEY HAVE GIVEN UP SUBSTANTIAL RIGHTS AND AGREES TO IT BY REGISTERING TO PLAY IN THE LEAGUE, DOING SO FREELY AND VOLUNTARILY WITHOUT ANY INDUCEMENT.</strong></p>
-                                        </div>
-                                    </div>
+        <div class="c-auth-form__body">
+            <!-- Liability Waiver and Code of Conduct -->
+            <div class="c-waiver" data-component="waiver">
+                <div class="c-waiver__header">
+                    <h6 class="c-waiver__header-title">
+                        ⚠️ Please Read Before Registering
+                    </h6>
+                    <p class="c-auth-alert__text c-auth-alert__text--spaced">
+                        Registration requires acceptance of our liability waiver and code of conduct.
+                    </p>
+                </div>
 
-                                    <!-- Registration Form -->
-                                    <div id="registration-form">
-                                        <form class="user" method="POST" action="{{ url_for('auth.register') }}">
-                                            {{ empty_form.hidden_tag() }}
-                                            <div class="form-group row">
-                                                <div class="col-sm-6 mb-3 mb-sm-0">
-                                                    {{ form.username.label(class="small text-gray-900") }}
-                                                    {{ form.username(class="form-control form-control-user") }}
-                                                </div>
-                                                <div class="col-sm-6">
-                                                    {{ form.email.label(class="small text-gray-900") }}
-                                                    {{ form.email(class="form-control form-control-user") }}
-                                                </div>
-                                            </div>
-                                            <div class="form-group row">
-                                                <div class="col-sm-6 mb-3 mb-sm-0">
-                                                    {{ form.password.label(class="small text-gray-900") }}
-                                                    {{ form.password(class="form-control form-control-user") }}
-                                                </div>
-                                                <div class="col-sm-6">
-                                                    {{ form.confirm_password.label(class="small text-gray-900") }}
-                                                    {{ form.confirm_password(class="form-control form-control-user") }}
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Terms and Conditions Agreement -->
-                                            <div class="form-group">
-                                                <div class="form-check">
-                                                    <input type="checkbox" class="form-check-input" id="terms-agreement" name="terms_agreement" required>
-                                                    <label class="form-check-label small text-gray-900" for="terms-agreement">
-                                                        I agree to the ECS FC terms and conditions, liability waiver, and code of conduct
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            
-                                            <button type="submit" class="btn btn-primary btn-user btn-block" id="register-btn" disabled>
-                                                Register Account
-                                            </button>
-                                        </form>
-                                    </div>
+                <div class="c-waiver__content">
+                    <h6 class="c-waiver__section-title">Waiver of Liability and Hold Harmless Agreement</h6>
+                    <p>"Participant" hereby releases, waives, discharges and covenants not to sue ECS Pub League, a Washington nonprofit organization, and its affiliated associations, officers, directors, employees, agents, and contractors (collectively, the "Released Parties") from any and all liability, claims, demands, actions and causes of action whatsoever arising out of or related to any loss, damage, or injury, including death, that may be sustained by Participant, or to any property belonging to Participant, whether caused by the negligence of the Released Parties, or otherwise, while participating in such athletic and related event activities, or while in, on or upon the premises where the activities are being conducted.</p>
 
-                                    <hr>
-                                    <div class="text-center">
-                                        <a class="small" href="{{ url_for('auth.forgot_password') }}">Forgot Password?</a>
-                                    </div>
-                                    <div class="text-center">
-                                        <a class="small" href="{{ url_for('auth.login') }}">Already have an account? Login!</a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <p>Participant is fully aware of risks and hazards connected with the proposed soccer activity, including the risk of injury to a participant's neck, back, spine, knees or other parts of their body, and Participant hereby elects to participate as a voluntary participant in said activity, and to enter the premises of the various fields used to conduct soccer games or training and engage in such activity knowing that the activity may be hazardous to Participant or Participant's property. PARTICIPANT VOLUNTARILY ASSUMES FULL RESPONSIBILITY FOR ANY RISKS OF LOSS, PROPERTY DAMAGE OR PERSONAL INJURY, INCLUDING DEATH, that may be sustained by any of its players, coaches, opponents, or fans, or any loss or damage to property owned by Participant, as a result of being engaged in such an activity, whether caused by the negligence of the Released Parties or otherwise.</p>
+
+                    <p>Participant acknowledges that ECS Pub League does not carry insurance on behalf of the Participant. Participant further hereby agrees to indemnify and hold harmless the Released Parties from and against any loss, liability, damage or costs, including court costs and attorney's fees, that they may incur due to Participant's participation in the proposed league activities, whether caused by the negligence of the Released Parties or otherwise. Participant agrees that this Waiver of Liability and Hold Harmless Agreement shall be construed in accordance with the laws of the State of Washington. Participant acknowledges full, adequate and complete consideration and intends to be bound by the terms contained herein.</p>
+
+                    <h6 class="c-waiver__section-title">ECS Pub League Code of Conduct</h6>
+                    <p>Participant further acknowledges and accepts as a condition of participation that ECS Pub League is a 21+ adult recreational league for very casual no/low contact soccer for beginners and beginner-friendly low-intermediate recreational players. We're not for everyone. Our level of skill, physicality, and competitiveness is typically well below even the lowest divisions of other leagues.</p>
+
+                    <p>We do not discriminate based on race, color, religion, gender, gender expression, age, national origin, ancestry, disability, marital status, sexual orientation, or military status, in any of our activities or operations.</p>
+
+                    <p>We do, however, reserve the right to deny play at any time for anyone who is deemed a poor fit for the league's mission and the culture of the unique community we serve because of skill, experience, physicality, competitiveness, or similar reasons.</p>
+
+                    <p><strong>More serious infractions may result in yellow cards, red cards, suspensions, or expulsion from the league:</strong></p>
+                    <ul class="c-waiver__list">
+                        <li class="c-waiver__list-item">Excessive physical play and tackling, whether called as fouls or not. The bar is set intentionally lower in this league.</li>
+                        <li class="c-waiver__list-item">Repeated dissent and/or unsporting behavior by words or action, including excessive arguing with referees and/or other players.</li>
+                        <li class="c-waiver__list-item">Playing in a dangerous manner that causes or threatens to cause injury.</li>
+                    </ul>
+
+                    <p><strong>Less serious infractions will be handled in private conversations with coaches and/or league leadership. Further corrective action up to expulsion from the league may be implemented if infractions continue after verbal warnings and discussions:</strong></p>
+                    <ul class="c-waiver__list">
+                        <li class="c-waiver__list-item">Regularly ball hogging and excessive dribbling rather than passing.</li>
+                        <li class="c-waiver__list-item">Regularly playing out of position to get themselves more directly involved in play.</li>
+                        <li class="c-waiver__list-item">Regularly dribbling through multiple opponents, especially those who are less skilled.</li>
+                        <li class="c-waiver__list-item">Regularly passing to only more talented players and not involving the whole team.</li>
+                        <li class="c-waiver__list-item">Excessive shooting, especially when passing was a better decision.</li>
+                        <li class="c-waiver__list-item">Running up the score, or excessive celebration on and off the field, including on social media.</li>
+                        <li class="c-waiver__list-item">In Classic: Not giving new players enough space and time to dribble or pass.</li>
+                    </ul>
+
+                    <p>This is intentionally not an exhaustive list, because it's not about players merely adhering to the letter of the law or finding loopholes, it's about playing to maintain the Spirit of Pub League. Ultimately, a player's suitability for either division is up to a group decision of league management, taking into consideration feedback from coaches and other players, with a particular focus on regularly exhibited patterns and consistent behaviors.</p>
+
+                    <p><strong>PARTICIPANT HAS READ THIS WAIVER OF LIABILITY AND CODE OF CONDUCT AND FULLY UNDERSTAND ITS TERMS, UNDERSTANDS THAT THEY HAVE GIVEN UP SUBSTANTIAL RIGHTS AND AGREES TO IT BY REGISTERING TO PLAY IN THE LEAGUE, DOING SO FREELY AND VOLUNTARILY WITHOUT ANY INDUCEMENT.</strong></p>
+                </div>
+            </div>
+
+            <!-- Registration Form -->
+            <form method="POST" action="{{ url_for('auth.register') }}" data-form="register">
+                {{ empty_form.hidden_tag() }}
+
+                <div class="c-auth-form__row">
+                    <div class="c-auth-input-group">
+                        <label for="username" class="c-auth-input-group__label">{{ form.username.label.text }}</label>
+                        {{ form.username(class="c-auth-input", id="username", **{"data-input": "username"}) }}
+                    </div>
+
+                    <div class="c-auth-input-group">
+                        <label for="email" class="c-auth-input-group__label">{{ form.email.label.text }}</label>
+                        {{ form.email(class="c-auth-input", id="email", **{"data-input": "email"}) }}
                     </div>
                 </div>
 
+                <div class="c-auth-form__row">
+                    <div class="c-auth-input-group c-auth-input-group--password">
+                        <label for="password" class="c-auth-input-group__label">{{ form.password.label.text }}</label>
+                        {{ form.password(class="c-auth-input", id="password", **{"data-input": "password"}) }}
+                        <button type="button"
+                                class="c-auth-password-toggle"
+                                data-action="toggle-password"
+                                aria-label="Toggle password visibility">
+                            <i class="ti ti-eye-off"></i>
+                        </button>
+                    </div>
+
+                    <div class="c-auth-input-group c-auth-input-group--password">
+                        <label for="confirm_password" class="c-auth-input-group__label">{{ form.confirm_password.label.text }}</label>
+                        {{ form.confirm_password(class="c-auth-input", id="confirm_password", **{"data-input": "confirm-password"}) }}
+                        <button type="button"
+                                class="c-auth-password-toggle"
+                                data-action="toggle-password-confirm"
+                                aria-label="Toggle password confirmation visibility">
+                            <i class="ti ti-eye-off"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Terms and Conditions Agreement -->
+                <div class="c-auth-checkbox">
+                    <input type="checkbox"
+                           class="c-auth-checkbox__input"
+                           id="terms-agreement"
+                           name="terms_agreement"
+                           required
+                           data-controller="terms-agreement">
+                    <label class="c-auth-checkbox__label c-auth-checkbox__label--muted" for="terms-agreement">
+                        I agree to the ECS FC terms and conditions, liability waiver, and code of conduct
+                    </label>
+                </div>
+
+                <button type="submit"
+                        class="c-auth-btn c-auth-btn--primary"
+                        id="register-btn"
+                        disabled
+                        data-target="submit-button">
+                    Register Account
+                </button>
+            </form>
+
+            <div class="c-auth-form__footer c-auth-form__footer--spaced">
+                <p class="c-auth-form__footer-text">
+                    <a href="{{ url_for('auth.forgot_password') }}" class="c-auth-link">Forgot Password?</a>
+                </p>
+                <p class="c-auth-form__footer-text">
+                    <span>Already have an account? </span>
+                    <a href="{{ url_for('auth.login') }}" class="c-auth-link">Login</a>
+                </p>
             </div>
-
         </div>
-
     </div>
 </div>
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
-    // Handle terms agreement checkbox
     document.addEventListener('DOMContentLoaded', function() {
-        const termsCheckbox = document.getElementById('terms-agreement');
-        const registerBtn = document.getElementById('register-btn');
-        
-        // Enable/disable register button based on checkbox
-        termsCheckbox.addEventListener('change', function() {
-            registerBtn.disabled = !this.checked;
-        });
-        
-        // Add some visual feedback for the checkbox
-        termsCheckbox.addEventListener('change', function() {
+        // Handle terms agreement checkbox
+        document.addEventListener('change', function(e) {
+            const target = e.target;
+            if (!target.matches('[data-controller="terms-agreement"]')) return;
+
+            const registerBtn = document.querySelector('[data-target="submit-button"]');
             const label = document.querySelector('label[for="terms-agreement"]');
-            if (this.checked) {
-                label.style.color = '#5a5c69';
-                registerBtn.classList.remove('btn-secondary');
-                registerBtn.classList.add('btn-primary');
-            } else {
-                label.style.color = '#858796';
-                registerBtn.classList.remove('btn-primary');
-                registerBtn.classList.add('btn-secondary');
+
+            if (registerBtn) {
+                registerBtn.disabled = !target.checked;
+            }
+
+            if (label) {
+                label.classList.toggle('c-auth-checkbox__label--muted', !target.checked);
+            }
+        });
+
+        // Password toggle handlers
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('[data-action]');
+            if (!target) return;
+
+            const action = target.dataset.action;
+
+            if (action === 'toggle-password' || action === 'toggle-password-confirm') {
+                const inputGroup = target.closest('.c-auth-input-group--password');
+                const passwordField = inputGroup.querySelector('[data-input]');
+
+                if (passwordField) {
+                    const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passwordField.setAttribute('type', type);
+                    const icon = target.querySelector('i');
+                    if (icon) {
+                        icon.classList.toggle('ti-eye');
+                        icon.classList.toggle('ti-eye-off');
+                    }
+                }
             }
         });
     });

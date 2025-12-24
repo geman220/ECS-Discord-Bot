@@ -1,0 +1,860 @@
+/**
+ * ============================================================================
+ * USER APPROVALS PAGE
+ * ============================================================================
+ *
+ * Styles for the user approval management page in the admin panel.
+ * Extracted from inline styles in admin/user_approvals.html and JavaScript.
+ *
+ * This file provides:
+ *   - Stats cards with status-specific styling
+ *   - User info display with avatars
+ *   - Action buttons (approve/deny)
+ *   - Empty state displays
+ *   - Player details modal
+ *   - Status badges
+ *
+ * Refactoring Changes:
+ *   - 100% inline style elimination
+ *   - All colors use design tokens
+ *   - Full dark mode support with [data-style="dark"] selectors
+ *   - Responsive design patterns
+ *   - Accessibility improvements
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   STATS CARDS
+   Dashboard statistics cards with color-coded status
+   ============================================================================ */
+
+.stats-card {
+  /* Layout */
+  background-color: var(--color-bg-card);
+  border: var(--border-width) solid var(--border-color-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+
+  /* Transition */
+  transition: all var(--duration-normal) var(--ease-smooth);
+
+  /* Visual hierarchy */
+  position: relative;
+  overflow: hidden;
+}
+
+.stats-card::before {
+  /* Status indicator bar on left */
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: var(--color-neutral-300);
+  transition: background-color var(--duration-normal) var(--ease-smooth);
+}
+
+.stats-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* Stats number */
+.stats-number {
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  line-height: var(--leading-tight);
+  margin-bottom: var(--space-2);
+}
+
+/* Stats label */
+.stats-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+/* Pending status card */
+.stats-card.pending::before {
+  background-color: var(--color-warning);
+}
+
+.stats-card.pending .stats-number {
+  color: var(--color-warning-700);
+}
+
+/* Approved status card */
+.stats-card.approved::before {
+  background-color: var(--color-success);
+}
+
+.stats-card.approved .stats-number {
+  color: var(--color-success-700);
+}
+
+/* Denied status card */
+.stats-card.denied::before {
+  background-color: var(--color-danger);
+}
+
+.stats-card.denied .stats-number {
+  color: var(--color-danger-700);
+}
+
+/* Dark mode stats cards */
+[data-style="dark"] .stats-card {
+  background-color: var(--color-neutral-800);
+  border-color: var(--color-neutral-700);
+}
+
+[data-style="dark"] .stats-card::before {
+  background-color: var(--color-neutral-600);
+}
+
+[data-style="dark"] .stats-card.pending .stats-number {
+  color: var(--color-warning-400);
+}
+
+[data-style="dark"] .stats-card.approved .stats-number {
+  color: var(--color-success-400);
+}
+
+[data-style="dark"] .stats-card.denied .stats-number {
+  color: var(--color-danger-400);
+}
+
+[data-style="dark"] .stats-number {
+  color: var(--color-neutral-100);
+}
+
+[data-style="dark"] .stats-label {
+  color: var(--color-neutral-400);
+}
+
+/* ============================================================================
+   USER INFO DISPLAY
+   User avatar and details in table cells
+   ============================================================================ */
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* User avatar */
+.user-avatar {
+  /* Size */
+  width: 40px;
+  height: 40px;
+
+  /* Shape */
+  border-radius: var(--radius-full);
+
+  /* Layout */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  /* Styling */
+  background: linear-gradient(135deg, var(--color-primary-400), var(--color-primary-600));
+  color: var(--color-neutral-0);
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+
+  /* Border */
+  border: 2px solid var(--color-bg-card);
+
+  /* Interaction */
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-smooth);
+  overflow: hidden;
+}
+
+.user-avatar:hover {
+  transform: scale(1.1);
+  box-shadow: var(--shadow-md);
+}
+
+/* Avatar image */
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-full);
+}
+
+/* User details */
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.user-details h6 {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  line-height: var(--leading-tight);
+}
+
+.user-details small {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: var(--leading-tight);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* User name link */
+.user-name-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-smooth);
+}
+
+.user-name-link:hover {
+  color: var(--color-primary-700);
+  text-decoration: underline;
+}
+
+/* Dark mode user info */
+[data-style="dark"] .user-avatar {
+  background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-700));
+  border-color: var(--color-neutral-800);
+}
+
+[data-style="dark"] .user-details h6 {
+  color: var(--color-neutral-100);
+}
+
+[data-style="dark"] .user-details small {
+  color: var(--color-neutral-400);
+}
+
+[data-style="dark"] .user-name-link {
+  color: var(--color-primary-400);
+}
+
+[data-style="dark"] .user-name-link:hover {
+  color: var(--color-primary-300);
+}
+
+/* ============================================================================
+   ACTION BUTTONS
+   Approve and deny buttons with semantic styling
+   ============================================================================ */
+
+/* Base button styles */
+.btn-approve,
+.btn-deny {
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+
+  /* Sizing */
+  padding: var(--space-2) var(--space-3);
+
+  /* Typography */
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+
+  /* Border */
+  border-radius: var(--radius-md);
+  border: var(--border-width) solid transparent;
+
+  /* Interaction */
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-smooth);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* Approve button */
+.btn-approve {
+  background-color: var(--color-success);
+  color: var(--color-neutral-0);
+  border-color: var(--color-success);
+}
+
+.btn-approve:hover {
+  background-color: var(--color-success-700);
+  border-color: var(--color-success-700);
+  color: var(--color-neutral-0);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.btn-approve:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.btn-approve:focus-visible {
+  outline: 2px solid var(--color-success);
+  outline-offset: 2px;
+}
+
+/* Deny button */
+.btn-deny {
+  background-color: var(--color-danger);
+  color: var(--color-neutral-0);
+  border-color: var(--color-danger);
+}
+
+.btn-deny:hover {
+  background-color: var(--color-danger-700);
+  border-color: var(--color-danger-700);
+  color: var(--color-neutral-0);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.btn-deny:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.btn-deny:focus-visible {
+  outline: 2px solid var(--color-danger);
+  outline-offset: 2px;
+}
+
+/* Disabled state */
+.btn-approve:disabled,
+.btn-deny:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Dark mode buttons */
+[data-style="dark"] .btn-approve {
+  background-color: var(--color-success-600);
+  border-color: var(--color-success-600);
+}
+
+[data-style="dark"] .btn-approve:hover {
+  background-color: var(--color-success-500);
+  border-color: var(--color-success-500);
+}
+
+[data-style="dark"] .btn-deny {
+  background-color: var(--color-danger-600);
+  border-color: var(--color-danger-600);
+}
+
+[data-style="dark"] .btn-deny:hover {
+  background-color: var(--color-danger-500);
+  border-color: var(--color-danger-500);
+}
+
+/* ============================================================================
+   STATUS BADGES
+   Status indicators for approval states
+   ============================================================================ */
+
+.status-approved {
+  background-color: var(--color-success-subtle);
+  color: var(--color-success-700);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.status-denied {
+  background-color: var(--color-danger-subtle);
+  color: var(--color-danger-700);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* Dark mode status badges */
+[data-style="dark"] .status-approved {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: var(--color-success-400);
+}
+
+[data-style="dark"] .status-denied {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: var(--color-danger-400);
+}
+
+/* ============================================================================
+   EMPTY STATE
+   Display when no pending approvals
+   ============================================================================ */
+
+.empty-state-icon {
+  font-size: 3rem;
+  color: var(--color-text-muted);
+}
+
+/* Specific class for empty table icon added by JavaScript */
+.empty-table-icon {
+  font-size: 3rem;
+  color: var(--color-secondary);
+}
+
+[data-style="dark"] .empty-state-icon,
+[data-style="dark"] .empty-table-icon {
+  color: var(--color-neutral-500);
+}
+
+/* ============================================================================
+   PLAYER DETAILS MODAL
+   Modal content styling for player information
+   ============================================================================ */
+
+/* Player details header */
+.player-details-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-4);
+  border-bottom: var(--border-width) solid var(--border-color-primary);
+}
+
+/* Player details image */
+.player-details-image {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  border: 3px solid var(--color-primary-subtle);
+}
+
+/* Player details avatar (fallback) */
+.player-details-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary-400), var(--color-primary-600));
+  color: var(--color-neutral-0);
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  border: 3px solid var(--color-primary-subtle);
+}
+
+/* Player details info */
+.player-details-info {
+  flex: 1;
+}
+
+.player-details-info h3 {
+  margin: 0 0 var(--space-2) 0;
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+}
+
+.player-details-info p {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+}
+
+/* Player details section */
+.player-details-section {
+  margin-bottom: var(--space-5);
+}
+
+.player-details-section:last-child {
+  margin-bottom: 0;
+}
+
+.player-details-section h5 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: var(--border-width) solid var(--border-color-primary);
+}
+
+/* Info grid */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+
+/* Info item */
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.info-label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text-muted);
+}
+
+.info-value {
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+  word-break: break-word;
+}
+
+.info-value code {
+  background-color: var(--color-neutral-100);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  border: var(--border-width) solid var(--border-color-primary);
+}
+
+/* Dark mode player details */
+[data-style="dark"] .player-details-header {
+  border-color: var(--color-neutral-700);
+}
+
+[data-style="dark"] .player-details-image {
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+[data-style="dark"] .player-details-avatar {
+  background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-700));
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+[data-style="dark"] .player-details-info h3 {
+  color: var(--color-neutral-100);
+}
+
+[data-style="dark"] .player-details-info p {
+  color: var(--color-neutral-300);
+}
+
+[data-style="dark"] .player-details-section h5 {
+  color: var(--color-neutral-100);
+  border-color: var(--color-neutral-700);
+}
+
+[data-style="dark"] .info-label {
+  color: var(--color-neutral-400);
+}
+
+[data-style="dark"] .info-value {
+  color: var(--color-neutral-200);
+}
+
+[data-style="dark"] .info-value code {
+  background-color: var(--color-neutral-800);
+  color: var(--color-neutral-200);
+  border-color: var(--color-neutral-700);
+}
+
+/* ============================================================================
+   TABLE ENHANCEMENTS
+   Additional styling for the approvals table
+   ============================================================================ */
+
+/* Row fade out animation class (applied by JavaScript) */
+.table tbody tr.fade-out {
+  opacity: 0;
+  transition: opacity var(--duration-normal) var(--ease-smooth);
+}
+
+/* Highlight row on hover */
+.table-hover tbody tr:hover {
+  background-color: var(--color-neutral-50);
+}
+
+[data-style="dark"] .table-hover tbody tr:hover {
+  background-color: var(--color-neutral-800);
+}
+
+/* Profile link visibility control (used by JavaScript) */
+.table .profile-link-hidden {
+  display: none;
+}
+
+.table .profile-link-visible {
+  display: inline-block;
+}
+
+/* ============================================================================
+   LOADING STATES
+   Spinner and loading indicators
+   ============================================================================ */
+
+.ti-loader {
+  animation: spin var(--duration-slow) linear infinite;
+}
+
+.ti-spin {
+  animation: spin var(--duration-slow) linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
+   Mobile and tablet adjustments
+   ============================================================================ */
+
+/* Tablet adjustments */
+@media (max-width: 992px) {
+  .stats-card {
+    padding: var(--space-4);
+  }
+
+  .stats-number {
+    font-size: var(--text-3xl);
+  }
+
+  .info-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: var(--space-3);
+  }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .stats-card {
+    padding: var(--space-3);
+  }
+
+  .stats-number {
+    font-size: var(--text-2xl);
+  }
+
+  .stats-label {
+    font-size: var(--text-xs);
+  }
+
+  .user-info {
+    gap: var(--space-2);
+  }
+
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: var(--text-base);
+  }
+
+  .user-details h6 {
+    font-size: var(--text-sm);
+  }
+
+  .user-details small {
+    font-size: var(--text-xs);
+  }
+
+  /* Stack action buttons on mobile */
+  .btn-approve,
+  .btn-deny {
+    display: block;
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .btn-approve {
+    margin-bottom: var(--space-2);
+  }
+
+  /* Player details modal adjustments */
+  .player-details-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .player-details-image,
+  .player-details-avatar {
+    width: 60px;
+    height: 60px;
+    font-size: var(--text-2xl);
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+}
+
+/* Very small screens */
+@media (max-width: 480px) {
+  .stats-number {
+    font-size: var(--text-xl);
+  }
+
+  /* Hide badges in table on very small screens */
+  .table .badge {
+    font-size: var(--text-xs);
+    padding: var(--space-1);
+  }
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   Improved keyboard navigation and screen reader support
+   ============================================================================ */
+
+/* Focus visible states */
+.user-avatar:focus-visible,
+.user-name-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .stats-card,
+  .user-avatar,
+  .btn-approve,
+  .btn-deny,
+  .table tbody tr,
+  .ti-loader,
+  .ti-spin {
+    transition: none;
+    animation: none;
+  }
+
+  .stats-card:hover,
+  .user-avatar:hover,
+  .btn-approve:hover,
+  .btn-deny:hover {
+    transform: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: more) {
+  .stats-card,
+  .user-avatar,
+  .btn-approve,
+  .btn-deny {
+    border-width: 2px;
+  }
+
+  .stats-card::before {
+    width: 6px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .btn-approve,
+  .btn-deny {
+    display: none;
+  }
+
+  .stats-card {
+    break-inside: avoid;
+  }
+
+  .stats-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+/* ============================================================================
+   NOTES FOR DEVELOPERS
+   ============================================================================
+
+   REFACTORING SUMMARY:
+   - Eliminated 100% of inline styles from HTML template
+   - Eliminated all JavaScript style manipulations (converted to CSS classes)
+   - All colors use design tokens from variables.css
+   - Full dark mode support with [data-style="dark"] selectors
+   - Responsive design with mobile-first approach
+   - Accessibility improvements (focus states, reduced motion, high contrast)
+
+   JAVASCRIPT INTEGRATION:
+   - Line 257: row.style.opacity -> use .fade-out class
+   - Line 282: inline font-size and color -> use .empty-table-icon class
+   - Line 578, 580: style.display -> use .profile-link-visible/.profile-link-hidden
+
+   CSS CLASSES DEFINED:
+   - .stats-card (with .pending, .approved, .denied variants)
+   - .stats-number
+   - .stats-label
+   - .user-info
+   - .user-avatar
+   - .user-details
+   - .user-name-link
+   - .btn-approve
+   - .btn-deny
+   - .status-approved
+   - .status-denied
+   - .empty-state-icon
+   - .empty-table-icon
+   - .player-details-header
+   - .player-details-image
+   - .player-details-avatar
+   - .player-details-info
+   - .player-details-section
+   - .info-grid
+   - .info-item
+   - .info-label
+   - .info-value
+   - .fade-out
+   - .profile-link-hidden
+   - .profile-link-visible
+   - .ti-loader
+   - .ti-spin
+
+   USAGE EXAMPLE:
+
+   Stats Card:
+   <div class="stats-card pending">
+     <div class="stats-number">42</div>
+     <div class="stats-label">Pending Approval</div>
+   </div>
+
+   User Info:
+   <div class="user-info">
+     <div class="user-avatar">JD</div>
+     <div class="user-details">
+       <h6><a href="#" class="user-name-link">John Doe</a></h6>
+       <small>Player Name</small>
+     </div>
+   </div>
+
+   Action Buttons:
+   <button class="btn-approve">Approve</button>
+   <button class="btn-deny">Deny</button>
+
+   ============================================================================
+ */

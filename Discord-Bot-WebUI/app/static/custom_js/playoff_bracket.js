@@ -369,7 +369,7 @@ class PlayoffBracket {
         container.innerHTML = `
             <div class="tbd-message">
                 <div class="text-center">
-                    <i class="ti ti-help-circle mb-2" style="font-size: 2rem;"></i>
+                    <i class="ti ti-help-circle mb-2 tbd-icon"></i>
                     <p class="mb-1">${matchup}</p>
                     <small class="text-muted">To be determined after group stage</small>
                 </div>
@@ -400,8 +400,7 @@ class PlayoffBracket {
         const existingModal = document.getElementById(modalId);
 
         if (existingModal) {
-            const modal = new bootstrap.Modal(existingModal);
-            modal.show();
+            ModalManager.show(existingModal.id);
         } else {
             // If modal doesn't exist, redirect to a page where it does or show a message
             console.warn('Match report modal not found on page. You may need to load it first.');

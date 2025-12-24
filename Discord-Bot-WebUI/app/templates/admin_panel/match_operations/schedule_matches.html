@@ -14,24 +14,24 @@
 <!-- Season Info and Filters -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
+        <div class="c-card">
+            <div class="c-card__header">
                 <div class="d-flex justify-content-between align-items-center flex-wrap">
-                    <h5 class="card-title mb-0">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-filter me-2"></i>Filter by League
                     </h5>
                     {% if current_season %}
-                    <span class="badge bg-info">
+                    <span class="badge bg-info" data-badge>
                         <i class="ti ti-calendar me-1"></i>{{ current_season.name }}
                     </span>
                     {% endif %}
                 </div>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <form method="GET" class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label">League / Division</label>
-                        <select name="league_id" class="form-select">
+                        <select name="league_id" class="form-select" data-form-select>
                             <option value="">All Leagues (Premier, Classic, ECS FC)</option>
                             {% for league in leagues %}
                             <option value="{{ league.id }}" {% if current_league_id == league.id %}selected{% endif %}>
@@ -43,10 +43,10 @@
                     <div class="col-md-4">
                         <label class="form-label">&nbsp;</label>
                         <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="c-btn c-btn--primary">
                                 <i class="ti ti-search me-1"></i>Filter
                             </button>
-                            <a href="{{ url_for('admin_panel.schedule_matches') }}" class="btn btn-outline-secondary">
+                            <a href="{{ url_for('admin_panel.schedule_matches') }}" class="c-btn c-btn--outline-secondary">
                                 <i class="ti ti-x me-1"></i>Clear
                             </a>
                         </div>
@@ -60,45 +60,45 @@
 <!-- Statistics Cards -->
 <div class="row mb-4">
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
+        <div class="c-card">
+            <div class="c-card__body">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <h6 class="card-title mb-0">Available Teams</h6>
+                        <h6 class="c-card__title mb-0">Available Teams</h6>
                         <h4 class="mb-0">{{ teams|length }}</h4>
                     </div>
                     <div class="text-primary">
-                        <i class="ti ti-users" style="font-size: 2rem;"></i>
+                        <i class="ti ti-users u-card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
+        <div class="c-card">
+            <div class="c-card__body">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <h6 class="card-title mb-0">Active Leagues</h6>
+                        <h6 class="c-card__title mb-0">Active Leagues</h6>
                         <h4 class="mb-0">{{ leagues|length }}</h4>
                     </div>
                     <div class="text-success">
-                        <i class="ti ti-flag" style="font-size: 2rem;"></i>
+                        <i class="ti ti-flag u-card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
+        <div class="c-card">
+            <div class="c-card__body">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <h6 class="card-title mb-0">Unscheduled Matches</h6>
+                        <h6 class="c-card__title mb-0">Unscheduled Matches</h6>
                         <h4 class="mb-0 text-warning">{{ unscheduled_matches|length }}</h4>
                     </div>
                     <div class="text-warning">
-                        <i class="ti ti-clock" style="font-size: 2rem;"></i>
+                        <i class="ti ti-clock u-card-icon-stat"></i>
                     </div>
                 </div>
             </div>
@@ -109,22 +109,22 @@
 <div class="row">
     <!-- Unscheduled Matches -->
     <div class="col-lg-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-calendar-event me-2"></i>Unscheduled Matches
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if unscheduled_matches %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Home Team</th>
-                                <th>Away Team</th>
-                                <th>League</th>
-                                <th>Actions</th>
+                                <th scope="col">Home Team</th>
+                                <th scope="col">Away Team</th>
+                                <th scope="col">League</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -138,13 +138,13 @@
                                 </td>
                                 <td>
                                     {% if match.home_team and match.home_team.league %}
-                                    <span class="badge bg-info">{{ match.home_team.league.name }}</span>
+                                    <span class="badge bg-info" data-badge>{{ match.home_team.league.name }}</span>
                                     {% else %}
-                                    <span class="badge bg-secondary">N/A</span>
+                                    <span class="badge bg-secondary" data-badge>N/A</span>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-primary" onclick="scheduleMatch({{ match.id }})">
+                                    <button class="c-btn c-btn--sm c-btn--primary" data-action="schedule-match" data-match-id="{{ match.id }}">
                                         <i class="ti ti-calendar-plus me-1"></i>Schedule
                                     </button>
                                 </td>
@@ -155,7 +155,7 @@
                 </div>
                 {% else %}
                 <div class="text-center py-5">
-                    <i class="ti ti-calendar-check text-success" style="font-size: 4rem;"></i>
+                    <i class="ti ti-calendar-check text-success icon-empty-large"></i>
                     <h5 class="text-muted mt-3">All Matches Scheduled</h5>
                     <p class="text-muted">There are no unscheduled matches for the current season.</p>
                 </div>
@@ -167,19 +167,19 @@
     <!-- Quick Actions Sidebar -->
     <div class="col-lg-4">
         <!-- Quick Schedule Card -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card mb-4">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-bolt me-2"></i>Quick Actions
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <p class="text-muted">Use quick schedule to automatically assign dates and times to unscheduled matches.</p>
                 <div class="d-grid gap-2">
-                    <button class="btn btn-primary" onclick="quickSchedule()" {% if not unscheduled_matches %}disabled{% endif %}>
+                    <button class="c-btn c-btn--primary" data-action="quick-schedule" {% if not unscheduled_matches %}disabled{% endif %}>
                         <i class="ti ti-calendar-plus me-1"></i>Quick Schedule All
                     </button>
-                    <button class="btn btn-outline-secondary" onclick="createNewMatch()">
+                    <button class="c-btn c-btn--outline-secondary" data-action="create-new-match">
                         <i class="ti ti-plus me-1"></i>Create New Match
                     </button>
                 </div>
@@ -187,19 +187,19 @@
         </div>
 
         <!-- Active Leagues Card -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-flag me-2"></i>Active Leagues
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if leagues %}
                 <ul class="list-group list-group-flush">
                     {% for league in leagues %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         {{ league.name }}
-                        <span class="badge bg-primary rounded-pill">
+                        <span class="badge bg-primary rounded-pill" data-badge>
                             {{ league.teams|length if league.teams else 0 }} teams
                         </span>
                     </li>
@@ -216,7 +216,31 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
+// Event delegation for schedule match actions
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        const matchId = target.dataset.matchId;
+
+        switch(action) {
+            case 'schedule-match':
+                scheduleMatch(matchId);
+                break;
+            case 'quick-schedule':
+                quickSchedule();
+                break;
+            case 'create-new-match':
+                createNewMatch();
+                break;
+        }
+    });
+});
+
 function scheduleMatch(matchId) {
     Swal.fire({
         title: 'Schedule Match',
@@ -224,15 +248,15 @@ function scheduleMatch(matchId) {
             <form id="scheduleForm" class="text-start">
                 <div class="mb-3">
                     <label class="form-label">Date</label>
-                    <input type="date" class="form-control" id="matchDate" required>
+                    <input type="date" class="form-control" id="matchDate" required data-form-control>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Time</label>
-                    <input type="time" class="form-control" id="matchTime" required>
+                    <input type="time" class="form-control" id="matchTime" required data-form-control>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Location</label>
-                    <input type="text" class="form-control" id="matchLocation" placeholder="e.g., North Field">
+                    <input type="text" class="form-control" id="matchLocation" placeholder="e.g., North Field" data-form-control>
                 </div>
             </form>
         `,
@@ -346,7 +370,7 @@ function createNewMatch() {
             <form id="newMatchForm" class="text-start">
                 <div class="mb-3">
                     <label class="form-label">Home Team</label>
-                    <select class="form-select" id="homeTeam" required>
+                    <select class="form-select" id="homeTeam" required data-form-select>
                         <option value="">Select Home Team</option>
                         {% for team in teams %}
                         <option value="{{ team.id }}">{{ team.name }}</option>
@@ -355,7 +379,7 @@ function createNewMatch() {
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Away Team</label>
-                    <select class="form-select" id="awayTeam" required>
+                    <select class="form-select" id="awayTeam" required data-form-select>
                         <option value="">Select Away Team</option>
                         {% for team in teams %}
                         <option value="{{ team.id }}">{{ team.name }}</option>
@@ -364,11 +388,11 @@ function createNewMatch() {
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Date (Optional)</label>
-                    <input type="date" class="form-control" id="newMatchDate">
+                    <input type="date" class="form-control" id="newMatchDate" data-form-control>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Time (Optional)</label>
-                    <input type="time" class="form-control" id="newMatchTime">
+                    <input type="time" class="form-control" id="newMatchTime" data-form-control>
                 </div>
             </form>
         `,

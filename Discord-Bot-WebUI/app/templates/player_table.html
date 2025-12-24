@@ -8,54 +8,77 @@
 }}
 {% endmacro %}
 
-<div class="card">
-    <div class="card-header">
-        <h4 class="card-title">{{ league_name }}</h4>
+<div class="c-player-table" data-component="player-table" data-league="{{ league_name }}">
+    <div class="c-player-table__header">
+        <h4 class="c-player-table__title">{{ league_name }}</h4>
     </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table mobile-card-table">
+    <div class="c-player-table__body">
+        <div class="c-player-table__wrapper" data-table-responsive>
+            <table class="c-player-table__table" data-table>
                 <!-- Table headers -->
-                <thead>
+                <thead class="c-player-table__head">
                     <tr>
-                        <th data-card-title>Name</th>
-                        <th data-card-hidden="false">Email</th>
-                        <th data-card-hidden="false">Phone</th>
-                        <th data-card-hidden="false">Jersey Size</th>
-                        <th data-card-hidden="false">Status</th>
-                        <th data-card-hidden="true">Actions</th>
+                        <th class="c-player-table__th c-player-table__th--name" data-card-title scope="col">Name</th>
+                        <th class="c-player-table__th c-player-table__th--email" data-card-hidden="false" scope="col">Email</th>
+                        <th class="c-player-table__th c-player-table__th--phone" data-card-hidden="false" scope="col">Phone</th>
+                        <th class="c-player-table__th c-player-table__th--jersey" data-card-hidden="false" scope="col">Jersey Size</th>
+                        <th class="c-player-table__th c-player-table__th--status" data-card-hidden="false" scope="col">Status</th>
+                        <th class="c-player-table__th c-player-table__th--actions" data-card-hidden="true" scope="col">Actions</th>
                     </tr>
                 </thead>
                 <!-- Table body -->
-                <tbody>
+                <tbody class="c-player-table__tbody">
                     {% for player in players.items %}
-                    <tr>
-                        <td data-card-title>
-                            <a href="{{ url_for('players.player_profile', player_id=player.id) }}">
+                    <tr class="c-player-table__row" data-player-id="{{ player.id }}" data-player-row>
+                        <td class="c-player-table__td c-player-table__td--name" data-card-title>
+                            <a href="{{ url_for('players.player_profile', player_id=player.id) }}"
+                               class="c-player-table__link"
+                               data-action="view-player">
                                 {{ player.name }}
                             </a>
                         </td>
-                        <td data-card-label="Email">{{ player.user.email }}</td>
-                        <td data-card-label="Phone">{{ player.phone }}</td>
-                        <td data-card-label="Jersey Size">{{ player.jersey_size }}</td>
-                        <td data-card-label="Status">
-                            <span class="badge rounded-pill bg-{{ 'success' if player.is_current_player else 'secondary' }}">
+                        <td class="c-player-table__td c-player-table__td--email" data-card-label="Email">
+                            {{ player.user.email }}
+                        </td>
+                        <td class="c-player-table__td c-player-table__td--phone" data-card-label="Phone">
+                            {{ player.phone }}
+                        </td>
+                        <td class="c-player-table__td c-player-table__td--jersey" data-card-label="Jersey Size">
+                            {{ player.jersey_size }}
+                        </td>
+                        <td class="c-player-table__td c-player-table__td--status" data-card-label="Status">
+                            <span class="c-badge c-badge--{{ 'success' if player.is_current_player else 'secondary' }}"
+                                  data-badge
+                                  data-status="{{ 'active' if player.is_current_player else 'inactive' }}">
                                 {{ 'Current Player' if player.is_current_player else 'Inactive' }}
                             </span>
                         </td>
-                        <td>
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-icon btn-light" type="button" id="dropdownMenuButton{{ player.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                        <td class="c-player-table__td c-player-table__td--actions">
+                            <div class="c-player-table__actions">
+                                <button class="c-action-btn c-action-btn--light"
+                                        type="button"
+                                        id="dropdownMenuButton{{ player.id }}"
+                                        data-bs-toggle="dropdown"
+                                        aria-expanded="false"
+                                        data-action="toggle-menu">
                                     <i data-feather="more-vertical"></i>
                                 </button>
-                                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ player.id }}">
+                                <ul class="dropdown-menu c-player-table__menu"
+                                    aria-labelledby="dropdownMenuButton{{ player.id }}"
+                                    data-dropdown-menu>
                                     <li>
-                                        <a class="dropdown-item" href="{{ url_for('players.edit_player', player_id=player.id) }}">
+                                        <a class="dropdown-item c-player-table__menu-item"
+                                           href="{{ url_for('players.edit_player', player_id=player.id) }}"
+                                           data-action="edit-player">
                                             <i data-feather="edit"></i> Edit
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item text-danger" href="#" onclick="confirmDeletePlayer({{ player.id }})">
+                                        <a class="dropdown-item c-player-table__menu-item c-player-table__menu-item--danger"
+                                           href="#"
+                                           data-action="delete-player"
+                                           data-player-id="{{ player.id }}"
+                                           data-player-name="{{ player.name }}">
                                             <i data-feather="trash-2"></i> Delete
                                         </a>
                                     </li>
@@ -69,45 +92,57 @@
         </div>
         <!-- Pagination -->
         {% if players.pages > 1 %}
-        <nav aria-label="Pagination">
-            <ul class="pagination justify-content-center mt-3">
+        <nav class="c-pagination" aria-label="Pagination" data-component="pagination">
+            <ul class="c-pagination__list">
                 {% if players.has_prev %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_with_page(players.prev_num) }}">
+                <li class="c-pagination__item">
+                    <a class="c-pagination__link"
+                       href="{{ url_with_page(players.prev_num) }}"
+                       data-page="prev"
+                       aria-label="Previous page">
                         Previous
                     </a>
                 </li>
                 {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">Previous</span>
+                <li class="c-pagination__item is-disabled">
+                    <span class="c-pagination__link">Previous</span>
                 </li>
                 {% endif %}
 
                 {% for page_num in players.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
                 {% if page_num %}
                 {% if page_num == players.page %}
-                <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                <li class="c-pagination__item is-active">
+                    <span class="c-pagination__link" aria-current="page">{{ page_num }}</span>
+                </li>
                 {% else %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_with_page(page_num) }}">
+                <li class="c-pagination__item">
+                    <a class="c-pagination__link"
+                       href="{{ url_with_page(page_num) }}"
+                       data-page="{{ page_num }}">
                         {{ page_num }}
                     </a>
                 </li>
                 {% endif %}
                 {% else %}
-                <li class="page-item disabled"><span class="page-link">…</span></li>
+                <li class="c-pagination__item is-disabled">
+                    <span class="c-pagination__link">…</span>
+                </li>
                 {% endif %}
                 {% endfor %}
 
                 {% if players.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_with_page(players.next_num) }}">
+                <li class="c-pagination__item">
+                    <a class="c-pagination__link"
+                       href="{{ url_with_page(players.next_num) }}"
+                       data-page="next"
+                       aria-label="Next page">
                         Next
                     </a>
                 </li>
                 {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">Next</span>
+                <li class="c-pagination__item is-disabled">
+                    <span class="c-pagination__link">Next</span>
                 </li>
                 {% endif %}
             </ul>

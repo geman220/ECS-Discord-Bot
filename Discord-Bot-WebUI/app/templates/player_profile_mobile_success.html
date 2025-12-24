@@ -3,29 +3,24 @@
 {% block title %}Profile Complete! - {{ player.name }}{% endblock %}
 
 {% block main_content %}
-<div class="container-fluid py-3">
+<div class="container-fluid py-3" data-component="profile-success">
     <!-- Success Animation Card -->
-    <div class="card bg-success text-white mb-4 text-center">
-        <div class="card-body py-5">
-            <!-- Animated Checkmark -->
-            <div class="success-checkmark mb-4">
-                <div class="check-icon">
-                    <span class="icon-line line-tip"></span>
-                    <span class="icon-line line-long"></span>
-                    <div class="icon-circle"></div>
-                    <div class="icon-fix"></div>
-                </div>
+    <div class="c-success-card" data-component="success-card">
+        <div class="c-success-card__body">
+            <!-- Success Icon -->
+            <div class="c-success-icon">
+                <i class="ti ti-circle-check"></i>
             </div>
-            
-            <h2 class="card-title mb-3">
+
+            <h2 class="c-success-card__title">
                 {% if action_type == 'verified' %}
                 Profile Confirmed!
                 {% else %}
                 Profile Updated!
                 {% endif %}
             </h2>
-            
-            <p class="mb-0 fs-5">
+
+            <p class="c-success-card__text">
                 {% if action_type == 'verified' %}
                 Thank you for confirming your profile information is current.
                 {% else %}
@@ -36,68 +31,63 @@
     </div>
 
     <!-- Player Confirmation Card -->
-    <div class="card border-success mb-4">
-        <div class="card-header bg-light border-success">
-            <h5 class="card-title mb-0 text-success">
-                <i class="ti ti-user-check me-2"></i>Profile Complete
+    <div class="c-confirmation-card" data-component="confirmation-card">
+        <div class="c-confirmation-card__header">
+            <h5 class="c-confirmation-card__title">
+                <i class="ti ti-user-check"></i>Profile Complete
             </h5>
         </div>
-        <div class="card-body">
-            <div class="d-flex align-items-center mb-3">
+        <div class="c-confirmation-card__body">
+            <div class="c-player-info" data-component="player-info">
                 {% if player.profile_picture_url %}
-                <img src="{{ player.profile_picture_url }}?v={{ player.updated_at.timestamp() }}" 
-                     class="rounded-circle me-3" 
-                     style="width: 60px; height: 60px; object-fit: cover;"
+                <img src="{{ player.profile_picture_url }}?v={{ player.updated_at.timestamp() }}"
+                     class="c-player-info__avatar"
                      alt="Profile Picture">
                 {% else %}
-                <img src="{{ url_for('static', filename='img/default_player.png') }}" 
-                     class="rounded-circle me-3" 
-                     style="width: 60px; height: 60px; object-fit: cover;"
+                <img src="{{ url_for('static', filename='img/default_player.png') }}"
+                     class="c-player-info__avatar"
                      alt="Default Profile Picture">
                 {% endif %}
-                <div>
-                    <h6 class="mb-1">{{ player.name }}</h6>
+                <div class="c-player-info__details">
+                    <h6 class="c-player-info__name">{{ player.name }}</h6>
                     {% if player.teams %}
                         {% for team in player.teams %}
-                        <span class="badge bg-success me-1">{{ team.name }}</span>
+                        <span class="c-badge c-badge--success" data-badge>{{ team.name }}</span>
                         {% endfor %}
                     {% endif %}
                 </div>
             </div>
-            
-            <div class="row text-center">
-                <div class="col-6">
-                    <div class="border-end pe-2">
-                        <i class="ti ti-calendar-check text-success mb-2 d-block" style="font-size: 2rem;"></i>
-                        <small class="text-muted">Profile Status</small>
-                        <div class="fw-bold text-success">Current</div>
-                    </div>
+
+            <div class="c-status-grid" data-component="status-grid">
+                <div class="c-status-item" data-status-item>
+                    <div class="c-status-item__border"></div>
+                    <i class="ti ti-calendar-check c-status-item__icon c-status-item__icon--success"></i>
+                    <small class="c-status-item__label">Profile Status</small>
+                    <div class="c-status-item__value c-status-item__value--success">Current</div>
                 </div>
-                <div class="col-6">
-                    <div class="ps-2">
-                        <i class="ti ti-clock text-success mb-2 d-block" style="font-size: 2rem;"></i>
-                        <small class="text-muted">Last Updated</small>
-                        <div class="fw-bold">Just Now</div>
-                    </div>
+                <div class="c-status-item" data-status-item>
+                    <i class="ti ti-clock c-status-item__icon c-status-item__icon--success"></i>
+                    <small class="c-status-item__label">Last Updated</small>
+                    <div class="c-status-item__value">Just Now</div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Show to Staff Card -->
-    <div class="card border-warning bg-warning bg-opacity-10 mb-4">
-        <div class="card-body text-center">
-            <h5 class="card-title text-warning mb-3">
-                <i class="ti ti-hand-finger me-2"></i>Show This Screen to Staff
+    <div class="c-staff-notice" data-component="staff-notice">
+        <div class="c-staff-notice__body">
+            <h5 class="c-staff-notice__title">
+                <i class="ti ti-hand-finger"></i>Show This Screen to Staff
             </h5>
-            <p class="mb-3">Present this confirmation to the registration staff to verify you have completed your profile update.</p>
-            
+            <p class="c-staff-notice__text">Present this confirmation to the registration staff to verify you have completed your profile update.</p>
+
             <!-- Large Verification Badge -->
-            <div class="verification-badge">
-                <div class="badge bg-success p-3 fs-4 mb-2" style="border-radius: 15px;">
-                    <i class="ti ti-shield-check me-2"></i>VERIFIED
+            <div class="c-verification-badge" data-component="verification-badge">
+                <div class="c-verification-badge__icon">
+                    <i class="ti ti-shield-check"></i>VERIFIED
                 </div>
-                <div class="small text-muted">
+                <div class="c-verification-badge__timestamp">
                     Completed: Just now
                 </div>
             </div>
@@ -105,235 +95,30 @@
     </div>
 
     <!-- Action Buttons -->
-    <div class="d-grid gap-2 mb-4">
-        <button onclick="window.close()" class="btn btn-outline-secondary btn-lg">
-            <i class="ti ti-check me-2"></i>Done
-        </button>
+    <div class="c-form-actions" data-component="form-actions">
+        <a href="{{ url_for('players.player_profile', player_id=player.id) }}"
+           class="c-btn c-btn--primary c-btn--lg">
+            <i class="ti ti-user"></i>View My Profile
+        </a>
     </div>
 
     <!-- Thank You Message -->
-    <div class="text-center text-muted">
-        <p class="mb-2">
-            <i class="ti ti-heart text-danger me-1"></i>
+    <div class="c-thank-you" data-component="thank-you">
+        <p class="c-thank-you__message">
+            <i class="ti ti-heart c-thank-you__icon"></i>
             Thank you for being part of ECS FC!
         </p>
-        <p class="small mb-0">We look forward to an amazing season with you.</p>
+        <p class="c-thank-you__subtitle">We look forward to an amazing season with you.</p>
     </div>
 </div>
 {% endblock %}
 
 {% block custom_css %}
-<style>
-/* Animated Checkmark Styles */
-.success-checkmark {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    display: block;
-    stroke-width: 3;
-    stroke: #fff;
-    stroke-miterlimit: 10;
-    margin: 0 auto;
-    position: relative;
-}
-
-.success-checkmark .check-icon {
-    width: 80px;
-    height: 80px;
-    position: relative;
-    border-radius: 50%;
-    box-sizing: content-box;
-    border: 3px solid #fff;
-}
-
-.success-checkmark .check-icon::before {
-    top: 3px;
-    left: -2px;
-    width: 30px;
-    transform-origin: 100% 50%;
-    border-radius: 100px 0 0 100px;
-}
-
-.success-checkmark .check-icon::after {
-    top: 0;
-    left: 30px;
-    width: 60px;
-    transform-origin: 0 50%;
-    border-radius: 0 100px 100px 0;
-    animation: rotate-circle 4.25s ease-in;
-}
-
-.success-checkmark .check-icon::before,
-.success-checkmark .check-icon::after {
-    content: '';
-    height: 100px;
-    position: absolute;
-    background: #198754;
-    transform: rotate(-45deg);
-}
-
-.success-checkmark .check-icon .icon-line {
-    height: 3px;
-    background-color: #fff;
-    display: block;
-    border-radius: 2px;
-    position: absolute;
-    z-index: 10;
-}
-
-.success-checkmark .check-icon .icon-line.line-tip {
-    top: 46px;
-    left: 14px;
-    width: 25px;
-    transform: rotate(45deg);
-    animation: icon-line-tip 0.75s;
-}
-
-.success-checkmark .check-icon .icon-line.line-long {
-    top: 38px;
-    right: 8px;
-    width: 47px;
-    transform: rotate(-45deg);
-    animation: icon-line-long 0.75s;
-}
-
-.success-checkmark .check-icon .icon-circle {
-    top: -3px;
-    left: -3px;
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    position: absolute;
-    box-sizing: content-box;
-    border: 3px solid rgba(255, 255, 255, 0.5);
-}
-
-.success-checkmark .check-icon .icon-fix {
-    top: 8px;
-    width: 5px;
-    left: 26px;
-    z-index: 1;
-    height: 85px;
-    position: absolute;
-    transform: rotate(-45deg);
-    background-color: #198754;
-}
-
-@keyframes rotate-circle {
-    0% {
-        transform: rotate(-45deg);
-    }
-    5% {
-        transform: rotate(-45deg);
-    }
-    12% {
-        transform: rotate(-405deg);
-    }
-    100% {
-        transform: rotate(-405deg);
-    }
-}
-
-@keyframes icon-line-tip {
-    0% {
-        width: 0;
-        left: 1px;
-        top: 19px;
-    }
-    54% {
-        width: 0;
-        left: 1px;
-        top: 19px;
-    }
-    70% {
-        width: 50px;
-        left: -8px;
-        top: 37px;
-    }
-    84% {
-        width: 17px;
-        left: 21px;
-        top: 48px;
-    }
-    100% {
-        width: 25px;
-        left: 14px;
-        top: 46px;
-    }
-}
-
-@keyframes icon-line-long {
-    0% {
-        width: 0;
-        right: 46px;
-        top: 54px;
-    }
-    65% {
-        width: 0;
-        right: 46px;
-        top: 54px;
-    }
-    84% {
-        width: 55px;
-        right: 0px;
-        top: 35px;
-    }
-    100% {
-        width: 47px;
-        right: 8px;
-        top: 38px;
-    }
-}
-
-/* Verification Badge Animation */
-.verification-badge {
-    animation: pulse-success 2s infinite;
-}
-
-@keyframes pulse-success {
-    0% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.05);
-    }
-    100% {
-        transform: scale(1);
-    }
-}
-</style>
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/features/profile-success-animations.css') }}">
 {% endblock %}
 
 {% block custom_js %}
-<script>
-$(document).ready(function() {
-    // Add some confetti or celebration effect if available
-    // Auto-refresh or prevent accidental navigation
-    
-    // Play a success sound if browser supports it
-    try {
-        // Create a simple success tone
-        if (typeof AudioContext !== 'undefined' || typeof webkitAudioContext !== 'undefined') {
-            const audioContext = new (AudioContext || webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
-            oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
-            oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
-            
-            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-            gainNode.gain.setValueAtTime(0, audioContext.currentTime + 0.3);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.3);
-        }
-    } catch (e) {
-        // Ignore audio errors
-    }
-});
-</script>
+<div data-success-celebration></div>
+<script src="{{ url_for('static', filename='custom_js/profile-success.js') }}"></script>
 {% endblock %}

@@ -8,265 +8,378 @@
 {% endblock %}
 
 {% block panel_content %}
-
+<div class="c-comm-hub" data-component="communication-hub">
     <!-- Communication Overview -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ stats.total_templates or 0 }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Message Templates</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-template" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
+    <div class="c-comm-stats" data-component="stats-grid">
+        <div class="c-comm-stats__grid">
+            <div class="c-stat-card c-stat-card--info" data-stat-card data-stat-type="templates">
+                <div class="c-stat-card__content">
+                    <div class="c-stat-card__value">{{ stats.total_templates or 0 }}</div>
+                    <div class="c-stat-card__label">Message Templates</div>
+                </div>
+                <div class="c-stat-card__icon">
+                    <i class="ti ti-template"></i>
                 </div>
             </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ stats.scheduled_messages or 0 }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Scheduled Messages</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-clock" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
+            <div class="c-stat-card c-stat-card--warning" data-stat-card data-stat-type="scheduled">
+                <div class="c-stat-card__content">
+                    <div class="c-stat-card__value">{{ stats.scheduled_messages or 0 }}</div>
+                    <div class="c-stat-card__label">Scheduled Messages</div>
+                </div>
+                <div class="c-stat-card__icon">
+                    <i class="ti ti-clock"></i>
                 </div>
             </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ stats.push_notifications or 0 }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Push Notifications</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-bell" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
+            <div class="c-stat-card c-stat-card--success" data-stat-card data-stat-type="push">
+                <div class="c-stat-card__content">
+                    <div class="c-stat-card__value">{{ stats.push_notifications or 0 }}</div>
+                    <div class="c-stat-card__label">Push Notifications</div>
+                </div>
+                <div class="c-stat-card__icon">
+                    <i class="ti ti-bell"></i>
                 </div>
             </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ stats.active_channels or 0 }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Active Channels</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-brand-hipchat" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
+            <div class="c-stat-card c-stat-card--primary" data-stat-card data-stat-type="channels">
+                <div class="c-stat-card__content">
+                    <div class="c-stat-card__value">{{ stats.active_channels or 0 }}</div>
+                    <div class="c-stat-card__label">Active Channels</div>
+                </div>
+                <div class="c-stat-card__icon">
+                    <i class="ti ti-brand-hipchat"></i>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Communication Management -->
-    <div class="row mb-4">
-        <!-- Message Templates -->
-        <div class="col-md-6 mb-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-template me-2"></i>Message Templates
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <p>Manage automated message templates and categories</p>
-                    <div class="list-group list-group-flush">
-                        <a href="{{ url_for('admin_panel.message_templates') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-folder me-2"></i>Template Categories
-                                </div>
-                                <span class="badge bg-primary">{{ stats.total_categories or 0 }}</span>
-                            </div>
-                        </a>
-                        <a href="{{ url_for('admin_panel.message_templates') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-edit me-2"></i>Message Templates
-                                </div>
-                                <span class="badge bg-info">{{ stats.total_templates or 0 }}</span>
-                            </div>
-                        </a>
-                        <a href="{{ url_for('admin_panel.message_templates') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-plus me-2"></i>Manage All Templates
-                                </div>
-                                <i class="ti ti-chevron-right"></i>
-                            </div>
-                        </a>
-                        <a href="{{ url_for('admin_panel.announcements') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-speakerphone me-2"></i>Announcements
-                                </div>
-                                <i class="ti ti-chevron-right"></i>
-                            </div>
-                        </a>
+    <div class="c-comm-sections" data-component="sections-grid">
+        <div class="c-comm-sections__grid">
+            <!-- Message Templates -->
+            <div class="c-card" data-card data-section="templates">
+                <div class="c-card__header">
+                    <div class="c-card__title">
+                        <i class="ti ti-template c-card__title-icon c-card__title-icon--primary"></i>
+                        <span>Message Templates</span>
                     </div>
+                </div>
+                <div class="c-card__body">
+                    <p class="c-card__description">Manage automated message templates and categories</p>
+                    <nav class="c-link-list" aria-label="Message template management">
+                        <a href="{{ url_for('admin_panel.message_templates') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="template-categories">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-folder"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Template Categories</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <span class="c-badge c-badge--primary" data-badge data-count="{{ stats.total_categories or 0 }}">{{ stats.total_categories or 0 }}</span>
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.message_templates') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="message-templates">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-edit"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Message Templates</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <span class="c-badge c-badge--info" data-badge data-count="{{ stats.total_templates or 0 }}">{{ stats.total_templates or 0 }}</span>
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.message_templates') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="manage-all-templates">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-plus"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Manage All Templates</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.announcements') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="announcements">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-speakerphone"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Announcements</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.league_settings') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="league-settings">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-trophy"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">League Settings</div>
+                                    <div class="c-link-list__subtitle">Configure league welcome messages for Discord bot</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                    </nav>
                 </div>
             </div>
-        </div>
 
-        <!-- Scheduled Messages -->
-        <div class="col-md-6 mb-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-clock me-2"></i>Scheduled Messages
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <p>Schedule and manage messages across Discord, SMS, push notifications, and Discord DMs</p>
-                    <div class="list-group list-group-flush">
-                        <a href="{{ url_for('admin_panel.scheduled_messages_queue') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-calendar me-2"></i>View Queue
-                                </div>
-                                <i class="ti ti-chevron-right"></i>
-                            </div>
-                        </a>
-                        <a href="{{ url_for('admin_panel.schedule_new_message') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-plus me-2"></i>Schedule New Message
-                                </div>
-                                <i class="ti ti-chevron-right"></i>
-                            </div>
-                        </a>
-                        <a href="{{ url_for('admin_panel.scheduled_messages_history') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-history me-2"></i>Message History
-                                </div>
-                                <i class="ti ti-chevron-right"></i>
-                            </div>
-                        </a>
+            <!-- Scheduled Messages -->
+            <div class="c-card" data-card data-section="scheduled">
+                <div class="c-card__header">
+                    <div class="c-card__title">
+                        <i class="ti ti-clock c-card__title-icon c-card__title-icon--warning"></i>
+                        <span>Scheduled Messages</span>
                     </div>
+                </div>
+                <div class="c-card__body">
+                    <p class="c-card__description">Schedule and manage messages across Discord, SMS, push notifications, and Discord DMs</p>
+                    <nav class="c-link-list" aria-label="Scheduled message management">
+                        <a href="{{ url_for('admin_panel.scheduled_messages_queue') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="view-queue">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-calendar"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">View Queue</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.schedule_new_message') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="schedule-new">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-plus"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Schedule New Message</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.scheduled_messages_history') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="message-history">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-history"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Message History</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                    </nav>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Push Notifications & Advanced Features -->
-    <div class="row">
-        <!-- Push Notifications -->
-        <div class="col-md-6 mb-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-bell me-2"></i>Push Notifications
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <p>Send and configure notifications across push, SMS, Discord channels, and direct messages</p>
-                    <div class="list-group list-group-flush">
-                        <a href="{{ url_for('admin_panel.push_notifications_dashboard') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-dashboard me-2"></i>Notification Dashboard
-                                </div>
-                                <i class="ti ti-chevron-right"></i>
-                            </div>
-                        </a>
-                        <a href="{{ url_for('admin_panel.send_push_notification_form') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-send me-2"></i>Send Push Notification
-                                </div>
-                                <i class="ti ti-chevron-right"></i>
-                            </div>
-                        </a>
-                        <a href="{{ url_for('admin_panel.push_notifications_settings') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-settings me-2"></i>Notification Settings
-                                </div>
-                                <i class="ti ti-chevron-right"></i>
-                            </div>
-                        </a>
+    <div class="c-comm-sections" data-component="sections-grid">
+        <div class="c-comm-sections__grid">
+            <!-- Push Notifications -->
+            <div class="c-card" data-card data-section="push">
+                <div class="c-card__header">
+                    <div class="c-card__title">
+                        <i class="ti ti-bell c-card__title-icon c-card__title-icon--success"></i>
+                        <span>Push Notifications</span>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Communication Settings -->
-        <div class="col-md-6 mb-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-settings me-2"></i>Communication Settings
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <p>Configure communication system settings</p>
-                    <div class="list-group list-group-flush">
-                        <a href="{{ url_for('admin_panel.feature_toggles') }}#communication" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-toggle-left me-2"></i>Enable/Disable Features
+                <div class="c-card__body">
+                    <p class="c-card__description">Send and configure notifications across push, SMS, Discord channels, and direct messages</p>
+                    <nav class="c-link-list" aria-label="Push notification management">
+                        <a href="{{ url_for('admin_panel.push_notifications_dashboard') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="notification-dashboard">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-dashboard"></i>
                                 </div>
-                                <i class="ti ti-chevron-right"></i>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Notification Dashboard</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
                             </div>
                         </a>
-                        <div class="list-group-item">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-bell me-2"></i>Push Notifications
+                        <a href="{{ url_for('admin_panel.send_push_notification_form') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="send-push">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-send"></i>
                                 </div>
-                                <span class="badge bg-{% if push_notifications_enabled %}success{% else %}danger{% endif %}">
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Send Push Notification</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.push_notifications_settings') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="notification-settings">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-settings"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Notification Settings</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Communication Settings -->
+            <div class="c-card" data-card data-section="settings">
+                <div class="c-card__header">
+                    <div class="c-card__title">
+                        <i class="ti ti-settings c-card__title-icon c-card__title-icon--info"></i>
+                        <span>Communication Settings</span>
+                    </div>
+                </div>
+                <div class="c-card__body">
+                    <p class="c-card__description">Configure communication system settings</p>
+                    <nav class="c-link-list" aria-label="Communication settings">
+                        <a href="{{ url_for('admin_panel.messaging_settings') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="messaging-settings">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-message-cog"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">In-App Messaging Settings</div>
+                                    <div class="c-link-list__subtitle">Configure direct messaging permissions</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.feature_toggles') }}#communication"
+                           class="c-link-list__item"
+                           data-action="navigate-link"
+                           data-target="feature-toggles">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-toggle-left"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Enable/Disable Features</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
+                        </a>
+                        <div class="c-link-list__item" data-list-item data-item-type="status">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-bell"></i>
+                                </div>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Push Notifications</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <span class="c-badge c-badge--{% if push_notifications_enabled %}success{% else %}danger{% endif %}"
+                                      data-badge
+                                      data-status="{% if push_notifications_enabled %}enabled{% else %}disabled{% endif %}">
                                     {% if push_notifications_enabled %}Enabled{% else %}Disabled{% endif %}
                                 </span>
                             </div>
                         </div>
-                        <div class="list-group-item">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="ti ti-mail me-2"></i>Email Notifications
+                        <div class="c-link-list__item" data-list-item data-item-type="status">
+                            <div class="c-link-list__content">
+                                <div class="c-link-list__icon">
+                                    <i class="ti ti-mail"></i>
                                 </div>
-                                <span class="badge bg-info">Active</span>
+                                <div class="c-link-list__text">
+                                    <div class="c-link-list__title">Email Notifications</div>
+                                </div>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <span class="c-badge c-badge--info" data-badge data-status="active">Active</span>
                             </div>
                         </div>
-                    </div>
+                    </nav>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Quick Actions -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="alert alert-info">
-                <div class="d-flex align-items-center">
-                    <i class="ti ti-info-circle me-2"></i>
-                    <div>
-                        <strong>Communication Hub:</strong> 
-                        Comprehensive communication management across Discord channels, SMS, mobile push notifications, and Discord DMs. 
-                        Schedule messages, send instant notifications, and configure delivery settings for all communication channels.
-                    </div>
-                </div>
+    <div class="c-comm-info" data-component="info-alert">
+        <div class="c-alert c-alert--info">
+            <div class="c-alert__icon">
+                <i class="ti ti-info-circle"></i>
+            </div>
+            <div class="c-alert__content">
+                <strong>Communication Hub:</strong>
+                Comprehensive communication management across Discord channels, SMS, mobile push notifications, and Discord DMs.
+                Schedule messages, send instant notifications, and configure delivery settings for all communication channels.
             </div>
         </div>
     </div>
+</div>
 {% endblock %}
 
 {% block custom_css %}
 {{ super() }}
-{# Shared component styles (card-icon, list-group dark mode) are in foundation-overrides.css #}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin-panel/communication.css') }}">
 {% endblock %}

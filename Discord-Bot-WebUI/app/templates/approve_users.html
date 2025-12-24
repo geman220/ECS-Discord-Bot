@@ -2,12 +2,12 @@
 
 {% block main_content %}
 <h2>Approve Users</h2>
-<table class="table">
-    <thead>
+<table class="c-table" data-table>
+    <thead scope="col">
         <tr>
-            <th>Username</th>
-            <th>Email</th>
-            <th>Actions</th>
+            <th scope="col">Username</th>
+            <th scope="col">Email</th>
+            <th scope="col">Actions</th>
         </tr>
     </thead>
     <tbody>
@@ -18,7 +18,7 @@
             <td>
                 <form method="post" action="{{ url_for('approve_users') }}">
                     <input type="hidden" name="user_id" value="{{ user.id }}">
-                    <button name="action" value="approve" class="btn btn-success btn-sm">Approve</button>
+                    <button name="action" value="approve" class="c-btn c-btn--success c-btn--sm">Approve</button>
                 </form>
             </td>
         </tr>

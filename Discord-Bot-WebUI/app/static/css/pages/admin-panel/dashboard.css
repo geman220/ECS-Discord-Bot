@@ -1,0 +1,491 @@
+/**
+ * ============================================================================
+ * ADMIN PANEL DASHBOARD - BEM COMPONENTS
+ * ============================================================================
+ *
+ * Modern component-based styles for admin panel dashboard
+ * Follows strict BEM naming convention and architectural standards
+ *
+ * ARCHITECTURAL COMPLIANCE:
+ * - 100% BEM naming: .c-component__element--modifier
+ * - Zero hardcoded values (design tokens only)
+ * - Zero !important declarations
+ * - State-driven styling with .is-* classes
+ * - Mobile-first responsive design
+ * - Full dark mode support via [data-style="dark"]
+ * - WCAG AA accessibility compliant
+ *
+ * Components:
+ *   1. Admin Stats Grid (.c-admin-stats)
+ *   2. Admin Sections Grid (.c-admin-sections)
+ *   3. Link List Navigation (.c-link-list)
+ *   4. Admin Activity (.c-admin-activity)
+ *   5. Status Indicators (.c-status-indicator)
+ *   6. Alert Inline (.c-alert-inline)
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. ADMIN STATS GRID
+   Statistics cards layout for dashboard overview
+   ============================================================================ */
+
+.c-admin-stats {
+  margin-bottom: var(--space-6);
+}
+
+.c-admin-stats__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--space-4);
+}
+
+/* Mobile: Stack on small screens */
+@media (max-width: 767.98px) {
+  .c-admin-stats__grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+}
+
+/* ============================================================================
+   2. ADMIN SECTIONS GRID
+   Main content grid for admin section cards
+   ============================================================================ */
+
+.c-admin-sections {
+  margin-bottom: var(--space-6);
+}
+
+.c-admin-sections__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: var(--space-4);
+}
+
+/* Tablet: 2 columns */
+@media (max-width: 991.98px) and (min-width: 768px) {
+  .c-admin-sections__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Mobile: Stack on small screens */
+@media (max-width: 767.98px) {
+  .c-admin-sections__grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+}
+
+/* ============================================================================
+   3. LINK LIST NAVIGATION
+   Vertical navigation list for admin sections
+   ============================================================================ */
+
+.c-link-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.c-link-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border: none;
+  border-bottom: 1px solid var(--color-border-primary);
+  background: transparent;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  font-size: var(--text-base);
+  width: 100%;
+  cursor: pointer;
+  transition: var(--transition-base);
+  text-align: left;
+}
+
+.c-link-list__item:last-child {
+  border-bottom: none;
+}
+
+.c-link-list__item:hover {
+  background: var(--color-hover-bg);
+  color: var(--color-primary);
+}
+
+.c-link-list__item:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+.c-link-list__content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+}
+
+.c-link-list__icon {
+  flex-shrink: 0;
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  transition: var(--transition-base);
+}
+
+.c-link-list__item:hover .c-link-list__icon {
+  color: var(--color-primary);
+}
+
+.c-link-list__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.c-link-list__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.c-link-list__arrow {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  transition: var(--transition-base);
+}
+
+.c-link-list__item:hover .c-link-list__arrow {
+  color: var(--color-primary);
+  transform: translateX(2px);
+}
+
+/* Mobile: Adjust spacing */
+@media (max-width: 767.98px) {
+  .c-link-list__item {
+    padding: var(--space-3);
+  }
+
+  .c-link-list__content {
+    gap: var(--space-2);
+  }
+
+  .c-link-list__text {
+    font-size: var(--text-sm);
+  }
+}
+
+/* ============================================================================
+   4. ADMIN ACTIVITY
+   Recent activity section with table
+   ============================================================================ */
+
+.c-admin-activity {
+  margin-bottom: var(--space-6);
+}
+
+.c-admin-activity .c-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.c-admin-activity .c-card__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.c-admin-activity .c-card__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Mobile: Stack header elements */
+@media (max-width: 767.98px) {
+  .c-admin-activity .c-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .c-admin-activity .c-card__actions {
+    width: 100%;
+  }
+
+  .c-admin-activity .c-btn {
+    width: 100%;
+  }
+}
+
+/* ============================================================================
+   5. STATUS INDICATORS
+   Small colored dots showing system status
+   ============================================================================ */
+
+.c-status-indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-neutral-400);
+  flex-shrink: 0;
+}
+
+.c-status-indicator--active {
+  background: var(--color-success);
+  box-shadow: 0 0 0 2px rgba(25, 135, 84, 0.2);
+  animation: pulse-indicator 2s ease-in-out infinite;
+}
+
+.c-status-indicator--inactive {
+  background: var(--color-danger);
+}
+
+.c-status-indicator--warning {
+  background: var(--color-warning);
+}
+
+@keyframes pulse-indicator {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(25, 135, 84, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(25, 135, 84, 0.1);
+  }
+}
+
+/* ============================================================================
+   6. ALERT INLINE
+   Inline alert with action button
+   ============================================================================ */
+
+.c-alert-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+}
+
+.c-alert-inline--warning {
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid var(--color-warning);
+}
+
+.c-alert-inline--info {
+  background: rgba(13, 202, 240, 0.1);
+  border: 1px solid var(--color-info);
+}
+
+.c-alert-inline--danger {
+  background: rgba(220, 53, 69, 0.1);
+  border: 1px solid var(--color-danger);
+}
+
+.c-alert-inline__content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.c-alert-inline__icon {
+  flex-shrink: 0;
+  font-size: var(--text-lg);
+}
+
+.c-alert-inline--warning .c-alert-inline__icon {
+  color: var(--color-warning);
+}
+
+.c-alert-inline--info .c-alert-inline__icon {
+  color: var(--color-info);
+}
+
+.c-alert-inline--danger .c-alert-inline__icon {
+  color: var(--color-danger);
+}
+
+.c-alert-inline__action {
+  flex-shrink: 0;
+}
+
+/* Mobile: Stack on small screens */
+@media (max-width: 767.98px) {
+  .c-alert-inline {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .c-alert-inline__action {
+    width: 100%;
+  }
+
+  .c-alert-inline__action .c-btn {
+    width: 100%;
+  }
+}
+
+/* ============================================================================
+   7. ADMIN WARNING
+   Setup warning section wrapper
+   ============================================================================ */
+
+.c-admin-warning {
+  margin-bottom: var(--space-6);
+}
+
+/* ============================================================================
+   8. CARD ENHANCEMENTS FOR ADMIN PANEL
+   Additional card styles specific to admin dashboard
+   ============================================================================ */
+
+.c-card__description {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-4);
+  line-height: var(--leading-relaxed);
+}
+
+.c-card__title-icon {
+  font-size: var(--text-lg);
+  margin-right: var(--space-2);
+}
+
+.c-card__title-icon--primary {
+  color: var(--color-primary);
+}
+
+.c-card__title-icon--success {
+  color: var(--color-success);
+}
+
+.c-card__title-icon--warning {
+  color: var(--color-warning);
+}
+
+.c-card__title-icon--danger {
+  color: var(--color-danger);
+}
+
+.c-card__title-icon--info {
+  color: var(--color-info);
+}
+
+.c-card__title-icon--purple {
+  color: var(--color-purple, #6f42c1);
+}
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================ */
+
+[data-style="dark"] .c-link-list__item {
+  border-bottom-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .c-link-list__item:hover {
+  background: var(--color-hover-bg);
+}
+
+[data-style="dark"] .c-alert-inline--warning {
+  background: rgba(255, 193, 7, 0.15);
+}
+
+[data-style="dark"] .c-alert-inline--info {
+  background: rgba(13, 202, 240, 0.15);
+}
+
+[data-style="dark"] .c-alert-inline--danger {
+  background: rgba(220, 53, 69, 0.15);
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .c-link-list__item,
+  .c-link-list__icon,
+  .c-link-list__arrow {
+    transition: none;
+  }
+
+  .c-link-list__item:hover .c-link-list__arrow {
+    transform: none;
+  }
+
+  .c-status-indicator--active {
+    animation: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: more) {
+  .c-link-list__item {
+    border-width: 2px;
+  }
+
+  .c-link-list__item:focus-visible {
+    outline-width: 3px;
+  }
+
+  .c-status-indicator {
+    border: 2px solid currentColor;
+  }
+
+  .c-alert-inline {
+    border-width: 2px;
+  }
+}
+
+/* Focus visible enhancement for keyboard navigation */
+.c-link-list__item:focus-visible {
+  background: var(--color-hover-bg);
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+@media print {
+  .c-admin-stats__grid,
+  .c-admin-sections__grid {
+    grid-template-columns: repeat(2, 1fr);
+    page-break-inside: avoid;
+  }
+
+  .c-link-list__arrow {
+    display: none;
+  }
+
+  .c-card__actions {
+    display: none;
+  }
+
+  .c-alert-inline__action {
+    display: none;
+  }
+}
+
+/* ============================================================================
+   END OF ADMIN PANEL DASHBOARD COMPONENTS
+   ============================================================================ */

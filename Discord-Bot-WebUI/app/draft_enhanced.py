@@ -909,14 +909,14 @@ def draft_league(league_name: str):
     teams = [team for team in current_league.teams if team.name != "Practice"]
     team_ids = [t.id for t in teams]
     
-    # Get all players eligible for this league
-    league_ids = [l.id for l in all_leagues]
+    # Get all players eligible for the CURRENT league only (not historical leagues)
+    current_league_id = current_league.id
     belongs_to_league = or_(
-        Player.primary_league_id.in_(league_ids),
+        Player.primary_league_id == current_league_id,
         exists().where(
             and_(
                 player_league.c.player_id == Player.id,
-                player_league.c.league_id.in_(league_ids)
+                player_league.c.league_id == current_league_id
             )
         )
     )
@@ -959,7 +959,8 @@ def draft_league(league_name: str):
     # Try to get cached data first
     cache_key_available = f"{db_league_name}_available"
     cache_key_drafted = f"{db_league_name}_drafted"
-    
+
+    # Get cached data (cache will be rebuilt with correct query)
     available_players = DraftCacheService.get_enhanced_players_cache(db_league_name, 'available')
     drafted_players = DraftCacheService.get_enhanced_players_cache(db_league_name, 'drafted')
     
@@ -983,20 +984,43 @@ def draft_league(league_name: str):
             DraftCacheService.set_enhanced_players_cache(db_league_name, 'drafted', drafted_players)
     else:
         logger.debug(f"Using cached player data for {db_league_name}")
-    
-    # Organize drafted players by team
-    drafted_by_team = {team.id: [] for team in teams}
-    logger.debug(f"Available teams for drafting: {[team.id for team in teams]}")
-    
+
+    # FIRST: Deduplicate the drafted_players list itself (cache might have duplicates)
+    seen_player_ids = set()
+    unique_drafted_players = []
     for player in drafted_players:
-        logger.debug(f"Player {player['name']} current teams: {player['current_teams']}")
+        player_id = player.get('id')
+        if player_id and player_id not in seen_player_ids:
+            seen_player_ids.add(player_id)
+            unique_drafted_players.append(player)
+
+    logger.info(f"Deduplicated drafted_players: {len(drafted_players)} -> {len(unique_drafted_players)} unique players")
+    drafted_players = unique_drafted_players
+
+    # Organize drafted players by team with deduplication
+    drafted_by_team = {team.id: [] for team in teams}
+    seen_players_by_team = {team.id: set() for team in teams}  # Track seen player IDs per team
+    logger.debug(f"Available teams for drafting: {[team.id for team in teams]}")
+
+    for player in drafted_players:
+        player_id = player.get('id')
+        if not player_id:
+            logger.warning(f"Player missing ID: {player.get('name', 'Unknown')}")
+            continue
+
+        logger.debug(f"Player {player['name']} (ID: {player_id}) current teams: {player['current_teams']}")
         for team_info in player['current_teams']:
             team_id = team_info['id']
             if team_id in drafted_by_team:
-                drafted_by_team[team_id].append(player)
-                logger.debug(f"Added player {player['name']} to team {team_id}")
+                # Deduplicate: only add if not already seen for this team
+                if player_id not in seen_players_by_team[team_id]:
+                    drafted_by_team[team_id].append(player)
+                    seen_players_by_team[team_id].add(player_id)
+                    logger.debug(f"Added player {player['name']} (ID: {player_id}) to team {team_id}")
+                else:
+                    logger.debug(f"Skipping duplicate player {player['name']} (ID: {player_id}) for team {team_id}")
                 break
-    
+
     logger.debug(f"Final drafted_by_team counts: {[(team_id, len(players)) for team_id, players in drafted_by_team.items()]}")
     
     # Get draft analytics
@@ -1049,14 +1073,14 @@ def draft_league_pitch_view(league_name: str):
     teams = [team for team in current_league.teams if team.name != "Practice"]
     team_ids = [t.id for t in teams]
     
-    # Get all players eligible for this league
-    league_ids = [l.id for l in all_leagues]
+    # Get all players eligible for the CURRENT league only (not historical leagues)
+    current_league_id = current_league.id
     belongs_to_league = or_(
-        Player.primary_league_id.in_(league_ids),
+        Player.primary_league_id == current_league_id,
         exists().where(
             and_(
                 player_league.c.player_id == Player.id,
-                player_league.c.league_id.in_(league_ids)
+                player_league.c.league_id == current_league_id
             )
         )
     )
@@ -1098,27 +1122,37 @@ def draft_league_pitch_view(league_name: str):
         current_league.season_id
     )
     
-    # Organize drafted players by team with positions
+    # Organize drafted players by team with positions (with deduplication)
     drafted_by_team = {team.id: [] for team in teams}
-    
+    seen_players_by_team = {team.id: set() for team in teams}  # Track seen player IDs per team
+
     for player in drafted_players:
+        player_id = player.get('id')
+        if not player_id:
+            continue
+
         for team_info in player['current_teams']:
             team_id = team_info['id']
             if team_id in drafted_by_team:
+                # Deduplicate: only add if not already seen for this team
+                if player_id in seen_players_by_team[team_id]:
+                    break  # Skip duplicate
+
                 # Get the player's position from player_teams table
                 try:
                     position_result = g.db_session.execute(text("""
-                        SELECT position FROM player_teams 
+                        SELECT position FROM player_teams
                         WHERE player_id = :player_id AND team_id = :team_id
                     """), {'player_id': player['id'], 'team_id': team_id}).fetchone()
-                    
+
                     position = position_result[0] if position_result else 'bench'
                 except:
                     position = 'bench'  # Default if query fails
-                
+
                 # Add position to player data
                 player['current_position'] = position
                 drafted_by_team[team_id].append(player)
+                seen_players_by_team[team_id].add(player_id)
                 break
     
     # Convert teams to JSON-serializable format

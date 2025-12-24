@@ -1,118 +1,29 @@
-  {% extends "base_unauthenticated.html" %}
+{% extends "base_unauthenticated.html" %}
 
-  {% block main_content %}
-  <style>
-      .error-page {
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: linear-gradient(135deg, var(--ecs-neutral-5, #f8f9fa) 0%, var(--ecs-neutral-20, #e9ecef) 100%);
-      }
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/error-pages.css') }}">
+{% endblock %}
 
-      .error-container {
-          max-width: 550px;
-          padding: 3rem;
-          text-align: center;
-          background-color: white;
-          border-radius: 16px;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-      }
+{% block main_content %}
+<div class="c-error-page">
+    <div class="c-error-container">
+        <img src="{{ url_for('static', filename='img/undraw_notify_re_65on.svg') }}"
+             alt="500 Illustration"
+             class="c-error-illustration">
 
-      .error-code {
-          font-size: 8rem;
-          font-weight: 800;
-          line-height: 1;
-          background: linear-gradient(90deg, #8e0000, var(--ecs-danger, #dc3545));
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          margin-bottom: 1rem;
-      }
+        <h1 class="c-error-code c-error-code--500">500</h1>
+        <h2 class="c-error-title">Server Error</h2>
+        <p class="c-error-message">Our server got a red card and had to leave the field.</p>
 
-      .error-title {
-          font-size: 1.75rem;
-          font-weight: 600;
-          margin-bottom: 1rem;
-          color: #333;
-      }
+        <div class="c-error-joke c-error-joke--500" id="jokeContainer" data-role="joke-container">
+            <span id="jokeText">Our server just went down faster than a player in the penalty box!</span>
+        </div>
 
-      .error-message {
-          font-size: 1.1rem;
-          margin-bottom: 2rem;
-          color: #666;
-      }
-
-      .error-joke {
-          background-color: var(--ecs-neutral-5, #f8f9fa);
-          padding: 1.5rem;
-          border-radius: 10px;
-          margin-bottom: 2rem;
-          font-style: italic;
-          color: #555;
-          font-size: 1.1rem;
-          position: relative;
-          border-left: 4px solid #8e0000;
-      }
-
-      .error-joke:before {
-          content: '"';
-          font-size: 3rem;
-          position: absolute;
-          top: -10px;
-          left: 10px;
-          color: rgba(142, 0, 0, 0.1);
-      }
-
-      .home-button {
-          padding: 0.75rem 2rem;
-          font-weight: 600;
-          background-color: #8e0000;
-          color: white;
-          border-radius: 8px;
-          transition: all 0.3s;
-          text-decoration: none;
-          display: inline-block;
-          box-shadow: 0 4px 10px rgba(142, 0, 0, 0.2);
-      }
-
-      .home-button:hover {
-          background-color: #aa0000;
-          transform: translateY(-2px);
-          box-shadow: 0 6px 15px rgba(142, 0, 0, 0.3);
-          color: white;
-      }
-
-      .illustration {
-          max-width: 250px;
-          margin: 0 auto 2rem;
-          animation: float 4s ease-in-out infinite;
-      }
-
-      @keyframes float {
-          0% { transform: translateY(0px); }
-          50% { transform: translateY(-15px); }
-          100% { transform: translateY(0px); }
-      }
-  </style>
-
-  <div class="error-page">
-      <div class="error-container">
-          <img src="{{ url_for('static', filename='img/undraw_notify_re_65on.svg') }}" alt="500 Illustration"
-  class="illustration">
-
-          <h1 class="error-code">500</h1>
-          <h2 class="error-title">Server Error</h2>
-          <p class="error-message">Our server got a red card and had to leave the field.</p>
-
-          <div class="error-joke" id="jokeContainer">
-              <span id="jokeText">Our server just went down faster than a player in the penalty box!</span>
-          </div>
-
-          <a href="{{ url_for('main.index') }}" class="home-button">
-              <i class="ti ti-home me-2"></i> Back to Home
-          </a>
-      </div>
-  </div>
+        <a href="{{ url_for('main.index') }}" class="c-error-button c-error-button--500" data-action="go-home">
+            <i class="ti ti-home me-2"></i> Back to Home
+        </a>
+    </div>
+</div>
 
   <script>
       // Rotating soccer jokes themed around server errors

@@ -1,17 +1,25 @@
 {% extends "base.html" %}
 
+{% block page_css %}
+<!-- Admin Dashboard Styles -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/admin-dashboard.css') }}" />
+{% endblock %}
+
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
-    <div class="row">
+    <!-- Page Header -->
+    <div class="row mb-4">
         <div class="col-12">
-            <div class="card mb-4">
-                <div class="card-header d-flex align-items-center justify-content-between">
-                    <h5 class="mb-0">Admin Dashboard</h5>
-                    <div class="d-flex">
-                        <button class="btn btn-primary" id="refreshContainersBtn">
-                            <i class="ti ti-refresh me-1"></i> Refresh Containers
-                        </button>
-                    </div>
+            <div class="c-admin-header" data-component="admin-header">
+                <div class="c-admin-header__content">
+                    <h2 class="c-admin-header__title">Admin Dashboard</h2>
+                    <p class="c-admin-header__description">Manage system configuration, roles, and container status</p>
+                </div>
+                <div class="c-admin-header__actions">
+                    <button class="c-btn c-btn--primary" data-action="refresh-containers">
+                        <i class="ti ti-refresh"></i>
+                        <span>Refresh Containers</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -20,18 +28,18 @@
     <div class="row">
         <!-- Manage Roles and Permissions Section -->
         <div class="col-xl-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header border-bottom">
-                    <h5 class="card-title mb-0">Manage Roles & Permissions</h5>
+            <div class="c-admin-card" data-component="permissions-card">
+                <div class="c-admin-card__header">
+                    <h5 class="c-admin-card__title">Manage Roles & Permissions</h5>
                 </div>
-                <div class="card-body">
-                    <form method="POST" action="{{ url_for('admin.admin_dashboard') }}">
+                <div class="c-admin-card__body">
+                    <form method="POST" action="{{ url_for('admin.admin_dashboard') }}" data-form="permissions-form">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="action" value="update_permissions">
 
-                        <div class="mb-3">
-                            <label for="role_id" class="form-label">Select Role</label>
-                            <select name="role_id" id="role_id" class="form-select" required>
+                        <div class="c-form-group" data-form-group>
+                            <label for="role_id" class="c-form-label c-form-label--required">Select Role</label>
+                            <select name="role_id" id="role_id" class="c-form-select" required data-form-select>
                                 <option value="" disabled selected>Select a role...</option>
                                 {% for role in roles %}
                                 <option value="{{ role.id }}">{{ role.name }}</option>
@@ -39,25 +47,26 @@
                             </select>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="permissions" class="form-label">Assign Permissions</label>
-                            <select name="permissions" id="permissions" class="form-select select2-multiple" multiple>
+                        <div class="c-form-group" data-form-group>
+                            <label for="permissions" class="c-form-label">Assign Permissions</label>
+                            <select name="permissions" id="permissions" class="c-form-select select2-multiple" multiple data-form-select>
                                 {% for permission in permissions %}
                                 <option value="{{ permission.id }}">{{ permission.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
 
-                        <button type="submit" class="btn btn-primary me-1">
-                            <i class="ti ti-check me-1"></i>Update Permissions
+                        <button type="submit" class="c-btn c-btn--primary" data-action="submit-permissions">
+                            <i class="ti ti-check"></i>
+                            <span>Update Permissions</span>
                         </button>
                     </form>
 
-                    <hr>
+                    <hr class="c-divider">
 
-                    <h6>Current Permissions</h6>
-                    <ul id="current-permissions-list" class="list-group">
-                        <li class="list-group-item text-muted">Select a role to view permissions.</li>
+                    <h6 class="c-section-title">Current Permissions</h6>
+                    <ul id="current-permissions-list" class="c-permissions-list" data-component="permissions-list">
+                        <li class="c-permissions-list__item c-permissions-list__item--empty">Select a role to view permissions.</li>
                     </ul>
                 </div>
             </div>
@@ -65,64 +74,52 @@
 
         <!-- Quick Links Section -->
         <div class="col-xl-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header border-bottom">
-                    <h5 class="card-title mb-0">Quick Admin Links</h5>
+            <div class="c-admin-card" data-component="quick-links-card">
+                <div class="c-admin-card__header">
+                    <h5 class="c-admin-card__title">Quick Admin Links</h5>
                 </div>
-                <div class="card-body">
-                    <div class="list-group list-group-flush">
-                        <a href="{{ url_for('admin.message_config.list_categories') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex align-items-center">
-                                <i class="ti ti-message-2 me-3 text-primary"></i>
-                                <div>
-                                    <h6 class="mb-1">Message Management</h6>
-                                    <small class="text-muted">Manage Discord bot messages and website announcements</small>
-                                </div>
+                <div class="c-admin-card__body">
+                    <div class="c-quick-links" data-component="quick-links">
+                        <a href="{{ url_for('admin.message_config.list_categories') }}" class="c-quick-links__item" data-action="navigate-to-messages">
+                            <i class="ti ti-message-2 c-quick-links__icon c-quick-links__icon--primary"></i>
+                            <div class="c-quick-links__content">
+                                <h6 class="c-quick-links__title">Message Management</h6>
+                                <p class="c-quick-links__description">Manage Discord bot messages and website announcements</p>
                             </div>
                         </a>
-                        <a href="{{ url_for('admin.manage_polls') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex align-items-center">
-                                <i class="ti ti-chart-bar me-3 text-success"></i>
-                                <div>
-                                    <h6 class="mb-1">League Polls</h6>
-                                    <small class="text-muted">Create and manage league polls</small>
-                                </div>
+                        <a href="{{ url_for('admin.manage_polls') }}" class="c-quick-links__item" data-action="navigate-to-polls">
+                            <i class="ti ti-chart-bar c-quick-links__icon c-quick-links__icon--success"></i>
+                            <div class="c-quick-links__content">
+                                <h6 class="c-quick-links__title">League Polls</h6>
+                                <p class="c-quick-links__description">Create and manage league polls</p>
                             </div>
                         </a>
-                        <a href="{{ url_for('admin.user_approvals') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex align-items-center">
-                                <i class="ti ti-users me-3 text-warning"></i>
-                                <div>
-                                    <h6 class="mb-1">User Approvals</h6>
-                                    <small class="text-muted">Approve pending user registrations</small>
-                                </div>
+                        <a href="{{ url_for('admin.user_approvals') }}" class="c-quick-links__item" data-action="navigate-to-approvals">
+                            <i class="ti ti-users c-quick-links__icon c-quick-links__icon--warning"></i>
+                            <div class="c-quick-links__content">
+                                <h6 class="c-quick-links__title">User Approvals</h6>
+                                <p class="c-quick-links__description">Approve pending user registrations</p>
                             </div>
                         </a>
-                        <a href="{{ url_for('admin.user_waitlist') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex align-items-center">
-                                <i class="ti ti-clock me-3 text-info"></i>
-                                <div>
-                                    <h6 class="mb-1">User Waitlist</h6>
-                                    <small class="text-muted">Manage users on the waitlist</small>
-                                </div>
+                        <a href="{{ url_for('admin.user_waitlist') }}" class="c-quick-links__item" data-action="navigate-to-waitlist">
+                            <i class="ti ti-clock c-quick-links__icon c-quick-links__icon--info"></i>
+                            <div class="c-quick-links__content">
+                                <h6 class="c-quick-links__title">User Waitlist</h6>
+                                <p class="c-quick-links__description">Manage users on the waitlist</p>
                             </div>
                         </a>
-                        <a href="{{ url_for('monitoring.monitor_dashboard') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex align-items-center">
-                                <i class="ti ti-chart-dots me-3 text-info"></i>
-                                <div>
-                                    <h6 class="mb-1">System Monitoring</h6>
-                                    <small class="text-muted">Monitor system tasks and performance</small>
-                                </div>
+                        <a href="{{ url_for('monitoring.monitor_dashboard') }}" class="c-quick-links__item" data-action="navigate-to-monitoring">
+                            <i class="ti ti-chart-dots c-quick-links__icon c-quick-links__icon--info"></i>
+                            <div class="c-quick-links__content">
+                                <h6 class="c-quick-links__title">System Monitoring</h6>
+                                <p class="c-quick-links__description">Monitor system tasks and performance</p>
                             </div>
                         </a>
-                        <a href="#" class="list-group-item list-group-item-action" onclick="openTaskManagement()">
-                            <div class="d-flex align-items-center">
-                                <i class="ti ti-list-check me-3 text-primary"></i>
-                                <div>
-                                    <h6 class="mb-1">Task Management</h6>
-                                    <small class="text-muted">Monitor and manage Celery tasks</small>
-                                </div>
+                        <a href="#" class="c-quick-links__item" data-action="open-task-management">
+                            <i class="ti ti-list-check c-quick-links__icon c-quick-links__icon--primary"></i>
+                            <div class="c-quick-links__content">
+                                <h6 class="c-quick-links__title">Task Management</h6>
+                                <p class="c-quick-links__description">Monitor and manage Celery tasks</p>
                             </div>
                         </a>
                     </div>
@@ -134,17 +131,15 @@
     <!-- Docker Containers Status Section -->
     <div class="row">
         <div class="col-12 mb-4">
-            <div class="card">
-                <div class="card-header border-bottom">
-                    <h5 class="card-title mb-0">Docker Containers Status</h5>
+            <div class="c-admin-card" data-component="docker-status-card">
+                <div class="c-admin-card__header">
+                    <h5 class="c-admin-card__title">Docker Containers Status</h5>
                 </div>
-                <div class="card-body">
-                    <div id="dockerStatusContainer" class="row">
+                <div class="c-admin-card__body">
+                    <div id="dockerStatusContainer" class="row" data-container="docker-status">
                         <div class="col-12 text-center py-5">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <p class="mt-2">Loading container status...</p>
+                            <div class="c-loading-spinner" role="status" data-loading></div>
+                            <p class="c-loading-text">Loading container status...</p>
                         </div>
                     </div>
                 </div>
@@ -155,23 +150,28 @@
     <!-- Task Management Section -->
     <div class="row">
         <div class="col-12 mb-4">
-            <div class="card">
-                <div class="card-header border-bottom d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Global Task Management</h5>
-                    <div class="btn-group">
-                        <button class="btn btn-primary btn-sm" onclick="refreshTaskList()">
-                            <i class="ti ti-refresh me-1"></i>Refresh
-                        </button>
-                        <button class="btn btn-outline-warning btn-sm" onclick="cleanupOldTasks()">
-                            <i class="ti ti-broom me-1"></i>Cleanup
-                        </button>
+            <div class="c-admin-card" data-component="task-management-card">
+                <div class="c-admin-card__header">
+                    <h5 class="c-admin-card__title">Global Task Management</h5>
+                    <div class="c-admin-card__actions">
+                        <div class="c-button-group">
+                            <button class="c-btn c-btn--primary c-btn--sm" data-action="refresh-task-list">
+                                <i class="ti ti-refresh"></i>
+                                <span>Refresh</span>
+                            </button>
+                            <button class="c-btn c-btn--outline-warning c-btn--sm" data-action="cleanup-old-tasks">
+                                <i class="ti ti-broom"></i>
+                                <span>Cleanup</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div class="card-body">
-                    <div id="taskManagementContainer">
+                <div class="c-admin-card__body">
+                    <div id="taskManagementContainer" data-container="task-management">
                         <div class="text-center py-4">
-                            <button class="btn btn-outline-primary" onclick="loadTaskManagement()">
-                                <i class="ti ti-list-check me-1"></i>Load Task Management
+                            <button class="c-btn c-btn--outline-primary" data-action="load-task-management">
+                                <i class="ti ti-list-check"></i>
+                                <span>Load Task Management</span>
                             </button>
                         </div>
                     </div>
@@ -182,21 +182,24 @@
 </div>
 
 <!-- Toast Container -->
-<div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+<div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3" data-container="toasts"></div>
 
 <!-- Docker Logs Modal -->
-<div class="modal fade" id="dockerLogsModal" tabindex="-1" aria-labelledby="dockerLogsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="dockerLogsModalLabel">Container Logs</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="c-modal" id="dockerLogsModal" aria-hidden="true" aria-labelledby="dockerLogsModalLabel" data-modal="docker-logs">
+    <div class="c-modal__backdrop" data-modal-backdrop></div>
+    <div class="c-modal__dialog c-modal__dialog--lg">
+        <div class="c-modal__content">
+            <div class="c-modal__header">
+                <h3 class="c-modal__title" id="dockerLogsModalLabel">Container Logs</h3>
+                <button class="c-modal__close" data-action="close-modal" data-modal-id="dockerLogsModal" aria-label="Close">
+                    <i class="ti ti-x"></i>
+                </button>
             </div>
-            <div class="modal-body">
-                <pre id="dockerLogsContent" class="bg-dark text-light p-3" style="max-height: 70vh; overflow-y: auto; font-size: 0.85rem;"></pre>
+            <div class="c-modal__body">
+                <pre id="dockerLogsContent" class="c-code-block"></pre>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <div class="c-modal__footer">
+                <button type="button" class="c-btn c-btn--secondary" data-action="close-modal" data-modal-id="dockerLogsModal">Close</button>
             </div>
         </div>
     </div>
@@ -204,724 +207,7 @@
 {% endblock %}
 
 {% block custom_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded');
-    initPermissionsTab();
-    initDockerStatus();
-});
-
-function initPermissionsTab() {
-    const roleSelect = document.getElementById('role_id');
-    const permissionsSelect = document.getElementById('permissions');
-    const currentPermissionsList = document.getElementById('current-permissions-list');
-
-    // Initialize Select2 for permissions dropdown
-    if (permissionsSelect && typeof $ !== 'undefined' && $.fn.select2) {
-        $(permissionsSelect).select2({
-            theme: 'bootstrap-5',
-            placeholder: 'Select permissions...',
-            allowClear: true,
-            width: '100%'
-        });
-    }
-
-    if (roleSelect) {
-        roleSelect.addEventListener('change', function() {
-            const roleId = this.value;
-            if (roleId) {
-                fetchRolePermissions(roleId);
-            } else {
-                currentPermissionsList.innerHTML = '<li class="list-group-item text-muted">Select a role to view permissions.</li>';
-                if (permissionsSelect) {
-                    // Clear permissions selection
-                    if ($(permissionsSelect).hasClass('select2-hidden-accessible')) {
-                        // Use Select2 method to clear values
-                        $(permissionsSelect).val([]).trigger('change');
-                    } else {
-                        // Fallback to native selection
-                        Array.from(permissionsSelect.options).forEach(option => option.selected = false);
-                    }
-                }
-            }
-        });
-    }
-
-    function fetchRolePermissions(roleId) {
-        fetch(`/admin/role-permissions/${roleId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    updateCurrentPermissionsList(data.permissions);
-                    if (permissionsSelect) {
-                        // Select current permissions in the select element
-                        const currentPermissionIds = data.permissions.map(p => p.id.toString());
-                        
-                        // Check if Select2 is initialized
-                        if ($(permissionsSelect).hasClass('select2-hidden-accessible')) {
-                            // Use Select2 method to set values
-                            $(permissionsSelect).val(currentPermissionIds).trigger('change');
-                        } else {
-                            // Fallback to native selection
-                            Array.from(permissionsSelect.options).forEach(option => {
-                                option.selected = currentPermissionIds.includes(option.value);
-                            });
-                        }
-                    }
-                } else {
-                    currentPermissionsList.innerHTML = '<li class="list-group-item text-danger">Error loading permissions</li>';
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching role permissions:', error);
-                currentPermissionsList.innerHTML = '<li class="list-group-item text-danger">Error loading permissions</li>';
-            });
-    }
-
-    function updateCurrentPermissionsList(permissions) {
-        if (permissions.length === 0) {
-            currentPermissionsList.innerHTML = '<li class="list-group-item text-muted">No permissions assigned.</li>';
-        } else {
-            const permissionsHTML = permissions.map(permission => 
-                `<li class="list-group-item">${permission.name}</li>`
-            ).join('');
-            currentPermissionsList.innerHTML = permissionsHTML;
-        }
-    }
-}
-
-function initDockerStatus() {
-    const container = document.getElementById('dockerStatusContainer');
-    if (!container) return;
-
-    fetchDockerStatus();
-    
-    // Add refresh button handler
-    const refreshBtn = document.getElementById('refreshContainersBtn');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', function() {
-            this.disabled = true;
-            this.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Refreshing...';
-            fetchDockerStatus().finally(() => {
-                this.disabled = false;
-                this.innerHTML = '<i class="ti ti-refresh me-1"></i> Refresh Containers';
-            });
-        });
-    }
-}
-
-async function fetchDockerStatus() {
-    const container = document.getElementById('dockerStatusContainer');
-    if (!container) return;
-
-    try {
-        const response = await fetch('/admin/docker-status');
-        const data = await response.json();
-        
-        if (data.success && data.containers) {
-            renderContainers(data.containers);
-        } else {
-            container.innerHTML = `
-                <div class="col-12 text-center py-5">
-                    <div class="alert alert-warning mb-0">
-                        <i class="ti ti-alert-triangle me-2"></i>
-                        ${data.error || 'Unable to load container status'}
-                    </div>
-                </div>
-            `;
-        }
-    } catch (error) {
-        console.error('Error fetching Docker status:', error);
-        container.innerHTML = `
-            <div class="col-12 text-center py-5">
-                <div class="alert alert-danger mb-0">
-                    <i class="ti ti-alert-circle me-2"></i>
-                    Failed to load container status
-                </div>
-            </div>
-        `;
-    }
-}
-
-function renderContainers(containers) {
-    const container = document.getElementById('dockerStatusContainer');
-    if (!container) return;
-
-    if (containers.length === 0) {
-        container.innerHTML = `
-            <div class="col-12 text-center py-5">
-                <div class="alert alert-info mb-0">
-                    <i class="ti ti-info-circle me-2"></i>
-                    No containers found
-                </div>
-            </div>
-        `;
-        return;
-    }
-
-    const containersHTML = containers.map(cont => {
-        const statusClass = cont.status === 'running' ? 'success' : 'danger';
-        const statusIcon = cont.status === 'running' ? 'ti-check' : 'ti-x';
-        
-        return `
-            <div class="col-xl-4 col-lg-6 mb-3">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <div class="flex-grow-1">
-                                <h6 class="mb-1">${cont.name}</h6>
-                                <small class="text-muted">${cont.image}</small>
-                            </div>
-                            <span class="badge bg-${statusClass}">
-                                <i class="ti ${statusIcon} me-1"></i>${cont.status}
-                            </span>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <small class="text-muted d-block">Uptime: ${cont.uptime || 'N/A'}</small>
-                            <small class="text-muted d-block">CPU: ${cont.cpu_usage || 'N/A'}</small>
-                            <small class="text-muted d-block">Memory: ${cont.memory_usage || 'N/A'}</small>
-                        </div>
-                        
-                        <div class="d-flex gap-1">
-                            ${cont.status === 'running' ? 
-                                `<button class="btn btn-sm btn-outline-warning flex-fill" onclick="containerAction('${cont.name}', 'restart')">
-                                    <i class="ti ti-refresh"></i> Restart
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger flex-fill" onclick="containerAction('${cont.name}', 'stop')">
-                                    <i class="ti ti-stop"></i> Stop
-                                </button>` :
-                                `<button class="btn btn-sm btn-outline-success flex-fill" onclick="containerAction('${cont.name}', 'start')">
-                                    <i class="ti ti-play"></i> Start
-                                </button>`
-                            }
-                            <button class="btn btn-sm btn-outline-info" onclick="showLogs('${cont.name}')" title="View Logs">
-                                <i class="ti ti-file-text"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    container.innerHTML = containersHTML;
-}
-
-async function showLogs(containerName) {
-    const modal = new bootstrap.Modal(document.getElementById('dockerLogsModal'));
-    const content = document.getElementById('dockerLogsContent');
-    const title = document.getElementById('dockerLogsModalLabel');
-    
-    title.textContent = `${containerName} - Logs`;
-    content.textContent = 'Loading logs...';
-    modal.show();
-    
-    try {
-        const response = await fetch(`/admin/docker-logs/${containerName}`);
-        const data = await response.json();
-        
-        if (data.success) {
-            content.textContent = data.logs || 'No logs available';
-        } else {
-            content.textContent = `Error: ${data.error || 'Failed to load logs'}`;
-        }
-    } catch (error) {
-        console.error('Error fetching logs:', error);
-        content.textContent = 'Error loading logs';
-    }
-}
-
-async function containerAction(containerName, action) {
-    const btn = event.target.closest('button');
-    if (!btn) return;
-    
-    const originalHTML = btn.innerHTML;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
-    btn.disabled = true;
-    
-    try {
-        const response = await fetch(`/admin/docker-${action}/${containerName}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
-        
-        if (response.ok) {
-            showToast('Success', `Container ${action}ed successfully`, 'success');
-            // Refresh container status after action
-            setTimeout(fetchDockerStatus, 1000);
-        } else {
-            const errorData = await response.json();
-            showToast('Error', errorData.error || `Failed to ${action} container`, 'danger');
-            if (btn) {
-                btn.innerHTML = originalHTML;
-                btn.disabled = false;
-            }
-        }
-    } catch (error) {
-        console.error(`Error during ${action}:`, error);
-        showToast('Error', `Failed to ${action} container`, 'danger');
-        if (btn) {
-            btn.innerHTML = originalHTML;
-            btn.disabled = false;
-        }
-    }
-}
-
-// Task Management Functions
-function openTaskManagement() {
-    loadTaskManagement();
-    // Scroll to task management section
-    document.querySelector('#taskManagementContainer').scrollIntoView({ 
-        behavior: 'smooth' 
-    });
-}
-
-function loadTaskManagement() {
-    const container = document.getElementById('taskManagementContainer');
-    if (!container) return;
-    
-    container.innerHTML = `
-        <div class="text-center py-4">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-2">Loading task management...</p>
-        </div>
-    `;
-    
-    fetchTaskList();
-}
-
-async function fetchTaskList() {
-    const container = document.getElementById('taskManagementContainer');
-    if (!container) return;
-    
-    try {
-        const response = await fetch('/admin/task-management');
-        const data = await response.json();
-        
-        if (data.success) {
-            renderTaskManagement(data);
-        } else {
-            container.innerHTML = `
-                <div class="alert alert-warning">
-                    <i class="ti ti-alert-triangle me-2"></i>
-                    ${data.error || 'Unable to load task management'}
-                </div>
-            `;
-        }
-    } catch (error) {
-        console.error('Error fetching task management:', error);
-        container.innerHTML = `
-            <div class="alert alert-danger">
-                <i class="ti ti-alert-circle me-2"></i>
-                Failed to load task management
-            </div>
-        `;
-    }
-}
-
-function renderTaskManagement(data) {
-    const container = document.getElementById('taskManagementContainer');
-    if (!container) return;
-    
-    const stats = data.statistics || {};
-    const activeTasks = data.active_tasks || [];
-    
-    const html = `
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card bg-primary text-white">
-                    <div class="card-body text-center">
-                        <i class="ti ti-activity fs-1 mb-2"></i>
-                        <h3 class="mb-1">${stats.total_active || 0}</h3>
-                        <small>Active Tasks</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-success text-white">
-                    <div class="card-body text-center">
-                        <i class="ti ti-check fs-1 mb-2"></i>
-                        <h3 class="mb-1">${stats.by_status?.SUCCESS || 0}</h3>
-                        <small>Completed</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-danger text-white">
-                    <div class="card-body text-center">
-                        <i class="ti ti-x fs-1 mb-2"></i>
-                        <h3 class="mb-1">${stats.by_status?.FAILURE || 0}</h3>
-                        <small>Failed</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-warning text-white">
-                    <div class="card-body text-center">
-                        <i class="ti ti-clock fs-1 mb-2"></i>
-                        <h3 class="mb-1">${stats.by_status?.PENDING || 0}</h3>
-                        <small>Pending</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Task ID</th>
-                        <th>Type</th>
-                        <th>User</th>
-                        <th>Status</th>
-                        <th>Progress</th>
-                        <th>Created</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${activeTasks.length > 0 ? 
-                        activeTasks.map(task => `
-                            <tr ${task.celery_state === 'REVOKED' ? 'class="table-secondary text-muted"' : ''}>
-                                <td>
-                                    <code class="fs-6">${task.task_id.substring(0, 8)}...</code>
-                                    ${task.celery_state === 'REVOKED' ? '<small class="d-block text-muted">CANCELLED</small>' : ''}
-                                </td>
-                                <td>
-                                    <span class="badge bg-secondary">${task.task_type || 'unknown'}</span>
-                                </td>
-                                <td>${task.user_id || 'N/A'}</td>
-                                <td>
-                                    <span class="badge bg-${getStatusColor(task.celery_state || task.status)}">
-                                        ${task.celery_state || task.status || 'UNKNOWN'}
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="progress" style="height: 20px;">
-                                        <div class="progress-bar" role="progressbar" 
-                                             style="width: ${task.progress || 0}%"
-                                             aria-valuenow="${task.progress || 0}" 
-                                             aria-valuemin="0" aria-valuemax="100">
-                                            ${task.progress || 0}%
-                                        </div>
-                                    </div>
-                                    ${task.stage ? `<small class="text-muted">${task.stage}</small>` : ''}
-                                </td>
-                                <td>
-                                    <small>${task.created_at ? new Date(task.created_at).toLocaleString() : 'N/A'}</small>
-                                </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        ${task.celery_state === 'PENDING' || task.celery_state === 'PROGRESS' || task.celery_state === 'STARTED' ? 
-                                            `<button class="btn btn-outline-danger" onclick="revokeTask('${task.task_id}')" title="DESTROY Task (Nuclear Option)">
-                                                <i class="ti ti-bomb"></i>
-                                            </button>` : ''
-                                        }
-                                        ${task.celery_state === 'REVOKED' || task.celery_state === 'FAILURE' || task.celery_state === 'SUCCESS' ? 
-                                            `<button class="btn btn-outline-secondary" onclick="removeTask('${task.task_id}')" title="Remove from List">
-                                                <i class="ti ti-trash"></i> Clear
-                                            </button>` : ''
-                                        }
-                                        <button class="btn btn-outline-info" onclick="viewTaskDetails('${task.task_id}')" title="View Details">
-                                            <i class="ti ti-eye"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        `).join('') : 
-                        '<tr><td colspan="7" class="text-center text-muted py-4">No active tasks</td></tr>'
-                    }
-                </tbody>
-            </table>
-        </div>
-    `;
-    
-    container.innerHTML = html;
-}
-
-function getStatusColor(status) {
-    switch(status) {
-        case 'SUCCESS': return 'success';
-        case 'FAILURE': return 'danger';
-        case 'PENDING': return 'warning';
-        case 'STARTED':
-        case 'PROGRESS': return 'primary';
-        case 'REVOKED': return 'dark';
-        default: return 'light';
-    }
-}
-
-async function revokeTask(taskId) {
-    const result = await Swal.fire({
-        title: 'DESTROY Task?',
-        html: `
-            <div class="text-start">
-                <p class="text-warning"><strong>⚠️ WARNING: Nuclear Option</strong></p>
-                <p>This will completely <strong>DESTROY</strong> the task:</p>
-                <ul class="text-start">
-                    <li>Terminate the running process</li>
-                    <li>Remove all Redis data</li>
-                    <li>Purge from all tracking systems</li>
-                    <li>Cannot be undone</li>
-                </ul>
-                <p class="text-danger"><strong>Are you absolutely sure?</strong></p>
-            </div>
-        `,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-        confirmButtonText: '💥 DESTROY IT',
-        cancelButtonText: 'No, keep it',
-        width: '500px'
-    });
-
-    if (!result.isConfirmed) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/admin/revoke-task/${taskId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value || ''
-            }
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            Swal.fire({
-                title: 'DESTROYED! 💥',
-                text: 'The task has been completely obliterated.',
-                icon: 'success',
-                timer: 3000,
-                showConfirmButton: false
-            });
-            setTimeout(refreshTaskList, 1000);
-        } else {
-            Swal.fire({
-                title: 'Error!',
-                text: data.error || 'Failed to destroy task',
-                icon: 'error'
-            });
-        }
-    } catch (error) {
-        console.error('Error destroying task:', error);
-        Swal.fire({
-            title: 'Error!',
-            text: 'Failed to destroy task',
-            icon: 'error'
-        });
-    }
-}
-
-async function viewTaskDetails(taskId) {
-    try {
-        const response = await fetch(`/admin/task-details/${taskId}`);
-        const data = await response.json();
-        
-        if (data.success) {
-            const task = data.task;
-            const detailsHtml = `
-                <div class="text-start">
-                    <p><strong>Task ID:</strong> <code>${task.task_id}</code></p>
-                    <p><strong>Type:</strong> <span class="badge bg-secondary">${task.task_type || 'N/A'}</span></p>
-                    <p><strong>Status:</strong> <span class="badge bg-${getStatusColor(task.celery_state || task.status)}">${task.celery_state || task.status || 'N/A'}</span></p>
-                    <p><strong>Progress:</strong> ${task.progress || 0}%</p>
-                    <p><strong>Stage:</strong> ${task.stage || 'N/A'}</p>
-                    <p><strong>Created:</strong> ${task.created_at ? new Date(task.created_at).toLocaleString() : 'N/A'}</p>
-                    ${task.message ? `<p><strong>Message:</strong> ${task.message}</p>` : ''}
-                </div>
-            `;
-            
-            Swal.fire({
-                title: 'Task Details',
-                html: detailsHtml,
-                icon: 'info',
-                width: '600px',
-                confirmButtonText: 'Close'
-            });
-        } else {
-            Swal.fire({
-                title: 'Error!',
-                text: data.error || 'Failed to load task details',
-                icon: 'error'
-            });
-        }
-    } catch (error) {
-        console.error('Error fetching task details:', error);
-        Swal.fire({
-            title: 'Error!',
-            text: 'Failed to load task details',
-            icon: 'error'
-        });
-    }
-}
-
-async function removeTask(taskId) {
-    const result = await Swal.fire({
-        title: 'Remove Task?',
-        text: 'This will remove the task from the list. Are you sure?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-        confirmButtonText: 'Yes, remove it',
-        cancelButtonText: 'Cancel'
-    });
-
-    if (!result.isConfirmed) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/admin/remove-task/${taskId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value || ''
-            }
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            Swal.fire({
-                title: 'Removed!',
-                text: 'The task has been removed from the list.',
-                icon: 'success',
-                timer: 2000,
-                showConfirmButton: false
-            });
-            setTimeout(refreshTaskList, 500);
-        } else {
-            Swal.fire({
-                title: 'Error!',
-                text: data.error || 'Failed to remove task',
-                icon: 'error'
-            });
-        }
-    } catch (error) {
-        console.error('Error removing task:', error);
-        Swal.fire({
-            title: 'Error!',
-            text: 'Failed to remove task',
-            icon: 'error'
-        });
-    }
-}
-
-async function cleanupOldTasks() {
-    const result = await Swal.fire({
-        title: 'Cleanup Old Tasks?',
-        html: `
-            <div class="text-start">
-                <p>This will remove:</p>
-                <ul class="text-start">
-                    <li>TaskManager entries older than 24 hours</li>
-                    <li>Celery metadata older than 7 days</li>
-                    <li>Improves Redis performance</li>
-                </ul>
-                <p class="text-muted"><small>Recent tasks will be preserved</small></p>
-            </div>
-        `,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ffc107',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-        confirmButtonText: '🧹 Clean Up',
-        cancelButtonText: 'Cancel'
-    });
-
-    if (!result.isConfirmed) {
-        return;
-    }
-    
-    try {
-        const response = await fetch('/admin/cleanup-tasks', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value || ''
-            }
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            Swal.fire({
-                title: 'Cleanup Complete! 🧹',
-                html: `
-                    <div class="text-start">
-                        <p><strong>Cleaned up:</strong></p>
-                        <ul>
-                            <li>Registry: ${data.registry_cleaned} tasks</li>
-                            <li>Metadata: ${data.metadata_cleaned} keys</li>
-                            <li><strong>Total: ${data.total_cleaned} items</strong></li>
-                        </ul>
-                    </div>
-                `,
-                icon: 'success',
-                timer: 4000,
-                showConfirmButton: false
-            });
-            setTimeout(refreshTaskList, 1000);
-        } else {
-            Swal.fire({
-                title: 'Error!',
-                text: data.error || 'Failed to cleanup tasks',
-                icon: 'error'
-            });
-        }
-    } catch (error) {
-        console.error('Error cleaning up tasks:', error);
-        Swal.fire({
-            title: 'Error!',
-            text: 'Failed to cleanup tasks',
-            icon: 'error'
-        });
-    }
-}
-
-function refreshTaskList() {
-    fetchTaskList();
-}
-
-// Utility Functions
-function showToast(title, message, type) {
-    const container = document.getElementById('toastContainer');
-    if (!container) return;
-    
-    const toastId = 'toast-' + Date.now();
-    const toastHTML = `
-        <div id="${toastId}" class="toast align-items-center border-0 bg-${type} text-white" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="d-flex">
-                <div class="toast-body">
-                    <strong>${title}:</strong> ${message}
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-        </div>
-    `;
-    container.insertAdjacentHTML('beforeend', toastHTML);
-    
-    const toastElement = document.getElementById(toastId);
-    if (toastElement) {
-        const toast = new bootstrap.Toast(toastElement, { autohide: true, delay: 5000 });
-        toast.show();
-        
-        // Remove toast from DOM after hiding
-        toastElement.addEventListener('hidden.bs.toast', function () {
-            toastElement.remove();
-        });
-    }
-}
-</script>
+{{ super() }}
+<!-- Admin Dashboard Module - Handles Docker containers, tasks, and permissions -->
+<script src="{{ url_for('static', filename='js/admin/admin-dashboard.js') }}"></script>
 {% endblock %}

@@ -1,8 +1,24 @@
 /**
- * Mobile Menu Fix - Ensures the sidebar menu works properly on mobile devices
- * Particularly for iOS Safari where touchability issues occur
+ * MIGRATED TO CENTRALIZED INIT SYSTEM
+ * ====================================
+ *
+ * This component is now registered in /app/static/js/app-init-registration.js
+ * using InitSystem with priority 30.
+ *
+ * Original DOMContentLoaded logic has been moved to centralized registration.
+ * This file is kept for reference but the init logic is no longer executed here.
+ *
+ * Component Name: mobile-menu-fix
+ * Priority: 30 (Page-specific features)
+ * Reinitializable: false
+ * Description: Enhance mobile menu interactions and iOS compatibility
+ *
+ * Phase 2.4 - Batch 1 Migration
+ * Migrated: 2025-12-16
  */
 
+/*
+// ORIGINAL CODE - NOW REGISTERED WITH InitSystem
 document.addEventListener('DOMContentLoaded', function() {
   // References to key elements
   const layoutMenu = document.getElementById('layout-menu');
@@ -22,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.documentElement.classList.add('layout-menu-expanded');
     document.body.classList.add('layout-menu-expanded');
     if (layoutMenu) {
-      layoutMenu.style.transform = 'translateX(0)';
+      layoutMenu.classList.add('menu-open');
     }
     if (closeIcon) {
       closeIcon.classList.remove('d-none');
@@ -34,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.documentElement.classList.remove('layout-menu-expanded');
     document.body.classList.remove('layout-menu-expanded');
     if (layoutMenu) {
-      layoutMenu.style.transform = 'translateX(-100%)';
+      layoutMenu.classList.remove('menu-open');
     }
     if (closeIcon) {
       closeIcon.classList.add('d-none');
@@ -79,15 +95,13 @@ document.addEventListener('DOMContentLoaded', function() {
   const menuItems = document.querySelectorAll('.menu-item a');
   menuItems.forEach(item => {
     item.removeAttribute('inert');
-    item.style.pointerEvents = 'auto';
+    item.classList.add('pointer-events-auto');
   });
 
   // Remove problematic attributes from the menu
   if (layoutMenu) {
     layoutMenu.removeAttribute('inert');
-    layoutMenu.style.pointerEvents = 'auto';
-    layoutMenu.style.userSelect = 'auto';
-    layoutMenu.style.touchAction = 'auto';
+    layoutMenu.classList.add('pointer-events-auto', 'user-select-auto', 'touch-action-auto');
   }
 
   // iOS specific fixes
@@ -97,12 +111,12 @@ document.addEventListener('DOMContentLoaded', function() {
   if (isIOS) {
     // Extra iOS fixes
     document.documentElement.classList.add('ios-device');
-    
+
     // Fix scrolling in menu for iOS
     if (layoutMenu) {
-      layoutMenu.style.webkitOverflowScrolling = 'touch';
+      layoutMenu.classList.add('ios-overflow-scrolling');
     }
-    
+
     // Additional handling for iOS gesture conflicts
     const menuLinks = document.querySelectorAll('.menu-link, .menu-toggle');
     menuLinks.forEach(link => {
@@ -113,3 +127,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+*/

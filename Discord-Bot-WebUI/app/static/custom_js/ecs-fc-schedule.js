@@ -63,16 +63,16 @@ function initializeEventHandlers() {
 
     // RSVP form submissions
     document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('rsvp-btn')) {
+        if (e.target.classList.contains('js-rsvp-btn')) {
             handleRsvpResponse(e.target);
         }
-        if (e.target.classList.contains('edit-match-btn')) {
+        if (e.target.classList.contains('js-edit-match-btn')) {
             editMatch(e.target.dataset.matchId);
         }
-        if (e.target.classList.contains('delete-match-btn')) {
+        if (e.target.classList.contains('js-delete-match-btn')) {
             deleteMatch(e.target.dataset.matchId);
         }
-        if (e.target.classList.contains('send-reminder-btn')) {
+        if (e.target.classList.contains('js-send-reminder-btn')) {
             sendRsvpReminder(e.target.dataset.matchId);
         }
     });
@@ -195,12 +195,12 @@ function createMatchCard(match) {
     const matchDate = new Date(match.match_date + 'T' + match.match_time);
     const isUpcoming = matchDate > new Date();
     const statusBadge = getStatusBadge(match.status);
-    const homeAwayBadge = match.is_home_match 
-        ? '<span class="badge bg-success">Home</span>'
-        : '<span class="badge bg-primary">Away</span>';
+    const homeAwayBadge = match.is_home_match
+        ? '<span class="badge bg-success match-location-home">Home</span>'
+        : '<span class="badge bg-primary match-location-away">Away</span>';
 
     return `
-        <div class="card mb-3 match-card" data-match-id="${match.id}">
+        <div class="card mb-3 js-match-card" data-match-id="${match.id}">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h6 class="mb-0">
                     <i class="fas fa-futbol me-2"></i>
@@ -220,7 +220,7 @@ function createMatchCard(match) {
                         ${match.field_name ? `<p class="mb-1"><strong>Field:</strong> ${match.field_name}</p>` : ''}
                     </div>
                     <div class="col-md-6">
-                        <div class="rsvp-summary" id="rsvp-summary-${match.id}">
+                        <div class="js-rsvp-summary" id="rsvp-summary-${match.id}">
                             <div class="spinner-border spinner-border-sm" role="status">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
@@ -231,24 +231,24 @@ function createMatchCard(match) {
                 
                 <div class="mt-3 d-flex flex-wrap gap-2">
                     ${isUpcoming ? `
-                        <button class="btn btn-sm btn-success rsvp-btn" data-match-id="${match.id}" data-response="yes">
+                        <button class="btn btn-sm btn-success js-rsvp-btn" data-match-id="${match.id}" data-response="yes">
                             <i class="fas fa-check me-1"></i>Yes
                         </button>
-                        <button class="btn btn-sm btn-danger rsvp-btn" data-match-id="${match.id}" data-response="no">
+                        <button class="btn btn-sm btn-danger js-rsvp-btn" data-match-id="${match.id}" data-response="no">
                             <i class="fas fa-times me-1"></i>No
                         </button>
-                        <button class="btn btn-sm btn-warning rsvp-btn" data-match-id="${match.id}" data-response="maybe">
+                        <button class="btn btn-sm btn-warning js-rsvp-btn" data-match-id="${match.id}" data-response="maybe">
                             <i class="fas fa-question me-1"></i>Maybe
                         </button>
-                        <button class="btn btn-sm btn-info send-reminder-btn" data-match-id="${match.id}">
+                        <button class="btn btn-sm btn-info js-send-reminder-btn" data-match-id="${match.id}">
                             <i class="fas fa-bell me-1"></i>Send Reminder
                         </button>
                     ` : ''}
-                    
-                    <button class="btn btn-sm btn-outline-primary edit-match-btn" data-match-id="${match.id}">
+
+                    <button class="btn btn-sm btn-outline-primary js-edit-match-btn" data-match-id="${match.id}">
                         <i class="fas fa-edit me-1"></i>Edit
                     </button>
-                    <button class="btn btn-sm btn-outline-danger delete-match-btn" data-match-id="${match.id}">
+                    <button class="btn btn-sm btn-outline-danger js-delete-match-btn" data-match-id="${match.id}">
                         <i class="fas fa-trash me-1"></i>Delete
                     </button>
                 </div>
@@ -263,13 +263,13 @@ function createMatchCard(match) {
 function getStatusBadge(status) {
     switch (status) {
         case 'SCHEDULED':
-            return '<span class="badge bg-info">Scheduled</span>';
+            return '<span class="badge bg-info match-status-scheduled">Scheduled</span>';
         case 'COMPLETED':
-            return '<span class="badge bg-success">Completed</span>';
+            return '<span class="badge bg-success match-status-completed">Completed</span>';
         case 'CANCELLED':
-            return '<span class="badge bg-danger">Cancelled</span>';
+            return '<span class="badge bg-danger match-status-cancelled">Cancelled</span>';
         default:
-            return '<span class="badge bg-secondary">Unknown</span>';
+            return '<span class="badge bg-secondary match-status-unknown">Unknown</span>';
     }
 }
 
@@ -302,13 +302,13 @@ function renderRsvpSummary(matchId, summary) {
     const responseRate = total > 0 ? ((summary.yes + summary.no + summary.maybe) / total * 100).toFixed(0) : 0;
 
     container.innerHTML = `
-        <div class="rsvp-counts">
+        <div class="js-rsvp-counts">
             <small class="text-muted">RSVP Status:</small>
             <div class="d-flex justify-content-between mt-1">
-                <span class="badge bg-success">✓ ${summary.yes}</span>
-                <span class="badge bg-danger">✗ ${summary.no}</span>
-                <span class="badge bg-warning">? ${summary.maybe}</span>
-                <span class="badge bg-secondary">- ${summary.no_response}</span>
+                <span class="badge bg-success rsvp-status-yes">✓ ${summary.yes}</span>
+                <span class="badge bg-danger rsvp-status-no">✗ ${summary.no}</span>
+                <span class="badge bg-warning rsvp-status-maybe">? ${summary.maybe}</span>
+                <span class="badge bg-secondary rsvp-status-none">- ${summary.no_response}</span>
             </div>
             <small class="text-muted">${responseRate}% responded</small>
         </div>
@@ -337,8 +337,7 @@ function showCreateMatchModal(selectedDate = null) {
     }
 
     // Show modal
-    const bootstrapModal = new bootstrap.Modal(modal);
-    bootstrapModal.show();
+    ModalManager.show(modal.id);
 }
 
 /**
@@ -419,8 +418,7 @@ function editMatch(matchId) {
     }
 
     // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('createMatchModal'));
-    modal.show();
+    ModalManager.show('createMatchModal');
 }
 
 /**
@@ -507,8 +505,7 @@ function showImportMatchesModal() {
     const modal = document.getElementById('importMatchesModal');
     if (!modal) return;
 
-    const bootstrapModal = new bootstrap.Modal(modal);
-    bootstrapModal.show();
+    ModalManager.show(modal.id);
 }
 
 /**
@@ -648,6 +645,7 @@ function showAlert(type, message) {
     // Create alert element
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.classList.add('js-alert-message');
     alertDiv.innerHTML = `
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -658,8 +656,7 @@ function showAlert(type, message) {
     if (!container) {
         container = document.createElement('div');
         container.id = 'alerts-container';
-        container.className = 'fixed-top p-3';
-        container.style.zIndex = '9999';
+        container.classList.add('js-alerts-container', 'u-fixed-top', 'u-z-index-9999');
         document.body.appendChild(container);
     }
 

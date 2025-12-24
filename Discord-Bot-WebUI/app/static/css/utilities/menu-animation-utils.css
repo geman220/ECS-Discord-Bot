@@ -1,0 +1,214 @@
+/**
+ * MENU ANIMATION UTILITIES
+ * =======================
+ * CSS classes to replace inline style manipulations in menu.js
+ * Supports menu item animations, positioning, and transitions
+ */
+
+/* ============================================
+   MENU ITEM OVERFLOW HANDLING
+   ============================================ */
+
+.menu-item-overflow-hidden {
+  overflow: hidden !important;
+}
+
+/* ============================================
+   MENU ITEM ANIMATION STATES
+   ============================================ */
+
+.menu-item-animating {
+  transition: height 0.3s ease-in-out;
+}
+
+.menu-item-closing {
+  /* Applied alongside menu-item-animating */
+}
+
+/* Dynamic height via data attribute */
+.menu-item-animating[data-menu-height] {
+  height: var(--menu-item-height, auto);
+}
+
+/* Support for data-menu-height attribute binding */
+.menu-item[data-menu-height] {
+  height: var(--menu-item-height, auto);
+}
+
+/* ============================================
+   MENU POSITIONING CLASSES
+   ============================================ */
+
+.menu-position-left-100 {
+  left: -100% !important;
+}
+
+.menu-position-right-100 {
+  right: 100% !important;
+}
+
+/* ============================================
+   MENU MARGIN ADJUSTMENTS
+   ============================================ */
+
+.menu-margin-left {
+  margin-left: var(--menu-margin-value, 0) !important;
+}
+
+.menu-margin-right {
+  margin-right: var(--menu-margin-value, 0) !important;
+}
+
+/* RTL Support */
+[dir="rtl"] .menu-margin-left {
+  margin-right: var(--menu-margin-value, 0) !important;
+  margin-left: auto !important;
+}
+
+[dir="rtl"] .menu-margin-right {
+  margin-left: var(--menu-margin-value, 0) !important;
+  margin-right: auto !important;
+}
+
+/* ============================================
+   INNER MENU POSITION (SLIDER)
+   ============================================ */
+
+.menu-inner {
+  /* Support for margin positioning via CSS custom properties */
+  --menu-margin-left: 0px;
+  --menu-margin-right: 0px;
+}
+
+.menu-inner[data-inner-position] {
+  margin-left: var(--menu-margin-left) !important;
+  margin-right: var(--menu-margin-right) !important;
+}
+
+/* RTL adjustments for inner position */
+[dir="rtl"] .menu-inner[data-inner-position] {
+  margin-right: var(--menu-margin-right) !important;
+  margin-left: var(--menu-margin-left) !important;
+}
+
+/* ============================================
+   MENU SLIDER BUTTON STATES
+   ============================================ */
+
+.menu-horizontal-prev,
+.menu-horizontal-next {
+  transition: opacity 0.2s ease-in-out;
+}
+
+.menu-horizontal-prev.disabled,
+.menu-horizontal-next.disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
+/* ============================================
+   RESPONSIVE MENU UTILITIES
+   ============================================ */
+
+@media (max-width: 991.98px) {
+  .menu-item-overflow-hidden {
+    overflow: visible !important;
+  }
+
+  .menu-margin-left,
+  .menu-margin-right {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+}
+
+/* ============================================
+   ANIMATION TIMING FUNCTIONS
+   ============================================ */
+
+.menu-item-animating {
+  --transition-duration: 0.3s;
+  --transition-timing: ease-in-out;
+  transition: height var(--transition-duration) var(--transition-timing);
+}
+
+/* Support for custom animation durations */
+.menu-item-animating.slow {
+  --transition-duration: 0.5s;
+}
+
+.menu-item-animating.fast {
+  --transition-duration: 0.15s;
+}
+
+/* ============================================
+   MENU ITEM HEIGHT PRESERVATION
+   ============================================ */
+
+.menu-item[data-menu-height="0px"] {
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* ============================================
+   DARK MODE ADJUSTMENTS
+   ============================================ */
+
+[data-style="dark"] .menu-position-left-100,
+[data-style="dark"] .menu-position-right-100 {
+  box-shadow: -2px 0 4px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================
+   COMPATIBILITY & FALLBACKS
+   ============================================ */
+
+/* Fallback for browsers without CSS custom properties support */
+@supports not (--foo: bar) {
+  .menu-margin-left {
+    margin-left: 0 !important;
+  }
+
+  .menu-margin-right {
+    margin-right: 0 !important;
+  }
+
+  .menu-inner {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+}
+
+/* ============================================
+   UTILITY HELPERS FOR MENU STATE
+   ============================================ */
+
+.menu-hidden {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+.menu-visible {
+  display: block !important;
+  visibility: visible !important;
+}
+
+.menu-transform-none {
+  transform: none !important;
+}
+
+.menu-no-scroll {
+  overflow: hidden !important;
+}
+
+/* ============================================
+   ANIMATION PERFORMANCE OPTIMIZATION
+   ============================================ */
+
+.menu-item-animating,
+.menu-item-closing {
+  will-change: height;
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+}

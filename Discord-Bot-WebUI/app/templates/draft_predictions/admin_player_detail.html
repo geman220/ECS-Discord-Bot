@@ -1,0 +1,223 @@
+{% extends "admin_panel/base.html" %}
+{% import 'macros.html' as macros %}
+
+{% block title %}{{ player.name }} - Predictions{% endblock %}
+{% block panel_description %}All coach predictions for {{ player.name }}{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.draft_overview') }}">Draft</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('draft_predictions.admin_dashboard') }}">Predictions</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('draft_predictions.admin_view_league', league_type=league_type, season_id=season.id) }}">{{ league_type }}</a></li>
+<li class="breadcrumb-item active">{{ player.name }}</li>
+{% endblock %}
+
+{% block panel_content %}
+    <!-- Player Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="c-card">
+                <div class="c-card__body">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="avatar avatar-lg">
+                                {% if player.profile_picture_url or (player.image_cache and player.image_cache.thumbnail_url) %}
+                                    <img src="{{ player.image_cache.thumbnail_url if player.image_cache and player.image_cache.thumbnail_url else player.profile_picture_url }}"
+                                         alt="{{ player.name }}" class="rounded-circle">
+                                {% else %}
+                                    <div class="avatar-initial rounded-circle bg-label-primary" style="font-size: 1.5rem;">
+                                        {{ player.name[:2]|upper }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <h4 class="mb-1">{{ player.name }}</h4>
+                                <div class="d-flex gap-2">
+                                    {% if player.favorite_position %}
+                                        <span class="badge bg-label-secondary" data-badge>{{ player.favorite_position }}</span>
+                                    {% endif %}
+                                    <span class="badge bg-label-{{ 'success' if league_type == 'Premier' else 'primary' }}" data-badge>
+                                        {{ league_type }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('draft_predictions.admin_view_league', league_type=league_type, season_id=season.id) }}"
+                           class="c-btn c-btn--outline-secondary">
+                            <i class="ti ti-arrow-left me-1"></i>Back to {{ league_type }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-sm-6 mb-3">
+            <div class="c-card">
+                <div class="c-card__body">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar avatar-md me-3">
+                            <div class="avatar-initial bg-label-primary rounded">
+                                <i class="ti ti-chart-bar"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="fw-medium d-block">Average Round</span>
+                            <h3 class="mb-0">
+                                {% if stats.avg_round %}
+                                    {{ "%.1f"|format(stats.avg_round) }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-sm-6 mb-3">
+            <div class="c-card">
+                <div class="c-card__body">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar avatar-md me-3">
+                            <div class="avatar-initial bg-label-success rounded">
+                                <i class="ti ti-arrow-up"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="fw-medium d-block">Highest (Earliest)</span>
+                            <h3 class="mb-0">{{ stats.min_round or '-' }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-sm-6 mb-3">
+            <div class="c-card">
+                <div class="c-card__body">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar avatar-md me-3">
+                            <div class="avatar-initial bg-label-warning rounded">
+                                <i class="ti ti-arrow-down"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="fw-medium d-block">Lowest (Latest)</span>
+                            <h3 class="mb-0">{{ stats.max_round or '-' }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-sm-6 mb-3">
+            <div class="c-card">
+                <div class="c-card__body">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar avatar-md me-3">
+                            <div class="avatar-initial bg-label-info rounded">
+                                <i class="ti ti-users"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="fw-medium d-block">Total Votes</span>
+                            <h3 class="mb-0">{{ stats.count }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Coach Predictions Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="mb-0">
+                        <i class="ti ti-list me-2"></i>Coach Predictions
+                    </h5>
+                </div>
+                <div class="c-card__body">
+                    {% if predictions %}
+                        <div class="c-table-wrapper" data-table-responsive>
+                            <table class="c-table c-table--hoverable" data-table>
+                                <thead>
+                                    <tr>
+                                        <th style="width: 280px;">Coach</th>
+                                        <th style="width: 120px;">Predicted Round</th>
+                                        <th style="width: 120px;">Confidence</th>
+                                        <th>Notes</th>
+                                        <th style="width: 180px;">Submitted</th>
+                                        <th style="width: 100px;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for prediction, coach in predictions %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar avatar-xs me-2">
+                                                    {% if coach.avatar_url %}
+                                                        <img src="{{ coach.avatar_url }}" alt="{{ coach.username }}" class="rounded-circle">
+                                                    {% else %}
+                                                        <div class="avatar-initial rounded-circle bg-label-primary">
+                                                            {{ coach.username[:2]|upper }}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div>
+                                                    <div class="fw-medium">{{ coach.username }}</div>
+                                                    {% if coach.email %}
+                                                        <small class="text-muted">{{ coach.email }}</small>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if prediction.predicted_round <= 5 else 'primary' if prediction.predicted_round <= 10 else 'warning' }}" data-badge>
+                                                Round {{ prediction.predicted_round }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if prediction.confidence_level %}
+                                                <span class="badge bg-label-info" data-badge>{{ prediction.confidence_level }}/5</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if prediction.notes %}
+                                                <span class="text-muted">{{ prediction.notes }}</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">
+                                                {{ prediction.updated_at.strftime('%b %d, %Y %I:%M %p') }}
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('draft_predictions.admin_coach_detail', coach_id=coach.id, season_id=season.id, league_type=league_type) }}"
+                                               class="c-btn c-btn--sm c-btn--outline-secondary">
+                                                <i class="ti ti-user"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="ti ti-list-check text-muted" style="font-size: 3rem;"></i>
+                            <h5 class="mt-3 text-muted">No Predictions</h5>
+                            <p class="text-muted">No coaches have predicted for this player yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

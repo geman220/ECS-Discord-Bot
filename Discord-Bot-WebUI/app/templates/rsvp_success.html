@@ -6,58 +6,22 @@
     <title>RSVP Submitted Successfully</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        :root {
-            --bs-body-bg: var(--ecs-dark-bg-body, #0f172a);
-            --bs-body-color: var(--ecs-dark-text-primary, #e2e8f0);
-            --bs-primary: var(--ecs-primary, #3b82f6);
-            --bs-primary-rgb: var(--ecs-primary-rgb, 59, 130, 246);
-        }
-
-        body {
-            background-color: var(--bs-body-bg);
-            color: var(--bs-body-color);
-            font-family: 'Inter', sans-serif;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .card {
-            background-color: var(--ecs-dark-bg-card, #1e293b);
-            border: 1px solid var(--ecs-dark-border, #2d3748);
-            border-radius: 0.5rem;
-        }
-
-        .card-title {
-            color: var(--ecs-dark-text-heading, #f8fafc);
-        }
-
-        .success-icon {
-            font-size: 4rem;
-            color: var(--ecs-success, #10b981);
-        }
-
-        #countdown {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--bs-primary);
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/rsvp-pages.css') }}">
 </head>
-<body>
+<body class="c-rsvp-page" data-component="rsvp-page">
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-md-6">
-                <div class="card shadow">
-                    <div class="card-body text-center py-5">
-                        <i class="bi bi-check-circle success-icon mb-4"></i>
-                        <h2 class="card-title mb-3">RSVP Submitted Successfully!</h2>
-                        <p class="card-text mb-4">Thank you for responding to the match invitation. Your RSVP has been recorded.</p>
-                        <p class="mb-2">You can now close this page.</p>
-                        <p class="small text-muted mb-4">This page will automatically become inactive in <span id="countdown">30</span> seconds.</p>
+                <div class="c-rsvp-card" data-component="rsvp-card">
+                    <div class="c-rsvp-card__body">
+                        <i class="bi bi-check-circle c-rsvp-success-icon"></i>
+                        <h2 class="c-rsvp-card__title">RSVP Submitted Successfully!</h2>
+                        <p class="c-rsvp-card__text">Thank you for responding to the match invitation. Your RSVP has been recorded.</p>
+                        <p class="c-rsvp-card__info">You can now close this page.</p>
+                        <p class="c-rsvp-card__countdown-text">
+                            This page will automatically become inactive in
+                            <span id="countdown" class="c-rsvp-countdown">30</span> seconds.
+                        </p>
                     </div>
                 </div>
             </div>

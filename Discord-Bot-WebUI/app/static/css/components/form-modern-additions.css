@@ -1,0 +1,224 @@
+/**
+ * ============================================================================
+ * FORM MODERN ADDITIONS - Extended Form Components
+ * ============================================================================
+ *
+ * Additional form components and variants.
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   FORM MODERN CONTAINER
+   ============================================================================ */
+
+.c-form-modern {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+}
+
+.c-form-modern__row {
+  display: flex;
+  gap: var(--space-4, 16px);
+}
+
+@media (max-width: 768px) {
+  .c-form-modern__row {
+    flex-direction: column;
+  }
+}
+
+.c-form-modern__group--grow {
+  flex: 1;
+}
+
+.c-form-modern__group--actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3, 12px);
+  padding-top: var(--space-4, 16px);
+  border-top: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+}
+
+/* ============================================================================
+   FORM MODERN INPUT WRAPPER
+   ============================================================================ */
+
+.c-form-modern__input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.c-form-modern__icon {
+  position: absolute;
+  left: var(--space-3, 12px);
+  color: var(--color-text-muted, #64748b);
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+.c-form-modern__input-wrapper .c-form-modern__icon + input {
+  padding-left: var(--space-10, 40px);
+}
+
+/* ============================================================================
+   FORM MODERN HELP TEXT
+   ============================================================================ */
+
+.c-form-modern__help {
+  margin-top: var(--space-1, 4px);
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-muted, #64748b);
+}
+
+/* ============================================================================
+   FORM MODERN CHECKBOX
+   ============================================================================ */
+
+.c-form-modern__checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2, 8px);
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--color-text-primary, #f8fafc);
+  cursor: pointer;
+}
+
+.c-form-modern__checkbox-label input[type="checkbox"] {
+  margin-top: 2px;
+}
+
+/* ============================================================================
+   FORM MODERN ACTIONS
+   ============================================================================ */
+
+.c-form-modern__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3, 12px);
+  margin-top: var(--space-4, 16px);
+}
+
+/* ============================================================================
+   FORM FIELD EXTENSIONS
+   ============================================================================ */
+
+.c-form-field__error {
+  margin-top: var(--space-1, 4px);
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-danger-light, #f87171);
+}
+
+.c-form-field__empty {
+  color: var(--color-text-muted, #64748b);
+  font-style: italic;
+}
+
+.c-form-label--required::after {
+  content: ' *';
+  color: var(--color-danger, #ef4444);
+}
+
+/* ============================================================================
+   FILTER COMPONENTS
+   ============================================================================ */
+
+.c-filter-section {
+  margin-bottom: var(--space-4, 16px);
+}
+
+.c-filter-section__label {
+  display: block;
+  margin-bottom: var(--space-2, 8px);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 600;
+  color: var(--color-text-secondary, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.c-filter-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  padding: var(--space-2, 8px);
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+  transition: background-color var(--duration-fast, 150ms) ease;
+}
+
+.c-filter-option:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.c-filter-option__input {
+  accent-color: var(--color-primary, #2563EB);
+}
+
+.c-filter-option__label {
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--color-text-primary, #f8fafc);
+}
+
+.c-filter-option__icon {
+  color: var(--color-text-secondary, #94a3b8);
+}
+
+/* ============================================================================
+   TOGGLE ROW
+   ============================================================================ */
+
+.c-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  padding: var(--space-3, 12px) 0;
+  border-bottom: 1px solid var(--bs-border-color-translucent, rgba(0, 0, 0, 0.1));
+}
+
+.c-toggle-row:last-child {
+  border-bottom: none;
+}
+
+.c-toggle-row__info {
+  flex: 1;
+}
+
+.c-toggle-row__label {
+  display: block;
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 500;
+  color: var(--bs-body-color, var(--color-text-primary));
+  margin: 0;
+}
+
+.c-toggle-row__description {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--bs-secondary-color, var(--color-text-secondary));
+  margin: 0;
+}
+
+/* ============================================================================
+   LIGHT MODE
+   ============================================================================ */
+
+[data-style="light"] .c-form-modern__group--actions {
+  border-top-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
+}
+
+[data-style="light"] .c-form-modern__checkbox-label {
+  color: var(--color-text-primary, #1e293b);
+}
+
+[data-style="light"] .c-filter-option:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+[data-style="light"] .c-filter-option__label {
+  color: var(--color-text-primary, #1e293b);
+}
+
+/* c-toggle-row now uses BS variables that auto-adapt to theme */

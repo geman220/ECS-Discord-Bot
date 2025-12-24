@@ -10,7 +10,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(data => {
                     document.getElementById('qrCodeContainer').innerHTML = `<img src="data:image/png;base64,${data.qr_code}" alt="QR Code">`;
                     document.getElementById('enable2FAModal').setAttribute('data-secret', data.secret);
-                    new bootstrap.Modal(document.getElementById('enable2FAModal')).show();
+                    // Use ModalManager for safe modal handling
+                    ModalManager.show('enable2FAModal');
                 });
         });
     }

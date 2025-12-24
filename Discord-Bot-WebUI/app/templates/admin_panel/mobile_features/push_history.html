@@ -14,60 +14,60 @@
 <!-- Push History Statistics -->
 <div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
+        <div class="c-card bg-primary text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.total_sent or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Total Sent</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.total_sent or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Total Sent</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-send" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-send u-card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
+        <div class="c-card bg-success text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.sent_today or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Sent Today</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.sent_today or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Sent Today</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-calendar" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-calendar u-card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
+        <div class="c-card bg-info text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.sent_this_week or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Sent This Week</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.sent_this_week or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Sent This Week</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-calendar-week" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-calendar-week u-card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
+        <div class="c-card bg-warning text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.avg_per_day or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Avg per Day</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.avg_per_day or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Avg per Day</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-chart-line" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-chart-line u-card-icon-stat"></i>
                     </div>
                 </div>
             </div>
@@ -78,17 +78,17 @@
 <!-- History Filters -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-filter me-2"></i>Filter Push History
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <form method="GET" class="row g-3">
                     <div class="col-md-2">
                         <label class="form-label">Status</label>
-                        <select name="status" class="form-select">
+                        <select name="status" class="form-select" data-form-select>
                             <option value="">All Statuses</option>
                             <option value="sent" {{ 'selected' if request.args.get('status') == 'sent' }}>Sent</option>
                             <option value="delivered" {{ 'selected' if request.args.get('status') == 'delivered' }}>Delivered</option>
@@ -98,7 +98,7 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Type</label>
-                        <select name="type" class="form-select">
+                        <select name="type" class="form-select" data-form-select>
                             <option value="">All Types</option>
                             <option value="match_reminder" {{ 'selected' if request.args.get('type') == 'match_reminder' }}>Match Reminder</option>
                             <option value="season_update" {{ 'selected' if request.args.get('type') == 'season_update' }}>Season Update</option>
@@ -108,20 +108,20 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">From Date</label>
-                        <input type="date" name="date_from" class="form-control" value="{{ request.args.get('date_from', '') }}">
+                        <input type="date" name="date_from" class="form-control" value="{{ request.args.get('date_from', '') }}" data-form-control>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">To Date</label>
-                        <input type="date" name="date_to" class="form-control" value="{{ request.args.get('date_to', '') }}">
+                        <input type="date" name="date_to" class="form-control" value="{{ request.args.get('date_to', '') }}" data-form-control>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Search</label>
-                        <input type="text" name="search" class="form-control" placeholder="Search message content..." value="{{ request.args.get('search', '') }}">
+                        <input type="text" name="search" class="form-control" placeholder="Search message content..." value="{{ request.args.get('search', '') }}" data-form-control>
                     </div>
                     <div class="col-md-1">
                         <label class="form-label">&nbsp;</label>
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="c-btn c-btn--primary">
                                 <i class="ti ti-search"></i>
                             </button>
                         </div>
@@ -135,27 +135,27 @@
 <!-- Analytics Chart -->
 <div class="row mb-4">
     <div class="col-md-8 mb-3">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-chart-area me-2"></i>Push Notification Trends
                 </h5>
             </div>
-            <div class="card-body">
-                <div id="pushHistoryChart" style="height: 300px;"></div>
+            <div class="c-card__body">
+                <div id="pushHistoryChart" class="u-h-300"></div>
             </div>
         </div>
     </div>
     
     <div class="col-md-4 mb-3">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-pie-chart me-2"></i>Status Distribution
                 </h5>
             </div>
-            <div class="card-body">
-                <div id="statusDistributionChart" style="height: 300px;"></div>
+            <div class="c-card__body">
+                <div id="statusDistributionChart" class="u-h-300"></div>
             </div>
         </div>
     </div>
@@ -164,21 +164,21 @@
 <!-- Bulk Actions -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-body">
+        <div class="c-card">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="mb-0">Push History Management</h6>
                         <small class="text-muted">{{ push_notifications|length or 0 }} notifications shown</small>
                     </div>
                     <div class="btn-group">
-                        <button class="btn btn-outline-primary" onclick="retryFailed()">
+                        <button class="c-btn c-btn--outline-primary js-retry-failed" data-action="retry-failed">
                             <i class="ti ti-refresh me-1"></i>Retry Failed
                         </button>
-                        <button class="btn btn-outline-info" onclick="exportHistory()">
+                        <button class="c-btn c-btn--outline-info js-export-history" data-action="export-history">
                             <i class="ti ti-download me-1"></i>Export History
                         </button>
-                        <button class="btn btn-outline-warning" onclick="cleanupOld()">
+                        <button class="c-btn c-btn--outline-warning js-cleanup-old" data-action="cleanup-old">
                             <i class="ti ti-trash me-1"></i>Cleanup Old
                         </button>
                     </div>
@@ -191,29 +191,29 @@
 <!-- Push History Table -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-history me-2"></i>Push Notification History
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if push_notifications %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>
+                                <th scope="col">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="selectAll">
+                                        <input class="form-check-input" type="checkbox" id="push-history-selectAll">
                                     </div>
                                 </th>
-                                <th>Notification</th>
-                                <th>Type</th>
-                                <th>Recipient</th>
-                                <th>Status</th>
-                                <th>Sent Date</th>
-                                <th>Actions</th>
+                                <th scope="col">Notification</th>
+                                <th scope="col">Type</th>
+                                <th scope="col">Recipient</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Sent Date</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -231,7 +231,7 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="badge bg-primary">{{ notification.notification_type or 'push' }}</span>
+                                    <span class="badge bg-primary" data-badge>{{ notification.notification_type or 'push' }}</span>
                                 </td>
                                 <td>
                                     {% if notification.recipient %}
@@ -250,15 +250,15 @@
                                 </td>
                                 <td>
                                     {% if notification.is_sent %}
-                                        <span class="badge bg-success">
+                                        <span class="badge bg-success" data-badge>
                                             <i class="ti ti-check me-1"></i>Sent
                                         </span>
                                     {% elif notification.failed_at %}
-                                        <span class="badge bg-danger">
+                                        <span class="badge bg-danger" data-badge>
                                             <i class="ti ti-x me-1"></i>Failed
                                         </span>
                                     {% else %}
-                                        <span class="badge bg-warning">
+                                        <span class="badge bg-warning" data-badge>
                                             <i class="ti ti-clock me-1"></i>Pending
                                         </span>
                                     {% endif %}
@@ -268,18 +268,18 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-info" onclick="viewNotificationDetails('{{ notification.id }}')">
+                                        <button class="c-btn c-btn--outline-info js-view-notification" data-action="view-notification" data-notification-id="{{ notification.id }}">
                                             <i class="ti ti-eye"></i>
                                         </button>
                                         {% if notification.failed_at %}
-                                        <button class="btn btn-outline-warning" onclick="retryNotification('{{ notification.id }}')">
+                                        <button class="c-btn c-btn--outline-warning js-retry-notification" data-action="retry-notification" data-notification-id="{{ notification.id }}">
                                             <i class="ti ti-refresh"></i>
                                         </button>
                                         {% endif %}
-                                        <button class="btn btn-outline-primary" onclick="duplicateNotification('{{ notification.id }}')">
+                                        <button class="c-btn c-btn--outline-primary js-duplicate-notification" data-action="duplicate-notification" data-notification-id="{{ notification.id }}">
                                             <i class="ti ti-copy"></i>
                                         </button>
-                                        <button class="btn btn-outline-danger" onclick="deleteNotification('{{ notification.id }}')">
+                                        <button class="c-btn c-btn--outline-danger js-delete-notification" data-action="delete-notification" data-notification-id="{{ notification.id }}">
                                             <i class="ti ti-trash"></i>
                                         </button>
                                     </div>
@@ -291,10 +291,10 @@
                 </div>
                 {% else %}
                 <div class="text-center py-5">
-                    <i class="ti ti-bell-off text-muted" style="font-size: 4rem;"></i>
+                    <i class="ti ti-bell-off text-muted icon-empty-state"></i>
                     <h5 class="text-muted mt-3">No Push History</h5>
                     <p class="text-muted">No push notifications match the current filter criteria.</p>
-                    <a href="{{ url_for('admin_panel.push_history') }}" class="btn btn-outline-primary">
+                    <a href="{{ url_for('admin_panel.push_history') }}" class="c-btn c-btn--outline-primary">
                         <i class="ti ti-refresh me-1"></i>Clear Filters
                     </a>
                 </div>
@@ -307,15 +307,67 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
+<style>
+.role-users-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+</style>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Select all functionality
-document.getElementById('selectAll').addEventListener('change', function() {
-    const checkboxes = document.querySelectorAll('.notification-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = this.checked;
+// Event delegation for push history actions
+document.addEventListener('DOMContentLoaded', function() {
+    // Bulk actions
+    document.querySelectorAll('.js-retry-failed').forEach(btn => {
+        btn.addEventListener('click', retryFailed);
+    });
+
+    document.querySelectorAll('.js-export-history').forEach(btn => {
+        btn.addEventListener('click', exportHistory);
+    });
+
+    document.querySelectorAll('.js-cleanup-old').forEach(btn => {
+        btn.addEventListener('click', cleanupOld);
+    });
+
+    // Individual notification actions
+    document.querySelectorAll('.js-view-notification').forEach(btn => {
+        btn.addEventListener('click', function() {
+            viewNotificationDetails(this.dataset.notificationId);
+        });
+    });
+
+    document.querySelectorAll('.js-retry-notification').forEach(btn => {
+        btn.addEventListener('click', function() {
+            retryNotification(this.dataset.notificationId);
+        });
+    });
+
+    document.querySelectorAll('.js-duplicate-notification').forEach(btn => {
+        btn.addEventListener('click', function() {
+            duplicateNotification(this.dataset.notificationId);
+        });
+    });
+
+    document.querySelectorAll('.js-delete-notification').forEach(btn => {
+        btn.addEventListener('click', function() {
+            deleteNotification(this.dataset.notificationId);
+        });
     });
 });
+
+// Select all functionality
+const pushHistorySelectAll = document.getElementById('push-history-selectAll');
+if (pushHistorySelectAll) {
+    pushHistorySelectAll.addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.notification-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+    });
+}
 
 // Push History Trends Chart
 const pushHistoryCtx = document.getElementById('pushHistoryChart').getContext('2d');
@@ -408,12 +460,12 @@ function viewNotificationDetails(notificationId) {
                 <div class="mb-3">
                     <strong>Notification ID:</strong> ${notificationId}<br>
                     <strong>Type:</strong> Push Notification<br>
-                    <strong>Status:</strong> <span class="badge bg-success">Sent</span><br>
+                    <strong>Status:</strong> <span class="badge bg-success" data-badge>Sent</span><br>
                     <strong>Created:</strong> 2024-01-30 18:00:00
                 </div>
                 <div class="mb-3">
                     <strong>Content:</strong><br>
-                    <div class="card bg-light p-2">
+                    <div class="c-card bg-light p-2">
                         <strong>Title:</strong> Match Starting Soon!<br>
                         <strong>Message:</strong> Your match against Arsenal FC starts in 30 minutes. Good luck team!
                     </div>

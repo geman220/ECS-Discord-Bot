@@ -14,60 +14,60 @@
 <!-- Mobile User Statistics -->
 <div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
+        <div class="c-card bg-primary text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.total_mobile_users or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Total Mobile Users</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.total_mobile_users or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Total Mobile Users</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-device-mobile" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-device-mobile card-icon-lg"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
+        <div class="c-card bg-success text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.active_last_week or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Active This Week</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.active_last_week or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Active This Week</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-activity" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-activity card-icon-lg"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
+        <div class="c-card bg-info text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.active_last_month or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Active This Month</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.active_last_month or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Active This Month</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-calendar" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-calendar card-icon-lg"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
+        <div class="c-card bg-warning text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.retention_rate or '0%' }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Retention Rate</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.retention_rate or '0%' }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Retention Rate</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-chart-line" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-chart-line card-icon-lg"></i>
                     </div>
                 </div>
             </div>
@@ -78,17 +78,17 @@
 <!-- User Filters -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-filter me-2"></i>Filter Mobile Users
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <form method="GET" class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label">Activity Status</label>
-                        <select name="activity" class="form-select">
+                        <select name="activity" class="form-select" data-form-select>
                             <option value="">All Users</option>
                             <option value="active_week" {{ 'selected' if request.args.get('activity') == 'active_week' }}>Active This Week</option>
                             <option value="active_month" {{ 'selected' if request.args.get('activity') == 'active_month' }}>Active This Month</option>
@@ -97,7 +97,7 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Platform</label>
-                        <select name="platform" class="form-select">
+                        <select name="platform" class="form-select" data-form-select>
                             <option value="">All Platforms</option>
                             <option value="iOS" {{ 'selected' if request.args.get('platform') == 'iOS' }}>iOS</option>
                             <option value="Android" {{ 'selected' if request.args.get('platform') == 'Android' }}>Android</option>
@@ -105,12 +105,12 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Search User</label>
-                        <input type="text" name="search" class="form-control" placeholder="Username or email..." value="{{ request.args.get('search', '') }}">
+                        <input type="text" name="search" class="form-control" placeholder="Username or email..." value="{{ request.args.get('search', '') }}" data-form-control>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">&nbsp;</label>
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="c-btn c-btn--primary">
                                 <i class="ti ti-search me-1"></i>Filter
                             </button>
                         </div>
@@ -124,21 +124,21 @@
 <!-- Bulk Actions -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-body">
+        <div class="c-card">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="mb-0">Mobile User Management</h6>
                         <small class="text-muted">{{ mobile_users|length or 0 }} users shown</small>
                     </div>
                     <div class="btn-group">
-                        <button class="btn btn-outline-primary" onclick="sendBulkNotification()">
+                        <button class="c-btn c-btn--outline-primary" data-action="send-bulk-notification">
                             <i class="ti ti-send me-1"></i>Send Notification
                         </button>
-                        <button class="btn btn-outline-info" onclick="exportUserData()">
+                        <button class="c-btn c-btn--outline-info" data-action="export-user-data">
                             <i class="ti ti-download me-1"></i>Export Data
                         </button>
-                        <button class="btn btn-outline-warning" onclick="bulkDeviceManagement()">
+                        <button class="c-btn c-btn--outline-warning" data-action="bulk-device-management">
                             <i class="ti ti-device-mobile me-1"></i>Manage Devices
                         </button>
                     </div>
@@ -151,29 +151,29 @@
 <!-- Mobile Users Table -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-users me-2"></i>Mobile Users
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if mobile_users %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>
+                                <th scope="col">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="selectAll">
+                                        <input class="form-check-input" type="checkbox" id="mobile-users-selectAll">
                                     </div>
                                 </th>
-                                <th>User</th>
-                                <th>Platform</th>
-                                <th>Last Active</th>
-                                <th>Device Tokens</th>
-                                <th>Push Status</th>
-                                <th>Actions</th>
+                                <th scope="col">User</th>
+                                <th scope="col">Platform</th>
+                                <th scope="col">Last Active</th>
+                                <th scope="col">Device Tokens</th>
+                                <th scope="col">Push Status</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -197,7 +197,7 @@
                                 </td>
                                 <td>
                                     {% set platform = 'iOS' if 'iOS' in (user.device_tokens[0].token if user.device_tokens else '') else 'Android' %}
-                                    <span class="badge bg-{{ 'primary' if platform == 'iOS' else 'success' }}">
+                                    <span class="badge bg-{{ 'primary' if platform == 'iOS' else 'success' }}" data-badge>
                                         <i class="ti ti-{{ 'brand-apple' if platform == 'iOS' else 'brand-android' }} me-1"></i>
                                         {{ platform }}
                                     </span>
@@ -210,28 +210,28 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <span class="badge bg-info">{{ user.device_tokens|length or 0 }} devices</span>
+                                    <span class="badge bg-info" data-badge>{{ user.device_tokens|length or 0 }} devices</span>
                                 </td>
                                 <td>
                                     {% if user.device_tokens and user.device_tokens[0].is_active %}
-                                        <span class="badge bg-success">
+                                        <span class="badge bg-success" data-badge>
                                             <i class="ti ti-check me-1"></i>Enabled
                                         </span>
                                     {% else %}
-                                        <span class="badge bg-secondary">
+                                        <span class="badge bg-secondary" data-badge>
                                             <i class="ti ti-x me-1"></i>Disabled
                                         </span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-info" onclick="viewUserDetails({{ user.id }})">
+                                        <button class="c-btn c-btn--outline-info" data-action="view-user-details" data-user-id="{{ user.id }}">
                                             <i class="ti ti-eye"></i>
                                         </button>
-                                        <button class="btn btn-outline-primary" onclick="sendNotification({{ user.id }})">
+                                        <button class="c-btn c-btn--outline-primary" data-action="send-notification" data-user-id="{{ user.id }}">
                                             <i class="ti ti-send"></i>
                                         </button>
-                                        <button class="btn btn-outline-warning" onclick="manageDevices({{ user.id }})">
+                                        <button class="c-btn c-btn--outline-warning" data-action="manage-devices" data-user-id="{{ user.id }}">
                                             <i class="ti ti-device-mobile"></i>
                                         </button>
                                     </div>
@@ -243,10 +243,10 @@
                 </div>
                 {% else %}
                 <div class="text-center py-5">
-                    <i class="ti ti-device-mobile-off text-muted" style="font-size: 4rem;"></i>
+                    <i class="ti ti-device-mobile-off text-muted empty-state-icon"></i>
                     <h5 class="text-muted mt-3">No Mobile Users Found</h5>
                     <p class="text-muted">No users match the current filter criteria.</p>
-                    <a href="{{ url_for('admin_panel.mobile_users') }}" class="btn btn-outline-primary">
+                    <a href="{{ url_for('admin_panel.mobile_users') }}" class="c-btn c-btn--outline-primary">
                         <i class="ti ti-refresh me-1"></i>Clear Filters
                     </a>
                 </div>
@@ -259,7 +259,32 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
+// Attach event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Action buttons with user IDs
+    document.querySelectorAll('[data-action][data-user-id]').forEach(button => {
+        button.addEventListener('click', function() {
+            const action = this.dataset.action;
+            const userId = parseInt(this.dataset.userId);
+
+            if (action === 'view-user-details') {
+                viewUserDetails(userId);
+            } else if (action === 'send-notification') {
+                sendNotification(userId);
+            } else if (action === 'manage-devices') {
+                manageDevices(userId);
+            }
+        });
+    });
+
+    // Bulk action buttons
+    document.querySelector('[data-action="send-bulk-notification"]')?.addEventListener('click', sendBulkNotification);
+    document.querySelector('[data-action="export-user-data"]')?.addEventListener('click', exportUserData);
+    document.querySelector('[data-action="bulk-device-management"]')?.addEventListener('click', bulkDeviceManagement);
+});
+
 // Select all functionality
 document.getElementById('selectAll').addEventListener('change', function() {
     const checkboxes = document.querySelectorAll('.user-checkbox');
@@ -284,7 +309,7 @@ function viewUserDetails(userId) {
                                     <strong>Token:</strong> ${token.token}<br>
                                     <small class="text-muted">Platform: ${token.platform} | Created: ${new Date(token.created_at).toLocaleDateString()}</small>
                                 </div>
-                                <span class="badge bg-${token.is_active ? 'success' : 'secondary'}">
+                                <span class="badge bg-${token.is_active ? 'success' : 'secondary'}" data-badge>
                                     ${token.is_active ? 'Active' : 'Inactive'}
                                 </span>
                             </div>
@@ -329,11 +354,11 @@ function sendNotification(userId) {
             <div class="text-start">
                 <div class="mb-3">
                     <label class="form-label">Notification Title</label>
-                    <input type="text" class="form-control" id="notificationTitle" placeholder="Match Update">
+                    <input type="text" class="form-control" id="notificationTitle" placeholder="Match Update" data-form-control>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Notification Message</label>
-                    <textarea class="form-control" id="notificationMessage" rows="3" placeholder="Your match against Arsenal FC starts in 30 minutes!"></textarea>
+                    <textarea class="form-control" id="notificationMessage" rows="3" placeholder="Your match against Arsenal FC starts in 30 minutes!" data-form-control></textarea>
                 </div>
                 <div class="mb-3">
                     <div class="form-check">
@@ -382,7 +407,7 @@ function manageDevices(userId) {
                             <small class="text-muted">iOS 17.2 • Last active: 2 hours ago</small>
                         </div>
                         <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-warning" onclick="deactivateDevice('token123')">
+                            <button class="c-btn c-btn--outline-warning" data-action="deactivate-device" data-token-id="token123">
                                 <i class="ti ti-ban"></i>
                             </button>
                         </div>
@@ -393,7 +418,7 @@ function manageDevices(userId) {
                             <small class="text-muted">Android 14 • Last active: 1 day ago</small>
                         </div>
                         <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-warning" onclick="deactivateDevice('token456')">
+                            <button class="c-btn c-btn--outline-warning" data-action="deactivate-device" data-token-id="token456">
                                 <i class="ti ti-ban"></i>
                             </button>
                         </div>
@@ -402,7 +427,15 @@ function manageDevices(userId) {
             </div>
         `,
         width: '600px',
-        confirmButtonText: 'Close'
+        confirmButtonText: 'Close',
+        didOpen: () => {
+            // Attach event listeners to dynamically created buttons
+            document.querySelectorAll('[data-action="deactivate-device"]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    deactivateDevice(this.dataset.tokenId);
+                });
+            });
+        }
     });
 }
 
@@ -452,15 +485,15 @@ function sendBulkNotification() {
             <div class="text-start">
                 <div class="mb-3">
                     <label class="form-label">Notification Title</label>
-                    <input type="text" class="form-control" id="bulkNotificationTitle" placeholder="Important Update">
+                    <input type="text" class="form-control" id="bulkNotificationTitle" placeholder="Important Update" data-form-control>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Notification Message</label>
-                    <textarea class="form-control" id="bulkNotificationMessage" rows="3" placeholder="Check out the latest updates in the app!"></textarea>
+                    <textarea class="form-control" id="bulkNotificationMessage" rows="3" placeholder="Check out the latest updates in the app!" data-form-control></textarea>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Send Schedule</label>
-                    <select class="form-select" id="sendSchedule">
+                    <select class="form-select" id="sendSchedule" data-form-select>
                         <option value="immediate">Send Immediately</option>
                         <option value="scheduled">Schedule for Later</option>
                     </select>
@@ -511,28 +544,28 @@ function exportUserData() {
 
 function bulkDeviceManagement() {
     const selectedUsers = Array.from(document.querySelectorAll('.user-checkbox:checked')).map(cb => cb.value);
-    
+
     if (selectedUsers.length === 0) {
         Swal.fire('No Users Selected', 'Please select users to manage their devices.', 'warning');
         return;
     }
-    
+
     Swal.fire({
         title: `Bulk Device Management (${selectedUsers.length} users)`,
         html: `
             <div class="text-start">
                 <div class="list-group">
-                    <button class="list-group-item list-group-item-action" onclick="bulkDeactivateDevices()">
+                    <button class="list-group-item list-group-item-action" data-action="bulk-deactivate-devices">
                         <i class="ti ti-ban text-danger me-2"></i>
                         <strong>Deactivate All Devices</strong><br>
                         <small class="text-muted">Stop push notifications for selected users</small>
                     </button>
-                    <button class="list-group-item list-group-item-action" onclick="bulkReactivateDevices()">
+                    <button class="list-group-item list-group-item-action" data-action="bulk-reactivate-devices">
                         <i class="ti ti-check text-success me-2"></i>
                         <strong>Reactivate All Devices</strong><br>
                         <small class="text-muted">Resume push notifications for selected users</small>
                     </button>
-                    <button class="list-group-item list-group-item-action" onclick="cleanupInactiveDevices()">
+                    <button class="list-group-item list-group-item-action" data-action="cleanup-inactive-devices">
                         <i class="ti ti-trash text-warning me-2"></i>
                         <strong>Cleanup Inactive Devices</strong><br>
                         <small class="text-muted">Remove devices not used in 30+ days</small>
@@ -543,7 +576,13 @@ function bulkDeviceManagement() {
         width: '500px',
         showCancelButton: true,
         showConfirmButton: false,
-        cancelButtonText: 'Close'
+        cancelButtonText: 'Close',
+        didOpen: () => {
+            // Attach event listeners to dynamically created buttons
+            document.querySelector('[data-action="bulk-deactivate-devices"]')?.addEventListener('click', bulkDeactivateDevices);
+            document.querySelector('[data-action="bulk-reactivate-devices"]')?.addEventListener('click', bulkReactivateDevices);
+            document.querySelector('[data-action="cleanup-inactive-devices"]')?.addEventListener('click', cleanupInactiveDevices);
+        }
     });
 }
 

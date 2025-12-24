@@ -4,33 +4,33 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="c-card">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
                     <div>
                         <h4>{{ league.name }} - Auto Schedule Overview</h4>
                         <p class="text-muted mb-0">Season: {{ league.season.name }} ({{ league.season.league_type }})</p>
                     </div>
                     <div>
-                        <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="btn btn-outline-secondary">
+                        <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="c-btn c-btn--outline-secondary">
                             <i class="fas fa-arrow-left"></i> Back to Manager
                         </a>
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     
                     <!-- League Status Overview -->
                     <div class="row mb-4">
                         <div class="col-md-3">
-                            <div class="card text-center border-primary">
-                                <div class="card-body">
+                            <div class="c-card text-center border-primary">
+                                <div class="c-card__body">
                                     <h3 class="text-primary">{{ league.teams|length }}</h3>
                                     <p class="text-muted mb-0">Teams</p>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="card text-center {{ 'border-success' if config else 'border-warning' }}">
-                                <div class="card-body">
+                            <div class="c-card text-center {{ 'border-success' if config else 'border-warning' }}">
+                                <div class="c-card__body">
                                     <h3 class="{{ 'text-success' if config else 'text-warning' }}">
                                         {% if config %}
                                             <i class="fas fa-check"></i>
@@ -43,16 +43,16 @@
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="card text-center {{ 'border-info' if templates_count > 0 else 'border-secondary' }}">
-                                <div class="card-body">
+                            <div class="c-card text-center {{ 'border-info' if templates_count > 0 else 'border-secondary' }}">
+                                <div class="c-card__body">
                                     <h3 class="{{ 'text-info' if templates_count > 0 else 'text-secondary' }}">{{ templates_count }}</h3>
                                     <p class="text-muted mb-0">Draft Templates</p>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="card text-center {{ 'border-danger' if existing_schedule else 'border-success' }}">
-                                <div class="card-body">
+                            <div class="c-card text-center {{ 'border-danger' if existing_schedule else 'border-success' }}">
+                                <div class="c-card__body">
                                     <h3 class="{{ 'text-danger' if existing_schedule else 'text-success' }}">
                                         {% if existing_schedule %}
                                             <i class="fas fa-exclamation-triangle"></i>
@@ -67,7 +67,7 @@
                     </div>
 
                     <!-- Current Status -->
-                    <div class="alert {{ 'alert-danger' if existing_schedule else 'alert-success' }}">
+                    <div class="alert {{ 'alert-danger' if existing_schedule else 'alert-success' }}" data-alert>
                         {% if existing_schedule %}
                             <h5><i class="fas fa-exclamation-triangle"></i> Warning: Existing Schedule Detected</h5>
                             <p class="mb-0">This league already has a manual schedule. Using the auto schedule system will require deleting the existing schedule first.</p>
@@ -78,18 +78,18 @@
                     </div>
 
                     <!-- Teams List -->
-                    <div class="card mb-4">
-                        <div class="card-header">
+                    <div class="c-card mb-4">
+                        <div class="c-card__header">
                             <h5><i class="fas fa-users"></i> Teams ({{ league.teams|length }})</h5>
                         </div>
-                        <div class="card-body">
+                        <div class="c-card__body">
                             {% if league.teams %}
                                 <div class="row">
                                     {% for team in league.teams %}
                                         {% if team.name not in ['FUN WEEK', 'BYE', 'TST'] %}
                                             <div class="col-md-4 mb-2">
-                                                <div class="card">
-                                                    <div class="card-body p-2">
+                                                <div class="c-card">
+                                                    <div class="c-card__body p-2">
                                                         <h6 class="mb-1">{{ team.name }}</h6>
                                                         <small class="text-muted">{{ team.players|length }} players</small>
                                                     </div>
@@ -107,14 +107,14 @@
                                         <div class="row">
                                             {% for team in placeholder_teams %}
                                                 <div class="col-md-3 mb-2">
-                                                    <span class="badge badge-secondary">{{ team.name }}</span>
+                                                    <span class="badge badge-secondary" data-badge>{{ team.name }}</span>
                                                 </div>
                                             {% endfor %}
                                         </div>
                                     </div>
                                 {% endif %}
                             {% else %}
-                                <div class="alert alert-warning">
+                                <div class="alert alert-warning" data-alert>
                                     <i class="fas fa-exclamation-triangle"></i>
                                     No teams found in this league. Create teams before generating a schedule.
                                 </div>
@@ -124,27 +124,27 @@
 
                     <!-- Configuration Status -->
                     {% if config %}
-                        <div class="card mb-4">
-                            <div class="card-header">
+                        <div class="c-card mb-4">
+                            <div class="c-card__header">
                                 <h5><i class="fas fa-cog"></i> Current Configuration</h5>
                             </div>
-                            <div class="card-body">
+                            <div class="c-card__body">
                                 <div class="row">
                                     <div class="col-md-3">
                                         <strong>Start Time:</strong><br>
-                                        <span class="badge badge-info">{{ config.start_time.strftime('%H:%M') }}</span>
+                                        <span class="badge badge-info" data-badge>{{ config.start_time.strftime('%H:%M') }}</span>
                                     </div>
                                     <div class="col-md-3">
                                         <strong>Match Duration:</strong><br>
-                                        <span class="badge badge-info">{{ config.match_duration_minutes }} minutes</span>
+                                        <span class="badge badge-info" data-badge>{{ config.match_duration_minutes }} minutes</span>
                                     </div>
                                     <div class="col-md-3">
                                         <strong>Weeks:</strong><br>
-                                        <span class="badge badge-info">{{ config.weeks_count }} weeks</span>
+                                        <span class="badge badge-info" data-badge>{{ config.weeks_count }} weeks</span>
                                     </div>
                                     <div class="col-md-3">
                                         <strong>Fields:</strong><br>
-                                        <span class="badge badge-info">{{ config.fields }}</span>
+                                        <span class="badge badge-info" data-badge>{{ config.fields }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -157,7 +157,7 @@
                             <div class="d-flex gap-2">
                                 {% if league.teams|length >= 2 %}
                                     <a href="{{ url_for('auto_schedule.auto_schedule_config', league_id=league.id) }}" 
-                                       class="btn btn-success">
+                                       class="c-btn c-btn--success">
                                         <i class="fas fa-calendar-alt"></i> 
                                         {% if config %}Reconfigure & Generate{% else %}Configure & Generate{% endif %}
                                     </a>
@@ -165,13 +165,13 @@
                                 
                                 {% if templates_count > 0 %}
                                     <a href="{{ url_for('auto_schedule.preview_schedule', league_id=league.id) }}" 
-                                       class="btn btn-info">
+                                       class="c-btn c-btn--info">
                                         <i class="fas fa-eye"></i> Preview Schedule ({{ templates_count }} matches)
                                     </a>
                                 {% endif %}
                                 
                                 {% if existing_schedule %}
-                                    <button class="btn btn-warning" onclick="alert('Manual schedule deletion must be done through the regular schedule management interface.')">
+                                    <button class="c-btn c-btn--warning js-show-schedule-conflict-info" data-action="show-schedule-conflict-info">
                                         <i class="fas fa-exclamation-triangle"></i> Existing Schedule Conflict
                                     </button>
                                 {% endif %}
@@ -181,11 +181,11 @@
 
                     <!-- Schedule Generation Preview -->
                     {% if league.teams|length >= 2 %}
-                        <div class="card mt-4">
-                            <div class="card-header">
+                        <div class="c-card mt-4">
+                            <div class="c-card__header">
                                 <h5><i class="fas fa-calculator"></i> Schedule Calculation</h5>
                             </div>
-                            <div class="card-body">
+                            <div class="c-card__body">
                                 {% set real_teams = league.teams|rejectattr('name', 'in', ['FUN WEEK', 'BYE', 'TST'])|list %}
                                 {% set team_count = real_teams|length %}
                                 <div class="row">
@@ -209,4 +209,17 @@
         </div>
     </div>
 </div>
+
+{% block custom_js %}
+{{ super() }}
+<script>
+// Event delegation for schedule conflict info button
+document.addEventListener('click', function(e) {
+    const conflictBtn = e.target.closest('.js-show-schedule-conflict-info');
+    if (conflictBtn) {
+        alert('Manual schedule deletion must be done through the regular schedule management interface.');
+    }
+});
+</script>
+{% endblock %}
 {% endblock %}

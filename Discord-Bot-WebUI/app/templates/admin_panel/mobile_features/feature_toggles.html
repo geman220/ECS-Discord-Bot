@@ -14,7 +14,7 @@
 <!-- Feature Toggle Overview -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="alert alert-info">
+        <div class="alert alert-info" data-alert>
             <div class="d-flex align-items-center">
                 <i class="ti ti-info-circle me-2"></i>
                 <div>
@@ -29,13 +29,13 @@
 <!-- Core Mobile Features -->
 <div class="row mb-4">
     <div class="col-md-6 mb-3">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-device-mobile me-2"></i>Core Mobile Features
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="list-group list-group-flush">
                     <div class="list-group-item border-0 px-0">
                         <div class="d-flex justify-content-between align-items-center">
@@ -94,13 +94,13 @@
     </div>
     
     <div class="col-md-6 mb-3">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-map-pin me-2"></i>Location & Privacy Features
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="list-group list-group-flush">
                     <div class="list-group-item border-0 px-0">
                         <div class="d-flex justify-content-between align-items-center">
@@ -162,14 +162,14 @@
 <!-- Experimental Features -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card border-warning">
-            <div class="card-header bg-warning text-dark">
-                <h5 class="card-title mb-0">
+        <div class="c-card border-warning">
+            <div class="c-card__header bg-warning text-dark">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-flask me-2"></i>Experimental Features
                 </h5>
                 <small>These features are in beta and may not be stable</small>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-4 mb-3">
                         <div class="d-flex justify-content-between align-items-center">
@@ -218,63 +218,63 @@
 <!-- Feature Usage Analytics -->
 <div class="row mb-4">
     <div class="col-md-8 mb-3">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-chart-bar me-2"></i>Feature Usage Analytics
                 </h5>
             </div>
-            <div class="card-body">
-                <div id="featureUsageChart" style="height: 300px;"></div>
+            <div class="c-card__body">
+                <div id="featureUsageChart" class="u-h-300"></div>
             </div>
         </div>
     </div>
     
     <div class="col-md-4 mb-3">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-users me-2"></i>Feature Adoption
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span>Push Notifications</span>
-                        <span class="badge bg-success">91%</span>
+                        <span class="badge bg-success" data-badge>91%</span>
                     </div>
-                    <div class="progress" style="height: 6px;">
-                        <div class="progress-bar bg-success" style="width: 91%"></div>
+                    <div class="progress u-progress-sm">
+                        <div class="progress-bar bg-success" data-width="91"></div>
                     </div>
                 </div>
                 
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span>Wallet Passes</span>
-                        <span class="badge bg-primary">67%</span>
+                        <span class="badge bg-primary" data-badge>67%</span>
                     </div>
-                    <div class="progress" style="height: 6px;">
-                        <div class="progress-bar bg-primary" style="width: 67%"></div>
+                    <div class="progress u-progress-sm">
+                        <div class="progress-bar bg-primary" data-width="67"></div>
                     </div>
                 </div>
                 
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span>Camera Upload</span>
-                        <span class="badge bg-info">45%</span>
+                        <span class="badge bg-info" data-badge>45%</span>
                     </div>
-                    <div class="progress" style="height: 6px;">
-                        <div class="progress-bar bg-info" style="width: 45%"></div>
+                    <div class="progress u-progress-sm">
+                        <div class="progress-bar bg-info" data-width="45"></div>
                     </div>
                 </div>
                 
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span>Biometric Auth</span>
-                        <span class="badge bg-warning">23%</span>
+                        <span class="badge bg-warning" data-badge>23%</span>
                     </div>
-                    <div class="progress" style="height: 6px;">
-                        <div class="progress-bar bg-warning" style="width: 23%"></div>
+                    <div class="progress u-progress-sm">
+                        <div class="progress-bar bg-warning" data-width="23"></div>
                     </div>
                 </div>
             </div>
@@ -285,18 +285,18 @@
 <!-- Feature Rollout Settings -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-settings me-2"></i>Feature Rollout Settings
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label class="form-label">Default Feature State for New Users</label>
-                            <select class="form-select" id="defaultFeatureState">
+                            <select class="form-select" id="defaultFeatureState" data-form-select>
                                 <option value="enabled">Enabled by Default</option>
                                 <option value="disabled" selected>Disabled by Default</option>
                                 <option value="beta">Beta Users Only</option>
@@ -307,7 +307,7 @@
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label class="form-label">Rollout Strategy</label>
-                            <select class="form-select" id="rolloutStrategy">
+                            <select class="form-select" id="rolloutStrategy" data-form-select>
                                 <option value="immediate" selected>Immediate Rollout</option>
                                 <option value="gradual">Gradual Rollout (10% per day)</option>
                                 <option value="staged">Staged Rollout (Beta → Full)</option>
@@ -343,14 +343,14 @@
                 </div>
                 
                 <div class="d-flex justify-content-between">
-                    <button type="button" class="btn btn-outline-danger" onclick="emergencyKillSwitch()">
+                    <button type="button" class="c-btn c-btn--outline-danger" data-action="emergency-kill-switch">
                         <i class="ti ti-alert-triangle me-1"></i>Emergency Kill Switch
                     </button>
                     <div>
-                        <button type="button" class="btn btn-outline-secondary me-2" onclick="exportFeatureConfig()">
+                        <button type="button" class="c-btn c-btn--outline-secondary me-2" data-action="export-feature-config">
                             <i class="ti ti-download me-1"></i>Export Config
                         </button>
-                        <button type="button" class="btn btn-primary" onclick="saveFeatureSettings()">
+                        <button type="button" class="c-btn c-btn--primary" data-action="save-feature-settings">
                             <i class="ti ti-device-floppy me-1"></i>Save Settings
                         </button>
                     </div>
@@ -363,8 +363,30 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+// Attach event listeners to action buttons
+document.addEventListener('DOMContentLoaded', function() {
+    // Apply dynamic widths from data attributes
+    document.querySelectorAll('[data-width]').forEach(el => {
+        el.style.width = el.dataset.width + '%';
+    });
+
+    const actionButtons = {
+        'emergency-kill-switch': emergencyKillSwitch,
+        'export-feature-config': exportFeatureConfig,
+        'save-feature-settings': saveFeatureSettings
+    };
+
+    document.querySelectorAll('[data-action]').forEach(button => {
+        const action = button.dataset.action;
+        if (actionButtons[action]) {
+            button.addEventListener('click', actionButtons[action]);
+        }
+    });
+});
+
 // Feature toggle handling
 document.querySelectorAll('input[data-feature]').forEach(toggle => {
     toggle.addEventListener('change', function() {

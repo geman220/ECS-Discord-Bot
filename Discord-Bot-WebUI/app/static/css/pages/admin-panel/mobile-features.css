@@ -1,0 +1,123 @@
+/**
+ * ============================================================================
+ * MOBILE FEATURES PAGE - BEM COMPONENTS
+ * ============================================================================
+ */
+
+.c-mobile-hub {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.c-mobile-stats {
+  margin-bottom: var(--space-4);
+}
+
+.c-mobile-stats__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+}
+
+.c-mobile-sections {
+  margin-bottom: var(--space-4);
+}
+
+.c-mobile-sections__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+.c-mobile-status {
+  margin-bottom: var(--space-4);
+}
+
+.c-mobile-status__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+}
+
+.c-mobile-status__item {
+  text-align: center;
+  padding: var(--space-3);
+}
+
+.c-mobile-status__value {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  margin-bottom: var(--space-1);
+}
+
+.c-mobile-status__value--success {
+  color: var(--color-success);
+}
+
+.c-mobile-status__value--danger {
+  color: var(--color-danger);
+}
+
+.c-mobile-status__value--info {
+  color: var(--color-info);
+}
+
+.c-mobile-status__value--primary {
+  color: var(--color-primary);
+}
+
+.c-mobile-status__label {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.c-mobile-info {
+  margin-bottom: var(--space-4);
+}
+
+.c-mobile-api__note {
+  margin-top: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 991.98px) {
+  .c-mobile-stats__grid,
+  .c-mobile-status__grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+  }
+
+  .c-mobile-sections__grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+}
+
+@media (max-width: 575.98px) {
+  .c-mobile-stats__grid,
+  .c-mobile-status__grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+}
+
+@media print {
+  .c-mobile-hub {
+    display: block;
+  }
+
+  .c-mobile-stats__grid,
+  .c-mobile-sections__grid,
+  .c-mobile-status__grid {
+    display: block;
+  }
+
+  .c-mobile-stats__grid > *,
+  .c-mobile-sections__grid > *,
+  .c-mobile-status__grid > * {
+    margin-bottom: var(--space-4);
+    page-break-inside: avoid;
+  }
+}

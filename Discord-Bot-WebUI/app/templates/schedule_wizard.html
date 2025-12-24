@@ -1,113 +1,185 @@
 {% extends "base.html" %}
 {% block title %}Schedule Wizard{% endblock %}
 
+{% block custom_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/features/schedule-manager.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/schedule-wizard.css') }}">
+{% endblock %}
+
 {% block main_content %}
-<div class="container mt-3">
-    <h2>Schedule Wizard (Season: {{ season.name }})</h2>
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Page Header -->
+    <div class="c-schedule-wizard__header" data-component="schedule-wizard">
+        <h2 class="c-schedule-wizard__title">Schedule Wizard</h2>
+        <p class="c-schedule-wizard__subtitle">Season: {{ season.name }}</p>
+    </div>
 
     {% if not placeholders %}
     <!-- STEP 1: Generate placeholders -->
-    <form method="POST">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="wizard_step" value="step1">
-        <input type="hidden" name="season_id" value="{{ season.id }}">
+    <div class="c-schedule-wizard__step c-schedule-wizard__step--configuration" data-step="1">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h4 class="c-card__title mb-0">Step 1: Configure Schedule Parameters</h4>
+            </div>
+            <div class="c-card__body">
+                <form method="POST" data-component="schedule-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="wizard_step" value="step1">
+                    <input type="hidden" name="season_id" value="{{ season.id }}">
 
-        <div class="mb-3">
-            <label>Start Date (First Sunday)</label>
-            <input type="date" class="form-control" name="start_date" required>
-        </div>
-        <div class="mb-3">
-            <label>Number of Weeks</label>
-            <input type="number" class="form-control" name="num_weeks" required>
-        </div>
-        <div class="mb-3">
-            <label>Timeslots (comma separated)</label>
-            <input type="text" class="form-control"
-                   name="timeslots"
-                   placeholder="e.g. 09:00 North,09:00 South"
-                   required>
-            <small class="text-muted">Format: "HH:MM FieldName"</small>
-        </div>
+                    <div class="c-form-group">
+                        <label class="c-form-group__label" for="start_date">Start Date (First Sunday)</label>
+                        <input type="date"
+                               class="c-form-group__input"
+                               name="start_date"
+                               id="start_date"
+                               required
+                               data-form-control>
+                    </div>
 
-        <!-- New Checkboxes -->
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" value="1" name="fun_week" id="funWeekCheck">
-            <label class="form-check-label" for="funWeekCheck">
-                Mark entire day as FUN WEEK
-            </label>
-        </div>
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" value="1" name="bye_week" id="byeWeekCheck">
-            <label class="form-check-label" for="byeWeekCheck">
-                Mark entire day as BYE WEEK
-            </label>
-        </div>
+                    <div class="c-form-group">
+                        <label class="c-form-group__label" for="num_weeks">Number of Weeks</label>
+                        <input type="number"
+                               class="c-form-group__input"
+                               name="num_weeks"
+                               id="num_weeks"
+                               required
+                               data-form-control>
+                    </div>
 
-        <button type="submit" class="btn btn-primary">Generate Placeholders</button>
-    </form>
+                    <div class="c-form-group">
+                        <label class="c-form-group__label" for="timeslots">Timeslots (comma separated)</label>
+                        <input type="text"
+                               class="c-form-group__input"
+                               name="timeslots"
+                               id="timeslots"
+                               placeholder="e.g. 09:00 North,09:00 South"
+                               required
+                               data-form-control>
+                        <small class="c-form-group__help">Format: "HH:MM FieldName"</small>
+                    </div>
+
+                    <!-- Week Type Options -->
+                    <div class="c-schedule-wizard__week-options">
+                        <div class="c-checkbox-group">
+                            <input class="c-checkbox-group__input"
+                                   type="checkbox"
+                                   value="1"
+                                   name="fun_week"
+                                   id="funWeekCheck">
+                            <label class="c-checkbox-group__label" for="funWeekCheck">
+                                Mark entire day as FUN WEEK
+                            </label>
+                        </div>
+                        <div class="c-checkbox-group">
+                            <input class="c-checkbox-group__input"
+                                   type="checkbox"
+                                   value="1"
+                                   name="bye_week"
+                                   id="byeWeekCheck">
+                            <label class="c-checkbox-group__label" for="byeWeekCheck">
+                                Mark entire day as BYE WEEK
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="c-schedule-wizard__actions">
+                        <button type="submit"
+                                class="c-btn c-btn--primary"
+                                data-action="generate-placeholders">
+                            <i class="ti ti-calendar-plus me-1"></i>
+                            Generate Placeholders
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     {% else %}
     <!-- STEP 2: Show placeholders + assign teams -->
-    <h4>Generated Placeholders</h4>
-    <p>Please assign Team A and Team B for each row, then click "Create Matches".</p>
+    <div class="c-schedule-wizard__step c-schedule-wizard__step--assignment" data-step="2">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h4 class="c-card__title mb-0">Step 2: Assign Teams to Matches</h4>
+                <p class="c-schedule-wizard__instructions">
+                    Please assign Team A and Team B for each row, then click "Create Matches".
+                </p>
+            </div>
+            <div class="c-card__body">
+                <form method="POST" data-component="team-assignment-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="wizard_step" value="step2">
 
-    <form method="POST">
-        <!-- CSRF, etc. -->
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="wizard_step" value="step2">
+                    <div class="c-schedule-wizard__table-container" data-table-responsive>
+                        <table class="c-schedule-table" data-table data-component="schedule-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Date</th>
+                                    <th scope="col">Time</th>
+                                    <th scope="col">Field</th>
+                                    <th scope="col">Team A</th>
+                                    <th scope="col">Team B</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in placeholders %}
+                                <tr class="c-schedule-table__row" data-match-index="{{ loop.index0 }}">
+                                    <td class="c-schedule-table__cell" data-label="Date">
+                                        {{ row.date }}
+                                        <input type="hidden" name="date_{{ loop.index0 }}" value="{{ row.date }}">
+                                    </td>
+                                    <td class="c-schedule-table__cell" data-label="Time">
+                                        {{ row.time }}
+                                        <input type="hidden" name="time_{{ loop.index0 }}" value="{{ row.time }}">
+                                    </td>
+                                    <td class="c-schedule-table__cell" data-label="Field">
+                                        {{ row.location }}
+                                        <input type="hidden" name="location_{{ loop.index0 }}" value="{{ row.location }}">
+                                    </td>
+                                    <td class="c-schedule-table__cell" data-label="Team A">
+                                        <select name="team_a_{{ loop.index0 }}"
+                                                class="c-schedule-table__select"
+                                                data-form-select>
+                                            <option value="">-- Select --</option>
+                                            {% for league in leagues %}
+                                            {% for t in league.teams %}
+                                            <option value="{{ t.id }}">{{ t.name }}</option>
+                                            {% endfor %}
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td class="c-schedule-table__cell" data-label="Team B">
+                                        <select name="team_b_{{ loop.index0 }}"
+                                                class="c-schedule-table__select"
+                                                data-form-select>
+                                            <option value="">-- Select --</option>
+                                            {% for league in leagues %}
+                                            {% for t in league.teams %}
+                                            <option value="{{ t.id }}">{{ t.name }}</option>
+                                            {% endfor %}
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
 
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Time</th>
-                    <th>Field</th>
-                    <th>Team A</th>
-                    <th>Team B</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in placeholders %}
-                <tr>
-                    <td>
-                        {{ row.date }}
-                        <input type="hidden" name="date_{{ loop.index0 }}" value="{{ row.date }}">
-                    </td>
-                    <td>
-                        {{ row.time }}
-                        <input type="hidden" name="time_{{ loop.index0 }}" value="{{ row.time }}">
-                    </td>
-                    <td>
-                        {{ row.location }}
-                        <input type="hidden" name="location_{{ loop.index0 }}" value="{{ row.location }}">
-                    </td>
-                    <td>
-                        <select name="team_a_{{ loop.index0 }}" class="form-select">
-                            <option value="">-- Select --</option>
-                            {% for league in leagues %}
-                            {% for t in league.teams %}
-                            <option value="{{ t.id }}">{{ t.name }}</option>
-                            {% endfor %}
-                            {% endfor %}
-                        </select>
-                    </td>
-                    <td>
-                        <select name="team_b_{{ loop.index0 }}" class="form-select">
-                            <option value="">-- Select --</option>
-                            {% for league in leagues %}
-                            {% for t in league.teams %}
-                            <option value="{{ t.id }}">{{ t.name }}</option>
-                            {% endfor %}
-                            {% endfor %}
-                        </select>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <button type="submit" class="btn btn-success">Create Matches</button>
-    </form>
+                    <div class="c-schedule-wizard__actions mt-4">
+                        <button type="submit"
+                                class="c-btn c-btn--success"
+                                data-action="create-matches">
+                            <i class="ti ti-check me-1"></i>
+                            Create Matches
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
     {% endif %}
 </div>
 {% endblock %}

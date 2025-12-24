@@ -190,6 +190,8 @@ class LeagueManagementService:
 
         team_count = 0
         match_count = 0
+        matches_played = 0
+        matches_remaining = 0
         team_ids = []
 
         if league_ids:
@@ -198,17 +200,33 @@ class LeagueManagementService:
             team_ids = [t.id for t in teams]
 
         if team_ids:
-            match_count = Match.query.filter(
+            # Get all matches for teams in this season
+            matches = Match.query.filter(
                 or_(
                     Match.home_team_id.in_(team_ids),
                     Match.away_team_id.in_(team_ids)
                 )
-            ).count()
+            ).all()
+            match_count = len(matches)
+
+            # Count played vs remaining matches
+            # A match is "played" if it has scores or is marked completed
+            for match in matches:
+                if match.home_team_score is not None or match.away_team_score is not None:
+                    matches_played += 1
+                else:
+                    matches_remaining += 1
 
         return {
+            # Legacy field names
             'team_count': team_count,
             'match_count': match_count,
             'league_count': len(leagues),
+            # Field names expected by season_detail.html template
+            'total_teams': team_count,
+            'total_matches': match_count,
+            'matches_played': matches_played,
+            'matches_remaining': matches_remaining,
             'leagues': [
                 {
                     'id': l.id,

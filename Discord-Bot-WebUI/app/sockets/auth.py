@@ -4,6 +4,7 @@
 Socket.IO Authentication Handlers
 
 JWT authentication middleware and connection handlers for Socket.IO.
+Includes presence tracking for real-time online status.
 """
 
 import logging
@@ -14,6 +15,7 @@ from flask_socketio import emit
 
 from app.core import socketio
 from app.core.session_manager import managed_session
+from app.sockets.presence import PresenceManager
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +84,21 @@ def authenticate_socket_connection(auth=None):
                     token_source = f"header_{header_name.lower()}"
                     logger.info(f"🔌 [AUTH] Token found in {header_name} header")
                     break
+
+        # 5. Fall back to Flask-Login session authentication (for web users)
+        if not token:
+            try:
+                from flask_login import current_user
+                if current_user and current_user.is_authenticated:
+                    logger.info(f"🔌 [AUTH] Authenticated via Flask-Login session: {current_user.username}")
+                    return {
+                        'authenticated': True,
+                        'user_id': current_user.id,
+                        'username': current_user.username,
+                        'token_source': 'flask_login_session'
+                    }
+            except Exception as e:
+                logger.debug(f"🔌 [AUTH] Flask-Login check failed: {e}")
 
         if not token:
             logger.warning("🔌 [AUTH] No JWT token found in any source")
@@ -196,6 +213,13 @@ def handle_connect(auth):
             # Store in Flask g for request context
             g.socket_user_id = user_id
 
+            # Track user presence in Redis
+            PresenceManager.user_connected(user_id, request.sid)
+
+            # Join personal room for direct messaging
+            from app.sockets.messaging import join_user_room
+            join_user_room(user_id)
+
             # Emit authentication success event
             emit('authentication_success', {
                 'user_id': user_id,
@@ -247,6 +271,12 @@ def handle_disconnect():
     """Handle client disconnection - clean up any tracked resources."""
     sid = request.sid
     logger.info(f"🔌 Client disconnected from Socket.IO (sid: {sid})")
+
+    # Update user presence (mark as disconnected)
+    try:
+        PresenceManager.user_disconnected(sid)
+    except Exception as e:
+        logger.error(f"Error updating presence on disconnect: {e}")
 
     # Clean up any match room tracking for this socket
     try:

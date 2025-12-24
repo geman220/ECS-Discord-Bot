@@ -7,40 +7,53 @@ TODO: Remove this template after new system is verified in production
 
 {% block title %}Sounders Schedule [DEPRECATED]{% endblock %}
 
+{% block custom_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/matches-list.css') }}">
+{% endblock %}
+
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Deprecation Notice -->
-    <div class="alert alert-warning alert-dismissible" role="alert">
-        <h6 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Deprecated Page</h6>
-        <p>This page has been replaced by the new <a href="{{ url_for('admin.match_management') }}" class="alert-link">Match Management</a> interface, which combines thread scheduling and live reporting in one unified view.</p>
+    <div class="c-deprecation-notice" role="alert" data-component="deprecation-notice">
+        <h6 class="c-deprecation-notice__title">
+            <i class="fas fa-exclamation-triangle c-deprecation-notice__icon"></i>
+            Deprecated Page
+        </h6>
+        <p class="c-deprecation-notice__text">
+            This page has been replaced by the new <a href="{{ url_for('admin.match_management') }}" class="c-deprecation-notice__link">Match Management</a> interface, which combines thread scheduling and live reporting in one unified view.
+        </p>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
-    <!-- Manage Upcoming Matches -->
+
+    <!-- Match List -->
     <div class="col-lg-12">
-        <div class="card shadow mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h6 class="m-0 fw-bold">Manage Upcoming Matches</h6>
-                <div class="dropdown">
-                    <button class="btn btn-link dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-ellipsis-v"></i>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
-                        <li>
-                            <a class="dropdown-item" href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#addMatchModal">
-                                <i class="fas fa-plus me-1"></i> Add a Match
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="clearAllMatches()">
-                                <i class="fas fa-trash-alt me-1"></i> Clear Matches
-                            </a>
-                        </li>
-                    </ul>
+        <div class="c-match-list" data-component="match-list">
+            <div class="c-match-list__header">
+                <h6 class="c-match-list__title">Manage Upcoming Matches</h6>
+                <div class="c-match-list__actions">
+                    <div class="dropdown">
+                        <button class="c-btn c-btn--link dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle>
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton" data-dropdown-menu>
+                            <li>
+                                <a class="dropdown-item" href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#addMatchModal">
+                                    <i class="fas fa-plus me-1"></i> Add a Match
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="#" data-action="clear-matches">
+                                    <i class="fas fa-trash-alt me-1"></i> Clear Matches
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
-            <div class="card-body">
-                <table class="table table-hover table-borderless align-middle mobile-card-table">
-                    <thead class="table-light">
+            <div class="c-card__body p-0">
+                <table class="c-match-table" data-component="match-table">
+                    <thead>
                         <tr>
                             <th>Opponent</th>
                             <th>Date</th>
@@ -51,63 +64,57 @@ TODO: Remove this template after new system is verified in production
                     </thead>
                     <tbody>
                         {% for match in matches %}
-                        <tr id="row-{{ match.match_id }}" data-match-id="{{ match.match_id }}">
+                        <tr data-match-id="{{ match.match_id }}" data-component="match-row">
                             <td data-label="Opponent">
-                                <span class="fw-bold" id="opponent-{{ match.id }}">{{ match.opponent }}</span>
+                                <span class="c-match-table__opponent" id="opponent-{{ match.id }}">{{ match.opponent }}</span>
                             </td>
                             <td data-label="Date">
-                                <span id="date-{{ match.id }}">{{ match.formatted_date }}</span>
+                                <span class="c-match-table__date" id="date-{{ match.id }}">{{ match.formatted_date }}</span>
                             </td>
                             <td data-label="Competition">
-                                <span id="competition-{{ match.id }}">{{ inverse_competition_mappings.get(match.competition, match.competition) }}</span>
+                                <span class="c-match-table__competition" id="competition-{{ match.id }}">{{ inverse_competition_mappings.get(match.competition, match.competition) }}</span>
                             </td>
                             <td data-label="Status">
-                                <span id="status-{{ match.id }}" class="badge
-                                    {% if match.live_reporting_status == 'running' %}
-                                        bg-success
-                                    {% elif match.live_reporting_status == 'scheduled' %}
-                                        bg-warning
-                                    {% elif match.live_reporting_status == 'failed' %}
-                                        bg-danger
-                                    {% else %}
-                                        bg-secondary
-                                    {% endif %}">
+                                <span id="status-{{ match.id }}" class="c-live-status c-live-status--{{ match.live_reporting_status }}" data-component="live-status">
+                                    <span class="c-live-status__indicator"></span>
                                     {{ match.live_reporting_status|capitalize }}
                                 </span>
                             </td>
-                            <td class="text-center table-actions" id="actions-{{ match.id }}">
-                                <div class="dropdown d-inline-block me-2">
-                                    <button class="btn btn-link text-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{ match.id }}" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="fas fa-ellipsis-v"></i>
+                            <td class="text-center" id="actions-{{ match.id }}">
+                                <div class="c-match-actions" data-component="match-actions">
+                                    <div class="c-match-actions__dropdown dropdown d-inline-block me-2">
+                                        <button class="c-btn c-btn--link text-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle>
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
+                                            <li>
+                                                <a class="dropdown-item" href="#" data-action="edit-match" data-match-id="{{ match.id }}">
+                                                    <i class="fas fa-edit me-1"></i> Edit
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item text-danger" href="#" data-action="remove-match" data-match-id="{{ match.match_id }}">
+                                                    <i class="fas fa-trash-alt me-1"></i> Delete
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <button class="c-match-actions__button c-match-actions__button--primary" data-action="start-reporting" data-match-id="{{ match.id }}"
+                                            {% if match.live_reporting_status == 'running' %}disabled{% endif %}
+                                            aria-label="Start live reporting for match against {{ match.opponent }}">
+                                        {% if match.live_reporting_status == 'scheduled' %}
+                                        Force Start
+                                        {% elif match.live_reporting_status == 'running' %}
+                                        Running
+                                        {% else %}
+                                        Start
+                                        {% endif %}
                                     </button>
-                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ match.id }}">
-                                        <li>
-                                            <a class="dropdown-item" href="javascript:void(0);" onclick="editRow('{{ match.id }}')">
-                                                <i class="fas fa-edit me-1"></i> Edit
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="removeMatch('{{ match.match_id }}')">
-                                                <i class="fas fa-trash-alt me-1"></i> Delete
-                                            </a>
-                                        </li>
-                                    </ul>
+                                    <button class="c-match-actions__button c-match-actions__button--danger" data-action="stop-reporting" data-match-id="{{ match.id }}"
+                                            {% if match.live_reporting_status !='running' %}disabled{% endif %}>
+                                        Stop
+                                    </button>
                                 </div>
-                                <button class="btn btn-sm btn-primary start-button" onclick="startLiveReporting('{{ match.id }}')"
-                                        {% if match.live_reporting_status == 'running' %}disabled{% endif %}
-                                        aria-label="Start live reporting for match against {{ match.opponent }}">
-                                    {% if match.live_reporting_status == 'scheduled' %}
-                                    Force Start
-                                    {% elif match.live_reporting_status == 'running' %}
-                                    Running
-                                    {% else %}
-                                    Start
-                                    {% endif %}
-                                </button>
-                                <button class="btn btn-sm btn-danger stop-button" onclick="stopLiveReporting('{{ match.id }}')"
-                                        {% if match.live_reporting_status !='running' %}disabled{% endif %}>
-                                    Stop
-                                </button>
                             </td>
                         </tr>
                         {% endfor %}
@@ -119,435 +126,36 @@ TODO: Remove this template after new system is verified in production
 </div>
 
 <!-- Add Match Modal -->
-<div class="modal fade" id="addMatchModal" tabindex="-1" aria-labelledby="addMatchModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addMatchModalLabel">Add New Match</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal c-modal fade" data-modal id="addMatchModal" tabindex="-1" aria-labelledby="addMatchModalLabel" aria-hidden="true">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="addMatchModalLabel">Add New Match</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <form method="POST" action="{{ url_for('bot_admin.add_mls_match') }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-3">
                         <label for="date" class="form-label">Date:</label>
-                        <input type="text" id="date" name="date" class="form-control flatpickr" placeholder="Select Date">
+                        <input type="text" id="date" name="date" class="form-control flatpickr" placeholder="Select Date" data-form-control>
                     </div>
                     <div class="mb-3">
                         <label for="competition" class="form-label">Competition:</label>
-                        <select id="competition" name="competition" class="form-select">
+                        <select id="competition" name="competition" class="form-select" data-form-select>
                             {% for name, value in competition_mappings.items() %}
                             <option value="{{ name }}">{{ name }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-success w-100">Add Match</button>
+                    <button type="submit" class="c-btn c-btn--success w-100">Add Match</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
+
 {% block custom_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        flatpickr('.flatpickr', {
-            enableTime: true,
-            dateFormat: "Y-m-d H:i",
-            time_24hr: true
-        });
-    });
-</script>
-<script>
-    const competitionMappings = {
-        "MLS": "usa.1",
-        "US Open Cup": "usa.open",
-        "FIFA Club World Cup": "fifa.cwc",
-        "Concacaf": "concacaf.league",
-        "Concacaf Champions League": "concacaf.champions",
-    };
-
-    const inverseCompetitionMappings = Object.fromEntries(
-        Object.entries(competitionMappings).map(([key, value]) => [value, key])
-    );
-
-    function editRow(matchId) {
-        const row = document.querySelector(`tr[data-match-id="${matchId}"]`);
-        if (!row) {
-            console.error(`Row with match ID ${matchId} not found`);
-            return;
-        }
-        const dateCell = row.querySelector('td:nth-child(2)');
-        const competitionCell = row.querySelector('td:nth-child(3)');
-
-        // Save current values for cancellation
-        dateCell.setAttribute('data-original-value', dateCell.textContent);
-        competitionCell.setAttribute('data-original-value', competitionCell.textContent);
-
-        // Replace date text with input field using Flatpickr
-        dateCell.innerHTML = `<input type="text" id="edit-date-${matchId}" class="form-control flatpickr" value="${dateCell.textContent.trim()}">`;
-        flatpickr(`#edit-date-${matchId}`, {
-            enableTime: true,
-            dateFormat: "Y-m-d H:i",
-            time_24hr: true
-        });
-
-        // Create a dropdown for competition
-        let selectHtml = `<select class="form-select" id="edit-competition-${matchId}">`;
-        for (const [friendlyName, actualValue] of Object.entries(competitionMappings)) {
-            const selected = competitionCell.textContent.trim() === friendlyName ? 'selected' : '';
-            selectHtml += `<option value="${friendlyName}" ${selected}>${friendlyName}</option>`;
-        }
-        selectHtml += '</select>';
-
-        // Replace competition cell with dropdown
-        competitionCell.innerHTML = selectHtml;
-
-        // Set save and cancel buttons visibility
-        const actionsCell = row.querySelector('td:last-child');
-        actionsCell.innerHTML = `
-    <button type="button" class="btn btn-sm btn-success" onclick="saveRow('${matchId}')"><i class="fas fa-save"></i> Save</button>
-    <button type="button" class="btn btn-sm btn-secondary" onclick="cancelEdit('${matchId}')"><i class="fas fa-times"></i> Cancel</button>
-    `;
-    }
-
-    function saveRow(matchId) {
-        const row = document.querySelector(`tr[data-match-id="${matchId}"]`);
-        const dateValue = document.getElementById(`edit-date-${matchId}`).value.trim();
-        const competitionValue = document.getElementById(`edit-competition-${matchId}`).value.trim();
-        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-
-        if (!dateValue || !competitionValue) {
-            alert('Date and Competition fields cannot be empty.');
-            return;
-        }
-
-        const url = `/bot/admin/update_match/${matchId}`;
-
-        fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-            },
-            body: JSON.stringify({
-                date: dateValue,
-                competition: competitionValue
-            })
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Update the date cell with the new value and format it
-                    const newFormattedDate = formatDate(dateValue);
-                    row.querySelector('td:nth-child(2)').textContent = newFormattedDate;
-
-                    // Update the competition cell with the new competition
-                    const newCompetitionText = inverseCompetitionMappings[competitionValue] || competitionValue;
-                    row.querySelector('td:nth-child(3)').textContent = newCompetitionText;
-
-                    resetActionButtons(matchId);
-                } else {
-                    alert('Failed to save changes.');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-    }
-
-    // Helper function to format the date string
-    function formatDate(dateString) {
-        const dateObj = new Date(dateString);
-        // Adjust the date by adding 25 hours
-        dateObj.setHours(dateObj.getHours() + 25);
-        const options = {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-        };
-        return dateObj.toLocaleString('en-US', options).replace(',', '');
-    }
-
-    function cancelEdit(matchId) {
-        const row = document.querySelector(`tr[data-match-id="${matchId}"]`);
-        const dateCell = row.querySelector('td:nth-child(2)');
-        const competitionCell = row.querySelector('td:nth-child(3)');
-        // Revert to original values
-        dateCell.textContent = dateCell.getAttribute('data-original-value');
-        competitionCell.textContent = competitionCell.getAttribute('data-original-value');
-        // Restore actions to default
-        resetActionButtons(matchId);
-    }
-
-    function resetActionButtons(matchId) {
-        const row = document.querySelector(`tr[data-match-id="${matchId}"]`);
-        if (!row) {
-            console.error(`Row with match ID ${matchId} not found`);
-            return;
-        }
-        const actionsCell = row.querySelector('td:last-child');
-        const statusElement = row.querySelector('td:nth-child(4) span');
-        if (!statusElement) {
-            console.error(`Status element for match ID ${matchId} not found`);
-            return;
-        }
-        const currentStatus = statusElement.textContent.toLowerCase().trim();
-
-        actionsCell.innerHTML = `
-        <div class="dropdown d-inline-block me-2">
-            <button class="btn btn-link text-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fas fa-ellipsis-v"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li>
-                    <a class="dropdown-item" href="javascript:void(0);" onclick="editRow('${matchId}')">
-                        <i class="fas fa-edit me-1"></i> Edit
-                    </a>
-                </li>
-                <li>
-                    <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="removeMatch('${matchId}')">
-                        <i class="fas fa-trash-alt me-1"></i> Delete
-                    </a>
-                </li>
-            </ul>
-        </div>
-        <button class="btn btn-sm btn-primary start-button" onclick="startLiveReporting('${matchId}')"
-                ${currentStatus === 'running' ? 'disabled' : ''}>
-            ${currentStatus === 'scheduled' ? 'Force Start' : currentStatus === 'running' ? 'Running' : 'Start'}
-        </button>
-        <button class="btn btn-sm btn-danger stop-button" onclick="stopLiveReporting('${matchId}')"
-                ${currentStatus !== 'running' ? 'disabled' : ''}>
-            Stop
-        </button>
-    `;
-    }
-
-    function removeMatch(matchId) {
-        // If match_id is actually a string in your DB, remove parseInt conversion.
-        // Otherwise, if it's numeric, you can leave as is.
-        const id = matchId; // Assuming matchId is a string like "726810"
-
-        // Use SweetAlert2 for confirmation
-        Swal.fire({
-            title: 'Are you sure?',
-            text: "This action cannot be undone.",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, delete it!',
-            cancelButtonText: 'Cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-                fetch(`/bot/admin/matches/remove/${id}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                    }
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            const row = document.querySelector(`tr[data-match-id="${id}"]`);
-                            if (row) {
-                                row.remove();
-                            }
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Deleted!',
-                                text: data.message
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Deletion Failed',
-                                text: data.message || 'Failed to remove the match.'
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'An error occurred while removing the match.'
-                        });
-                    });
-            }
-        });
-    }
-
-    function clearAllMatches() {
-        Swal.fire({
-            title: 'Are you sure?',
-            text: "This action cannot be undone.",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, clear all!',
-            cancelButtonText: 'Cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-                fetch('{{ url_for("bot_admin.clear_all_mls_matches") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                    }
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Cleared!',
-                                text: 'All matches have been cleared.'
-                            }).then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Failed',
-                                text: 'Failed to clear matches.'
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'An error occurred while clearing matches.'
-                        });
-                    });
-            }
-        });
-    }
-
-    function startLiveReporting(matchId) {
-        const id = matchId; // Here you can decide if you need to convert as above
-        const startButton = document.querySelector(`button.start-button[onclick="startLiveReporting('${matchId}')"]`);
-        const stopButton = document.querySelector(`button.stop-button[onclick="stopLiveReporting('${matchId}')"]`);
-
-        startButton.disabled = true;
-        fetch(`/bot/admin/start_live_reporting/${id}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
-            }
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    updateMatchStatus(matchId, 'running');
-                    console.log(`Live reporting started. Task ID: ${data.task_id}`);
-                } else {
-                    startButton.disabled = false;
-                    console.error(`Failed to start: ${data.message}`);
-                    alert(data.message);
-                }
-            })
-            .catch(error => {
-                startButton.disabled = false;
-                console.error('Error:', error);
-                alert('Failed to start live reporting. Please try again.');
-            });
-    }
-
-    function stopLiveReporting(matchId) {
-        const id = matchId;
-        const stopButton = document.querySelector(`button.stop-button[onclick="stopLiveReporting('${matchId}')"]`);
-        stopButton.disabled = true;
-        fetch(`/bot/admin/stop_live_reporting/${id}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
-            }
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    updateMatchStatus(matchId, 'stopped');
-                } else {
-                    stopButton.disabled = false;
-                    alert(data.message);
-                }
-            })
-            .catch(error => {
-                stopButton.disabled = false;
-                console.error('Error:', error);
-                alert('Failed to stop live reporting. Please try again.');
-            });
-    }
-
-    function updateMatchStatus(matchId, status) {
-        const statusSpan = document.getElementById(`status-${matchId}`);
-        const startButton = document.querySelector(`button.start-button[onclick="startLiveReporting('${matchId}')"]`);
-        const stopButton = document.querySelector(`button.stop-button[onclick="stopLiveReporting('${matchId}')"]`);
-
-        if (statusSpan && startButton && stopButton) {
-            statusSpan.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-            statusSpan.className = `badge bg-${getStatusColor(status)}`;
-            if (status === 'running') {
-                startButton.textContent = 'Running';
-                startButton.disabled = true;
-                stopButton.disabled = false;
-            } else if (status === 'scheduled') {
-                startButton.textContent = 'Force Start';
-                startButton.disabled = false;
-                stopButton.disabled = true;
-            } else {
-                startButton.textContent = 'Start';
-                startButton.disabled = false;
-                stopButton.disabled = true;
-            }
-        } else {
-            console.warn(`Elements not found for match ID: ${matchId}`);
-        }
-    }
-
-    function getStatusColor(status) {
-        switch (status) {
-            case 'running':
-                return 'success';
-            case 'scheduled':
-                return 'warning';
-            case 'failed':
-                return 'danger';
-            default:
-                return 'secondary';
-        }
-    }
-
-    function updateAllMatchStatuses() {
-        fetch('/bot/admin/get_all_match_statuses')
-            .then(response => response.json())
-            .then(data => {
-                Object.entries(data).forEach(([matchId, matchData]) => {
-                    updateMatchStatus(matchId, matchData.status);
-                });
-            })
-            .catch(error => console.error('Error updating statuses:', error));
-    }
-
-    setInterval(updateAllMatchStatuses, 30000);
-    document.addEventListener('DOMContentLoaded', updateAllMatchStatuses);
-</script>
+<script src="{{ url_for('static', filename='custom_js/matches-management.js') }}"></script>
 {% endblock %}

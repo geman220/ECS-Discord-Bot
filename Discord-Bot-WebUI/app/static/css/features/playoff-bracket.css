@@ -1,0 +1,870 @@
+/**
+ * ============================================================================
+ * PLAYOFF BRACKET STYLES
+ * ============================================================================
+ *
+ * Complete styling for the playoff bracket visualization system.
+ * Supports group stage matches, standings, and placement finals.
+ *
+ * Features:
+ *   - Responsive design (desktop, tablet, mobile)
+ *   - Full dark mode support with [data-style="dark"]
+ *   - Design token based (colors, spacing, shadows, borders)
+ *   - Loading states and skeleton screens
+ *   - Interactive hover states and transitions
+ *   - Print-friendly styles
+ *
+ * Dependencies:
+ *   - core/variables.css (design tokens)
+ *   - Bootstrap 5.x (grid, utilities)
+ *   - Tabler Icons (icons)
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   CONTAINER & LAYOUT
+   ============================================================================ */
+
+.playoff-bracket-container {
+    margin: var(--space-4) 0;
+    isolation: isolate; /* Prevent style leakage */
+}
+
+/* ============================================================================
+   LOADING & ERROR STATES
+   ============================================================================ */
+
+.playoff-bracket-container .bracket-loading {
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+}
+
+.playoff-bracket-container .bracket-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-warning-subtle);
+    border: var(--border-width) solid var(--color-warning-300);
+    color: var(--color-warning-900);
+}
+
+[data-style="dark"] .playoff-bracket-container .bracket-error {
+    background-color: var(--color-warning-subtle);
+    border-color: var(--color-warning-600);
+    color: var(--color-warning-200);
+}
+
+/* ============================================================================
+   HEADER
+   ============================================================================ */
+
+.playoff-bracket-container .bracket-header {
+    text-align: center;
+    margin-bottom: var(--space-6);
+}
+
+.playoff-bracket-container .bracket-header h3 {
+    margin-bottom: var(--space-2);
+    color: var(--color-text-primary);
+    font-weight: var(--font-bold);
+}
+
+.playoff-bracket-container .bracket-header .badge {
+    font-size: var(--text-sm);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+}
+
+/* ============================================================================
+   GROUP CARDS
+   ============================================================================ */
+
+.playoff-bracket-container .group-matches {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.playoff-bracket-container .round-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+/* Round labels */
+.playoff-bracket-container .round-label {
+    text-align: center;
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    color: var(--color-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--space-2);
+    padding: var(--space-2);
+    background-color: var(--color-primary-subtle);
+    border-radius: var(--radius-md);
+}
+
+[data-style="dark"] .playoff-bracket-container .round-label {
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary-300);
+}
+
+/* ============================================================================
+   MATCH CARDS
+   ============================================================================ */
+
+.playoff-bracket-container .bracket-match-card {
+    position: relative;
+    padding: var(--space-4);
+    border: 2px solid var(--border-color-primary);
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-card);
+    transition: var(--transition-all);
+    cursor: pointer;
+    color: var(--color-text-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+[data-style="dark"] .playoff-bracket-container .bracket-match-card {
+    background: var(--color-neutral-100);
+    border-color: var(--color-neutral-200);
+    color: var(--color-neutral-900);
+}
+
+.playoff-bracket-container .bracket-match-card:hover {
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+[data-style="dark"] .playoff-bracket-container .bracket-match-card:hover {
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+/* Match card states */
+.playoff-bracket-container .bracket-match-card.reported {
+    border-color: var(--color-success);
+    background-color: var(--color-success-subtle);
+}
+
+[data-style="dark"] .playoff-bracket-container .bracket-match-card.reported {
+    background-color: var(--color-success-subtle);
+    border-color: var(--color-success-600);
+}
+
+.playoff-bracket-container .bracket-match-card.current-team {
+    border-color: var(--color-warning);
+    background-color: var(--color-warning-subtle);
+    border-width: 3px;
+}
+
+[data-style="dark"] .playoff-bracket-container .bracket-match-card.current-team {
+    background-color: var(--color-warning-subtle);
+    border-color: var(--color-warning);
+}
+
+/* Match teams section */
+.playoff-bracket-container .bracket-match-card .match-teams {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+}
+
+.playoff-bracket-container .bracket-match-card .team {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    background-color: var(--color-neutral-50);
+    transition: var(--transition-all);
+}
+
+[data-style="dark"] .playoff-bracket-container .bracket-match-card .team {
+    background-color: var(--color-neutral-50);
+}
+
+.playoff-bracket-container .bracket-match-card .team.winner {
+    background-color: var(--color-success-subtle);
+    font-weight: var(--font-semibold);
+    border: var(--border-width) solid var(--color-success-300);
+}
+
+[data-style="dark"] .playoff-bracket-container .bracket-match-card .team.winner {
+    background-color: var(--color-success-subtle);
+    border-color: var(--color-success-600);
+    color: var(--color-success-300);
+}
+
+.playoff-bracket-container .bracket-match-card .team-name {
+    font-size: var(--text-base);
+    flex: 1;
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .playoff-bracket-container .bracket-match-card .team-name {
+    color: var(--color-neutral-900);
+}
+
+.playoff-bracket-container .bracket-match-card .team-score {
+    font-size: var(--text-xl);
+    font-weight: var(--font-bold);
+    min-width: 40px;
+    text-align: right;
+    color: var(--color-primary);
+}
+
+[data-style="dark"] .playoff-bracket-container .bracket-match-card .team-score {
+    color: var(--color-primary-400);
+}
+
+.playoff-bracket-container .bracket-match-card .match-divider {
+    text-align: center;
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    margin: var(--space-1) 0;
+    font-weight: var(--font-medium);
+}
+
+/* Match info section */
+.playoff-bracket-container .bracket-match-card .match-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-3);
+    gap: var(--space-2);
+}
+
+.playoff-bracket-container .bracket-match-card .match-info span {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.playoff-bracket-container .bracket-match-card .match-info i {
+    font-size: var(--text-base);
+    color: var(--color-text-muted);
+}
+
+[data-style="dark"] .playoff-bracket-container .bracket-match-card .match-info {
+    color: var(--color-neutral-700);
+}
+
+[data-style="dark"] .playoff-bracket-container .bracket-match-card .match-info i {
+    color: var(--color-neutral-600);
+}
+
+/* Match report button */
+.playoff-bracket-container .bracket-match-card .match-report-btn {
+    width: 100%;
+    margin-top: var(--space-2);
+    font-weight: var(--font-medium);
+    transition: var(--transition-all);
+}
+
+.playoff-bracket-container .bracket-match-card .match-report-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Status badge */
+.playoff-bracket-container .match-status-badge {
+    position: absolute;
+    top: var(--space-2);
+    right: var(--space-2);
+    font-size: var(--text-xs);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+}
+
+/* ============================================================================
+   GROUP STANDINGS
+   ============================================================================ */
+
+.playoff-bracket-container .group-standings {
+    padding-top: var(--space-4);
+    border-top: 2px solid var(--border-color-primary);
+    margin-top: var(--space-4);
+}
+
+[data-style="dark"] .playoff-bracket-container .group-standings {
+    border-top-color: var(--color-neutral-200);
+}
+
+.playoff-bracket-container .group-standings h6 {
+    color: var(--color-text-secondary);
+    font-weight: var(--font-semibold);
+    margin-bottom: var(--space-3);
+}
+
+.playoff-bracket-container .standings-table {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.playoff-bracket-container .standings-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    border: var(--border-width) solid var(--border-color-primary);
+    transition: var(--transition-all);
+    background-color: var(--color-bg-card);
+}
+
+[data-style="dark"] .playoff-bracket-container .standings-row {
+    border-color: var(--color-neutral-200);
+    background-color: var(--color-neutral-100);
+}
+
+.playoff-bracket-container .standings-row:hover {
+    background-color: var(--color-neutral-50);
+    border-color: var(--color-primary-300);
+    transform: translateX(4px);
+}
+
+[data-style="dark"] .playoff-bracket-container .standings-row:hover {
+    background-color: var(--color-neutral-50);
+}
+
+.playoff-bracket-container .standings-row.current-team {
+    background-color: var(--color-warning-subtle);
+    border-color: var(--color-warning);
+    font-weight: var(--font-semibold);
+}
+
+[data-style="dark"] .playoff-bracket-container .standings-row.current-team {
+    background-color: var(--color-warning-subtle);
+    border-color: var(--color-warning);
+}
+
+/* Position badge */
+.playoff-bracket-container .standings-row .position {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-primary);
+    color: var(--color-neutral-0);
+    border-radius: var(--radius-full);
+    font-weight: var(--font-bold);
+    font-size: var(--text-base);
+    flex-shrink: 0;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Medal colors for top 3 positions - Using design tokens with custom medal colors */
+.playoff-bracket-container .standings-row.position-1 .position {
+    /* Gold gradient using warm accent colors */
+    background: linear-gradient(135deg, var(--color-accent-300) 0%, var(--color-accent-600) 100%);
+    color: var(--color-neutral-900);
+}
+
+.playoff-bracket-container .standings-row.position-2 .position {
+    /* Silver gradient using neutral colors */
+    background: linear-gradient(135deg, var(--color-neutral-200) 0%, var(--color-neutral-400) 100%);
+    color: var(--color-neutral-900);
+}
+
+[data-style="dark"] .playoff-bracket-container .standings-row.position-2 .position {
+    background: linear-gradient(135deg, var(--color-neutral-700) 0%, var(--color-neutral-500) 100%);
+    color: var(--color-neutral-900);
+}
+
+.playoff-bracket-container .standings-row.position-3 .position {
+    /* Bronze gradient using warm secondary colors */
+    background: linear-gradient(135deg, #CD7F32 0%, #8B4513 100%);
+    color: var(--color-neutral-0);
+}
+
+.playoff-bracket-container .standings-row .team-name {
+    flex: 1;
+    margin-left: var(--space-3);
+    font-size: var(--text-base);
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .playoff-bracket-container .standings-row .team-name {
+    color: var(--color-neutral-900);
+}
+
+.playoff-bracket-container .standings-row .stats {
+    display: flex;
+    gap: var(--space-4);
+    font-size: var(--text-sm);
+}
+
+.playoff-bracket-container .standings-row .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 40px;
+}
+
+.playoff-bracket-container .standings-row .stat-label {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    font-weight: var(--font-medium);
+    letter-spacing: 0.05em;
+}
+
+[data-style="dark"] .playoff-bracket-container .standings-row .stat-label {
+    color: var(--color-neutral-600);
+}
+
+.playoff-bracket-container .standings-row .stat-value {
+    font-weight: var(--font-bold);
+    color: var(--color-text-primary);
+    font-size: var(--text-base);
+}
+
+[data-style="dark"] .playoff-bracket-container .standings-row .stat-value {
+    color: var(--color-neutral-900);
+}
+
+/* ============================================================================
+   PLACEMENT FINALS
+   ============================================================================ */
+
+.playoff-bracket-container .placement-finals {
+    margin-top: var(--space-8);
+}
+
+.playoff-bracket-container .placement-match {
+    padding: var(--space-4);
+    border: 2px solid var(--border-color-primary);
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-card);
+    height: 100%;
+    transition: var(--transition-all);
+    box-shadow: var(--shadow-sm);
+}
+
+[data-style="dark"] .playoff-bracket-container .placement-match {
+    background: var(--color-neutral-100);
+    border-color: var(--color-neutral-200);
+}
+
+.playoff-bracket-container .placement-match:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.playoff-bracket-container .placement-match.championship-match {
+    border-color: var(--color-warning);
+    background-color: var(--color-warning-subtle);
+    border-width: 3px;
+}
+
+[data-style="dark"] .playoff-bracket-container .placement-match.championship-match {
+    background-color: var(--color-warning-subtle);
+    border-color: var(--color-warning);
+}
+
+.playoff-bracket-container .placement-match .placement-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+    padding-bottom: var(--space-3);
+    border-bottom: 2px solid var(--border-color-primary);
+}
+
+[data-style="dark"] .playoff-bracket-container .placement-match .placement-label {
+    border-bottom-color: var(--color-neutral-200);
+}
+
+.playoff-bracket-container .placement-match .placement-label i {
+    font-size: var(--text-xl);
+}
+
+.playoff-bracket-container .placement-match .placement-label strong {
+    flex: 1;
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .playoff-bracket-container .placement-match .placement-label strong {
+    color: var(--color-neutral-900);
+}
+
+.playoff-bracket-container .placement-match .placement-label .small {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+}
+
+.playoff-bracket-container .placement-match .match-detail {
+    min-height: 160px;
+}
+
+/* TBD message styling */
+.playoff-bracket-container .placement-match .tbd-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 160px;
+    color: var(--color-text-muted);
+    font-style: italic;
+    text-align: center;
+}
+
+.playoff-bracket-container .placement-match .tbd-message .tbd-icon {
+    font-size: 3rem;
+    opacity: 0.5;
+}
+
+[data-style="dark"] .playoff-bracket-container .placement-match .tbd-message {
+    color: var(--color-neutral-600);
+}
+
+/* ============================================================================
+   ANIMATIONS
+   ============================================================================ */
+
+/* Highlight animation for updates */
+@keyframes highlight-update {
+    0% {
+        background-color: var(--color-warning-subtle);
+        transform: scale(1.02);
+    }
+    100% {
+        background-color: transparent;
+        transform: scale(1);
+    }
+}
+
+.playoff-bracket-container .bracket-match-card.just-updated,
+.playoff-bracket-container .standings-row.just-updated {
+    animation: highlight-update var(--duration-slow) var(--ease-smooth);
+}
+
+/* Loading skeleton animation */
+.playoff-bracket-container .bracket-match-skeleton {
+    height: 180px;
+    background: linear-gradient(
+        90deg,
+        var(--color-neutral-50) 25%,
+        var(--color-neutral-100) 50%,
+        var(--color-neutral-50) 75%
+    );
+    background-size: 200% 100%;
+    animation: loading var(--duration-slow) var(--ease-smooth) infinite;
+    border-radius: var(--radius-lg);
+}
+
+[data-style="dark"] .playoff-bracket-container .bracket-match-skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--color-neutral-50) 25%,
+        var(--color-neutral-100) 50%,
+        var(--color-neutral-50) 75%
+    );
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Pulse animation for live updates */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.playoff-bracket-container .bracket-loading .spinner-border {
+    animation: pulse var(--duration-slow) var(--ease-smooth) infinite;
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================ */
+
+/* Large tablets and small desktops */
+@media (max-width: 991.98px) {
+    .playoff-bracket-container .bracket-match-card {
+        padding: var(--space-3);
+    }
+
+    .playoff-bracket-container .bracket-match-card .team-name {
+        font-size: var(--text-sm);
+    }
+
+    .playoff-bracket-container .bracket-match-card .team-score {
+        font-size: var(--text-lg);
+        min-width: 36px;
+    }
+
+    .playoff-bracket-container .standings-row .stats {
+        gap: var(--space-2);
+    }
+
+    .playoff-bracket-container .standings-row .stat {
+        min-width: 36px;
+    }
+
+    .playoff-bracket-container .placement-finals .row {
+        gap: var(--space-3);
+    }
+
+    .playoff-bracket-container .placement-match .placement-label strong {
+        font-size: var(--text-base);
+    }
+}
+
+/* Mobile devices */
+@media (max-width: 767.98px) {
+    .playoff-bracket-container {
+        margin: var(--space-3) 0;
+    }
+
+    .playoff-bracket-container .bracket-header {
+        margin-bottom: var(--space-4);
+    }
+
+    .playoff-bracket-container .bracket-header h3 {
+        font-size: var(--text-xl);
+    }
+
+    .playoff-bracket-container .bracket-match-card {
+        padding: var(--space-3);
+    }
+
+    .playoff-bracket-container .bracket-match-card .match-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-1);
+    }
+
+    .playoff-bracket-container .bracket-match-card .match-info span {
+        font-size: var(--text-xs);
+    }
+
+    .playoff-bracket-container .standings-row {
+        padding: var(--space-2);
+    }
+
+    .playoff-bracket-container .standings-row .stats {
+        flex-direction: column;
+        gap: var(--space-1);
+        align-items: flex-end;
+    }
+
+    .playoff-bracket-container .standings-row .stat {
+        flex-direction: row;
+        gap: var(--space-2);
+        min-width: auto;
+    }
+
+    .playoff-bracket-container .standings-row .position {
+        width: 32px;
+        height: 32px;
+        font-size: var(--text-sm);
+    }
+
+    .playoff-bracket-container .standings-row .team-name {
+        font-size: var(--text-sm);
+        margin-left: var(--space-2);
+    }
+
+    .playoff-bracket-container .placement-match {
+        padding: var(--space-3);
+    }
+
+    .playoff-bracket-container .placement-match .placement-label {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-1);
+    }
+
+    .playoff-bracket-container .placement-match .placement-label strong {
+        font-size: var(--text-base);
+    }
+
+    .playoff-bracket-container .placement-match .placement-label .small {
+        font-size: var(--text-xs);
+    }
+
+    .playoff-bracket-container .placement-match .match-detail,
+    .playoff-bracket-container .placement-match .tbd-message {
+        min-height: 140px;
+    }
+
+    .playoff-bracket-container .placement-match .tbd-message .tbd-icon {
+        font-size: 2rem;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 575.98px) {
+    .playoff-bracket-container .bracket-match-card .team {
+        padding: var(--space-2);
+    }
+
+    .playoff-bracket-container .bracket-match-card .team-name {
+        font-size: var(--text-xs);
+    }
+
+    .playoff-bracket-container .bracket-match-card .team-score {
+        font-size: var(--text-base);
+        min-width: 32px;
+    }
+
+    .playoff-bracket-container .round-label {
+        font-size: var(--text-xs);
+        padding: var(--space-1) var(--space-2);
+    }
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+@media print {
+    /**
+     * JUSTIFIED !important declarations for print media
+     *
+     * Rationale: Print styles must override all interactive and visual effects
+     * to ensure clean, readable printouts. These !important declarations are
+     * necessary because:
+     * 1. Print styles need to override runtime JavaScript-added inline styles
+     * 2. Must ensure no interactive elements appear in printed documents
+     * 3. Must remove all shadows/transforms for clean printing
+     * 4. Cannot be achieved through specificity alone due to inline styles
+     */
+
+    .playoff-bracket-container .bracket-match-card .match-report-btn,
+    .playoff-bracket-container .bracket-loading,
+    .playoff-bracket-container .bracket-error {
+        /* Hide interactive elements in print - prevents user confusion */
+        display: none !important;
+    }
+
+    .playoff-bracket-container .bracket-match-card {
+        page-break-inside: avoid;
+        border-color: var(--color-neutral-900);
+        /* Remove shadows for clean print output */
+        box-shadow: none !important;
+    }
+
+    .playoff-bracket-container .bracket-match-card:hover {
+        /* Disable hover transforms in print */
+        transform: none !important;
+    }
+
+    .playoff-bracket-container {
+        margin: 0;
+    }
+
+    .playoff-bracket-container .standings-row {
+        border-color: var(--color-neutral-900);
+        /* Remove shadows for clean print output */
+        box-shadow: none !important;
+    }
+
+    .playoff-bracket-container .placement-match {
+        border-color: var(--color-neutral-900);
+        /* Remove shadows for clean print output */
+        box-shadow: none !important;
+    }
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+/* Focus visible states for keyboard navigation */
+.playoff-bracket-container .bracket-match-card:focus-visible,
+.playoff-bracket-container .standings-row:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+    /**
+     * JUSTIFIED !important declarations for accessibility
+     *
+     * Rationale: These !important declarations are critical for accessibility:
+     * 1. Must respect user's prefers-reduced-motion system preference
+     * 2. Required to override all animations/transitions throughout the cascade
+     * 3. Protects users with vestibular disorders from motion-triggered symptoms
+     * 4. Cannot be reliably achieved without !important due to specificity wars
+     *    with component-level animations
+     */
+
+    .playoff-bracket-container .bracket-match-card,
+    .playoff-bracket-container .standings-row,
+    .playoff-bracket-container .placement-match,
+    .playoff-bracket-container .bracket-match-card.just-updated,
+    .playoff-bracket-container .standings-row.just-updated,
+    .playoff-bracket-container .bracket-match-skeleton {
+        /* Disable all animations for users sensitive to motion */
+        animation: none !important;
+        /* Disable all transitions for users sensitive to motion */
+        transition: none !important;
+    }
+
+    .playoff-bracket-container .bracket-match-card:hover,
+    .playoff-bracket-container .standings-row:hover {
+        /* Disable transform effects for users sensitive to motion */
+        transform: none !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+    .playoff-bracket-container .bracket-match-card,
+    .playoff-bracket-container .standings-row,
+    .playoff-bracket-container .placement-match {
+        border-width: 3px;
+    }
+
+    .playoff-bracket-container .bracket-match-card .team,
+    .playoff-bracket-container .standings-row .position {
+        border: 2px solid currentColor;
+    }
+}
+
+/* ============================================================================
+   UTILITY CLASSES
+   ============================================================================ */
+
+/* Scoped utility class with proper specificity - no !important needed */
+.playoff-bracket-container .bracket-hidden {
+    display: none;
+}
+
+.playoff-bracket-container .bracket-loading-inline {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: loading 0.75s linear infinite;
+}

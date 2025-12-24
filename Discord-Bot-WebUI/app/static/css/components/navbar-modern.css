@@ -1,0 +1,1544 @@
+/**
+ * ============================================================================
+ * MODERN NAVBAR COMPONENT - REFINED SPORTS TECH
+ * ============================================================================
+ *
+ * Design Direction: Athletic energy meets refined professionalism
+ * - Semi-transparent background (no backdrop-filter to avoid edge artifacts)
+ * - Smooth micro-interactions and purposeful motion
+ * - Sharp color accents with sophisticated gradients
+ * - Mobile-first responsive with generous spacing
+ * - Accessible keyboard navigation
+ *
+ * Architecture:
+ * - BEM naming convention (c-navbar-modern)
+ * - Design tokens for all values (no magic numbers)
+ * - State-driven styling (is-* classes)
+ * - !important only for border/shadow overrides (required to override vendor CSS)
+ * - Event delegation compatible (data-* hooks)
+ *
+ * Note: backdrop-filter: blur() was removed to prevent visible edge artifacts
+ * where the filter boundary creates a visible line. Using solid semi-transparent
+ * backgrounds instead (rgba with 0.95 opacity).
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   BASE NAVBAR CONTAINER
+   ============================================================================
+
+   Integration with Vuexy Layout System:
+   - Uses .layout-navbar class for proper positioning within layout-page
+   - Higher specificity selectors to override foundation.css defaults
+   - Semi-transparent design blending over page content
+   ============================================================================ */
+
+/* Override layout-navbar defaults with our modern design */
+.layout-navbar.c-navbar-modern {
+  /* Position - Inherit from layout system (foundation.css handles fixed positioning)
+     DON'T set position here - layout-navbar-fixed uses position: fixed */
+
+  /* z-index for proper stacking - sidebar (1035) should be above navbar (1025) */
+  z-index: var(--z-navbar, 1025);
+
+  /* Visual - Solid semi-transparent background (no backdrop-filter to avoid edge artifact) */
+  background: rgba(255, 255, 255, 0.95);
+
+  /* No border or shadow - seamless blend with content */
+  /* !important needed to override vendor CSS (layout/navbar.css, theme files) */
+  border: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+
+  /* Ensure no gap between navbar and content */
+  margin-bottom: 0;
+
+  /* Spacing */
+  padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
+
+  /* Smooth transitions */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Reset nav element defaults */
+nav.layout-navbar.c-navbar-modern,
+nav.c-navbar-modern {
+  border: 0;
+  border-width: 0;
+  box-shadow: none;
+}
+
+/* Fallback for standalone use without layout-navbar */
+.c-navbar-modern:not(.layout-navbar) {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-sticky, 1020);
+  /* Solid semi-transparent - no backdrop-filter to avoid edge artifact */
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  box-shadow: none;
+  padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================================================
+   OVERRIDE LAYOUT-NAVBAR DEFAULTS
+   Critical: Must override Vuexy layout system background colors
+   ============================================================================ */
+
+/* Override the default layout-navbar background from components.css/foundation.css */
+/* Note: This CSS file must load AFTER layout_css bundle to override without !important */
+nav.layout-navbar.c-navbar-modern,
+.layout-navbar.c-navbar-modern {
+  /* Solid semi-transparent - no backdrop-filter to avoid edge artifact */
+  background: rgba(255, 255, 255, 0.95);
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* ============================================================================
+   THEME INTEGRATION - Light/Dark Mode
+   Higher specificity to override layout-navbar defaults
+   ============================================================================ */
+
+/* Modern theme light mode - solid semi-transparent white (no backdrop-filter) */
+[data-theme-variant="modern"]:not([data-style="dark"]) .layout-navbar.c-navbar-modern,
+html[data-theme-variant="modern"]:not([data-style="dark"]) .layout-navbar.c-navbar-modern,
+[data-theme-variant="modern"]:not([data-style="dark"]) .c-navbar-modern,
+html[data-theme-variant="modern"]:not([data-style="dark"]) .c-navbar-modern {
+  background: rgba(255, 255, 255, 0.95);
+  border: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Modern theme dark mode - solid semi-transparent dark (slate palette) */
+[data-theme-variant="modern"][data-style="dark"] .layout-navbar.c-navbar-modern,
+html[data-theme-variant="modern"][data-style="dark"] .layout-navbar.c-navbar-modern,
+[data-theme-variant="modern"][data-style="dark"] .c-navbar-modern,
+html[data-theme-variant="modern"][data-style="dark"] .c-navbar-modern {
+  background: rgba(15, 23, 42, 0.95); /* Slate-950 #0F172A */
+  border: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Dark mode fallback - generic dark theme support (slate palette) */
+[data-style="dark"] .layout-navbar.c-navbar-modern,
+[data-theme="dark"] .layout-navbar.c-navbar-modern,
+body[data-style="dark"] .layout-navbar.c-navbar-modern,
+html.dark-style .layout-navbar.c-navbar-modern,
+[data-style="dark"] .c-navbar-modern,
+[data-theme="dark"] .c-navbar-modern,
+body[data-style="dark"] .c-navbar-modern,
+html.dark-style .c-navbar-modern {
+  background: rgba(15, 23, 42, 0.95); /* Slate-950 #0F172A */
+  border: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Scrolled state - slightly more opaque for readability */
+.layout-navbar.c-navbar-modern.is-scrolled,
+.c-navbar-modern.is-scrolled {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme-variant="modern"][data-style="dark"] .layout-navbar.c-navbar-modern.is-scrolled,
+[data-style="dark"] .layout-navbar.c-navbar-modern.is-scrolled,
+html.dark-style .layout-navbar.c-navbar-modern.is-scrolled,
+[data-theme-variant="modern"][data-style="dark"] .c-navbar-modern.is-scrolled,
+[data-style="dark"] .c-navbar-modern.is-scrolled,
+html.dark-style .c-navbar-modern.is-scrolled {
+  background: rgba(15, 23, 42, 0.97); /* Slate-950 slightly more opaque */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* ============================================================================
+   BORDER REMOVAL - Comprehensive Override
+   Overrides components.css .layout-navbar { border-bottom: 1px solid... }
+   Removes any visual separators between navbar and content area
+   ============================================================================ */
+
+/* Override for vendor CSS border/shadow rules */
+.layout-page .layout-navbar.c-navbar-modern,
+.layout-container .layout-navbar.c-navbar-modern,
+nav.layout-navbar.c-navbar-modern,
+.layout-navbar.c-navbar-modern,
+.c-navbar-modern {
+  border: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-style: none !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Remove any pseudo-element borders */
+.layout-navbar.c-navbar-modern::after,
+.layout-navbar.c-navbar-modern::before,
+.c-navbar-modern::after,
+.c-navbar-modern::before {
+  display: none;
+  border: none;
+  box-shadow: none;
+}
+
+/* Ensure content-wrapper has no top border */
+.layout-page .content-wrapper,
+.content-wrapper {
+  border-top: none;
+}
+
+/* Ensure main content has no top border */
+main#main-content,
+.content-wrapper main {
+  border-top: none;
+}
+
+/* When scrolled, only add subtle shadow - no border */
+.layout-navbar.c-navbar-modern.is-scrolled,
+.c-navbar-modern.is-scrolled {
+  border: none;
+  border-bottom: none;
+}
+
+/* ============================================================================
+   NAVBAR LAYOUT
+   ============================================================================ */
+
+.c-navbar-modern__container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4, 1rem);
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 var(--space-4, 1rem);
+  min-height: 56px; /* Ensure consistent navbar height */
+}
+
+/* Mobile menu toggle */
+.c-navbar-modern__menu-toggle {
+  /* Reset button styles */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: var(--space-2);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+
+  color: var(--color-text-primary);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.c-navbar-modern__menu-toggle:hover {
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  transform: scale(1.05);
+}
+
+.c-navbar-modern__menu-toggle:active {
+  transform: scale(0.95);
+}
+
+.c-navbar-modern__menu-icon {
+  font-size: 1.5rem;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.c-navbar-modern__menu-toggle.is-open .c-navbar-modern__menu-icon {
+  transform: rotate(90deg);
+}
+
+/* Desktop - hide toggle */
+@media (min-width: 1200px) {
+  .c-navbar-modern__menu-toggle {
+    display: none;
+  }
+}
+
+/* ============================================================================
+   SEARCH FORM - ATHLETIC FOCUS STATES
+   ============================================================================ */
+
+.c-navbar-modern__search {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 200px;
+  max-width: 700px;
+  margin: 0 auto; /* Center in available space */
+}
+
+/* Remove any focus outline from the container and form */
+.c-navbar-modern__search,
+.c-navbar-modern__search form,
+.c-navbar-modern__search form:focus,
+.c-navbar-modern__search form:focus-within,
+.c-navbar-modern__search [data-form-search] {
+  outline: none !important;
+  box-shadow: none;
+  border: none;
+  background: transparent;
+}
+
+.c-navbar-modern__search-input {
+  width: 100%;
+  height: 44px; /* Taller input for better visibility */
+  padding: var(--space-3, 0.75rem) var(--space-5, 1.25rem);
+  padding-left: var(--space-12, 3rem); /* More room for search icon */
+
+  /* Typography */
+  font-size: var(--text-base, 1rem); /* Larger font */
+  font-weight: var(--font-normal, 400);
+  color: var(--color-text-primary);
+
+  /* Visual */
+  background: rgba(0, 0, 0, 0.04);
+  border: 2px solid transparent;
+  border-radius: var(--radius-full, 9999px);
+
+  /* Interaction */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.c-navbar-modern__search-input::placeholder {
+  color: var(--color-text-muted);
+  font-weight: var(--font-normal);
+}
+
+/* Focus state - athletic energy */
+.c-navbar-modern__search-input:focus {
+  outline: none;
+  background: rgba(0, 0, 0, 0.05);
+  border-color: var(--color-primary);
+  box-shadow:
+    0 0 0 4px rgba(37, 99, 235, 0.1),
+    0 4px 12px rgba(37, 99, 235, 0.08);
+  transform: translateY(-1px);
+}
+
+/* Search icon */
+.c-navbar-modern__search::before {
+  content: '\eb1c'; /* Tabler icon search */
+  font-family: 'tabler-icons';
+  position: absolute;
+  left: var(--space-4, 1rem);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.25rem;
+  color: var(--color-text-muted);
+  pointer-events: none;
+  transition: color 0.3s ease;
+  z-index: 1;
+}
+
+.c-navbar-modern__search:focus-within::before {
+  color: var(--color-primary);
+}
+
+/* Dark mode */
+[data-style="dark"] .c-navbar-modern__search-input,
+[data-theme="dark"] .c-navbar-modern__search-input,
+body[data-style="dark"] .c-navbar-modern__search-input {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-neutral-200);
+}
+
+[data-style="dark"] .c-navbar-modern__search-input:focus,
+[data-theme="dark"] .c-navbar-modern__search-input:focus,
+body[data-style="dark"] .c-navbar-modern__search-input:focus {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 0 0 4px rgba(37, 99, 235, 0.2),
+    0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
+/* Tablet - medium search */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .c-navbar-modern__search {
+    max-width: 400px;
+  }
+
+  .c-navbar-modern__search-input {
+    height: 40px;
+    font-size: var(--text-sm, 0.875rem);
+  }
+}
+
+/* Mobile - compact search */
+@media (max-width: 768px) {
+  .c-navbar-modern__search {
+    flex: 1;
+    max-width: none;
+    min-width: 120px;
+    margin: 0;
+  }
+
+  .c-navbar-modern__search-input {
+    height: 36px;
+    padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+    padding-left: var(--space-9, 2.25rem);
+    font-size: var(--text-sm, 0.875rem);
+  }
+
+  .c-navbar-modern__search::before {
+    left: var(--space-3, 0.75rem);
+    font-size: 1rem;
+  }
+}
+
+/* ============================================================================
+   NAVBAR ACTIONS - RIGHT SIDE ITEMS
+   ============================================================================ */
+
+.c-navbar-modern__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  flex-shrink: 0;
+
+  /* Reset list styles */
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  margin-left: auto;
+}
+
+/* Each action item needs relative positioning for dropdown alignment */
+.c-navbar-modern__actions > li {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Action buttons */
+.c-navbar-modern__action-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  margin: 2px; /* Add margin for badge overflow */
+
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-full, 9999px);
+  cursor: pointer;
+  overflow: visible; /* Allow badge to show outside button bounds */
+
+  color: var(--color-text-secondary);
+  font-size: 1.25rem;
+
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ensure icons inside are centered */
+.c-navbar-modern__action-btn > i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.c-navbar-modern__action-btn:hover {
+  background: var(--color-primary-subtle, rgba(37, 99, 235, 0.1));
+  color: var(--color-primary);
+  transform: translateY(-2px);
+}
+
+.c-navbar-modern__action-btn:active {
+  transform: translateY(0);
+}
+
+/* Active state */
+.c-navbar-modern__action-btn.is-active {
+  background: var(--color-primary);
+  color: white;
+}
+
+/* Avatar button variant - no padding, just contains avatar */
+.c-navbar-modern__action-btn--avatar {
+  width: auto;
+  height: auto;
+  padding: 0;
+  background: transparent;
+}
+
+.c-navbar-modern__action-btn--avatar:hover {
+  background: transparent;
+  transform: none;
+}
+
+/* ============================================================================
+   BADGE INDICATORS - NOTIFICATION COUNTS
+   ============================================================================ */
+
+.c-navbar-modern__badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: var(--color-danger, #ef4444);
+  border: 2px solid var(--color-bg-elevated, #fff);
+  border-radius: var(--radius-full, 9999px);
+
+  font-size: 10px;
+  font-weight: var(--font-bold, 700);
+  color: white;
+  line-height: 1;
+
+  /* Position adjustment - move slightly inward so not cut off */
+  transform: translate(25%, -25%);
+
+  animation: badgePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Dark mode badge border (slate palette) */
+[data-style="dark"] .c-navbar-modern__badge,
+[data-theme="dark"] .c-navbar-modern__badge {
+  border-color: rgba(15, 23, 42, 0.95); /* Slate-950 */
+}
+
+@keyframes badgePulse {
+  0%, 100% {
+    transform: translate(25%, -25%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(25%, -25%) scale(1.1);
+    opacity: 0.9;
+  }
+}
+
+/* Dot variant (no number) */
+.c-navbar-modern__badge--dot {
+  min-width: 8px;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  top: 2px;
+  right: 2px;
+}
+
+/* Warning variant */
+.c-navbar-modern__badge--warning {
+  background: var(--color-warning);
+}
+
+/* ============================================================================
+   DROPDOWNS - GLASS-MORPHISM DESIGN
+   ============================================================================ */
+
+.c-navbar-modern__dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+
+  min-width: 280px;
+  max-width: 400px;
+
+  /* Solid semi-transparent background (no backdrop-filter per file header comment) */
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.05),
+    0 12px 24px rgba(0, 0, 0, 0.08),
+    0 24px 48px rgba(0, 0, 0, 0.08);
+
+  /* Hidden by default */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+
+  /* Animation */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Ensure it appears above everything */
+  z-index: var(--z-dropdown);
+}
+
+/* Show state */
+.c-navbar-modern__dropdown.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* Dark mode - solid opaque background using CSS variables with fallbacks */
+[data-style="dark"] .c-navbar-modern__dropdown,
+[data-theme="dark"] .c-navbar-modern__dropdown,
+body[data-style="dark"] .c-navbar-modern__dropdown {
+  background: var(--color-bg-elevated, #27272a);
+  border-color: var(--color-border-primary, rgba(255, 255, 255, 0.1));
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.3),
+    0 12px 24px rgba(0, 0, 0, 0.4),
+    0 24px 48px rgba(0, 0, 0, 0.5);
+}
+
+/* Dropdown header */
+.c-navbar-modern__dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: var(--space-4);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+[data-style="dark"] .c-navbar-modern__dropdown-header {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.c-navbar-modern__dropdown-title {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+/* Dropdown content */
+.c-navbar-modern__dropdown-content {
+  padding: var(--space-2);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* Scrollbar styling */
+.c-navbar-modern__dropdown-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.c-navbar-modern__dropdown-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.c-navbar-modern__dropdown-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-full);
+}
+
+[data-style="dark"] .c-navbar-modern__dropdown-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Dropdown items */
+.c-navbar-modern__dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+
+  padding: var(--space-3);
+  margin: var(--space-1) 0;
+
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+
+  color: var(--color-text-primary);
+  text-decoration: none;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.c-navbar-modern__dropdown-item:hover {
+  background: var(--color-primary-subtle);
+  transform: translateX(4px);
+}
+
+.c-navbar-modern__dropdown-item.is-active {
+  background: var(--color-primary);
+  color: white;
+}
+
+/* Dropdown footer */
+.c-navbar-modern__dropdown-footer {
+  padding: var(--space-3);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+[data-style="dark"] .c-navbar-modern__dropdown-footer {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ============================================================================
+   AVATAR - USER PROFILE
+   ============================================================================ */
+
+.c-navbar-modern__avatar {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  cursor: pointer;
+
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.c-navbar-modern__avatar:hover {
+  transform: scale(1.05);
+}
+
+.c-navbar-modern__avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-full, 9999px);
+  border: 2px solid transparent;
+  transition: border-color 0.3s ease;
+}
+
+.c-navbar-modern__avatar:hover .c-navbar-modern__avatar-img {
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+/* Initials avatar fallback */
+.c-navbar-modern__avatar-initials {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full, 9999px);
+  background: linear-gradient(135deg, var(--color-primary, #2563EB) 0%, #a855f7 100%);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: var(--font-bold, 700);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 2px solid transparent;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.c-navbar-modern__avatar:hover .c-navbar-modern__avatar-initials {
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  transform: scale(1.02);
+}
+
+/* Large avatar variant (for dropdown header) */
+.c-navbar-modern__avatar--lg {
+  width: 48px;
+  height: 48px;
+}
+
+.c-navbar-modern__avatar--lg .c-navbar-modern__avatar-initials {
+  font-size: 1.125rem;
+}
+
+/* Online/Offline Status Indicator
+   ============================================================================
+   REAL PRESENCE TRACKING - Connected to WebSocket/Redis
+
+   This indicator shows actual user online status tracked via:
+   - WebSocket connection events (connect/disconnect)
+   - Redis-based presence storage with TTL
+   - /api/notifications/presence endpoint for status checks
+
+   States:
+   - Default (no class): Checking status - neutral gray
+   - .is-online: User is connected via WebSocket - green pulse
+   - .is-offline: User is disconnected - subtle gray
+   ============================================================================ */
+.c-navbar-modern__avatar-status {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+
+  width: 10px;
+  height: 10px;
+
+  /* Default state - checking/unknown - neutral gray */
+  background: var(--color-text-muted, #9ca3af);
+  border: 2px solid var(--color-bg-elevated, #fff);
+  border-radius: var(--radius-full, 9999px);
+
+  /* No animation in default state */
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+  z-index: 1;
+}
+
+/* Online state - green with pulse animation */
+.c-navbar-modern__avatar-status.is-online {
+  background: var(--color-success, #22c55e);
+  animation: statusPulseOnline 2s ease-in-out infinite;
+}
+
+/* Offline state - subtle gray, no animation */
+.c-navbar-modern__avatar-status.is-offline {
+  background: var(--color-text-muted, #9ca3af);
+  opacity: 0.6;
+  animation: none;
+}
+
+/* Dark mode status border (slate palette) */
+[data-style="dark"] .c-navbar-modern__avatar-status,
+[data-theme="dark"] .c-navbar-modern__avatar-status {
+  border-color: rgba(15, 23, 42, 0.95); /* Slate-950 */
+}
+
+/* Dark mode offline slightly brighter for visibility */
+[data-style="dark"] .c-navbar-modern__avatar-status.is-offline,
+[data-theme="dark"] .c-navbar-modern__avatar-status.is-offline {
+  background: var(--color-neutral-500, #71717a);
+  opacity: 0.7;
+}
+
+@keyframes statusPulseOnline {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0);
+  }
+}
+
+/* ============================================================================
+   THEME SWITCHER - REFINED ICONS
+   ============================================================================ */
+
+.c-navbar-modern__theme-icon {
+  font-size: 1.25rem;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.c-navbar-modern__action-btn:hover .c-navbar-modern__theme-icon {
+  transform: rotate(15deg) scale(1.1);
+}
+
+/* ============================================================================
+   ROLE IMPERSONATION - SPECIAL STYLING
+   ============================================================================ */
+
+.c-navbar-modern__impersonation-active {
+  position: relative;
+}
+
+.c-navbar-modern__impersonation-active::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, var(--color-warning), var(--color-danger));
+  border-radius: var(--radius-full);
+  z-index: -1;
+  opacity: 0.3;
+  animation: impersonationGlow 2s ease-in-out infinite;
+}
+
+@keyframes impersonationGlow {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+}
+
+/* Role status indicator */
+.c-navbar-modern__role-status {
+  padding: var(--space-3, 0.75rem);
+  margin-bottom: var(--space-2, 0.5rem);
+  border-radius: var(--radius-md, 0.375rem);
+  background: var(--color-primary-subtle, rgba(37, 99, 235, 0.1));
+}
+
+/* ============================================================================
+   NOTIFICATIONS LIST - CLEAN FEED
+   ============================================================================ */
+
+.c-navbar-modern__notification {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.c-navbar-modern__notification:hover {
+  background: var(--color-primary-subtle);
+  border-color: var(--color-primary);
+  transform: translateX(4px);
+}
+
+.c-navbar-modern__notification.is-unread {
+  background: rgba(37, 99, 235, 0.05);
+  border-color: rgba(37, 99, 235, 0.2);
+}
+
+.c-navbar-modern__notification-icon {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: var(--radius-full);
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+
+  font-size: 1.125rem;
+}
+
+.c-navbar-modern__notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-navbar-modern__notification-title {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+.c-navbar-modern__notification-text {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.c-navbar-modern__notification-time {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* Notification Loading State */
+.c-navbar-modern__notification-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.c-navbar-modern__spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-border-primary);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spinner-rotate 0.8s linear infinite;
+}
+
+@keyframes spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Notification Empty State */
+.c-navbar-modern__notification-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-8) var(--space-4);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.c-navbar-modern__notification-empty i {
+  font-size: 2.5rem;
+  opacity: 0.5;
+}
+
+.c-navbar-modern__notification-empty p {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+/* ============================================================================
+   NOTIFICATION ENHANCEMENTS - DISMISS & EXPAND
+   ============================================================================ */
+
+/* Dropdown header actions container */
+.c-navbar-modern__dropdown-actions {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+/* Danger variant for clear all button */
+.c-navbar-modern__action-btn--danger {
+  color: var(--color-danger, #ef4444);
+}
+
+.c-navbar-modern__action-btn--danger:hover {
+  color: var(--color-bg-elevated, #ffffff);
+  background: var(--color-danger, #ef4444);
+}
+
+/* Make notification a flex container for the dismiss button */
+.c-navbar-modern__notification {
+  position: relative;
+  flex-direction: column;
+}
+
+/* Main notification content area (clickable to expand) */
+.c-navbar-modern__notification-main {
+  display: flex;
+  gap: var(--space-3);
+  width: 100%;
+  cursor: pointer;
+}
+
+/* Dismiss button positioned absolutely */
+.c-navbar-modern__notification-dismiss {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+
+  opacity: 0;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.c-navbar-modern__notification:hover .c-navbar-modern__notification-dismiss {
+  opacity: 1;
+}
+
+.c-navbar-modern__notification-dismiss:hover {
+  background: var(--color-danger, #ef4444);
+  color: white;
+  transform: scale(1.1);
+}
+
+/* Expand hint text */
+.c-navbar-modern__notification-expand-hint {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--text-2xs, 0.65rem);
+  color: var(--color-primary, #2563EB);
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
+}
+
+.c-navbar-modern__notification:hover .c-navbar-modern__notification-expand-hint {
+  opacity: 1;
+}
+
+/* Expanded content area */
+.c-navbar-modern__notification-expanded {
+  padding: var(--space-3);
+  padding-left: calc(2.5rem + var(--space-3)); /* Align with text content */
+
+  margin-top: var(--space-2);
+  border-top: 1px solid var(--color-border-secondary);
+
+  animation: expandIn 0.2s ease;
+}
+
+.c-navbar-modern__notification-full-text {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  line-height: var(--leading-relaxed);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.c-navbar-modern__notification-date {
+  display: block;
+  font-size: var(--text-2xs, 0.65rem);
+  color: var(--color-text-muted);
+}
+
+@keyframes expandIn {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 200px;
+  }
+}
+
+/* Expanded state - show hint */
+.c-navbar-modern__notification.is-expanded .c-navbar-modern__notification-expand-hint {
+  display: none;
+}
+
+/* Dismissing animation */
+.c-navbar-modern__notification.is-dismissing {
+  opacity: 0;
+  transform: translateX(100%);
+  max-height: 0;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  transition: all 0.2s ease-out;
+}
+
+/* Notification dropdown specific sizing */
+.c-navbar-modern__dropdown--notifications {
+  width: 380px;
+  max-height: 500px;
+}
+
+.c-navbar-modern__dropdown--notifications .c-navbar-modern__dropdown-content {
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+/* ============================================================================
+   RESPONSIVE - SCALABLE BREAKPOINTS
+   ============================================================================
+   Breakpoint strategy:
+   - Desktop (1200px+): Full navbar with max search width
+   - Small Desktop (1024px-1199px): Reduced search width
+   - Tablet (769px-1023px): Compact layout, medium dropdowns
+   - Mobile (481px-768px): Touch-friendly, full-width dropdowns
+   - Small Mobile (<=480px): Minimal layout, hide non-essential items
+   ============================================================================ */
+
+/* Desktop (1200px+) - already handled by base styles */
+
+/* Small Desktop */
+@media (max-width: 1199px) and (min-width: 1024px) {
+  .c-navbar-modern__search {
+    max-width: 500px;
+  }
+}
+
+/* Tablet */
+@media (max-width: 1023px) and (min-width: 769px) {
+  .c-navbar-modern {
+    padding: var(--space-3, 0.75rem);
+  }
+
+  .c-navbar-modern__search {
+    max-width: 350px;
+  }
+
+  .c-navbar-modern__search-input {
+    height: 40px;
+    font-size: var(--text-sm, 0.875rem);
+  }
+
+  .c-navbar-modern__dropdown {
+    min-width: 320px;
+    max-width: 380px;
+  }
+
+  .c-navbar-modern__action-btn {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .c-navbar-modern {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .c-navbar-modern__container {
+    gap: var(--space-2);
+  }
+
+  .c-navbar-modern__actions {
+    gap: var(--space-1);
+  }
+
+  .c-navbar-modern__action-btn {
+    width: 2.25rem;
+    height: 2.25rem;
+    font-size: 1.125rem;
+  }
+
+  .c-navbar-modern__dropdown {
+    position: fixed;
+    min-width: 100vw;
+    max-width: 100vw;
+    left: 0;
+    right: 0;
+    top: auto;
+    border-radius: 0;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .c-navbar-modern__dropdown-content {
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+
+  /* Touch-friendly notification items */
+  .c-navbar-modern__notification {
+    padding: var(--space-4);
+  }
+
+  .c-navbar-modern__dropdown-item {
+    padding: var(--space-4);
+    min-height: 48px; /* Touch target minimum */
+  }
+
+  /* Hide some items on mobile */
+  .c-navbar-modern__action-btn--hide-mobile {
+    display: none;
+  }
+
+  /* Avatar scales down */
+  .c-navbar-modern__avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .c-navbar-modern__avatar-initials {
+    font-size: 0.75rem;
+  }
+}
+
+/* Small Mobile */
+@media (max-width: 480px) {
+  .c-navbar-modern {
+    padding: var(--space-2);
+  }
+
+  .c-navbar-modern__search {
+    min-width: 100px;
+  }
+
+  .c-navbar-modern__search-input {
+    height: 34px;
+    padding: var(--space-2) var(--space-3);
+    padding-left: var(--space-8);
+    font-size: var(--text-xs, 0.75rem);
+  }
+
+  .c-navbar-modern__search::before {
+    left: var(--space-2);
+    font-size: 0.875rem;
+  }
+
+  .c-navbar-modern__action-btn {
+    width: 2rem;
+    height: 2rem;
+    font-size: 1rem;
+  }
+
+  /* Smaller badge on very small screens */
+  .c-navbar-modern__badge {
+    min-width: 16px;
+    height: 16px;
+    font-size: 9px;
+  }
+
+  /* Compact menu toggle */
+  .c-navbar-modern__menu-toggle {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .c-navbar-modern__menu-icon {
+    font-size: 1.25rem;
+  }
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+/* Focus visible states */
+.c-navbar-modern__action-btn:focus-visible,
+.c-navbar-modern__search-input:focus-visible,
+.c-navbar-modern__dropdown-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .c-navbar-modern,
+  .c-navbar-modern__action-btn,
+  .c-navbar-modern__dropdown,
+  .c-navbar-modern__notification,
+  .c-navbar-modern__badge {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: more) {
+  .c-navbar-modern {
+    border-bottom-width: 2px;
+  }
+
+  .c-navbar-modern__action-btn,
+  .c-navbar-modern__dropdown-item {
+    border: 1px solid currentColor;
+  }
+}
+
+/* ============================================================================
+   JQUERY UI AUTOCOMPLETE - PLAYER SEARCH DROPDOWN
+   Theme-aware styling for search suggestions
+   ============================================================================ */
+
+/* Base autocomplete container */
+.ui-autocomplete {
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  /* Visual - Light mode */
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  border: 1px solid var(--color-border-primary, #e4e4e7);
+  border-radius: var(--radius-lg, 0.5rem);
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.05),
+    0 10px 20px rgba(0, 0, 0, 0.08);
+
+  /* Z-index to appear above other elements */
+  z-index: var(--z-dropdown, 1000);
+
+  /* Reset list styles */
+  list-style: none;
+  padding: var(--space-2, 0.5rem);
+  margin: var(--space-1, 0.25rem) 0 0 0;
+}
+
+/* Autocomplete items */
+.ui-autocomplete .ui-menu-item {
+  padding: 0;
+  margin: 0;
+}
+
+.ui-autocomplete .ui-menu-item-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 0.75rem);
+
+  padding: var(--space-3, 0.75rem);
+  margin: var(--space-1, 0.25rem) 0;
+
+  border-radius: var(--radius-md, 0.375rem);
+  cursor: pointer;
+
+  color: var(--color-text-primary, #18181b);
+  font-size: var(--text-sm, 0.875rem);
+
+  transition: all 0.15s ease;
+}
+
+.ui-autocomplete .ui-menu-item-wrapper:hover,
+.ui-autocomplete .ui-menu-item-wrapper.ui-state-active {
+  background: var(--color-primary-subtle, rgba(37, 99, 235, 0.1));
+  color: var(--color-primary, #2563EB);
+}
+
+/* Profile image in autocomplete */
+.autocomplete-profile-img {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full, 9999px);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   AUTOCOMPLETE - Modern Theme Light Mode
+   ============================================================================ */
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .ui-autocomplete,
+html[data-theme-variant="modern"]:not([data-style="dark"]) .ui-autocomplete {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: var(--ecs-neutral-20, #e4e4e7);
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .ui-autocomplete .ui-menu-item-wrapper,
+html[data-theme-variant="modern"]:not([data-style="dark"]) .ui-autocomplete .ui-menu-item-wrapper {
+  color: var(--ecs-neutral-70, #3f3f46);
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .ui-autocomplete .ui-menu-item-wrapper:hover,
+[data-theme-variant="modern"]:not([data-style="dark"]) .ui-autocomplete .ui-menu-item-wrapper.ui-state-active,
+html[data-theme-variant="modern"]:not([data-style="dark"]) .ui-autocomplete .ui-menu-item-wrapper:hover,
+html[data-theme-variant="modern"]:not([data-style="dark"]) .ui-autocomplete .ui-menu-item-wrapper.ui-state-active {
+  background: rgba(var(--ecs-primary-rgb, 37, 99, 235), 0.08);
+  color: var(--ecs-primary, #2563EB);
+}
+
+/* ============================================================================
+   AUTOCOMPLETE - Modern Theme Dark Mode
+   ============================================================================ */
+
+[data-theme-variant="modern"][data-style="dark"] .ui-autocomplete,
+html[data-theme-variant="modern"][data-style="dark"] .ui-autocomplete {
+  background: rgba(39, 39, 42, 0.98);
+  border-color: var(--ecs-dark-border, #52525b);
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.2),
+    0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme-variant="modern"][data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper,
+html[data-theme-variant="modern"][data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper {
+  color: var(--ecs-dark-text-muted, #d4d4d8);
+}
+
+[data-theme-variant="modern"][data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper:hover,
+[data-theme-variant="modern"][data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper.ui-state-active,
+html[data-theme-variant="modern"][data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper:hover,
+html[data-theme-variant="modern"][data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper.ui-state-active {
+  background: rgba(96, 165, 250, 0.2);
+  color: var(--ecs-primary-light, #60A5FA);
+}
+
+/* Generic dark mode fallback */
+[data-style="dark"] .ui-autocomplete,
+[data-theme="dark"] .ui-autocomplete,
+body[data-style="dark"] .ui-autocomplete {
+  background: rgba(39, 39, 42, 0.98);
+  border-color: var(--color-neutral-700, #3f3f46);
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.2),
+    0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+[data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper,
+[data-theme="dark"] .ui-autocomplete .ui-menu-item-wrapper,
+body[data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper {
+  color: var(--color-neutral-200, #e4e4e7);
+}
+
+[data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper:hover,
+[data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper.ui-state-active,
+[data-theme="dark"] .ui-autocomplete .ui-menu-item-wrapper:hover,
+[data-theme="dark"] .ui-autocomplete .ui-menu-item-wrapper.ui-state-active,
+body[data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper:hover,
+body[data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper.ui-state-active {
+  background: rgba(96, 165, 250, 0.2);
+  color: var(--color-primary-400, #60A5FA);
+}
+
+/* Scrollbar styling for autocomplete */
+.ui-autocomplete::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ui-autocomplete::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ui-autocomplete::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-full, 9999px);
+}
+
+[data-style="dark"] .ui-autocomplete::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================================================
+   FINAL OVERRIDE - Maximum Specificity Border Removal
+   This section must be at the END of the file to ensure it wins CSS cascade
+   ============================================================================ */
+
+/* Final override - using !important to override all vendor CSS */
+html body .layout-page nav.layout-navbar.c-navbar-modern,
+html body .layout-container nav.layout-navbar.c-navbar-modern,
+html body nav.layout-navbar.c-navbar-modern,
+html body .layout-navbar.c-navbar-modern,
+html .layout-navbar.c-navbar-modern,
+.layout-wrapper .layout-page .layout-navbar.c-navbar-modern,
+.layout-content-navbar .layout-page .layout-navbar.c-navbar-modern {
+  border: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-style: none !important;
+  border-width: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Container override */
+html body .c-navbar-modern__container,
+.layout-navbar.c-navbar-modern .c-navbar-modern__container {
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+/* Dark mode final override */
+[data-style="dark"] .layout-navbar.c-navbar-modern,
+[data-theme="dark"] .layout-navbar.c-navbar-modern,
+html.dark-style .layout-navbar.c-navbar-modern,
+body[data-style="dark"] .layout-navbar.c-navbar-modern {
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}

@@ -12,8 +12,8 @@
 <div class="row">
     <!-- Stats Cards -->
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-primary bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-primary bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-message-circle fs-1 text-primary mb-2"></i>
                 <h3 class="mb-0">{{ stats.total }}</h3>
                 <small class="text-muted">Total Feedback</small>
@@ -21,8 +21,8 @@
         </div>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-warning bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-warning bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-clock fs-1 text-warning mb-2"></i>
                 <h3 class="mb-0">{{ stats.open }}</h3>
                 <small class="text-muted">Open</small>
@@ -30,8 +30,8 @@
         </div>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-info bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-info bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-loader fs-1 text-info mb-2"></i>
                 <h3 class="mb-0">{{ stats.in_progress }}</h3>
                 <small class="text-muted">In Progress</small>
@@ -39,8 +39,8 @@
         </div>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card h-100 bg-success bg-opacity-10">
-            <div class="card-body text-center">
+        <div class="c-card h-100 bg-success bg-opacity-10">
+            <div class="c-card__body text-center">
                 <i class="ti ti-check fs-1 text-success mb-2"></i>
                 <h3 class="mb-0">{{ stats.closed }}</h3>
                 <small class="text-muted">Closed</small>
@@ -50,24 +50,24 @@
 
     <!-- Quick Actions -->
     <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header">
+        <div class="c-card">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-bolt me-2"></i>Quick Actions</h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-4 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.feedback_list') }}" class="btn btn-primary w-100">
+                        <a href="{{ url_for('admin_panel.feedback_list') }}" class="c-btn c-btn--primary w-100">
                             <i class="ti ti-message-report me-2"></i>View All Feedback
                         </a>
                     </div>
                     <div class="col-md-4 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.feedback_list', status='Open') }}" class="btn btn-warning w-100">
+                        <a href="{{ url_for('admin_panel.feedback_list', status='Open') }}" class="c-btn c-btn--warning w-100">
                             <i class="ti ti-alert-circle me-2"></i>View Open Feedback
                         </a>
                     </div>
                     <div class="col-md-4 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.draft_overview') }}" class="btn btn-info w-100">
+                        <a href="{{ url_for('admin_panel.draft_overview') }}" class="c-btn c-btn--info w-100">
                             <i class="ti ti-list-numbers me-2"></i>Draft Management
                         </a>
                     </div>
@@ -78,26 +78,26 @@
 
     <!-- Feedback List -->
     <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="ti ti-message-circle me-2"></i>Recent Feedback</h5>
                 <div class="btn-group btn-group-sm">
-                    <a href="{{ url_for('admin_panel.feedback_list') }}" class="btn btn-outline-primary">View All</a>
+                    <a href="{{ url_for('admin_panel.feedback_list') }}" class="c-btn c-btn--outline-primary">View All</a>
                 </div>
             </div>
-            <div class="card-body p-0">
+            <div class="c-card__body p-0">
                 {% if feedbacks %}
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable mb-0" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>ID</th>
-                                <th>Subject</th>
-                                <th>User</th>
-                                <th>Status</th>
-                                <th>Priority</th>
-                                <th>Created</th>
-                                <th>Actions</th>
+                                <th scope="col">ID</th>
+                                <th scope="col">Subject</th>
+                                <th scope="col">User</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Priority</th>
+                                <th scope="col">Created</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -108,27 +108,27 @@
                                 <td>{{ feedback.user.username if feedback.user else 'Anonymous' }}</td>
                                 <td>
                                     {% if feedback.status == 'Open' %}
-                                    <span class="badge bg-warning">Open</span>
+                                    <span class="badge bg-warning" data-badge>Open</span>
                                     {% elif feedback.status == 'In Progress' %}
-                                    <span class="badge bg-info">In Progress</span>
+                                    <span class="badge bg-info" data-badge>In Progress</span>
                                     {% elif feedback.status == 'Closed' %}
-                                    <span class="badge bg-success">Closed</span>
+                                    <span class="badge bg-success" data-badge>Closed</span>
                                     {% else %}
-                                    <span class="badge bg-secondary">{{ feedback.status }}</span>
+                                    <span class="badge bg-secondary" data-badge>{{ feedback.status }}</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if feedback.priority == 'High' %}
-                                    <span class="badge bg-danger">High</span>
+                                    <span class="badge bg-danger" data-badge>High</span>
                                     {% elif feedback.priority == 'Medium' %}
-                                    <span class="badge bg-warning">Medium</span>
+                                    <span class="badge bg-warning" data-badge>Medium</span>
                                     {% else %}
-                                    <span class="badge bg-secondary">Low</span>
+                                    <span class="badge bg-secondary" data-badge>Low</span>
                                     {% endif %}
                                 </td>
                                 <td>{{ feedback.created_at.strftime('%b %d, %Y') if feedback.created_at else 'N/A' }}</td>
                                 <td>
-                                    <a href="{{ url_for('admin_panel.view_feedback', feedback_id=feedback.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <a href="{{ url_for('admin_panel.view_feedback', feedback_id=feedback.id) }}" class="c-btn c-btn--sm c-btn--outline-primary">
                                         <i class="ti ti-eye"></i>
                                     </a>
                                 </td>

@@ -5,318 +5,489 @@
 
 {% block panel_content %}
     <!-- Quick Stats -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-primary text-white admin-card" onclick="window.location.href='{{ url_for('admin_panel.feature_toggles') }}'" style="cursor: pointer;">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ stats.total_settings }}</h5>
-                            <p class="card-text small opacity-75 mb-0">System Settings</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-adjustments-horizontal" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
+    <div class="c-admin-stats" data-component="admin-stats">
+        <div class="c-admin-stats__grid">
+            <button class="c-stat-card c-stat-card--clickable c-stat-card--primary"
+                    data-action="navigate"
+                    data-url="{{ url_for('admin_panel.feature_toggles') }}"
+                    type="button"
+                    aria-label="View system settings">
+                <div class="c-stat-card__content">
+                    <div class="c-stat-card__value">{{ stats.total_settings }}</div>
+                    <div class="c-stat-card__label">System Settings</div>
                 </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-success text-white admin-card" onclick="window.location.href='{{ url_for('admin_panel.feature_toggles') }}'" style="cursor: pointer;">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ stats.active_features }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Active Features</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-toggle-right" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
+                <div class="c-stat-card__icon">
+                    <i class="ti ti-adjustments-horizontal"></i>
                 </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-info text-white admin-card" onclick="window.location.href='{{ url_for('admin_panel.user_management') }}'" style="cursor: pointer;">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ stats.total_users }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Total Users</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-users" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
+            </button>
+
+            <button class="c-stat-card c-stat-card--clickable c-stat-card--success"
+                    data-action="navigate"
+                    data-url="{{ url_for('admin_panel.feature_toggles') }}"
+                    type="button"
+                    aria-label="View active features">
+                <div class="c-stat-card__content">
+                    <div class="c-stat-card__value">{{ stats.active_features }}</div>
+                    <div class="c-stat-card__label">Active Features</div>
                 </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-warning text-white admin-card" onclick="window.location.href='{{ url_for('admin_panel.audit_logs') }}'" style="cursor: pointer;">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title text-white mb-1">{{ stats.recent_changes }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Changes (7 days)</p>
-                        </div>
-                        <div class="card-icon">
-                            <i class="ti ti-history" style="font-size: 2rem; opacity: 0.5;"></i>
-                        </div>
-                    </div>
+                <div class="c-stat-card__icon">
+                    <i class="ti ti-toggle-right"></i>
                 </div>
-            </div>
+            </button>
+
+            <button class="c-stat-card c-stat-card--clickable c-stat-card--info"
+                    data-action="navigate"
+                    data-url="{{ url_for('admin_panel.user_management') }}"
+                    type="button"
+                    aria-label="View total users">
+                <div class="c-stat-card__content">
+                    <div class="c-stat-card__value">{{ stats.total_users }}</div>
+                    <div class="c-stat-card__label">Total Users</div>
+                </div>
+                <div class="c-stat-card__icon">
+                    <i class="ti ti-users"></i>
+                </div>
+            </button>
+
+            <button class="c-stat-card c-stat-card--clickable c-stat-card--warning"
+                    data-action="navigate"
+                    data-url="{{ url_for('admin_panel.audit_logs') }}"
+                    type="button"
+                    aria-label="View recent changes">
+                <div class="c-stat-card__content">
+                    <div class="c-stat-card__value">{{ stats.recent_changes }}</div>
+                    <div class="c-stat-card__label">Changes (7 days)</div>
+                </div>
+                <div class="c-stat-card__icon">
+                    <i class="ti ti-history"></i>
+                </div>
+            </button>
         </div>
     </div>
 
     <!-- Admin Sections Grid -->
-    <div class="row mb-4">
-        <!-- Feature Management -->
-        <div class="col-md-6 col-lg-4 mb-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-toggle-left text-primary me-2"></i>Feature Management
+    <div class="c-admin-sections" data-component="admin-sections">
+        <div class="c-admin-sections__grid">
+            <!-- Feature Management -->
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title">
+                        <i class="ti ti-toggle-left c-card__title-icon c-card__title-icon--primary"></i>
+                        <span>Feature Management</span>
                     </h5>
                 </div>
-                <div class="card-body">
-                    <p>Control system features and functionality</p>
-                    <div class="list-group list-group-flush">
-                        <a href="{{ url_for('admin_panel.feature_toggles') }}" class="list-group-item list-group-item-action">
-                            <i class="ti ti-toggle-right me-2"></i>Feature Toggles
-                            <span class="badge bg-primary float-end">{{ stats.active_features }}</span>
+                <div class="c-card__body">
+                    <p class="c-card__description">Control system features and functionality</p>
+                    <nav class="c-link-list" aria-label="Feature management options">
+                        <a href="{{ url_for('admin_panel.feature_toggles') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link">
+                            <div class="c-link-list__content">
+                                <i class="ti ti-toggle-right c-link-list__icon"></i>
+                                <span class="c-link-list__text">Feature Toggles</span>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <span class="c-badge c-badge--primary">{{ stats.active_features }}</span>
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
                         </a>
-                        <button class="list-group-item list-group-item-action" onclick="openNavigationSettings()">
-                            <i class="ti ti-navigation me-2"></i>Navigation Settings
+
+                        <button class="c-link-list__item"
+                                data-action="open-navigation-settings"
+                                type="button">
+                            <div class="c-link-list__content">
+                                <i class="ti ti-navigation c-link-list__icon"></i>
+                                <span class="c-link-list__text">Navigation Settings</span>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
                         </button>
-                        <button class="list-group-item list-group-item-action" onclick="openRegistrationSettings()">
-                            <i class="ti ti-user-plus me-2"></i>Registration Settings
+
+                        <button class="c-link-list__item"
+                                data-action="open-registration-settings"
+                                type="button">
+                            <div class="c-link-list__content">
+                                <i class="ti ti-user-plus c-link-list__icon"></i>
+                                <span class="c-link-list__text">Registration Settings</span>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
                         </button>
-                    </div>
+                    </nav>
                 </div>
             </div>
-        </div>
 
-        <!-- Communication Hub -->
-        <div class="col-md-6 col-lg-4 mb-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-message-circle text-info me-2"></i>Communication Hub
+            <!-- Communication Hub -->
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title">
+                        <i class="ti ti-message-circle c-card__title-icon c-card__title-icon--info"></i>
+                        <span>Communication Hub</span>
                     </h5>
                 </div>
-                <div class="card-body">
-                    <p>Manage all communication channels</p>
-                    <div class="list-group list-group-flush">
-                        <a href="{{ url_for('admin_panel.communication_hub') }}" class="list-group-item list-group-item-action">
-                            <i class="ti ti-template me-2"></i>Message Templates
+                <div class="c-card__body">
+                    <p class="c-card__description">Manage all communication channels</p>
+                    <nav class="c-link-list" aria-label="Communication hub options">
+                        <a href="{{ url_for('admin_panel.communication_hub') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link">
+                            <div class="c-link-list__content">
+                                <i class="ti ti-template c-link-list__icon"></i>
+                                <span class="c-link-list__text">Message Templates</span>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
                         </a>
-                        <a href="{{ url_for('admin_panel.communication_hub') }}" class="list-group-item list-group-item-action">
-                            <i class="ti ti-clock me-2"></i>Scheduled Messages
+
+                        <a href="{{ url_for('admin_panel.communication_hub') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link">
+                            <div class="c-link-list__content">
+                                <i class="ti ti-clock c-link-list__icon"></i>
+                                <span class="c-link-list__text">Scheduled Messages</span>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
                         </a>
-                        <a href="{{ url_for('admin_panel.communication_hub') }}" class="list-group-item list-group-item-action">
-                            <i class="ti ti-bell me-2"></i>Push Notifications
+
+                        <a href="{{ url_for('admin_panel.communication_hub') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link">
+                            <div class="c-link-list__content">
+                                <i class="ti ti-bell c-link-list__icon"></i>
+                                <span class="c-link-list__text">Push Notifications</span>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
                         </a>
-                    </div>
+                    </nav>
                 </div>
             </div>
-        </div>
 
-        <!-- User Management -->
-        <div class="col-md-6 col-lg-4 mb-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-users text-success me-2"></i>User Management
+            <!-- User Management -->
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title">
+                        <i class="ti ti-users c-card__title-icon c-card__title-icon--success"></i>
+                        <span>User Management</span>
                     </h5>
                 </div>
-                <div class="card-body">
-                    <p>Manage users, roles, and permissions</p>
-                    <div class="list-group list-group-flush">
-                        <a href="{{ url_for('admin_panel.users_comprehensive') }}" class="list-group-item list-group-item-action">
-                            <i class="ti ti-users me-2"></i>User Management
-                            {% if pending_approvals > 0 %}
-                            <span class="badge bg-danger float-end">{{ pending_approvals }}</span>
-                            {% endif %}
+                <div class="c-card__body">
+                    <p class="c-card__description">Manage users, roles, and permissions</p>
+                    <nav class="c-link-list" aria-label="User management options">
+                        <a href="{{ url_for('admin_panel.users_comprehensive') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link">
+                            <div class="c-link-list__content">
+                                <i class="ti ti-users c-link-list__icon"></i>
+                                <span class="c-link-list__text">User Management</span>
+                            </div>
+                            <div class="c-link-list__meta">
+                                {% if pending_approvals > 0 %}
+                                <span class="c-badge c-badge--danger">{{ pending_approvals }}</span>
+                                {% endif %}
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
                         </a>
-                        <a href="{{ url_for('admin_panel.roles_comprehensive') }}" class="list-group-item list-group-item-action">
-                            <i class="ti ti-shield-check me-2"></i>Role Management
+
+                        <a href="{{ url_for('admin_panel.roles_comprehensive') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link">
+                            <div class="c-link-list__content">
+                                <i class="ti ti-shield-check c-link-list__icon"></i>
+                                <span class="c-link-list__text">Role Management</span>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
                         </a>
-                        <a href="{{ url_for('admin_panel.user_management') }}" class="list-group-item list-group-item-action">
-                            <i class="ti ti-settings me-2"></i>User Hub & Settings
+
+                        <a href="{{ url_for('admin_panel.user_management') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link">
+                            <div class="c-link-list__content">
+                                <i class="ti ti-settings c-link-list__icon"></i>
+                                <span class="c-link-list__text">User Hub & Settings</span>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
                         </a>
-                    </div>
+                    </nav>
                 </div>
             </div>
-        </div>
 
-        <!-- System Monitoring -->
-        <div class="col-md-6 col-lg-4 mb-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-activity text-warning me-2"></i>System Monitoring
+            <!-- System Monitoring -->
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title">
+                        <i class="ti ti-activity c-card__title-icon c-card__title-icon--warning"></i>
+                        <span>System Monitoring</span>
                     </h5>
                 </div>
-                <div class="card-body">
-                    <p>Monitor system health and performance</p>
-                    <div class="list-group list-group-flush">
-                        <button class="list-group-item list-group-item-action" onclick="openTaskMonitor()">
-                            <i class="ti ti-chart-dots me-2"></i>Task Monitor
-                            <span class="status-indicator active float-end"></span>
+                <div class="c-card__body">
+                    <p class="c-card__description">Monitor system health and performance</p>
+                    <nav class="c-link-list" aria-label="System monitoring options">
+                        <button class="c-link-list__item"
+                                data-action="open-task-monitor"
+                                type="button">
+                            <div class="c-link-list__content">
+                                <i class="ti ti-chart-dots c-link-list__icon"></i>
+                                <span class="c-link-list__text">Task Monitor</span>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <span class="c-status-indicator c-status-indicator--active"></span>
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
                         </button>
-                        <button class="list-group-item list-group-item-action" onclick="openDatabaseMonitor()">
-                            <i class="ti ti-database me-2"></i>Database Monitor
-                            <span class="status-indicator active float-end"></span>
+
+                        <button class="c-link-list__item"
+                                data-action="open-database-monitor"
+                                type="button">
+                            <div class="c-link-list__content">
+                                <i class="ti ti-database c-link-list__icon"></i>
+                                <span class="c-link-list__text">Database Monitor</span>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <span class="c-status-indicator c-status-indicator--active"></span>
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
                         </button>
-                        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="list-group-item list-group-item-action">
-                            <i class="ti ti-info-circle me-2"></i>System Information
+
+                        <a href="{{ url_for('admin_panel.system_monitoring') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link">
+                            <div class="c-link-list__content">
+                                <i class="ti ti-info-circle c-link-list__icon"></i>
+                                <span class="c-link-list__text">System Information</span>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
                         </a>
-                    </div>
+                    </nav>
                 </div>
             </div>
-        </div>
 
-        <!-- Match & League Operations -->
-        <div class="col-md-6 col-lg-4 mb-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-trophy text-danger me-2"></i>Match & League Ops
+            <!-- Match & League Operations -->
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title">
+                        <i class="ti ti-trophy c-card__title-icon c-card__title-icon--danger"></i>
+                        <span>Match & League Ops</span>
                     </h5>
                 </div>
-                <div class="card-body">
-                    <p>Manage matches and league operations</p>
-                    <div class="list-group list-group-flush">
-                        <a href="{{ url_for('admin_panel.match_verification') }}" class="list-group-item list-group-item-action">
-                            <i class="ti ti-clipboard-check me-2"></i>Match Verification
+                <div class="c-card__body">
+                    <p class="c-card__description">Manage matches and league operations</p>
+                    <nav class="c-link-list" aria-label="Match and league operations">
+                        <a href="{{ url_for('admin_panel.match_verification') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link">
+                            <div class="c-link-list__content">
+                                <i class="ti ti-clipboard-check c-link-list__icon"></i>
+                                <span class="c-link-list__text">Match Verification</span>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
                         </a>
-                        <a href="{{ url_for('admin_panel.match_operations') }}" class="list-group-item list-group-item-action">
-                            <i class="ti ti-trophy me-2"></i>Match Operations
+
+                        <a href="{{ url_for('admin_panel.match_operations') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link">
+                            <div class="c-link-list__content">
+                                <i class="ti ti-trophy c-link-list__icon"></i>
+                                <span class="c-link-list__text">Match Operations</span>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
                         </a>
-                        <a href="{{ url_for('admin_panel.live_reporting_dashboard') }}" class="list-group-item list-group-item-action">
-                            <i class="ti ti-broadcast me-2"></i>Live Reporting
+
+                        <a href="{{ url_for('admin_panel.live_reporting_dashboard') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link">
+                            <div class="c-link-list__content">
+                                <i class="ti ti-broadcast c-link-list__icon"></i>
+                                <span class="c-link-list__text">Live Reporting</span>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
                         </a>
-                        <button class="list-group-item list-group-item-action" onclick="openMatchReports()">
-                            <i class="ti ti-chart-bar me-2"></i>Match Reports
+
+                        <button class="c-link-list__item"
+                                data-action="open-match-reports"
+                                type="button">
+                            <div class="c-link-list__content">
+                                <i class="ti ti-chart-bar c-link-list__icon"></i>
+                                <span class="c-link-list__text">Match Reports</span>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
                         </button>
-                    </div>
+                    </nav>
                 </div>
             </div>
-        </div>
 
-        <!-- Mobile Features -->
-        <div class="col-md-6 col-lg-4 mb-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-device-mobile text-purple me-2"></i>Mobile Features
+            <!-- Mobile Features -->
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title">
+                        <i class="ti ti-device-mobile c-card__title-icon c-card__title-icon--purple"></i>
+                        <span>Mobile Features</span>
                     </h5>
                 </div>
-                <div class="card-body">
-                    <p>Mobile app and wallet management</p>
-                    <div class="list-group list-group-flush">
-                        <a href="{{ url_for('wallet_admin.wallet_management') }}" class="list-group-item list-group-item-action">
-                            <i class="ti ti-wallet me-2"></i>Apple Wallet Passes
+                <div class="c-card__body">
+                    <p class="c-card__description">Mobile app and wallet management</p>
+                    <nav class="c-link-list" aria-label="Mobile features">
+                        <a href="{{ url_for('wallet_admin.wallet_management') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link">
+                            <div class="c-link-list__content">
+                                <i class="ti ti-wallet c-link-list__icon"></i>
+                                <span class="c-link-list__text">Apple Wallet Passes</span>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
                         </a>
-                        <a href="{{ url_for('wallet_admin.wallet_players') }}" class="list-group-item list-group-item-action">
-                            <i class="ti ti-user-cog me-2"></i>Player Eligibility
+
+                        <a href="{{ url_for('wallet_admin.wallet_players') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link">
+                            <div class="c-link-list__content">
+                                <i class="ti ti-user-cog c-link-list__icon"></i>
+                                <span class="c-link-list__text">Player Eligibility</span>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
                         </a>
+
                         {% if 'Global Admin' in user_roles %}
-                        <a href="{{ url_for('wallet_admin.wallet_config') }}" class="list-group-item list-group-item-action">
-                            <i class="ti ti-settings-2 me-2"></i>Wallet Configuration
+                        <a href="{{ url_for('wallet_admin.wallet_config') }}"
+                           class="c-link-list__item"
+                           data-action="navigate-link">
+                            <div class="c-link-list__content">
+                                <i class="ti ti-settings-2 c-link-list__icon"></i>
+                                <span class="c-link-list__text">Wallet Configuration</span>
+                            </div>
+                            <div class="c-link-list__meta">
+                                <i class="ti ti-chevron-right c-link-list__arrow"></i>
+                            </div>
                         </a>
                         {% endif %}
-                    </div>
+                    </nav>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Recent Activity -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-activity me-2"></i>Recent Admin Activity
-                    </h5>
-                    <a href="{{ url_for('admin_panel.audit_logs') }}" class="btn btn-sm btn-outline-primary">
-                        View All <i class="ti ti-arrow-right ms-1"></i>
+    <div class="c-admin-activity" data-component="admin-activity">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title">
+                    <i class="ti ti-activity c-card__title-icon"></i>
+                    <span>Recent Admin Activity</span>
+                </h5>
+                <div class="c-card__actions">
+                    <a href="{{ url_for('admin_panel.audit_logs') }}"
+                       class="c-btn c-btn--sm c-btn--outline-primary"
+                       data-action="view-all-logs">
+                        <span>View All</span>
+                        <i class="ti ti-arrow-right"></i>
                     </a>
                 </div>
-                <div class="card-body">
-                    {% if recent_actions %}
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Time</th>
-                                    <th>User</th>
-                                    <th>Action</th>
-                                    <th>Resource</th>
-                                    <th>Details</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for action in recent_actions[:5] %}
-                                <tr>
-                                    <td>
-                                        <small>{{ action.timestamp.strftime('%m/%d %H:%M') }}</small>
-                                    </td>
-                                    <td>
-                                        {% if action.user %}
-                                            {{ action.user.name or action.user.username }}
-                                        {% else %}
-                                            User {{ action.user_id }}
+            </div>
+            <div class="c-card__body">
+                {% if recent_actions %}
+                <div class="c-table-wrapper" data-component="activity-table">
+                    <table class="c-table c-table--hoverable c-table--compact">
+                        <thead class="c-table__head">
+                            <tr class="c-table__row">
+                                <th class="c-table__header">Time</th>
+                                <th class="c-table__header">User</th>
+                                <th class="c-table__header">Action</th>
+                                <th class="c-table__header">Resource</th>
+                                <th class="c-table__header">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody class="c-table__body">
+                            {% for action in recent_actions[:5] %}
+                            <tr class="c-table__row">
+                                <td class="c-table__cell" data-label="Time">
+                                    <small>{{ action.timestamp.strftime('%m/%d %H:%M') }}</small>
+                                </td>
+                                <td class="c-table__cell" data-label="User">
+                                    {% if action.user %}
+                                        {{ action.user.name or action.user.username }}
+                                    {% else %}
+                                        User {{ action.user_id }}
+                                    {% endif %}
+                                </td>
+                                <td class="c-table__cell" data-label="Action">
+                                    <span class="c-badge c-badge--{% if action.action == 'toggle' %}info{% elif action.action == 'update' %}warning{% elif action.action == 'create' %}success{% elif action.action == 'delete' %}danger{% else %}secondary{% endif %}">
+                                        {{ action.action.title() }}
+                                    </span>
+                                </td>
+                                <td class="c-table__cell" data-label="Resource">{{ action.resource_type }}</td>
+                                <td class="c-table__cell" data-label="Details">
+                                    <small>
+                                        {% if action.resource_id %}{{ action.resource_id }}{% endif %}
+                                        {% if action.old_value and action.new_value %}
+                                            <br>{{ action.old_value }} → {{ action.new_value }}
+                                        {% elif action.new_value %}
+                                            <br>Set to: {{ action.new_value }}
                                         {% endif %}
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-{% if action.action == 'toggle' %}info{% elif action.action == 'update' %}warning{% elif action.action == 'create' %}success{% elif action.action == 'delete' %}danger{% else %}secondary{% endif %}">
-                                            {{ action.action.title() }}
-                                        </span>
-                                    </td>
-                                    <td>{{ action.resource_type }}</td>
-                                    <td>
-                                        <small>
-                                            {% if action.resource_id %}{{ action.resource_id }}{% endif %}
-                                            {% if action.old_value and action.new_value %}
-                                                <br>{{ action.old_value }} → {{ action.new_value }}
-                                            {% elif action.new_value %}
-                                                <br>Set to: {{ action.new_value }}
-                                            {% endif %}
-                                        </small>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="text-center py-4">
-                        <i class="ti ti-activity" style="font-size: 3rem;"></i>
-                        <h6 class="mt-2">No recent activity</h6>
-                        <p class="small">Admin actions will appear here</p>
-                    </div>
-                    {% endif %}
+                                    </small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
+                {% else %}
+                <div class="c-empty-state" data-component="empty-state">
+                    <div class="c-empty-state__icon c-empty-state__icon--primary">
+                        <i class="ti ti-activity"></i>
+                    </div>
+                    <div class="c-empty-state__content">
+                        <h6 class="c-empty-state__title">No recent activity</h6>
+                        <p class="c-empty-state__description">Admin actions will appear here</p>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
 
     <!-- Initialize Settings Button if needed -->
     {% if stats.total_settings == 0 %}
-    <div class="row mt-3">
-        <div class="col-12">
-            <div class="alert alert-warning">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <i class="ti ti-alert-triangle me-2"></i>
+    <div class="c-admin-warning" data-component="setup-warning">
+        <div class="c-card c-card--warning">
+            <div class="c-card__body">
+                <div class="c-alert-inline c-alert-inline--warning">
+                    <div class="c-alert-inline__content">
+                        <i class="ti ti-alert-triangle c-alert-inline__icon"></i>
                         <strong>Setup Required:</strong> Admin settings have not been initialized yet.
                     </div>
-                    <form method="POST" action="{{ url_for('admin_panel.initialize_settings') }}" class="d-inline">
+                    <form method="POST"
+                          action="{{ url_for('admin_panel.initialize_settings') }}"
+                          class="c-alert-inline__action">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-warning btn-sm">
-                            <i class="ti ti-settings me-1"></i>Initialize Settings
+                        <button type="submit"
+                                class="c-btn c-btn--warning c-btn--sm"
+                                data-action="initialize-settings">
+                            <i class="ti ti-settings"></i>
+                            <span>Initialize Settings</span>
                         </button>
                     </form>
                 </div>
@@ -328,722 +499,10 @@
 
 {% block custom_css %}
 {{ super() }}
-{# Dark mode styles are now centralized in foundation-overrides.css #}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin-panel/dashboard.css') }}">
 {% endblock %}
 
 {% block custom_js %}
 {{ super() }}
-<script>
-// Feature Settings Modal Functions
-function openNavigationSettings() {
-    // Show loading modal first
-    Swal.fire({
-        title: 'Navigation Settings',
-        html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading navigation settings...</p></div>',
-        showConfirmButton: false,
-        allowOutsideClick: false
-    });
-    
-    // Fetch current navigation settings
-    fetch('{{ url_for("admin_panel.navigation_settings") }}')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const settings = data.settings;
-                const html = `
-                    <div class="text-start">
-                        <p class="text-info mb-3"><i class="ti ti-info-circle me-1"></i>Control which navigation items are visible to non-admin users. Admins can always see all navigation items.</p>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="teamsNav" ${settings.teams_navigation_enabled ? 'checked' : ''}>
-                                        <label class="form-check-label" for="teamsNav">
-                                            <strong>Teams Navigation</strong><br>
-                                            <small class="text-muted">Team rosters and management for pl-premier, pl-classic roles</small>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="storeNav" ${settings.store_navigation_enabled ? 'checked' : ''}>
-                                        <label class="form-check-label" for="storeNav">
-                                            <strong>Store Navigation</strong><br>
-                                            <small class="text-muted">League store for coaches and admins</small>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="matchesNav" ${settings.matches_navigation_enabled ? 'checked' : ''}>
-                                        <label class="form-check-label" for="matchesNav">
-                                            <strong>Matches Navigation</strong><br>
-                                            <small class="text-muted">Match schedules and results</small>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="leaguesNav" ${settings.leagues_navigation_enabled ? 'checked' : ''}>
-                                        <label class="form-check-label" for="leaguesNav">
-                                            <strong>Leagues Navigation</strong><br>
-                                            <small class="text-muted">League standings and information</small>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="draftsNav" ${settings.drafts_navigation_enabled ? 'checked' : ''}>
-                                        <label class="form-check-label" for="draftsNav">
-                                            <strong>Drafts Navigation</strong><br>
-                                            <small class="text-muted">Draft system for coaches</small>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="playersNav" ${settings.players_navigation_enabled ? 'checked' : ''}>
-                                        <label class="form-check-label" for="playersNav">
-                                            <strong>Players Navigation</strong><br>
-                                            <small class="text-muted">Player profiles and statistics</small>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="messagingNav" ${settings.messaging_navigation_enabled ? 'checked' : ''}>
-                                        <label class="form-check-label" for="messagingNav">
-                                            <strong>Messaging Navigation</strong><br>
-                                            <small class="text-muted">Communication tools</small>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="mobileFeaturesNav" ${settings.mobile_features_navigation_enabled ? 'checked' : ''}>
-                                        <label class="form-check-label" for="mobileFeaturesNav">
-                                            <strong>Mobile Features Navigation</strong><br>
-                                            <small class="text-muted">Mobile app integration</small>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                Swal.fire({
-                    title: 'Navigation Settings',
-                    html: html,
-                    width: '800px',
-                    showCancelButton: true,
-                    confirmButtonText: 'Save Settings',
-                    cancelButtonText: 'Cancel',
-                    showLoaderOnConfirm: true,
-                    preConfirm: () => {
-                        // Collect form data
-                        const formData = {
-                            teams_navigation_enabled: document.getElementById('teamsNav').checked,
-                            store_navigation_enabled: document.getElementById('storeNav').checked,
-                            matches_navigation_enabled: document.getElementById('matchesNav').checked,
-                            leagues_navigation_enabled: document.getElementById('leaguesNav').checked,
-                            drafts_navigation_enabled: document.getElementById('draftsNav').checked,
-                            players_navigation_enabled: document.getElementById('playersNav').checked,
-                            messaging_navigation_enabled: document.getElementById('messagingNav').checked,
-                            mobile_features_navigation_enabled: document.getElementById('mobileFeaturesNav').checked
-                        };
-                        
-                        return fetch('{{ url_for("admin_panel.navigation_settings") }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': '{{ csrf_token() }}'
-                            },
-                            body: JSON.stringify(formData)
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (!data.success) {
-                                throw new Error(data.message);
-                            }
-                            return data;
-                        });
-                    },
-                    allowOutsideClick: () => !Swal.isLoading()
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        Swal.fire({
-                            title: 'Settings Saved!',
-                            text: 'Navigation settings have been updated successfully. Changes will take effect immediately.',
-                            icon: 'success'
-                        }).then(() => {
-                            // Optionally reload the page to reflect changes
-                            location.reload();
-                        });
-                    }
-                });
-            } else {
-                Swal.fire('Error', data.message || 'Failed to load navigation settings', 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Navigation settings error:', error);
-            Swal.fire('Error', 'Failed to load navigation settings', 'error');
-        });
-}
-
-function openRegistrationSettings() {
-    // Show loading modal first
-    Swal.fire({
-        title: 'Registration Settings',
-        html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading registration settings...</p></div>',
-        showConfirmButton: false,
-        allowOutsideClick: false
-    });
-    
-    // Fetch current registration settings
-    fetch('{{ url_for("admin_panel.registration_settings") }}')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const settings = data.settings;
-                const roles = data.available_roles;
-                
-                // Build role options
-                const roleOptions = roles.map(role => 
-                    `<option value="${role.name}" ${settings.default_user_role === role.name ? 'selected' : ''}>${role.name}</option>`
-                ).join('');
-                
-                const html = `
-                    <div class="text-start">
-                        <p class="text-info mb-3"><i class="ti ti-info-circle me-1"></i>Configure registration settings based on your actual onboarding flow. Discord OAuth is the primary login method.</p>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h6 class="text-primary mb-3">Registration Control</h6>
-                                <div class="mb-3">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="registrationEnabled" ${settings.registration_enabled ? 'checked' : ''}>
-                                        <label class="form-check-label" for="registrationEnabled">
-                                            <strong>Allow New Registration</strong><br>
-                                            <small class="text-muted">Enable/disable new user registration</small>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="waitlistEnabled" ${settings.waitlist_registration_enabled ? 'checked' : ''}>
-                                        <label class="form-check-label" for="waitlistEnabled">
-                                            <strong>Enable Waitlist</strong><br>
-                                            <small class="text-muted">Allow waitlist registration when full</small>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="adminApproval" ${settings.admin_approval_required ? 'checked' : ''}>
-                                        <label class="form-check-label" for="adminApproval">
-                                            <strong>Admin Approval Required</strong><br>
-                                            <small class="text-muted">All new users need admin approval</small>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="discordOnly" ${settings.discord_only_login ? 'checked' : ''} disabled>
-                                        <label class="form-check-label" for="discordOnly">
-                                            <strong>Discord Only Login</strong><br>
-                                            <small class="text-muted">Only Discord OAuth allowed (FIXED)</small>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Default User Role</label>
-                                    <select class="form-select" id="defaultRole">
-                                        ${roleOptions}
-                                    </select>
-                                    <small class="text-muted">Role assigned to new registered users</small>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <h6 class="text-primary mb-3">Registration Fields</h6>
-                                <div class="mb-2">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="requireRealName" ${settings.require_real_name ? 'checked' : ''}>
-                                        <label class="form-check-label" for="requireRealName">
-                                            <strong>Require Real Name</strong>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="requireEmail" ${settings.require_email ? 'checked' : ''}>
-                                        <label class="form-check-label" for="requireEmail">
-                                            <strong>Require Email</strong>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="requirePhone" ${settings.require_phone ? 'checked' : ''}>
-                                        <label class="form-check-label" for="requirePhone">
-                                            <strong>Require Phone Number</strong>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="requireLocation" ${settings.require_location ? 'checked' : ''}>
-                                        <label class="form-check-label" for="requireLocation">
-                                            <strong>Require Location</strong>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="requireJerseySize" ${settings.require_jersey_size ? 'checked' : ''}>
-                                        <label class="form-check-label" for="requireJerseySize">
-                                            <strong>Require Jersey Size</strong>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="requirePositions" ${settings.require_position_preferences ? 'checked' : ''}>
-                                        <label class="form-check-label" for="requirePositions">
-                                            <strong>Require Position Preferences</strong>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="requireAvailability" ${settings.require_availability ? 'checked' : ''}>
-                                        <label class="form-check-label" for="requireAvailability">
-                                            <strong>Require Availability Info</strong>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="requireReferee" ${settings.require_referee_willingness ? 'checked' : ''}>
-                                        <label class="form-check-label" for="requireReferee">
-                                            <strong>Require Referee Willingness</strong>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="alert alert-info mt-3">
-                            <small><i class="ti ti-info-circle me-1"></i>These settings reflect your real onboarding form fields. Discord OAuth is your primary authentication method.</small>
-                        </div>
-                    </div>
-                `;
-                
-                Swal.fire({
-                    title: 'Registration Settings',
-                    html: html,
-                    width: '900px',
-                    showCancelButton: true,
-                    confirmButtonText: 'Save Settings',
-                    cancelButtonText: 'Cancel',
-                    showLoaderOnConfirm: true,
-                    preConfirm: () => {
-                        // Collect form data
-                        const formData = {
-                            registration_enabled: document.getElementById('registrationEnabled').checked,
-                            waitlist_registration_enabled: document.getElementById('waitlistEnabled').checked,
-                            admin_approval_required: document.getElementById('adminApproval').checked,
-                            discord_only_login: true, // Always true
-                            default_user_role: document.getElementById('defaultRole').value,
-                            require_real_name: document.getElementById('requireRealName').checked,
-                            require_email: document.getElementById('requireEmail').checked,
-                            require_phone: document.getElementById('requirePhone').checked,
-                            require_location: document.getElementById('requireLocation').checked,
-                            require_jersey_size: document.getElementById('requireJerseySize').checked,
-                            require_position_preferences: document.getElementById('requirePositions').checked,
-                            require_availability: document.getElementById('requireAvailability').checked,
-                            require_referee_willingness: document.getElementById('requireReferee').checked
-                        };
-                        
-                        return fetch('{{ url_for("admin_panel.registration_settings") }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': '{{ csrf_token() }}'
-                            },
-                            body: JSON.stringify(formData)
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (!data.success) {
-                                throw new Error(data.message);
-                            }
-                            return data;
-                        });
-                    },
-                    allowOutsideClick: () => !Swal.isLoading()
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        Swal.fire({
-                            title: 'Settings Saved!',
-                            text: 'Registration settings have been updated successfully. Changes will affect new registrations immediately.',
-                            icon: 'success'
-                        });
-                    }
-                });
-            } else {
-                Swal.fire('Error', data.message || 'Failed to load registration settings', 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Registration settings error:', error);
-            Swal.fire('Error', 'Failed to load registration settings', 'error');
-        });
-}
-
-function openTaskMonitor() {
-    // Show loading modal first
-    Swal.fire({
-        title: 'Task Monitor',
-        html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading task information...</p></div>',
-        width: '800px',
-        showConfirmButton: false,
-        allowOutsideClick: false
-    });
-    
-    // Fetch real task data
-    fetch('/admin-panel/api/task-monitor')
-        .then(response => response.json())
-        .then(data => {
-            let tasksHtml = '';
-            if (data.tasks && data.tasks.length > 0) {
-                data.tasks.forEach(task => {
-                    const statusClass = task.status === 'active' ? 'success' : 'secondary';
-                    tasksHtml += `
-                        <tr>
-                            <td>${task.name}</td>
-                            <td><span class="badge bg-${statusClass}">${task.status}</span></td>
-                            <td>${task.started || '-'}</td>
-                            <td>${task.worker || '-'}</td>
-                            <td class="text-truncate" style="max-width: 200px;">${task.args || '-'}</td>
-                        </tr>
-                    `;
-                });
-            } else {
-                tasksHtml = '<tr><td colspan="5" class="text-center text-muted">No active tasks found</td></tr>';
-            }
-            
-            const html = `
-                <div class="text-start">
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <div class="card bg-success text-white">
-                                <div class="card-body text-center">
-                                    <h4>${data.active_count || 0}</h4>
-                                    <small>Active Tasks</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card bg-warning text-white">
-                                <div class="card-body text-center">
-                                    <h4>${data.scheduled_count || 0}</h4>
-                                    <small>Scheduled Tasks</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card bg-info text-white">
-                                <div class="card-body text-center">
-                                    <h4>${data.worker_count || 0}</h4>
-                                    <small>Workers</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Task Name</th>
-                                    <th>Status</th>
-                                    <th>Started</th>
-                                    <th>Worker</th>
-                                    <th>Arguments</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${tasksHtml}
-                            </tbody>
-                        </table>
-                    </div>
-                    ${data.message ? `<div class="alert alert-info"><small>${data.message}</small></div>` : ''}
-                    <p class="text-muted mt-3"><small>Task monitoring shows real-time background processes and scheduled jobs.</small></p>
-                </div>
-            `;
-            
-            Swal.fire({
-                title: 'Task Monitor',
-                html: html,
-                width: '900px',
-                confirmButtonText: 'Close'
-            });
-        })
-        .catch(error => {
-            console.error('Error loading task monitor:', error);
-            Swal.fire('Error', 'Failed to load task monitor data', 'error');
-        });
-}
-
-function openDatabaseMonitor() {
-    // Show loading modal first
-    Swal.fire({
-        title: 'Database Monitor',
-        html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading system information...</p></div>',
-        width: '900px',
-        showConfirmButton: false,
-        allowOutsideClick: false
-    });
-    
-    // Fetch real system data
-    fetch('/admin-panel/api/system-status')
-        .then(response => response.json())
-        .then(data => {
-            const html = `
-                <div class="text-start">
-                    <div class="row mb-3">
-                        <div class="col-md-3">
-                            <div class="card bg-info text-white">
-                                <div class="card-body text-center">
-                                    <h4>${data.system.cpu_percent}%</h4>
-                                    <small>CPU Usage</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card bg-success text-white">
-                                <div class="card-body text-center">
-                                    <h4>${data.system.memory_percent}%</h4>
-                                    <small>Memory Usage</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card bg-primary text-white">
-                                <div class="card-body text-center">
-                                    <h4>${data.services.database.response_time_ms}ms</h4>
-                                    <small>DB Response Time</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card bg-${data.services.redis.status === 'online' ? 'success' : 'danger'} text-white">
-                                <div class="card-body text-center">
-                                    <h4>${data.services.redis.response_time_ms}ms</h4>
-                                    <small>Redis Response</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>System Resources</h6>
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th>Resource</th>
-                                            <th>Usage</th>
-                                            <th>Details</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>CPU</td>
-                                            <td>${data.system.cpu_percent}%</td>
-                                            <td>Multi-core system</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Memory</td>
-                                            <td>${data.system.memory_percent}%</td>
-                                            <td>${data.system.memory_used_gb}GB used</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Disk</td>
-                                            <td>${data.system.disk_percent}%</td>
-                                            <td>${data.system.disk_free_gb}GB free</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>Service Status</h6>
-                            <div class="list-group">
-                                <div class="list-group-item d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <strong>Database</strong>
-                                        <br><small class="text-muted">Response: ${data.services.database.response_time_ms}ms</small>
-                                    </div>
-                                    <span class="badge bg-success">Online</span>
-                                </div>
-                                <div class="list-group-item d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <strong>Redis Cache</strong>
-                                        <br><small class="text-muted">Response: ${data.services.redis.response_time_ms}ms</small>
-                                    </div>
-                                    <span class="badge bg-${data.services.redis.status === 'online' ? 'success' : 'danger'}">${data.services.redis.status.toUpperCase()}</span>
-                                </div>
-                                <div class="list-group-item d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <strong>Web Server</strong>
-                                        <br><small class="text-muted">Flask Application</small>
-                                    </div>
-                                    <span class="badge bg-success">Online</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <p class="text-muted mt-3"><small>Real-time system monitoring data updated at ${new Date(data.timestamp).toLocaleString()}.</small></p>
-                </div>
-            `;
-            
-            Swal.fire({
-                title: 'System Monitor',
-                html: html,
-                width: '900px',
-                confirmButtonText: 'Close'
-            });
-        })
-        .catch(error => {
-            console.error('Error loading database monitor:', error);
-            Swal.fire('Error', 'Failed to load system monitor data', 'error');
-        });
-}
-
-function openMatchReports() {
-    Swal.fire({
-        title: 'Match Reports',
-        html: `
-            <div class="text-start">
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Report Type</label>
-                        <select class="form-select" id="reportType">
-                            <option value="summary">Match Summary Report</option>
-                            <option value="detailed">Detailed Match Report</option>
-                            <option value="season">Season Summary</option>
-                            <option value="team">Team Performance</option>
-                            <option value="player">Player Statistics</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Date Range</label>
-                        <select class="form-select" id="dateRange">
-                            <option value="week">Last 7 days</option>
-                            <option value="month">Last 30 days</option>
-                            <option value="season">Current Season</option>
-                            <option value="all">All Time</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Format</label>
-                        <select class="form-select" id="reportFormat">
-                            <option value="pdf">PDF Report</option>
-                            <option value="excel">Excel Spreadsheet</option>
-                            <option value="csv">CSV Data</option>
-                            <option value="html">HTML Page</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Include</label>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="includeStats" checked>
-                            <label class="form-check-label" for="includeStats">Statistics</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="includeRSVPs" checked>
-                            <label class="form-check-label" for="includeRSVPs">RSVP Data</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="includeCharts">
-                            <label class="form-check-label" for="includeCharts">Charts & Graphs</label>
-                        </div>
-                    </div>
-                </div>
-                <div class="text-center">
-                    <button class="btn btn-primary" onclick="generateReport()">
-                        <i class="ti ti-download me-1"></i>Generate Report
-                    </button>
-                </div>
-                <div class="mt-3">
-                    <h6>Recent Reports</h6>
-                    <div class="list-group">
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <strong>Season Summary 2025</strong>
-                                <br><small class="text-muted">Generated: 2025-07-30</small>
-                            </div>
-                            <button class="btn btn-sm btn-outline-primary">Download</button>
-                        </div>
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <strong>Weekly Match Report</strong>
-                                <br><small class="text-muted">Generated: 2025-07-29</small>
-                            </div>
-                            <button class="btn btn-sm btn-outline-primary">Download</button>
-                        </div>
-                    </div>
-                </div>
-                <p class="text-muted mt-3"><small>Match reporting system generates comprehensive reports on match performance and statistics.</small></p>
-            </div>
-        `,
-        width: '700px',
-        showConfirmButton: false,
-        showCloseButton: true
-    });
-}
-
-function generateReport() {
-    const reportType = document.getElementById('reportType').value;
-    const dateRange = document.getElementById('dateRange').value;
-    const format = document.getElementById('reportFormat').value;
-    
-    Swal.fire({
-        title: 'Generating Report...',
-        text: `Creating ${reportType} report for ${dateRange} in ${format} format`,
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-            // Simulate report generation
-            setTimeout(() => {
-                Swal.fire('Report Generated!', 'Your report has been created successfully. (Feature in development)', 'success');
-            }, 2000);
-        }
-    });
-}
-
-// Add hover effects and make cards clickable
-document.addEventListener('DOMContentLoaded', function() {
-    // Make the entire card clickable for admin cards with onclick
-    const adminCards = document.querySelectorAll('.admin-card');
-    adminCards.forEach(card => {
-        card.style.cursor = 'pointer';
-    });
-    
-    // Add active state to current section
-    const currentPath = window.location.pathname;
-    const navLinks = document.querySelectorAll('.nav-pills .nav-link');
-    navLinks.forEach(link => {
-        if (currentPath.includes(link.getAttribute('href'))) {
-            link.classList.add('active');
-        }
-    });
-});
-</script>
+<script src="{{ url_for('static', filename='js/admin-panel-dashboard.js') }}"></script>
 {% endblock %}

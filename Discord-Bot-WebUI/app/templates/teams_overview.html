@@ -6,75 +6,85 @@
     <!-- Page Header -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2 class="text-primary mb-1">Teams Overview</h2>
-                    <p class="text-muted">View all teams across our leagues</p>
+            <div class="c-header-modern">
+                <div class="c-header-modern__content">
+                    <h2 class="c-header-modern__title">Teams Overview</h2>
+                    <p class="c-header-modern__subtitle">View all teams across our leagues</p>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Tabs for different leagues -->
+    <!-- Using BEM tabs-controller (not Bootstrap tabs) to avoid conflicts -->
     <div class="row mb-3">
         <div class="col-12">
-            <ul class="nav nav-pills mb-3" id="league-tabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="classic-tab" data-bs-toggle="pill" data-bs-target="#classic-teams" 
-                            type="button" role="tab" aria-controls="classic-teams" aria-selected="true">
-                        <i class="ti ti-ball-football me-1"></i>Classic Division
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="premier-tab" data-bs-toggle="pill" data-bs-target="#premier-teams" 
-                            type="button" role="tab" aria-controls="premier-teams" aria-selected="false">
-                        <i class="ti ti-trophy me-1"></i>Premier Division
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="ecsfc-tab" data-bs-toggle="pill" data-bs-target="#ecsfc-teams" 
-                            type="button" role="tab" aria-controls="ecsfc-teams" aria-selected="false">
-                        <i class="ti ti-shield me-1"></i>ECS FC Division
-                    </button>
-                </li>
-            </ul>
+            <nav class="c-nav-modern c-nav-modern--pills" data-tabs role="tablist">
+                <button class="c-nav-modern__link is-active"
+                        data-tab-trigger="classic-teams"
+                        type="button"
+                        role="tab"
+                        aria-selected="true"
+                        tabindex="0">
+                    <i class="ti ti-ball-football c-nav-modern__icon"></i>Classic Division
+                </button>
+                <button class="c-nav-modern__link"
+                        data-tab-trigger="premier-teams"
+                        type="button"
+                        role="tab"
+                        aria-selected="false"
+                        tabindex="-1">
+                    <i class="ti ti-trophy c-nav-modern__icon"></i>Premier Division
+                </button>
+                <button class="c-nav-modern__link"
+                        data-tab-trigger="ecsfc-teams"
+                        type="button"
+                        role="tab"
+                        aria-selected="false"
+                        tabindex="-1">
+                    <i class="ti ti-shield c-nav-modern__icon"></i>ECS FC Division
+                </button>
+            </nav>
         </div>
     </div>
 
     <!-- Tab Content for Teams -->
-    <div class="tab-content" id="league-tab-content">
+    <div class="c-tab-content-modern">
         <!-- Classic Division Teams -->
-        <div class="tab-pane fade show active" id="classic-teams" role="tabpanel" aria-labelledby="classic-tab">
+        <div class="c-tab-pane-modern c-settings-tab--active" id="classic-teams" data-tab-pane="classic-teams" role="tabpanel">
             <div class="row g-3">
                 {% set classic_teams = teams | selectattr("league.name", "equalto", "Classic") | list %}
                 {% if classic_teams %}
                     {% for team in classic_teams %}
                     <div class="col-xl-4 col-md-6">
-                        <div class="card h-100 team-card">
-                            <div class="card-body position-relative">
-                                <div class="d-flex align-items-center mb-3">
+                        <div class="c-card-modern c-card-modern--clickable c-card-modern--team c-card-modern--full-height" data-team-id="{{ team.id }}">
+                            <div class="c-card-modern__body">
+                                <div class="c-card-modern__header-group">
                                     {{ macros.team_avatar(team, 'md', 'bg-primary me-3') }}
-                                    <div>
-                                        <h5 class="card-title mb-0">{{ team.name }}</h5>
-                                        <p class="card-text text-muted small mb-0">
-                                            <i class="ti ti-calendar-event me-1"></i>{{ team.league.season.name }}
+                                    <div class="c-card-modern__header-info">
+                                        <h5 class="c-card-modern__title">{{ team.name }}</h5>
+                                        <p class="c-card-modern__subtitle">
+                                            <i class="ti ti-calendar-event c-icon-modern c-icon-modern--small"></i>{{ team.league.season.name }}
                                         </p>
                                     </div>
                                 </div>
-                                
-                                <div class="team-meta mb-3">
-                                    <div class="d-flex align-items-center text-muted">
-                                        <div class="me-3">
-                                            <i class="ti ti-users me-1"></i>{{ team.players | length }} Players
+
+                                <div class="c-card-modern__meta">
+                                    <div class="c-card-modern__meta-group">
+                                        <div class="c-card-modern__meta-item">
+                                            <i class="ti ti-users c-icon-modern"></i>{{ team.players | length }} Players
                                         </div>
-                                        <div>
-                                            <i class="ti ti-trophy me-1"></i>{{ team.league.name }}
+                                        <div class="c-card-modern__meta-item">
+                                            <i class="ti ti-trophy c-icon-modern"></i>{{ team.league.name }}
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <a href="{{ url_for('teams.team_details', team_id=team.id) }}" class="btn btn-primary w-100">
-                                    <i class="ti ti-eye me-1"></i>View Team
+
+                                <a href="{{ url_for('teams.team_details', team_id=team.id) }}"
+                                   class="c-btn-modern c-btn-modern--primary c-btn-modern--block"
+                                   data-action="view-team"
+                                   data-team-id="{{ team.id }}">
+                                    <i class="ti ti-eye c-btn-modern__icon"></i>View Team
                                 </a>
                             </div>
                         </div>
@@ -82,13 +92,13 @@
                     {% endfor %}
                 {% else %}
                     <div class="col-12">
-                        <div class="card">
-                            <div class="card-body text-center p-4">
-                                <div class="empty-state">
-                                    <div class="empty-state-icon mb-3">
+                        <div class="c-card-modern">
+                            <div class="c-card-modern__body c-card-modern__body--center c-card-modern__body--padded">
+                                <div class="c-empty-state-modern">
+                                    <div class="c-empty-state-modern__icon">
                                         <i class="ti ti-ball-football"></i>
                                     </div>
-                                    <p class="empty-state-message">No Classic Division teams available.</p>
+                                    <p class="c-empty-state-modern__message">No Classic Division teams available.</p>
                                 </div>
                             </div>
                         </div>
@@ -96,39 +106,42 @@
                 {% endif %}
             </div>
         </div>
-        
+
         <!-- Premier Division Teams -->
-        <div class="tab-pane fade" id="premier-teams" role="tabpanel" aria-labelledby="premier-tab">
+        <div class="c-tab-pane-modern c-settings-tab" id="premier-teams" data-tab-pane="premier-teams" role="tabpanel">
             <div class="row g-3">
                 {% set premier_teams = teams | selectattr("league.name", "equalto", "Premier") | list %}
                 {% if premier_teams %}
                     {% for team in premier_teams %}
                     <div class="col-xl-4 col-md-6">
-                        <div class="card h-100 team-card">
-                            <div class="card-body position-relative">
-                                <div class="d-flex align-items-center mb-3">
+                        <div class="c-card-modern c-card-modern--clickable c-card-modern--team c-card-modern--full-height" data-team-id="{{ team.id }}">
+                            <div class="c-card-modern__body">
+                                <div class="c-card-modern__header-group">
                                     {{ macros.team_avatar(team, 'md', 'bg-success me-3') }}
-                                    <div>
-                                        <h5 class="card-title mb-0">{{ team.name }}</h5>
-                                        <p class="card-text text-muted small mb-0">
-                                            <i class="ti ti-calendar-event me-1"></i>{{ team.league.season.name }}
+                                    <div class="c-card-modern__header-info">
+                                        <h5 class="c-card-modern__title">{{ team.name }}</h5>
+                                        <p class="c-card-modern__subtitle">
+                                            <i class="ti ti-calendar-event c-icon-modern c-icon-modern--small"></i>{{ team.league.season.name }}
                                         </p>
                                     </div>
                                 </div>
-                                
-                                <div class="team-meta mb-3">
-                                    <div class="d-flex align-items-center text-muted">
-                                        <div class="me-3">
-                                            <i class="ti ti-users me-1"></i>{{ team.players | length }} Players
+
+                                <div class="c-card-modern__meta">
+                                    <div class="c-card-modern__meta-group">
+                                        <div class="c-card-modern__meta-item">
+                                            <i class="ti ti-users c-icon-modern"></i>{{ team.players | length }} Players
                                         </div>
-                                        <div>
-                                            <i class="ti ti-trophy me-1"></i>{{ team.league.name }}
+                                        <div class="c-card-modern__meta-item">
+                                            <i class="ti ti-trophy c-icon-modern"></i>{{ team.league.name }}
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <a href="{{ url_for('teams.team_details', team_id=team.id) }}" class="btn btn-success w-100">
-                                    <i class="ti ti-eye me-1"></i>View Team
+
+                                <a href="{{ url_for('teams.team_details', team_id=team.id) }}"
+                                   class="c-btn-modern c-btn-modern--success c-btn-modern--block"
+                                   data-action="view-team"
+                                   data-team-id="{{ team.id }}">
+                                    <i class="ti ti-eye c-btn-modern__icon"></i>View Team
                                 </a>
                             </div>
                         </div>
@@ -136,13 +149,13 @@
                     {% endfor %}
                 {% else %}
                     <div class="col-12">
-                        <div class="card">
-                            <div class="card-body text-center p-4">
-                                <div class="empty-state">
-                                    <div class="empty-state-icon mb-3">
+                        <div class="c-card-modern">
+                            <div class="c-card-modern__body c-card-modern__body--center c-card-modern__body--padded">
+                                <div class="c-empty-state-modern">
+                                    <div class="c-empty-state-modern__icon">
                                         <i class="ti ti-trophy"></i>
                                     </div>
-                                    <p class="empty-state-message">No Premier Division teams available.</p>
+                                    <p class="c-empty-state-modern__message">No Premier Division teams available.</p>
                                 </div>
                             </div>
                         </div>
@@ -150,39 +163,42 @@
                 {% endif %}
             </div>
         </div>
-        
+
         <!-- ECS FC Teams -->
-        <div class="tab-pane fade" id="ecsfc-teams" role="tabpanel" aria-labelledby="ecsfc-tab">
+        <div class="c-tab-pane-modern c-settings-tab" id="ecsfc-teams" data-tab-pane="ecsfc-teams" role="tabpanel">
             <div class="row g-3">
                 {% set ecs_fc_teams = teams | selectattr("league.name", "equalto", "ECS FC") | list %}
                 {% if ecs_fc_teams %}
                     {% for team in ecs_fc_teams %}
                     <div class="col-xl-4 col-md-6">
-                        <div class="card h-100 team-card">
-                            <div class="card-body position-relative">
-                                <div class="d-flex align-items-center mb-3">
+                        <div class="c-card-modern c-card-modern--clickable c-card-modern--team c-card-modern--full-height" data-team-id="{{ team.id }}">
+                            <div class="c-card-modern__body">
+                                <div class="c-card-modern__header-group">
                                     {{ macros.team_avatar(team, 'md', 'bg-warning me-3') }}
-                                    <div>
-                                        <h5 class="card-title mb-0">{{ team.name }}</h5>
-                                        <p class="card-text text-muted small mb-0">
-                                            <i class="ti ti-calendar-event me-1"></i>{{ team.league.season.name }}
+                                    <div class="c-card-modern__header-info">
+                                        <h5 class="c-card-modern__title">{{ team.name }}</h5>
+                                        <p class="c-card-modern__subtitle">
+                                            <i class="ti ti-calendar-event c-icon-modern c-icon-modern--small"></i>{{ team.league.season.name }}
                                         </p>
                                     </div>
                                 </div>
-                                
-                                <div class="team-meta mb-3">
-                                    <div class="d-flex align-items-center text-muted">
-                                        <div class="me-3">
-                                            <i class="ti ti-users me-1"></i>{{ team.players | length }} Players
+
+                                <div class="c-card-modern__meta">
+                                    <div class="c-card-modern__meta-group">
+                                        <div class="c-card-modern__meta-item">
+                                            <i class="ti ti-users c-icon-modern"></i>{{ team.players | length }} Players
                                         </div>
-                                        <div>
-                                            <i class="ti ti-shield me-1"></i>{{ team.league.name }}
+                                        <div class="c-card-modern__meta-item">
+                                            <i class="ti ti-shield c-icon-modern"></i>{{ team.league.name }}
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <a href="{{ url_for('teams.team_details', team_id=team.id) }}" class="btn btn-warning w-100">
-                                    <i class="ti ti-eye me-1"></i>View Team
+
+                                <a href="{{ url_for('teams.team_details', team_id=team.id) }}"
+                                   class="c-btn-modern c-btn-modern--warning c-btn-modern--block"
+                                   data-action="view-team"
+                                   data-team-id="{{ team.id }}">
+                                    <i class="ti ti-eye c-btn-modern__icon"></i>View Team
                                 </a>
                             </div>
                         </div>
@@ -190,13 +206,13 @@
                     {% endfor %}
                 {% else %}
                     <div class="col-12">
-                        <div class="card">
-                            <div class="card-body text-center p-4">
-                                <div class="empty-state">
-                                    <div class="empty-state-icon mb-3">
+                        <div class="c-card-modern">
+                            <div class="c-card-modern__body c-card-modern__body--center c-card-modern__body--padded">
+                                <div class="c-empty-state-modern">
+                                    <div class="c-empty-state-modern__icon">
                                         <i class="ti ti-shield"></i>
                                     </div>
-                                    <p class="empty-state-message">No ECS FC Division teams available.</p>
+                                    <p class="c-empty-state-modern__message">No ECS FC Division teams available.</p>
                                 </div>
                             </div>
                         </div>
@@ -209,37 +225,10 @@
 {% endblock %}
 
 {% block custom_css %}
-<!-- Styles moved to /app/static/css/core/foundation-overrides.css -->
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/teams-overview.css') }}">
 {% endblock %}
 
 {% block custom_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Get saved active tab from localStorage if available
-        const activeTabId = localStorage.getItem('teamOverviewActiveTab');
-        if (activeTabId) {
-            const tabElement = document.getElementById(activeTabId);
-            if (tabElement) {
-                const tab = new bootstrap.Tab(tabElement);
-                tab.show();
-            }
-        }
-        
-        // Save active tab to localStorage when changed
-        const tabs = document.querySelectorAll('#league-tabs button');
-        tabs.forEach(function(tab) {
-            tab.addEventListener('shown.bs.tab', function(event) {
-                localStorage.setItem('teamOverviewActiveTab', event.target.id);
-            });
-        });
-        
-        // Mobile optimization - make tabs scrollable on small screens
-        if (window.innerWidth < 768) {
-            const tabContainer = document.querySelector('#league-tabs');
-            if (tabContainer) {
-                tabContainer.classList.add('overflow-auto', 'flex-nowrap');
-            }
-        }
-    });
-</script>
+<script src="{{ url_for('static', filename='custom_js/teams-overview.js') }}"></script>
 {% endblock %}

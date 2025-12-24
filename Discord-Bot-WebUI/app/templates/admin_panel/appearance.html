@@ -6,34 +6,40 @@
 <li class="breadcrumb-item active">Appearance</li>
 {% endblock %}
 
+{% block custom_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin-panel/appearance.css') }}">
+{% endblock %}
+
 {% block panel_content %}
 <div class="row">
     <div class="col-12">
         <!-- Page Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h4 class="mb-1">
-                    <i class="ti ti-palette me-2 text-primary"></i>Theme Customization
+        <div class="c-appearance-header" data-component="appearance-header">
+            <div class="c-appearance-header__content">
+                <h4 class="c-appearance-header__title">
+                    <i class="ti ti-palette c-appearance-header__icon"></i>
+                    <span>Theme Customization</span>
                 </h4>
-                <p class="text-muted mb-0">Customize colors for the Modern theme. Changes apply site-wide.</p>
+                <p class="c-appearance-header__subtitle">Customize colors for the Modern theme. Changes apply site-wide.</p>
             </div>
-            <div class="btn-group">
-                <button type="button" class="btn btn-outline-secondary" onclick="exportColors()">
-                    <i class="ti ti-download me-1"></i>Export
+            <div class="c-appearance-header__actions">
+                <button type="button" class="c-btn c-btn--outline-secondary" data-action="export-colors">
+                    <i class="ti ti-download"></i>Export
                 </button>
-                <button type="button" class="btn btn-outline-secondary" onclick="showImportModal()">
-                    <i class="ti ti-upload me-1"></i>Import
+                <button type="button" class="c-btn c-btn--outline-secondary" data-action="show-import">
+                    <i class="ti ti-upload"></i>Import
                 </button>
-                <button type="button" class="btn btn-outline-danger" onclick="resetColors()">
-                    <i class="ti ti-refresh me-1"></i>Reset to Default
+                <button type="button" class="c-btn c-btn--outline-danger" data-action="reset-colors">
+                    <i class="ti ti-refresh"></i>Reset to Default
                 </button>
             </div>
         </div>
 
         {% if has_custom_colors %}
-        <div class="alert alert-info d-flex align-items-center mb-4">
-            <i class="ti ti-info-circle me-2 fs-4"></i>
-            <div>
+        <div class="c-appearance-alert" data-component="alert">
+            <i class="ti ti-info-circle c-appearance-alert__icon"></i>
+            <div class="c-appearance-alert__content">
                 <strong>Custom colors are active.</strong>
                 These colors override the default Modern theme palette.
             </div>
@@ -41,99 +47,104 @@
         {% endif %}
 
         <!-- Live Preview Section - Full Width -->
-        <div class="card mb-4">
-            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <div class="c-theme-preview" data-component="theme-preview">
+            <div class="c-theme-preview__header">
                 <div>
-                    <h5 class="mb-0"><i class="ti ti-eye me-2 text-primary"></i>Live Preview</h5>
-                    <small class="text-muted">See your color changes in real-time for both modes</small>
+                    <h5 class="c-theme-preview__title">
+                        <i class="ti ti-eye"></i>
+                        <span>Live Preview</span>
+                    </h5>
+                    <p class="c-theme-preview__subtitle">See your color changes in real-time for both modes</p>
                 </div>
-                <div class="btn-group btn-group-sm">
-                    <button type="button" class="btn btn-outline-primary active" id="previewBothBtn" onclick="setPreviewMode('both')">Both</button>
-                    <button type="button" class="btn btn-outline-primary" id="previewLightBtn" onclick="setPreviewMode('light')">Light Only</button>
-                    <button type="button" class="btn btn-outline-primary" id="previewDarkBtn" onclick="setPreviewMode('dark')">Dark Only</button>
+                <div class="c-theme-preview__mode-toggle">
+                    <button type="button" class="c-theme-preview__mode-btn is-active" id="previewBothBtn" data-action="preview-mode" data-mode="both">Both</button>
+                    <button type="button" class="c-theme-preview__mode-btn" id="previewLightBtn" data-action="preview-mode" data-mode="light">Light Only</button>
+                    <button type="button" class="c-theme-preview__mode-btn" id="previewDarkBtn" data-action="preview-mode" data-mode="dark">Dark Only</button>
                 </div>
             </div>
-            <div class="card-body">
-                <div class="row" id="previewContainer">
+            <div class="c-theme-preview__body">
+                <div class="c-theme-preview__grid" id="previewContainer">
                     <!-- Light Mode Preview -->
-                    <div class="col-md-6 mb-3 mb-md-0" id="lightPreviewCol">
-                        <div class="border rounded">
-                            <div class="px-3 py-2 border-bottom" style="background: #F4F4F5;">
-                                <span class="badge bg-secondary">Light Mode</span>
-                            </div>
-                            <div id="light-preview-area" class="p-4" style="background: {{ colors.light.bg_body }}; min-height: 300px;">
+                    <div id="lightPreviewCol">
+                        <div class="c-theme-preview__panel" data-preview-panel="light">
+                            <span class="c-theme-preview__label" data-badge>
+                                <i class="ti ti-sun"></i>
+                                <span>Light Mode</span>
+                            </span>
+                            <div id="light-preview-area" class="light-preview-area" data-preview-bg="{{ colors.light.bg_body }}">
                                 <!-- Simulated Navbar -->
-                                <div class="rounded mb-3 p-2 d-flex justify-content-between align-items-center preview-navbar" style="background: {{ colors.light.bg_card }}; border: 1px solid {{ colors.light.border }};">
-                                    <span class="fw-bold preview-heading" style="color: {{ colors.light.text_heading }};">ECS Dashboard</span>
-                                    <input type="text" class="form-control form-control-sm preview-input" style="width: 150px; background: {{ colors.light.bg_input }}; border-color: {{ colors.light.border_input }}; color: {{ colors.light.text_body }};" placeholder="Search...">
+                                <div class="preview-navbar" data-preview-bg="{{ colors.light.bg_card }}" data-preview-border="{{ colors.light.border }}">
+                                    <span class="preview-heading" data-preview-color="{{ colors.light.text_heading }}">ECS Dashboard</span>
+                                    <input type="text" class="form-control form-control-sm preview-input" data-preview-bg="{{ colors.light.bg_input }}" data-preview-border="{{ colors.light.border_input }}" data-preview-color="{{ colors.light.text_body }}" placeholder="Search..." data-form-control>
                                 </div>
 
                                 <!-- Simulated Card -->
-                                <div class="rounded mb-3 preview-card" style="background: {{ colors.light.bg_card }}; border: 1px solid {{ colors.light.border }}; border-left: 4px solid {{ colors.light.primary }};">
-                                    <div class="p-3">
-                                        <h6 class="mb-2 preview-heading" style="color: {{ colors.light.text_heading }};">Card Title</h6>
-                                        <p class="mb-2 small preview-body" style="color: {{ colors.light.text_body }};">
-                                            This is body text showing <a href="#" class="preview-link" style="color: {{ colors.light.text_link }};">a sample link</a>.
+                                <div class="preview-card" data-preview-bg="{{ colors.light.bg_card }}" data-preview-border="{{ colors.light.border }}" data-preview-border-left="{{ colors.light.primary }}">
+                                    <div class="preview-card-content">
+                                        <h6 class="preview-heading" data-preview-color="{{ colors.light.text_heading }}">Card Title</h6>
+                                        <p class="preview-body" data-preview-color="{{ colors.light.text_body }}">
+                                            This is body text showing <a href="#" class="preview-link" data-preview-color="{{ colors.light.text_link }}">a sample link</a>.
                                         </p>
-                                        <p class="mb-0 small preview-muted" style="color: {{ colors.light.text_muted }};">Muted caption text</p>
+                                        <p class="preview-muted" data-preview-color="{{ colors.light.text_muted }}">Muted caption text</p>
                                     </div>
                                 </div>
 
                                 <!-- Buttons -->
-                                <div class="mb-3">
-                                    <button class="btn btn-sm me-1 preview-btn-primary" style="background: {{ colors.light.primary }}; border-color: {{ colors.light.primary }}; color: white;">Primary</button>
-                                    <button class="btn btn-sm me-1 preview-btn-secondary" style="background: {{ colors.light.secondary }}; border-color: {{ colors.light.secondary }}; color: white;">Secondary</button>
-                                    <button class="btn btn-sm preview-btn-accent" style="background: {{ colors.light.accent }}; border-color: {{ colors.light.accent }}; color: #18181B;">Accent</button>
+                                <div class="preview-buttons">
+                                    <button class="c-btn c-btn--sm me-1 preview-btn-primary" data-preview-bg="{{ colors.light.primary }}" data-preview-border="{{ colors.light.primary }}">Primary</button>
+                                    <button class="c-btn c-btn--sm me-1 preview-btn-secondary" data-preview-bg="{{ colors.light.secondary }}" data-preview-border="{{ colors.light.secondary }}">Secondary</button>
+                                    <button class="c-btn c-btn--sm preview-btn-accent" data-preview-bg="{{ colors.light.accent }}" data-preview-border="{{ colors.light.accent }}">Accent</button>
                                 </div>
 
                                 <!-- Status Badges -->
                                 <div>
-                                    <span class="badge me-1 preview-badge-success" style="background: {{ colors.light.success }}; color: white;">Success</span>
-                                    <span class="badge me-1 preview-badge-warning" style="background: {{ colors.light.warning }}; color: #18181B;">Warning</span>
-                                    <span class="badge me-1 preview-badge-danger" style="background: {{ colors.light.danger }}; color: white;">Danger</span>
-                                    <span class="badge preview-badge-info" style="background: {{ colors.light.info }}; color: white;">Info</span>
+                                    <span class="badge me-1 preview-badge-success" data-preview-bg="{{ colors.light.success }}" data-badge>Success</span>
+                                    <span class="badge me-1 preview-badge-warning" data-preview-bg="{{ colors.light.warning }}" data-badge>Warning</span>
+                                    <span class="badge me-1 preview-badge-danger" data-preview-bg="{{ colors.light.danger }}" data-badge>Danger</span>
+                                    <span class="badge preview-badge-info" data-preview-bg="{{ colors.light.info }}" data-badge>Info</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Dark Mode Preview -->
-                    <div class="col-md-6" id="darkPreviewCol">
-                        <div class="border rounded">
-                            <div class="px-3 py-2 border-bottom" style="background: #27272A;">
-                                <span class="badge" style="background: #3F3F46; color: #A1A1AA;">Dark Mode</span>
-                            </div>
-                            <div id="dark-preview-area" class="p-4" style="background: {{ colors.dark.bg_body }}; min-height: 300px;">
+                    <div id="darkPreviewCol">
+                        <div class="c-theme-preview__panel" data-preview-panel="dark">
+                            <span class="c-theme-preview__label" data-badge>
+                                <i class="ti ti-moon"></i>
+                                <span>Dark Mode</span>
+                            </span>
+                            <div id="dark-preview-area" class="dark-preview-area" data-preview-bg="{{ colors.dark.bg_body }}">
                                 <!-- Simulated Navbar -->
-                                <div class="rounded mb-3 p-2 d-flex justify-content-between align-items-center preview-navbar-dark" style="background: {{ colors.dark.bg_card }}; border: 1px solid {{ colors.dark.border }};">
-                                    <span class="fw-bold preview-heading-dark" style="color: {{ colors.dark.text_heading }};">ECS Dashboard</span>
-                                    <input type="text" class="form-control form-control-sm preview-input-dark" style="width: 150px; background: {{ colors.dark.bg_input }}; border-color: {{ colors.dark.border_input }}; color: {{ colors.dark.text_body }};" placeholder="Search...">
+                                <div class="preview-navbar-dark" data-preview-bg="{{ colors.dark.bg_card }}" data-preview-border="{{ colors.dark.border }}">
+                                    <span class="preview-heading-dark" data-preview-color="{{ colors.dark.text_heading }}">ECS Dashboard</span>
+                                    <input type="text" class="form-control form-control-sm preview-input-dark" data-preview-bg="{{ colors.dark.bg_input }}" data-preview-border="{{ colors.dark.border_input }}" data-preview-color="{{ colors.dark.text_body }}" placeholder="Search..." data-form-control>
                                 </div>
 
                                 <!-- Simulated Card -->
-                                <div class="rounded mb-3 preview-card-dark" style="background: {{ colors.dark.bg_card }}; border: 1px solid {{ colors.dark.border }}; border-left: 4px solid {{ colors.dark.primary }};">
-                                    <div class="p-3">
-                                        <h6 class="mb-2 preview-heading-dark" style="color: {{ colors.dark.text_heading }};">Card Title</h6>
-                                        <p class="mb-2 small preview-body-dark" style="color: {{ colors.dark.text_body }};">
-                                            This is body text showing <a href="#" class="preview-link-dark" style="color: {{ colors.dark.text_link }};">a sample link</a>.
+                                <div class="preview-card-dark" data-preview-bg="{{ colors.dark.bg_card }}" data-preview-border="{{ colors.dark.border }}" data-preview-border-left="{{ colors.dark.primary }}">
+                                    <div class="preview-card-content">
+                                        <h6 class="preview-heading-dark" data-preview-color="{{ colors.dark.text_heading }}">Card Title</h6>
+                                        <p class="preview-body-dark" data-preview-color="{{ colors.dark.text_body }}">
+                                            This is body text showing <a href="#" class="preview-link-dark" data-preview-color="{{ colors.dark.text_link }}">a sample link</a>.
                                         </p>
-                                        <p class="mb-0 small preview-muted-dark" style="color: {{ colors.dark.text_muted }};">Muted caption text</p>
+                                        <p class="preview-muted-dark" data-preview-color="{{ colors.dark.text_muted }}">Muted caption text</p>
                                     </div>
                                 </div>
 
                                 <!-- Buttons -->
-                                <div class="mb-3">
-                                    <button class="btn btn-sm me-1 preview-btn-primary-dark" style="background: {{ colors.dark.primary }}; border-color: {{ colors.dark.primary }}; color: #09090B;">Primary</button>
-                                    <button class="btn btn-sm me-1 preview-btn-secondary-dark" style="background: {{ colors.dark.secondary }}; border-color: {{ colors.dark.secondary }}; color: #09090B;">Secondary</button>
-                                    <button class="btn btn-sm preview-btn-accent-dark" style="background: {{ colors.dark.accent }}; border-color: {{ colors.dark.accent }}; color: #09090B;">Accent</button>
+                                <div class="preview-buttons">
+                                    <button class="c-btn c-btn--sm me-1 preview-btn-primary-dark" data-preview-bg="{{ colors.dark.primary }}" data-preview-border="{{ colors.dark.primary }}">Primary</button>
+                                    <button class="c-btn c-btn--sm me-1 preview-btn-secondary-dark" data-preview-bg="{{ colors.dark.secondary }}" data-preview-border="{{ colors.dark.secondary }}">Secondary</button>
+                                    <button class="c-btn c-btn--sm preview-btn-accent-dark" data-preview-bg="{{ colors.dark.accent }}" data-preview-border="{{ colors.dark.accent }}">Accent</button>
                                 </div>
 
                                 <!-- Status Badges -->
                                 <div>
-                                    <span class="badge me-1 preview-badge-success-dark" style="background: {{ colors.dark.success }}; color: #09090B;">Success</span>
-                                    <span class="badge me-1 preview-badge-warning-dark" style="background: {{ colors.dark.warning }}; color: #09090B;">Warning</span>
-                                    <span class="badge me-1 preview-badge-danger-dark" style="background: {{ colors.dark.danger }}; color: #09090B;">Danger</span>
-                                    <span class="badge preview-badge-info-dark" style="background: {{ colors.dark.info }}; color: #09090B;">Info</span>
+                                    <span class="badge me-1 preview-badge-success-dark" data-preview-bg="{{ colors.dark.success }}" data-badge>Success</span>
+                                    <span class="badge me-1 preview-badge-warning-dark" data-preview-bg="{{ colors.dark.warning }}" data-badge>Warning</span>
+                                    <span class="badge me-1 preview-badge-danger-dark" data-preview-bg="{{ colors.dark.danger }}" data-badge>Danger</span>
+                                    <span class="badge preview-badge-info-dark" data-preview-bg="{{ colors.dark.info }}" data-badge>Info</span>
                                 </div>
                             </div>
                         </div>
@@ -143,79 +154,82 @@
         </div>
 
         <!-- Color Tabs -->
-        <ul class="nav nav-tabs mb-4" role="tablist">
+        <ul class="nav nav-tabs appearance-tabs" role="tablist" data-tabs>
             <li class="nav-item">
-                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#light-mode" type="button">
-                    <i class="ti ti-sun me-1"></i>Light Mode Colors
+                <button class="nav-link appearance-tab-link active" data-bs-toggle="tab" data-bs-target="#light-mode" type="button">
+                    <i class="ti ti-sun appearance-tab-icon"></i>Light Mode Colors
                 </button>
             </li>
             <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#dark-mode" type="button">
-                    <i class="ti ti-moon me-1"></i>Dark Mode Colors
+                <button class="nav-link appearance-tab-link" data-bs-toggle="tab" data-bs-target="#dark-mode" type="button">
+                    <i class="ti ti-moon appearance-tab-icon"></i>Dark Mode Colors
                 </button>
             </li>
         </ul>
 
         <div class="tab-content">
             <!-- LIGHT MODE COLORS -->
-            <div class="tab-pane fade show active" id="light-mode">
+            <div class="tab-pane fade show active" id="light-mode" data-tab-pane>
                 <div class="row">
                     <!-- Brand Colors -->
                     <div class="col-md-6 col-xl-4 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header bg-light">
-                                <h6 class="mb-0"><i class="ti ti-brush me-2 text-primary"></i>Brand Colors</h6>
-                                <small class="text-muted">Main identity colors used throughout the site</small>
+                        <div class="c-color-category" data-component="color-category">
+                            <div class="c-color-category__header">
+                                <h6 class="c-color-category__title">
+                                    <i class="ti ti-brush c-color-category__title-icon"></i>
+                                    <span>Brand Colors</span>
+                                </h6>
+                                <small class="c-color-category__subtitle">Main identity colors used throughout the site</small>
                             </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <label class="form-label d-flex justify-content-between">
-                                        <span>Primary</span>
-                                        <span class="text-muted small">Buttons, links, active states</span>
+                            <div class="c-color-category__body">
+                                <div class="color-field-group">
+                                    <label class="form-label color-field-label">
+                                        <span class="color-field-name">Primary</span>
+                                        <span class="color-field-description">Buttons, links, active states</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="light-primary" value="{{ colors.light.primary }}">
-                                        <input type="text" class="form-control" id="light-primary-hex" value="{{ colors.light.primary }}" pattern="^#[0-9A-Fa-f]{6}$">
+                                    <div class="input-group color-picker-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color color-picker-input" id="light-primary" value="{{ colors.light.primary }}" data-form-control>
+                                        <input type="text" class="form-control color-hex-input" id="light-primary-hex" value="{{ colors.light.primary }}" pattern="^#[0-9A-Fa-f]{6}$" data-form-control>
                                     </div>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label d-flex justify-content-between">
-                                        <span>Primary Light</span>
-                                        <span class="text-muted small">Hover states, highlights</span>
+                                <div class="color-field-group">
+                                    <label class="form-label color-field-label">
+                                        <span class="color-field-name">Primary Light</span>
+                                        <span class="color-field-description">Hover states, highlights</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="light-primary_light" value="{{ colors.light.primary_light }}">
-                                        <input type="text" class="form-control" id="light-primary_light-hex" value="{{ colors.light.primary_light }}">
+                                    <div class="input-group color-picker-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color color-picker-input" id="light-primary_light" value="{{ colors.light.primary_light }}" data-form-control>
+                                        <input type="text" class="form-control color-hex-input" id="light-primary_light-hex" value="{{ colors.light.primary_light }}" data-form-control>
                                     </div>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label d-flex justify-content-between">
-                                        <span>Primary Dark</span>
-                                        <span class="text-muted small">Pressed states, emphasis</span>
+                                <div class="color-field-group">
+                                    <label class="form-label color-field-label">
+                                        <span class="color-field-name">Primary Dark</span>
+                                        <span class="color-field-description">Pressed states, emphasis</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="light-primary_dark" value="{{ colors.light.primary_dark }}">
-                                        <input type="text" class="form-control" id="light-primary_dark-hex" value="{{ colors.light.primary_dark }}">
+                                    <div class="input-group color-picker-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color color-picker-input" id="light-primary_dark" value="{{ colors.light.primary_dark }}" data-form-control>
+                                        <input type="text" class="form-control color-hex-input" id="light-primary_dark-hex" value="{{ colors.light.primary_dark }}" data-form-control>
                                     </div>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label d-flex justify-content-between">
-                                        <span>Secondary</span>
-                                        <span class="text-muted small">Secondary buttons, muted UI</span>
+                                <div class="color-field-group">
+                                    <label class="form-label color-field-label">
+                                        <span class="color-field-name">Secondary</span>
+                                        <span class="color-field-description">Secondary buttons, muted UI</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="light-secondary" value="{{ colors.light.secondary }}">
-                                        <input type="text" class="form-control" id="light-secondary-hex" value="{{ colors.light.secondary }}">
+                                    <div class="input-group color-picker-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color color-picker-input" id="light-secondary" value="{{ colors.light.secondary }}" data-form-control>
+                                        <input type="text" class="form-control color-hex-input" id="light-secondary-hex" value="{{ colors.light.secondary }}" data-form-control>
                                     </div>
                                 </div>
-                                <div class="mb-0">
-                                    <label class="form-label d-flex justify-content-between">
-                                        <span>Accent</span>
-                                        <span class="text-muted small">CTAs, highlights, badges</span>
+                                <div class="color-field-group">
+                                    <label class="form-label color-field-label">
+                                        <span class="color-field-name">Accent</span>
+                                        <span class="color-field-description">CTAs, highlights, badges</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="light-accent" value="{{ colors.light.accent }}">
-                                        <input type="text" class="form-control" id="light-accent-hex" value="{{ colors.light.accent }}">
+                                    <div class="input-group color-picker-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color color-picker-input" id="light-accent" value="{{ colors.light.accent }}" data-form-control>
+                                        <input type="text" class="form-control color-hex-input" id="light-accent-hex" value="{{ colors.light.accent }}" data-form-control>
                                     </div>
                                 </div>
                             </div>
@@ -224,20 +238,20 @@
 
                     <!-- Text Colors -->
                     <div class="col-md-6 col-xl-4 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header bg-light">
+                        <div class="c-card h-100">
+                            <div class="c-card__header bg-light">
                                 <h6 class="mb-0"><i class="ti ti-typography me-2 text-primary"></i>Text Colors</h6>
                                 <small class="text-muted">Typography and content colors</small>
                             </div>
-                            <div class="card-body">
+                            <div class="c-card__body">
                                 <div class="mb-3">
                                     <label class="form-label d-flex justify-content-between">
                                         <span>Heading Text</span>
                                         <span class="text-muted small">h1-h6, card titles</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="light-text_heading" value="{{ colors.light.text_heading }}">
-                                        <input type="text" class="form-control" id="light-text_heading-hex" value="{{ colors.light.text_heading }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="light-text_heading" value="{{ colors.light.text_heading }}" data-form-control>
+                                        <input type="text" class="form-control" id="light-text_heading-hex" value="{{ colors.light.text_heading }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -245,9 +259,9 @@
                                         <span>Body Text</span>
                                         <span class="text-muted small">Paragraphs, content</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="light-text_body" value="{{ colors.light.text_body }}">
-                                        <input type="text" class="form-control" id="light-text_body-hex" value="{{ colors.light.text_body }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="light-text_body" value="{{ colors.light.text_body }}" data-form-control>
+                                        <input type="text" class="form-control" id="light-text_body-hex" value="{{ colors.light.text_body }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -255,9 +269,9 @@
                                         <span>Muted Text</span>
                                         <span class="text-muted small">Captions, labels, hints</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="light-text_muted" value="{{ colors.light.text_muted }}">
-                                        <input type="text" class="form-control" id="light-text_muted-hex" value="{{ colors.light.text_muted }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="light-text_muted" value="{{ colors.light.text_muted }}" data-form-control>
+                                        <input type="text" class="form-control" id="light-text_muted-hex" value="{{ colors.light.text_muted }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-0">
@@ -265,9 +279,9 @@
                                         <span>Link Color</span>
                                         <span class="text-muted small">Clickable text links</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="light-text_link" value="{{ colors.light.text_link }}">
-                                        <input type="text" class="form-control" id="light-text_link-hex" value="{{ colors.light.text_link }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="light-text_link" value="{{ colors.light.text_link }}" data-form-control>
+                                        <input type="text" class="form-control" id="light-text_link-hex" value="{{ colors.light.text_link }}" data-form-control>
                                     </div>
                                 </div>
                             </div>
@@ -276,20 +290,20 @@
 
                     <!-- Status Colors -->
                     <div class="col-md-6 col-xl-4 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header bg-light">
+                        <div class="c-card h-100">
+                            <div class="c-card__header bg-light">
                                 <h6 class="mb-0"><i class="ti ti-traffic-lights me-2 text-primary"></i>Status Colors</h6>
                                 <small class="text-muted">Alerts, badges, feedback states</small>
                             </div>
-                            <div class="card-body">
+                            <div class="c-card__body">
                                 <div class="mb-3">
                                     <label class="form-label d-flex justify-content-between">
                                         <span>Success</span>
                                         <span class="text-muted small">Confirmations, completed</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="light-success" value="{{ colors.light.success }}">
-                                        <input type="text" class="form-control" id="light-success-hex" value="{{ colors.light.success }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="light-success" value="{{ colors.light.success }}" data-form-control>
+                                        <input type="text" class="form-control" id="light-success-hex" value="{{ colors.light.success }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -297,9 +311,9 @@
                                         <span>Warning</span>
                                         <span class="text-muted small">Cautions, pending states</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="light-warning" value="{{ colors.light.warning }}">
-                                        <input type="text" class="form-control" id="light-warning-hex" value="{{ colors.light.warning }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="light-warning" value="{{ colors.light.warning }}" data-form-control>
+                                        <input type="text" class="form-control" id="light-warning-hex" value="{{ colors.light.warning }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -307,9 +321,9 @@
                                         <span>Danger</span>
                                         <span class="text-muted small">Errors, destructive actions</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="light-danger" value="{{ colors.light.danger }}">
-                                        <input type="text" class="form-control" id="light-danger-hex" value="{{ colors.light.danger }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="light-danger" value="{{ colors.light.danger }}" data-form-control>
+                                        <input type="text" class="form-control" id="light-danger-hex" value="{{ colors.light.danger }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-0">
@@ -317,9 +331,9 @@
                                         <span>Info</span>
                                         <span class="text-muted small">Information, tips</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="light-info" value="{{ colors.light.info }}">
-                                        <input type="text" class="form-control" id="light-info-hex" value="{{ colors.light.info }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="light-info" value="{{ colors.light.info }}" data-form-control>
+                                        <input type="text" class="form-control" id="light-info-hex" value="{{ colors.light.info }}" data-form-control>
                                     </div>
                                 </div>
                             </div>
@@ -328,20 +342,20 @@
 
                     <!-- Background Colors -->
                     <div class="col-md-6 col-xl-4 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header bg-light">
+                        <div class="c-card h-100">
+                            <div class="c-card__header bg-light">
                                 <h6 class="mb-0"><i class="ti ti-layout me-2 text-primary"></i>Backgrounds</h6>
                                 <small class="text-muted">Page and component backgrounds</small>
                             </div>
-                            <div class="card-body">
+                            <div class="c-card__body">
                                 <div class="mb-3">
                                     <label class="form-label d-flex justify-content-between">
                                         <span>Page Background</span>
                                         <span class="text-muted small">Main body background</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="light-bg_body" value="{{ colors.light.bg_body }}">
-                                        <input type="text" class="form-control" id="light-bg_body-hex" value="{{ colors.light.bg_body }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="light-bg_body" value="{{ colors.light.bg_body }}" data-form-control>
+                                        <input type="text" class="form-control" id="light-bg_body-hex" value="{{ colors.light.bg_body }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -349,9 +363,9 @@
                                         <span>Card Background</span>
                                         <span class="text-muted small">Cards, modals, panels</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="light-bg_card" value="{{ colors.light.bg_card }}">
-                                        <input type="text" class="form-control" id="light-bg_card-hex" value="{{ colors.light.bg_card }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="light-bg_card" value="{{ colors.light.bg_card }}" data-form-control>
+                                        <input type="text" class="form-control" id="light-bg_card-hex" value="{{ colors.light.bg_card }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-0">
@@ -359,9 +373,9 @@
                                         <span>Input Background</span>
                                         <span class="text-muted small">Form fields, inputs</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="light-bg_input" value="{{ colors.light.bg_input }}">
-                                        <input type="text" class="form-control" id="light-bg_input-hex" value="{{ colors.light.bg_input }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="light-bg_input" value="{{ colors.light.bg_input }}" data-form-control>
+                                        <input type="text" class="form-control" id="light-bg_input-hex" value="{{ colors.light.bg_input }}" data-form-control>
                                     </div>
                                 </div>
                             </div>
@@ -370,20 +384,20 @@
 
                     <!-- Border Colors -->
                     <div class="col-md-6 col-xl-4 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header bg-light">
+                        <div class="c-card h-100">
+                            <div class="c-card__header bg-light">
                                 <h6 class="mb-0"><i class="ti ti-border-style me-2 text-primary"></i>Borders</h6>
                                 <small class="text-muted">Separators and outlines</small>
                             </div>
-                            <div class="card-body">
+                            <div class="c-card__body">
                                 <div class="mb-3">
                                     <label class="form-label d-flex justify-content-between">
                                         <span>Default Border</span>
                                         <span class="text-muted small">Card borders, dividers</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="light-border" value="{{ colors.light.border }}">
-                                        <input type="text" class="form-control" id="light-border-hex" value="{{ colors.light.border }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="light-border" value="{{ colors.light.border }}" data-form-control>
+                                        <input type="text" class="form-control" id="light-border-hex" value="{{ colors.light.border }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-0">
@@ -391,9 +405,9 @@
                                         <span>Input Border</span>
                                         <span class="text-muted small">Form field borders</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="light-border_input" value="{{ colors.light.border_input }}">
-                                        <input type="text" class="form-control" id="light-border_input-hex" value="{{ colors.light.border_input }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="light-border_input" value="{{ colors.light.border_input }}" data-form-control>
+                                        <input type="text" class="form-control" id="light-border_input-hex" value="{{ colors.light.border_input }}" data-form-control>
                                     </div>
                                 </div>
                             </div>
@@ -403,24 +417,24 @@
             </div>
 
             <!-- DARK MODE COLORS -->
-            <div class="tab-pane fade" id="dark-mode">
+            <div class="tab-pane fade" id="dark-mode" data-tab-pane>
                 <div class="row">
                     <!-- Brand Colors -->
                     <div class="col-md-6 col-xl-4 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header bg-light">
+                        <div class="c-card h-100">
+                            <div class="c-card__header bg-light">
                                 <h6 class="mb-0"><i class="ti ti-brush me-2 text-primary"></i>Brand Colors</h6>
                                 <small class="text-muted">Adjusted for dark mode visibility</small>
                             </div>
-                            <div class="card-body">
+                            <div class="c-card__body">
                                 <div class="mb-3">
                                     <label class="form-label d-flex justify-content-between">
                                         <span>Primary</span>
                                         <span class="text-muted small">Brighter for dark backgrounds</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="dark-primary" value="{{ colors.dark.primary }}">
-                                        <input type="text" class="form-control" id="dark-primary-hex" value="{{ colors.dark.primary }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="dark-primary" value="{{ colors.dark.primary }}" data-form-control>
+                                        <input type="text" class="form-control" id="dark-primary-hex" value="{{ colors.dark.primary }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -428,9 +442,9 @@
                                         <span>Primary Light</span>
                                         <span class="text-muted small">Hover states</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="dark-primary_light" value="{{ colors.dark.primary_light }}">
-                                        <input type="text" class="form-control" id="dark-primary_light-hex" value="{{ colors.dark.primary_light }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="dark-primary_light" value="{{ colors.dark.primary_light }}" data-form-control>
+                                        <input type="text" class="form-control" id="dark-primary_light-hex" value="{{ colors.dark.primary_light }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -438,9 +452,9 @@
                                         <span>Primary Dark</span>
                                         <span class="text-muted small">Pressed states</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="dark-primary_dark" value="{{ colors.dark.primary_dark }}">
-                                        <input type="text" class="form-control" id="dark-primary_dark-hex" value="{{ colors.dark.primary_dark }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="dark-primary_dark" value="{{ colors.dark.primary_dark }}" data-form-control>
+                                        <input type="text" class="form-control" id="dark-primary_dark-hex" value="{{ colors.dark.primary_dark }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -448,9 +462,9 @@
                                         <span>Secondary</span>
                                         <span class="text-muted small">Secondary UI elements</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="dark-secondary" value="{{ colors.dark.secondary }}">
-                                        <input type="text" class="form-control" id="dark-secondary-hex" value="{{ colors.dark.secondary }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="dark-secondary" value="{{ colors.dark.secondary }}" data-form-control>
+                                        <input type="text" class="form-control" id="dark-secondary-hex" value="{{ colors.dark.secondary }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-0">
@@ -458,9 +472,9 @@
                                         <span>Accent</span>
                                         <span class="text-muted small">CTAs, highlights</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="dark-accent" value="{{ colors.dark.accent }}">
-                                        <input type="text" class="form-control" id="dark-accent-hex" value="{{ colors.dark.accent }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="dark-accent" value="{{ colors.dark.accent }}" data-form-control>
+                                        <input type="text" class="form-control" id="dark-accent-hex" value="{{ colors.dark.accent }}" data-form-control>
                                     </div>
                                 </div>
                             </div>
@@ -469,20 +483,20 @@
 
                     <!-- Text Colors -->
                     <div class="col-md-6 col-xl-4 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header bg-light">
+                        <div class="c-card h-100">
+                            <div class="c-card__header bg-light">
                                 <h6 class="mb-0"><i class="ti ti-typography me-2 text-primary"></i>Text Colors</h6>
                                 <small class="text-muted">Light text on dark backgrounds</small>
                             </div>
-                            <div class="card-body">
+                            <div class="c-card__body">
                                 <div class="mb-3">
                                     <label class="form-label d-flex justify-content-between">
                                         <span>Heading Text</span>
                                         <span class="text-muted small">h1-h6, card titles</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="dark-text_heading" value="{{ colors.dark.text_heading }}">
-                                        <input type="text" class="form-control" id="dark-text_heading-hex" value="{{ colors.dark.text_heading }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="dark-text_heading" value="{{ colors.dark.text_heading }}" data-form-control>
+                                        <input type="text" class="form-control" id="dark-text_heading-hex" value="{{ colors.dark.text_heading }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -490,9 +504,9 @@
                                         <span>Body Text</span>
                                         <span class="text-muted small">Paragraphs, content</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="dark-text_body" value="{{ colors.dark.text_body }}">
-                                        <input type="text" class="form-control" id="dark-text_body-hex" value="{{ colors.dark.text_body }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="dark-text_body" value="{{ colors.dark.text_body }}" data-form-control>
+                                        <input type="text" class="form-control" id="dark-text_body-hex" value="{{ colors.dark.text_body }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -500,9 +514,9 @@
                                         <span>Muted Text</span>
                                         <span class="text-muted small">Captions, labels</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="dark-text_muted" value="{{ colors.dark.text_muted }}">
-                                        <input type="text" class="form-control" id="dark-text_muted-hex" value="{{ colors.dark.text_muted }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="dark-text_muted" value="{{ colors.dark.text_muted }}" data-form-control>
+                                        <input type="text" class="form-control" id="dark-text_muted-hex" value="{{ colors.dark.text_muted }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-0">
@@ -510,9 +524,9 @@
                                         <span>Link Color</span>
                                         <span class="text-muted small">Clickable text</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="dark-text_link" value="{{ colors.dark.text_link }}">
-                                        <input type="text" class="form-control" id="dark-text_link-hex" value="{{ colors.dark.text_link }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="dark-text_link" value="{{ colors.dark.text_link }}" data-form-control>
+                                        <input type="text" class="form-control" id="dark-text_link-hex" value="{{ colors.dark.text_link }}" data-form-control>
                                     </div>
                                 </div>
                             </div>
@@ -521,20 +535,20 @@
 
                     <!-- Status Colors -->
                     <div class="col-md-6 col-xl-4 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header bg-light">
+                        <div class="c-card h-100">
+                            <div class="c-card__header bg-light">
                                 <h6 class="mb-0"><i class="ti ti-traffic-lights me-2 text-primary"></i>Status Colors</h6>
                                 <small class="text-muted">Brighter for dark backgrounds</small>
                             </div>
-                            <div class="card-body">
+                            <div class="c-card__body">
                                 <div class="mb-3">
                                     <label class="form-label d-flex justify-content-between">
                                         <span>Success</span>
                                         <span class="text-muted small">Confirmations</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="dark-success" value="{{ colors.dark.success }}">
-                                        <input type="text" class="form-control" id="dark-success-hex" value="{{ colors.dark.success }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="dark-success" value="{{ colors.dark.success }}" data-form-control>
+                                        <input type="text" class="form-control" id="dark-success-hex" value="{{ colors.dark.success }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -542,9 +556,9 @@
                                         <span>Warning</span>
                                         <span class="text-muted small">Cautions</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="dark-warning" value="{{ colors.dark.warning }}">
-                                        <input type="text" class="form-control" id="dark-warning-hex" value="{{ colors.dark.warning }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="dark-warning" value="{{ colors.dark.warning }}" data-form-control>
+                                        <input type="text" class="form-control" id="dark-warning-hex" value="{{ colors.dark.warning }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -552,9 +566,9 @@
                                         <span>Danger</span>
                                         <span class="text-muted small">Errors</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="dark-danger" value="{{ colors.dark.danger }}">
-                                        <input type="text" class="form-control" id="dark-danger-hex" value="{{ colors.dark.danger }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="dark-danger" value="{{ colors.dark.danger }}" data-form-control>
+                                        <input type="text" class="form-control" id="dark-danger-hex" value="{{ colors.dark.danger }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-0">
@@ -562,9 +576,9 @@
                                         <span>Info</span>
                                         <span class="text-muted small">Information</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="dark-info" value="{{ colors.dark.info }}">
-                                        <input type="text" class="form-control" id="dark-info-hex" value="{{ colors.dark.info }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="dark-info" value="{{ colors.dark.info }}" data-form-control>
+                                        <input type="text" class="form-control" id="dark-info-hex" value="{{ colors.dark.info }}" data-form-control>
                                     </div>
                                 </div>
                             </div>
@@ -573,20 +587,20 @@
 
                     <!-- Background Colors -->
                     <div class="col-md-6 col-xl-4 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header bg-light">
+                        <div class="c-card h-100">
+                            <div class="c-card__header bg-light">
                                 <h6 class="mb-0"><i class="ti ti-layout me-2 text-primary"></i>Backgrounds</h6>
                                 <small class="text-muted">Dark mode surface colors</small>
                             </div>
-                            <div class="card-body">
+                            <div class="c-card__body">
                                 <div class="mb-3">
                                     <label class="form-label d-flex justify-content-between">
                                         <span>Page Background</span>
                                         <span class="text-muted small">Darkest layer</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="dark-bg_body" value="{{ colors.dark.bg_body }}">
-                                        <input type="text" class="form-control" id="dark-bg_body-hex" value="{{ colors.dark.bg_body }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="dark-bg_body" value="{{ colors.dark.bg_body }}" data-form-control>
+                                        <input type="text" class="form-control" id="dark-bg_body-hex" value="{{ colors.dark.bg_body }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -594,9 +608,9 @@
                                         <span>Card Background</span>
                                         <span class="text-muted small">Elevated surfaces</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="dark-bg_card" value="{{ colors.dark.bg_card }}">
-                                        <input type="text" class="form-control" id="dark-bg_card-hex" value="{{ colors.dark.bg_card }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="dark-bg_card" value="{{ colors.dark.bg_card }}" data-form-control>
+                                        <input type="text" class="form-control" id="dark-bg_card-hex" value="{{ colors.dark.bg_card }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -604,9 +618,9 @@
                                         <span>Input Background</span>
                                         <span class="text-muted small">Form fields</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="dark-bg_input" value="{{ colors.dark.bg_input }}">
-                                        <input type="text" class="form-control" id="dark-bg_input-hex" value="{{ colors.dark.bg_input }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="dark-bg_input" value="{{ colors.dark.bg_input }}" data-form-control>
+                                        <input type="text" class="form-control" id="dark-bg_input-hex" value="{{ colors.dark.bg_input }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-0">
@@ -614,9 +628,9 @@
                                         <span>Sidebar Background</span>
                                         <span class="text-muted small">Navigation panel</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="dark-bg_sidebar" value="{{ colors.dark.bg_sidebar }}">
-                                        <input type="text" class="form-control" id="dark-bg_sidebar-hex" value="{{ colors.dark.bg_sidebar }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="dark-bg_sidebar" value="{{ colors.dark.bg_sidebar }}" data-form-control>
+                                        <input type="text" class="form-control" id="dark-bg_sidebar-hex" value="{{ colors.dark.bg_sidebar }}" data-form-control>
                                     </div>
                                 </div>
                             </div>
@@ -625,20 +639,20 @@
 
                     <!-- Border Colors -->
                     <div class="col-md-6 col-xl-4 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header bg-light">
+                        <div class="c-card h-100">
+                            <div class="c-card__header bg-light">
                                 <h6 class="mb-0"><i class="ti ti-border-style me-2 text-primary"></i>Borders</h6>
                                 <small class="text-muted">Subtle separators for dark mode</small>
                             </div>
-                            <div class="card-body">
+                            <div class="c-card__body">
                                 <div class="mb-3">
                                     <label class="form-label d-flex justify-content-between">
                                         <span>Default Border</span>
                                         <span class="text-muted small">Card borders, dividers</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="dark-border" value="{{ colors.dark.border }}">
-                                        <input type="text" class="form-control" id="dark-border-hex" value="{{ colors.dark.border }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="dark-border" value="{{ colors.dark.border }}" data-form-control>
+                                        <input type="text" class="form-control" id="dark-border-hex" value="{{ colors.dark.border }}" data-form-control>
                                     </div>
                                 </div>
                                 <div class="mb-0">
@@ -646,9 +660,9 @@
                                         <span>Input Border</span>
                                         <span class="text-muted small">Form field borders</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" id="dark-border_input" value="{{ colors.dark.border_input }}">
-                                        <input type="text" class="form-control" id="dark-border_input-hex" value="{{ colors.dark.border_input }}">
+                                    <div class="input-group" data-input-group>
+                                        <input type="color" class="form-control form-control-color" id="dark-border_input" value="{{ colors.dark.border_input }}" data-form-control>
+                                        <input type="text" class="form-control" id="dark-border_input-hex" value="{{ colors.dark.border_input }}" data-form-control>
                                     </div>
                                 </div>
                             </div>
@@ -659,31 +673,32 @@
         </div>
 
         <!-- Save Button -->
-        <div class="d-flex justify-content-end mt-4">
-            <button type="button" class="btn btn-primary btn-lg" onclick="saveColors()">
-                <i class="ti ti-device-floppy me-2"></i>Save Changes
+        <div class="c-appearance-save" data-component="save-actions">
+            <button type="button" class="c-appearance-save__btn" data-action="save-colors">
+                <i class="ti ti-device-floppy"></i>
+                <span>Save Changes</span>
             </button>
         </div>
     </div>
 </div>
 
 <!-- Import Modal -->
-<div class="modal fade" id="importModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="ti ti-upload me-2"></i>Import Color Scheme</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal c-modal fade" data-modal id="importModal" tabindex="-1" aria-labelledby="importModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="importModalLabel"><i class="ti ti-upload me-2"></i>Import Color Scheme</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <div class="mb-3">
                     <label class="form-label">Paste JSON</label>
-                    <textarea class="form-control" id="importJson" rows="10" placeholder='{"light": {...}, "dark": {...}}'></textarea>
+                    <textarea class="form-control" id="importJson" rows="10" placeholder='{"light": {...}, "dark": {...}}' data-form-control></textarea>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="importColors()">Import</button>
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--primary js-import-colors" data-action="import-colors">Import</button>
             </div>
         </div>
     </div>
@@ -693,6 +708,41 @@
 {% block custom_js %}
 {{ super() }}
 <script>
+// Event delegation for appearance actions
+document.addEventListener('DOMContentLoaded', function() {
+    // Export colors
+    document.querySelectorAll('.js-export-colors').forEach(btn => {
+        btn.addEventListener('click', exportColors);
+    });
+
+    // Show import modal
+    document.querySelectorAll('.js-show-import').forEach(btn => {
+        btn.addEventListener('click', showImportModal);
+    });
+
+    // Reset colors
+    document.querySelectorAll('.js-reset-colors').forEach(btn => {
+        btn.addEventListener('click', resetColors);
+    });
+
+    // Preview mode buttons
+    document.querySelectorAll('.js-preview-mode').forEach(btn => {
+        btn.addEventListener('click', function() {
+            setPreviewMode(this.dataset.mode);
+        });
+    });
+
+    // Save colors button
+    document.querySelectorAll('.js-save-colors').forEach(btn => {
+        btn.addEventListener('click', saveColors);
+    });
+
+    // Import colors button
+    document.querySelectorAll('.js-import-colors').forEach(btn => {
+        btn.addEventListener('click', importColors);
+    });
+});
+
 // Color field definitions
 const lightColorFields = [
     'primary', 'primary_light', 'primary_dark', 'secondary', 'accent',
@@ -723,21 +773,41 @@ function setPreviewMode(mode) {
     if (mode === 'both') {
         lightCol.className = 'col-md-6 mb-3 mb-md-0';
         darkCol.className = 'col-md-6';
-        lightCol.style.display = '';
-        darkCol.style.display = '';
+        lightCol.hidden = false;
+        darkCol.hidden = false;
         bothBtn.classList.add('active');
     } else if (mode === 'light') {
         lightCol.className = 'col-12';
-        lightCol.style.display = '';
-        darkCol.style.display = 'none';
+        lightCol.hidden = false;
+        darkCol.hidden = true;
         lightBtn.classList.add('active');
     } else {
         darkCol.className = 'col-12';
-        lightCol.style.display = 'none';
-        darkCol.style.display = '';
+        lightCol.hidden = true;
+        darkCol.hidden = false;
         darkBtn.classList.add('active');
     }
 }
+
+// Initialize preview colors from data attributes
+function initializePreviewColors() {
+    // Apply colors to elements with data attributes
+    document.querySelectorAll('[data-preview-bg]').forEach(el => {
+        el.style.background = el.dataset.previewBg;
+    });
+    document.querySelectorAll('[data-preview-color]').forEach(el => {
+        el.style.color = el.dataset.previewColor;
+    });
+    document.querySelectorAll('[data-preview-border]').forEach(el => {
+        el.style.borderColor = el.dataset.previewBorder;
+    });
+    document.querySelectorAll('[data-preview-border-left]').forEach(el => {
+        el.style.borderLeftColor = el.dataset.previewBorderLeft;
+    });
+}
+
+// Call on page load
+document.addEventListener('DOMContentLoaded', initializePreviewColors);
 
 // Sync color picker with hex input
 document.querySelectorAll('input[type="color"]').forEach(picker => {
@@ -1016,7 +1086,7 @@ function exportColors() {
 }
 
 function showImportModal() {
-    new bootstrap.Modal(document.getElementById('importModal')).show();
+    ModalManager.show('importModal');
 }
 
 function importColors() {

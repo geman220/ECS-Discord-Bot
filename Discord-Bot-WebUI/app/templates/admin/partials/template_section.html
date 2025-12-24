@@ -1,5 +1,25 @@
-<div class="card border">
-    <div class="card-header py-2">
+<script>
+// Event delegation for template status toggles and edit category
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('js-toggle-template-status')) {
+        toggleTemplateStatus(e.target.dataset.templateId, e.target.checked);
+    }
+});
+
+document.addEventListener('click', function(e) {
+    const editCategoryBtn = e.target.closest('[data-action="edit-category"]');
+    if (editCategoryBtn) {
+        editCategory(
+            editCategoryBtn.dataset.id,
+            editCategoryBtn.dataset.name,
+            editCategoryBtn.dataset.description
+        );
+    }
+});
+</script>
+
+<div class="c-card border">
+    <div class="c-card__header py-2">
         <div class="d-flex justify-content-between align-items-center">
             <div>
                 <h6 class="mb-0">{{ category.name }}</h6>
@@ -8,30 +28,30 @@
                 {% endif %}
             </div>
             <div class="d-flex align-items-center gap-2">
-                <span class="badge bg-label-primary">{{ category.templates|length }} templates</span>
-                <button type="button" class="btn btn-sm btn-outline-success" 
-                        onclick="createTemplate({{ category.id }}, '{{ category.name }}')"
+                <span class="badge bg-label-primary" data-badge>{{ category.templates|length }} templates</span>
+                <button type="button" class="c-btn c-btn--sm c-btn--outline-success" 
+                        data-action="create-template" data-id="{{ category.id }}" data-name="{{ category.name }}" class="js-create-template"
                         data-bs-toggle="tooltip" title="Create New Template">
                     <i class="ti ti-plus"></i>
                 </button>
-                <button type="button" class="btn btn-sm btn-outline-primary" 
-                        onclick="editCategory({{ category.id }}, '{{ category.name }}', '{{ category.description or '' }}')"
+                <button type="button" class="c-btn c-btn--sm c-btn--outline-primary"
+                        data-action="edit-category" data-id="{{ category.id }}" data-name="{{ category.name }}" data-description="{{ category.description or '' }}" class="js-edit-category"
                         data-bs-toggle="tooltip" title="Edit Category">
                     <i class="ti ti-edit"></i>
                 </button>
             </div>
         </div>
     </div>
-    <div class="card-body p-0">
+    <div class="c-card__body p-0">
         {% if category.templates %}
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
+        <div class="c-table-wrapper" data-table-responsive>
+            <table class="c-table c-table--hoverable mb-0" data-table>
+                <thead class="c-table--light" scope="col">
                     <tr>
-                        <th>Template</th>
-                        <th>Context</th>
-                        <th>Status</th>
-                        <th>Actions</th>
+                        <th scope="col">Template</th>
+                        <th scope="col">Context</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -85,10 +105,10 @@
                         </td>
                         <td>
                             <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" 
-                                       id="template_{{ template.id }}_active" 
-                                       {{ 'checked' if template.is_active else '' }}
-                                       onchange="toggleTemplateStatus({{ template.id }}, this.checked)">
+                                <input class="form-check-input js-toggle-template-status" type="checkbox"
+                                       id="template_{{ template.id }}_active"
+                                       data-template-id="{{ template.id }}"
+                                       {{ 'checked' if template.is_active else '' }}>
                                 <label class="form-check-label" for="template_{{ template.id }}_active">
                                     <small class="text-muted">{{ 'Active' if template.is_active else 'Inactive' }}</small>
                                 </label>
@@ -96,18 +116,18 @@
                         </td>
                         <td>
                             <div class="d-flex gap-1">
-                                <button type="button" class="btn btn-sm btn-icon btn-outline-primary" 
-                                        onclick="editTemplate({{ template.id }})" 
+                                <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-primary" 
+                                        data-action="edit-template" data-id="{{ template.id }}" class="js-edit-template" 
                                         data-bs-toggle="tooltip" title="Edit">
                                     <i class="ti ti-edit"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-icon btn-outline-info" 
-                                        onclick="previewTemplate({{ template.id }})" 
+                                <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-info" 
+                                        data-action="preview-template" data-id="{{ template.id }}" class="js-preview-template" 
                                         data-bs-toggle="tooltip" title="Preview">
                                     <i class="ti ti-eye"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-icon btn-outline-secondary" 
-                                        onclick="copyTemplate({{ template.id }})" 
+                                <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary" 
+                                        data-action="copy-template" data-id="{{ template.id }}" class="js-copy-template" 
                                         data-bs-toggle="tooltip" title="Copy">
                                     <i class="ti ti-copy"></i>
                                 </button>
@@ -120,10 +140,10 @@
         </div>
         {% else %}
         <div class="text-center py-4">
-            <i class="ti ti-message-plus text-muted" style="font-size: 2rem;"></i>
+            <i class="ti ti-message-plus text-muted" class="u-icon-xl"></i>
             <p class="text-muted mb-2 mt-2">No templates in this category</p>
-            <button type="button" class="btn btn-sm btn-outline-success" 
-                    onclick="createTemplate({{ category.id }}, '{{ category.name }}')">
+            <button type="button" class="c-btn c-btn--sm c-btn--outline-success" 
+                    data-action="create-template" data-id="{{ category.id }}" data-name="{{ category.name }}" class="js-create-template">
                 <i class="ti ti-plus me-1"></i>Create First Template
             </button>
         </div>

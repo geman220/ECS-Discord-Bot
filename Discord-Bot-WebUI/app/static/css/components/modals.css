@@ -1,0 +1,1114 @@
+/**
+ * ============================================================================
+ * ECS MODAL COMPONENT
+ * ============================================================================
+ *
+ * Complete modal system with backdrop, animations, sizes, and variants.
+ * Replaces inline modal styles and provides consistent modal UX.
+ *
+ * Structure:
+ *   1. Base Modal Styles
+ *   2. Modal Backdrop
+ *   3. Modal Dialog (Positioning Container)
+ *   4. Modal Content (The actual modal box)
+ *   5. Modal Header
+ *   6. Modal Body
+ *   7. Modal Footer
+ *   8. Modal Sizes
+ *   9. Modal Variants (Colored Headers)
+ *   10. Modal Animations
+ *   11. Scrollable Modals
+ *   12. Stacked Modals
+ *   13. Close Button Styling
+ *   14. Mobile Optimizations
+ *   15. Dark Mode Support
+ *   16. Accessibility Features
+ *
+ * Usage:
+ *   <div class="modal fade" id="myModal" tabindex="-1" aria-hidden="true">
+ *     <div class="modal-dialog modal-dialog-centered">
+ *       <div class="modal-content">
+ *         <div class="modal-header">
+ *           <h5 class="modal-title">Title</h5>
+ *           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+ *         </div>
+ *         <div class="modal-body">Content</div>
+ *         <div class="modal-footer">
+ *           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+ *           <button type="button" class="btn btn-primary">Save</button>
+ *         </div>
+ *       </div>
+ *     </div>
+ *   </div>
+ *
+ * Replaces:
+ *   - draft_enhanced.html (lines 533-595): Inline modal styles with !important overrides
+ *   - player_profile.html: Inconsistent modal styling
+ *   - Inline style="background-color: var(--ecs-neutral-100)..."
+ *   - Inline style="color: var(...) !important"
+ *   - Inline style="border-bottom: 1px solid ..."
+ *   - Inline style="filter: invert(1)" on close buttons
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. BASE MODAL STYLES
+   The root modal container (full viewport overlay)
+   ============================================================================ */
+
+.modal {
+  /* Position & Layout */
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: var(--z-modal);
+  width: 100%;
+  height: 100%;
+
+  /* Display */
+  display: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  /* Interaction */
+  outline: 0;
+
+  /* Prevent body scroll when modal is open (set by JS) */
+  overscroll-behavior: contain;
+}
+
+/* When modal is shown */
+.modal.show {
+  display: block;
+}
+
+/* When modal is in the process of appearing */
+.modal.fade {
+  opacity: 0;
+  transition: opacity var(--duration-modal) var(--ease-smooth);
+}
+
+.modal.fade.show {
+  opacity: 1;
+}
+
+/* ============================================================================
+   2. MODAL BACKDROP
+   Semi-transparent overlay behind modal
+   ============================================================================ */
+
+.modal-backdrop {
+  /* Position & Layout */
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: var(--z-modal-backdrop);
+  width: 100vw;
+  height: 100vh;
+
+  /* Visual */
+  background-color: var(--color-bg-overlay);
+
+  /* Animation */
+  opacity: 0;
+  transition: opacity var(--duration-modal) var(--ease-smooth);
+}
+
+.modal-backdrop.show {
+  opacity: 1;
+}
+
+/* Fade animation for backdrop */
+.modal-backdrop.fade {
+  opacity: 0;
+}
+
+.modal-backdrop.fade.show {
+  opacity: 1;
+}
+
+/* Dark mode backdrop adjustment - already handled by --color-bg-overlay token */
+/* The token automatically adjusts from rgba(0, 0, 0, 0.5) to rgba(0, 0, 0, 0.7) in dark mode */
+
+/* ============================================================================
+   3. MODAL DIALOG
+   Positioning container that centers the modal
+   ============================================================================ */
+
+.modal-dialog {
+  /* Position */
+  position: relative;
+  width: auto;
+  margin: var(--space-3);
+
+  /* Prevent click propagation */
+  pointer-events: none;
+
+  /* Animation - slide down and scale up */
+  transition: transform var(--duration-modal) var(--ease-smooth);
+}
+
+/* When modal is fading in */
+.modal.fade .modal-dialog {
+  transform: translateY(-50px) scale(0.95);
+}
+
+.modal.show .modal-dialog {
+  transform: translateY(0) scale(1);
+}
+
+/* Vertically centered modal */
+.modal-dialog-centered {
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - (var(--space-3) * 2));
+}
+
+/* Scrollable modal (when content is tall) */
+.modal-dialog-scrollable {
+  height: calc(100% - (var(--space-3) * 2));
+}
+
+.modal-dialog-scrollable .modal-content {
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.modal-dialog-scrollable .modal-body {
+  overflow-y: auto;
+}
+
+/* ============================================================================
+   4. MODAL CONTENT
+   The actual modal box (has background, border, shadow)
+   ============================================================================ */
+
+.modal-content {
+  /* Position */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+
+  /* Re-enable pointer events */
+  pointer-events: auto;
+
+  /* Visual - Light Mode Defaults with explicit fallbacks */
+  background-color: #ffffff;
+  background: var(--color-bg-card, #ffffff);
+  background-clip: padding-box;
+  border: 1px solid var(--border-color-primary, #e4e4e7);
+  border-radius: var(--radius-lg, 0.5rem);
+  box-shadow: var(--shadow-xl, 0 4px 6px rgba(0, 0, 0, 0.1), 0 20px 25px rgba(0, 0, 0, 0.1));
+
+  /* Color */
+  color: var(--color-text-primary, #18181b);
+
+  /* Layout */
+  outline: 0;
+}
+
+/* Remove inline style overrides - provide proper base styling */
+.modal-content.ecs-modal,
+.modal-content.dark-mode-applied {
+  background-color: var(--color-bg-card);
+  color: var(--color-text-primary);
+}
+
+/* ============================================================================
+   5. MODAL HEADER
+   Title bar with close button
+   ============================================================================ */
+
+.modal-header {
+  /* Layout */
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+
+  /* Spacing */
+  padding: var(--space-modal-padding, 1.25rem);
+
+  /* Visual */
+  border-bottom: 1px solid var(--border-color-primary, #e4e4e7);
+  border-top-left-radius: calc(var(--radius-lg, 0.5rem) - 1px);
+  border-top-right-radius: calc(var(--radius-lg, 0.5rem) - 1px);
+
+  /* Color - explicit solid background */
+  background-color: #ffffff;
+  background: var(--color-bg-card, #ffffff);
+  color: var(--color-text-primary, #18181b);
+}
+
+/* Remove inline overrides */
+.modal-header.ecs-modal-header {
+  background-color: var(--color-bg-card);
+  color: var(--color-text-primary);
+  border-bottom: var(--border-width) solid var(--border-color-primary);
+}
+
+/* Modal title */
+.modal-title {
+  /* Typography */
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-normal);
+  color: var(--color-text-primary);
+}
+
+/* Remove inline title overrides */
+.modal-title.ecs-modal-title {
+  color: var(--color-text-primary);
+}
+
+/* Icon in title */
+.modal-title i,
+.modal-title .ti {
+  color: var(--color-text-secondary);
+  margin-right: var(--space-2);
+}
+
+/* ============================================================================
+   6. MODAL BODY
+   Main content area
+   ============================================================================ */
+
+.modal-body {
+  /* Position */
+  position: relative;
+  flex: 1 1 auto;
+
+  /* Spacing */
+  padding: var(--space-modal-padding, 1.25rem);
+
+  /* Color - explicit solid background */
+  background-color: #ffffff;
+  background: var(--color-bg-card, #ffffff);
+  color: var(--color-text-primary, #18181b);
+}
+
+/* Remove inline overrides */
+.modal-body.ecs-modal-body {
+  background-color: var(--color-bg-card);
+  color: var(--color-text-primary);
+}
+
+/* When modal body needs no padding (e.g., for full-width content) */
+.modal-body.p-0 {
+  padding: 0;
+}
+
+/* Scrollable body in scrollable modal */
+.modal-dialog-scrollable .modal-body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Text within modal body */
+.modal-body p:last-child {
+  margin-bottom: 0;
+}
+
+/* Loading states in modal body */
+.modal-body .spinner-border {
+  color: var(--color-primary);
+}
+
+.modal-body .text-muted {
+  color: var(--color-text-muted);
+}
+
+/* ============================================================================
+   7. MODAL FOOTER
+   Action buttons area
+   ============================================================================ */
+
+.modal-footer {
+  /* Layout */
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2, 0.5rem);
+
+  /* Spacing */
+  padding: var(--space-modal-padding, 1.25rem);
+
+  /* Visual */
+  border-top: 1px solid var(--border-color-primary, #e4e4e7);
+  border-bottom-left-radius: calc(var(--radius-lg, 0.5rem) - 1px);
+  border-bottom-right-radius: calc(var(--radius-lg, 0.5rem) - 1px);
+
+  /* Color - explicit solid background */
+  background-color: #fafafa;
+  background: var(--color-bg-secondary, #fafafa);
+
+  /* Stacking - ensure footer is above scrollable modal body content */
+  position: relative;
+  z-index: 10;
+}
+
+/* Remove inline overrides */
+.modal-footer.ecs-modal-footer {
+  background-color: var(--color-bg-card);
+  border-top: var(--border-width) solid var(--border-color-primary);
+}
+
+/* Buttons in footer */
+.modal-footer > * {
+  margin: 0;
+}
+
+/* Auto-spacing for older Bootstrap patterns */
+.modal-footer > :not(:first-child) {
+  margin-left: 0;
+}
+
+/* ============================================================================
+   8. MODAL SIZES
+   Different width options for modals
+   ============================================================================ */
+
+/* Small modal */
+.modal-sm {
+  max-width: 400px;
+}
+
+/* Default/Medium modal */
+.modal-dialog {
+  max-width: 600px;
+}
+
+/* Large modal */
+.modal-lg {
+  max-width: 900px;
+}
+
+/* Extra large modal */
+.modal-xl {
+  max-width: 1200px;
+}
+
+/* Full screen modal */
+.modal-fullscreen {
+  width: 100vw;
+  max-width: none;
+  height: 100%;
+  margin: 0;
+}
+
+.modal-fullscreen .modal-content {
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+}
+
+/* Responsive fullscreen modals */
+@media (max-width: 576px) {
+  .modal-fullscreen-sm-down {
+    width: 100vw;
+    max-width: none;
+    height: 100%;
+    margin: 0;
+  }
+
+  .modal-fullscreen-sm-down .modal-content {
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .modal-fullscreen-md-down {
+    width: 100vw;
+    max-width: none;
+    height: 100%;
+    margin: 0;
+  }
+
+  .modal-fullscreen-md-down .modal-content {
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+  }
+}
+
+/* ============================================================================
+   9. MODAL VARIANTS
+   Colored header variants for different modal types
+   ============================================================================ */
+
+/* Primary variant */
+.modal-primary .modal-header {
+  background-color: var(--color-primary-600);
+  border-color: var(--color-primary-700);
+  color: white;
+}
+
+.modal-primary .modal-title,
+.modal-primary .modal-header i {
+  color: white;
+}
+
+/* Success variant */
+.modal-success .modal-header {
+  background-color: var(--color-success-600);
+  border-color: var(--color-success-700);
+  color: white;
+}
+
+.modal-success .modal-title,
+.modal-success .modal-header i {
+  color: white;
+}
+
+/* Danger variant */
+.modal-danger .modal-header {
+  background-color: var(--color-danger-600);
+  border-color: var(--color-danger-700);
+  color: white;
+}
+
+.modal-danger .modal-title,
+.modal-danger .modal-header i {
+  color: white;
+}
+
+/* Warning variant */
+.modal-warning .modal-header {
+  background-color: var(--color-warning-600);
+  border-color: var(--color-warning-700);
+  color: var(--color-neutral-900);
+}
+
+.modal-warning .modal-title,
+.modal-warning .modal-header i {
+  color: var(--color-neutral-900);
+}
+
+/* Info variant */
+.modal-info .modal-header {
+  background-color: var(--color-info-600);
+  border-color: var(--color-info-700);
+  color: white;
+}
+
+.modal-info .modal-title,
+.modal-info .modal-header i {
+  color: white;
+}
+
+/* ============================================================================
+   10. MODAL ANIMATIONS
+   Enhanced entrance and exit animations
+   ============================================================================ */
+
+/* Scale animation variant */
+.modal.fade.modal-scale .modal-dialog {
+  transform: scale(0.9);
+}
+
+.modal.show.modal-scale .modal-dialog {
+  transform: scale(1);
+}
+
+/* Slide up animation variant */
+.modal.fade.modal-slide-up .modal-dialog {
+  transform: translateY(100px);
+}
+
+.modal.show.modal-slide-up .modal-dialog {
+  transform: translateY(0);
+}
+
+/* Slide from right animation variant */
+.modal.fade.modal-slide-right .modal-dialog {
+  transform: translateX(100px);
+}
+
+.modal.show.modal-slide-right .modal-dialog {
+  transform: translateX(0);
+}
+
+/* ============================================================================
+   11. SCROLLABLE MODALS
+   Handle overflow content gracefully
+   ============================================================================ */
+
+/* When modal content is taller than viewport */
+.modal-dialog-scrollable {
+  display: flex;
+  max-height: calc(100% - (var(--space-3) * 2));
+}
+
+.modal-dialog-scrollable .modal-content {
+  max-height: calc(100vh - (var(--space-3) * 2));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-dialog-scrollable .modal-header,
+.modal-dialog-scrollable .modal-footer {
+  flex-shrink: 0;
+}
+
+.modal-dialog-scrollable .modal-body {
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+
+/* Custom scrollbar styling for modal body */
+.modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background-color: var(--color-neutral-100);
+  border-radius: var(--radius-full);
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background-color: var(--color-neutral-400);
+  border-radius: var(--radius-full);
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-neutral-500);
+}
+
+/* Firefox scrollbar */
+.modal-body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-neutral-400) var(--color-neutral-100);
+}
+
+/* ============================================================================
+   12. STACKED MODALS
+   Support for modal-on-modal scenarios
+   ============================================================================ */
+
+/* Increase z-index for stacked modals */
+.modal.show ~ .modal.show {
+  z-index: calc(var(--z-modal) + 10);
+}
+
+.modal.show ~ .modal.show .modal-backdrop {
+  z-index: calc(var(--z-modal-backdrop) + 10);
+}
+
+/* Adjust backdrop opacity for stacked modals */
+.modal-backdrop + .modal-backdrop {
+  opacity: 0.6;
+}
+
+/* ============================================================================
+   13. CLOSE BUTTON STYLING
+   Accessible and properly styled close button
+   ============================================================================ */
+
+.btn-close {
+  /* Layout */
+  box-sizing: content-box;
+  width: 1em;
+  height: 1em;
+  padding: var(--space-1);
+
+  /* Visual - Using mask for theme-aware icon color */
+  background-color: currentColor;
+  color: var(--color-text-primary);
+  -webkit-mask: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath d='M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707a1 1 0 010-1.414z'/%3e%3c/svg%3e") center/1em auto no-repeat;
+  mask: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath d='M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707a1 1 0 010-1.414z'/%3e%3c/svg%3e") center/1em auto no-repeat;
+  border: 0;
+  border-radius: var(--radius-sm);
+  opacity: 0.5;
+
+  /* Interaction */
+  cursor: pointer;
+  transition: opacity var(--duration-fast) var(--ease-smooth);
+}
+
+.btn-close:hover {
+  opacity: 0.75;
+}
+
+.btn-close:focus {
+  outline: 0;
+  opacity: 1;
+  box-shadow: var(--shadow-focus);
+}
+
+/* Remove inline filter overrides - No longer needed with mask approach */
+.btn-close.ecs-modal-close {
+  /* Intentionally empty - kept for backwards compatibility */
+}
+
+/* White close button variant (for colored headers) */
+.btn-close-white {
+  color: white;
+}
+
+/* Close button in colored header variants */
+.modal-primary .btn-close,
+.modal-success .btn-close,
+.modal-danger .btn-close,
+.modal-info .btn-close {
+  color: white;
+}
+
+/* Disabled state */
+.btn-close:disabled,
+.btn-close.disabled {
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.25;
+}
+
+/* ============================================================================
+   14. MOBILE OPTIMIZATIONS
+   Responsive behavior for small screens
+   ============================================================================ */
+
+@media (max-width: 576px) {
+  /* Reduce spacing on mobile */
+  .modal-dialog {
+    margin: var(--space-2);
+  }
+
+  .modal-dialog-centered {
+    min-height: calc(100% - (var(--space-2) * 2));
+  }
+
+  /* Reduce padding */
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: var(--space-4);
+  }
+
+  /* Smaller title on mobile */
+  .modal-title {
+    font-size: var(--text-base);
+  }
+
+  /* Stack footer buttons vertically on mobile */
+  .modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modal-footer > * {
+    width: 100%;
+  }
+
+  /* Full width for small modals on mobile */
+  .modal-sm {
+    max-width: 100%;
+  }
+}
+
+/* Minimum touch target size for mobile */
+@media (max-width: 768px) {
+  .btn-close {
+    width: 1.5em;
+    height: 1.5em;
+    padding: var(--space-2);
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 576px) {
+  .modal-dialog {
+    margin: var(--space-6) auto;
+  }
+
+  .modal-dialog-centered {
+    min-height: calc(100% - (var(--space-6) * 2));
+  }
+
+  .modal-dialog-scrollable {
+    max-height: calc(100% - (var(--space-6) * 2));
+  }
+
+  .modal-dialog-scrollable .modal-content {
+    max-height: calc(100vh - (var(--space-6) * 2));
+  }
+}
+
+/* Desktop adjustments */
+@media (min-width: 992px) {
+  .modal-dialog {
+    margin: var(--space-8) auto;
+  }
+
+  .modal-dialog-centered {
+    min-height: calc(100% - (var(--space-8) * 2));
+  }
+
+  .modal-lg,
+  .modal-xl {
+    max-width: 900px;
+  }
+
+  .modal-xl {
+    max-width: 1200px;
+  }
+}
+
+/* ============================================================================
+   15. DARK MODE SUPPORT
+   Proper dark mode styling for all modal components
+   IMPORTANT: Uses !important with hardcoded colors to ensure solid backgrounds
+   ============================================================================ */
+
+/* Dark mode modal styles - slate palette with !important */
+[data-style="dark"] .modal-content {
+  background-color: #334155 !important; /* Slate-800 */
+  background: #334155 !important;
+  border-color: #475569 !important; /* Slate-700 */
+  color: #fafafa !important;
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.3),
+    0 20px 25px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Extra specificity for stubborn cases (slate palette) */
+html[data-style="dark"] .modal-content,
+[data-style="dark"] .modal .modal-content,
+[data-style="dark"] .modal-dialog .modal-content {
+  background-color: #334155 !important; /* Slate-800 */
+  background: #334155 !important;
+}
+
+[data-style="dark"] .modal-header {
+  background-color: #334155 !important; /* Slate-800 */
+  background: #334155 !important;
+  border-color: #475569 !important; /* Slate-700 */
+  color: #fafafa !important;
+}
+
+[data-style="dark"] .modal-title {
+  color: #fafafa !important;
+}
+
+[data-style="dark"] .modal-body {
+  background-color: #334155 !important; /* Slate-800 */
+  background: #334155 !important;
+  color: #E2E8F0 !important; /* Slate-200 */
+}
+
+[data-style="dark"] .modal-footer {
+  /* Slightly darker than body for visual hierarchy */
+  background-color: #1E293B !important; /* Slate-900 */
+  background: #1E293B !important;
+  border-color: #475569 !important; /* Slate-700 */
+  /* Ensure footer stays above scrollable content */
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* Extra specificity for modal footer background - prevents content bleed-through */
+html[data-style="dark"] .modal .modal-footer,
+html[data-style="dark"] .modal-dialog .modal-footer,
+[data-style="dark"] .modal-content > .modal-footer {
+  background-color: #1E293B !important; /* Slate-900 */
+  background: #1E293B !important;
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* Override Bootstrap utility classes in dark mode (slate palette) */
+[data-style="dark"] .modal-footer.bg-light {
+  background-color: #1E293B !important; /* Slate-900 */
+  background: #1E293B !important;
+}
+
+[data-style="dark"] .modal-header.bg-light {
+  background-color: #334155 !important; /* Slate-800 */
+  background: #334155 !important;
+}
+
+/* Card headers inside modals in dark mode (slate palette) */
+[data-style="dark"] .modal .card-header.bg-light {
+  background-color: #1E293B !important; /* Slate-900 */
+  background: #1E293B !important;
+  border-color: #475569 !important; /* Slate-700 */
+}
+
+[data-style="dark"] .modal .card {
+  background-color: #334155 !important; /* Slate-800 */
+  background: #334155 !important;
+  border-color: #475569 !important; /* Slate-700 */
+}
+
+[data-style="dark"] .modal .card-body {
+  background-color: #334155 !important; /* Slate-800 */
+  background: #334155 !important;
+}
+
+/* Form elements inside modals in dark mode (slate palette) */
+[data-style="dark"] .modal .form-control,
+[data-style="dark"] .modal .form-select {
+  background-color: #1E293B !important; /* Slate-900 */
+  background: #1E293B !important;
+  border-color: #475569 !important; /* Slate-700 */
+  color: #fafafa !important;
+}
+
+[data-style="dark"] .modal .form-control:focus,
+[data-style="dark"] .modal .form-select:focus {
+  background-color: #1E293B !important; /* Slate-900 */
+  background: #1E293B !important;
+  border-color: #60A5FA !important;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2) !important;
+}
+
+[data-style="dark"] .modal .form-control::placeholder {
+  color: #94A3B8 !important; /* Slate-400 */
+}
+
+[data-style="dark"] .modal .input-group-text {
+  background-color: #1E293B; /* Slate-900 */
+  border-color: #475569; /* Slate-700 */
+  color: #CBD5E1; /* Slate-300 */
+}
+
+[data-style="dark"] .modal .form-label {
+  color: #E2E8F0; /* Slate-200 */
+}
+
+[data-style="dark"] .modal .form-check-label {
+  color: #E2E8F0; /* Slate-200 */
+}
+
+/* Dark mode text adjustments (slate palette) */
+[data-style="dark"] .modal-body .text-muted {
+  color: #94A3B8; /* Slate-400 */
+}
+
+[data-style="dark"] .modal-title i,
+[data-style="dark"] .modal-title .ti {
+  color: #60A5FA; /* Primary light for icons */
+}
+
+/* Dark mode close button */
+[data-style="dark"] .btn-close {
+  color: #E2E8F0; /* Slate-200 */
+  filter: invert(1) brightness(0.8);
+}
+
+/* Dark mode scrollbar (slate palette) */
+[data-style="dark"] .modal-body::-webkit-scrollbar-track {
+  background-color: #475569; /* Slate-700 */
+}
+
+[data-style="dark"] .modal-body::-webkit-scrollbar-thumb {
+  background-color: #64748B; /* Slate-500 */
+}
+
+[data-style="dark"] .modal-body::-webkit-scrollbar-thumb:hover {
+  background-color: #94A3B8; /* Slate-400 */
+}
+
+[data-style="dark"] .modal-body {
+  scrollbar-color: #64748B #475569; /* Slate-500 / Slate-700 */
+}
+
+/* Colored headers remain the same in dark mode */
+[data-style="dark"] .modal-primary .modal-header,
+[data-style="dark"] .modal-success .modal-header,
+[data-style="dark"] .modal-danger .modal-header,
+[data-style="dark"] .modal-info .modal-header {
+  /* Keep variant colors in dark mode */
+  color: white;
+}
+
+[data-style="dark"] .modal-warning .modal-header {
+  color: var(--color-neutral-900);
+}
+
+/* ============================================================================
+   16. ACCESSIBILITY FEATURES
+   Focus management and ARIA support
+   ============================================================================ */
+
+/* Focus trap - ensure modal receives focus */
+.modal[tabindex="-1"]:focus {
+  outline: 0;
+}
+
+/* Visible focus indicator for keyboard navigation */
+.modal-content:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+/* Screen reader text for close button */
+.btn-close .visually-hidden,
+.btn-close .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Ensure proper focus order */
+.modal-header {
+  position: relative;
+}
+
+.modal-header .btn-close {
+  position: relative;
+  margin-left: auto;
+}
+
+/* Focus styles for interactive elements within modal */
+.modal-body a:focus-visible,
+.modal-body button:focus-visible,
+.modal-body input:focus-visible,
+.modal-body select:focus-visible,
+.modal-body textarea:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+   17. UTILITY CLASSES
+   Helper classes for common modal patterns
+   ============================================================================ */
+
+/* Remove modal body padding */
+.modal-body-flush {
+  padding: 0;
+}
+
+/* Add dividers between modal sections */
+.modal-body-divided {
+  border-top: var(--border-width) solid var(--border-color-primary);
+  border-bottom: var(--border-width) solid var(--border-color-primary);
+}
+
+/* Center content in modal body */
+.modal-body-centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+/* Loading state for modal */
+.modal-loading {
+  pointer-events: none;
+}
+
+.modal-loading .modal-content {
+  opacity: 0.6;
+}
+
+/* Success/Error states in modal */
+.modal-body .alert:first-child {
+  margin-top: 0;
+}
+
+.modal-body .alert:last-child {
+  margin-bottom: 0;
+}
+
+/* ============================================================================
+   18. LEGACY COMPATIBILITY
+   Support for old class names and patterns
+   ============================================================================ */
+
+/* Support legacy .ecs-modal classes */
+.ecs-modal .modal-content,
+.dark-mode-applied .modal-content {
+  /* Already styled by base classes */
+}
+
+/* Remove all inline style overrides */
+.modal-content[style*="background-color"],
+.modal-header[style*="background-color"],
+.modal-body[style*="background-color"],
+.modal-footer[style*="background-color"],
+.modal-title[style*="color"],
+.btn-close[style*="filter"] {
+  /* Inline styles will be overridden by CSS specificity */
+  /* Use !important only when absolutely necessary for migration */
+}
+
+/* ============================================================================
+   19. PRINT STYLES
+   Hide modals when printing
+   ============================================================================ */
+
+@media print {
+  /**
+   * Force hide modals and backdrops when printing
+   * !important is acceptable here as print styles are a special context
+   * that should always override regular styles
+   */
+  .modal,
+  .modal-backdrop {
+    display: none !important;
+  }
+}
+
+/* ============================================================================
+   20. REDUCED MOTION
+   Respect user's motion preferences
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .modal.fade .modal-dialog,
+  .modal-backdrop.fade {
+    transition: none;
+    animation: none;
+  }
+
+  .modal.fade .modal-dialog {
+    transform: none;
+  }
+}
+
+/* ============================================================================
+   MIGRATION NOTES
+   ============================================================================
+
+   Replace inline patterns with classes:
+
+   OLD (draft_enhanced.html):
+   <div class="modal-content" style="background-color: var(--ecs-neutral-100);">
+   <div class="modal-header" style="background-color: var(--ecs-neutral-90) !important;">
+   <button class="btn-close" style="filter: invert(1) !important;">
+
+   NEW:
+   <div class="modal-content">
+   <div class="modal-header">
+   <button class="btn-close">
+
+   For colored headers, use variant classes:
+   <div class="modal fade modal-primary">
+   <div class="modal fade modal-success">
+   <div class="modal fade modal-danger">
+
+   For custom close button on colored headers:
+   <button type="button" class="btn-close btn-close-white">
+
+   For centered modals:
+   <div class="modal-dialog modal-dialog-centered">
+
+   For large modals:
+   <div class="modal-dialog modal-lg">
+
+   ============================================================================
+ */

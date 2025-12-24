@@ -9,45 +9,115 @@
 <li class="breadcrumb-item active">Team Management</li>
 {% endblock %}
 
+{% block custom_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/c-tabs.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/match-operations/seasons.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/match-operations/manage-teams.css') }}">
+{% endblock %}
+
 {% block panel_content %}
 
-<!-- Season Info and Filters -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center flex-wrap">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-filter me-2"></i>Filter Teams
-                    </h5>
-                    <span class="badge bg-info">
-                        <i class="ti ti-calendar me-1"></i>{{ stats.current_season }}
-                    </span>
-                </div>
+<!-- Statistics Cards -->
+<div class="c-stats-grid" data-component="stats-grid">
+    <div class="c-stat-card c-stat-card--primary">
+        <div class="c-stat-card__content">
+            <div class="c-stat-card__body">
+                <h5 class="c-stat-card__value">{{ stats.total_teams or 0 }}</h5>
+                <p class="c-stat-card__label">Total Teams</p>
             </div>
-            <div class="card-body">
-                <form method="GET" class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label">League / Division</label>
-                        <select name="league_id" class="form-select">
-                            <option value="">All Leagues (Premier, Classic, ECS FC)</option>
+            <i class="ti ti-shield c-stat-card__icon"></i>
+        </div>
+    </div>
+    <div class="c-stat-card c-stat-card--success">
+        <div class="c-stat-card__content">
+            <div class="c-stat-card__body">
+                <h5 class="c-stat-card__value">{{ stats.active_teams or 0 }}</h5>
+                <p class="c-stat-card__label">Active Teams</p>
+            </div>
+            <i class="ti ti-shield-check c-stat-card__icon"></i>
+        </div>
+    </div>
+    <div class="c-stat-card c-stat-card--warning">
+        <div class="c-stat-card__content">
+            <div class="c-stat-card__body">
+                <h5 class="c-stat-card__value">{{ stats.teams_with_players or 0 }}</h5>
+                <p class="c-stat-card__label">With Players</p>
+            </div>
+            <i class="ti ti-users c-stat-card__icon"></i>
+        </div>
+    </div>
+    <div class="c-stat-card c-stat-card--info">
+        <div class="c-stat-card__content">
+            <div class="c-stat-card__body">
+                <h5 class="c-stat-card__value">{{ stats.teams_by_league|length or 0 }}</h5>
+                <p class="c-stat-card__label">Leagues</p>
+            </div>
+            <i class="ti ti-flag c-stat-card__icon"></i>
+        </div>
+    </div>
+</div>
+
+<!-- League Type Tabs -->
+<div class="c-panel-section">
+    <div class="c-card">
+        <div class="c-card__header c-card__header--action">
+            <h5 class="c-card__title">
+                <i class="ti ti-filter"></i>
+                Filter Teams
+            </h5>
+            <span class="c-badge c-badge--info">
+                <i class="ti ti-calendar"></i>{{ stats.current_season }}
+            </span>
+        </div>
+        <div class="c-card__body">
+            <!-- League Type Tabs -->
+            <div class="c-tabs mb-4" data-component="league-type-tabs">
+                <a href="{{ url_for('admin_panel.manage_teams') }}"
+                   class="c-tabs__link {% if not current_league_type %}c-tabs__link--active{% endif %}">
+                    <i class="ti ti-list"></i>
+                    All Teams
+                    <span class="c-badge c-badge--secondary ms-2">{{ stats.total_teams }}</span>
+                </a>
+                <a href="{{ url_for('admin_panel.manage_teams', league_type='Pub League') }}"
+                   class="c-tabs__link {% if current_league_type == 'Pub League' %}c-tabs__link--active{% endif %}">
+                    <i class="ti ti-trophy"></i>
+                    Pub League
+                    <span class="c-badge c-badge--primary ms-2">{{ stats.teams_by_league_type.get('Pub League', 0) }}</span>
+                </a>
+                <a href="{{ url_for('admin_panel.manage_teams', league_type='ECS FC') }}"
+                   class="c-tabs__link {% if current_league_type == 'ECS FC' %}c-tabs__link--active{% endif %}">
+                    <i class="ti ti-shirt-sport"></i>
+                    ECS FC
+                    <span class="c-badge c-badge--success ms-2">{{ stats.teams_by_league_type.get('ECS FC', 0) }}</span>
+                </a>
+            </div>
+
+            <!-- Additional Filters -->
+            <div class="c-filter-form" data-component="filter-form">
+                <form method="GET" class="c-filter-form__form">
+                    {% if current_league_type %}
+                    <input type="hidden" name="league_type" value="{{ current_league_type }}">
+                    {% endif %}
+                    <div class="c-filter-form__group">
+                        <label class="c-filter-form__label">Division / League</label>
+                        <select name="league_id" class="c-filter-form__select" data-filter="league">
+                            <option value="">All Divisions</option>
                             {% for league in leagues %}
                             <option value="{{ league.id }}" {% if current_league_id == league.id %}selected{% endif %}>
                                 {{ league.name }}
+                                {% if league.season %}({{ league.season.league_type }}){% endif %}
                             </option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">&nbsp;</label>
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="ti ti-search me-1"></i>Filter
-                            </button>
-                            <a href="{{ url_for('admin_panel.manage_teams') }}" class="btn btn-outline-secondary">
-                                <i class="ti ti-x me-1"></i>Clear
-                            </a>
-                        </div>
+                    <div class="c-filter-form__actions">
+                        <button type="submit" class="c-btn c-btn--primary" data-action="apply-filter">
+                            <i class="ti ti-search"></i>Filter
+                        </button>
+                        <a href="{{ url_for('admin_panel.manage_teams') }}" class="c-btn c-btn--outline-secondary" data-action="clear-filter">
+                            <i class="ti ti-x"></i>Clear
+                        </a>
                     </div>
                 </form>
             </div>
@@ -55,91 +125,24 @@
     </div>
 </div>
 
-<!-- Statistics Cards -->
-<div class="row mb-4">
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.total_teams or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Total Teams</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-shield" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.active_teams or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Active Teams</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-shield-check" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.teams_with_players or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">With Players</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-users" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.teams_by_league|length or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Leagues</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-flag" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Teams by League -->
 {% if stats.teams_by_league %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-flag me-2"></i>Teams by League
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    {% for league_name, team_count in stats.teams_by_league.items() %}
-                    <div class="col-md-3 mb-2">
-                        <div class="d-flex justify-content-between p-2 border rounded">
-                            <span>{{ league_name }}</span>
-                            <span class="badge bg-primary">{{ team_count }}</span>
-                        </div>
-                    </div>
-                    {% endfor %}
+<div class="c-panel-section">
+    <div class="c-card">
+        <div class="c-card__header">
+            <h5 class="c-card__title">
+                <i class="ti ti-flag"></i>
+                Teams by League
+            </h5>
+        </div>
+        <div class="c-card__body">
+            <div class="c-league-breakdown" data-component="league-breakdown">
+                {% for league_name, team_count in stats.teams_by_league.items() %}
+                <div class="c-league-breakdown__item" data-league="{{ league_name }}">
+                    <span class="c-league-breakdown__name">{{ league_name }}</span>
+                    <span class="c-badge c-badge--primary">{{ team_count }}</span>
                 </div>
+                {% endfor %}
             </div>
         </div>
     </div>
@@ -147,114 +150,117 @@
 {% endif %}
 
 <!-- Teams Table -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
-                        <i class="ti ti-shield me-2"></i>All Teams
-                    </h5>
-                    <button class="btn btn-primary btn-sm" onclick="createTeam()">
-                        <i class="ti ti-plus me-1"></i>Create Team
-                    </button>
-                </div>
-            </div>
-            <div class="card-body">
-                {% if teams %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Team Name</th>
-                                <th>League</th>
-                                <th>Players</th>
-                                <th>Matches</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for team in teams %}
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="team-logo me-2">
-                                            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
-                                                <span class="text-white fw-bold">{{ team.name[0] if team.name else 'T' }}</span>
-                                            </div>
-                                        </div>
-                                        <strong>{{ team.name }}</strong>
+<div class="c-panel-section">
+    <div class="c-card">
+        <div class="c-card__header c-card__header--action">
+            <h5 class="c-card__title">
+                <i class="ti ti-shield"></i>
+                All Teams
+            </h5>
+            <button class="c-btn c-btn--primary c-btn--sm" data-action="create-team">
+                <i class="ti ti-plus"></i>Create Team
+            </button>
+        </div>
+        <div class="c-card__body">
+            {% if teams %}
+            <div class="c-table-responsive">
+                <table class="c-table">
+                    <thead class="c-table__head">
+                        <tr>
+                            <th class="c-table__header">Team Name</th>
+                            <th class="c-table__header">Type</th>
+                            <th class="c-table__header">League / Division</th>
+                            <th class="c-table__header">Players</th>
+                            <th class="c-table__header">Status</th>
+                            <th class="c-table__header">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="c-table__body">
+                        {% for team in teams %}
+                        <tr class="c-table__row">
+                            <td class="c-table__cell">
+                                <div class="c-team-name" data-component="team-name">
+                                    <div class="c-team-avatar">
+                                        <span class="c-team-avatar__initial">{{ team.name[0] if team.name else 'T' }}</span>
                                     </div>
-                                </td>
-                                <td>
-                                    {% if team.league %}
-                                        <span class="badge bg-info">{{ team.league.name }}</span>
+                                    <strong>{{ team.name }}</strong>
+                                </div>
+                            </td>
+                            <td class="c-table__cell">
+                                {% if team.league and team.league.season %}
+                                    {% if team.league.season.league_type == 'ECS FC' %}
+                                        <span class="c-badge c-badge--success">
+                                            <i class="ti ti-shirt-sport me-1"></i>ECS FC
+                                        </span>
                                     {% else %}
-                                        <span class="text-muted">No League</span>
+                                        <span class="c-badge c-badge--primary">
+                                            <i class="ti ti-trophy me-1"></i>Pub League
+                                        </span>
                                     {% endif %}
-                                </td>
-                                <td>
-                                    {% if team.players %}
-                                        <span class="badge bg-success">{{ team.players|length }}</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">0</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="badge bg-primary">0</span> <!-- Will be calculated -->
-                                </td>
-                                <td>
-                                    {% if team.is_active %}
-                                        <span class="badge bg-success">Active</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">Inactive</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-info" onclick="viewTeam({{ team.id }})">
-                                            <i class="ti ti-eye"></i>
-                                        </button>
-                                        <button class="btn btn-outline-warning" onclick="editTeam({{ team.id }})">
-                                            <i class="ti ti-edit"></i>
-                                        </button>
-                                        <button class="btn btn-outline-success" onclick="manageRoster({{ team.id }})">
-                                            <i class="ti ti-users"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="text-center py-5">
-                    <i class="ti ti-shield-off text-muted" style="font-size: 4rem;"></i>
-                    <h5 class="text-muted mt-3">No Teams Found</h5>
-                    <p class="text-muted">Create your first team to get started.</p>
-                    <button class="btn btn-primary" onclick="createTeam()">
-                        <i class="ti ti-plus me-1"></i>Create Team
-                    </button>
-                </div>
-                {% endif %}
+                                {% else %}
+                                    <span class="c-badge c-badge--secondary">Unknown</span>
+                                {% endif %}
+                            </td>
+                            <td class="c-table__cell">
+                                {% if team.league %}
+                                    <span class="c-badge c-badge--info">{{ team.league.name }}</span>
+                                {% else %}
+                                    <span class="c-text-muted">No League</span>
+                                {% endif %}
+                            </td>
+                            <td class="c-table__cell">
+                                {% if team.players %}
+                                    <span class="c-badge c-badge--success">{{ team.players|length }}</span>
+                                {% else %}
+                                    <span class="c-badge c-badge--secondary">0</span>
+                                {% endif %}
+                            </td>
+                            <td class="c-table__cell">
+                                {% if team.is_active %}
+                                    <span class="c-badge c-badge--success">Active</span>
+                                {% else %}
+                                    <span class="c-badge c-badge--secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="c-table__cell">
+                                <div class="c-btn-group">
+                                    <button class="c-btn c-btn--icon c-btn--outline-info" data-action="view-team" data-team-id="{{ team.id }}" aria-label="View team">
+                                        <i class="ti ti-eye"></i>
+                                    </button>
+                                    <button class="c-btn c-btn--icon c-btn--outline-warning" data-action="edit-team" data-team-id="{{ team.id }}" aria-label="Edit team">
+                                        <i class="ti ti-edit"></i>
+                                    </button>
+                                    <button class="c-btn c-btn--icon c-btn--outline-info" data-action="manage-roster" data-team-id="{{ team.id }}" aria-label="Manage roster">
+                                        <i class="ti ti-users"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
+            {% else %}
+            <div class="c-empty-state" data-component="empty-state">
+                <i class="ti ti-shield-off c-empty-state__icon"></i>
+                <h5 class="c-empty-state__title">No Teams Found</h5>
+                <p class="c-empty-state__text">Create your first team to get started.</p>
+                <button class="c-btn c-btn--primary" data-action="create-team">
+                    <i class="ti ti-plus"></i>Create Team
+                </button>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
-<!-- Quick Actions -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="alert alert-info">
-            <div class="d-flex align-items-center">
-                <i class="ti ti-info-circle me-2"></i>
-                <div>
-                    <strong>Team Management:</strong> 
-                    Manage all teams in your system. Create teams, assign them to leagues, and manage player rosters.
-                </div>
-            </div>
+<!-- Help Alert -->
+<div class="c-panel-section">
+    <div class="c-alert c-alert--info">
+        <i class="ti ti-info-circle c-alert__icon"></i>
+        <div class="c-alert__content">
+            <strong>Team Management:</strong>
+            Manage all teams in your system. Create teams, assign them to leagues, and manage player rosters.
         </div>
     </div>
 </div>
@@ -262,7 +268,40 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
+// Helper function to get CSRF token
+function getCSRFToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
+}
+
+// Event delegation for team management actions
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        const teamId = target.dataset.teamId;
+
+        switch(action) {
+            case 'create-team':
+                createTeam();
+                break;
+            case 'view-team':
+                viewTeam(teamId);
+                break;
+            case 'edit-team':
+                editTeam(teamId);
+                break;
+            case 'manage-roster':
+                manageRoster(teamId);
+                break;
+        }
+    });
+});
+
 function createTeam() {
     Swal.fire({
         title: 'Create New Team',
@@ -273,13 +312,16 @@ function createTeam() {
                     <input type="text" id="teamName" class="form-control" placeholder="e.g., FC United">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">League</label>
+                    <label class="form-label">League / Division</label>
                     <select id="teamLeagueId" class="form-select">
-                        <option value="">No League</option>
+                        <option value="">-- Select League --</option>
                         {% for league in leagues %}
-                        <option value="{{ league.id }}">{{ league.name }}</option>
+                        <option value="{{ league.id }}">
+                            {{ league.name }}{% if league.season %} ({{ league.season.league_type }}){% endif %}
+                        </option>
                         {% endfor %}
                     </select>
+                    <small class="form-text text-muted">Select an ECS FC or Pub League division</small>
                 </div>
             </div>
         `,
@@ -307,6 +349,9 @@ function createTeam() {
 
             fetch('{{ url_for("admin_panel.create_team") }}', {
                 method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCSRFToken()
+                },
                 body: formData
             })
             .then(response => response.json())
@@ -403,6 +448,9 @@ function editTeam(teamId) {
 
                         fetch(`/admin-panel/match-operations/teams/${teamId}/update`, {
                             method: 'POST',
+                            headers: {
+                                'X-CSRFToken': getCSRFToken()
+                            },
                             body: formData
                         })
                         .then(response => response.json())
@@ -437,7 +485,10 @@ function deleteTeam(teamId, teamName) {
     }).then((result) => {
         if (result.isConfirmed) {
             fetch(`/admin-panel/match-operations/teams/${teamId}/delete`, {
-                method: 'POST'
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCSRFToken()
+                }
             })
             .then(response => response.json())
             .then(data => {
@@ -457,8 +508,4 @@ function manageRoster(teamId) {
     window.location.href = `{{ url_for('admin_panel.team_rosters') }}?team_id=${teamId}`;
 }
 </script>
-{% endblock %}
-
-{% block custom_css %}
-{{ super() }}
 {% endblock %}

@@ -13,8 +13,8 @@
     <!-- Match Information Card -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-body">
+            <div class="c-card">
+                <div class="c-card__body">
                     <div class="row">
                         <div class="col-md-8">
                             <div class="d-flex align-items-center mb-3">
@@ -26,11 +26,11 @@
                                 <div>
                                     <h3 class="mb-1">{{ match.team.name }} vs {{ match.opponent_name }}</h3>
                                     <div class="text-muted">
-                                        <span class="badge bg-success me-2">ECS FC</span>
-                                        <span class="badge {{ 'bg-success' if match.is_home_match else 'bg-primary' }} me-2">
+                                        <span class="badge bg-success me-2" data-badge>ECS FC</span>
+                                        <span class="badge {{ 'bg-success' if match.is_home_match else 'bg-primary' }} me-2" data-badge>
                                             {{ 'Home' if match.is_home_match else 'Away' }} Match
                                         </span>
-                                        <span class="badge bg-label-{{ 'success' if match.status == 'COMPLETED' else 'warning' if match.status == 'SCHEDULED' else 'danger' }}">
+                                        <span class="badge bg-label-{{ 'success' if match.status == 'COMPLETED' else 'warning' if match.status == 'SCHEDULED' else 'danger' }}" data-badge>
                                             {{ match.status }}
                                         </span>
                                     </div>
@@ -39,10 +39,10 @@
                         </div>
                         <div class="col-md-4 text-md-end">
                             <div class="btn-group" role="group">
-                                <button type="button" class="btn btn-primary btn-sm" onclick="sendReminder()">
+                                <button type="button" class="c-btn c-btn--primary c-btn--sm" data-action="send-reminder" class="js-send-reminder">
                                     <i class="ti ti-bell me-1"></i>Send Reminder
                                 </button>
-                                <a href="{{ url_for('ecs_fc.match_details', match_id=match.id) }}" class="btn btn-outline-secondary btn-sm">
+                                <a href="{{ url_for('ecs_fc.match_details', match_id=match.id) }}" class="c-btn c-btn--outline-secondary c-btn--sm">
                                     <i class="ti ti-eye me-1"></i>View Match
                                 </a>
                             </div>
@@ -101,8 +101,8 @@
     <!-- RSVP Summary Cards -->
     <div class="row mb-4">
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card text-center">
-                <div class="card-body">
+            <div class="c-card text-center">
+                <div class="c-card__body">
                     <div class="avatar avatar-md mx-auto mb-2">
                         <div class="avatar-initial rounded-circle bg-label-success">
                             <i class="ti ti-check"></i>
@@ -114,8 +114,8 @@
             </div>
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card text-center">
-                <div class="card-body">
+            <div class="c-card text-center">
+                <div class="c-card__body">
                     <div class="avatar avatar-md mx-auto mb-2">
                         <div class="avatar-initial rounded-circle bg-label-danger">
                             <i class="ti ti-x"></i>
@@ -127,8 +127,8 @@
             </div>
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card text-center">
-                <div class="card-body">
+            <div class="c-card text-center">
+                <div class="c-card__body">
                     <div class="avatar avatar-md mx-auto mb-2">
                         <div class="avatar-initial rounded-circle bg-label-warning">
                             <i class="ti ti-help"></i>
@@ -140,8 +140,8 @@
             </div>
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card text-center">
-                <div class="card-body">
+            <div class="c-card text-center">
+                <div class="c-card__body">
                     <div class="avatar avatar-md mx-auto mb-2">
                         <div class="avatar-initial rounded-circle bg-label-secondary">
                             <i class="ti ti-clock"></i>
@@ -155,28 +155,28 @@
     </div>
 
     <!-- Player RSVP Management Table -->
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="c-card">
+        <div class="c-card__header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Player RSVP Management</h5>
             <div class="btn-group btn-group-sm" role="group">
-                <button type="button" class="btn btn-outline-primary" onclick="filterResponses('all')" id="filter-all">All</button>
-                <button type="button" class="btn btn-outline-success" onclick="filterResponses('yes')" id="filter-yes">Available</button>
-                <button type="button" class="btn btn-outline-danger" onclick="filterResponses('no')" id="filter-no">Unavailable</button>
-                <button type="button" class="btn btn-outline-warning" onclick="filterResponses('maybe')" id="filter-maybe">Maybe</button>
-                <button type="button" class="btn btn-outline-secondary" onclick="filterResponses('no_response')" id="filter-no_response">No Response</button>
+                <button type="button" class="c-btn c-btn--outline-primary" data-action="filter-responses" data-value="all" class="js-filter-responses" id="filter-all">All</button>
+                <button type="button" class="c-btn c-btn--outline-success" data-action="filter-responses" data-value="yes" class="js-filter-responses" id="filter-yes">Available</button>
+                <button type="button" class="c-btn c-btn--outline-danger" data-action="filter-responses" data-value="no" class="js-filter-responses" id="filter-no">Unavailable</button>
+                <button type="button" class="c-btn c-btn--outline-warning" data-action="filter-responses" data-value="maybe" class="js-filter-responses" id="filter-maybe">Maybe</button>
+                <button type="button" class="c-btn c-btn--outline-secondary" data-action="filter-responses" data-value="no_response" class="js-filter-responses" id="filter-no_response">No Response</button>
             </div>
         </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table id="rsvpTable" class="table table-hover">
-                    <thead>
+        <div class="c-card__body">
+            <div class="c-table-wrapper" data-table-responsive>
+                <table id="rsvpTable" class="c-table c-table--hoverable" data-table>
+                    <thead scope="col">
                         <tr>
-                            <th>Player</th>
-                            <th>Contact</th>
-                            <th>Response</th>
-                            <th>Response Time</th>
-                            <th>Notes</th>
-                            <th>Actions</th>
+                            <th scope="col">Player</th>
+                            <th scope="col">Contact</th>
+                            <th scope="col">Response</th>
+                            <th scope="col">Response Time</th>
+                            <th scope="col">Notes</th>
+                            <th scope="col">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -221,11 +221,11 @@
                             </td>
                             <td>
                                 {% if availability %}
-                                <span class="badge {% if availability.response == 'yes' %}bg-success{% elif availability.response == 'no' %}bg-danger{% elif availability.response == 'maybe' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                <span class="badge {% if availability.response == 'yes' %}bg-success{% elif availability.response == 'no' %}bg-danger{% elif availability.response == 'maybe' %}bg-warning{% else %}bg-secondary{% endif %}" data-badge>
                                     {% if availability.response == 'yes' %}Available{% elif availability.response == 'no' %}Unavailable{% elif availability.response == 'maybe' %}Maybe{% else %}No Response{% endif %}
                                 </span>
                                 {% else %}
-                                <span class="badge bg-secondary">No Response</span>
+                                <span class="badge bg-secondary" data-badge>No Response</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -244,17 +244,17 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm" role="group">
-                                    <button type="button" class="btn btn-outline-success btn-sm" onclick="updatePlayerRsvp({{ player.id }}, 'yes')" title="Mark Available">
+                                    <button type="button" class="c-btn c-btn--outline-success c-btn--sm" data-action="update-player-rsvp" data-id="{{ player.id }}" data-name="yes" class="js-update-player-rsvp" title="Mark Available">
                                         <i class="ti ti-check"></i>
                                     </button>
-                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="updatePlayerRsvp({{ player.id }}, 'no')" title="Mark Unavailable">
+                                    <button type="button" class="c-btn c-btn--outline-danger c-btn--sm" data-action="update-player-rsvp" data-id="{{ player.id }}" data-name="no" class="js-update-player-rsvp" title="Mark Unavailable">
                                         <i class="ti ti-x"></i>
                                     </button>
-                                    <button type="button" class="btn btn-outline-warning btn-sm" onclick="updatePlayerRsvp({{ player.id }}, 'maybe')" title="Mark Maybe">
+                                    <button type="button" class="c-btn c-btn--outline-warning c-btn--sm" data-action="update-player-rsvp" data-id="{{ player.id }}" data-name="maybe" class="js-update-player-rsvp" title="Mark Maybe">
                                         <i class="ti ti-help"></i>
                                     </button>
                                     {% if player.discord_id %}
-                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="sendIndividualReminder({{ player.id }})" title="Send Individual Reminder">
+                                    <button type="button" class="c-btn c-btn--outline-primary c-btn--sm" data-action="send-individual-reminder" data-id="{{ player.id }}" class="js-send-individual-reminder" title="Send Individual Reminder">
                                         <i class="ti ti-bell"></i>
                                     </button>
                                     {% endif %}
@@ -270,23 +270,23 @@
 </div>
 
 <!-- Update RSVP Modal -->
-<div class="modal fade" id="updateRsvpModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Update Player RSVP</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal c-modal fade" data-modal id="updateRsvpModal" tabindex="-1" aria-hidden="true" aria-labelledby="updateRsvpModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="updateRsvpModalLabel">Update Player RSVP</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <p>Are you sure you want to update <strong id="playerName"></strong>'s RSVP to <strong id="responseType"></strong>?</p>
                 <div class="mb-3">
                     <label for="adminNotes" class="form-label">Admin Notes (Optional)</label>
-                    <textarea class="form-control" id="adminNotes" rows="3" placeholder="Add any notes about this RSVP change..."></textarea>
+                    <textarea class="form-control" id="adminNotes" rows="3" placeholder="Add any notes about this RSVP change..." data-form-control></textarea>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="confirmUpdate">Update RSVP</button>
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--primary" id="confirmUpdate">Update RSVP</button>
             </div>
         </div>
     </div>
@@ -294,6 +294,7 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
 let currentPlayerId = null;
 let currentResponse = null;
@@ -340,8 +341,7 @@ function updatePlayerRsvp(playerId, response) {
     document.getElementById('adminNotes').value = '';
     
     // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('updateRsvpModal'));
-    modal.show();
+    ModalManager.show('updateRsvpModal');
 }
 
 function sendReminder() {

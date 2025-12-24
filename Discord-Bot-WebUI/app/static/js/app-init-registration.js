@@ -1,0 +1,432 @@
+/**
+ * Application Initialization Registration
+ * ========================================
+ *
+ * Central registration file for simple page components using InitSystem.
+ * This file consolidates scattered DOMContentLoaded listeners into a single,
+ * organized initialization system with proper dependency management and ordering.
+ *
+ * Priority Levels:
+ * ----------------
+ * - 100-90: Core systems (helpers, menu, responsive)
+ * - 89-70:  Global components (theme, config, modals)
+ * - 69-50:  Feature modules (forms, auth)
+ * - 49-30:  Page-specific features
+ * - 29-10:  Enhancements (UI fixes, animations)
+ *
+ * Phase 2.4 - Centralized Init System Completion
+ * Batch 1: 8 ultra-simple files migrated
+ *
+ * @version 1.0.0
+ * @created 2025-12-16
+ *
+ * Migration Summary:
+ * -----------------
+ * ✅ page-loader.js (19 lines) → Priority 85
+ * ✅ admin-utilities-init.js (25 lines) → Priority 70
+ * ✅ waves-css-override.js (76 lines) → Priority 30
+ * ✅ design-system-fix.js (54 lines) → Priority 30
+ * ✅ design-system-override.js (49 lines) → Priority 30 (merged with design-system-fix)
+ * ✅ dropdown-menu-fix.js (20 lines) → Priority 30
+ * ✅ mobile-menu-fix.js (113 lines) → Priority 30
+ * ✅ waitlist-register.js (24 lines) → Priority 20
+ *
+ * Total: 380 lines of scattered init code → 1 organized registration file
+ *
+ * Testing:
+ * --------
+ * In browser console:
+ *   InitSystemDebug.printOrder()   - View initialization order
+ *   InitSystemDebug.printStatus()  - View component status
+ *   InitSystemDebug.getComponent('component-name') - Get component details
+ *
+ * HTMX Integration:
+ * ----------------
+ * Components marked as reinitializable can be re-initialized after AJAX loads:
+ *   document.addEventListener('htmx:afterSwap', function(event) {
+ *     InitSystem.reinit(['dropdown-menu-fix', 'admin-utilities'], event.target);
+ *   });
+ */
+
+(function(window, document) {
+    'use strict';
+
+    // Ensure InitSystem is loaded
+    if (typeof InitSystem === 'undefined') {
+        console.error('[App Init] InitSystem not loaded! Please include init-system.js before this file.');
+        return;
+    }
+
+    console.log('[App Init] Registering application components...');
+
+    // ============================================================================
+    // PRIORITY 85: PAGE LOADER
+    // ============================================================================
+    // Hide page loading animation after initial load
+    InitSystem.register('page-loader', function() {
+        // Hide loader after short delay to ensure smooth transition
+        setTimeout(function() {
+            const loader = document.getElementById('page-loader');
+            if (loader) {
+                loader.classList.add('hidden');
+                // Remove from DOM after fade animation completes
+                setTimeout(function() {
+                    if (loader.parentNode) {
+                        loader.parentNode.removeChild(loader);
+                    }
+                }, 500); // Match CSS transition duration
+            }
+        }, 800); // Minimum display time for UX
+    }, {
+        priority: 85,
+        description: 'Hide page loading animation',
+        reinitializable: false // Only runs once on initial page load
+    });
+
+    // ============================================================================
+    // PRIORITY 70: ADMIN UTILITIES
+    // ============================================================================
+    // Initialize admin utility helpers for progress bars and themed elements
+    InitSystem.register('admin-utilities', function(context) {
+        const root = context || document;
+
+        // Apply data-width to all progress bars
+        const progressBars = root.querySelectorAll('[data-width]');
+        progressBars.forEach(bar => {
+            const width = bar.dataset.width;
+            if (width) {
+                bar.style.width = width + '%';
+            }
+        });
+
+        // Apply data-theme-color to elements
+        const themedElements = root.querySelectorAll('[data-theme-color]');
+        themedElements.forEach(el => {
+            const color = el.dataset.themeColor;
+            if (color) {
+                el.style.backgroundColor = color;
+            }
+        });
+    }, {
+        priority: 70,
+        description: 'Initialize admin utility helpers (progress bars, theme colors)',
+        reinitializable: true // Can be re-initialized for AJAX-loaded content
+    });
+
+    // ============================================================================
+    // PRIORITY 30: UI FIXES AND ENHANCEMENTS
+    // ============================================================================
+
+    // ----------------------------------------------------------------------------
+    // Design System Fixes
+    // ----------------------------------------------------------------------------
+    // Fixes issues with design-system.js by safely overriding problematic methods
+    InitSystem.register('design-system-fixes', function() {
+        // Check if ECSDesignSystem exists
+        if (!window.ECSDesignSystem) {
+            return; // Design system not loaded, nothing to fix
+        }
+
+        // Store reference to original setupCustomBehaviors method
+        const originalSetupCustomBehaviors = ECSDesignSystem.setupCustomBehaviors;
+
+        // Replace with our safe version that handles errors gracefully
+        ECSDesignSystem.setupCustomBehaviors = function() {
+            try {
+                // Try to run the original implementation first
+                if (typeof originalSetupCustomBehaviors === 'function') {
+                    originalSetupCustomBehaviors.call(ECSDesignSystem);
+                }
+            } catch (e) {
+                // Original failed, use safe fallback implementation
+                console.warn('[Design System Fix] Original setupCustomBehaviors failed, using safe version', e);
+
+                // Safe implementation - call methods individually with error handling
+                try {
+                    if (typeof this.addRippleEffect === 'function') {
+                        this.addRippleEffect();
+                    }
+                } catch (e2) {
+                    console.warn('[Design System Fix] Error in addRippleEffect', e2);
+                }
+
+                try {
+                    if (typeof this.improveKeyboardNavigation === 'function') {
+                        this.improveKeyboardNavigation();
+                    }
+                } catch (e2) {
+                    console.warn('[Design System Fix] Error in improveKeyboardNavigation', e2);
+                }
+
+                try {
+                    if (typeof this.setupTransitions === 'function') {
+                        this.setupTransitions();
+                    }
+                } catch (e2) {
+                    console.warn('[Design System Fix] Error in setupTransitions', e2);
+                }
+            }
+        };
+
+        // Call the setup method after a delay to ensure DOM is ready
+        setTimeout(function() {
+            try {
+                ECSDesignSystem.setupCustomBehaviors();
+            } catch (e) {
+                console.error('[Design System Fix] Error in setupCustomBehaviors:', e);
+            }
+        }, 500);
+    }, {
+        priority: 30,
+        description: 'Apply design system CSS fixes and safe method overrides',
+        reinitializable: false // Only needs to run once
+    });
+
+    // ----------------------------------------------------------------------------
+    // Waves CSS Override
+    // ----------------------------------------------------------------------------
+    // Prevents node-waves from injecting inline styles while keeping ripple functionality
+    InitSystem.register('waves-css-override', function() {
+        if (!window.Waves) {
+            console.warn('[Waves Override] Waves library not loaded');
+            return;
+        }
+
+        // Store original Waves methods
+        const originalShow = window.Waves.Effect.show;
+        const originalHide = window.Waves.Effect.hide;
+
+        // Override Waves.Effect.show to prevent inline style injection
+        window.Waves.Effect.show = function(e, element) {
+            // Call original show to create ripple elements
+            originalShow.call(this, e, element);
+
+            // Remove inline styles from parent element that Waves may have added
+            if (element && element.style) {
+                // Remove transform, transition, box-shadow that conflict with CSS
+                element.style.removeProperty('transform');
+                element.style.removeProperty('transition');
+                element.style.removeProperty('box-shadow');
+                element.style.removeProperty('transform-style');
+            }
+
+            // Clean up ripple elements - keep animation, remove conflicting styles
+            setTimeout(function() {
+                if (element) {
+                    const ripples = element.querySelectorAll('.waves-ripple');
+                    ripples.forEach(function(ripple) {
+                        // Keep the ripple element but ensure it uses CSS classes
+                        // Remove inline transform if it conflicts
+                        if (ripple.style.transform && ripple.style.transform !== 'scale(0)') {
+                            ripple.classList.add('waves-ripple-active');
+                        }
+                    });
+                }
+            }, 10);
+        };
+
+        // Override Waves.Effect.hide to clean up properly
+        window.Waves.Effect.hide = function(e, element) {
+            // Call original hide
+            originalHide.call(this, e, element);
+
+            // Remove any inline styles that were added
+            if (element && element.style) {
+                element.style.removeProperty('transform');
+                element.style.removeProperty('transition');
+                element.style.removeProperty('box-shadow');
+                element.style.removeProperty('transform-style');
+            }
+        };
+
+        // Initialize Waves with configuration to minimize inline styles
+        if (window.Waves.init) {
+            window.Waves.init({
+                duration: 300,
+                delay: 0
+            });
+        }
+
+        console.log('[Waves Override] Inline style injection prevented - using CSS classes');
+    }, {
+        priority: 30,
+        description: 'Wave animation CSS overrides (prevent inline styles)',
+        reinitializable: false // Only needs to run once
+    });
+
+    // ----------------------------------------------------------------------------
+    // Dropdown Menu Fix
+    // ----------------------------------------------------------------------------
+    // Fixes dropdown menus being hidden behind tables
+    InitSystem.register('dropdown-menu-fix', function(context) {
+        const root = context || document;
+
+        // Add necessary class to tables to fix z-index issues
+        const userManagementTables = root.querySelectorAll('.table');
+        userManagementTables.forEach(table => {
+            table.classList.add('user-management-table');
+        });
+
+        // Add class to RSVP status page for specific fixes
+        if (window.location.href.includes('rsvp_status')) {
+            document.body.classList.add('rsvp-status-page');
+        }
+    }, {
+        priority: 30,
+        description: 'Fix dropdown menu positioning and z-index issues',
+        reinitializable: true // Can be re-initialized for AJAX-loaded tables
+    });
+
+    // ----------------------------------------------------------------------------
+    // Mobile Menu Fix
+    // ----------------------------------------------------------------------------
+    // Ensures sidebar menu works properly on mobile devices (especially iOS Safari)
+    InitSystem.register('mobile-menu-fix', function() {
+        // References to key elements
+        const layoutMenu = document.getElementById('layout-menu');
+        const menuToggleIcon = document.getElementById('menu-toggle-icon');
+        const closeIcon = document.getElementById('close-icon');
+        let layoutOverlay = document.querySelector('.layout-overlay');
+
+        // Create layout overlay if it doesn't exist
+        if (!layoutOverlay) {
+            const overlayDiv = document.createElement('div');
+            overlayDiv.className = 'layout-overlay';
+            document.body.appendChild(overlayDiv);
+            layoutOverlay = overlayDiv;
+        }
+
+        // Function to open menu
+        function openMenu() {
+            document.documentElement.classList.add('layout-menu-expanded');
+            document.body.classList.add('layout-menu-expanded');
+            if (layoutMenu) {
+                layoutMenu.classList.add('menu-open');
+            }
+            if (closeIcon) {
+                closeIcon.classList.remove('d-none');
+            }
+        }
+
+        // Function to close menu
+        function closeMenu() {
+            document.documentElement.classList.remove('layout-menu-expanded');
+            document.body.classList.remove('layout-menu-expanded');
+            if (layoutMenu) {
+                layoutMenu.classList.remove('menu-open');
+            }
+            if (closeIcon) {
+                closeIcon.classList.add('d-none');
+            }
+        }
+
+        // Toggle menu function
+        function toggleMenu() {
+            if (document.documentElement.classList.contains('layout-menu-expanded')) {
+                closeMenu();
+            } else {
+                openMenu();
+            }
+        }
+
+        // Event listeners for menu toggle
+        const menuToggles = document.querySelectorAll('.layout-menu-toggle');
+        menuToggles.forEach(toggle => {
+            toggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                toggleMenu();
+            });
+        });
+
+        // Close when clicking the X icon
+        if (closeIcon) {
+            closeIcon.addEventListener('click', function(e) {
+                e.preventDefault();
+                closeMenu();
+            });
+        }
+
+        // Close when clicking the overlay
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('layout-overlay') &&
+                document.documentElement.classList.contains('layout-menu-expanded')) {
+                closeMenu();
+            }
+        });
+
+        // Fix for any inert attributes on menu items
+        const menuItems = document.querySelectorAll('.menu-item a');
+        menuItems.forEach(item => {
+            item.removeAttribute('inert');
+            item.classList.add('pointer-events-auto');
+        });
+
+        // Remove problematic attributes from the menu
+        if (layoutMenu) {
+            layoutMenu.removeAttribute('inert');
+            layoutMenu.classList.add('pointer-events-auto', 'user-select-auto', 'touch-action-auto');
+        }
+
+        // iOS specific fixes
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+        if (isIOS) {
+            // Extra iOS fixes
+            document.documentElement.classList.add('ios-device');
+
+            // Fix scrolling in menu for iOS
+            if (layoutMenu) {
+                layoutMenu.classList.add('ios-overflow-scrolling');
+            }
+
+            // Additional handling for iOS gesture conflicts
+            const menuLinks = document.querySelectorAll('.menu-link, .menu-toggle');
+            menuLinks.forEach(link => {
+                link.addEventListener('touchstart', function(e) {
+                    // Ensure links are touchable
+                    e.stopPropagation();
+                }, { passive: true });
+            });
+        }
+    }, {
+        priority: 30,
+        description: 'Enhance mobile menu interactions and iOS compatibility',
+        reinitializable: false // Only needs to run once
+    });
+
+    // ============================================================================
+    // PRIORITY 20: WAITLIST REGISTRATION FOCUS
+    // ============================================================================
+    // Auto-focus on Discord registration button and show membership prompts
+    InitSystem.register('waitlist-register-focus', function() {
+        // Auto-focus on Discord registration button
+        const discordBtn = document.querySelector('a[href*="waitlist_discord_register"]');
+        if (discordBtn) {
+            discordBtn.focus();
+        }
+
+        // Initialize Discord membership checker for registration page
+        // Show a more gentle prompt since they're already on the waitlist registration page
+        if (typeof DiscordMembershipChecker !== 'undefined') {
+            setTimeout(() => {
+                DiscordMembershipChecker.showJoinPrompt({
+                    title: '💡 Pro Tip: Join Discord First!',
+                    urgency: 'info',
+                    showUrgentPopup: true
+                });
+            }, 2000); // Show after 2 seconds
+        }
+    }, {
+        priority: 20,
+        description: 'Auto-focus Discord registration button and show membership prompts',
+        reinitializable: false // Only runs on waitlist registration page
+    });
+
+    // ============================================================================
+    // REGISTRATION COMPLETE
+    // ============================================================================
+    console.log('[App Init] ✅ 8 components registered successfully');
+    console.log('[App Init] Run InitSystemDebug.printOrder() to view initialization order');
+
+})(window, document);

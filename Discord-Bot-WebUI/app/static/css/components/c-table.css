@@ -1,0 +1,267 @@
+/**
+ * ============================================================================
+ * C-TABLE - Data Table Component
+ * ============================================================================
+ *
+ * Clean, scannable data tables for admin dashboards.
+ * Design: Athletic stats table aesthetic with clear hierarchy.
+ *
+ * Components:
+ *   .c-table-wrapper                    - Scrollable wrapper
+ *   .c-table                            - Base table
+ *   .c-table--hoverable                 - Row hover effect
+ *   .c-table--compact                   - Reduced padding
+ *   .c-table--striped                   - Alternating rows
+ *   .c-table__head                      - Table header
+ *   .c-table__body                      - Table body
+ *   .c-table__row                       - Table row
+ *   .c-table__header                    - Header cell
+ *   .c-table__cell                      - Body cell
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   TABLE WRAPPER
+   ============================================================================ */
+
+.c-table-wrapper {
+  position: relative;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-lg, 12px);
+}
+
+/* Scrollbar styling */
+.c-table-wrapper::-webkit-scrollbar {
+  height: 6px;
+}
+
+.c-table-wrapper::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.c-table-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+.c-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* ============================================================================
+   TABLE BASE
+   ============================================================================ */
+
+.c-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm, 0.875rem);
+}
+
+/* ============================================================================
+   TABLE HEADER
+   ============================================================================ */
+
+.c-table__head {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.c-table__header {
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  font-family: var(--font-body, 'Barlow', sans-serif);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 600;
+  color: var(--color-text-secondary, #94a3b8);
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+}
+
+.c-table__header--center {
+  text-align: center;
+}
+
+.c-table__header--right {
+  text-align: right;
+}
+
+/* ============================================================================
+   TABLE BODY
+   ============================================================================ */
+
+.c-table__body {
+  /* Body styles */
+}
+
+.c-table__row {
+  border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.04));
+  transition: background-color var(--duration-fast, 150ms) ease;
+}
+
+.c-table__row:last-child {
+  border-bottom: none;
+}
+
+/* ============================================================================
+   TABLE CELL
+   ============================================================================ */
+
+.c-table__cell {
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  color: var(--color-text-primary, #f8fafc);
+  vertical-align: middle;
+}
+
+.c-table__cell--center {
+  text-align: center;
+}
+
+.c-table__cell--right {
+  text-align: right;
+}
+
+.c-table__cell--nowrap {
+  white-space: nowrap;
+}
+
+/* Cell with small text */
+.c-table__cell small {
+  color: var(--color-text-secondary, #94a3b8);
+}
+
+/* ============================================================================
+   HOVERABLE VARIANT
+   ============================================================================ */
+
+.c-table--hoverable .c-table__row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* ============================================================================
+   COMPACT VARIANT
+   ============================================================================ */
+
+.c-table--compact .c-table__header {
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+}
+
+.c-table--compact .c-table__cell {
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+}
+
+/* ============================================================================
+   STRIPED VARIANT
+   ============================================================================ */
+
+.c-table--striped .c-table__row:nth-child(even) {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================================================
+   RESPONSIVE TABLE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  /* Stack cells vertically on mobile */
+  .c-table--responsive {
+    display: block;
+  }
+
+  .c-table--responsive .c-table__head {
+    display: none;
+  }
+
+  .c-table--responsive .c-table__body {
+    display: block;
+  }
+
+  .c-table--responsive .c-table__row {
+    display: block;
+    padding: var(--space-3, 12px);
+    margin-bottom: var(--space-2, 8px);
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: var(--radius-md, 8px);
+    border: none;
+  }
+
+  .c-table--responsive .c-table__cell {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-2, 8px) 0;
+    border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.04));
+  }
+
+  .c-table--responsive .c-table__cell:last-child {
+    border-bottom: none;
+  }
+
+  .c-table--responsive .c-table__cell::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--color-text-secondary, #94a3b8);
+    font-size: var(--text-xs, 0.75rem);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+/* ============================================================================
+   LIGHT MODE
+   ============================================================================ */
+
+[data-style="light"] .c-table-wrapper::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+[data-style="light"] .c-table-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+[data-style="light"] .c-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+[data-style="light"] .c-table__head {
+  background: var(--color-bg-secondary, #f8fafc);
+}
+
+[data-style="light"] .c-table__header {
+  color: var(--color-text-secondary, #64748b);
+  border-bottom-color: var(--color-border-light, rgba(0, 0, 0, 0.06));
+}
+
+[data-style="light"] .c-table__row {
+  border-bottom-color: var(--color-border-light, rgba(0, 0, 0, 0.06));
+}
+
+[data-style="light"] .c-table__cell {
+  color: var(--color-text-primary, #1e293b);
+}
+
+[data-style="light"] .c-table__cell small {
+  color: var(--color-text-secondary, #64748b);
+}
+
+[data-style="light"] .c-table--hoverable .c-table__row:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+[data-style="light"] .c-table--striped .c-table__row:nth-child(even) {
+  background: var(--color-bg-secondary, #f8fafc);
+}
+
+[data-style="light"] .c-table--responsive .c-table__row {
+  background: var(--color-bg-secondary, #f8fafc);
+  border: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.08));
+}
+
+[data-style="light"] .c-table--responsive .c-table__cell {
+  border-bottom-color: var(--color-border-light, rgba(0, 0, 0, 0.06));
+}

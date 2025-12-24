@@ -1,0 +1,2474 @@
+/**
+ * ============================================================================
+ * FORMS COMPONENT
+ * ============================================================================
+ *
+ * Comprehensive form controls with consistent styling, validation states,
+ * and accessibility features.
+ *
+ * FEATURES:
+ * - Base form control styles (input, textarea, select)
+ * - Input variants (text, email, password, number, date, file, search)
+ * - Size variants (sm, md, lg)
+ * - State variants (disabled, readonly, error, success, warning)
+ * - Custom checkboxes and radio buttons
+ * - Toggle switches
+ * - Input groups (prepend/append elements)
+ * - Form layouts (inline, horizontal, stacked)
+ * - Labels and help text
+ * - File upload styling
+ * - Form validation messaging
+ * - Dark mode support
+ * - Mobile responsive (larger touch targets)
+ *
+ * USAGE:
+ *   <input type="text" class="c-form__input">
+ *   <input type="text" class="c-form__input c-form__input--sm">
+ *   <input type="text" class="c-form__input is-invalid">
+ *   <div class="c-form__group">...</div>
+ *   <div class="c-input-group">...</div>
+ *
+ * DEPENDENCIES:
+ * - Design tokens (colors, spacing, typography, shadows)
+ * - CSS custom properties for theming
+ *
+ * @author Claude Sonnet 4.5
+ * @version 2.0.0 (BEM Refactor)
+ */
+
+/* ============================================================================
+   BASE FORM CONTROL STYLES (BEM)
+   ========================================================================== */
+
+/**
+ * Base form control (BEM version)
+ * Applied to all standard form inputs
+ */
+.c-form__input,
+.c-form__textarea,
+.c-form__select {
+  display: block;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-base);
+  font-weight: var(--font-normal);
+  line-height: var(--leading-normal);
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  background-clip: padding-box;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  appearance: none;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+/**
+ * Focus state (BEM)
+ */
+.c-form__input:focus,
+.c-form__textarea:focus,
+.c-form__select:focus {
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border-color: var(--color-primary);
+  outline: 0;
+  box-shadow: 0 0 0 3px var(--color-primary-alpha);
+}
+
+/**
+ * Placeholder text styling (BEM)
+ */
+.c-form__input::placeholder,
+.c-form__textarea::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+
+.c-form__input:disabled::placeholder,
+.c-form__input[readonly]::placeholder,
+.c-form__textarea:disabled::placeholder,
+.c-form__textarea[readonly]::placeholder {
+  opacity: 0.5;
+}
+
+/**
+ * Disabled state (BEM)
+ */
+.c-form__input:disabled,
+.c-form__input[readonly],
+.c-form__textarea:disabled,
+.c-form__textarea[readonly],
+.c-form__select:disabled,
+.c-form__select[readonly] {
+  background-color: var(--color-bg-muted);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.c-form__input[readonly]:not(:disabled),
+.c-form__textarea[readonly]:not(:disabled),
+.c-form__select[readonly]:not(:disabled) {
+  opacity: 1;
+  cursor: default;
+}
+
+/* ============================================================================
+   FORM CONTROL SIZES (BEM)
+   ========================================================================== */
+
+/**
+ * Small form control (BEM)
+ */
+.c-form__input--sm,
+.c-form__textarea--sm,
+.c-form__select--sm {
+  min-height: calc(var(--space-8) + var(--border-width) * 2);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+}
+
+/**
+ * Large form control (BEM)
+ */
+.c-form__input--lg,
+.c-form__textarea--lg,
+.c-form__select--lg {
+  min-height: calc(var(--space-12) + var(--border-width) * 2);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-lg);
+  border-radius: var(--radius-lg);
+}
+
+/* ============================================================================
+   FORM CONTROL VALIDATION STATES (BEM)
+   ========================================================================== */
+
+/**
+ * Invalid/Error state (BEM)
+ */
+.c-form__input.is-invalid,
+.c-form__input:invalid:not(:placeholder-shown),
+.c-form__textarea.is-invalid,
+.c-form__textarea:invalid:not(:placeholder-shown),
+.c-form__select.is-invalid {
+  border-color: var(--color-danger);
+}
+
+.c-form__input.is-invalid:focus,
+.c-form__input:invalid:not(:placeholder-shown):focus,
+.c-form__textarea.is-invalid:focus,
+.c-form__textarea:invalid:not(:placeholder-shown):focus,
+.c-form__select.is-invalid:focus {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px var(--color-danger-alpha);
+}
+
+/**
+ * Valid/Success state (BEM)
+ */
+.c-form__input.is-valid,
+.c-form__textarea.is-valid,
+.c-form__select.is-valid {
+  border-color: var(--color-success);
+}
+
+.c-form__input.is-valid:focus,
+.c-form__textarea.is-valid:focus,
+.c-form__select.is-valid:focus {
+  border-color: var(--color-success);
+  box-shadow: 0 0 0 3px var(--color-success-alpha);
+}
+
+/**
+ * Warning state (BEM)
+ */
+.c-form__input.is-warning,
+.c-form__textarea.is-warning,
+.c-form__select.is-warning {
+  border-color: var(--color-warning);
+}
+
+.c-form__input.is-warning:focus,
+.c-form__textarea.is-warning:focus,
+.c-form__select.is-warning:focus {
+  border-color: var(--color-warning);
+  box-shadow: 0 0 0 3px var(--color-warning-alpha);
+}
+
+/* ============================================================================
+   TEXTAREA CONTROLS (BEM)
+   ========================================================================== */
+
+/**
+ * Textarea specific styles (BEM)
+ */
+.c-form__textarea {
+  min-height: calc(var(--space-20) + var(--border-width) * 2);
+  resize: vertical;
+}
+
+.c-form__textarea--sm {
+  min-height: calc(var(--space-16) + var(--border-width) * 2);
+}
+
+.c-form__textarea--lg {
+  min-height: calc(var(--space-24) + var(--border-width) * 2);
+}
+
+.c-form__textarea--no-resize {
+  resize: none;
+}
+
+.c-form__textarea--auto {
+  resize: none;
+  overflow: hidden;
+  min-height: calc(var(--space-10) + var(--border-width) * 2);
+}
+
+/* ============================================================================
+   SELECT CONTROLS (BEM)
+   ========================================================================== */
+
+/**
+ * Select dropdown (BEM)
+ */
+.c-form__select {
+  padding-right: var(--space-10);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-3) center;
+  background-size: 16px 12px;
+}
+
+.c-form__select--sm {
+  padding-right: var(--space-8);
+  background-position: right var(--space-2) center;
+  background-size: 14px 10px;
+}
+
+.c-form__select--lg {
+  padding-right: var(--space-12);
+  background-position: right var(--space-4) center;
+  background-size: 18px 14px;
+}
+
+.c-form__select[multiple],
+.c-form__select[size]:not([size="1"]) {
+  padding-right: var(--space-3);
+  background-image: none;
+  resize: vertical;
+}
+
+/* Dark mode select arrow (BEM) */
+@media (prefers-color-scheme: dark) {
+  .c-form__select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23aaa' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3E%3C/svg%3E");
+  }
+}
+
+[data-theme="dark"] .c-form__select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23aaa' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3E%3C/svg%3E");
+}
+
+/* ============================================================================
+   FILE INPUT (BEM)
+   ========================================================================== */
+
+/**
+ * File input (BEM)
+ */
+.c-form__file {
+  display: block;
+  width: 100%;
+}
+
+.c-file-input {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  height: calc(var(--space-10) + var(--border-width) * 2);
+  margin-bottom: 0;
+}
+
+.c-file-input__control {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: calc(var(--space-10) + var(--border-width) * 2);
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.c-file-input__control:focus ~ .c-file-input__label {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-alpha);
+}
+
+.c-file-input__control:disabled ~ .c-file-input__label {
+  background-color: var(--color-bg-muted);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.c-file-input__label {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 1;
+  height: calc(var(--space-10) + var(--border-width) * 2);
+  padding: var(--space-2) var(--space-3);
+  font-weight: var(--font-normal);
+  line-height: var(--leading-normal);
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.c-file-input__label::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  display: block;
+  height: calc(var(--space-10));
+  padding: var(--space-2) var(--space-3);
+  line-height: var(--leading-normal);
+  color: var(--color-text);
+  content: "Browse";
+  background-color: var(--color-bg-muted);
+  border-left: inherit;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+
+/* ============================================================================
+   CHECKBOXES AND RADIO BUTTONS (BEM)
+   ========================================================================== */
+
+/**
+ * Form check container (BEM)
+ */
+.c-form-check {
+  position: relative;
+  display: block;
+  padding-left: var(--space-6);
+  margin-bottom: var(--space-2);
+}
+
+.c-form-check--inline {
+  display: inline-flex;
+  align-items: center;
+  padding-left: 0;
+  margin-right: var(--space-4);
+  margin-bottom: 0;
+}
+
+.c-form-check__input {
+  position: absolute;
+  margin-top: var(--space-1);
+  margin-left: calc(var(--space-6) * -1);
+}
+
+/**
+ * Custom control (BEM)
+ */
+.c-custom-control {
+  position: relative;
+  display: block;
+  min-height: var(--space-6);
+  padding-left: var(--space-7);
+  margin-bottom: var(--space-2);
+}
+
+.c-custom-control--inline {
+  display: inline-flex;
+  margin-right: var(--space-4);
+  margin-bottom: 0;
+}
+
+.c-custom-control__input {
+  position: absolute;
+  left: 0;
+  z-index: -1;
+  width: var(--space-5);
+  height: var(--space-6);
+  opacity: 0;
+}
+
+.c-custom-control__label {
+  position: relative;
+  margin-bottom: 0;
+  vertical-align: top;
+  cursor: pointer;
+}
+
+.c-custom-control__label::before {
+  position: absolute;
+  top: calc((var(--space-6) - var(--space-5)) / 2);
+  left: calc(var(--space-7) * -1);
+  display: block;
+  width: var(--space-5);
+  height: var(--space-5);
+  pointer-events: none;
+  content: "";
+  background-color: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.c-custom-control__label::after {
+  position: absolute;
+  top: calc((var(--space-6) - var(--space-5)) / 2);
+  left: calc(var(--space-7) * -1);
+  display: block;
+  width: var(--space-5);
+  height: var(--space-5);
+  content: "";
+  background: no-repeat 50% / 50% 50%;
+  transition: opacity var(--duration-fast) var(--ease-out);
+  opacity: 0;
+}
+
+/**
+ * Checked state (BEM)
+ */
+.c-custom-control__input:checked ~ .c-custom-control__label::before {
+  color: var(--color-white);
+  border-color: var(--color-primary);
+  background-color: var(--color-primary);
+}
+
+.c-custom-control__input:checked ~ .c-custom-control__label::after {
+  opacity: 1;
+}
+
+/**
+ * Focus state (BEM)
+ */
+.c-custom-control__input:focus ~ .c-custom-control__label::before {
+  box-shadow: 0 0 0 3px var(--color-primary-alpha);
+}
+
+.c-custom-control__input:focus:not(:checked) ~ .c-custom-control__label::before {
+  border-color: var(--color-primary);
+}
+
+/**
+ * Disabled state (BEM)
+ */
+.c-custom-control__input:disabled ~ .c-custom-control__label {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.c-custom-control__input:disabled ~ .c-custom-control__label::before {
+  background-color: var(--color-bg-muted);
+  opacity: 0.6;
+}
+
+/**
+ * Checkbox specific (BEM)
+ */
+.c-checkbox .c-custom-control__label::before {
+  border-radius: var(--radius-sm);
+}
+
+.c-checkbox .c-custom-control__input:checked ~ .c-custom-control__label::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M3 8l3 3 7-7'/%3E%3C/svg%3E");
+}
+
+.c-checkbox .c-custom-control__input:indeterminate ~ .c-custom-control__label::before {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary);
+}
+
+.c-checkbox .c-custom-control__input:indeterminate ~ .c-custom-control__label::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M3 8h10'/%3E%3C/svg%3E");
+  opacity: 1;
+}
+
+/**
+ * Radio button specific (BEM)
+ */
+.c-radio .c-custom-control__label::before {
+  border-radius: 50%;
+}
+
+.c-radio .c-custom-control__input:checked ~ .c-custom-control__label::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='4' fill='%23fff'/%3E%3C/svg%3E");
+}
+
+/* ============================================================================
+   TOGGLE SWITCHES (BEM)
+   ========================================================================== */
+
+/**
+ * Toggle switch (BEM)
+ */
+.c-switch {
+  padding-left: var(--space-14);
+}
+
+.c-switch .c-custom-control__label::before {
+  left: calc(var(--space-14) * -1);
+  width: var(--space-11);
+  height: var(--space-6);
+  border-radius: var(--space-6);
+  background-color: var(--color-border);
+  transition: background-color var(--duration-normal) var(--ease-out);
+}
+
+.c-switch .c-custom-control__label::after {
+  top: calc((var(--space-6) - var(--space-5)) / 2 + var(--border-width) * 2);
+  left: calc(var(--space-14) * -1 + var(--border-width) * 2);
+  width: calc(var(--space-5) - var(--border-width) * 4);
+  height: calc(var(--space-5) - var(--border-width) * 4);
+  background-color: var(--color-white);
+  border-radius: 50%;
+  opacity: 1;
+  transition: transform var(--duration-normal) var(--ease-out);
+}
+
+.c-switch .c-custom-control__input:checked ~ .c-custom-control__label::before {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.c-switch .c-custom-control__input:checked ~ .c-custom-control__label::after {
+  transform: translateX(var(--space-5));
+}
+
+.c-switch .c-custom-control__input:focus ~ .c-custom-control__label::before {
+  box-shadow: 0 0 0 3px var(--color-primary-alpha);
+}
+
+.c-switch .c-custom-control__input:disabled ~ .c-custom-control__label::before {
+  background-color: var(--color-bg-muted);
+  opacity: 0.6;
+}
+
+/* ============================================================================
+   SEARCH INPUT (BEM)
+   ========================================================================== */
+
+/**
+ * Search input (BEM)
+ */
+.c-form__input--search {
+  padding-left: var(--space-10);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M7 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm4-1l3 3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left var(--space-3) center;
+  background-size: 16px 16px;
+}
+
+.c-form__input--search.c-form__input--sm {
+  padding-left: var(--space-8);
+  background-position: left var(--space-2) center;
+  background-size: 14px 14px;
+}
+
+.c-form__input--search.c-form__input--lg {
+  padding-left: var(--space-12);
+  background-position: left var(--space-4) center;
+  background-size: 18px 18px;
+}
+
+/* Dark mode search icon (BEM) */
+@media (prefers-color-scheme: dark) {
+  .c-form__input--search {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23aaa' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M7 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm4-1l3 3'/%3E%3C/svg%3E");
+  }
+}
+
+[data-theme="dark"] .c-form__input--search {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23aaa' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M7 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm4-1l3 3'/%3E%3C/svg%3E");
+}
+
+/* ============================================================================
+   INPUT GROUPS (BEM)
+   ========================================================================== */
+
+/**
+ * Input group (BEM)
+ */
+.c-input-group {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  width: 100%;
+}
+
+.c-input-group > .c-form__input,
+.c-input-group > .c-form__select {
+  position: relative;
+  flex: 1 1 auto;
+  width: 1%;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.c-input-group__prepend,
+.c-input-group__append {
+  display: flex;
+}
+
+.c-input-group__prepend {
+  margin-right: calc(var(--border-width) * -1);
+}
+
+.c-input-group__append {
+  margin-left: calc(var(--border-width) * -1);
+}
+
+.c-input-group__text {
+  display: flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: 0;
+  font-size: var(--text-base);
+  font-weight: var(--font-normal);
+  line-height: var(--leading-normal);
+  color: var(--color-text);
+  text-align: center;
+  white-space: nowrap;
+  background-color: var(--color-bg-muted);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+/**
+ * Input group sizing (BEM)
+ */
+.c-input-group--sm > .c-form__input,
+.c-input-group--sm > .c-input-group__prepend > .c-input-group__text,
+.c-input-group--sm > .c-input-group__append > .c-input-group__text {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+}
+
+.c-input-group--lg > .c-form__input,
+.c-input-group--lg > .c-input-group__prepend > .c-input-group__text,
+.c-input-group--lg > .c-input-group__append > .c-input-group__text {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-lg);
+  border-radius: var(--radius-lg);
+}
+
+/**
+ * Border radius adjustments (BEM)
+ */
+.c-input-group__prepend > .c-input-group__text {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.c-input-group__append > .c-input-group__text {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.c-input-group > .c-input-group__prepend > .c-input-group__text,
+.c-input-group > .c-input-group__prepend > .c-btn {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.c-input-group > .c-input-group__append:not(:last-child) > .c-input-group__text,
+.c-input-group > .c-input-group__append:not(:last-child) > .c-btn {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.c-input-group > .c-input-group__append:last-child > .c-input-group__text:not(:last-child),
+.c-input-group > .c-input-group__append:last-child > .c-btn:not(:last-child) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.c-input-group > .c-input-group__append > .c-input-group__text,
+.c-input-group > .c-input-group__append > .c-btn {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.c-input-group > .c-input-group__prepend:not(:first-child) > .c-input-group__text,
+.c-input-group > .c-input-group__prepend:not(:first-child) > .c-btn {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.c-input-group > .c-input-group__prepend:first-child > .c-input-group__text:not(:first-child),
+.c-input-group > .c-input-group__prepend:first-child > .c-btn:not(:first-child) {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.c-input-group:not(.has-validation) > .c-input-group__append:not(:last-child) > .c-form__input,
+.c-input-group:not(.has-validation) > .c-input-group__append:not(:last-child) > .c-form__select {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.c-input-group.has-validation > .c-input-group__append:nth-last-child(n + 3) > .c-form__input,
+.c-input-group.has-validation > .c-input-group__append:nth-last-child(n + 3) > .c-form__select {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.c-input-group > .c-input-group__prepend > .c-form__input,
+.c-input-group > .c-input-group__prepend > .c-form__select {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.c-input-group > .c-input-group__append > .c-form__input,
+.c-input-group > .c-input-group__append > .c-form__select {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+/* ============================================================================
+   FORM GROUPS AND LAYOUTS (BEM)
+   ========================================================================== */
+
+/**
+ * Form group (BEM)
+ */
+.c-form__group {
+  margin-bottom: var(--space-4);
+}
+
+.c-form__group:last-child {
+  margin-bottom: 0;
+}
+
+/**
+ * Form row (BEM)
+ */
+.c-form__row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-right: calc(var(--space-2) * -1);
+  margin-left: calc(var(--space-2) * -1);
+}
+
+.c-form__row > .col,
+.c-form__row > [class*="col-"] {
+  padding-right: var(--space-2);
+  padding-left: var(--space-2);
+}
+
+/**
+ * Inline form (BEM)
+ */
+.c-form--inline {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+}
+
+.c-form--inline .c-form-check {
+  width: 100%;
+}
+
+@media (min-width: 576px) {
+  .c-form--inline label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0;
+  }
+
+  .c-form--inline .c-form__group {
+    display: flex;
+    flex: 0 0 auto;
+    flex-flow: row wrap;
+    align-items: center;
+    margin-bottom: 0;
+  }
+
+  .c-form--inline .c-form__input,
+  .c-form--inline .c-form__select {
+    display: inline-block;
+    width: auto;
+    vertical-align: middle;
+  }
+
+  .c-form--inline .c-input-group {
+    width: auto;
+  }
+
+  .c-form--inline .c-form-check {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    padding-left: 0;
+  }
+
+  .c-form--inline .c-form-check__input {
+    position: relative;
+    flex-shrink: 0;
+    margin-top: 0;
+    margin-right: var(--space-2);
+    margin-left: 0;
+  }
+
+  .c-form--inline .c-custom-control {
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/**
+ * Horizontal form (BEM)
+ */
+.c-form--horizontal .c-form__group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-right: calc(var(--space-2) * -1);
+  margin-left: calc(var(--space-2) * -1);
+}
+
+.c-form--horizontal .c-form__label {
+  padding-right: var(--space-2);
+  padding-left: var(--space-2);
+  margin-bottom: 0;
+}
+
+.c-form--horizontal .c-form__control-wrapper {
+  padding-right: var(--space-2);
+  padding-left: var(--space-2);
+  flex: 1 1 0%;
+}
+
+/* ============================================================================
+   LABELS AND HELP TEXT (BEM)
+   ========================================================================== */
+
+/**
+ * Form label (BEM)
+ */
+.c-form__label {
+  display: inline-block;
+  margin-bottom: var(--space-2);
+  font-weight: var(--font-medium);
+  color: var(--color-text);
+}
+
+.c-form__label--required::after,
+.c-form__label .required::after {
+  content: " *";
+  color: var(--color-danger);
+  font-weight: var(--font-bold);
+}
+
+.c-form__label--sm {
+  font-size: var(--text-sm);
+}
+
+.c-form__label--lg {
+  font-size: var(--text-lg);
+}
+
+/**
+ * Help text (BEM)
+ */
+.c-form__help {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.c-form__help--inline {
+  display: inline-block;
+  margin-left: var(--space-2);
+}
+
+/* ============================================================================
+   FORM VALIDATION FEEDBACK (BEM)
+   ========================================================================== */
+
+/**
+ * Validation feedback (BEM)
+ */
+.c-form__feedback {
+  display: none;
+  width: 100%;
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+.c-form__feedback--invalid {
+  color: var(--color-danger);
+}
+
+.c-form__feedback--valid {
+  color: var(--color-success);
+}
+
+.c-form__input.is-invalid ~ .c-form__feedback--invalid,
+.c-form__input:invalid:not(:placeholder-shown) ~ .c-form__feedback--invalid,
+.c-form__textarea.is-invalid ~ .c-form__feedback--invalid,
+.c-form__select.is-invalid ~ .c-form__feedback--invalid,
+.was-validated .c-form__input:invalid ~ .c-form__feedback--invalid,
+.was-validated .c-form__textarea:invalid ~ .c-form__feedback--invalid,
+.was-validated .c-form__select:invalid ~ .c-form__feedback--invalid {
+  display: block;
+}
+
+.c-form__input.is-valid ~ .c-form__feedback--valid,
+.c-form__textarea.is-valid ~ .c-form__feedback--valid,
+.c-form__select.is-valid ~ .c-form__feedback--valid,
+.was-validated .c-form__input:valid ~ .c-form__feedback--valid,
+.was-validated .c-form__textarea:valid ~ .c-form__feedback--valid,
+.was-validated .c-form__select:valid ~ .c-form__feedback--valid {
+  display: block;
+}
+
+/**
+ * Validation tooltip (BEM)
+ */
+.c-form__tooltip {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 5;
+  display: none;
+  max-width: 100%;
+  padding: var(--space-1) var(--space-2);
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  line-height: var(--leading-tight);
+  color: var(--color-white);
+  border-radius: var(--radius-sm);
+}
+
+.c-form__tooltip--invalid {
+  background-color: var(--color-danger);
+}
+
+.c-form__tooltip--valid {
+  background-color: var(--color-success);
+}
+
+.c-form__input.is-invalid ~ .c-form__tooltip--invalid,
+.c-form__input:invalid:not(:placeholder-shown) ~ .c-form__tooltip--invalid,
+.c-form__textarea.is-invalid ~ .c-form__tooltip--invalid,
+.c-form__select.is-invalid ~ .c-form__tooltip--invalid,
+.was-validated .c-form__input:invalid ~ .c-form__tooltip--invalid,
+.was-validated .c-form__textarea:invalid ~ .c-form__tooltip--invalid,
+.was-validated .c-form__select:invalid ~ .c-form__tooltip--invalid {
+  display: block;
+}
+
+.c-form__input.is-valid ~ .c-form__tooltip--valid,
+.c-form__textarea.is-valid ~ .c-form__tooltip--valid,
+.c-form__select.is-valid ~ .c-form__tooltip--valid,
+.was-validated .c-form__input:valid ~ .c-form__tooltip--valid,
+.was-validated .c-form__textarea:valid ~ .c-form__tooltip--valid,
+.was-validated .c-form__select:valid ~ .c-form__tooltip--valid {
+  display: block;
+}
+
+/**
+ * Validation icons (BEM)
+ */
+.c-form__validation-wrapper {
+  position: relative;
+}
+
+.c-form__validation-wrapper .c-form__input,
+.c-form__validation-wrapper .c-form__select {
+  padding-right: var(--space-10);
+}
+
+.c-form__validation-icon {
+  position: absolute;
+  top: 50%;
+  right: var(--space-3);
+  transform: translateY(-50%);
+  width: var(--space-5);
+  height: var(--space-5);
+  pointer-events: none;
+}
+
+.c-form__validation-wrapper .c-form__input.is-invalid ~ .c-form__validation-icon,
+.c-form__validation-wrapper .c-form__select.is-invalid ~ .c-form__validation-icon {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23dc3545' d='M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM7 4h2v5H7V4zm0 6h2v2H7v-2z'/%3E%3C/svg%3E");
+}
+
+.c-form__validation-wrapper .c-form__input.is-valid ~ .c-form__validation-icon,
+.c-form__validation-wrapper .c-form__select.is-valid ~ .c-form__validation-icon {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2328a745' d='M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM7 11L4 8l1-1 2 2 4-4 1 1-5 5z'/%3E%3C/svg%3E");
+}
+
+/* ============================================================================
+   FORM VALIDATION CLASSES (BEM)
+   ========================================================================== */
+
+/**
+ * Validation state helper (BEM)
+ */
+.was-validated .c-form__input:invalid,
+.was-validated .c-form__input:valid,
+.was-validated .c-form__textarea:invalid,
+.was-validated .c-form__textarea:valid,
+.was-validated .c-form__select:invalid,
+.was-validated .c-form__select:valid {
+  border-width: var(--border-width);
+}
+
+/* Custom controls validation (BEM) */
+.was-validated .c-custom-control__input:invalid ~ .c-custom-control__label,
+.c-custom-control__input.is-invalid ~ .c-custom-control__label {
+  color: var(--color-danger);
+}
+
+.was-validated .c-custom-control__input:invalid ~ .c-custom-control__label::before,
+.c-custom-control__input.is-invalid ~ .c-custom-control__label::before {
+  border-color: var(--color-danger);
+}
+
+.was-validated .c-custom-control__input:invalid:checked ~ .c-custom-control__label::before,
+.c-custom-control__input.is-invalid:checked ~ .c-custom-control__label::before {
+  border-color: var(--color-danger);
+  background-color: var(--color-danger);
+}
+
+.was-validated .c-custom-control__input:invalid:focus ~ .c-custom-control__label::before,
+.c-custom-control__input.is-invalid:focus ~ .c-custom-control__label::before {
+  box-shadow: 0 0 0 3px var(--color-danger-alpha);
+}
+
+.was-validated .c-custom-control__input:valid ~ .c-custom-control__label,
+.c-custom-control__input.is-valid ~ .c-custom-control__label {
+  color: var(--color-success);
+}
+
+.was-validated .c-custom-control__input:valid ~ .c-custom-control__label::before,
+.c-custom-control__input.is-valid ~ .c-custom-control__label::before {
+  border-color: var(--color-success);
+}
+
+.was-validated .c-custom-control__input:valid:checked ~ .c-custom-control__label::before,
+.c-custom-control__input.is-valid:checked ~ .c-custom-control__label::before {
+  border-color: var(--color-success);
+  background-color: var(--color-success);
+}
+
+.was-validated .c-custom-control__input:valid:focus ~ .c-custom-control__label::before,
+.c-custom-control__input.is-valid:focus ~ .c-custom-control__label::before {
+  box-shadow: 0 0 0 3px var(--color-success-alpha);
+}
+
+/* ============================================================================
+   SPECIALIZED INPUT TYPES (BEM)
+   ========================================================================== */
+
+/**
+ * Range input (BEM)
+ */
+.c-form__input--range {
+  display: block;
+  width: 100%;
+}
+
+input[type="range"].c-form__input {
+  padding: 0;
+  border: none;
+  background-color: transparent;
+}
+
+/**
+ * Color input (BEM)
+ */
+.c-form__input--color {
+  height: calc(var(--space-10) + var(--border-width) * 2);
+  padding: var(--space-1);
+}
+
+input[type="color"].c-form__input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+input[type="color"].c-form__input::-webkit-color-swatch {
+  border: none;
+  border-radius: var(--radius-sm);
+}
+
+input[type="color"].c-form__input::-moz-color-swatch {
+  border: none;
+  border-radius: var(--radius-sm);
+}
+
+/**
+ * Date/time inputs (BEM)
+ */
+input[type="date"].c-form__input,
+input[type="time"].c-form__input,
+input[type="datetime-local"].c-form__input,
+input[type="month"].c-form__input,
+input[type="week"].c-form__input {
+  appearance: none;
+}
+
+/* ============================================================================
+   FIELDSET AND LEGEND (BEM)
+   ========================================================================== */
+
+/**
+ * Fieldset (BEM)
+ */
+fieldset {
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.c-form__fieldset {
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+/**
+ * Legend (BEM)
+ */
+legend {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  line-height: inherit;
+  color: var(--color-text);
+  white-space: normal;
+}
+
+.c-form__fieldset legend {
+  padding: 0 var(--space-2);
+  margin-left: calc(var(--space-2) * -1);
+  font-size: var(--text-base);
+}
+
+/* ============================================================================
+   FORM UTILITIES (BEM)
+   ========================================================================== */
+
+/**
+ * Plaintext form control (BEM)
+ */
+.c-form__input--plaintext {
+  display: block;
+  width: 100%;
+  padding: var(--space-2) 0;
+  margin-bottom: 0;
+  line-height: var(--leading-normal);
+  color: var(--color-text);
+  background-color: transparent;
+  border: solid transparent;
+  border-width: var(--border-width) 0;
+}
+
+.c-form__input--plaintext.c-form__input--sm,
+.c-form__input--plaintext.c-form__input--lg {
+  padding-right: 0;
+  padding-left: 0;
+}
+
+/**
+ * Static form control (BEM)
+ */
+.c-form__input--static {
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+  margin-bottom: 0;
+  line-height: var(--leading-normal);
+  border: none;
+  background-color: transparent;
+}
+
+/**
+ * Hidden form controls (BEM)
+ */
+.c-form__input--hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================================================================
+   RESPONSIVE ADJUSTMENTS (BEM)
+   ========================================================================== */
+
+/**
+ * Mobile optimizations (BEM)
+ */
+@media (max-width: 767px) {
+  .c-form__input,
+  .c-form__select,
+  .c-form__textarea {
+    min-height: 44px;
+    padding: var(--space-3) var(--space-3);
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+
+  .c-custom-control__label::before,
+  .c-custom-control__label::after {
+    width: var(--space-6);
+    height: var(--space-6);
+  }
+
+  .c-switch .c-custom-control__label::before {
+    width: var(--space-12);
+    height: var(--space-7);
+  }
+
+  .c-form--inline .c-form__input,
+  .c-form--inline .c-input-group {
+    width: 100%;
+    margin-bottom: var(--space-2);
+  }
+
+  .c-form__group {
+    margin-bottom: var(--space-5);
+  }
+}
+
+/**
+ * Tablet and up (BEM)
+ */
+@media (min-width: 768px) {
+  .c-form--horizontal .c-form__label {
+    text-align: right;
+    flex: 0 0 25%;
+    max-width: 25%;
+  }
+
+  .c-form--horizontal .c-form__control-wrapper {
+    flex: 0 0 75%;
+    max-width: 75%;
+  }
+}
+
+/* ============================================================================
+   DARK MODE OVERRIDES (BEM)
+   ========================================================================== */
+
+/**
+ * Dark mode (BEM)
+ */
+@media (prefers-color-scheme: dark) {
+  .c-form__input:focus,
+  .c-form__textarea:focus,
+  .c-form__select:focus {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4);
+  }
+
+  .c-custom-control__input:focus ~ .c-custom-control__label::before,
+  .c-switch .c-custom-control__input:focus ~ .c-custom-control__label::before {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4);
+  }
+
+  .c-input-group__text {
+    background-color: var(--color-surface);
+  }
+}
+
+[data-theme="dark"] .c-form__input:focus,
+[data-theme="dark"] .c-form__textarea:focus,
+[data-theme="dark"] .c-form__select:focus {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4);
+}
+
+[data-theme="dark"] .c-custom-control__input:focus ~ .c-custom-control__label::before,
+[data-theme="dark"] .c-switch .c-custom-control__input:focus ~ .c-custom-control__label::before {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4);
+}
+
+[data-theme="dark"] .c-input-group__text {
+  background-color: var(--color-surface);
+}
+
+/* ============================================================================
+   PRINT STYLES (BEM)
+   ========================================================================== */
+
+/**
+ * Print optimizations (BEM)
+ */
+@media print {
+  .c-form__input,
+  .c-form__select,
+  .c-form__textarea {
+    border: var(--border-width) solid #000;
+    background-color: transparent;
+  }
+
+  .c-custom-control__label::before {
+    border: var(--border-width) solid #000;
+  }
+
+  .c-input-group__text {
+    background-color: transparent;
+    border: var(--border-width) solid #000;
+  }
+}
+
+/* ============================================================================
+   ACCESSIBILITY ENHANCEMENTS (BEM)
+   ========================================================================== */
+
+/**
+ * High contrast mode (BEM)
+ */
+@media (prefers-contrast: more) {
+  .c-form__input,
+  .c-form__textarea,
+  .c-form__select {
+    border-width: 2px;
+  }
+
+  .c-form__input:focus,
+  .c-form__textarea:focus,
+  .c-form__select:focus {
+    outline: 2px solid;
+    outline-offset: 2px;
+  }
+
+  .c-custom-control__label::before {
+    border-width: 2px;
+  }
+}
+
+/**
+ * Reduced motion (BEM)
+ */
+@media (prefers-reduced-motion: reduce) {
+  .c-form__input,
+  .c-form__textarea,
+  .c-form__select,
+  .c-custom-control__label::before,
+  .c-custom-control__label::after,
+  .c-switch .c-custom-control__label::before,
+  .c-switch .c-custom-control__label::after {
+    transition: none;
+  }
+}
+
+/**
+ * Focus visible (BEM)
+ */
+.c-form__input:focus-visible,
+.c-form__textarea:focus-visible,
+.c-form__select:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.c-custom-control__input:focus-visible ~ .c-custom-control__label::before {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+   LEGACY COMPATIBILITY LAYER
+   ========================================================================== */
+
+/**
+ * Legacy selectors for backward compatibility
+ * These map old class names to new BEM structure
+ */
+
+/* Form controls */
+.form-control {
+  display: block;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-base);
+  font-weight: var(--font-normal);
+  line-height: var(--leading-normal);
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  background-clip: padding-box;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  appearance: none;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.form-control:focus {
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border-color: var(--color-primary);
+  outline: 0;
+  box-shadow: 0 0 0 3px var(--color-primary-alpha);
+}
+
+.form-control::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+
+.form-control:disabled::placeholder,
+.form-control[readonly]::placeholder {
+  opacity: 0.5;
+}
+
+.form-control:disabled,
+.form-control[readonly] {
+  background-color: var(--color-bg-muted);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-control[readonly]:not(:disabled) {
+  opacity: 1;
+  cursor: default;
+}
+
+/* Form control sizes */
+.form-control-sm {
+  min-height: calc(var(--space-8) + var(--border-width) * 2);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+}
+
+.form-control-lg {
+  min-height: calc(var(--space-12) + var(--border-width) * 2);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-lg);
+  border-radius: var(--radius-lg);
+}
+
+/* Validation states */
+.form-control.is-invalid,
+.form-control:invalid:not(:placeholder-shown) {
+  border-color: var(--color-danger);
+}
+
+.form-control.is-invalid:focus,
+.form-control:invalid:not(:placeholder-shown):focus {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px var(--color-danger-alpha);
+}
+
+.form-control.is-valid {
+  border-color: var(--color-success);
+}
+
+.form-control.is-valid:focus {
+  border-color: var(--color-success);
+  box-shadow: 0 0 0 3px var(--color-success-alpha);
+}
+
+.form-control.is-warning {
+  border-color: var(--color-warning);
+}
+
+.form-control.is-warning:focus {
+  border-color: var(--color-warning);
+  box-shadow: 0 0 0 3px var(--color-warning-alpha);
+}
+
+/* Textarea */
+textarea.form-control {
+  min-height: calc(var(--space-20) + var(--border-width) * 2);
+  resize: vertical;
+}
+
+textarea.form-control-sm {
+  min-height: calc(var(--space-16) + var(--border-width) * 2);
+}
+
+textarea.form-control-lg {
+  min-height: calc(var(--space-24) + var(--border-width) * 2);
+}
+
+textarea.form-control-no-resize {
+  resize: none;
+}
+
+textarea.form-control-auto {
+  resize: none;
+  overflow: hidden;
+  min-height: calc(var(--space-10) + var(--border-width) * 2);
+}
+
+/* Select */
+select.form-control {
+  padding-right: var(--space-10);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-3) center;
+  background-size: 16px 12px;
+}
+
+select.form-control-sm {
+  padding-right: var(--space-8);
+  background-position: right var(--space-2) center;
+  background-size: 14px 10px;
+}
+
+select.form-control-lg {
+  padding-right: var(--space-12);
+  background-position: right var(--space-4) center;
+  background-size: 18px 14px;
+}
+
+select.form-control[multiple],
+select.form-control[size]:not([size="1"]) {
+  padding-right: var(--space-3);
+  background-image: none;
+  resize: vertical;
+}
+
+@media (prefers-color-scheme: dark) {
+  select.form-control {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23aaa' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3E%3C/svg%3E");
+  }
+}
+
+[data-theme="dark"] select.form-control {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23aaa' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3E%3C/svg%3E");
+}
+
+/* File input */
+.form-control-file {
+  display: block;
+  width: 100%;
+}
+
+.custom-file {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  height: calc(var(--space-10) + var(--border-width) * 2);
+  margin-bottom: 0;
+}
+
+.custom-file-input {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: calc(var(--space-10) + var(--border-width) * 2);
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.custom-file-input:focus ~ .custom-file-label {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-alpha);
+}
+
+.custom-file-input:disabled ~ .custom-file-label {
+  background-color: var(--color-bg-muted);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.custom-file-label {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 1;
+  height: calc(var(--space-10) + var(--border-width) * 2);
+  padding: var(--space-2) var(--space-3);
+  font-weight: var(--font-normal);
+  line-height: var(--leading-normal);
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.custom-file-label::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  display: block;
+  height: calc(var(--space-10));
+  padding: var(--space-2) var(--space-3);
+  line-height: var(--leading-normal);
+  color: var(--color-text);
+  content: "Browse";
+  background-color: var(--color-bg-muted);
+  border-left: inherit;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+
+/* Form check */
+.form-check {
+  position: relative;
+  display: block;
+  padding-left: var(--space-6);
+  margin-bottom: var(--space-2);
+}
+
+.form-check-inline {
+  display: inline-flex;
+  align-items: center;
+  padding-left: 0;
+  margin-right: var(--space-4);
+  margin-bottom: 0;
+}
+
+.form-check-input {
+  position: absolute;
+  margin-top: var(--space-1);
+  margin-left: calc(var(--space-6) * -1);
+}
+
+/* Custom control */
+.custom-control {
+  position: relative;
+  display: block;
+  min-height: var(--space-6);
+  padding-left: var(--space-7);
+  margin-bottom: var(--space-2);
+}
+
+.custom-control-inline {
+  display: inline-flex;
+  margin-right: var(--space-4);
+  margin-bottom: 0;
+}
+
+.custom-control-input {
+  position: absolute;
+  left: 0;
+  z-index: -1;
+  width: var(--space-5);
+  height: var(--space-6);
+  opacity: 0;
+}
+
+.custom-control-label {
+  position: relative;
+  margin-bottom: 0;
+  vertical-align: top;
+  cursor: pointer;
+}
+
+.custom-control-label::before {
+  position: absolute;
+  top: calc((var(--space-6) - var(--space-5)) / 2);
+  left: calc(var(--space-7) * -1);
+  display: block;
+  width: var(--space-5);
+  height: var(--space-5);
+  pointer-events: none;
+  content: "";
+  background-color: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.custom-control-label::after {
+  position: absolute;
+  top: calc((var(--space-6) - var(--space-5)) / 2);
+  left: calc(var(--space-7) * -1);
+  display: block;
+  width: var(--space-5);
+  height: var(--space-5);
+  content: "";
+  background: no-repeat 50% / 50% 50%;
+  transition: opacity var(--duration-fast) var(--ease-out);
+  opacity: 0;
+}
+
+.custom-control-input:checked ~ .custom-control-label::before {
+  color: var(--color-white);
+  border-color: var(--color-primary);
+  background-color: var(--color-primary);
+}
+
+.custom-control-input:checked ~ .custom-control-label::after {
+  opacity: 1;
+}
+
+.custom-control-input:focus ~ .custom-control-label::before {
+  box-shadow: 0 0 0 3px var(--color-primary-alpha);
+}
+
+.custom-control-input:focus:not(:checked) ~ .custom-control-label::before {
+  border-color: var(--color-primary);
+}
+
+.custom-control-input:disabled ~ .custom-control-label {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.custom-control-input:disabled ~ .custom-control-label::before {
+  background-color: var(--color-bg-muted);
+  opacity: 0.6;
+}
+
+/* Custom checkbox */
+.custom-checkbox .custom-control-label::before {
+  border-radius: var(--radius-sm);
+}
+
+.custom-checkbox .custom-control-input:checked ~ .custom-control-label::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M3 8l3 3 7-7'/%3E%3C/svg%3E");
+}
+
+.custom-checkbox .custom-control-input:indeterminate ~ .custom-control-label::before {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary);
+}
+
+.custom-checkbox .custom-control-input:indeterminate ~ .custom-control-label::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M3 8h10'/%3E%3C/svg%3E");
+  opacity: 1;
+}
+
+/* Custom radio */
+.custom-radio .custom-control-label::before {
+  border-radius: 50%;
+}
+
+.custom-radio .custom-control-input:checked ~ .custom-control-label::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='4' fill='%23fff'/%3E%3C/svg%3E");
+}
+
+/* Custom switch */
+.custom-switch {
+  padding-left: var(--space-14);
+}
+
+.custom-switch .custom-control-label::before {
+  left: calc(var(--space-14) * -1);
+  width: var(--space-11);
+  height: var(--space-6);
+  border-radius: var(--space-6);
+  background-color: var(--color-border);
+  transition: background-color var(--duration-normal) var(--ease-out);
+}
+
+.custom-switch .custom-control-label::after {
+  top: calc((var(--space-6) - var(--space-5)) / 2 + var(--border-width) * 2);
+  left: calc(var(--space-14) * -1 + var(--border-width) * 2);
+  width: calc(var(--space-5) - var(--border-width) * 4);
+  height: calc(var(--space-5) - var(--border-width) * 4);
+  background-color: var(--color-white);
+  border-radius: 50%;
+  opacity: 1;
+  transition: transform var(--duration-normal) var(--ease-out);
+}
+
+.custom-switch .custom-control-input:checked ~ .custom-control-label::before {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.custom-switch .custom-control-input:checked ~ .custom-control-label::after {
+  transform: translateX(var(--space-5));
+}
+
+.custom-switch .custom-control-input:focus ~ .custom-control-label::before {
+  box-shadow: 0 0 0 3px var(--color-primary-alpha);
+}
+
+.custom-switch .custom-control-input:disabled ~ .custom-control-label::before {
+  background-color: var(--color-bg-muted);
+  opacity: 0.6;
+}
+
+/* Search input */
+.form-control-search {
+  padding-left: var(--space-10);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M7 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm4-1l3 3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left var(--space-3) center;
+  background-size: 16px 16px;
+}
+
+.form-control-search.form-control-sm {
+  padding-left: var(--space-8);
+  background-position: left var(--space-2) center;
+  background-size: 14px 14px;
+}
+
+.form-control-search.form-control-lg {
+  padding-left: var(--space-12);
+  background-position: left var(--space-4) center;
+  background-size: 18px 18px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .form-control-search {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23aaa' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M7 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm4-1l3 3'/%3E%3C/svg%3E");
+  }
+}
+
+[data-theme="dark"] .form-control-search {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23aaa' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M7 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm4-1l3 3'/%3E%3C/svg%3E");
+}
+
+/* Input group */
+.input-group {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  width: 100%;
+}
+
+.input-group > .form-control,
+.input-group > .custom-select {
+  position: relative;
+  flex: 1 1 auto;
+  width: 1%;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.input-group-prepend,
+.input-group-append {
+  display: flex;
+}
+
+.input-group-prepend {
+  margin-right: calc(var(--border-width) * -1);
+}
+
+.input-group-append {
+  margin-left: calc(var(--border-width) * -1);
+}
+
+.input-group-text {
+  display: flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: 0;
+  font-size: var(--text-base);
+  font-weight: var(--font-normal);
+  line-height: var(--leading-normal);
+  color: var(--color-text);
+  text-align: center;
+  white-space: nowrap;
+  background-color: var(--color-bg-muted);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.input-group-sm > .form-control,
+.input-group-sm > .input-group-prepend > .input-group-text,
+.input-group-sm > .input-group-append > .input-group-text {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+}
+
+.input-group-lg > .form-control,
+.input-group-lg > .input-group-prepend > .input-group-text,
+.input-group-lg > .input-group-append > .input-group-text {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-lg);
+  border-radius: var(--radius-lg);
+}
+
+.input-group-prepend > .input-group-text {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.input-group-append > .input-group-text {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.input-group > .input-group-prepend > .input-group-text,
+.input-group > .input-group-prepend > .btn {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.input-group > .input-group-append:not(:last-child) > .input-group-text,
+.input-group > .input-group-append:not(:last-child) > .btn,
+.input-group > .input-group-append:last-child > .input-group-text:not(:last-child),
+.input-group > .input-group-append:last-child > .btn:not(:last-child) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.input-group > .input-group-append > .input-group-text,
+.input-group > .input-group-append > .btn {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.input-group > .input-group-prepend:not(:first-child) > .input-group-text,
+.input-group > .input-group-prepend:not(:first-child) > .btn,
+.input-group > .input-group-prepend:first-child > .input-group-text:not(:first-child),
+.input-group > .input-group-prepend:first-child > .btn:not(:first-child) {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.input-group:not(.has-validation) > .input-group-append:not(:last-child) > .form-control,
+.input-group:not(.has-validation) > .input-group-append:not(:last-child) > .custom-select,
+.input-group.has-validation > .input-group-append:nth-last-child(n + 3) > .form-control,
+.input-group.has-validation > .input-group-append:nth-last-child(n + 3) > .custom-select {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.input-group > .input-group-prepend > .form-control,
+.input-group > .input-group-prepend > .custom-select {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.input-group > .input-group-append > .form-control,
+.input-group > .input-group-append > .custom-select {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+/* Form group */
+.form-group {
+  margin-bottom: var(--space-4);
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+/* Form row */
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-right: calc(var(--space-2) * -1);
+  margin-left: calc(var(--space-2) * -1);
+}
+
+.form-row > .col,
+.form-row > [class*="col-"] {
+  padding-right: var(--space-2);
+  padding-left: var(--space-2);
+}
+
+/* Inline form */
+.form-inline {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+}
+
+.form-inline .form-check {
+  width: 100%;
+}
+
+@media (min-width: 576px) {
+  .form-inline label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0;
+  }
+
+  .form-inline .form-group {
+    display: flex;
+    flex: 0 0 auto;
+    flex-flow: row wrap;
+    align-items: center;
+    margin-bottom: 0;
+  }
+
+  .form-inline .form-control {
+    display: inline-block;
+    width: auto;
+    vertical-align: middle;
+  }
+
+  .form-inline .input-group {
+    width: auto;
+  }
+
+  .form-inline .form-check {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    padding-left: 0;
+  }
+
+  .form-inline .form-check-input {
+    position: relative;
+    flex-shrink: 0;
+    margin-top: 0;
+    margin-right: var(--space-2);
+    margin-left: 0;
+  }
+
+  .form-inline .custom-control {
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* Horizontal form */
+.form-horizontal .form-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-right: calc(var(--space-2) * -1);
+  margin-left: calc(var(--space-2) * -1);
+}
+
+.form-horizontal .form-label {
+  padding-right: var(--space-2);
+  padding-left: var(--space-2);
+  margin-bottom: 0;
+}
+
+.form-horizontal .form-control-wrapper {
+  padding-right: var(--space-2);
+  padding-left: var(--space-2);
+  flex: 1 1 0%;
+}
+
+/* Form label */
+.form-label {
+  display: inline-block;
+  margin-bottom: var(--space-2);
+  font-weight: var(--font-medium);
+  color: var(--color-text);
+}
+
+.form-label-required::after,
+.form-label .required::after {
+  content: " *";
+  color: var(--color-danger);
+  font-weight: var(--font-bold);
+}
+
+.form-label-sm {
+  font-size: var(--text-sm);
+}
+
+.form-label-lg {
+  font-size: var(--text-lg);
+}
+
+/* Form text */
+.form-text {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.form-text-inline {
+  display: inline-block;
+  margin-left: var(--space-2);
+}
+
+/* Validation feedback */
+.invalid-feedback,
+.valid-feedback {
+  display: none;
+  width: 100%;
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+.invalid-feedback {
+  color: var(--color-danger);
+}
+
+.form-control.is-invalid ~ .invalid-feedback,
+.form-control:invalid:not(:placeholder-shown) ~ .invalid-feedback,
+.was-validated .form-control:invalid ~ .invalid-feedback {
+  display: block;
+}
+
+.valid-feedback {
+  color: var(--color-success);
+}
+
+.form-control.is-valid ~ .valid-feedback,
+.was-validated .form-control:valid ~ .valid-feedback {
+  display: block;
+}
+
+/* Validation tooltip */
+.invalid-tooltip,
+.valid-tooltip {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 5;
+  display: none;
+  max-width: 100%;
+  padding: var(--space-1) var(--space-2);
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  line-height: var(--leading-tight);
+  color: var(--color-white);
+  background-color: var(--color-danger);
+  border-radius: var(--radius-sm);
+}
+
+.invalid-tooltip {
+  background-color: var(--color-danger);
+}
+
+.valid-tooltip {
+  background-color: var(--color-success);
+}
+
+.form-control.is-invalid ~ .invalid-tooltip,
+.form-control:invalid:not(:placeholder-shown) ~ .invalid-tooltip,
+.was-validated .form-control:invalid ~ .invalid-tooltip {
+  display: block;
+}
+
+.form-control.is-valid ~ .valid-tooltip,
+.was-validated .form-control:valid ~ .valid-tooltip {
+  display: block;
+}
+
+/* Validation icons */
+.has-validation-icon {
+  position: relative;
+}
+
+.has-validation-icon .form-control {
+  padding-right: var(--space-10);
+}
+
+.has-validation-icon .validation-icon {
+  position: absolute;
+  top: 50%;
+  right: var(--space-3);
+  transform: translateY(-50%);
+  width: var(--space-5);
+  height: var(--space-5);
+  pointer-events: none;
+}
+
+.has-validation-icon .form-control.is-invalid ~ .validation-icon {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23dc3545' d='M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM7 4h2v5H7V4zm0 6h2v2H7v-2z'/%3E%3C/svg%3E");
+}
+
+.has-validation-icon .form-control.is-valid ~ .validation-icon {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2328a745' d='M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM7 11L4 8l1-1 2 2 4-4 1 1-5 5z'/%3E%3C/svg%3E");
+}
+
+/* Validation classes */
+.was-validated .form-control:invalid,
+.was-validated .form-control:valid {
+  border-width: var(--border-width);
+}
+
+.was-validated .custom-control-input:invalid ~ .custom-control-label,
+.custom-control-input.is-invalid ~ .custom-control-label {
+  color: var(--color-danger);
+}
+
+.was-validated .custom-control-input:invalid ~ .custom-control-label::before,
+.custom-control-input.is-invalid ~ .custom-control-label::before {
+  border-color: var(--color-danger);
+}
+
+.was-validated .custom-control-input:invalid:checked ~ .custom-control-label::before,
+.custom-control-input.is-invalid:checked ~ .custom-control-label::before {
+  border-color: var(--color-danger);
+  background-color: var(--color-danger);
+}
+
+.was-validated .custom-control-input:invalid:focus ~ .custom-control-label::before,
+.custom-control-input.is-invalid:focus ~ .custom-control-label::before {
+  box-shadow: 0 0 0 3px var(--color-danger-alpha);
+}
+
+.was-validated .custom-control-input:valid ~ .custom-control-label,
+.custom-control-input.is-valid ~ .custom-control-label {
+  color: var(--color-success);
+}
+
+.was-validated .custom-control-input:valid ~ .custom-control-label::before,
+.custom-control-input.is-valid ~ .custom-control-label::before {
+  border-color: var(--color-success);
+}
+
+.was-validated .custom-control-input:valid:checked ~ .custom-control-label::before,
+.custom-control-input.is-valid:checked ~ .custom-control-label::before {
+  border-color: var(--color-success);
+  background-color: var(--color-success);
+}
+
+.was-validated .custom-control-input:valid:focus ~ .custom-control-label::before,
+.custom-control-input.is-valid:focus ~ .custom-control-label::before {
+  box-shadow: 0 0 0 3px var(--color-success-alpha);
+}
+
+/* Range input */
+.form-control-range {
+  display: block;
+  width: 100%;
+}
+
+input[type="range"].form-control {
+  padding: 0;
+  border: none;
+  background-color: transparent;
+}
+
+/* Color input */
+input[type="color"].form-control {
+  height: calc(var(--space-10) + var(--border-width) * 2);
+  padding: var(--space-1);
+}
+
+input[type="color"].form-control::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+input[type="color"].form-control::-webkit-color-swatch {
+  border: none;
+  border-radius: var(--radius-sm);
+}
+
+input[type="color"].form-control::-moz-color-swatch {
+  border: none;
+  border-radius: var(--radius-sm);
+}
+
+/* Date/time inputs */
+input[type="date"].form-control,
+input[type="time"].form-control,
+input[type="datetime-local"].form-control,
+input[type="month"].form-control,
+input[type="week"].form-control {
+  appearance: none;
+}
+
+/* Fieldset */
+fieldset.form-fieldset {
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+fieldset.form-fieldset legend {
+  padding: 0 var(--space-2);
+  margin-left: calc(var(--space-2) * -1);
+  font-size: var(--text-base);
+}
+
+/* Form utilities */
+.form-control-plaintext {
+  display: block;
+  width: 100%;
+  padding: var(--space-2) 0;
+  margin-bottom: 0;
+  line-height: var(--leading-normal);
+  color: var(--color-text);
+  background-color: transparent;
+  border: solid transparent;
+  border-width: var(--border-width) 0;
+}
+
+.form-control-plaintext.form-control-sm,
+.form-control-plaintext.form-control-lg {
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.form-control-static {
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+  margin-bottom: 0;
+  line-height: var(--leading-normal);
+  border: none;
+  background-color: transparent;
+}
+
+.form-control-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+  .form-control,
+  select.form-control {
+    min-height: 44px;
+    padding: var(--space-3) var(--space-3);
+    font-size: 16px;
+  }
+
+  .custom-control-label::before,
+  .custom-control-label::after {
+    width: var(--space-6);
+    height: var(--space-6);
+  }
+
+  .custom-switch .custom-control-label::before {
+    width: var(--space-12);
+    height: var(--space-7);
+  }
+
+  .form-inline .form-control,
+  .form-inline .input-group {
+    width: 100%;
+    margin-bottom: var(--space-2);
+  }
+
+  .form-group {
+    margin-bottom: var(--space-5);
+  }
+}
+
+@media (min-width: 768px) {
+  .form-horizontal .form-label {
+    text-align: right;
+    flex: 0 0 25%;
+    max-width: 25%;
+  }
+
+  .form-horizontal .form-control-wrapper {
+    flex: 0 0 75%;
+    max-width: 75%;
+  }
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .form-control:focus {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4);
+  }
+
+  .custom-control-input:focus ~ .custom-control-label::before,
+  .custom-switch .custom-control-input:focus ~ .custom-control-label::before {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4);
+  }
+
+  .input-group-text {
+    background-color: var(--color-surface);
+  }
+}
+
+[data-theme="dark"] .form-control:focus {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4);
+}
+
+[data-theme="dark"] .custom-control-input:focus ~ .custom-control-label::before,
+[data-theme="dark"] .custom-switch .custom-control-input:focus ~ .custom-control-label::before {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4);
+}
+
+[data-theme="dark"] .input-group-text {
+  background-color: var(--color-surface);
+}
+
+/* Print styles */
+@media print {
+  .form-control,
+  select.form-control,
+  textarea.form-control {
+    border: var(--border-width) solid #000;
+    background-color: transparent;
+  }
+
+  .custom-control-label::before {
+    border: var(--border-width) solid #000;
+  }
+
+  .input-group-text {
+    background-color: transparent;
+    border: var(--border-width) solid #000;
+  }
+}
+
+/* Accessibility */
+@media (prefers-contrast: more) {
+  .form-control {
+    border-width: 2px;
+  }
+
+  .form-control:focus {
+    outline: 2px solid;
+    outline-offset: 2px;
+  }
+
+  .custom-control-label::before {
+    border-width: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .form-control,
+  .custom-control-label::before,
+  .custom-control-label::after,
+  .custom-switch .custom-control-label::before,
+  .custom-switch .custom-control-label::after {
+    transition: none;
+  }
+}
+
+.form-control:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.custom-control-input:focus-visible ~ .custom-control-label::before {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

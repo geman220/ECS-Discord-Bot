@@ -1,6 +1,6 @@
 <h5><i class="ti ti-certificate me-2"></i>Step 1: Certificate Setup</h5>
 
-<div class="alert alert-info">
+<div class="alert alert-info" data-alert>
     <div class="d-flex">
         <div class="me-3">
             <i class="ti ti-info-circle fs-3"></i>
@@ -12,7 +12,7 @@
     </div>
 </div>
 
-<div class="alert bg-body-tertiary border-start border-warning border-4 mb-4">
+<div class="alert bg-body-tertiary border-start border-warning border-4 mb-4" data-alert>
     <div class="d-flex align-items-center">
         <i class="ti ti-lock me-3 fs-3 text-warning"></i>
         <div>
@@ -33,18 +33,18 @@
     <div class="row">
         <!-- Apple Certificates -->
         <div class="col-md-6">
-            <div class="card mb-3">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="c-card mb-3">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0"><i class="ti ti-brand-apple me-2"></i>Apple Wallet</h6>
                     <div>
                         {% if step_data.apple_certs and ('certificate' in step_data.apple_certs and 'key' in step_data.apple_certs and 'wwdr' in step_data.apple_certs) %}
-                            <span class="badge bg-label-success"><i class="ti ti-check me-1"></i>Ready</span>
+                            <span class="badge bg-label-success" data-badge><i class="ti ti-check me-1"></i>Ready</span>
                         {% else %}
-                            <span class="badge bg-label-warning"><i class="ti ti-alert-triangle me-1"></i>Incomplete</span>
+                            <span class="badge bg-label-warning" data-badge><i class="ti ti-alert-triangle me-1"></i>Incomplete</span>
                         {% endif %}
                     </div>
                 </div>
-                <div class="card-body p-0">
+                <div class="c-card__body p-0">
                     <ul class="list-group list-group-flush">
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <div>
@@ -52,9 +52,9 @@
                                 <small class="d-block text-muted">Apple's root certificate (shared)</small>
                             </div>
                             {% if step_data.apple_certs and 'wwdr' in step_data.apple_certs %}
-                                <span class="badge bg-label-success rounded-pill"><i class="ti ti-check"></i></span>
+                                <span class="badge bg-label-success rounded-pill" data-badge><i class="ti ti-check"></i></span>
                             {% else %}
-                                <span class="badge bg-label-warning rounded-pill"><i class="ti ti-x"></i></span>
+                                <span class="badge bg-label-warning rounded-pill" data-badge><i class="ti ti-x"></i></span>
                             {% endif %}
                         </li>
                         <li class="list-group-item">
@@ -81,9 +81,9 @@
                                 <small class="d-block text-muted">For signing passes</small>
                             </div>
                             {% if step_data.apple_certs and 'key' in step_data.apple_certs %}
-                                <span class="badge bg-label-success rounded-pill"><i class="ti ti-check"></i></span>
+                                <span class="badge bg-label-success rounded-pill" data-badge><i class="ti ti-check"></i></span>
                             {% else %}
-                                <span class="badge bg-label-warning rounded-pill"><i class="ti ti-x"></i></span>
+                                <span class="badge bg-label-warning rounded-pill" data-badge><i class="ti ti-x"></i></span>
                             {% endif %}
                         </li>
                     </ul>
@@ -93,12 +93,12 @@
 
         <!-- Google Certificates -->
         <div class="col-md-6">
-            <div class="card mb-3">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="c-card mb-3">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0"><i class="ti ti-brand-google me-2"></i>Google Wallet</h6>
-                    <span class="badge bg-label-secondary">Optional</span>
+                    <span class="badge bg-label-secondary" data-badge>Optional</span>
                 </div>
-                <div class="card-body p-0">
+                <div class="c-card__body p-0">
                     <ul class="list-group list-group-flush">
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <div>
@@ -106,9 +106,9 @@
                                 <small class="d-block text-muted">For Android passes</small>
                             </div>
                             {% if step_data.google_certs and 'credentials' in step_data.google_certs %}
-                                <span class="badge bg-label-success rounded-pill"><i class="ti ti-check"></i></span>
+                                <span class="badge bg-label-success rounded-pill" data-badge><i class="ti ti-check"></i></span>
                             {% else %}
-                                <span class="badge bg-label-secondary rounded-pill"><i class="ti ti-minus"></i></span>
+                                <span class="badge bg-label-secondary rounded-pill" data-badge><i class="ti ti-minus"></i></span>
                             {% endif %}
                         </li>
                     </ul>
@@ -126,17 +126,17 @@
     <h6>Upload Certificates</h6>
 
     <!-- Apple Certificate Uploads -->
-    <div class="accordion mb-3" id="appleCertAccordion">
-        <div class="accordion-item">
+    <div class="accordion mb-3" id="appleCertAccordion" data-accordion>
+        <div class="accordion-item" data-accordion>
             <h2 class="accordion-header">
-                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#appleCertPanel">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#appleCertPanel" data-collapse-toggle>
                     <i class="ti ti-brand-apple me-2"></i> Apple Wallet Certificates
                 </button>
             </h2>
-            <div id="appleCertPanel" class="accordion-collapse collapse show" data-bs-parent="#appleCertAccordion">
-                <div class="accordion-body">
+            <div id="appleCertPanel" class="accordion-collapse collapse show" data-bs-parent="#appleCertAccordion" data-accordion>
+                <div class="accordion-body" data-accordion>
                     <div class="mb-3">
-                        <a href="#" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#appleCertHelpModal">
+                        <a href="#" class="c-btn c-btn--sm c-btn--outline-info" data-bs-toggle="modal" data-bs-target="#appleCertHelpModal">
                             <i class="ti ti-help me-1"></i> How to Get Apple Certificates
                         </a>
                     </div>
@@ -152,23 +152,23 @@
                             <label class="form-label fw-bold">What are you uploading?</label>
                             <div class="row g-2">
                                 <div class="col-md-4">
-                                    <div class="form-check card h-100 {% if step_data.apple_certs and 'wwdr' in step_data.apple_certs %}border-success{% endif %}">
-                                        <div class="card-body p-3">
+                                    <div class="form-check c-card h-100 {% if step_data.apple_certs and 'wwdr' in step_data.apple_certs %}border-success{% endif %}">
+                                        <div class="c-card__body p-3">
                                             <input class="form-check-input" type="radio" name="cert_type" id="certTypeWwdr" value="wwdr"
                                                    {% if step_data.apple_certs and 'wwdr' in step_data.apple_certs %}disabled{% endif %}>
                                             <label class="form-check-label d-block" for="certTypeWwdr">
                                                 <strong>WWDR Certificate</strong>
                                                 <small class="d-block text-muted">Apple's root cert (one-time setup)</small>
                                                 {% if step_data.apple_certs and 'wwdr' in step_data.apple_certs %}
-                                                    <span class="badge bg-label-success mt-1"><i class="ti ti-check"></i> Uploaded</span>
+                                                    <span class="badge bg-label-success mt-1" data-badge><i class="ti ti-check"></i> Uploaded</span>
                                                 {% endif %}
                                             </label>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="form-check card h-100">
-                                        <div class="card-body p-3">
+                                    <div class="form-check c-card h-100">
+                                        <div class="c-card__body p-3">
                                             <input class="form-check-input" type="radio" name="cert_type" id="certTypeCert" value="certificate">
                                             <label class="form-check-label d-block" for="certTypeCert">
                                                 <strong>Pass Type Certificate</strong>
@@ -178,8 +178,8 @@
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="form-check card h-100">
-                                        <div class="card-body p-3">
+                                    <div class="form-check c-card h-100">
+                                        <div class="c-card__body p-3">
                                             <input class="form-check-input" type="radio" name="cert_type" id="certTypeKey" value="key">
                                             <label class="form-check-label d-block" for="certTypeKey">
                                                 <strong>Private Key</strong>
@@ -195,7 +195,7 @@
                         <div id="appleCertFields" class="d-none">
                             <!-- WWDR Fields -->
                             <div id="wwdrFields" class="cert-fields d-none">
-                                <div class="alert bg-body-tertiary border mb-3">
+                                <div class="alert bg-body-tertiary border mb-3" data-alert>
                                     <i class="ti ti-info-circle me-1"></i>
                                     Download from <a href="https://www.apple.com/certificateauthority/" target="_blank">Apple's Certificate Authority</a> - look for "Worldwide Developer Relations - G4"
                                 </div>
@@ -203,7 +203,7 @@
                                 <div class="row g-3">
                                     <div class="col-12">
                                         <label class="form-label">WWDR Certificate File <span class="text-danger">*</span></label>
-                                        <input type="file" class="form-control" name="certificate_file" accept=".pem,.cer,.crt" required>
+                                        <input type="file" class="form-control" name="certificate_file" accept=".pem,.cer,.crt" required data-form-control>
                                         <small class="form-text text-muted">Upload .pem or .cer file</small>
                                     </div>
                                 </div>
@@ -214,22 +214,22 @@
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <label class="form-label">Certificate Name <span class="text-danger">*</span></label>
-                                        <input type="text" name="name" class="form-control" placeholder="e.g. ECS Membership Certificate" required>
+                                        <input type="text" name="name" class="form-control" placeholder="e.g. ECS Membership Certificate" required data-form-control>
                                         <small class="form-text text-muted">Descriptive name for this certificate</small>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Pass Type Identifier <span class="text-danger">*</span></label>
-                                        <input type="text" name="pass_type_identifier" class="form-control" placeholder="e.g. pass.com.ecsfc.membership" required>
+                                        <input type="text" name="pass_type_identifier" class="form-control" placeholder="e.g. pass.com.ecsfc.membership" required data-form-control>
                                         <small class="form-text text-muted">From Apple Developer Portal</small>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Team Identifier <span class="text-danger">*</span></label>
-                                        <input type="text" name="team_identifier" class="form-control" placeholder="e.g. ABC123DEF4" required>
+                                        <input type="text" name="team_identifier" class="form-control" placeholder="e.g. ABC123DEF4" required data-form-control>
                                         <small class="form-text text-muted">Your 10-character Apple Team ID</small>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Certificate File <span class="text-danger">*</span></label>
-                                        <input type="file" class="form-control" name="certificate_file" accept=".p12,.pem,.cer,.crt" required>
+                                        <input type="file" class="form-control" name="certificate_file" accept=".p12,.pem,.cer,.crt" required data-form-control>
                                         <small class="form-text text-muted">Upload .p12 or .pem file</small>
                                     </div>
                                 </div>
@@ -240,24 +240,24 @@
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <label class="form-label">Key Name <span class="text-danger">*</span></label>
-                                        <input type="text" name="name" class="form-control" placeholder="e.g. ECS Membership Key" required>
+                                        <input type="text" name="name" class="form-control" placeholder="e.g. ECS Membership Key" required data-form-control>
                                         <small class="form-text text-muted">Match this to your certificate name</small>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Private Key File <span class="text-danger">*</span></label>
-                                        <input type="file" class="form-control" name="certificate_file" accept=".p12,.pem,.key" required>
+                                        <input type="file" class="form-control" name="certificate_file" accept=".p12,.pem,.key" required data-form-control>
                                         <small class="form-text text-muted">Upload .p12, .pem, or .key file</small>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Key Password (if encrypted)</label>
-                                        <input type="password" name="key_password" class="form-control" placeholder="Leave blank if not encrypted">
+                                        <input type="password" name="key_password" class="form-control" placeholder="Leave blank if not encrypted" data-form-control>
                                         <small class="form-text text-muted">Required if key is password-protected</small>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="mt-3">
-                                <button type="submit" class="btn btn-primary">
+                                <button type="submit" class="c-btn c-btn--primary">
                                     <i class="ti ti-upload me-1"></i> Upload Certificate
                                 </button>
                             </div>
@@ -269,16 +269,16 @@
     </div>
 
     <!-- APNs Push Key (for automatic pass updates) -->
-    <div class="accordion mb-3" id="apnsCertAccordion">
-        <div class="accordion-item">
+    <div class="accordion mb-3" id="apnsCertAccordion" data-accordion>
+        <div class="accordion-item" data-accordion>
             <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#apnsCertPanel">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#apnsCertPanel" data-collapse-toggle>
                     <i class="ti ti-bell-ringing me-2"></i> APNs Push Key (Automatic Updates)
                 </button>
             </h2>
-            <div id="apnsCertPanel" class="accordion-collapse collapse" data-bs-parent="#apnsCertAccordion">
-                <div class="accordion-body">
-                    <div class="alert alert-info mb-3">
+            <div id="apnsCertPanel" class="accordion-collapse collapse" data-bs-parent="#apnsCertAccordion" data-accordion>
+                <div class="accordion-body" data-accordion>
+                    <div class="alert alert-info mb-3" data-alert>
                         <div class="d-flex">
                             <div class="me-3">
                                 <i class="ti ti-info-circle fs-3"></i>
@@ -291,13 +291,13 @@
                     </div>
 
                     <div class="mb-3">
-                        <a href="#" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#apnsKeyHelpModal">
+                        <a href="#" class="c-btn c-btn--sm c-btn--outline-info" data-bs-toggle="modal" data-bs-target="#apnsKeyHelpModal">
                             <i class="ti ti-help me-1"></i> How to Create an APNs Key
                         </a>
                     </div>
 
                     {% if step_data.apns_key %}
-                    <div class="alert alert-success">
+                    <div class="alert alert-success" data-alert>
                         <i class="ti ti-check me-1"></i> APNs key already configured
                         <br><small>Key ID: {{ step_data.apns_key.key_id }}</small>
                     </div>
@@ -311,22 +311,22 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">Key ID <span class="text-danger">*</span></label>
-                                <input type="text" name="apns_key_id" class="form-control" placeholder="e.g. ABC123DEFG" required>
+                                <input type="text" name="apns_key_id" class="form-control" placeholder="e.g. ABC123DEFG" required data-form-control>
                                 <small class="form-text text-muted">10-character ID shown when you create the key</small>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Team ID <span class="text-danger">*</span></label>
                                 <input type="text" name="team_identifier" class="form-control" placeholder="e.g. TEAM1234XY"
-                                       value="{{ step_data.apple_certs['certificate'].team_identifier if step_data.apple_certs and 'certificate' in step_data.apple_certs else '' }}" required>
+                                       value="{{ step_data.apple_certs['certificate'].team_identifier if step_data.apple_certs and 'certificate' in step_data.apple_certs else '' }}" required data-form-control>
                                 <small class="form-text text-muted">Your 10-character Apple Team ID</small>
                             </div>
                             <div class="col-12">
                                 <label class="form-label">APNs Key File (.p8) <span class="text-danger">*</span></label>
-                                <input type="file" class="form-control" name="certificate_file" accept=".p8" required>
+                                <input type="file" class="form-control" name="certificate_file" accept=".p8" required data-form-control>
                                 <small class="form-text text-muted">The AuthKey_XXXXXXXX.p8 file downloaded from Apple</small>
                             </div>
                             <div class="col-12">
-                                <button type="submit" class="btn btn-primary">
+                                <button type="submit" class="c-btn c-btn--primary">
                                     <i class="ti ti-upload me-1"></i> Upload APNs Key
                                 </button>
                             </div>
@@ -339,23 +339,23 @@
     </div>
 
     <!-- Google Certificate Upload -->
-    <div class="accordion" id="googleCertAccordion">
-        <div class="accordion-item">
+    <div class="accordion" id="googleCertAccordion" data-accordion>
+        <div class="accordion-item" data-accordion>
             <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#googleCertPanel">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#googleCertPanel" data-collapse-toggle>
                     <i class="ti ti-brand-google me-2"></i> Google Wallet Credentials (Optional)
                 </button>
             </h2>
-            <div id="googleCertPanel" class="accordion-collapse collapse" data-bs-parent="#googleCertAccordion">
-                <div class="accordion-body">
+            <div id="googleCertPanel" class="accordion-collapse collapse" data-bs-parent="#googleCertAccordion" data-accordion>
+                <div class="accordion-body" data-accordion>
                     <div class="mb-3">
-                        <a href="#" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#googleCertHelpModal">
+                        <a href="#" class="c-btn c-btn--sm c-btn--outline-info" data-bs-toggle="modal" data-bs-target="#googleCertHelpModal">
                             <i class="ti ti-help me-1"></i> How to Get Google Credentials
                         </a>
                     </div>
 
                     {% if step_data.google_certs and 'credentials' in step_data.google_certs %}
-                    <div class="alert alert-success">
+                    <div class="alert alert-success" data-alert>
                         <i class="ti ti-check me-1"></i> Google credentials already configured
                         <br><small>{{ step_data.google_certs['credentials'].name }}</small>
                     </div>
@@ -369,20 +369,20 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">Credential Name <span class="text-danger">*</span></label>
-                                <input type="text" name="name" class="form-control" placeholder="e.g. ECS Google Wallet" required>
+                                <input type="text" name="name" class="form-control" placeholder="e.g. ECS Google Wallet" required data-form-control>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Issuer ID <span class="text-danger">*</span></label>
-                                <input type="text" name="issuer_id" class="form-control" placeholder="e.g. 1234567890123456789" required>
+                                <input type="text" name="issuer_id" class="form-control" placeholder="e.g. 1234567890123456789" required data-form-control>
                                 <small class="form-text text-muted">From Google Pay & Wallet Console</small>
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Service Account JSON <span class="text-danger">*</span></label>
-                                <input type="file" class="form-control" name="certificate_file" accept=".json" required>
+                                <input type="file" class="form-control" name="certificate_file" accept=".json" required data-form-control>
                                 <small class="form-text text-muted">The JSON key file from Google Cloud Console</small>
                             </div>
                             <div class="col-12">
-                                <button type="submit" class="btn btn-primary">
+                                <button type="submit" class="c-btn c-btn--primary">
                                     <i class="ti ti-upload me-1"></i> Upload Credentials
                                 </button>
                             </div>
@@ -449,16 +449,16 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <!-- Apple Certificate Help Modal -->
-<div class="modal fade" id="appleCertHelpModal" tabindex="-1" aria-labelledby="appleCertHelpModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="appleCertHelpModalLabel">How to Get Apple Wallet Certificates</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal c-modal fade" id="appleCertHelpModal" tabindex="-1" aria-labelledby="appleCertHelpModalLabel" aria-hidden="true" data-modal>
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg modal-dialog-scrollable c-modal__dialog--scrollable" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="appleCertHelpModalLabel">How to Get Apple Wallet Certificates</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body>
                 <div class="mb-4">
-                    <h6 class="mb-3"><span class="badge bg-primary me-2">1</span>Create a Pass Type ID</h6>
+                    <h6 class="mb-3"><span class="badge bg-primary me-2" data-badge>1</span>Create a Pass Type ID</h6>
                     <ol class="small">
                         <li>Log in to the <a href="https://developer.apple.com/account" target="_blank">Apple Developer Portal</a></li>
                         <li>Go to "Certificates, Identifiers & Profiles" → "Identifiers"</li>
@@ -466,13 +466,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         <li>Enter a description (e.g., "ECS Membership") and identifier (e.g., "pass.com.ecsfc.membership")</li>
                         <li>Click "Register"</li>
                     </ol>
-                    <div class="alert alert-info small">
+                    <div class="alert alert-info small" data-alert>
                         <i class="ti ti-info-circle me-1"></i> Create separate Pass Type IDs for ECS Membership and Pub League if needed.
                     </div>
                 </div>
 
                 <div class="mb-4">
-                    <h6 class="mb-3"><span class="badge bg-primary me-2">2</span>Create a Pass Type Certificate</h6>
+                    <h6 class="mb-3"><span class="badge bg-primary me-2" data-badge>2</span>Create a Pass Type Certificate</h6>
                     <ol class="small">
                         <li>Go to "Certificates" and click "+"</li>
                         <li>Select "Pass Type ID Certificate"</li>
@@ -483,7 +483,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
 
                 <div class="mb-4">
-                    <h6 class="mb-3"><span class="badge bg-primary me-2">3</span>Export the Private Key</h6>
+                    <h6 class="mb-3"><span class="badge bg-primary me-2" data-badge>3</span>Export the Private Key</h6>
                     <ol class="small">
                         <li>Double-click the downloaded certificate to add it to Keychain</li>
                         <li>In Keychain Access, find the certificate under "My Certificates"</li>
@@ -494,7 +494,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
 
                 <div class="mb-4">
-                    <h6 class="mb-3"><span class="badge bg-primary me-2">4</span>Download WWDR Certificate</h6>
+                    <h6 class="mb-3"><span class="badge bg-primary me-2" data-badge>4</span>Download WWDR Certificate</h6>
                     <ol class="small">
                         <li>Go to <a href="https://www.apple.com/certificateauthority/" target="_blank">Apple's Certificate Authority</a></li>
                         <li>Download "Worldwide Developer Relations - G4" (.cer file)</li>
@@ -502,23 +502,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     </ol>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Got it!</button>
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--primary" data-bs-dismiss="modal" data-dismiss>Got it!</button>
             </div>
         </div>
     </div>
 </div>
 
 <!-- APNs Key Help Modal -->
-<div class="modal fade" id="apnsKeyHelpModal" tabindex="-1" aria-labelledby="apnsKeyHelpModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="apnsKeyHelpModalLabel">How to Create an APNs Key for Push Updates</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal c-modal fade" id="apnsKeyHelpModal" tabindex="-1" aria-labelledby="apnsKeyHelpModalLabel" aria-hidden="true" data-modal>
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg modal-dialog-scrollable c-modal__dialog--scrollable" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="apnsKeyHelpModalLabel">How to Create an APNs Key for Push Updates</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
             </div>
-            <div class="modal-body">
-                <div class="alert alert-success mb-4">
+            <div class="modal-body c-modal__body" data-modal-body>
+                <div class="alert alert-success mb-4" data-alert>
                     <div class="d-flex">
                         <div class="me-3">
                             <i class="ti ti-bulb fs-3"></i>
@@ -537,7 +537,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
 
                 <div class="mb-4">
-                    <h6 class="mb-3"><span class="badge bg-primary me-2">1</span>Go to Apple Developer Portal</h6>
+                    <h6 class="mb-3"><span class="badge bg-primary me-2" data-badge>1</span>Go to Apple Developer Portal</h6>
                     <ol class="small">
                         <li>Log in to the <a href="https://developer.apple.com/account" target="_blank">Apple Developer Portal</a></li>
                         <li>Navigate to "Certificates, Identifiers & Profiles"</li>
@@ -546,34 +546,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
 
                 <div class="mb-4">
-                    <h6 class="mb-3"><span class="badge bg-primary me-2">2</span>Create a New Key</h6>
+                    <h6 class="mb-3"><span class="badge bg-primary me-2" data-badge>2</span>Create a New Key</h6>
                     <ol class="small">
                         <li>Click the "+" button to create a new key</li>
                         <li>Enter a name (e.g., "ECS APNs Push Key")</li>
                         <li>Check <strong>"Apple Push Notifications service (APNs)"</strong></li>
                         <li>Click "Continue", then "Register"</li>
                     </ol>
-                    <div class="alert alert-info small mt-2">
+                    <div class="alert alert-info small mt-2" data-alert>
                         <i class="ti ti-info-circle me-1"></i>
                         When asked about environment, choose <strong>"Sandbox & Production"</strong> - this single key works for both.
                     </div>
                 </div>
 
                 <div class="mb-4">
-                    <h6 class="mb-3"><span class="badge bg-primary me-2">3</span>Download and Save the Key</h6>
+                    <h6 class="mb-3"><span class="badge bg-primary me-2" data-badge>3</span>Download and Save the Key</h6>
                     <ol class="small">
                         <li>Click "Download" to get your <code>AuthKey_XXXXXXXXXX.p8</code> file</li>
                         <li>Note the <strong>Key ID</strong> shown on the page (10 characters like "ABC123DEFG")</li>
                         <li>Your <strong>Team ID</strong> is shown in the top-right of the Developer Portal (or under Membership)</li>
                     </ol>
-                    <div class="alert alert-danger small mt-2">
+                    <div class="alert alert-danger small mt-2" data-alert>
                         <i class="ti ti-alert-triangle me-1"></i>
                         <strong>Important:</strong> You can only download the .p8 file <strong>once</strong>! Store it securely. If you lose it, you'll need to create a new key.
                     </div>
                 </div>
 
                 <div class="mb-4">
-                    <h6 class="mb-3"><span class="badge bg-primary me-2">4</span>Upload Here</h6>
+                    <h6 class="mb-3"><span class="badge bg-primary me-2" data-badge>4</span>Upload Here</h6>
                     <ol class="small">
                         <li>Enter the <strong>Key ID</strong> (10 characters from step 3)</li>
                         <li>Enter your <strong>Team ID</strong> (should be pre-filled if you uploaded a pass certificate)</li>
@@ -582,31 +582,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     </ol>
                 </div>
 
-                <div class="alert bg-body-tertiary border">
+                <div class="alert bg-body-tertiary border" data-alert>
                     <h6 class="mb-2"><i class="ti ti-test-pipe me-2"></i>How to Test</h6>
                     <p class="small mb-0">After uploading, go to Pass Studio and change something (like background color). Save the changes, then check your iPhone - the pass should update within a few seconds to a minute.</p>
                 </div>
             </div>
-            <div class="modal-footer">
-                <a href="https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server/establishing_a_token-based_connection_to_apns" target="_blank" class="btn btn-outline-secondary me-auto">
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <a href="https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server/establishing_a_token-based_connection_to_apns" target="_blank" class="c-btn c-btn--outline-secondary me-auto">
                     <i class="ti ti-external-link me-1"></i>Apple Documentation
                 </a>
-                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Got it!</button>
+                <button type="button" class="c-btn c-btn--primary" data-bs-dismiss="modal" data-dismiss>Got it!</button>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Google Certificate Help Modal -->
-<div class="modal fade" id="googleCertHelpModal" tabindex="-1" aria-labelledby="googleCertHelpModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="googleCertHelpModalLabel">How to Get Google Wallet Credentials</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal c-modal fade" id="googleCertHelpModal" tabindex="-1" aria-labelledby="googleCertHelpModalLabel" aria-hidden="true" data-modal>
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg modal-dialog-scrollable c-modal__dialog--scrollable" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="googleCertHelpModalLabel">How to Get Google Wallet Credentials</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
             </div>
-            <div class="modal-body">
-                <div class="alert alert-warning mb-4">
+            <div class="modal-body c-modal__body" data-modal-body>
+                <div class="alert alert-warning mb-4" data-alert>
                     <i class="ti ti-alert-triangle me-2"></i>
                     <strong>Prerequisites:</strong> You need a Google Wallet API Issuer account. New accounts start in "demo mode" - passes can only be issued to test users until you apply for publishing access.
                     <a href="https://developers.google.com/wallet/generic/getting-started/onboarding-guide" target="_blank" class="d-block mt-2">
@@ -615,20 +615,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
 
                 <div class="mb-4">
-                    <h6 class="mb-3"><span class="badge bg-primary me-2">1</span>Set Up Issuer Account (One-Time)</h6>
+                    <h6 class="mb-3"><span class="badge bg-primary me-2" data-badge>1</span>Set Up Issuer Account (One-Time)</h6>
                     <ol class="small">
                         <li>Go to <a href="https://pay.google.com/business/console/" target="_blank">Google Pay & Wallet Console</a></li>
                         <li>Sign up for a Google Wallet API Issuer account if you don't have one</li>
                         <li>Note your <strong>Issuer ID</strong> from the console (you'll need this later)</li>
                     </ol>
-                    <div class="alert alert-info small mt-2">
+                    <div class="alert alert-info small mt-2" data-alert>
                         <i class="ti ti-info-circle me-1"></i>
                         One Issuer account can support multiple pass types (both ECS Membership and Pub League).
                     </div>
                 </div>
 
                 <div class="mb-4">
-                    <h6 class="mb-3"><span class="badge bg-primary me-2">2</span>Create Google Cloud Project</h6>
+                    <h6 class="mb-3"><span class="badge bg-primary me-2" data-badge>2</span>Create Google Cloud Project</h6>
                     <ol class="small">
                         <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
                         <li>Create a new project or select an existing one</li>
@@ -636,7 +636,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
 
                 <div class="mb-4">
-                    <h6 class="mb-3"><span class="badge bg-primary me-2">3</span>Enable Google Wallet API</h6>
+                    <h6 class="mb-3"><span class="badge bg-primary me-2" data-badge>3</span>Enable Google Wallet API</h6>
                     <ol class="small">
                         <li>In Google Cloud Console, go to "APIs & Services" → "Library"</li>
                         <li>Search for "Google Wallet API"</li>
@@ -645,7 +645,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
 
                 <div class="mb-4">
-                    <h6 class="mb-3"><span class="badge bg-primary me-2">4</span>Create Service Account</h6>
+                    <h6 class="mb-3"><span class="badge bg-primary me-2" data-badge>4</span>Create Service Account</h6>
                     <ol class="small">
                         <li>Go to "IAM & Admin" → "Service Accounts"</li>
                         <li>Click "Create Service Account"</li>
@@ -656,7 +656,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
 
                 <div class="mb-4">
-                    <h6 class="mb-3"><span class="badge bg-primary me-2">5</span>Download JSON Key</h6>
+                    <h6 class="mb-3"><span class="badge bg-primary me-2" data-badge>5</span>Download JSON Key</h6>
                     <ol class="small">
                         <li>Click on the service account you just created</li>
                         <li>Go to the "Keys" tab</li>
@@ -664,14 +664,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         <li>Select "JSON" format</li>
                         <li>Click "Create" - the key file will download automatically</li>
                     </ol>
-                    <div class="alert alert-danger small mt-2">
+                    <div class="alert alert-danger small mt-2" data-alert>
                         <i class="ti ti-lock me-1"></i>
                         <strong>Keep this file secure!</strong> It contains sensitive credentials. Never commit it to version control.
                     </div>
                 </div>
 
                 <div class="mb-4">
-                    <h6 class="mb-3"><span class="badge bg-primary me-2">6</span>Authorize Service Account in Wallet Console</h6>
+                    <h6 class="mb-3"><span class="badge bg-primary me-2" data-badge>6</span>Authorize Service Account in Wallet Console</h6>
                     <ol class="small">
                         <li>Go back to <a href="https://pay.google.com/business/console/" target="_blank">Google Pay & Wallet Console</a></li>
                         <li>Click "Users" in the left navigation</li>
@@ -680,17 +680,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         <li>Set "Access level" to <strong>"Developer"</strong></li>
                         <li>Click "Invite"</li>
                     </ol>
-                    <div class="alert alert-success small mt-2">
+                    <div class="alert alert-success small mt-2" data-alert>
                         <i class="ti ti-check me-1"></i>
                         Your service account can now create and manage passes for all pass types under your Issuer account.
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <a href="https://developers.google.com/wallet/generic/getting-started/auth/rest" target="_blank" class="btn btn-outline-secondary me-auto">
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <a href="https://developers.google.com/wallet/generic/getting-started/auth/rest" target="_blank" class="c-btn c-btn--outline-secondary me-auto">
                     <i class="ti ti-external-link me-1"></i>Official Documentation
                 </a>
-                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Got it!</button>
+                <button type="button" class="c-btn c-btn--primary" data-bs-dismiss="modal" data-dismiss>Got it!</button>
             </div>
         </div>
     </div>

@@ -14,9 +14,9 @@
     <h4 class="mb-0">API Analytics</h4>
     <div class="d-flex gap-2">
         <form method="GET" class="d-flex gap-2">
-            <input type="date" name="date_from" class="form-control" value="{{ date_range.start }}">
-            <input type="date" name="date_to" class="form-control" value="{{ date_range.end }}">
-            <button type="submit" class="btn btn-primary">Update</button>
+            <input type="date" name="date_from" class="form-control" value="{{ date_range.start }}" data-form-control>
+            <input type="date" name="date_to" class="form-control" value="{{ date_range.end }}" data-form-control>
+            <button type="submit" class="c-btn c-btn--primary">Update</button>
         </form>
     </div>
 </div>
@@ -24,68 +24,68 @@
 <!-- Summary Cards -->
 <div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
+        <div class="c-card bg-primary text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">
+                        <h5 class="c-card__title text-white mb-1">
                             {{ "{:,}".format(analytics.total_requests) }}
                         </h5>
-                        <p class="card-text small opacity-75 mb-0">Total Requests</p>
+                        <p class="c-card__description small opacity-75 mb-0">Total Requests</p>
                     </div>
-                    <div class="card-icon">
-                        <i class="ti ti-activity" style="font-size: 2rem; opacity: 0.5;"></i>
+                    <div class="card-icon icon-overlay">
+                        <i class="ti ti-activity"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-{% if analytics.error_rate < 2 %}success{% elif analytics.error_rate < 5 %}warning{% else %}danger{% endif %} text-white">
-            <div class="card-body">
+        <div class="c-card bg-{% if analytics.error_rate < 2 %}success{% elif analytics.error_rate < 5 %}warning{% else %}danger{% endif %} text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">
+                        <h5 class="c-card__title text-white mb-1">
                             {{ "%.1f"|format(analytics.error_rate) }}%
                         </h5>
-                        <p class="card-text small opacity-75 mb-0">Error Rate</p>
+                        <p class="c-card__description small opacity-75 mb-0">Error Rate</p>
                     </div>
-                    <div class="card-icon">
-                        <i class="ti ti-alert-triangle" style="font-size: 2rem; opacity: 0.5;"></i>
+                    <div class="card-icon icon-overlay">
+                        <i class="ti ti-alert-triangle"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
+        <div class="c-card bg-info text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">
+                        <h5 class="c-card__title text-white mb-1">
                             {{ "%.3f"|format(analytics.avg_response_time) }}s
                         </h5>
-                        <p class="card-text small opacity-75 mb-0">Avg Response Time</p>
+                        <p class="c-card__description small opacity-75 mb-0">Avg Response Time</p>
                     </div>
-                    <div class="card-icon">
-                        <i class="ti ti-clock" style="font-size: 2rem; opacity: 0.5;"></i>
+                    <div class="card-icon icon-overlay">
+                        <i class="ti ti-clock"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-secondary text-white">
-            <div class="card-body">
+        <div class="c-card bg-secondary text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">
+                        <h5 class="c-card__title text-white mb-1">
                             {{ "{:,}".format(analytics.total_errors) }}
                         </h5>
-                        <p class="card-text small opacity-75 mb-0">Total Errors</p>
+                        <p class="c-card__description small opacity-75 mb-0">Total Errors</p>
                     </div>
-                    <div class="card-icon">
-                        <i class="ti ti-x-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                    <div class="card-icon icon-overlay">
+                        <i class="ti ti-x-circle"></i>
                     </div>
                 </div>
             </div>
@@ -96,25 +96,25 @@
 <!-- Charts Row -->
 <div class="row mb-4">
     <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-chart-line me-2"></i>API Requests Over Time
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <canvas id="requestsChart" height="100"></canvas>
             </div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-chart-pie me-2"></i>Error Distribution
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <canvas id="errorChart" height="200"></canvas>
             </div>
         </div>
@@ -124,22 +124,22 @@
 <!-- Performance Analysis -->
 <div class="row mb-4">
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-trending-up me-2"></i>Top Performing Endpoints
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if endpoint_performance %}
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--compact" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Endpoint</th>
-                                <th>Requests</th>
-                                <th>Avg Time</th>
-                                <th>Success Rate</th>
+                                <th scope="col">Endpoint</th>
+                                <th scope="col">Requests</th>
+                                <th scope="col">Avg Time</th>
+                                <th scope="col">Success Rate</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -156,9 +156,9 @@
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        <div class="progress me-2" style="width: 60px; height: 8px;">
-                                            <div class="progress-bar bg-{% if endpoint.success_rate > 95 %}success{% elif endpoint.success_rate > 90 %}warning{% else %}danger{% endif %}" 
-                                                 style="width: {{ endpoint.success_rate }}%"></div>
+                                        <div class="progress me-2 u-w-60 u-progress-sm">
+                                            <div class="progress-bar bg-{% if endpoint.success_rate > 95 %}success{% elif endpoint.success_rate > 90 %}warning{% else %}danger{% endif %}"
+                                                 data-width="{{ endpoint.success_rate }}"></div>
                                         </div>
                                         <small>{{ "%.1f"|format(endpoint.success_rate) }}%</small>
                                     </div>
@@ -176,22 +176,22 @@
     </div>
     
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-alert-triangle me-2"></i>Error Analysis
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if error_analysis.error_types %}
                 <h6 class="mb-3">Error Types</h6>
                 {% for error in error_analysis.error_types %}
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <span class="small">{{ error.type }}</span>
                     <div class="d-flex align-items-center">
-                        <div class="progress me-2" style="width: 80px; height: 8px;">
-                            <div class="progress-bar bg-danger" 
-                                 style="width: {{ (error.count / error_analysis.total_errors * 100) if error_analysis.total_errors > 0 else 0 }}%"></div>
+                        <div class="progress me-2 u-w-80 u-progress-sm">
+                            <div class="progress-bar bg-danger"
+                                 data-width="{{ (error.count / error_analysis.total_errors * 100) if error_analysis.total_errors > 0 else 0 }}"></div>
                         </div>
                         <small class="fw-bold">{{ error.count }}</small>
                     </div>
@@ -203,7 +203,7 @@
                 {% for endpoint in error_analysis.top_error_endpoints %}
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <code class="small">{{ endpoint.endpoint }}</code>
-                    <span class="badge bg-danger">{{ endpoint.errors }}</span>
+                    <span class="badge bg-danger" data-badge>{{ endpoint.errors }}</span>
                 </div>
                 {% endfor %}
                 {% endif %}
@@ -218,32 +218,32 @@
 <!-- Detailed Analytics Table -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-table me-2"></i>Daily Analytics Breakdown
                 </h5>
                 <div class="btn-group btn-group-sm">
-                    <button type="button" class="btn btn-outline-primary" onclick="exportAnalytics('csv')">
+                    <button type="button" class="c-btn c-btn--outline-primary" data-action="export-analytics" data-format="csv">
                         <i class="ti ti-download me-1"></i>CSV
                     </button>
-                    <button type="button" class="btn btn-outline-primary" onclick="exportAnalytics('json')">
+                    <button type="button" class="c-btn c-btn--outline-primary" data-action="export-analytics" data-format="json">
                         <i class="ti ti-download me-1"></i>JSON
                     </button>
                 </div>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if analytics.daily_requests %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Date</th>
-                                <th>Requests</th>
-                                <th>Errors</th>
-                                <th>Error Rate</th>
-                                <th>Avg Response Time</th>
-                                <th>Health Score</th>
+                                <th scope="col">Date</th>
+                                <th scope="col">Requests</th>
+                                <th scope="col">Errors</th>
+                                <th scope="col">Error Rate</th>
+                                <th scope="col">Avg Response Time</th>
+                                <th scope="col">Health Score</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -266,9 +266,9 @@
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        <div class="progress me-2" style="width: 60px; height: 8px;">
-                                            <div class="progress-bar bg-{% if health_score > 80 %}success{% elif health_score > 60 %}warning{% else %}danger{% endif %}" 
-                                                 style="width: {{ [health_score, 100] | min }}%"></div>
+                                        <div class="progress me-2 u-w-60 u-progress-sm">
+                                            <div class="progress-bar bg-{% if health_score > 80 %}success{% elif health_score > 60 %}warning{% else %}danger{% endif %}"
+                                                 data-width="{{ [health_score, 100] | min }}"></div>
                                         </div>
                                         <small>{{ "%.0f"|format([health_score, 100] | min) }}%</small>
                                     </div>
@@ -288,9 +288,41 @@
 
 {% endblock %}
 
+{% block custom_css %}
+{{ super() }}
+<style>
+.icon-overlay i {
+    font-size: 2rem;
+    opacity: 0.5;
+}
+
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+</style>
+{% endblock %}
+
 {% block custom_js %}
+{{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Apply dynamic widths from data attributes
+    document.querySelectorAll('[data-width]').forEach(el => {
+        el.style.width = el.dataset.width + '%';
+    });
+
+    // Event delegation for export analytics buttons
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action="export-analytics"]');
+        if (target) {
+            exportAnalytics(target.dataset.format);
+        }
+    });
+});
+
 // API Requests Over Time Chart
 const requestsData = {{ analytics.daily_requests | tojson }};
 const requestsCtx = document.getElementById('requestsChart').getContext('2d');
@@ -401,7 +433,7 @@ new Chart(errorCtx, {
 function exportAnalytics(format) {
     const dateFrom = new URLSearchParams(window.location.search).get('date_from') || '{{ date_range.start }}';
     const dateTo = new URLSearchParams(window.location.search).get('date_to') || '{{ date_range.end }}';
-    
+
     Swal.fire({
         title: 'Export Started',
         text: `API analytics export in ${format.toUpperCase()} format for ${dateFrom} to ${dateTo} has been queued.`,
@@ -442,19 +474,6 @@ function toggleAutoRefresh() {
     }
 }
 
-// Add auto-refresh toggle button to the header
-document.addEventListener('DOMContentLoaded', function() {
-    const header = document.querySelector('.d-flex.justify-content-between.align-items-center.mb-4');
-    if (header) {
-        const toggleButton = document.createElement('button');
-        toggleButton.className = 'btn btn-outline-secondary ms-2';
-        toggleButton.innerHTML = '<i class="ti ti-refresh"></i>';
-        toggleButton.title = 'Toggle Auto-refresh';
-        toggleButton.onclick = toggleAutoRefresh;
-        
-        const buttonGroup = header.querySelector('.d-flex.gap-2');
-        buttonGroup.appendChild(toggleButton);
-    }
-});
+// Auto-refresh toggle initialization moved to DOMContentLoaded at top
 </script>
 {% endblock %}

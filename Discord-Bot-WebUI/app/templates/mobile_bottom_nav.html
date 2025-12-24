@@ -44,8 +44,7 @@
 <div class="offcanvas offcanvas-bottom mobile-more-menu"
      tabindex="-1"
      id="mobileMoreMenu"
-     aria-labelledby="mobileMoreMenuLabel"
-     style="height: 60vh; border-radius: 16px 16px 0 0;">
+     aria-labelledby="mobileMoreMenuLabel">
     <div class="offcanvas-header">
         <h5 class="offcanvas-title" id="mobileMoreMenuLabel">
             <i class="ti ti-menu-2 me-2"></i>More Options
@@ -74,7 +73,7 @@
 
             <!-- Draft Leagues (if user has access) -->
             {% if current_user.is_authenticated and ('Admin' in user_roles or 'Global Admin' in user_roles or 'Coach' in user_roles or 'Pub League Admin' in user_roles or 'Pub League Coach' in user_roles) %}
-            <div class="list-group-item" style="background-color: var(--bs-secondary-bg); padding: 8px 16px;">
+            <div class="list-group-item mobile-menu-section-header">
                 <small class="text-muted fw-bold">DRAFT</small>
             </div>
             <a href="{{ url_for('draft_enhanced.draft_league', league_name='premier') }}"
@@ -137,9 +136,9 @@
             <div class="dropdown-divider"></div>
 
             <!-- Theme Toggle -->
-            <button class="list-group-item list-group-item-action"
+            <button class="list-group-item list-group-item-action js-mobile-theme-toggle"
                     id="mobileThemeToggle"
-                    onclick="toggleTheme()">
+                    data-action="toggle-theme">
                 <i class="ti ti-moon me-3" id="mobileThemeIcon"></i>
                 <span id="mobileThemeText">Dark Mode</span>
             </button>
@@ -166,203 +165,6 @@
         </div>
     </div>
 </div>
-
-<!-- Mobile Bottom Nav Styles -->
-<style>
-/* Mobile Bottom Navigation */
-.mobile-bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 64px;
-    background: var(--bs-body-bg);
-    border-top: 1px solid var(--bs-border-color);
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
-    z-index: 1050;
-    padding-bottom: env(safe-area-inset-bottom); /* iPhone notch support */
-}
-
-.bottom-nav-container {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    height: 100%;
-    padding: 0 8px;
-}
-
-.bottom-nav-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    min-width: 0;
-    padding: 8px 4px;
-    color: var(--bs-secondary);
-    text-decoration: none;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border-radius: 8px;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.bottom-nav-item:hover,
-.bottom-nav-item:focus {
-    color: var(--bs-primary);
-    background: rgba(var(--bs-primary-rgb), 0.1);
-}
-
-.bottom-nav-item.active {
-    color: var(--bs-primary);
-    font-weight: 600;
-}
-
-.bottom-nav-item.active .bottom-nav-icon {
-    transform: scale(1.1);
-}
-
-.bottom-nav-icon {
-    font-size: 24px;
-    margin-bottom: 4px;
-    transition: transform 0.2s ease;
-}
-
-.bottom-nav-label {
-    font-size: 11px;
-    line-height: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-}
-
-/* More menu styling */
-.mobile-more-menu .list-group-item {
-    padding: 16px 20px;
-    font-size: 16px;
-    border: none;
-    border-bottom: 1px solid var(--bs-border-color);
-}
-
-.mobile-more-menu .list-group-item i {
-    font-size: 20px;
-    width: 24px;
-}
-
-.mobile-more-menu .offcanvas-header {
-    border-bottom: 1px solid var(--bs-border-color);
-    padding: 20px;
-}
-
-/* Add padding to main content to account for bottom nav */
-@media (max-width: 767.98px) {
-    .layout-page {
-        padding-bottom: 80px !important;
-    }
-
-    .container-xxl,
-    .container-fluid {
-        padding-bottom: 24px;
-    }
-}
-
-/* Hide on desktop */
-@media (min-width: 768px) {
-    .mobile-bottom-nav,
-    .mobile-more-menu {
-        display: none !important;
-    }
-}
-
-/* Active state ripple effect */
-.bottom-nav-item:active {
-    transform: scale(0.95);
-}
-
-/* Badge for notifications (future use) */
-.bottom-nav-item .badge {
-    position: absolute;
-    top: 4px;
-    right: 20%;
-    padding: 2px 6px;
-    font-size: 10px;
-    border-radius: 10px;
-}
-
-/* ========================================
-   Dark Mode Support
-   ======================================== */
-
-[data-style="dark"] .mobile-bottom-nav {
-    background: var(--ecs-dark-bg-body, #1a1d23);
-    border-top-color: var(--ecs-dark-border, #2d3139);
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.4);
-}
-
-[data-style="dark"] .bottom-nav-item {
-    color: var(--ecs-neutral-50, #9ca3af);
-}
-
-[data-style="dark"] .bottom-nav-item:hover,
-[data-style="dark"] .bottom-nav-item:focus {
-    color: var(--bs-primary);
-    background: rgba(var(--bs-primary-rgb), 0.15);
-}
-
-[data-style="dark"] .bottom-nav-item.active {
-    color: var(--bs-primary);
-}
-
-[data-style="dark"] .mobile-more-menu .offcanvas {
-    background: var(--ecs-dark-bg-body, #1a1d23);
-    color: var(--ecs-neutral-10, #e5e7eb);
-}
-
-[data-style="dark"] .mobile-more-menu .offcanvas-header {
-    border-bottom-color: var(--ecs-dark-border, #2d3139);
-}
-
-[data-style="dark"] .mobile-more-menu .list-group-item {
-    background: var(--ecs-dark-bg-body, #1a1d23);
-    color: var(--ecs-neutral-10, #e5e7eb);
-    border-bottom-color: var(--ecs-dark-border, #2d3139);
-}
-
-[data-style="dark"] .mobile-more-menu .list-group-item:hover,
-[data-style="dark"] .mobile-more-menu .list-group-item:focus {
-    background: var(--ecs-dark-bg-elevated, #2d3139);
-    color: var(--bs-white, #fff);
-}
-
-[data-style="dark"] .mobile-more-menu .offcanvas-title {
-    color: var(--ecs-neutral-10, #e5e7eb);
-}
-
-[data-style="dark"] .mobile-more-menu .btn-close {
-    filter: invert(1) grayscale(100%) brightness(200%);
-}
-
-[data-style="dark"] .dropdown-divider {
-    border-top-color: var(--ecs-dark-border, #2d3139);
-}
-
-/* Theme switcher in more menu */
-[data-style="dark"] .theme-option {
-    background: var(--ecs-dark-bg-elevated, #2d3139);
-    border-color: var(--ecs-dark-border-light, #3d4148);
-}
-
-[data-style="dark"] .theme-option:hover {
-    background: var(--ecs-dark-bg-elevated-hover, #3d4148);
-}
-
-[data-style="dark"] .theme-option.active {
-    border-color: var(--bs-primary);
-}
-</style>
 
 <!-- Mobile Bottom Nav JavaScript -->
 <script>
@@ -467,5 +269,13 @@
     });
 
     console.log('📱 Mobile Bottom Navigation: Initialized');
+
+    // Event delegation for theme toggle
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.js-mobile-theme-toggle')) {
+            e.preventDefault();
+            window.toggleTheme();
+        }
+    });
 })();
 </script>

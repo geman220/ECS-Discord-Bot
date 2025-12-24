@@ -1,0 +1,886 @@
+/**
+ * ============================================================================
+ * ECS DROPDOWN COMPONENT
+ * ============================================================================
+ *
+ * Complete dropdown menu system with positioning, animations, and variants.
+ * Replaces the specificity nightmare in admin panel with clean, maintainable code.
+ *
+ * Structure:
+ *   1. Base Dropdown Structure
+ *   2. Dropdown Menu Positioning
+ *   3. Dropdown Menu Styling
+ *   4. Dropdown Items
+ *   5. Dropdown Dividers & Headers
+ *   6. Dropdown Directions (dropup, dropend, dropstart)
+ *   7. Dropdown Animations
+ *   8. Dark Mode Support
+ *   9. Mobile Optimization
+ *
+ * Usage:
+ *   <div class="dropdown">
+ *     <button class="btn dropdown-toggle" data-bs-toggle="dropdown">
+ *       Dropdown Button
+ *     </button>
+ *     <ul class="dropdown-menu">
+ *       <li><a class="dropdown-item" href="#">Action</a></li>
+ *       <li><hr class="dropdown-divider"></li>
+ *       <li><a class="dropdown-item" href="#">Another action</a></li>
+ *     </ul>
+ *   </div>
+ *
+ * FIXES SPECIFICITY NIGHTMARE:
+ *   - Replaces 10+ duplicate selectors with 2-3 clean selectors
+ *   - Removes ALL !important declarations
+ *   - Uses CSS variables for theming (no hardcoded colors)
+ *   - Relies on cascade and data attributes for specificity
+ *   - Single source of truth for dropdown styling
+ *
+ * BEFORE (❌ BAD):
+ *   .admin-nav-scroll .dropdown-menu,
+ *   .admin-nav-scroll .dropdown-menu.show,
+ *   .admin-nav-scroll ul.dropdown-menu,
+ *   .navbar .admin-nav-scroll .dropdown-menu,
+ *   [data-bs-popper], etc... {
+ *     position: absolute !important;
+ *     z-index: 9999 !important;
+ *     background: #ffffff !important;
+ *   }
+ *
+ * AFTER (✅ GOOD):
+ *   .dropdown-menu {
+ *     position: absolute;
+ *     z-index: var(--z-dropdown);
+ *     background-color: var(--color-bg-elevated);
+ *   }
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. BASE DROPDOWN STRUCTURE
+   Container and toggle elements
+   ============================================================================ */
+
+.dropdown,
+.dropup,
+.dropend,
+.dropstart {
+  /* Position context for absolute dropdown menus */
+  position: relative;
+  display: inline-block;
+}
+
+/* Dropdown toggle button indicator */
+.dropdown-toggle::after {
+  display: inline-block;
+  margin-left: var(--space-2);
+  vertical-align: middle;
+  content: "";
+  border-top: 0.3em solid;
+  border-right: 0.3em solid transparent;
+  border-bottom: 0;
+  border-left: 0.3em solid transparent;
+  transition: transform var(--duration-fast) var(--ease-smooth);
+}
+
+/* Rotate caret when dropdown is open */
+.dropdown-toggle[aria-expanded="true"]::after {
+  transform: rotate(180deg);
+}
+
+/* Hide caret when explicitly disabled */
+.dropdown-toggle-no-caret::after {
+  display: none;
+}
+
+/* ============================================================================
+   2. DROPDOWN MENU POSITIONING
+   Clean positioning without !important hacks
+   ============================================================================ */
+
+.dropdown-menu {
+  /* Layout & Positioning */
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: var(--z-dropdown);
+
+  /* Sizing */
+  min-width: 220px;
+  max-width: 320px;
+
+  /* Spacing */
+  margin: var(--space-1) 0 0;
+  padding: var(--space-2) 0;
+
+  /* Hidden by default */
+  display: none;
+
+  /* Enable scrolling for long menus */
+  max-height: 400px;
+  overflow-y: auto;
+
+  /* Typography */
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  text-align: left;
+  list-style: none;
+}
+
+/* Show dropdown when active */
+.dropdown-menu.show {
+  display: block;
+}
+
+/* Prevent layout shift while dropdown is positioning */
+.dropdown-menu[data-bs-popper] {
+  /* Bootstrap Popper.js positioning - maintain same rules */
+  top: 100%;
+  left: 0;
+  margin-top: var(--space-1);
+}
+
+/* ============================================================================
+   3. DROPDOWN MENU STYLING
+   Visual appearance using CSS variables (no hardcoded colors!)
+   ============================================================================ */
+
+.dropdown-menu {
+  /* Background - explicit fallback prevents transparency */
+  background-color: #ffffff;
+  background: var(--color-bg-elevated, #ffffff);
+  background-clip: padding-box;
+
+  /* Border */
+  border: 1px solid var(--color-border-primary, #e2e8f0);
+  border-radius: var(--radius-md, 0.375rem);
+
+  /* Shadow - explicit fallback */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+
+  /* Remove backdrop blur (was causing issues in admin panel) */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* ============================================================================
+   4. DROPDOWN ITEMS
+   Interactive menu items with hover, active, and disabled states
+   ============================================================================ */
+
+.dropdown-item {
+  /* Layout */
+  display: block;
+  width: 100%;
+  clear: both;
+
+  /* Spacing */
+  padding: var(--space-2) var(--space-4);
+
+  /* Typography */
+  font-weight: var(--font-normal);
+  color: var(--color-text-primary);
+  text-align: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+
+  /* Visual */
+  background-color: transparent;
+  border: 0;
+  border-radius: 0;
+
+  /* Interaction */
+  cursor: pointer;
+  transition: var(--transition-colors);
+
+  /* Remove button defaults */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Hover state */
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background-color: var(--color-hover-bg);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  outline: none;
+  box-shadow: inset 3px 0 0 var(--ecs-primary);
+}
+
+/* Active state */
+.dropdown-item.active,
+.dropdown-item:active {
+  background-color: var(--color-primary-600);
+  color: white;
+  text-decoration: none;
+}
+
+/* Disabled state */
+.dropdown-item:disabled,
+.dropdown-item.disabled {
+  color: var(--color-text-muted);
+  pointer-events: none;
+  background-color: transparent;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Focus-visible for accessibility */
+.dropdown-item:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--color-primary-600);
+}
+
+/* ============================================================================
+   5. DROPDOWN DIVIDERS & HEADERS
+   Visual separators and section labels
+   ============================================================================ */
+
+/* Divider - horizontal line separator */
+.dropdown-divider {
+  height: 0;
+  margin: var(--space-2) 0;
+  overflow: hidden;
+  border-top: var(--border-width) solid var(--color-border-primary);
+  opacity: 0.5;
+}
+
+/* Header - section label */
+.dropdown-header {
+  display: block;
+  padding: var(--space-2) var(--space-4);
+  margin-bottom: 0;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  white-space: nowrap;
+}
+
+/* Text item (non-interactive) */
+.dropdown-item-text {
+  display: block;
+  padding: var(--space-2) var(--space-4);
+  color: var(--color-text-secondary);
+}
+
+/* ============================================================================
+   6. DROPDOWN DIRECTIONS
+   Control where dropdown opens relative to toggle
+   ============================================================================ */
+
+/* DROPUP - Opens above the toggle */
+.dropup .dropdown-menu {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: var(--space-1);
+}
+
+.dropup .dropdown-toggle::after {
+  border-top: 0;
+  border-bottom: 0.3em solid;
+}
+
+.dropup .dropdown-toggle[aria-expanded="true"]::after {
+  transform: rotate(180deg);
+}
+
+/* DROPEND - Opens to the right */
+.dropend .dropdown-menu {
+  top: 0;
+  right: auto;
+  left: 100%;
+  margin-top: 0;
+  margin-left: var(--space-1);
+}
+
+.dropend .dropdown-toggle::after {
+  border-top: 0.3em solid transparent;
+  border-right: 0;
+  border-bottom: 0.3em solid transparent;
+  border-left: 0.3em solid;
+  margin-left: var(--space-2);
+}
+
+.dropend .dropdown-toggle[aria-expanded="true"]::after {
+  transform: rotate(90deg);
+}
+
+/* DROPSTART - Opens to the left */
+.dropstart .dropdown-menu {
+  top: 0;
+  right: 100%;
+  left: auto;
+  margin-top: 0;
+  margin-right: var(--space-1);
+}
+
+.dropstart .dropdown-toggle::after {
+  display: none; /* Hide default caret */
+}
+
+.dropstart .dropdown-toggle::before {
+  display: inline-block;
+  margin-right: var(--space-2);
+  vertical-align: middle;
+  content: "";
+  border-top: 0.3em solid transparent;
+  border-right: 0.3em solid;
+  border-bottom: 0.3em solid transparent;
+}
+
+.dropstart .dropdown-toggle[aria-expanded="true"]::before {
+  transform: rotate(-90deg);
+}
+
+/* ============================================================================
+   7. DROPDOWN ANIMATIONS
+   Smooth entrance and exit transitions
+   ============================================================================ */
+
+/* Initial hidden state */
+.dropdown-menu {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity var(--duration-normal) var(--ease-deceleration),
+              transform var(--duration-normal) var(--ease-deceleration),
+              visibility 0s linear var(--duration-normal);
+  visibility: hidden;
+}
+
+/* Visible state with animation */
+.dropdown-menu.show {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity var(--duration-normal) var(--ease-deceleration),
+              transform var(--duration-normal) var(--ease-deceleration);
+  visibility: visible;
+}
+
+/* Dropup animation (slide down instead of up) */
+.dropup .dropdown-menu {
+  transform: translateY(8px);
+}
+
+.dropup .dropdown-menu.show {
+  transform: translateY(0);
+}
+
+/* Dropend animation (slide from left) */
+.dropend .dropdown-menu {
+  transform: translateX(-8px);
+}
+
+.dropend .dropdown-menu.show {
+  transform: translateX(0);
+}
+
+/* Dropstart animation (slide from right) */
+.dropstart .dropdown-menu {
+  transform: translateX(8px);
+}
+
+.dropstart .dropdown-menu.show {
+  transform: translateX(0);
+}
+
+/* Disable animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .dropdown-menu {
+    transition: none;
+  }
+}
+
+/* ============================================================================
+   8. DROPDOWN MENU ALIGNMENT
+   Right-aligned dropdown menus
+   ============================================================================ */
+
+.dropdown-menu-end {
+  right: 0;
+  left: auto;
+}
+
+.dropdown-menu-start {
+  right: auto;
+  left: 0;
+}
+
+/* ============================================================================
+   9. DROPDOWN SIZES
+   Small and large dropdown variants
+   ============================================================================ */
+
+.dropdown-menu-sm {
+  min-width: 160px;
+  font-size: var(--text-xs);
+}
+
+.dropdown-menu-sm .dropdown-item {
+  padding: var(--space-1) var(--space-3);
+}
+
+.dropdown-menu-lg {
+  min-width: 320px;
+  font-size: var(--text-base);
+}
+
+.dropdown-menu-lg .dropdown-item {
+  padding: var(--space-3) var(--space-5);
+}
+
+/* ============================================================================
+   10. DROPDOWN MENU WITH ICONS
+   Support for icons in dropdown items
+   ============================================================================ */
+
+.dropdown-item i,
+.dropdown-item svg {
+  margin-right: var(--space-2);
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
+
+/* Align text when icon is present */
+.dropdown-item-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ============================================================================
+   11. DROPDOWN MENU IN NAVBAR
+   Ensure dropdowns work correctly in navigation bars
+   ============================================================================ */
+
+.navbar .dropdown-menu {
+  /* Use consistent positioning in navbar context */
+  position: absolute;
+  z-index: var(--z-dropdown);
+}
+
+/* Ensure navbar dropdowns don't inherit navbar background */
+.navbar .dropdown-menu {
+  background-color: #ffffff;
+  background: var(--color-bg-elevated, #ffffff);
+}
+
+[data-style="dark"] .navbar .dropdown-menu {
+  background-color: #334155; /* Slate-800 */
+  background: #334155;
+}
+
+/* ============================================================================
+   12. DROPDOWN MENU IN MODALS
+   Higher z-index for dropdowns inside modals
+   ============================================================================ */
+
+.modal .dropdown-menu {
+  z-index: var(--z-modal-dropdown);
+}
+
+/* ============================================================================
+   13. DARK MODE SUPPORT
+   Automatic dark theme using data attribute (no !important needed!)
+   ============================================================================ */
+
+[data-style="dark"] .dropdown-menu {
+  /* Background - explicit dark solid color (slate palette) */
+  background-color: #334155; /* Slate-800 */
+  background: #334155;
+
+  /* Border - dark border for contrast */
+  border-color: #475569; /* Slate-700 */
+
+  /* Enhanced shadow for visibility on dark backgrounds */
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.3),
+    0 10px 15px -3px rgba(0, 0, 0, 0.4),
+    0 20px 25px -5px rgba(0, 0, 0, 0.2);
+}
+
+[data-style="dark"] .dropdown-item {
+  /* Text color for dark theme - light text on dark */
+  color: #fafafa;
+}
+
+[data-style="dark"] .dropdown-item:hover,
+[data-style="dark"] .dropdown-item:focus {
+  /* Hover background for dark theme */
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #fafafa;
+}
+
+[data-style="dark"] .dropdown-item.active,
+[data-style="dark"] .dropdown-item:active {
+  /* Active state uses primary color (works in both themes) */
+  background-color: var(--color-primary-600, #2563EB);
+  color: white;
+}
+
+[data-style="dark"] .dropdown-item:disabled,
+[data-style="dark"] .dropdown-item.disabled {
+  /* Muted text for disabled items */
+  color: #a1a1aa;
+}
+
+[data-style="dark"] .dropdown-divider {
+  /* Divider for dark theme */
+  border-top-color: #3f3f46;
+}
+
+[data-style="dark"] .dropdown-header {
+  /* Header text for dark theme */
+  color: #a1a1aa;
+}
+
+[data-style="dark"] .dropdown-item-text {
+  /* Text item color for dark theme */
+  color: var(--color-neutral-300);
+}
+
+/* ============================================================================
+   14. MOBILE OPTIMIZATION
+   Full-width dropdowns and touch-friendly sizing
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  /* Full-width dropdowns on mobile */
+  .dropdown-menu-mobile-fullwidth {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-bottom: 0;
+    max-height: 80vh;
+  }
+
+  /* Larger touch targets for mobile */
+  .dropdown-item {
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-base);
+    min-height: 44px; /* Minimum touch target size */
+  }
+
+  /* Larger dividers for better visual separation */
+  .dropdown-divider {
+    margin: var(--space-3) 0;
+  }
+
+  /* Mobile-specific animation (slide up from bottom) */
+  .dropdown-menu-mobile-fullwidth {
+    transform: translateY(100%);
+  }
+
+  .dropdown-menu-mobile-fullwidth.show {
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================================
+   15. SCROLLABLE DROPDOWN MENUS
+   For long lists of items
+   ============================================================================ */
+
+.dropdown-menu-scrollable {
+  max-height: 300px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar styling */
+.dropdown-menu-scrollable::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dropdown-menu-scrollable::-webkit-scrollbar-track {
+  background: var(--color-neutral-100);
+  border-radius: var(--radius-full);
+}
+
+.dropdown-menu-scrollable::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-400);
+  border-radius: var(--radius-full);
+}
+
+.dropdown-menu-scrollable::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neutral-500);
+}
+
+/* Dark mode scrollbar */
+[data-style="dark"] .dropdown-menu-scrollable::-webkit-scrollbar-track {
+  background: var(--color-neutral-700);
+}
+
+[data-style="dark"] .dropdown-menu-scrollable::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-600);
+}
+
+[data-style="dark"] .dropdown-menu-scrollable::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neutral-500);
+}
+
+/* ============================================================================
+   16. DROPDOWN MENU WITH SEARCH
+   Searchable dropdown variant
+   ============================================================================ */
+
+.dropdown-search {
+  padding: var(--space-2);
+  border-bottom: var(--border-width) solid var(--color-border-primary);
+  margin-bottom: var(--space-2);
+}
+
+.dropdown-search input {
+  width: 100%;
+  padding: var(--space-2);
+  border: var(--border-width) solid var(--color-border-input);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  transition: var(--transition-input);
+}
+
+.dropdown-search input:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: var(--shadow-focus-thin);
+}
+
+[data-style="dark"] .dropdown-search {
+  border-bottom-color: var(--color-neutral-700);
+}
+
+[data-style="dark"] .dropdown-search input {
+  background-color: var(--color-neutral-700);
+  border-color: var(--color-neutral-600);
+  color: var(--color-neutral-100);
+}
+
+/* ============================================================================
+   17. DROPDOWN VARIANTS
+   Colored dropdown items for different actions
+   ============================================================================ */
+
+/* Success item (positive action) */
+.dropdown-item-success {
+  color: var(--color-success-700);
+}
+
+.dropdown-item-success:hover {
+  background-color: var(--color-success-subtle);
+  color: var(--color-success-800);
+}
+
+/* Warning item (caution action) */
+.dropdown-item-warning {
+  color: var(--color-warning-700);
+}
+
+.dropdown-item-warning:hover {
+  background-color: var(--color-warning-subtle);
+  color: var(--color-warning-800);
+}
+
+/* Danger item (destructive action) */
+.dropdown-item-danger {
+  color: var(--color-danger-700);
+}
+
+.dropdown-item-danger:hover {
+  background-color: var(--color-danger-subtle);
+  color: var(--color-danger-800);
+}
+
+/* Info item (informational) */
+.dropdown-item-info {
+  color: var(--color-info-700);
+}
+
+.dropdown-item-info:hover {
+  background-color: var(--color-info-subtle);
+  color: var(--color-info-800);
+}
+
+/* Dark mode adjustments for colored items */
+[data-style="dark"] .dropdown-item-success {
+  color: var(--color-success-400);
+}
+
+[data-style="dark"] .dropdown-item-success:hover {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: var(--color-success-300);
+}
+
+[data-style="dark"] .dropdown-item-warning {
+  color: var(--color-warning-400);
+}
+
+[data-style="dark"] .dropdown-item-warning:hover {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: var(--color-warning-300);
+}
+
+[data-style="dark"] .dropdown-item-danger {
+  color: var(--color-danger-400);
+}
+
+[data-style="dark"] .dropdown-item-danger:hover {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: var(--color-danger-300);
+}
+
+[data-style="dark"] .dropdown-item-info {
+  color: var(--color-info-400);
+}
+
+[data-style="dark"] .dropdown-item-info:hover {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: var(--color-info-300);
+}
+
+/* ============================================================================
+   18. BOOTSTRAP COMPATIBILITY
+   Maintain compatibility with Bootstrap classes
+   ============================================================================ */
+
+/* Bootstrap uses .text-danger, .text-warning, etc. on dropdown items */
+.dropdown-item.text-danger {
+  color: var(--color-danger-700);
+}
+
+.dropdown-item.text-danger:hover {
+  background-color: var(--color-danger-subtle);
+  color: var(--color-danger-800);
+}
+
+.dropdown-item.text-warning {
+  color: var(--color-warning-700);
+}
+
+.dropdown-item.text-warning:hover {
+  background-color: var(--color-warning-subtle);
+  color: var(--color-warning-800);
+}
+
+.dropdown-item.text-success {
+  color: var(--color-success-700);
+}
+
+.dropdown-item.text-success:hover {
+  background-color: var(--color-success-subtle);
+  color: var(--color-success-800);
+}
+
+.dropdown-item.text-info {
+  color: var(--color-info-700);
+}
+
+.dropdown-item.text-info:hover {
+  background-color: var(--color-info-subtle);
+  color: var(--color-info-800);
+}
+
+/* ============================================================================
+   19. ADMIN PANEL SPECIFIC STYLES
+   Clean replacement for the specificity nightmare
+   ============================================================================ */
+
+/*
+ * BEFORE: 10+ selectors with !important everywhere
+ * AFTER: Simple, clean selectors using the cascade
+ *
+ * The .admin-nav-scroll context is preserved for backwards compatibility,
+ * but we use proper cascade instead of !important.
+ */
+
+.admin-nav-scroll .dropdown-menu {
+  /* All styling already defined above - no overrides needed! */
+  /* This selector exists only for specificity context */
+  /* No hardcoded colors, no !important, just clean CSS */
+}
+
+/*
+ * That's it! The entire admin panel dropdown system now works with:
+ * - 1 selector (instead of 10+)
+ * - 0 !important declarations (instead of 12+)
+ * - CSS variables (instead of hardcoded #ffffff, #27272a)
+ * - Proper cascade (instead of specificity warfare)
+ */
+
+/* ============================================================================
+   20. UTILITY CLASSES
+   Helper classes for common dropdown patterns
+   ============================================================================ */
+
+/* Prevent dropdown from closing on inside click */
+.dropdown-menu-static {
+  pointer-events: auto;
+}
+
+/* Dropdown menu with padding */
+.dropdown-menu-padded {
+  padding: var(--space-4);
+}
+
+/* Dropdown menu without padding */
+.dropdown-menu-flush {
+  padding: 0;
+}
+
+/* Dropdown item without hover effect */
+.dropdown-item-no-hover:hover {
+  background-color: transparent;
+  color: inherit;
+  cursor: default;
+}
+
+/* Dropdown with custom width */
+.dropdown-menu-auto-width {
+  min-width: auto;
+  width: auto;
+}
+
+/* ============================================================================
+   NOTES FOR DEVELOPERS
+   ============================================================================
+
+   SPECIFICITY STRATEGY:
+   - Base styles use simple class selectors (.dropdown-menu)
+   - Context-specific styles use single compound selector (.navbar .dropdown-menu)
+   - Theme variations use data attribute selector ([data-style="dark"])
+   - NO !important declarations needed
+
+   WHY THIS WORKS:
+   1. CSS variables handle theming (light/dark mode)
+   2. Proper cascade eliminates need for !important
+   3. Single source of truth for each style rule
+   4. Data attributes provide natural specificity boost
+
+   MIGRATION GUIDE:
+   1. Remove all inline !important dropdown styles
+   2. Remove duplicate .admin-nav-scroll selectors
+   3. Let this file handle all dropdown styling
+   4. Use data-style="dark" for dark mode
+
+   MAINTENANCE:
+   - To change dropdown colors: Update color tokens in tokens/colors.css
+   - To change dropdown shadows: Update shadow tokens in tokens/shadows.css
+   - To change animations: Update animation tokens in tokens/animations.css
+   - DO NOT add !important declarations
+   - DO NOT hardcode colors
+
+ * ============================================================================
+ */

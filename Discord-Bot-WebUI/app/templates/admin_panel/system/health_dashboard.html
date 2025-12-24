@@ -13,34 +13,24 @@
 <div class="row">
     <!-- Overall Health Status -->
     <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="ti ti-heartbeat me-2"></i>System Health Overview</h5>
                 <div>
-                    <button id="refresh-btn" class="btn btn-primary btn-sm">
+                    <button id="health-refresh-btn" class="c-btn c-btn--primary c-btn--sm">
                         <i class="ti ti-refresh me-1"></i>Refresh
                     </button>
-                    <button id="twilio-test-btn" class="btn btn-info btn-sm ms-2">
+                    <button id="twilio-test-btn" class="c-btn c-btn--info c-btn--sm ms-2">
                         <i class="ti ti-phone me-1"></i>Test Twilio
                     </button>
                 </div>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-3">
-                        <div class="text-center p-3 rounded
-                            {% if health_status.status == 'healthy' %}bg-success bg-opacity-10
-                            {% elif health_status.status == 'degraded' %}bg-warning bg-opacity-10
-                            {% else %}bg-danger bg-opacity-10{% endif %}">
-                            <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-2"
-                                 style="width: 60px; height: 60px;
-                                 {% if health_status.status == 'healthy' %}background-color: rgba(40, 167, 69, 0.2);
-                                 {% elif health_status.status == 'degraded' %}background-color: rgba(255, 193, 7, 0.2);
-                                 {% else %}background-color: rgba(220, 53, 69, 0.2);{% endif %}">
-                                <i class="ti ti-{% if health_status.status == 'healthy' %}check{% elif health_status.status == 'degraded' %}alert-triangle{% else %}x{% endif %} fs-2
-                                   {% if health_status.status == 'healthy' %}text-success
-                                   {% elif health_status.status == 'degraded' %}text-warning
-                                   {% else %}text-danger{% endif %}"></i>
+                        <div class="text-center p-3 rounded {% if health_status.status == 'healthy' %}bg-success bg-opacity-10 {% elif health_status.status == 'degraded' %}bg-warning bg-opacity-10 {% else %}bg-danger bg-opacity-10{% endif %}">
+                            <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-2 u-health-status-icon {% if health_status.status == 'healthy' %}u-health-status-icon--success {% elif health_status.status == 'degraded' %}u-health-status-icon--warning {% else %}u-health-status-icon--danger{% endif %}">
+                                <i class="ti ti-{% if health_status.status == 'healthy' %}check{% elif health_status.status == 'degraded' %}alert-triangle{% else %}x{% endif %} fs-2 {% if health_status.status == 'healthy' %}text-success {% elif health_status.status == 'degraded' %}text-warning {% else %}text-danger{% endif %}"></i>
                             </div>
                             <h4 class="mb-1 text-capitalize" id="overall-status">{{ health_status.status }}</h4>
                             <small class="text-muted" id="last-check">Last check: {{ health_status.timestamp }}</small>
@@ -50,21 +40,18 @@
                         <div class="row" id="component-cards">
                             {% for name, component in health_status.components.items() %}
                             <div class="col-md-4 col-sm-6 mb-3">
-                                <div class="card h-100 border-0 shadow-sm">
-                                    <div class="card-body p-3">
+                                <div class="c-card h-100 border-0 shadow-sm">
+                                    <div class="c-card__body p-3">
                                         <div class="d-flex align-items-center mb-2">
-                                            <span class="status-indicator me-2
-                                                {% if component.status == 'healthy' %}active
-                                                {% elif component.status == 'warning' %}bg-warning
-                                                {% else %}inactive{% endif %}"></span>
+                                            <span class="status-indicator me-2 {% if component.status == 'healthy' %}active {% elif component.status == 'warning' %}bg-warning {% else %}inactive{% endif %}"></span>
                                             <h6 class="mb-0 text-capitalize">{{ name }}</h6>
                                         </div>
                                         <p class="small text-muted mb-0">{{ component.message }}</p>
                                         {% if component.worker_count is defined %}
-                                        <span class="badge bg-info mt-1">{{ component.worker_count }} workers</span>
+                                        <span class="badge bg-info mt-1" data-badge>{{ component.worker_count }} workers</span>
                                         {% endif %}
                                         {% if component.running_count is defined %}
-                                        <span class="badge bg-success mt-1">{{ component.running_count }}/{{ component.container_count }} running</span>
+                                        <span class="badge bg-success mt-1" data-badge>{{ component.running_count }}/{{ component.container_count }} running</span>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -79,14 +66,14 @@
 
     <!-- Task Status -->
     <div class="col-md-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
+        <div class="c-card h-100">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-list-check me-2"></i>Task Status</h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div id="task-status-content">
                     <div class="text-center py-4">
-                        <div class="spinner-border text-primary" role="status">
+                        <div class="spinner-border text-primary" role="status" data-spinner>
                             <span class="visually-hidden">Loading...</span>
                         </div>
                         <p class="mt-2 text-muted">Loading task status...</p>
@@ -98,24 +85,24 @@
 
     <!-- System Diagnostics -->
     <div class="col-md-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
+        <div class="c-card h-100">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-info-circle me-2"></i>System Diagnostics</h5>
             </div>
-            <div class="card-body">
-                <table class="table table-sm">
+            <div class="c-card__body">
+                <table class="c-table c-table--compact" data-table>
                     <tbody>
                         <tr>
                             <td>Environment</td>
-                            <td><span class="badge bg-primary">{{ diagnostics.environment }}</span></td>
+                            <td><span class="badge bg-primary" data-badge>{{ diagnostics.environment }}</span></td>
                         </tr>
                         <tr>
                             <td>Debug Mode</td>
                             <td>
                                 {% if diagnostics.debug_mode %}
-                                <span class="badge bg-warning">Enabled</span>
+                                <span class="badge bg-warning" data-badge>Enabled</span>
                                 {% else %}
-                                <span class="badge bg-success">Disabled</span>
+                                <span class="badge bg-success" data-badge>Disabled</span>
                                 {% endif %}
                             </td>
                         </tr>
@@ -130,12 +117,12 @@
     </div>
 
     <!-- Twilio Test Results -->
-    <div class="col-12 mb-4" id="twilio-results-section" style="display: none;">
-        <div class="card">
-            <div class="card-header">
+    <div class="col-12 mb-4 d-none" id="twilio-results-section">
+        <div class="c-card">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-phone me-2"></i>Twilio Configuration Test Results</h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div id="twilio-results">
                     <!-- Results will be populated by JavaScript -->
                 </div>
@@ -145,29 +132,29 @@
 
     <!-- Quick Actions -->
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
+        <div class="c-card">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-bolt me-2"></i>Quick Actions</h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.redis_management') }}" class="btn btn-outline-primary w-100">
+                        <a href="{{ url_for('admin_panel.redis_management') }}" class="c-btn c-btn--outline-primary w-100">
                             <i class="ti ti-database me-2"></i>Redis Management
                         </a>
                     </div>
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.docker_management') }}" class="btn btn-outline-primary w-100">
+                        <a href="{{ url_for('admin_panel.docker_management') }}" class="c-btn c-btn--outline-primary w-100">
                             <i class="ti ti-box me-2"></i>Docker Management
                         </a>
                     </div>
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.task_monitoring_page') }}" class="btn btn-outline-primary w-100">
+                        <a href="{{ url_for('admin_panel.task_monitoring_page') }}" class="c-btn c-btn--outline-primary w-100">
                             <i class="ti ti-list-check me-2"></i>Task Monitor
                         </a>
                     </div>
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="btn btn-outline-primary w-100">
+                        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="c-btn c-btn--outline-primary w-100">
                             <i class="ti ti-activity me-2"></i>System Monitoring
                         </a>
                     </div>
@@ -228,7 +215,7 @@ function loadTaskStatus() {
             const container = document.getElementById('task-status-content');
 
             if (data.status === 'error') {
-                container.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+                container.innerHTML = `<div class="alert alert-danger" data-alert>${data.message}</div>`;
                 return;
             }
 
@@ -251,14 +238,14 @@ function loadTaskStatus() {
 
             if (data.zombie_count > 0) {
                 html += `
-                    <div class="alert alert-warning mb-0">
+                    <div class="alert alert-warning mb-0" data-alert>
                         <i class="ti ti-alert-triangle me-2"></i>
                         ${data.zombie_count} zombie task(s) detected
                     </div>
                 `;
             } else {
                 html += `
-                    <div class="alert alert-success mb-0">
+                    <div class="alert alert-success mb-0" data-alert>
                         <i class="ti ti-check me-2"></i>
                         No zombie tasks detected
                     </div>
@@ -270,7 +257,7 @@ function loadTaskStatus() {
         .catch(error => {
             console.error('Error loading task status:', error);
             document.getElementById('task-status-content').innerHTML =
-                '<div class="alert alert-warning">Unable to load task status</div>';
+                '<div class="alert alert-warning" data-alert>Unable to load task status</div>';
         });
 }
 
@@ -287,17 +274,17 @@ document.getElementById('twilio-test-btn').addEventListener('click', function() 
             const section = document.getElementById('twilio-results-section');
             const container = document.getElementById('twilio-results');
 
-            section.style.display = 'block';
+            section.classList.remove('d-none');
 
             let html = '<div class="row">';
 
             // Config check
             html += `
                 <div class="col-md-4 mb-3">
-                    <div class="card h-100">
-                        <div class="card-body">
+                    <div class="c-card h-100">
+                        <div class="c-card__body">
                             <h6>Config Check</h6>
-                            <span class="badge ${data.config_check ? 'bg-success' : 'bg-danger'}">
+                            <span class="badge ${data.config_check ? 'bg-success' : 'bg-danger'}" data-badge>
                                 ${data.config_check ? 'Passed' : 'Failed'}
                             </span>
                         </div>
@@ -308,10 +295,10 @@ document.getElementById('twilio-test-btn').addEventListener('click', function() 
             // Connection test
             html += `
                 <div class="col-md-4 mb-3">
-                    <div class="card h-100">
-                        <div class="card-body">
+                    <div class="c-card h-100">
+                        <div class="c-card__body">
                             <h6>Connection Test</h6>
-                            <span class="badge ${data.connection_test.status === 'SUCCESS' ? 'bg-success' : 'bg-danger'}">
+                            <span class="badge ${data.connection_test.status === 'SUCCESS' ? 'bg-success' : 'bg-danger'}" data-badge>
                                 ${data.connection_test.status}
                             </span>
                             ${data.connection_test.message ? `<p class="small text-muted mt-2 mb-0">${data.connection_test.message}</p>` : ''}
@@ -323,8 +310,8 @@ document.getElementById('twilio-test-btn').addEventListener('click', function() 
             // Environment variables
             html += `
                 <div class="col-md-4 mb-3">
-                    <div class="card h-100">
-                        <div class="card-body">
+                    <div class="c-card h-100">
+                        <div class="c-card__body">
                             <h6>Environment Variables</h6>
                             <ul class="list-unstyled mb-0 small">
             `;

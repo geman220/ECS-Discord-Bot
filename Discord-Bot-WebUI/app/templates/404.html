@@ -1,113 +1,25 @@
 {% extends "base_unauthenticated.html" %}
 
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/error-pages.css') }}">
+{% endblock %}
+
 {% block main_content %}
-<style>
-    .error-page {
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(135deg, var(--ecs-neutral-5, #f8f9fa) 0%, var(--ecs-neutral-20, #e9ecef) 100%);
-    }
-    
-    .error-container {
-        max-width: 550px;
-        padding: 3rem;
-        text-align: center;
-        background-color: white;
-        border-radius: 16px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-    }
-    
-    .error-code {
-        font-size: 8rem;
-        font-weight: 800;
-        line-height: 1;
-        background: linear-gradient(90deg, var(--sounders-blue, #00539F), #50C878);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 1rem;
-    }
-    
-    .error-title {
-        font-size: 1.75rem;
-        font-weight: 600;
-        margin-bottom: 1rem;
-        color: #333;
-    }
-    
-    .error-message {
-        font-size: 1.1rem;
-        margin-bottom: 2rem;
-        color: #666;
-    }
-    
-    .error-joke {
-        background-color: var(--ecs-neutral-5, #f8f9fa);
-        padding: 1.5rem;
-        border-radius: 10px;
-        margin-bottom: 2rem;
-        font-style: italic;
-        color: #555;
-        font-size: 1.1rem;
-        position: relative;
-        border-left: 4px solid var(--sounders-blue, #00539F);
-    }
-    
-    .error-joke:before {
-        content: '"';
-        font-size: 3rem;
-        position: absolute;
-        top: -10px;
-        left: 10px;
-        color: rgba(0, 83, 159, 0.1);
-    }
-    
-    .home-button {
-        padding: 0.75rem 2rem;
-        font-weight: 600;
-        background-color: var(--sounders-blue, #00539F);
-        color: white;
-        border-radius: 8px;
-        transition: all 0.3s;
-        text-decoration: none;
-        display: inline-block;
-        box-shadow: 0 4px 10px rgba(0, 83, 159, 0.2);
-    }
+<div class="c-error-page">
+    <div class="c-error-container">
+        <img src="{{ url_for('static', filename='img/undraw_goal_-0-v5v.svg') }}"
+             alt="404 Illustration"
+             class="c-error-illustration">
 
-    .home-button:hover {
-        background-color: #0066CC;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 15px rgba(0, 83, 159, 0.3);
-        color: white;
-    }
-    
-    .illustration {
-        max-width: 250px;
-        margin: 0 auto 2rem;
-        animation: float 4s ease-in-out infinite;
-    }
-    
-    @keyframes float {
-        0% { transform: translateY(0px); }
-        50% { transform: translateY(-15px); }
-        100% { transform: translateY(0px); }
-    }
-</style>
+        <h1 class="c-error-code c-error-code--404">404</h1>
+        <h2 class="c-error-title">Page Not Found</h2>
+        <p class="c-error-message">The page you were looking for doesn't exist or has been moved.</p>
 
-<div class="error-page">
-    <div class="error-container">
-        <img src="{{ url_for('static', filename='img/undraw_goal_-0-v5v.svg') }}" alt="404 Illustration" class="illustration">
-        
-        <h1 class="error-code">404</h1>
-        <h2 class="error-title">Page Not Found</h2>
-        <p class="error-message">The page you were looking for doesn't exist or has been moved.</p>
-        
-        <div class="error-joke" id="jokeContainer">
+        <div class="c-error-joke c-error-joke--404" id="jokeContainer" data-role="joke-container">
             <span id="jokeText">Why did the soccer player bring string to the game? To tie the score!</span>
         </div>
-        
-        <a href="{{ url_for('main.index') }}" class="home-button">
+
+        <a href="{{ url_for('main.index') }}" class="c-error-button c-error-button--404" data-action="go-home">
             <i class="ti ti-home me-2"></i> Back to Home
         </a>
     </div>

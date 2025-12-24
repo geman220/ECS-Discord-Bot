@@ -14,60 +14,60 @@
 <!-- Task Statistics -->
 <div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
+        <div class="c-card bg-success text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ history_data.completed or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Completed Tasks</p>
+                        <h5 class="c-card__title text-white mb-1">{{ history_data.completed or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Completed Tasks</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-check-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-check-circle u-card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-danger text-white">
-            <div class="card-body">
+        <div class="c-card bg-danger text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ history_data.failed or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Failed Tasks</p>
+                        <h5 class="c-card__title text-white mb-1">{{ history_data.failed or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Failed Tasks</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-x-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-x-circle u-card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
+        <div class="c-card bg-warning text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ zombie_tasks|length or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Zombie Tasks</p>
+                        <h5 class="c-card__title text-white mb-1">{{ zombie_tasks|length or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Zombie Tasks</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-ghost" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-ghost u-card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
+        <div class="c-card bg-info text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ history_data.total or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Total Tasks</p>
+                        <h5 class="c-card__title text-white mb-1">{{ history_data.total or 0 }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Total Tasks</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-list-check" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-list-check u-card-icon-stat"></i>
                     </div>
                 </div>
             </div>
@@ -78,17 +78,17 @@
 <!-- Filters -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-filter me-2"></i>Filter Tasks
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <form method="GET" class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label">Status</label>
-                        <select name="status" class="form-select">
+                        <select name="status" class="form-select" data-form-select>
                             <option value="">All Statuses</option>
                             <option value="completed" {{ 'selected' if request.args.get('status') == 'completed' }}>Completed</option>
                             <option value="failed" {{ 'selected' if request.args.get('status') == 'failed' }}>Failed</option>
@@ -97,7 +97,7 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Task Type</label>
-                        <select name="task_type" class="form-select">
+                        <select name="task_type" class="form-select" data-form-select>
                             <option value="">All Types</option>
                             <option value="notification" {{ 'selected' if request.args.get('task_type') == 'notification' }}>Notification</option>
                             <option value="match_update" {{ 'selected' if request.args.get('task_type') == 'match_update' }}>Match Update</option>
@@ -106,16 +106,16 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">From Date</label>
-                        <input type="date" name="date_from" class="form-control" value="{{ request.args.get('date_from', '') }}">
+                        <input type="date" name="date_from" class="form-control" value="{{ request.args.get('date_from', '') }}" data-form-control>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">To Date</label>
-                        <input type="date" name="date_to" class="form-control" value="{{ request.args.get('date_to', '') }}">
+                        <input type="date" name="date_to" class="form-control" value="{{ request.args.get('date_to', '') }}" data-form-control>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">&nbsp;</label>
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="c-btn c-btn--primary">
                                 <i class="ti ti-search me-1"></i>Filter
                             </button>
                         </div>
@@ -130,13 +130,13 @@
 {% if zombie_tasks %}
 <div class="row mb-4">
     <div class="col-12">
-        <div class="alert alert-warning">
+        <div class="alert alert-warning" data-alert>
             <div class="d-flex align-items-center">
                 <i class="ti ti-alert-triangle me-2"></i>
                 <div>
                     <strong>{{ zombie_tasks|length }} Zombie Tasks Detected!</strong>
                     These tasks may be stuck or have lost their worker processes.
-                    <button class="btn btn-sm btn-outline-warning ms-2" onclick="cleanupZombies()">
+                    <button class="c-btn c-btn--sm c-btn--outline-warning ms-2" data-action="cleanup-zombies">
                         <i class="ti ti-trash me-1"></i>Cleanup Zombies
                     </button>
                 </div>
@@ -149,25 +149,25 @@
 <!-- Task History Table -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-history me-2"></i>Task Execution History
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if history_data.tasks %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Task ID</th>
-                                <th>Type</th>
-                                <th>Status</th>
-                                <th>Started</th>
-                                <th>Duration</th>
-                                <th>Result</th>
-                                <th>Actions</th>
+                                <th scope="col">Task ID</th>
+                                <th scope="col">Type</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Started</th>
+                                <th scope="col">Duration</th>
+                                <th scope="col">Result</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -177,17 +177,17 @@
                                     <code>{{ task.id[:8] }}</code>
                                 </td>
                                 <td>
-                                    <span class="badge bg-primary">{{ task.type or 'Unknown' }}</span>
+                                    <span class="badge bg-primary" data-badge>{{ task.type or 'Unknown' }}</span>
                                 </td>
                                 <td>
                                     {% if task.status == 'completed' %}
-                                        <span class="badge bg-success">Completed</span>
+                                        <span class="badge bg-success" data-badge>Completed</span>
                                     {% elif task.status == 'failed' %}
-                                        <span class="badge bg-danger">Failed</span>
+                                        <span class="badge bg-danger" data-badge>Failed</span>
                                     {% elif task.status == 'zombie' %}
-                                        <span class="badge bg-warning">Zombie</span>
+                                        <span class="badge bg-warning" data-badge>Zombie</span>
                                     {% else %}
-                                        <span class="badge bg-secondary">{{ task.status|title }}</span>
+                                        <span class="badge bg-secondary" data-badge>{{ task.status|title }}</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -213,16 +213,16 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-info" onclick="viewTaskDetails('{{ task.id }}')">
+                                        <button class="c-btn c-btn--outline-info" data-action="view-task" data-task-id="{{ task.id }}">
                                             <i class="ti ti-eye"></i>
                                         </button>
                                         {% if task.status == 'failed' %}
-                                        <button class="btn btn-outline-warning" onclick="retryTask('{{ task.id }}')">
+                                        <button class="c-btn c-btn--outline-warning" data-action="retry-task" data-task-id="{{ task.id }}">
                                             <i class="ti ti-refresh"></i>
                                         </button>
                                         {% endif %}
                                         {% if task.status == 'zombie' %}
-                                        <button class="btn btn-outline-danger" onclick="killTask('{{ task.id }}')">
+                                        <button class="c-btn c-btn--outline-danger" data-action="kill-task" data-task-id="{{ task.id }}">
                                             <i class="ti ti-x"></i>
                                         </button>
                                         {% endif %}
@@ -235,7 +235,7 @@
                 </div>
                 {% else %}
                 <div class="text-center py-5">
-                    <i class="ti ti-history-off text-muted" style="font-size: 4rem;"></i>
+                    <i class="ti ti-history-off text-muted icon-empty-state"></i>
                     <h5 class="text-muted mt-3">No Task History</h5>
                     <p class="text-muted">No background tasks have been executed recently.</p>
                 </div>
@@ -247,8 +247,46 @@
 
 {% endblock %}
 
+{% block custom_css %}
+{{ super() }}
+<style>
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+</style>
+{% endblock %}
+
 {% block custom_js %}
+{{ super() }}
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Event delegation for all task actions
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        const taskId = target.dataset.taskId;
+
+        switch(action) {
+            case 'view-task':
+                viewTaskDetails(taskId);
+                break;
+            case 'retry-task':
+                retryTask(taskId);
+                break;
+            case 'kill-task':
+                killTask(taskId);
+                break;
+            case 'cleanup-zombies':
+                cleanupZombies();
+                break;
+        }
+    });
+});
+
 function viewTaskDetails(taskId) {
     // Make AJAX request to get task details
     fetch(`{{ url_for('admin_panel.get_task_details') }}?task_id=${taskId}`)

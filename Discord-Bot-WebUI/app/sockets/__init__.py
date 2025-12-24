@@ -125,6 +125,7 @@ def register_socket_handlers():
     from . import discord_roles  # Discord role management handlers
     from . import match_events  # Match room and event reporting handlers
     from . import test_handlers  # Test/debug handlers
+    from . import messaging  # Direct messaging handlers
 
 
 __all__ = ['SocketSessionManager', 'register_socket_handlers']

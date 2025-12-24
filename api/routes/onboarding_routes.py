@@ -21,8 +21,8 @@ from api.utils.api_client import get_session
 
 logger = logging.getLogger(__name__)
 
-# Create router
-router = APIRouter(prefix="/onboarding", tags=["onboarding"])
+# Create router (prefix is added in bot_rest_api.py when including this router)
+router = APIRouter(tags=["onboarding"])
 
 # Configuration
 WEBUI_API_URL = "http://webui:5000/api"
@@ -122,11 +122,11 @@ async def get_contextual_welcome_message(user_data: Dict) -> str:
     
     # Try to get template from database
     template = await get_message_template('welcome_messages', recommended_action)
-    
+
     if template and template.get('message_content'):
         # Get league info for variables
-        league_info = get_league_welcome_info(preferred_league) if preferred_league else {}
-        
+        league_info = await get_league_welcome_info(preferred_league) if preferred_league else {}
+
         # Format the message with variables
         try:
             return template['message_content'].format(
@@ -137,15 +137,15 @@ async def get_contextual_welcome_message(user_data: Dict) -> str:
             )
         except KeyError as e:
             logger.warning(f"Missing variable in template {recommended_action}: {e}")
-    
+
     # Fallback to hardcoded messages if template not found
     base_greeting = f"Welcome to the ECS Discord server, {username}! 👋"
-    
+
     if recommended_action == 'send_welcome':
         # User has completed everything
-        league_info = get_league_welcome_info(preferred_league)
+        league_info = await get_league_welcome_info(preferred_league)
         return f"{base_greeting}\n\nI see you've completed your registration for **{league_info['display_name']}**! {league_info['welcome_message']}"
-    
+
     elif recommended_action == 'ask_league_only':
         # Has onboarding but no league
         return f"""{base_greeting}
@@ -153,14 +153,14 @@ async def get_contextual_welcome_message(user_data: Dict) -> str:
 I noticed you completed your registration but didn't specify which league you're interested in joining. Could you let me know which one you'd like to participate in?
 
 🏆 **Pub League Classic** - Our standard recreational league
-🌟 **Pub League Premier** - More competitive play  
+🌟 **Pub League Premier** - More competitive play
 ⚽ **ECS FC** - Our club team
 
 Just reply with your preference (e.g., "Premier" or "ECS FC")!"""
-    
+
     elif recommended_action == 'encourage_onboarding':
         # Has league but no onboarding
-        league_info = get_league_welcome_info(preferred_league)
+        league_info = await get_league_welcome_info(preferred_league)
         return f"""{base_greeting}
 
 I see you selected **{league_info['display_name']}** - great choice! {league_info['welcome_message']}
@@ -184,29 +184,68 @@ Until then, could you let me know which league you were looking to participate i
 Just reply with your preference!"""
 
 
-def get_league_welcome_info(league: str) -> Dict[str, str]:
-    """Get league-specific welcome information."""
-    league_info = {
-        'pub_league_classic': {
-            'display_name': 'Pub League Classic',
-            'welcome_message': "You'll love our classic recreational league - it's all about having fun and improving your game! ⚽",
-            'contact_info': "For Pub League Classic questions, reach out to our Pub League coordinators in the #pub-league channels."
-        },
-        'pub_league_premier': {
-            'display_name': 'Pub League Premier', 
-            'welcome_message': "Welcome to Premier! Get ready for more competitive matches and skilled gameplay. 🌟",
-            'contact_info': "For Pub League Premier questions, check out #pub-league-premier or contact our Premier coordinators."
-        },
-        'ecs_fc': {
-            'display_name': 'ECS FC',
-            'welcome_message': "Welcome to ECS FC! You're joining our club team - exciting times ahead! ⚽🔥",
-            'contact_info': "For ECS FC questions, check out the #ecs-fc channels or reach out to our ECS FC coordinators."
-        }
+# Fallback league info in case API is unavailable
+FALLBACK_LEAGUE_INFO = {
+    'pub_league_classic': {
+        'display_name': 'Pub League Classic',
+        'welcome_message': "You'll love our classic recreational league - it's all about having fun and improving your game!",
+        'contact_info': "For Pub League Classic questions, reach out to our Pub League coordinators in the #pub-league channels.",
+        'emoji': '🏆'
+    },
+    'pub_league_premier': {
+        'display_name': 'Pub League Premier',
+        'welcome_message': "Welcome to Premier! Our competitive league for experienced players looking for a higher level of play.",
+        'contact_info': "For Pub League Premier questions, check out #pub-league-premier or contact our Premier coordinators.",
+        'emoji': '🌟'
+    },
+    'ecs_fc': {
+        'display_name': 'ECS FC',
+        'welcome_message': "Welcome to ECS FC! You're joining our club team representing the Emerald City Supporters.",
+        'contact_info': "For ECS FC questions, check out the #ecs-fc channels or reach out to our ECS FC coordinators.",
+        'emoji': '⚽'
     }
-    return league_info.get(league, {
+}
+
+
+async def get_league_welcome_info(league: str) -> Dict[str, str]:
+    """
+    Get league-specific welcome information from Flask API.
+    Falls back to hardcoded values if API is unavailable.
+
+    Args:
+        league: The league key (e.g., 'pub_league_classic', 'pub_league_premier', 'ecs_fc')
+
+    Returns:
+        Dict with display_name, welcome_message, contact_info, and optional emoji
+    """
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"{WEBUI_API_URL}/discord/league-settings/{league}",
+                timeout=aiohttp.ClientTimeout(total=5)
+            ) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    logger.debug(f"Fetched league settings from API for {league}")
+                    return {
+                        'display_name': data.get('display_name', ''),
+                        'welcome_message': data.get('welcome_message', ''),
+                        'contact_info': data.get('contact_info', ''),
+                        'emoji': data.get('emoji', '')
+                    }
+                else:
+                    logger.warning(f"Failed to fetch league settings for {league}: {resp.status}")
+    except asyncio.TimeoutError:
+        logger.warning(f"Timeout fetching league settings for {league}")
+    except Exception as e:
+        logger.warning(f"Error fetching league settings for {league}: {e}")
+
+    # Fallback to hardcoded values
+    return FALLBACK_LEAGUE_INFO.get(league, {
         'display_name': 'Unknown League',
         'welcome_message': 'Welcome to our community!',
-        'contact_info': 'Reach out to our coordinators for more information.'
+        'contact_info': 'Reach out to our coordinators for more information.',
+        'emoji': ''
     })
 
 
@@ -214,9 +253,9 @@ async def get_league_selection_confirmation(league: str) -> str:
     """Get confirmation message for league selection."""
     # Try to get template from database
     template = await get_message_template('league_responses', 'league_selection_confirmation')
-    
+
     if template and template.get('message_content'):
-        league_info = get_league_welcome_info(league)
+        league_info = await get_league_welcome_info(league)
         try:
             return template['message_content'].format(
                 league_display_name=league_info.get('display_name', ''),
@@ -225,10 +264,10 @@ async def get_league_selection_confirmation(league: str) -> str:
             )
         except KeyError as e:
             logger.warning(f"Missing variable in league confirmation template: {e}")
-    
+
     # Fallback to hardcoded message
-    league_info = get_league_welcome_info(league)
-    return f"""Perfect! I've updated your profile to show you're interested in **{league_info['display_name']}**. 
+    league_info = await get_league_welcome_info(league)
+    return f"""Perfect! I've updated your profile to show you're interested in **{league_info['display_name']}**.
 
 {league_info['welcome_message']}
 
@@ -450,7 +489,7 @@ async def trigger_new_player_notification(
         
         preferred_league = user_data.get('preferred_league')
         if preferred_league:
-            league_info = get_league_welcome_info(preferred_league)
+            league_info = await get_league_welcome_info(preferred_league)
             embed.add_field(name="Interested League", value=league_info['display_name'], inline=True)
         else:
             embed.add_field(name="League Status", value="Not yet selected", inline=True)

@@ -1,4 +1,5 @@
 {% block custom_js %}
+{{ super() }}
 <script>
     // Global variables and reusable functions - accessible to both initial load and AJAX updates
     let editUserModal, editUserForm, editUserUrlTemplate, getUserDataUrl, approveUserUrlTemplate, removeUserUrlTemplate, deleteUserUrlTemplate, csrfToken;
@@ -249,7 +250,7 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         // Initialize global variables
-        editUserModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+        editUserModal = ModalManager.getInstance('editUserModal');
         editUserForm = document.getElementById('editUserForm');
         editUserUrlTemplate = `{{ url_for('user_management.edit_user', user_id=0) }}`;
         approveUserUrlTemplate = `{{ url_for('user_management.approve_user', user_id=0) }}`;
@@ -374,7 +375,7 @@
             
             // Show loading indicator
             const tbody = document.querySelector('tbody');
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm text-primary" role="status"><span class="visually-hidden">Loading...</span></div> Filtering...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm text-primary" role="status" data-spinner><span class="visually-hidden">Loading...</span></div> Filtering...</td></tr>';
             
             // Send AJAX request
             fetch(`{{ url_for("user_management.manage_users") }}?${params.toString()}`, {

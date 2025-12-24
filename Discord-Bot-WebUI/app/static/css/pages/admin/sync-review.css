@@ -1,0 +1,419 @@
+/**
+ * ============================================================================
+ * SYNC REVIEW PAGE STYLES
+ * ============================================================================
+ *
+ * Styles for WooCommerce sync review and resolution interface
+ * Extracted from inline styles in sync_review.html
+ *
+ * Design Tokens Used:
+ *   - Colors: --color-success-*, --color-warning-*, --color-danger-*
+ *   - Spacing: --space-1 through --space-8
+ *   - Radius: --radius-sm, --radius-md, --radius-lg
+ *   - Borders: --border-width-*
+ *
+ * Structure:
+ *   1. Issue Cards
+ *   2. Player Assignment Components
+ *   3. Order Details
+ *   4. Resolution Actions
+ *   5. Commit Section
+ *   6. Status & Progress
+ *   7. Nav Tabs with Badges
+ *   8. Empty States
+ *   9. Inactive Player Display
+ *  10. Search Results
+ *  11. Spinner Utilities
+ *  12. Match Details Sections
+ *  13. JavaScript Utility Classes (!important justified)
+ *  14. Accessibility Enhancements
+ *  15. Responsive Styles
+ *  16. Print Styles
+ *
+ * ============================================================================
+ */
+
+/* ============================================
+   1. ISSUE CARDS
+   ============================================ */
+
+.issue-card {
+    border-left: var(--border-width-4, 4px) solid;
+    transition: all var(--transition-normal, 0.3s ease);
+}
+
+/* Resolved state - uses increased specificity instead of !important */
+.sync-review-page .issue-card.issue-resolved,
+.issue-card.issue-resolved {
+    border-left-color: var(--color-success-600, #10B981);
+    background-color: var(--color-success-subtle, var(--color-success-100));
+}
+
+.issue-card.issue-pending {
+    border-left-color: var(--color-warning-600, #F59E0B);
+}
+
+.issue-card.issue-error {
+    border-left-color: var(--color-danger-600, #EF4444);
+}
+
+/* Dark mode issue cards */
+[data-style="dark"] .sync-review-page .issue-card.issue-resolved,
+[data-style="dark"] .issue-card.issue-resolved {
+    background-color: var(--color-success-subtle, rgba(52, 211, 153, 0.15));
+}
+
+[data-style="dark"] .issue-card.issue-pending {
+    border-left-color: var(--color-warning-600, #FBBF24);
+}
+
+[data-style="dark"] .issue-card.issue-error {
+    border-left-color: var(--color-danger-600, #F87171);
+}
+
+/* ============================================
+   2. PLAYER ASSIGNMENT COMPONENTS
+   ============================================ */
+
+.player-assignment {
+    background: var(--color-bg-secondary, var(--color-neutral-50));
+    border: var(--border-width-1, 1px) solid var(--color-border-primary, var(--color-neutral-200));
+    border-radius: var(--radius-md, 0.375rem);
+    padding: var(--space-3, 0.75rem);
+    margin: var(--space-2, 0.5rem) 0;
+}
+
+[data-style="dark"] .player-assignment {
+    background: var(--color-bg-tertiary, var(--color-neutral-100));
+    border-color: var(--color-border-primary, var(--color-neutral-200));
+}
+
+/* Current assignment display - hidden by default */
+.current-assignment {
+    display: none;
+}
+
+.current-assignment .assignment-text {
+    font-weight: 500;
+    color: var(--color-text-primary, var(--color-neutral-900));
+}
+
+/* ============================================
+   3. ORDER DETAILS
+   ============================================ */
+
+.order-details {
+    background: var(--color-bg-tertiary, var(--color-neutral-100));
+    padding: var(--space-2, 0.5rem);
+    border-radius: var(--radius-sm, 0.25rem);
+    margin: var(--space-1, 0.25rem) 0;
+    font-size: 0.9em;
+}
+
+[data-style="dark"] .order-details {
+    background: var(--color-bg-tertiary, var(--color-neutral-100));
+}
+
+/* ============================================
+   4. RESOLUTION ACTIONS
+   ============================================ */
+
+.resolution-actions {
+    background: var(--color-warning-subtle, var(--color-warning-100));
+    border: var(--border-width-1, 1px) solid var(--border-color-warning, var(--color-warning-300));
+    border-radius: var(--radius-md, 0.375rem);
+    padding: var(--space-4, 1rem);
+    margin: var(--space-4, 1rem) 0;
+}
+
+[data-style="dark"] .resolution-actions {
+    background: var(--color-warning-subtle, rgba(251, 191, 36, 0.15));
+    border-color: var(--color-warning-300);
+}
+
+/* ============================================
+   5. COMMIT SECTION
+   ============================================ */
+
+.commit-section {
+    background: var(--color-info-subtle, var(--color-info-100));
+    border: var(--border-width-1, 1px) solid var(--border-color-info, var(--color-info-300));
+    border-radius: var(--radius-md, 0.375rem);
+    padding: var(--space-8, 2rem);
+    margin: var(--space-8, 2rem) 0;
+    text-align: center;
+}
+
+[data-style="dark"] .commit-section {
+    background: var(--color-info-subtle, rgba(96, 165, 250, 0.15));
+    border-color: var(--color-info-300);
+}
+
+/* ============================================
+   6. STATUS & PROGRESS
+   ============================================ */
+
+.status-badge {
+    font-size: 0.8em;
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+}
+
+.progress-detailed {
+    height: 30px;
+    font-size: 0.9rem;
+}
+
+/* Stats cards with hover effect */
+.stats-card {
+    transition: transform var(--transition-normal, 0.2s);
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+}
+
+/* ============================================
+   7. NAV TABS WITH BADGES
+   ============================================ */
+
+.nav-tabs .nav-link {
+    position: relative;
+}
+
+.nav-tabs .nav-link .badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    font-size: 0.7em;
+}
+
+/* ============================================
+   8. EMPTY STATES
+   ============================================ */
+
+.empty-state-icon {
+    font-size: 4rem;
+}
+
+/* ============================================
+   9. INACTIVE PLAYER DISPLAY
+   ============================================ */
+
+.inactive-player-card {
+    border-left-color: var(--color-warning-600, #F59E0B);
+}
+
+[data-style="dark"] .inactive-player-card {
+    border-left-color: var(--color-warning-600, #FBBF24);
+}
+
+/* ============================================
+   10. SEARCH RESULTS
+   ============================================ */
+
+.player-result {
+    cursor: pointer;
+    transition: all var(--transition-fast, 0.15s ease);
+}
+
+.player-result:hover {
+    background-color: var(--color-hover-bg, var(--color-neutral-100));
+    border-color: var(--color-primary-600, var(--color-primary));
+}
+
+[data-style="dark"] .player-result:hover {
+    background-color: var(--color-hover-bg, var(--color-neutral-100));
+}
+
+/* ============================================
+   11. SPINNER UTILITIES
+   ============================================ */
+
+.spinner-loading {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border 0.75s linear infinite;
+}
+
+/* ============================================
+   12. MATCH DETAILS SECTIONS
+   ============================================ */
+
+.match-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1, 0.25rem);
+}
+
+.match-details .badge {
+    align-self: flex-start;
+}
+
+/* ============================================
+   13. JAVASCRIPT UTILITY CLASSES
+   ============================================
+
+   These classes use !important to ensure JavaScript
+   can reliably toggle visibility states, overriding
+   any other display properties that may be set by
+   component-specific styles.
+   ============================================ */
+
+/**
+ * Hidden utility - Applied by JavaScript to hide elements
+ *
+ * JUSTIFIED !important:
+ * - Purpose: Ensure elements can be reliably hidden by JavaScript
+ * - Use case: Dynamic show/hide of assignment sections, order details
+ * - Requirement: Must override component display properties
+ * - Alternative considered: Inline styles would be less maintainable
+ */
+.sr-hidden {
+    display: none !important;
+}
+
+/**
+ * Visible utility - Applied by JavaScript to show elements
+ *
+ * JUSTIFIED !important:
+ * - Purpose: Ensure elements can be reliably shown by JavaScript
+ * - Use case: Revealing assignment UI, showing player details
+ * - Requirement: Must override default display:none from .current-assignment
+ * - Alternative considered: Multiple specific selectors would be fragile
+ */
+.sr-visible {
+    display: block !important;
+}
+
+/**
+ * Current assignment visibility toggle
+ * Inherits visibility from .sr-visible when JavaScript applies it
+ */
+.current-assignment.sr-visible {
+    display: block !important;
+}
+
+/* ============================================
+   14. ACCESSIBILITY ENHANCEMENTS
+   ============================================ */
+
+/* Focus states for keyboard navigation */
+.player-result:focus,
+.assignment-select:focus {
+    outline: var(--outline-width, 2px) solid var(--outline-color-focus, var(--color-primary-600));
+    outline-offset: var(--outline-offset, 2px);
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+    .issue-card {
+        border-left-width: 6px;
+    }
+
+    .sync-review-page .issue-card.issue-resolved,
+    .issue-card.issue-resolved {
+        background-color: var(--color-success-100);
+    }
+
+    [data-style="dark"] .sync-review-page .issue-card.issue-resolved,
+    [data-style="dark"] .issue-card.issue-resolved {
+        background-color: var(--color-success-200);
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .issue-card,
+    .stats-card,
+    .player-result {
+        transition: none;
+    }
+
+    .spinner-loading {
+        animation: none;
+    }
+}
+
+/* ============================================
+   15. RESPONSIVE STYLES
+   ============================================ */
+
+/* Mobile adjustments */
+@media (max-width: 767.98px) {
+    .commit-section {
+        padding: var(--space-4, 1rem);
+        margin: var(--space-4, 1rem) 0;
+    }
+
+    .resolution-actions {
+        padding: var(--space-3, 0.75rem);
+    }
+
+    .nav-tabs .nav-link .badge {
+        position: static;
+        display: inline-block;
+        margin-left: var(--space-1, 0.25rem);
+    }
+
+    .empty-state-icon {
+        font-size: 3rem;
+    }
+
+    .stats-card {
+        margin-bottom: var(--space-3, 0.75rem);
+    }
+
+    /* Stack player assignment sections */
+    .player-assignment {
+        padding: var(--space-2, 0.5rem);
+    }
+
+    /* Make order details more compact */
+    .order-details {
+        font-size: 0.85em;
+        padding: var(--space-1, 0.25rem);
+    }
+}
+
+/* Tablet adjustments */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .commit-section {
+        padding: var(--space-6, 1.5rem);
+    }
+}
+
+/* Large screens */
+@media (min-width: 1200px) {
+    .commit-section {
+        max-width: 90%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
+/* ============================================
+   16. PRINT STYLES
+   ============================================ */
+
+@media print {
+    .issue-card {
+        page-break-inside: avoid;
+    }
+
+    .commit-section,
+    .resolution-actions {
+        display: none;
+    }
+
+    .nav-tabs {
+        display: none;
+    }
+
+    .stats-card:hover {
+        transform: none;
+    }
+}

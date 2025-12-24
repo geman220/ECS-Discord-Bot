@@ -11,7 +11,7 @@
 <!-- Match Verification Header -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="alert alert-info">
+        <div class="alert alert-info" data-alert>
             <div class="d-flex align-items-center">
                 <i class="ti ti-shield-check me-2"></i>
                 <div>
@@ -26,17 +26,17 @@
 <!-- Filters and Controls -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-filter me-2"></i>Filters & Search
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <form method="GET" class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label">Week</label>
-                        <select name="week" class="form-select">
+                        <select name="week" class="form-select" data-form-select>
                             <option value="">All Weeks</option>
                             {% for week in weeks %}
                             <option value="{{ week }}" {% if current_week == week %}selected{% endif %}>
@@ -47,7 +47,7 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">League</label>
-                        <select name="league_id" class="form-select">
+                        <select name="league_id" class="form-select" data-form-select>
                             <option value="">All Leagues</option>
                             {% for league in leagues %}
                             <option value="{{ league.id }}" {% if current_league_id == league.id %}selected{% endif %}>
@@ -58,7 +58,7 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Verification Status</label>
-                        <select name="verification_status" class="form-select">
+                        <select name="verification_status" class="form-select" data-form-select>
                             <option value="all" {% if current_verification_status == 'all' %}selected{% endif %}>All Matches</option>
                             <option value="unverified" {% if current_verification_status == 'unverified' %}selected{% endif %}>Unverified</option>
                             <option value="partially_verified" {% if current_verification_status == 'partially_verified' %}selected{% endif %}>Partially Verified</option>
@@ -69,10 +69,10 @@
                     <div class="col-md-3">
                         <label class="form-label">&nbsp;</label>
                         <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="c-btn c-btn--primary">
                                 <i class="ti ti-search me-1"></i>Filter
                             </button>
-                            <a href="{{ url_for('admin_panel.match_verification') }}" class="btn btn-outline-secondary">
+                            <a href="{{ url_for('admin_panel.match_verification') }}" class="c-btn c-btn--outline-secondary">
                                 <i class="ti ti-x me-1"></i>Clear
                             </a>
                         </div>
@@ -86,63 +86,63 @@
 <!-- Statistics Cards -->
 <div class="row mb-4">
     <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
+        <div class="c-card">
+            <div class="c-card__body">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <h6 class="card-title mb-0">Total Matches</h6>
+                        <h6 class="c-card__title mb-0">Total Matches</h6>
                         <h4 class="mb-0">{{ matches|length }}</h4>
                     </div>
                     <div class="text-primary">
-                        <i class="ti ti-trophy" style="font-size: 2rem;"></i>
+                        <i class="ti ti-trophy icon-2xl"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
+        <div class="c-card">
+            <div class="c-card__body">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <h6 class="card-title mb-0">Needs Verification</h6>
+                        <h6 class="c-card__title mb-0">Needs Verification</h6>
                         {% set unverified = matches|selectattr('reported')|rejectattr('home_team_verified')|list|length + matches|selectattr('reported')|rejectattr('away_team_verified')|list|length %}
                         <h4 class="mb-0 text-warning">{{ unverified }}</h4>
                     </div>
                     <div class="text-warning">
-                        <i class="ti ti-clock" style="font-size: 2rem;"></i>
+                        <i class="ti ti-clock icon-2xl"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
+        <div class="c-card">
+            <div class="c-card__body">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <h6 class="card-title mb-0">Fully Verified</h6>
+                        <h6 class="c-card__title mb-0">Fully Verified</h6>
                         {% set verified = matches|selectattr('home_team_verified')|selectattr('away_team_verified')|list|length %}
                         <h4 class="mb-0 text-success">{{ verified }}</h4>
                     </div>
                     <div class="text-success">
-                        <i class="ti ti-check" style="font-size: 2rem;"></i>
+                        <i class="ti ti-check icon-2xl"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
+        <div class="c-card">
+            <div class="c-card__body">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <h6 class="card-title mb-0">Not Reported</h6>
+                        <h6 class="c-card__title mb-0">Not Reported</h6>
                         {% set not_reported = matches|rejectattr('reported')|list|length %}
                         <h4 class="mb-0 text-danger">{{ not_reported }}</h4>
                     </div>
                     <div class="text-danger">
-                        <i class="ti ti-alert-circle" style="font-size: 2rem;"></i>
+                        <i class="ti ti-alert-circle icon-2xl"></i>
                     </div>
                 </div>
             </div>
@@ -153,26 +153,26 @@
 <!-- Matches Table -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-list me-2"></i>Matches
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if matches %}
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--striped" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Week</th>
-                                <th>Date</th>
-                                <th>Match</th>
-                                <th>Score</th>
-                                <th>Home Verification</th>
-                                <th>Away Verification</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th scope="col">Week</th>
+                                <th scope="col">Date</th>
+                                <th scope="col">Match</th>
+                                <th scope="col">Score</th>
+                                <th scope="col">Home Verification</th>
+                                <th scope="col">Away Verification</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -180,7 +180,7 @@
                             <tr>
                                 <td>
                                     {% if match.schedule %}
-                                    <span class="badge bg-secondary">Week {{ match.schedule.week }}</span>
+                                    <span class="badge bg-secondary" data-badge>Week {{ match.schedule.week }}</span>
                                     {% else %}
                                     <span class="text-muted">-</span>
                                     {% endif %}
@@ -203,71 +203,71 @@
                                 </td>
                                 <td>
                                     {% if match.home_team_verified %}
-                                    <span class="badge bg-success">
+                                    <span class="badge bg-success" data-badge>
                                         <i class="ti ti-check me-1"></i>Verified
                                     </span>
                                     {% elif match.home_team_score is not none %}
-                                    <span class="badge bg-warning">
+                                    <span class="badge bg-warning" data-badge>
                                         <i class="ti ti-clock me-1"></i>Pending
                                     </span>
                                     {% else %}
-                                    <span class="badge bg-secondary">
+                                    <span class="badge bg-secondary" data-badge>
                                         <i class="ti ti-minus me-1"></i>N/A
                                     </span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if match.away_team_verified %}
-                                    <span class="badge bg-success">
+                                    <span class="badge bg-success" data-badge>
                                         <i class="ti ti-check me-1"></i>Verified
                                     </span>
                                     {% elif match.away_team_score is not none %}
-                                    <span class="badge bg-warning">
+                                    <span class="badge bg-warning" data-badge>
                                         <i class="ti ti-clock me-1"></i>Pending
                                     </span>
                                     {% else %}
-                                    <span class="badge bg-secondary">
+                                    <span class="badge bg-secondary" data-badge>
                                         <i class="ti ti-minus me-1"></i>N/A
                                     </span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if match.home_team_verified and match.away_team_verified %}
-                                    <span class="badge bg-success">Fully Verified</span>
+                                    <span class="badge bg-success" data-badge>Fully Verified</span>
                                     {% elif match.home_team_verified or match.away_team_verified %}
-                                    <span class="badge bg-warning">Partially Verified</span>
+                                    <span class="badge bg-warning" data-badge>Partially Verified</span>
                                     {% elif match.home_team_score is not none and match.away_team_score is not none %}
-                                    <span class="badge bg-danger">Unverified</span>
+                                    <span class="badge bg-danger" data-badge>Unverified</span>
                                     {% else %}
-                                    <span class="badge bg-secondary">Not Reported</span>
+                                    <span class="badge bg-secondary" data-badge>Not Reported</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if match.home_team_score is not none and match.away_team_score is not none %}
                                     <div class="btn-group" role="group">
-                                        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                                        <button type="button" class="c-btn c-btn--sm c-btn--outline-primary dropdown-toggle" data-bs-toggle="dropdown" data-dropdown-toggle>
                                             Verify
                                         </button>
-                                        <ul class="dropdown-menu">
+                                        <ul class="dropdown-menu" data-dropdown-menu>
                                             {% if not match.home_team_verified and (not is_coach or match.home_team_id in verifiable_teams) %}
                                             <li>
-                                                <a class="dropdown-item" href="#" onclick="verifyMatch({{ match.id }}, 'home')">
+                                                <button class="dropdown-item" data-action="verify-match" data-match-id="{{ match.id }}" data-team="home">
                                                     <i class="ti ti-home me-2"></i>Verify Home Team
-                                                </a>
+                                                </button>
                                             </li>
                                             {% endif %}
                                             {% if not match.away_team_verified and (not is_coach or match.away_team_id in verifiable_teams) %}
                                             <li>
-                                                <a class="dropdown-item" href="#" onclick="verifyMatch({{ match.id }}, 'away')">
+                                                <button class="dropdown-item" data-action="verify-match" data-match-id="{{ match.id }}" data-team="away">
                                                     <i class="ti ti-plane me-2"></i>Verify Away Team
-                                                </a>
+                                                </button>
                                             </li>
                                             {% endif %}
                                             {% if not match.home_team_verified and not match.away_team_verified and (not is_coach or (match.home_team_id in verifiable_teams and match.away_team_id in verifiable_teams)) %}
                                             <li>
-                                                <a class="dropdown-item" href="#" onclick="verifyMatch({{ match.id }}, 'both')">
+                                                <button class="dropdown-item" data-action="verify-match" data-match-id="{{ match.id }}" data-team="both">
                                                     <i class="ti ti-checks me-2"></i>Verify Both Teams
-                                                </a>
+                                                </button>
                                             </li>
                                             {% endif %}
                                         </ul>
@@ -283,7 +283,7 @@
                 </div>
                 {% else %}
                 <div class="text-center py-5">
-                    <i class="ti ti-trophy text-muted" style="font-size: 4rem;"></i>
+                    <i class="ti ti-trophy text-muted icon-4xl"></i>
                     <h4 class="text-muted mt-3">No matches found</h4>
                     <p class="text-muted">Try adjusting your filters or check back later.</p>
                 </div>
@@ -295,7 +295,21 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
+// Event delegation for match verification actions
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        if (action === 'verify-match') {
+            verifyMatch(target.dataset.matchId, target.dataset.team);
+        }
+    });
+});
+
 function verifyMatch(matchId, team) {
     const teamText = team === 'both' ? 'both teams' : team === 'home' ? 'home team' : 'away team';
     

@@ -3,12 +3,12 @@
 
 <!-- Initialization Alert - Shows when no fields are configured -->
 {% if not front_fields and not back_fields %}
-<div class="alert alert-warning d-flex align-items-center mb-4" id="init-alert">
-    <i class="ti ti-alert-triangle me-3" style="font-size: 2rem;"></i>
+<div class="alert alert-warning d-flex align-items-center mb-4" id="init-alert" data-alert>
+    <i class="ti ti-alert-triangle me-3 card-icon-stat"></i>
     <div class="flex-grow-1">
         <h6 class="alert-heading mb-1">No Fields Configured</h6>
         <p class="mb-2">Your passes won't display any information until you configure fields. Would you like to load the default field configuration?</p>
-        <button type="button" class="btn btn-warning btn-sm" onclick="FieldsManager.initializeDefaults()">
+        <button type="button" class="c-btn c-btn--warning c-btn--sm js-initialize-defaults" data-action="initialize-defaults">
             <i class="ti ti-settings me-1"></i>Load Default Fields
         </button>
         <span class="text-muted ms-2 small">This will create standard fields for Member Name, Year, etc.</span>
@@ -43,15 +43,15 @@
 </div>
 
 <!-- Pass Layout Guide (Collapsible - expanded by default) -->
-<div class="card mb-4">
-    <div class="card-header py-2 cursor-pointer" data-bs-toggle="collapse" data-bs-target="#layout-guide-collapse" aria-expanded="true">
+<div class="c-card mb-4">
+    <div class="c-card__header py-2 cursor-pointer" data-bs-toggle="collapse" data-bs-target="#layout-guide-collapse" aria-expanded="true" data-collapse-toggle>
         <div class="d-flex justify-content-between align-items-center">
             <h6 class="mb-0"><i class="ti ti-layout me-2"></i>Pass Layout Guide</h6>
             <i class="ti ti-chevron-down collapse-icon"></i>
         </div>
     </div>
     <div class="collapse show" id="layout-guide-collapse">
-        <div class="card-body">
+        <div class="c-card__body">
             <p class="text-muted small mb-3">
                 <i class="ti ti-info-circle me-1"></i>
                 These diagrams show where each field type appears on the pass. Select your pass style in the Appearance tab.
@@ -151,7 +151,7 @@
             {# Apple Documentation Link #}
             <div class="mt-3 pt-3 border-top text-center">
                 <a href="https://developer.apple.com/library/archive/documentation/UserExperience/Conceptual/PassKit_PG/Creating.html"
-                   target="_blank" class="btn btn-outline-secondary btn-sm">
+                   target="_blank" class="c-btn c-btn--outline-secondary c-btn--sm">
                     <i class="ti ti-external-link me-1"></i>Apple PassKit Documentation
                 </a>
             </div>
@@ -160,24 +160,24 @@
 </div>
 
 <!-- Available Variables (Collapsible) -->
-<div class="card mb-4">
-    <div class="card-header py-2 cursor-pointer" data-bs-toggle="collapse" data-bs-target="#variables-collapse" aria-expanded="false">
+<div class="c-card mb-4">
+    <div class="c-card__header py-2 cursor-pointer" data-bs-toggle="collapse" data-bs-target="#variables-collapse" aria-expanded="false" data-collapse-toggle>
         <div class="d-flex justify-content-between align-items-center">
             <h6 class="mb-0"><i class="ti ti-variable me-2"></i>Available Variables</h6>
             <i class="ti ti-chevron-down collapse-icon"></i>
         </div>
     </div>
     <div class="collapse" id="variables-collapse">
-        <div class="card-body py-3">
+        <div class="c-card__body py-3">
             <p class="text-muted small mb-3">These variables are automatically replaced with actual data when passes are generated:</p>
-            <div class="table-responsive">
-                <table class="table table-sm table-borderless mb-0">
+            <div class="c-table-wrapper" data-table-responsive>
+                <table class="c-table c-table--compact c-table--borderless mb-0" data-table>
                     <tbody>
                         {% for variable in template_variables %}
                         <tr>
-                            <td style="width: 160px;"><code class="bg-light px-2 py-1 rounded">{{ variable.name }}</code></td>
+                            <td class="u-w-160"><code class="bg-light px-2 py-1 rounded">{{ variable.name }}</code></td>
                             <td class="text-muted">{{ variable.description }}</td>
-                            <td style="width: 120px;" class="text-muted small">
+                            <td class="u-w-120" class="text-muted small">
                                 {% if sample_data and sample_data.get(variable.name) %}
                                     <em>"{{ sample_data.get(variable.name) }}"</em>
                                 {% endif %}
@@ -194,18 +194,18 @@
 <div class="row">
     <!-- Front of Pass Fields -->
     <div class="col-lg-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="c-card h-100">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
                 <h6 class="mb-0"><i class="ti ti-credit-card me-2"></i>Front of Pass</h6>
-                <button type="button" class="btn btn-sm btn-primary" onclick="FieldsManager.openAddFieldModal('front')">
+                <button type="button" class="c-btn c-btn--sm c-btn--primary js-add-front-field" data-action="add-field" data-field-type="front">
                     <i class="ti ti-plus me-1"></i>Add Field
                 </button>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <!-- Primary Fields Section -->
                 <div class="field-location-section mb-3">
                     <div class="field-location-header d-flex justify-content-between align-items-center mb-2">
-                        <span class="badge bg-primary">Primary</span>
+                        <span class="badge bg-primary" data-badge>Primary</span>
                         <small class="text-muted">Main focus - member name</small>
                     </div>
                     <div class="fields-sortable-container" id="primary-fields-container" data-location="primary">
@@ -216,7 +216,7 @@
                 <!-- Secondary Fields Section -->
                 <div class="field-location-section mb-3">
                     <div class="field-location-header d-flex justify-content-between align-items-center mb-2">
-                        <span class="badge bg-info">Secondary</span>
+                        <span class="badge bg-info" data-badge>Secondary</span>
                         <small class="text-muted">Important details</small>
                     </div>
                     <div class="fields-sortable-container" id="secondary-fields-container" data-location="secondary">
@@ -227,7 +227,7 @@
                 <!-- Auxiliary Fields Section -->
                 <div class="field-location-section mb-3">
                     <div class="field-location-header d-flex justify-content-between align-items-center mb-2">
-                        <span class="badge bg-warning">Auxiliary</span>
+                        <span class="badge bg-warning" data-badge>Auxiliary</span>
                         <small class="text-muted">Supporting info</small>
                     </div>
                     <div class="fields-sortable-container" id="auxiliary-fields-container" data-location="auxiliary">
@@ -238,7 +238,7 @@
                 <!-- Header Fields Section -->
                 <div class="field-location-section">
                     <div class="field-location-header d-flex justify-content-between align-items-center mb-2">
-                        <span class="badge bg-secondary">Header</span>
+                        <span class="badge bg-secondary" data-badge>Header</span>
                         <small class="text-muted">Top of pass (rarely used)</small>
                     </div>
                     <div class="fields-sortable-container" id="header-fields-container" data-location="header">
@@ -251,14 +251,14 @@
 
     <!-- Back of Pass Fields -->
     <div class="col-lg-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="c-card h-100">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
                 <h6 class="mb-0"><i class="ti ti-flip-horizontal me-2"></i>Back of Pass</h6>
-                <button type="button" class="btn btn-sm btn-primary" onclick="FieldsManager.openAddFieldModal('back')">
+                <button type="button" class="c-btn c-btn--sm c-btn--primary js-add-back-field" data-action="add-field" data-field-type="back">
                     <i class="ti ti-plus me-1"></i>Add Field
                 </button>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <p class="text-muted small mb-3">
                     <i class="ti ti-info-circle me-1"></i>
                     Back fields show when users tap the info button. Great for terms, contact info, and links.
@@ -273,31 +273,31 @@
 
 <!-- Save Button -->
 <div class="d-flex justify-content-end gap-2">
-    <button type="button" class="btn btn-outline-secondary" onclick="FieldsManager.resetFields()">
+    <button type="button" class="c-btn c-btn--outline-secondary js-reset-fields" data-action="reset-fields">
         <i class="ti ti-refresh me-1"></i>Reset Changes
     </button>
-    <button type="button" class="btn btn-primary" onclick="FieldsManager.saveFields()">
+    <button type="button" class="c-btn c-btn--primary js-save-fields" data-action="save-fields">
         <i class="ti ti-device-floppy me-1"></i>Save Fields
     </button>
 </div>
 
 <!-- Add Field Modal -->
-<div class="modal fade" id="addFieldModal" tabindex="-1" aria-labelledby="addFieldModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addFieldModalLabel">
+<div class="modal c-modal fade" id="addFieldModal" tabindex="-1" aria-labelledby="addFieldModalLabel" aria-hidden="true" data-modal>
+    <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="addFieldModalLabel">
                     <i class="ti ti-plus-circle me-2"></i>Add New Field
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body>
                 <input type="hidden" id="add-field-type" value="front">
 
                 <!-- Label -->
                 <div class="mb-3">
                     <label class="form-label fw-medium">Field Label <span class="text-danger">*</span></label>
-                    <input type="text" id="add-field-label" class="form-control" placeholder="e.g., MEMBER, YEAR, TEAM">
+                    <input type="text" id="add-field-label" class="form-control" placeholder="e.g., MEMBER, YEAR, TEAM" data-form-control>
                     <div class="form-text">This appears above the field value on the pass</div>
                 </div>
 
@@ -308,25 +308,25 @@
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="add-field-location" id="loc-primary" value="primary">
                             <label class="form-check-label" for="loc-primary">
-                                <span class="badge bg-primary me-1">Primary</span>
+                                <span class="badge bg-primary me-1" data-badge>Primary</span>
                             </label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="add-field-location" id="loc-secondary" value="secondary" checked>
                             <label class="form-check-label" for="loc-secondary">
-                                <span class="badge bg-info me-1">Secondary</span>
+                                <span class="badge bg-info me-1" data-badge>Secondary</span>
                             </label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="add-field-location" id="loc-auxiliary" value="auxiliary">
                             <label class="form-check-label" for="loc-auxiliary">
-                                <span class="badge bg-warning me-1">Auxiliary</span>
+                                <span class="badge bg-warning me-1" data-badge>Auxiliary</span>
                             </label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="add-field-location" id="loc-header" value="header">
                             <label class="form-check-label" for="loc-header">
-                                <span class="badge bg-secondary me-1">Header</span>
+                                <span class="badge bg-secondary me-1" data-badge>Header</span>
                             </label>
                         </div>
                     </div>
@@ -335,7 +335,7 @@
                 <!-- Field Type (Back only) -->
                 <div class="mb-3 d-none" id="add-field-type-group">
                     <label class="form-label fw-medium">Field Type</label>
-                    <select id="add-field-field-type" class="form-select">
+                    <select id="add-field-field-type" class="form-select" data-form-select>
                         <option value="text">Text</option>
                         <option value="url">URL (tappable link)</option>
                         <option value="phone">Phone Number</option>
@@ -346,7 +346,7 @@
                 <!-- Value Mode Tabs -->
                 <div class="mb-3">
                     <label class="form-label fw-medium">Field Value</label>
-                    <ul class="nav nav-tabs nav-tabs-sm" role="tablist">
+                    <ul class="nav nav-tabs nav-tabs-sm" role="tablist" data-tabs>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="add-simple-tab" data-bs-toggle="tab" data-bs-target="#add-simple-mode" type="button" role="tab">
                                 <i class="ti ti-list me-1"></i>Simple
@@ -360,8 +360,8 @@
                     </ul>
                     <div class="tab-content border border-top-0 rounded-bottom p-3">
                         <!-- Simple Mode -->
-                        <div class="tab-pane fade show active" id="add-simple-mode" role="tabpanel">
-                            <select id="add-field-variable" class="form-select">
+                        <div class="tab-pane fade show active" id="add-simple-mode" role="tabpanel" data-tab-pane>
+                            <select id="add-field-variable" class="form-select" data-form-select>
                                 <option value="">-- Select a variable --</option>
                                 {% for variable in template_variables %}
                                 <option value="{% raw %}{{{% endraw %}{{ variable.name }}{% raw %}}}{% endraw %}" data-description="{{ variable.description }}">
@@ -370,20 +370,20 @@
                                 {% endfor %}
                                 <option value="__static__">Static text (enter below)</option>
                             </select>
-                            <input type="text" id="add-field-static" class="form-control mt-2 d-none" placeholder="Enter static text">
+                            <input type="text" id="add-field-static" class="form-control mt-2 d-none" placeholder="Enter static text" data-form-control>
                         </div>
                         <!-- Advanced Mode -->
-                        <div class="tab-pane fade" id="add-advanced-mode" role="tabpanel">
-                            <div class="input-group">
-                                <input type="text" id="add-field-template" class="form-control" placeholder="e.g., Welcome, {% raw %}{{member_name}}{% endraw %}!">
+                        <div class="tab-pane fade" id="add-advanced-mode" role="tabpanel" data-tab-pane>
+                            <div class="input-group" data-input-group>
+                                <input type="text" id="add-field-template" class="form-control" placeholder="e.g., Welcome, {% raw %}{{member_name}}{% endraw %}!" data-form-control>
                                 <div class="dropdown">
-                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <button class="c-btn c-btn--outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-dropdown-toggle>
                                         Insert
                                     </button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
+                                    <ul class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
                                         {% for variable in template_variables %}
                                         <li>
-                                            <a class="dropdown-item" href="#" onclick="FieldsManager.insertVariableInAdd('{{ variable.name }}'); return false;">
+                                            <a class="dropdown-item js-insert-variable-add" href="#" data-action="insert-variable" data-variable-name="{{ variable.name }}">
                                                 {{ variable.name }}
                                             </a>
                                         </li>
@@ -396,9 +396,9 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="FieldsManager.createField()">
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--primary js-create-field" data-action="create-field">
                     <i class="ti ti-plus me-1"></i>Add Field
                 </button>
             </div>
@@ -414,14 +414,14 @@
                 <span class="drag-handle" title="Drag to reorder">
                     <i class="ti ti-grip-vertical"></i>
                 </span>
-                <span class="field-location-badge badge"></span>
+                <span class="field-location-badge badge" data-badge></span>
                 <span class="field-key text-muted small"></span>
             </div>
             <div class="d-flex align-items-center gap-2">
                 <div class="form-check form-switch mb-0">
                     <input class="form-check-input visibility-toggle" type="checkbox" checked>
                 </div>
-                <button type="button" class="btn btn-sm btn-icon btn-outline-danger delete-btn" title="Delete field">
+                <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-danger delete-btn" title="Delete field">
                     <i class="ti ti-trash"></i>
                 </button>
             </div>
@@ -429,10 +429,10 @@
         <div class="field-card-body">
             <div class="row g-2 mb-2">
                 <div class="col-4">
-                    <input type="text" class="form-control form-control-sm label-input" placeholder="Label">
+                    <input type="text" class="form-control form-control-sm label-input" placeholder="Label" data-form-control>
                 </div>
                 <div class="col-4 location-select-col">
-                    <select class="form-select form-select-sm location-select">
+                    <select class="form-select form-select-sm location-select" data-form-select>
                         <option value="primary">Primary</option>
                         <option value="secondary">Secondary</option>
                         <option value="auxiliary">Auxiliary</option>
@@ -440,7 +440,7 @@
                     </select>
                 </div>
                 <div class="col-4 data-type-col">
-                    <select class="form-select form-select-sm data-type-select" title="Data type determines formatting options">
+                    <select class="form-select form-select-sm data-type-select" title="Data type determines formatting options" data-form-select>
                         <option value="text">Text</option>
                         <option value="date">Date/Time</option>
                         <option value="number">Number</option>
@@ -448,7 +448,7 @@
                     </select>
                 </div>
                 <div class="col-8 field-type-col d-none">
-                    <select class="form-select form-select-sm field-type-select">
+                    <select class="form-select form-select-sm field-type-select" data-form-select>
                         <option value="text">Text</option>
                         <option value="url">URL</option>
                         <option value="phone">Phone</option>
@@ -458,7 +458,7 @@
             </div>
             <!-- Value section with tabs -->
             <div class="value-section">
-                <ul class="nav nav-tabs nav-tabs-sm" role="tablist">
+                <ul class="nav nav-tabs nav-tabs-sm" role="tablist" data-tabs>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active simple-mode-tab" type="button" data-mode="simple">
                             Simple
@@ -472,17 +472,17 @@
                 </ul>
                 <div class="tab-content p-2 border border-top-0 rounded-bottom bg-light">
                     <div class="simple-mode-content">
-                        <select class="form-select form-select-sm variable-select">
+                        <select class="form-select form-select-sm variable-select" data-form-select>
                             <option value="">-- Select variable --</option>
                         </select>
                     </div>
                     <div class="advanced-mode-content d-none">
-                        <div class="input-group input-group-sm">
-                            <input type="text" class="form-control template-input" placeholder="Template">
-                            <button type="button" class="btn btn-outline-secondary dropdown-toggle insert-var-btn" data-bs-toggle="dropdown">
+                        <div class="input-group input-group-sm" data-input-group>
+                            <input type="text" class="form-control template-input" placeholder="Template" data-form-control>
+                            <button type="button" class="c-btn c-btn--outline-secondary dropdown-toggle insert-var-btn" data-bs-toggle="dropdown" data-dropdown-toggle>
                                 Insert
                             </button>
-                            <ul class="dropdown-menu dropdown-menu-end insert-var-menu">
+                            <ul class="dropdown-menu dropdown-menu-end insert-var-menu" data-dropdown-menu>
                             </ul>
                         </div>
                     </div>
@@ -494,19 +494,19 @@
                     <small class="text-muted">Align:</small>
                     <div class="btn-group btn-group-sm alignment-btns" role="group" aria-label="Text alignment">
                         <input type="radio" class="btn-check" name="align" id="align-natural" value="natural" autocomplete="off" checked>
-                        <label class="btn btn-outline-secondary" for="align-natural" title="Natural (default)">
+                        <label class="c-btn c-btn--outline-secondary" for="align-natural" title="Natural (default)">
                             <i class="ti ti-layout-align-left"></i>
                         </label>
                         <input type="radio" class="btn-check" name="align" id="align-left" value="left" autocomplete="off">
-                        <label class="btn btn-outline-secondary" for="align-left" title="Left">
+                        <label class="c-btn c-btn--outline-secondary" for="align-left" title="Left">
                             <i class="ti ti-align-left"></i>
                         </label>
                         <input type="radio" class="btn-check" name="align" id="align-center" value="center" autocomplete="off">
-                        <label class="btn btn-outline-secondary" for="align-center" title="Center">
+                        <label class="c-btn c-btn--outline-secondary" for="align-center" title="Center">
                             <i class="ti ti-align-center"></i>
                         </label>
                         <input type="radio" class="btn-check" name="align" id="align-right" value="right" autocomplete="off">
-                        <label class="btn btn-outline-secondary" for="align-right" title="Right">
+                        <label class="c-btn c-btn--outline-secondary" for="align-right" title="Right">
                             <i class="ti ti-align-right"></i>
                         </label>
                     </div>
@@ -518,7 +518,7 @@
                     <!-- Date Style (for date fields) -->
                     <div class="col-6 date-style-group d-none">
                         <label class="form-label small text-muted mb-1">Date Format</label>
-                        <select class="form-select form-select-sm date-style-select">
+                        <select class="form-select form-select-sm date-style-select" data-form-select>
                             <option value="">None</option>
                             <option value="short">Short (1/1/25)</option>
                             <option value="medium">Medium (Jan 1, 2025)</option>
@@ -529,7 +529,7 @@
                     <!-- Time Style (for date fields) -->
                     <div class="col-6 time-style-group d-none">
                         <label class="form-label small text-muted mb-1">Time Format</label>
-                        <select class="form-select form-select-sm time-style-select">
+                        <select class="form-select form-select-sm time-style-select" data-form-select>
                             <option value="">None</option>
                             <option value="short">Short (3:30 PM)</option>
                             <option value="medium">Medium (3:30:00 PM)</option>
@@ -540,7 +540,7 @@
                     <!-- Number Style (for number fields) -->
                     <div class="col-6 number-style-group d-none">
                         <label class="form-label small text-muted mb-1">Number Format</label>
-                        <select class="form-select form-select-sm number-style-select">
+                        <select class="form-select form-select-sm number-style-select" data-form-select>
                             <option value="">Default</option>
                             <option value="decimal">Decimal (1,234.56)</option>
                             <option value="percent">Percent (12%)</option>
@@ -551,7 +551,7 @@
                     <!-- Currency Code (for currency fields - mutually exclusive with numberStyle) -->
                     <div class="col-6 currency-code-group d-none">
                         <label class="form-label small text-muted mb-1">Currency</label>
-                        <select class="form-select form-select-sm currency-code-select">
+                        <select class="form-select form-select-sm currency-code-select" data-form-select>
                             <option value="">None</option>
                             <option value="USD">USD ($)</option>
                             <option value="EUR">EUR (€)</option>
@@ -609,7 +609,7 @@ const FieldsManager = {
         // Initialize modal
         const modalEl = document.getElementById('addFieldModal');
         if (modalEl) {
-            this.addFieldModal = new bootstrap.Modal(modalEl);
+            this.addFieldModal = ModalManager.getInstance('addFieldModal');
         }
 
         // Render all fields
@@ -1490,6 +1490,40 @@ const FieldsManager = {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
+    // Event delegation for buttons
+    document.querySelector('.js-initialize-defaults')?.addEventListener('click', function() {
+        FieldsManager.initializeDefaults();
+    });
+
+    document.querySelector('.js-add-front-field')?.addEventListener('click', function() {
+        FieldsManager.openAddFieldModal('front');
+    });
+
+    document.querySelector('.js-add-back-field')?.addEventListener('click', function() {
+        FieldsManager.openAddFieldModal('back');
+    });
+
+    document.querySelector('.js-reset-fields')?.addEventListener('click', function() {
+        FieldsManager.resetFields();
+    });
+
+    document.querySelector('.js-save-fields')?.addEventListener('click', function() {
+        FieldsManager.saveFields();
+    });
+
+    document.querySelector('.js-create-field')?.addEventListener('click', function() {
+        FieldsManager.createField();
+    });
+
+    // Insert variable buttons in add modal
+    document.querySelectorAll('.js-insert-variable-add').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const varName = this.dataset.variableName;
+            FieldsManager.insertVariableInAdd(varName);
+        });
+    });
+
     // Data from server
     const frontFields = [
         {% for field in front_fields %}

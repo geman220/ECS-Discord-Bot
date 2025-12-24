@@ -1,0 +1,343 @@
+/**
+ * ============================================================================
+ * ECS TABLE COMPONENT
+ * ============================================================================
+ *
+ * Comprehensive table styling with variants, responsive behavior, and states.
+ * Works with DataTables and provides clean, accessible table design.
+ *
+ * Structure:
+ *   1. Base Table Styles
+ *   2. Table Variants
+ *   3. Table States (Hover, Striped, Bordered)
+ *   4. Responsive Tables
+ *   5. Table Cells (Headers, Data)
+ *   6. Table Sizes
+ *   7. Dark Mode
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. BASE TABLE STYLES
+   ============================================================================ */
+
+.table {
+  width: 100%;
+  margin-bottom: var(--space-4);
+  color: var(--color-text-primary);
+  border-collapse: collapse;
+  background-color: var(--color-bg-card);
+}
+
+.table th,
+.table td {
+  padding: var(--space-table-cell-padding-y) var(--space-table-cell-padding-x);
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-border-primary);
+}
+
+.table thead th {
+  vertical-align: bottom;
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-secondary);
+  border-bottom: 2px solid var(--color-border-primary);
+  text-align: left;
+}
+
+.table tbody + tbody {
+  border-top: 2px solid var(--color-border-primary);
+}
+
+/* ============================================================================
+   2. TABLE VARIANTS
+   ============================================================================ */
+
+/* Bordered table */
+.table-bordered {
+  border: 1px solid var(--color-border-primary);
+}
+
+.table-bordered th,
+.table-bordered td {
+  border: 1px solid var(--color-border-primary);
+}
+
+.table-bordered thead th,
+.table-bordered thead td {
+  border-bottom-width: 2px;
+}
+
+/* Borderless table */
+.table-borderless th,
+.table-borderless td,
+.table-borderless thead th,
+.table-borderless tbody + tbody {
+  border: 0;
+}
+
+/* ============================================================================
+   3. TABLE STATES
+   ============================================================================ */
+
+/* Striped rows */
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: var(--color-bg-secondary);
+}
+
+/* Hoverable rows */
+.table-hover tbody tr:hover {
+  background-color: var(--color-hover-bg);
+  cursor: pointer;
+}
+
+/* ============================================================================
+   4. TABLE SIZES
+   ============================================================================ */
+
+.table-sm th,
+.table-sm td {
+  padding: var(--space-2) var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.table-lg th,
+.table-lg td {
+  padding: var(--space-4) var(--space-4);
+  font-size: var(--text-base);
+}
+
+/* ============================================================================
+   5. TABLE CELL ALIGNMENT
+   ============================================================================ */
+
+.table th.text-center,
+.table td.text-center {
+  text-align: center;
+}
+
+.table th.text-right,
+.table td.text-right {
+  text-align: right;
+}
+
+.table td.align-middle {
+  vertical-align: middle;
+}
+
+/* ============================================================================
+   6. RESPONSIVE TABLES
+   ============================================================================ */
+
+.table-responsive {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-responsive > .table {
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  /* Stack table on mobile */
+  .table-mobile-stack {
+    display: block;
+  }
+
+  .table-mobile-stack thead {
+    display: none;
+  }
+
+  .table-mobile-stack tbody,
+  .table-mobile-stack tr,
+  .table-mobile-stack td {
+    display: block;
+    width: 100%;
+  }
+
+  .table-mobile-stack tr {
+    margin-bottom: var(--space-4);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+  }
+
+  .table-mobile-stack td {
+    text-align: right;
+    padding-left: 50%;
+    position: relative;
+    border: 0;
+  }
+
+  .table-mobile-stack td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: var(--space-3);
+    font-weight: var(--font-semibold);
+    text-align: left;
+  }
+}
+
+/* ============================================================================
+   7. TABLE ROW VARIANTS
+   ============================================================================ */
+
+.table-primary {
+  background-color: var(--color-primary-subtle);
+}
+
+.table-secondary {
+  background-color: var(--color-secondary-subtle);
+}
+
+.table-success {
+  background-color: var(--color-success-subtle);
+}
+
+.table-danger {
+  background-color: var(--color-danger-subtle);
+}
+
+.table-warning {
+  background-color: var(--color-warning-subtle);
+}
+
+.table-info {
+  background-color: var(--color-info-subtle);
+}
+
+/* Row-specific colors */
+tbody tr.table-primary,
+tbody tr.table-secondary,
+tbody tr.table-success,
+tbody tr.table-danger,
+tbody tr.table-warning,
+tbody tr.table-info {
+  background-color: inherit;
+}
+
+tbody tr.table-primary td {
+  background-color: var(--color-primary-subtle);
+}
+
+tbody tr.table-success td {
+  background-color: var(--color-success-subtle);
+}
+
+tbody tr.table-danger td {
+  background-color: var(--color-danger-subtle);
+}
+
+/* ============================================================================
+   8. TABLE ACTIONS
+   ============================================================================ */
+
+.table-actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.table-actions .btn {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+}
+
+/* ============================================================================
+   9. CAPTION & FOOTER
+   ============================================================================ */
+
+.table caption {
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+  color: var(--color-text-muted);
+  text-align: left;
+  caption-side: bottom;
+}
+
+.table tfoot th,
+.table tfoot td {
+  font-weight: var(--font-semibold);
+  background-color: var(--color-bg-secondary);
+  border-top: 2px solid var(--color-border-primary);
+}
+
+/* ============================================================================
+   10. SORTABLE TABLES
+   ============================================================================ */
+
+.table-sortable th {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: var(--space-6);
+}
+
+.table-sortable th:hover {
+  background-color: var(--color-hover-bg);
+}
+
+.table-sortable th::after {
+  content: '⇅';
+  position: absolute;
+  right: var(--space-2);
+  opacity: 0.3;
+  font-size: var(--text-xs);
+}
+
+.table-sortable th.sort-asc::after {
+  content: '↑';
+  opacity: 1;
+  color: var(--color-primary-600);
+}
+
+.table-sortable th.sort-desc::after {
+  content: '↓';
+  opacity: 1;
+  color: var(--color-primary-600);
+}
+
+/* ============================================================================
+   11. DARK MODE
+   ============================================================================ */
+
+[data-style="dark"] .table {
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-card);
+}
+
+[data-style="dark"] .table thead th {
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+}
+
+[data-style="dark"] .table-striped tbody tr:nth-of-type(odd) {
+  background-color: var(--color-bg-secondary);
+}
+
+[data-style="dark"] .table-hover tbody tr:hover {
+  background-color: var(--color-hover-bg);
+}
+
+[data-style="dark"] .table-primary {
+  background-color: rgba(96, 165, 250, 0.15);
+}
+
+[data-style="dark"] .table-success {
+  background-color: rgba(52, 211, 153, 0.15);
+}
+
+[data-style="dark"] .table-danger {
+  background-color: rgba(248, 113, 113, 0.15);
+}
+
+[data-style="dark"] .table-warning {
+  background-color: rgba(251, 191, 36, 0.15);
+}
+
+[data-style="dark"] .table-info {
+  background-color: rgba(96, 165, 250, 0.15);
+}

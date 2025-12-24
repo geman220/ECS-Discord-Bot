@@ -1,49 +1,84 @@
 {% extends "base.html" %}
 
+{% block title %}Edit Match{% endblock %}
+
+{% block custom_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/match-operations/edit-match.css') }}">
+{% endblock %}
+
 {% block main_content %}
-<div class="d-sm-flex align-items-center justify-content-between mb-4">
-    <h1 class="h3 mb-0 text-gray-800">Edit Match for {{ season.name }} - {{ league_name }} League</h1>
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="c-match-edit-form" data-component="match-edit-form">
+        <div class="c-match-edit-form__header">
+            <h1 class="c-match-edit-form__title">Edit Match for {{ season.name }}</h1>
+            <p class="c-match-edit-form__subtitle">{{ league_name }} League</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('publeague.schedule.edit_match', match_id=match.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="c-match-edit-form__input-group">
+                <div class="c-match-edit-form__group">
+                    <label for="edit-match-date" class="c-match-edit-form__label c-match-edit-form__label--required">Date</label>
+                    <input type="date"
+                           class="c-match-edit-form__input"
+                           id="edit-match-date"
+                           name="date"
+                           value="{{ match.date }}"
+                           required
+                           data-form-control>
+                </div>
+                <div class="c-match-edit-form__group">
+                    <label for="edit-match-time" class="c-match-edit-form__label c-match-edit-form__label--required">Time</label>
+                    <input type="time"
+                           class="c-match-edit-form__input"
+                           id="edit-match-time"
+                           name="time"
+                           value="{{ match.time }}"
+                           required
+                           data-form-control>
+                </div>
+            </div>
+
+            <div class="c-match-edit-form__group">
+                <label for="teamA" class="c-match-edit-form__label c-match-edit-form__label--required">Team A</label>
+                <select class="c-match-edit-form__select" id="teamA" name="teamA" data-form-select>
+                    {% for team in teams %}
+                    <option value="{{ team.id }}" {% if team.id == match.team_id %}selected{% endif %}>{{ team.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="c-match-edit-form__group">
+                <label for="teamB" class="c-match-edit-form__label c-match-edit-form__label--required">Team B</label>
+                <select class="c-match-edit-form__select" id="teamB" name="teamB" data-form-select>
+                    {% for team in teams %}
+                    <option value="{{ team.id }}" {% if team.id == match.opponent %}selected{% endif %}>{{ team.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="c-match-edit-form__group">
+                <label for="edit-match-location" class="c-match-edit-form__label c-match-edit-form__label--required">Location</label>
+                <select class="c-match-edit-form__select" id="edit-match-location" name="location" data-form-select>
+                    <option value="North" {% if match.location == 'North' %}selected{% endif %}>North</option>
+                    <option value="South" {% if match.location == 'South' %}selected{% endif %}>South</option>
+                </select>
+            </div>
+
+            <div class="c-form-actions">
+                <a href="{{ url_for('publeague.manage_schedule', season_id=season.id) }}"
+                   class="c-form-actions__button c-form-actions__button--secondary">
+                    <i class="ti ti-arrow-left me-1"></i>
+                    Back
+                </a>
+                <button type="submit" class="c-form-actions__button c-form-actions__button--primary">
+                    <i class="ti ti-check me-1"></i>
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
-
-<form method="POST" action="{{ url_for('publeague.schedule.edit_match', match_id=match.id) }}">
-    <!-- Correct way to include CSRF token -->
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-    <div class="form-group">
-        <label for="date">Date</label>
-        <input type="date" class="form-control" id="date" name="date" value="{{ match.date }}" required>
-    </div>
-    <div class="form-group">
-        <label for="time">Time</label>
-        <input type="time" class="form-control" id="time" name="time" value="{{ match.time }}" required>
-    </div>
-    <div class="form-group">
-        <label for="teamA">Team A</label>
-        <select class="form-control" id="teamA" name="teamA">
-            {% for team in teams %}
-            <option value="{{ team.id }}" {% if team.id == match.team_id %}selected{% endif %}>{{ team.name }}</option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="form-group">
-        <label for="teamB">Team B</label>
-        <select class="form-control" id="teamB" name="teamB">
-            {% for team in teams %}
-            <option value="{{ team.id }}" {% if team.id == match.opponent %}selected{% endif %}>{{ team.name }}</option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="form-group">
-        <label for="location">Location</label>
-        <select class="form-control" id="location" name="location">
-            <option value="North" {% if match.location == 'North' %}selected{% endif %}>North</option>
-            <option value="South" {% if match.location == 'South' %}selected{% endif %}>South</option>
-        </select>
-    </div>
-    <div class="d-flex justify-content-between">
-        <button type="submit" class="btn btn-primary">Save Changes</button>
-        <!-- Back Button -->
-        <a href="{{ url_for('publeague.manage_schedule', season_id=season.id) }}" class="btn btn-secondary ml-2">Back</a>
-    </div>
-</form>
 {% endblock %}

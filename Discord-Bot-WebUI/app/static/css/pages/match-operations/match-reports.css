@@ -1,0 +1,306 @@
+/**
+ * ============================================================================
+ * MATCH REPORTS - MODERN BEM COMPONENTS
+ * ============================================================================
+ *
+ * Match reports components
+ * Extends base components from seasons.css
+ *
+ * ARCHITECTURAL COMPLIANCE:
+ * - 100% BEM naming
+ * - Design tokens only
+ * - Mobile-first responsive
+ * - Full dark mode support
+ * - WCAG AA accessibility
+ *
+ * Components:
+ *   1. Report Actions (.c-report-actions)
+ *   2. Report Grid (.c-report-grid)
+ *   3. Quick Report (.c-quick-report)
+ *   4. Chart Components (.c-chart-grid, .c-chart-container)
+ *   5. Performance Toggle (.c-performance-toggle)
+ *   6. Team Components (imported from manage-teams.css)
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. REPORT ACTIONS COMPONENT
+   Action buttons for generating reports
+   ============================================================================ */
+
+.c-report-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3);
+}
+
+.c-report-actions__button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: var(--transition-all);
+}
+
+.c-report-actions__button:hover {
+  background: var(--color-hover-bg);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.c-report-actions__button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.c-report-actions__icon {
+  font-size: 2rem;
+  color: var(--color-primary);
+}
+
+.c-report-actions__label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  text-align: center;
+}
+
+@media (max-width: 767.98px) {
+  .c-report-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .c-report-actions__button {
+    padding: var(--space-3);
+  }
+}
+
+/* ============================================================================
+   2. REPORT GRID COMPONENT
+   Two-column layout for quick reports and exports
+   ============================================================================ */
+
+.c-report-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.c-report-grid__column {
+  min-width: 0;
+}
+
+@media (max-width: 991.98px) {
+  .c-report-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================================
+   3. QUICK REPORT COMPONENT
+   List of quick action items
+   ============================================================================ */
+
+.c-quick-report {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
+}
+
+.c-quick-report__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  border: none;
+  border-bottom: 1px solid var(--color-border-primary);
+  background: transparent;
+  width: 100%;
+  cursor: pointer;
+  transition: var(--transition-all);
+  text-align: left;
+}
+
+.c-quick-report__item:last-child {
+  border-bottom: none;
+}
+
+.c-quick-report__item:hover {
+  background: var(--color-hover-bg);
+}
+
+.c-quick-report__item:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+.c-quick-report__content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+}
+
+.c-quick-report__icon {
+  flex-shrink: 0;
+  color: var(--color-primary);
+  font-size: var(--text-lg);
+}
+
+.c-quick-report__details {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-quick-report__title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-1) 0;
+}
+
+.c-quick-report__subtitle {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.c-quick-report__value {
+  flex-shrink: 0;
+}
+
+.c-quick-report__chevron {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.c-card__body--no-padding {
+  padding: 0;
+}
+
+/* ============================================================================
+   4. CHART COMPONENTS
+   Chart containers and grid
+   ============================================================================ */
+
+.c-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.c-chart-container {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+
+.c-chart-container__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-4) 0;
+}
+
+.c-chart-container__canvas {
+  max-height: 300px;
+}
+
+@media (max-width: 767.98px) {
+  .c-chart-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================================
+   5. PERFORMANCE TOGGLE COMPONENT
+   Radio button group for view switching
+   ============================================================================ */
+
+.c-performance-toggle {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+/* ============================================================================
+   6. TEAM COMPONENTS
+   Import from manage-teams.css
+   ============================================================================ */
+
+.c-team-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.c-team-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.c-team-avatar__initial {
+  color: var(--color-neutral-0);
+  font-weight: var(--font-bold);
+  font-size: var(--text-sm);
+}
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================ */
+
+[data-style="dark"] .c-report-actions__button,
+[data-style="dark"] .c-quick-report,
+[data-style="dark"] .c-chart-container {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .c-report-actions__button:hover,
+[data-style="dark"] .c-quick-report__item:hover {
+  background: var(--color-hover-bg);
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .c-report-actions__button,
+  .c-quick-report__item {
+    transition: none;
+  }
+
+  .c-report-actions__button:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .c-report-actions__button,
+  .c-quick-report,
+  .c-chart-container {
+    border-width: 2px;
+  }
+}
+
+/* ============================================================================
+   END OF MATCH REPORTS COMPONENTS
+   ============================================================================ */

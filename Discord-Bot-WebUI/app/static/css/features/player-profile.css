@@ -1,13 +1,21 @@
 /**
  * Player Profile Page Styles
  * Consolidated from inline styles in player_profile.html
+ *
+ * Design Token Usage:
+ * - Colors: var(--color-*) from tokens/colors.css
+ * - Spacing: var(--space-*) from tokens/spacing.css
+ * - Radius: var(--radius-*) from tokens/borders.css
+ * - Shadows: var(--shadow-*) from tokens/shadows.css
+ *
+ * Dark Mode: All components support [data-style="dark"] selector
  */
 
 /* ===== Player Header Styling ===== */
 .player-profile-page .player-header-wrapper {
     position: relative;
     min-height: 140px;
-    padding: 1.5rem !important;
+    padding: var(--space-6);
     display: flex;
     align-items: center;
     flex-wrap: wrap;
@@ -17,7 +25,7 @@
     position: relative;
     width: 130px;
     height: 130px;
-    margin-right: 1.5rem;
+    margin-right: var(--space-6);
     flex-shrink: 0;
 }
 
@@ -25,7 +33,7 @@
     width: 130px;
     height: 130px;
     object-fit: cover;
-    border: 3px solid rgba(var(--ecs-neutral-0-rgb), 0.3);
+    border: 3px solid var(--color-border-primary);
 }
 
 .player-profile-page .avatar-status {
@@ -34,8 +42,8 @@
     right: 5px;
     width: 18px;
     height: 18px;
-    border-radius: 50%;
-    border: 2px solid var(--bs-body-bg);
+    border-radius: var(--radius-full);
+    border: 2px solid var(--color-bg-card);
 }
 
 /* ===== Stats Box Styling ===== */
@@ -43,41 +51,42 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 1rem;
+    padding: var(--space-4);
     min-width: 80px;
     flex: 1;
     text-align: center;
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     transition: all 0.2s ease;
-    background-color: rgba(var(--bs-primary-rgb), 0.05);
-    border: 1px solid rgba(var(--bs-primary-rgb), 0.1);
-    margin: 0 5px;
+    background-color: var(--color-primary-subtle);
+    border: 1px solid var(--color-border-primary);
+    margin: 0 var(--space-2);
 }
 
 .player-profile-page .stat-box:hover {
     transform: translateY(-3px);
-    box-shadow: 0 4px 8px rgba(var(--ecs-neutral-90-rgb), 0.1);
+    box-shadow: var(--shadow-md);
 }
 
 .player-profile-page .stat-icon {
     font-size: 1.5rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-2);
 }
 
 .player-profile-page .stat-value {
     font-size: 1.5rem;
     font-weight: bold;
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--space-1);
+    color: var(--color-text-primary);
 }
 
 .player-profile-page .stat-label {
     font-size: 0.8rem;
-    color: var(--bs-gray-600);
+    color: var(--color-text-secondary);
 }
 
 /* ===== Team History Styling ===== */
 .player-profile-page .team-history .list-group-item:hover {
-    background-color: var(--bs-body-bg);
+    background-color: var(--color-hover-bg);
 }
 
 /* ===== Empty State Styling ===== */
@@ -85,19 +94,19 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 2rem;
-    color: var(--bs-secondary);
+    padding: var(--space-8);
+    color: var(--color-text-secondary);
 }
 
 .player-profile-page .empty-state-icon {
     font-size: 2.5rem;
-    color: var(--bs-secondary);
-    margin-bottom: 1rem;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-4);
 }
 
 .player-profile-page .empty-state-message {
     font-size: 0.875rem;
-    color: var(--bs-secondary);
+    color: var(--color-text-secondary);
 }
 
 /* ===== Image Container Styling (Cropper) ===== */
@@ -115,12 +124,12 @@
 
 /* ===== Form Editing Control ===== */
 .player-profile-page .form-group {
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-4);
 }
 
 .player-profile-page .view-mode,
 .player-profile-page .edit-mode {
-    padding: 0.375rem 0;
+    padding: var(--space-2) 0;
 }
 
 /* ===== Collapsible Section Styling ===== */
@@ -145,15 +154,15 @@
 .player-profile-page .ecs-nav-link {
     border: none;
     position: relative;
-    padding: 0.75rem 1.25rem;
-    color: var(--bs-gray-600);
+    padding: var(--space-3) var(--space-5);
+    color: var(--color-text-secondary);
 }
 
 .player-profile-page .ecs-nav-link.active,
 .player-profile-page .ecs-nav-link:hover {
     background-color: transparent;
     border: none;
-    color: var(--bs-primary);
+    color: var(--color-primary);
 }
 
 .player-profile-page .ecs-nav-link.active::after {
@@ -163,7 +172,7 @@
     left: 0;
     width: 100%;
     height: 2px;
-    background-color: var(--bs-primary);
+    background-color: var(--color-primary);
 }
 
 /* ===== Modal Centering ===== */
@@ -174,50 +183,51 @@
 }
 
 /* ===== Discord/Channel Colors ===== */
-.bg-discord {
-    background-color: #5865F2 !important;
+/* Discord brand color is preserved for brand consistency */
+.player-profile-page .bg-discord {
+    background-color: var(--color-discord);
 }
 
-.text-discord-green {
-    color: #3ba55c !important;
+.player-profile-page .text-discord-green {
+    color: var(--color-success);
 }
 
-.text-discord-bot {
-    color: #5865F2 !important;
+.player-profile-page .text-discord-bot {
+    color: var(--color-discord);
 }
 
-.btn-discord {
-    background-color: #5865F2 !important;
-    color: white !important;
-    border-color: #5865F2 !important;
+.player-profile-page .btn-discord {
+    background-color: var(--color-discord);
+    color: var(--color-neutral-0);
+    border-color: var(--color-discord);
 }
 
-.btn-discord:hover {
-    background-color: #4752c4 !important;
-    border-color: #4752c4 !important;
+.player-profile-page .btn-discord:hover {
+    background-color: var(--color-discord-hover);
+    border-color: var(--color-discord-hover);
 }
 
 /* ===== Contact Modal Styling ===== */
 .contact-modal .modal-header {
-    border-bottom: 1px solid var(--bs-border-color);
+    border-bottom: 1px solid var(--color-border-primary);
 }
 
 .contact-modal .recipient-info {
-    background: var(--bs-light);
-    border-radius: 0.5rem;
-    padding: 1rem;
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
 }
 
 .contact-modal .channel-checkbox {
-    padding: 0.75rem;
-    border: 1px solid var(--bs-border-color);
-    border-radius: 0.5rem;
-    margin-bottom: 0.5rem;
+    padding: var(--space-3);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-2);
     transition: all 0.2s ease;
 }
 
 .contact-modal .channel-checkbox:hover {
-    background-color: var(--bs-light);
+    background-color: var(--color-hover-bg);
 }
 
 .contact-modal .channel-checkbox.channel-disabled {
@@ -228,52 +238,70 @@
 .contact-modal .channel-icon {
     width: 32px;
     height: 32px;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
+/* Hidden field that's shown conditionally via JavaScript */
+.contact-modal .email-subject-field-hidden {
+    display: none;
+}
+
+.contact-modal .email-subject-field-visible {
+    display: block;
+}
+
+/* Match stat card visibility (for filtering) */
+.player-profile-page .match-stat-card-hidden {
+    display: none;
+}
+
+.player-profile-page .match-stat-card-visible {
+    display: block;
+}
+
 /* Channel-specific colors */
 .channel-icon.channel-email {
-    background-color: rgba(var(--ecs-primary-rgb), 0.1);
-    color: var(--ecs-primary);
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary);
 }
 
 .channel-icon.channel-sms {
-    background-color: rgba(var(--ecs-success-rgb), 0.1);
-    color: var(--ecs-success);
+    background-color: var(--color-success-subtle);
+    color: var(--color-success);
 }
 
 .channel-icon.channel-discord {
-    background-color: rgba(88, 101, 242, 0.1);
-    color: #5865F2; /* Discord blue - preserve */
+    background-color: rgba(var(--color-discord-rgb), 0.1);
+    color: var(--color-discord);
 }
 
 /* ===== Legacy Discord Modal (keeping for backward compatibility) ===== */
 .discord-modal {
-    background-color: var(--ecs-dark-bg-elevated);
-    color: var(--ecs-neutral-0);
+    background-color: var(--color-bg-card);
+    color: var(--color-text-primary);
 }
 
 .discord-header {
-    background-color: var(--ecs-dark-bg-card);
-    color: var(--ecs-neutral-0);
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-primary);
 }
 
 .discord-messages {
-    background-color: var(--ecs-dark-bg-elevated);
+    background-color: var(--color-bg-card);
     max-height: 300px;
     overflow-y: auto;
 }
 
 .discord-message {
-    padding: 8px;
-    border-radius: 4px;
+    padding: var(--space-2);
+    border-radius: var(--radius-sm);
 }
 
 .discord-message:hover {
-    background-color: var(--ecs-dark-bg-card);
+    background-color: var(--color-hover-bg);
 }
 
 .discord-message-content {
@@ -281,65 +309,66 @@
 }
 
 .discord-bot-badge {
-    background-color: #5865F2;
-    color: white;
+    background-color: var(--color-discord);
+    color: var(--color-neutral-0);
     font-size: 0.6rem;
-    padding: 0.1rem 0.35rem;
-    border-radius: 3px;
+    padding: var(--space-px) var(--space-2);
+    border-radius: var(--radius-sm);
     font-weight: bold;
 }
 
 .discord-input-container {
-    background-color: var(--ecs-dark-bg-elevated);
-    padding: 10px 0;
+    background-color: var(--color-bg-card);
+    padding: var(--space-3) 0;
 }
 
 .discord-input-wrapper {
     position: relative;
-    border-radius: 8px;
-    background-color: var(--ecs-dark-bg-card);
-    border: 1px solid var(--ecs-dark-border);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-primary);
     overflow: hidden;
 }
 
-.discord-textarea {
-    background-color: transparent !important;
-    border: none !important;
-    color: var(--ecs-neutral-0) !important;
-    resize: none !important;
-    padding: 12px !important;
-    box-shadow: none !important;
+/* Higher specificity to override Bootstrap form controls */
+.player-profile-page .discord-textarea.form-control {
+    background-color: transparent;
+    border: none;
+    color: var(--color-text-primary);
+    resize: none;
+    padding: var(--space-3);
+    box-shadow: none;
 }
 
-.discord-textarea::placeholder {
-    color: var(--ecs-neutral-50) !important;
+.player-profile-page .discord-textarea.form-control::placeholder {
+    color: var(--color-text-muted);
 }
 
 .discord-input-actions {
     position: absolute;
-    bottom: 8px;
-    right: 8px;
+    bottom: var(--space-2);
+    right: var(--space-2);
     display: flex;
-    gap: 5px;
+    gap: var(--space-2);
 }
 
 .discord-emoji-btn,
 .discord-upload-btn {
-    color: var(--ecs-neutral-50);
+    color: var(--color-text-muted);
     background: none;
     border: none;
-    padding: 5px;
+    padding: var(--space-2);
     font-size: 18px;
     transition: color 0.2s ease;
 }
 
 .discord-emoji-btn:hover,
 .discord-upload-btn:hover {
-    color: var(--ecs-neutral-0);
+    color: var(--color-text-primary);
 }
 
 .discord-notice {
-    color: var(--ecs-neutral-50);
+    color: var(--color-text-muted);
 }
 
 /* ===== Mobile Responsive Styles ===== */
@@ -347,13 +376,13 @@
     .player-profile-page .player-header-wrapper {
         flex-direction: column;
         text-align: center;
-        padding: 1rem !important;
+        padding: var(--space-4);
     }
 
     .player-profile-page .profile-image-container {
         width: 100px;
         height: 100px;
-        margin: 0 auto 1rem;
+        margin: 0 auto var(--space-4);
     }
 
     .player-profile-page .profile-image {
@@ -371,7 +400,7 @@
     }
 
     .player-profile-page .ms-auto {
-        margin: 1rem auto 0 !important;
+        margin: var(--space-4) auto 0;
         width: 100%;
     }
 
@@ -382,7 +411,7 @@
     /* Stats boxes stack on mobile */
     .player-profile-page .stat-box {
         min-width: 70px;
-        padding: 0.75rem;
+        padding: var(--space-3);
     }
 
     .player-profile-page .stat-value {
@@ -414,14 +443,14 @@
     }
 
     .player-profile-page .ecs-nav-link {
-        padding: 0.5rem 1rem;
+        padding: var(--space-2) var(--space-4);
         white-space: nowrap;
     }
 
     /* Action buttons stack on very small screens */
     .player-profile-page .ms-auto .d-flex {
         flex-direction: column;
-        gap: 0.5rem !important;
+        gap: var(--space-2);
     }
 
     .player-profile-page .ms-auto .btn {
@@ -429,113 +458,408 @@
     }
 }
 
+/* ===== Profile Verification Utility Classes ===== */
+
+/* Checkbox Label Styling */
+.verification-label {
+    font-size: 14px;
+    cursor: pointer;
+}
+
+/* Progress Container Styling */
+.verification-progress-container {
+    z-index: var(--z-sticky);
+}
+
+/* Progress Bar Container Styling */
+.verification-progress-bar-container {
+    height: 8px;
+}
+
+/* Progress Bar Transition */
+.verification-progress-bar {
+    transition: width 0.3s ease;
+}
+
+/* Section Complete Animation */
+.section-complete-animation {
+    transition: all 0.3s ease;
+}
+
+.section-complete-animation.scale-down {
+    transform: scale(0.98);
+}
+
+.section-complete-animation.scale-normal {
+    transform: scale(1);
+}
+
+/* Card Visual States */
+.verification-section.section-complete {
+    /* Add any additional styling for completed sections if needed */
+}
+
 /* ===== Dark Mode Support ===== */
 
 /* Profile Header */
 [data-style="dark"] .player-profile-page .profile-image {
-    border-color: var(--ecs-neutral-20);
+    border-color: var(--color-border-primary);
 }
 
 [data-style="dark"] .player-profile-page .avatar-status {
-    border-color: var(--ecs-dark-bg-card);
+    border-color: var(--color-bg-card);
 }
 
 /* Stats Boxes */
 [data-style="dark"] .player-profile-page .stat-box {
-    background-color: rgba(var(--ecs-primary-rgb), 0.1);
-    border-color: rgba(var(--ecs-primary-rgb), 0.2);
+    background-color: var(--color-primary-subtle);
+    border-color: var(--color-border-primary);
 }
 
 [data-style="dark"] .player-profile-page .stat-box:hover {
-    box-shadow: 0 4px 8px rgba(var(--ecs-neutral-90-rgb), 0.3);
+    box-shadow: var(--shadow-md);
 }
 
 [data-style="dark"] .player-profile-page .stat-label {
-    color: var(--ecs-neutral-50);
+    color: var(--color-text-secondary);
 }
 
 [data-style="dark"] .player-profile-page .stat-value {
-    color: var(--ecs-neutral-0);
+    color: var(--color-text-primary);
 }
 
 /* Team History */
 [data-style="dark"] .player-profile-page .team-history .list-group-item:hover {
-    background-color: var(--ecs-dark-border);
+    background-color: var(--color-hover-bg);
 }
 
 /* Empty State */
-[data-style="dark"] .player-profile-page .empty-state,
-[data-style="dark"] .player-profile-page .empty-state-icon,
+[data-style="dark"] .player-profile-page .empty-state {
+    color: var(--color-text-secondary);
+}
+
+[data-style="dark"] .player-profile-page .empty-state-icon {
+    color: var(--color-text-muted);
+}
+
 [data-style="dark"] .player-profile-page .empty-state-message {
-    color: var(--ecs-neutral-50);
+    color: var(--color-text-secondary);
 }
 
 /* Tab Navigation */
 [data-style="dark"] .player-profile-page .ecs-nav-link {
-    color: var(--ecs-neutral-50);
+    color: var(--color-text-secondary);
 }
 
 [data-style="dark"] .player-profile-page .ecs-nav-link.active,
 [data-style="dark"] .player-profile-page .ecs-nav-link:hover {
-    color: var(--ecs-primary);
+    color: var(--color-primary);
 }
 
 [data-style="dark"] .player-profile-page .ecs-nav-link.active::after {
-    background-color: var(--ecs-primary);
+    background-color: var(--color-primary);
 }
 
 /* Contact Modal */
 [data-style="dark"] .contact-modal .recipient-info {
-    background: var(--ecs-dark-bg-body);
+    background: var(--color-bg-secondary);
 }
 
 [data-style="dark"] .contact-modal .channel-checkbox {
-    border-color: var(--ecs-dark-border);
-    background-color: var(--ecs-dark-bg-card);
+    border-color: var(--color-border-primary);
+    background-color: var(--color-bg-card);
 }
 
 [data-style="dark"] .contact-modal .channel-checkbox:hover {
-    background-color: var(--ecs-dark-border);
+    background-color: var(--color-hover-bg);
 }
 
 [data-style="dark"] .contact-modal .channel-checkbox.channel-disabled {
-    background-color: var(--ecs-dark-bg-body);
+    background-color: var(--color-bg-secondary);
 }
 
 /* Channel Icons Dark Mode */
 [data-style="dark"] .channel-icon.channel-email {
-    background-color: rgba(var(--ecs-primary-rgb), 0.15);
-    color: var(--ecs-primary);
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary);
 }
 
 [data-style="dark"] .channel-icon.channel-sms {
-    background-color: rgba(var(--ecs-success-rgb), 0.15);
-    color: var(--ecs-success);
+    background-color: var(--color-success-subtle);
+    color: var(--color-success);
 }
 
 [data-style="dark"] .channel-icon.channel-discord {
-    background-color: rgba(88, 101, 242, 0.15);
-    color: #5865F2; /* Discord blue - preserve */
+    background-color: rgba(var(--color-discord-rgb), 0.15);
+    color: var(--color-discord);
 }
 
 /* Discord Modal (legacy) */
 [data-style="dark"] .discord-modal {
-    background-color: var(--ecs-dark-bg-body);
+    background-color: var(--color-bg-card);
 }
 
 [data-style="dark"] .discord-header {
-    background-color: var(--ecs-dark-bg-body);
+    background-color: var(--color-bg-secondary);
 }
 
 [data-style="dark"] .discord-messages {
-    background-color: var(--ecs-dark-bg-body);
+    background-color: var(--color-bg-card);
 }
 
 [data-style="dark"] .discord-message:hover {
-    background-color: var(--ecs-dark-bg-card);
+    background-color: var(--color-hover-bg);
 }
 
 [data-style="dark"] .discord-input-wrapper {
-    background-color: var(--ecs-dark-bg-card);
-    border-color: var(--ecs-dark-border);
+    background-color: var(--color-bg-secondary);
+    border-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .player-profile-page .discord-textarea.form-control {
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .player-profile-page .discord-textarea.form-control::placeholder {
+    color: var(--color-text-muted);
+}
+
+[data-style="dark"] .discord-emoji-btn,
+[data-style="dark"] .discord-upload-btn {
+    color: var(--color-text-muted);
+}
+
+[data-style="dark"] .discord-emoji-btn:hover,
+[data-style="dark"] .discord-upload-btn:hover {
+    color: var(--color-text-primary);
+}
+
+[data-style="dark"] .discord-notice {
+    color: var(--color-text-muted);
+}
+
+/* Email Subject Field Dark Mode */
+[data-style="dark"] .contact-modal .email-subject-field-hidden {
+    display: none;
+}
+
+[data-style="dark"] .contact-modal .email-subject-field-visible {
+    display: block;
+}
+
+/* Match Stat Card Visibility Dark Mode */
+[data-style="dark"] .player-profile-page .match-stat-card-hidden {
+    display: none;
+}
+
+[data-style="dark"] .player-profile-page .match-stat-card-visible {
+    display: block;
+}
+
+/* ===== Player Header BEM Component ===== */
+
+.c-player-header__avatar {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    border-radius: var(--radius-full, 50%);
+    overflow: visible;
+    border: 3px solid var(--bs-body-bg, #fff);
+    box-shadow: var(--shadow-md, 0 4px 6px -1px rgb(0 0 0 / 0.1));
+}
+
+.c-player-header__avatar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--radius-full, 50%);
+}
+
+/* Online status indicator positioning for player header */
+.c-player-header__avatar .c-online-status {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    z-index: 2;
+}
+
+/* Badges positioning (coach, ref) */
+.c-player-header__badge {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-full, 50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    z-index: 3;
+}
+
+.c-player-header__badge--coach {
+    top: -4px;
+    right: -4px;
+    background-color: var(--bs-warning, #ffc107);
+    color: #000;
+}
+
+.c-player-header__badge--ref {
+    top: -4px;
+    left: -4px;
+    background-color: var(--bs-info, #0dcaf0);
+    color: #000;
+}
+
+/* ===== Match Stats Table ===== */
+
+.c-match-stats-table {
+    width: 100%;
+}
+
+.c-match-stats-table__header {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr 1.5fr auto;
+    gap: var(--space-3, 0.75rem);
+    padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
+    background: var(--color-bg-secondary, rgba(0, 0, 0, 0.05));
+    border-radius: var(--radius-md, 0.375rem);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-secondary, #6c757d);
+    margin-bottom: var(--space-2, 0.5rem);
+}
+
+.c-match-stats-table__row {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr 1.5fr auto;
+    gap: var(--space-3, 0.75rem);
+    padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
+    align-items: center;
+    border-bottom: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.08));
+    transition: background-color 0.15s ease;
+}
+
+.c-match-stats-table__row:hover {
+    background-color: var(--color-hover-bg, rgba(0, 0, 0, 0.03));
+}
+
+.c-match-stats-table__row:last-child {
+    border-bottom: none;
+}
+
+.c-match-stats-table__col {
+    min-width: 0;
+}
+
+.c-match-stats-table__col--actions {
+    display: flex;
+    gap: var(--space-1, 0.25rem);
+    justify-content: flex-end;
+}
+
+.c-match-stats-table__date {
+    font-weight: 500;
+    color: var(--color-text-primary, #212529);
+    font-size: 0.875rem;
+}
+
+.c-match-stats-table__team {
+    color: var(--color-text-secondary, #6c757d);
+    font-size: 0.875rem;
+}
+
+/* Ghost button styles for table actions */
+.c-btn--ghost {
+    background: transparent;
+    border: none;
+    color: var(--color-text-muted, #adb5bd);
+    padding: var(--space-1, 0.25rem);
+}
+
+.c-btn--ghost:hover {
+    background: var(--color-hover-bg, rgba(0, 0, 0, 0.05));
+    color: var(--color-primary, #696cff);
+}
+
+.c-btn--ghost.c-btn--danger:hover {
+    color: var(--color-danger, #dc3545);
+    background: var(--color-danger-subtle, rgba(220, 53, 69, 0.1));
+}
+
+.c-btn--icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md, 0.375rem);
+}
+
+/* Mobile responsive for match stats table */
+@media (max-width: 768px) {
+    .c-match-stats-table__header {
+        display: none;
+    }
+
+    .c-match-stats-table__row {
+        grid-template-columns: 1fr;
+        gap: var(--space-2, 0.5rem);
+        padding: var(--space-4, 1rem);
+        border: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.08));
+        border-radius: var(--radius-md, 0.375rem);
+        margin-bottom: var(--space-3, 0.75rem);
+    }
+
+    .c-match-stats-table__col--date {
+        order: 1;
+    }
+
+    .c-match-stats-table__col--team {
+        order: 2;
+    }
+
+    .c-match-stats-table__col--event {
+        order: 3;
+    }
+
+    .c-match-stats-table__col--actions {
+        order: 4;
+        justify-content: flex-start;
+        padding-top: var(--space-2, 0.5rem);
+        border-top: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.08));
+        margin-top: var(--space-2, 0.5rem);
+    }
+}
+
+/* Dark mode support */
+[data-style="dark"] .c-match-stats-table__header {
+    background: var(--color-bg-secondary, rgba(255, 255, 255, 0.05));
+    color: var(--color-text-secondary, #94a3b8);
+}
+
+[data-style="dark"] .c-match-stats-table__row {
+    border-color: var(--color-border-primary, rgba(255, 255, 255, 0.1));
+}
+
+[data-style="dark"] .c-match-stats-table__row:hover {
+    background-color: var(--color-hover-bg, rgba(255, 255, 255, 0.05));
+}
+
+[data-style="dark"] .c-match-stats-table__date {
+    color: var(--color-text-primary, #f1f5f9);
+}
+
+[data-style="dark"] .c-match-stats-table__team {
+    color: var(--color-text-secondary, #94a3b8);
+}
+
+[data-style="dark"] .c-btn--ghost {
+    color: var(--color-text-muted, #64748b);
+}
+
+[data-style="dark"] .c-btn--ghost:hover {
+    background: var(--color-hover-bg, rgba(255, 255, 255, 0.1));
+    color: var(--color-primary, #818cf8);
 }

@@ -1,361 +1,312 @@
 /**
  * ============================================================================
- * ECS THEME VARIABLES - Professional Edition
+ * ECS DESIGN SYSTEM - Main Variables File
  * ============================================================================
  *
- * Central CSS custom properties for the ECS theming system.
- * Clean, professional, neutral color palette that works in both light and dark modes.
+ * This file serves as the main entry point for the ECS design system.
+ * It imports all design token files and provides backward compatibility.
  *
- * Structure:
- *   1. Brand Colors (Primary, Secondary, Accent)
- *   2. Semantic Colors (Success, Warning, Danger, Info)
- *   3. Neutral Scale (Grays)
- *   4. Typography
- *   5. Spacing
- *   6. Borders & Shadows
- *   7. Component Tokens
- *   8. Bootstrap Integration
+ * Token System Structure:
+ *   - colors.css       → Complete color palette (50-900 scales)
+ *   - typography.css   → Font system (families, sizes, weights)
+ *   - spacing.css      → Spacing scale, z-index, containers
+ *   - shadows.css      → Elevation system, focus states
+ *   - borders.css      → Radius, widths, colors
+ *   - animations.css   → Transitions, timing, keyframes
+ *
+ * Usage:
+ *   This file is loaded first in the CSS cascade to establish design tokens.
+ *   All other CSS files should reference these tokens via CSS variables.
+ *
+ * Migration Notes:
+ *   - Old --ecs-* variables are mapped to new tokens for compatibility
+ *   - Gradually migrate to new token names (--color-*, --space-*, etc.)
+ *   - Legacy support will be removed in a future major version
  *
  * ============================================================================
  */
 
+/* ============================================================================
+   IMPORT DESIGN TOKENS
+   Load all token files in order
+   ============================================================================ */
+
+@import url('../tokens/colors.css');
+@import url('../tokens/typography.css');
+@import url('../tokens/spacing.css');
+@import url('../tokens/shadows.css');
+@import url('../tokens/borders.css');
+@import url('../tokens/animations.css');
+
+/* ============================================================================
+   BACKWARD COMPATIBILITY LAYER
+   Maps old ECS variable names to new token system
+   These will be deprecated in future versions
+   ============================================================================ */
+
 :root {
   /* ========================================================================
-     1. BRAND COLORS - Professional & Neutral
+     LEGACY COLOR MAPPINGS
+     Old --ecs-* variables → New --color-* tokens
      ======================================================================== */
 
-  /* Primary - Violet/Indigo (Modern, Professional) */
-  --ecs-primary: #7C3AED;
-  --ecs-primary-rgb: 124, 58, 237;
-  --ecs-primary-light: #8B5CF6;
-  --ecs-primary-dark: #6D28D9;
-  --ecs-primary-subtle: #EDE9FE;
+  /* Brand colors */
+  --ecs-primary: var(--color-primary);
+  --ecs-primary-rgb: var(--color-primary-rgb);
+  --ecs-primary-light: var(--color-primary-400);
+  --ecs-primary-dark: var(--color-primary-700);
+  --ecs-primary-subtle: var(--color-primary-subtle);
 
-  /* Secondary - Slate Gray (Neutral, Professional) */
-  --ecs-secondary: #64748B;
-  --ecs-secondary-rgb: 100, 116, 139;
-  --ecs-secondary-light: #94A3B8;
-  --ecs-secondary-dark: #475569;
-  --ecs-secondary-subtle: #F1F5F9;
+  --ecs-secondary: var(--color-secondary);
+  --ecs-secondary-rgb: var(--color-secondary-rgb);
+  --ecs-secondary-light: var(--color-secondary-400);
+  --ecs-secondary-dark: var(--color-secondary-700);
+  --ecs-secondary-subtle: var(--color-secondary-subtle);
 
-  /* Accent - Amber (Warm highlights for CTAs) */
-  --ecs-accent: #F59E0B;
-  --ecs-accent-rgb: 245, 158, 11;
-  --ecs-accent-light: #FBBF24;
-  --ecs-accent-dark: #D97706;
-  --ecs-accent-subtle: #FEF3C7;
+  --ecs-accent: var(--color-accent);
+  --ecs-accent-rgb: var(--color-accent-rgb);
+  --ecs-accent-light: var(--color-accent-400);
+  --ecs-accent-dark: var(--color-accent-700);
+  --ecs-accent-subtle: var(--color-accent-subtle);
+
+  /* Semantic colors */
+  --ecs-success: var(--color-success);
+  --ecs-success-rgb: var(--color-success-rgb);
+  --ecs-success-light: var(--color-success-400);
+  --ecs-success-dark: var(--color-success-700);
+  --ecs-success-subtle: var(--color-success-subtle);
+
+  --ecs-warning: var(--color-warning);
+  --ecs-warning-rgb: var(--color-warning-rgb);
+  --ecs-warning-light: var(--color-warning-400);
+  --ecs-warning-dark: var(--color-warning-700);
+  --ecs-warning-subtle: var(--color-warning-subtle);
+
+  --ecs-danger: var(--color-danger);
+  --ecs-danger-rgb: var(--color-danger-rgb);
+  --ecs-danger-light: var(--color-danger-400);
+  --ecs-danger-dark: var(--color-danger-700);
+  --ecs-danger-subtle: var(--color-danger-subtle);
+
+  --ecs-info: var(--color-info);
+  --ecs-info-rgb: var(--color-info-rgb);
+  --ecs-info-light: var(--color-info-400);
+  --ecs-info-dark: var(--color-info-700);
+  --ecs-info-subtle: var(--color-info-subtle);
+
+  /* Neutral scale (old numbering → new scale) */
+  --ecs-neutral-0: var(--color-neutral-0);
+  --ecs-neutral-5: var(--color-neutral-50);
+  --ecs-neutral-10: var(--color-neutral-100);
+  --ecs-neutral-20: var(--color-neutral-200);
+  --ecs-neutral-30: var(--color-neutral-300);
+  --ecs-neutral-40: var(--color-neutral-400);
+  --ecs-neutral-50: var(--color-neutral-500);
+  --ecs-neutral-60: var(--color-neutral-600);
+  --ecs-neutral-70: var(--color-neutral-700);
+  --ecs-neutral-80: var(--color-neutral-800);
+  --ecs-neutral-90: var(--color-neutral-900);
 
   /* ========================================================================
-     2. SEMANTIC COLORS - Standard & Accessible
+     LEGACY TYPOGRAPHY MAPPINGS
      ======================================================================== */
 
-  /* Success - Emerald */
-  --ecs-success: #10B981;
-  --ecs-success-rgb: 16, 185, 129;
-  --ecs-success-light: #34D399;
-  --ecs-success-dark: #059669;
-  --ecs-success-subtle: #D1FAE5;
+  --ecs-font-display: var(--font-display);
+  --ecs-font-body: var(--font-body);
+  --ecs-font-mono: var(--font-mono);
+  --ecs-font-classic: var(--font-classic);
 
-  /* Warning - Amber */
-  --ecs-warning: #F59E0B;
-  --ecs-warning-rgb: 245, 158, 11;
-  --ecs-warning-light: #FBBF24;
-  --ecs-warning-dark: #D97706;
-  --ecs-warning-subtle: #FEF3C7;
+  --ecs-text-xs: var(--text-xs);
+  --ecs-text-sm: var(--text-sm);
+  --ecs-text-base: var(--text-base);
+  --ecs-text-lg: var(--text-lg);
+  --ecs-text-xl: var(--text-xl);
+  --ecs-text-2xl: var(--text-2xl);
+  --ecs-text-3xl: var(--text-3xl);
+  --ecs-text-4xl: var(--text-4xl);
+  --ecs-text-5xl: var(--text-5xl);
 
-  /* Danger - Red */
-  --ecs-danger: #EF4444;
-  --ecs-danger-rgb: 239, 68, 68;
-  --ecs-danger-light: #F87171;
-  --ecs-danger-dark: #DC2626;
-  --ecs-danger-subtle: #FEE2E2;
+  --ecs-leading-tight: var(--leading-tight);
+  --ecs-leading-snug: var(--leading-snug);
+  --ecs-leading-normal: var(--leading-normal);
+  --ecs-leading-relaxed: var(--leading-relaxed);
 
-  /* Info - Blue */
-  --ecs-info: #3B82F6;
-  --ecs-info-rgb: 59, 130, 246;
-  --ecs-info-light: #60A5FA;
-  --ecs-info-dark: #2563EB;
-  --ecs-info-subtle: #DBEAFE;
+  --ecs-weight-normal: var(--font-normal);
+  --ecs-weight-medium: var(--font-medium);
+  --ecs-weight-semibold: var(--font-semibold);
+  --ecs-weight-bold: var(--font-bold);
+  --ecs-weight-black: var(--font-black);
 
   /* ========================================================================
-     3. NEUTRAL SCALE - Pure Grays (No Color Tint)
+     LEGACY SPACING MAPPINGS
      ======================================================================== */
 
-  --ecs-neutral-0: #FFFFFF;
-  --ecs-neutral-5: #FAFAFA;
-  --ecs-neutral-10: #F4F4F5;
-  --ecs-neutral-20: #E4E4E7;
-  --ecs-neutral-30: #D4D4D8;
-  --ecs-neutral-40: #A1A1AA;
-  --ecs-neutral-50: #71717A;
-  --ecs-neutral-60: #52525B;
-  --ecs-neutral-70: #3F3F46;
-  --ecs-neutral-80: #27272A;
-  --ecs-neutral-90: #18181B;
+  --ecs-space-0: var(--space-0);
+  --ecs-space-1: var(--space-1);
+  --ecs-space-2: var(--space-2);
+  --ecs-space-3: var(--space-3);
+  --ecs-space-4: var(--space-4);
+  --ecs-space-5: var(--space-5);
+  --ecs-space-6: var(--space-6);
+  --ecs-space-8: var(--space-8);
+  --ecs-space-10: var(--space-10);
+  --ecs-space-12: var(--space-12);
+  --ecs-space-16: var(--space-16);
 
   /* ========================================================================
-     4. TYPOGRAPHY
+     LEGACY BORDER MAPPINGS
      ======================================================================== */
 
-  /* Font Families */
-  --ecs-font-display: 'Inter', 'Segoe UI', -apple-system, sans-serif;
-  --ecs-font-body: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-  --ecs-font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  --ecs-radius-sm: var(--radius-sm);
+  --ecs-radius-md: var(--radius-md);
+  --ecs-radius-lg: var(--radius-lg);
+  --ecs-radius-xl: var(--radius-xl);
+  --ecs-radius-2xl: var(--radius-2xl);
+  --ecs-radius-full: var(--radius-full);
 
-  /* Classic theme uses Public Sans */
-  --ecs-font-classic: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-
-  /* Type Scale */
-  --ecs-text-xs: 0.75rem;     /* 12px */
-  --ecs-text-sm: 0.875rem;    /* 14px */
-  --ecs-text-base: 1rem;      /* 16px */
-  --ecs-text-lg: 1.125rem;    /* 18px */
-  --ecs-text-xl: 1.25rem;     /* 20px */
-  --ecs-text-2xl: 1.5rem;     /* 24px */
-  --ecs-text-3xl: 2rem;       /* 32px */
-  --ecs-text-4xl: 2.5rem;     /* 40px */
-  --ecs-text-5xl: 3.5rem;     /* 56px */
-
-  /* Line Heights */
-  --ecs-leading-tight: 1.15;
-  --ecs-leading-snug: 1.25;
-  --ecs-leading-normal: 1.5;
-  --ecs-leading-relaxed: 1.75;
-
-  /* Font Weights */
-  --ecs-weight-normal: 400;
-  --ecs-weight-medium: 500;
-  --ecs-weight-semibold: 600;
-  --ecs-weight-bold: 700;
-  --ecs-weight-black: 900;
+  --ecs-border-width: var(--border-width);
+  --ecs-border-color: var(--border-color-primary);
 
   /* ========================================================================
-     5. SPACING (4px grid system)
+     LEGACY SHADOW MAPPINGS
      ======================================================================== */
 
-  --ecs-space-0: 0;
-  --ecs-space-1: 0.25rem;     /* 4px */
-  --ecs-space-2: 0.5rem;      /* 8px */
-  --ecs-space-3: 0.75rem;     /* 12px */
-  --ecs-space-4: 1rem;        /* 16px */
-  --ecs-space-5: 1.25rem;     /* 20px */
-  --ecs-space-6: 1.5rem;      /* 24px */
-  --ecs-space-8: 2rem;        /* 32px */
-  --ecs-space-10: 2.5rem;     /* 40px */
-  --ecs-space-12: 3rem;       /* 48px */
-  --ecs-space-16: 4rem;       /* 64px */
+  --ecs-shadow-sm: var(--shadow-sm);
+  --ecs-shadow-md: var(--shadow-md);
+  --ecs-shadow-lg: var(--shadow-lg);
+  --ecs-shadow-xl: var(--shadow-xl);
 
   /* ========================================================================
-     6. BORDERS & SHADOWS
+     LEGACY TRANSITION MAPPINGS
      ======================================================================== */
 
-  /* Border Radius */
-  --ecs-radius-sm: 0.25rem;   /* 4px */
-  --ecs-radius-md: 0.375rem;  /* 6px */
-  --ecs-radius-lg: 0.5rem;    /* 8px */
-  --ecs-radius-xl: 0.75rem;   /* 12px */
-  --ecs-radius-2xl: 1rem;     /* 16px */
-  --ecs-radius-full: 9999px;
-
-  /* Border */
-  --ecs-border-width: 1px;
-  --ecs-border-color: var(--ecs-neutral-20);
-
-  /* Shadows - Neutral (no color tint) */
-  --ecs-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --ecs-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --ecs-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --ecs-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --ecs-transition-fast: var(--duration-fast) var(--ease-smooth);
+  --ecs-transition-normal: var(--duration-normal) var(--ease-smooth);
+  --ecs-transition-slow: var(--duration-slow) var(--ease-smooth);
 
   /* ========================================================================
-     7. COMPONENT TOKENS
+     LEGACY COMPONENT TOKEN MAPPINGS
      ======================================================================== */
 
   /* Backgrounds */
-  --ecs-bg-body: var(--ecs-neutral-5);
-  --ecs-bg-card: var(--ecs-neutral-0);
-  --ecs-bg-input: var(--ecs-neutral-0);
-  --ecs-bg-sidebar: var(--ecs-neutral-90);
-  --ecs-bg-navbar: var(--ecs-neutral-0);
+  --ecs-bg-body: var(--color-bg-secondary);
+  --ecs-bg-card: var(--color-bg-card);
+  --ecs-bg-input: var(--color-bg-primary);
+  --ecs-bg-sidebar: var(--color-neutral-900);
+  --ecs-bg-navbar: var(--color-bg-primary);
 
   /* Text */
-  --ecs-text-body: var(--ecs-neutral-60);
-  --ecs-text-heading: var(--ecs-neutral-90);
-  --ecs-text-muted: var(--ecs-neutral-50);
-  --ecs-text-inverse: var(--ecs-neutral-0);
+  --ecs-text-body: var(--color-text-secondary);
+  --ecs-text-heading: var(--color-text-primary);
+  --ecs-text-muted: var(--color-text-muted);
+  --ecs-text-inverse: var(--color-text-inverse);
 
   /* Forms */
-  --ecs-form-bg: var(--ecs-neutral-0);
-  --ecs-form-border: var(--ecs-neutral-30);
-  --ecs-form-focus: var(--ecs-primary);
-  --ecs-form-placeholder: var(--ecs-neutral-40);
-
-  /* Transitions */
-  --ecs-transition-fast: 100ms ease;
-  --ecs-transition-normal: 150ms ease;
-  --ecs-transition-slow: 300ms ease;
+  --ecs-form-bg: var(--color-bg-primary);
+  --ecs-form-border: var(--border-color-input);
+  --ecs-form-focus: var(--border-color-focus);
+  --ecs-form-placeholder: var(--color-text-muted);
 
   /* ========================================================================
-     8. BOOTSTRAP INTEGRATION
-     Map ECS variables to Bootstrap for compatibility
+     BOOTSTRAP INTEGRATION
+     Map ECS tokens to Bootstrap for compatibility
      ======================================================================== */
 
-  --bs-primary: var(--ecs-primary);
-  --bs-primary-rgb: var(--ecs-primary-rgb);
-  --bs-secondary: var(--ecs-secondary);
-  --bs-secondary-rgb: var(--ecs-secondary-rgb);
-  --bs-success: var(--ecs-success);
-  --bs-success-rgb: var(--ecs-success-rgb);
-  --bs-warning: var(--ecs-warning);
-  --bs-warning-rgb: var(--ecs-warning-rgb);
-  --bs-danger: var(--ecs-danger);
-  --bs-danger-rgb: var(--ecs-danger-rgb);
-  --bs-info: var(--ecs-info);
-  --bs-info-rgb: var(--ecs-info-rgb);
-  --bs-body-bg: var(--ecs-bg-body);
-  --bs-body-color: var(--ecs-text-body);
-  --bs-heading-color: var(--ecs-text-heading);
-  --bs-border-color: var(--ecs-border-color);
+  --bs-primary: var(--color-primary);
+  --bs-primary-rgb: var(--color-primary-rgb);
+  --bs-secondary: var(--color-secondary);
+  --bs-secondary-rgb: var(--color-secondary-rgb);
+  --bs-success: var(--color-success);
+  --bs-success-rgb: var(--color-success-rgb);
+  --bs-warning: var(--color-warning);
+  --bs-warning-rgb: var(--color-warning-rgb);
+  --bs-danger: var(--color-danger);
+  --bs-danger-rgb: var(--color-danger-rgb);
+  --bs-info: var(--color-info);
+  --bs-info-rgb: var(--color-info-rgb);
+  --bs-body-bg: var(--color-bg-secondary);
+  --bs-body-color: var(--color-text-secondary);
+  --bs-heading-color: var(--color-text-primary);
+  --bs-border-color: var(--border-color-primary);
 }
 
 /* ============================================================================
-   LIGHT MODE OVERRIDE - Higher Specificity
-   Foundation.css uses html[data-style="light"] which overrides :root.
-   We need to match or exceed that specificity.
+   LIGHT MODE COMPATIBILITY
+   Foundation.css uses html[data-style="light"] which needs higher specificity
    ============================================================================ */
 
 html,
 html[data-style="light"] {
-  /* Re-declare neutral scale to override foundation.css line 30505-30543
-     Foundation.css incorrectly sets --ecs-neutral-90: #f1f3f4 (light)
-     We need #18181B (dark) for readable text in light mode */
-  --ecs-neutral-0: #FFFFFF;
-  --ecs-neutral-5: #FAFAFA;
-  --ecs-neutral-10: #F4F4F5;
-  --ecs-neutral-20: #E4E4E7;
-  --ecs-neutral-30: #D4D4D8;
-  --ecs-neutral-40: #A1A1AA;
-  --ecs-neutral-50: #71717A;
-  --ecs-neutral-60: #52525B;
-  --ecs-neutral-70: #3F3F46;
-  --ecs-neutral-80: #27272A;
-  --ecs-neutral-90: #18181B;
+  /* Ensure neutral scale is correct for light mode */
+  --ecs-neutral-0: var(--color-neutral-0);
+  --ecs-neutral-90: var(--color-neutral-900);
 
-  /* Re-declare semantic tokens for light mode */
-  --ecs-text-heading: var(--ecs-neutral-90);
-  --ecs-text-body: var(--ecs-neutral-60);
-  --ecs-text-muted: var(--ecs-neutral-50);
-  --ecs-text-inverse: var(--ecs-neutral-0);
+  /* Re-declare semantic tokens */
+  --ecs-text-heading: var(--color-text-primary);
+  --ecs-text-body: var(--color-text-secondary);
+  --ecs-text-muted: var(--color-text-muted);
 
-  /* Re-declare Bootstrap mappings */
-  --bs-heading-color: var(--ecs-text-heading);
-  --bs-body-color: var(--ecs-text-body);
-
-  /* Override foundation.css legacy variables with correct neutral scale */
-  --ecs-text-primary: var(--ecs-text-heading);
-  --ecs-text-secondary: var(--ecs-text-body);
+  /* Bootstrap mappings */
+  --bs-heading-color: var(--color-text-primary);
+  --bs-body-color: var(--color-text-secondary);
 }
 
 /* ============================================================================
-   DARK MODE VARIABLES
+   DARK MODE COMPATIBILITY
+   Ensure dark mode tokens are applied correctly
    ============================================================================ */
 
 [data-style="dark"] {
-  /* Dark Mode Brand Colors (brighter for visibility) */
-  --ecs-primary: #A78BFA;
-  --ecs-primary-rgb: 167, 139, 250;
-  --ecs-primary-light: #C4B5FD;
-  --ecs-primary-dark: #8B5CF6;
-  --ecs-primary-subtle: rgba(167, 139, 250, 0.15);
+  /* Legacy dark mode specific variables */
+  --ecs-bg-dark: var(--color-bg-primary);
+  --ecs-text-dark: var(--color-text-secondary);
 
-  /* Secondary stays neutral */
-  --ecs-secondary: #94A3B8;
-  --ecs-secondary-light: #CBD5E1;
-  --ecs-secondary-dark: #64748B;
-  --ecs-secondary-subtle: rgba(148, 163, 184, 0.15);
+  --ecs-dark-bg-body: var(--color-neutral-0);
+  --ecs-dark-bg-card: var(--color-neutral-50);
+  --ecs-dark-bg-elevated: var(--color-neutral-100);
+  --ecs-dark-border: var(--color-neutral-200);
+  --ecs-dark-text-primary: var(--color-neutral-900);
+  --ecs-dark-text-muted: var(--color-neutral-500);
 
-  /* Accent stays warm but brighter */
-  --ecs-accent: #FBBF24;
-  --ecs-accent-light: #FCD34D;
-  --ecs-accent-dark: #F59E0B;
-  --ecs-accent-subtle: rgba(251, 191, 36, 0.15);
-
-  /* Status colors - brighter for dark backgrounds */
-  --ecs-success: #34D399;
-  --ecs-success-light: #6EE7B7;
-  --ecs-success-dark: #10B981;
-  --ecs-success-subtle: rgba(52, 211, 153, 0.15);
-
-  --ecs-warning: #FBBF24;
-  --ecs-warning-light: #FCD34D;
-  --ecs-warning-dark: #F59E0B;
-  --ecs-warning-subtle: rgba(251, 191, 36, 0.15);
-
-  --ecs-danger: #F87171;
-  --ecs-danger-light: #FCA5A5;
-  --ecs-danger-dark: #EF4444;
-  --ecs-danger-subtle: rgba(248, 113, 113, 0.15);
-
-  --ecs-info: #60A5FA;
-  --ecs-info-light: #93C5FD;
-  --ecs-info-dark: #3B82F6;
-  --ecs-info-subtle: rgba(96, 165, 250, 0.15);
-
-  /* Dark Mode Neutrals (inverted, no color tint) */
-  --ecs-neutral-0: #09090B;
-  --ecs-neutral-5: #18181B;
-  --ecs-neutral-10: #27272A;
-  --ecs-neutral-20: #3F3F46;
-  --ecs-neutral-30: #52525B;
-  --ecs-neutral-40: #71717A;
-  --ecs-neutral-50: #A1A1AA;
-  --ecs-neutral-60: #D4D4D8;
-  --ecs-neutral-70: #E4E4E7;
-  --ecs-neutral-80: #F4F4F5;
-  --ecs-neutral-90: #FAFAFA;
-
-  /* Dark Mode Backgrounds */
-  --ecs-bg-body: #09090B;
-  --ecs-bg-card: #18181B;
-  --ecs-bg-input: #27272A;
-  --ecs-bg-sidebar: #09090B;
-  --ecs-bg-navbar: #18181B;
-
-  /* Dark Mode Text */
-  --ecs-text-body: #A1A1AA;
-  --ecs-text-heading: #FAFAFA;
-  --ecs-text-muted: #71717A;
-  --ecs-text-inverse: #09090B;
-
-  /* Dark Mode Forms */
-  --ecs-form-bg: #27272A;
-  --ecs-form-border: #3F3F46;
-  --ecs-form-placeholder: #71717A;
-
-  /* Dark Mode Shadows */
-  --ecs-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --ecs-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-  --ecs-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
-  --ecs-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
-
-  /* Dark Mode Border */
-  --ecs-border-color: var(--ecs-neutral-20);
-
-  /* Bootstrap Dark Mode Integration */
-  --bs-body-bg: var(--ecs-bg-body);
-  --bs-body-color: var(--ecs-text-body);
-  --bs-heading-color: var(--ecs-text-heading);
-  --bs-border-color: var(--ecs-border-color);
-
-  /* Legacy variable aliases (for foundation.css compatibility) */
-  --ecs-bg-dark: var(--ecs-bg-body);
-  --ecs-text-dark: var(--ecs-text-body);
-
-  /* Dark mode specific variables (used by theme files) */
-  --ecs-dark-bg-body: #09090B;
-  --ecs-dark-bg-card: #18181B;
-  --ecs-dark-bg-elevated: #27272A;
-  --ecs-dark-border: #3F3F46;
-  --ecs-dark-text-primary: #FAFAFA;
-  --ecs-dark-text-muted: #A1A1AA;
+  /* Bootstrap dark mode */
+  --bs-body-bg: var(--color-bg-primary);
+  --bs-body-color: var(--color-text-secondary);
+  --bs-heading-color: var(--color-text-primary);
+  --bs-border-color: var(--border-color-primary);
 }
+
+/* ============================================================================
+   MIGRATION GUIDE
+   ============================================================================
+
+   Old Variable → New Token
+   ------------------------
+
+   Colors:
+   --ecs-primary         → --color-primary or --color-primary-600
+   --ecs-success-light   → --color-success-400
+   --ecs-neutral-20      → --color-neutral-200
+
+   Typography:
+   --ecs-text-lg         → --text-lg (same name)
+   --ecs-weight-bold     → --font-bold
+
+   Spacing:
+   --ecs-space-4         → --space-4 (same name)
+
+   Borders:
+   --ecs-radius-md       → --radius-md (same name)
+
+   Shadows:
+   --ecs-shadow-lg       → --shadow-lg (same name)
+
+   Transitions:
+   --ecs-transition-normal → Use --transition-all or specific transition
+
+   Component Tokens:
+   --ecs-bg-card         → --color-bg-card
+   --ecs-text-heading    → --color-text-primary
+   --ecs-form-border     → --border-color-input
+
+   ============================================================================
+ */

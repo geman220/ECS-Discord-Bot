@@ -36,6 +36,6 @@
 }
 
 /* Dark mode support */
-[data-bs-theme="dark"] .wallet-qr-code {
+[data-style="dark"] .wallet-qr-code {
     background-color: var(--ecs-dark-bg-card, #25282f);
 }

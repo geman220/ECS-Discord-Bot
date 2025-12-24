@@ -2,7 +2,7 @@
 
 {% if step_data.pass_types_missing %}
 <!-- Pass Types Not Initialized -->
-<div class="alert alert-warning">
+<div class="alert alert-warning" data-alert>
     <div class="d-flex align-items-center">
         <div class="me-3">
             <i class="ti ti-alert-triangle fs-3"></i>
@@ -14,7 +14,7 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="is_wizard" value="true">
                 <input type="hidden" name="next_step" value="templates">
-                <button type="submit" class="btn btn-warning">
+                <button type="submit" class="c-btn c-btn--warning">
                     <i class="ti ti-database-plus me-1"></i> Initialize Pass Types
                 </button>
             </form>
@@ -22,7 +22,7 @@
     </div>
 </div>
 {% else %}
-<div class="alert alert-info">
+<div class="alert alert-info" data-alert>
     <div class="d-flex">
         <div class="me-3">
             <i class="ti ti-info-circle fs-3"></i>
@@ -40,7 +40,7 @@
 {% endif %}
 
 {% if not step_data.pass_types_missing %}
-<div class="alert alert-success border-start border-success border-4 mb-4">
+<div class="alert alert-success border-start border-success border-4 mb-4" data-alert>
     <div class="d-flex align-items-center">
         <i class="ti ti-devices me-3 fs-3"></i>
         <div>
@@ -57,8 +57,8 @@
     <div class="row">
         <!-- ECS Templates -->
         <div class="col-md-6">
-            <div class="card mb-3">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="c-card mb-3">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">ECS Membership Templates</h6>
                     <div>
                         {% if step_data.ecs_templates %}
@@ -69,16 +69,16 @@
                                 {% endif %}
                             {% endfor %}
                             {% if has_default %}
-                                <span class="badge bg-label-success">Default Set</span>
+                                <span class="badge bg-label-success" data-badge>Default Set</span>
                             {% else %}
-                                <span class="badge bg-label-warning">No Default</span>
+                                <span class="badge bg-label-warning" data-badge>No Default</span>
                             {% endif %}
                         {% else %}
-                            <span class="badge bg-label-danger">Missing</span>
+                            <span class="badge bg-label-danger" data-badge>Missing</span>
                         {% endif %}
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     {% if step_data.ecs_templates %}
                         <ul class="list-group list-group-flush">
                             {% for template in step_data.ecs_templates %}
@@ -88,7 +88,7 @@
                                         <small class="d-block text-muted">{{ template.platform }}</small>
                                     </div>
                                     {% if template.is_default %}
-                                        <span class="badge bg-label-success">Default</span>
+                                        <span class="badge bg-label-success" data-badge>Default</span>
                                     {% endif %}
                                 </li>
                             {% endfor %}
@@ -96,10 +96,10 @@
                     {% else %}
                         <div class="text-center py-3">
                             <div class="mb-3">
-                                <i class="ti ti-alert-triangle text-warning" style="font-size: 2rem;"></i>
+                                <i class="ti ti-alert-triangle text-warning" class="u-icon-xl"></i>
                             </div>
                             <p class="mb-2">No templates defined for ECS Membership passes</p>
-                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#generateEcsTemplateModal">
+                            <button class="c-btn c-btn--primary c-btn--sm" data-bs-toggle="modal" data-bs-target="#generateEcsTemplateModal">
                                 <i class="ti ti-wand me-1"></i> Generate Default Template
                             </button>
                         </div>
@@ -110,8 +110,8 @@
         
         <!-- Pub League Templates -->
         <div class="col-md-6">
-            <div class="card mb-3">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="c-card mb-3">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">Pub League Templates</h6>
                     <div>
                         {% if step_data.pub_templates %}
@@ -122,16 +122,16 @@
                                 {% endif %}
                             {% endfor %}
                             {% if has_default %}
-                                <span class="badge bg-label-success">Default Set</span>
+                                <span class="badge bg-label-success" data-badge>Default Set</span>
                             {% else %}
-                                <span class="badge bg-label-warning">No Default</span>
+                                <span class="badge bg-label-warning" data-badge>No Default</span>
                             {% endif %}
                         {% else %}
-                            <span class="badge bg-label-danger">Missing</span>
+                            <span class="badge bg-label-danger" data-badge>Missing</span>
                         {% endif %}
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     {% if step_data.pub_templates %}
                         <ul class="list-group list-group-flush">
                             {% for template in step_data.pub_templates %}
@@ -141,7 +141,7 @@
                                         <small class="d-block text-muted">{{ template.platform }}</small>
                                     </div>
                                     {% if template.is_default %}
-                                        <span class="badge bg-label-success">Default</span>
+                                        <span class="badge bg-label-success" data-badge>Default</span>
                                     {% endif %}
                                 </li>
                             {% endfor %}
@@ -149,10 +149,10 @@
                     {% else %}
                         <div class="text-center py-3">
                             <div class="mb-3">
-                                <i class="ti ti-alert-triangle text-warning" style="font-size: 2rem;"></i>
+                                <i class="ti ti-alert-triangle text-warning" class="u-icon-xl"></i>
                             </div>
                             <p class="mb-2">No templates defined for Pub League passes</p>
-                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#generatePubTemplateModal">
+                            <button class="c-btn c-btn--primary c-btn--sm" data-bs-toggle="modal" data-bs-target="#generatePubTemplateModal">
                                 <i class="ti ti-wand me-1"></i> Generate Default Template
                             </button>
                         </div>
@@ -168,7 +168,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h6>Pass Template Management</h6>
         <div>
-            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createTemplateModal">
+            <button class="c-btn c-btn--primary c-btn--sm" data-bs-toggle="modal" data-bs-target="#createTemplateModal">
                 <i class="ti ti-plus me-1"></i> Create Template
             </button>
         </div>
@@ -177,27 +177,27 @@
     <!-- Template Editor and Preview -->
     <div class="row">
         <div class="col-md-7">
-            <div class="card mb-3">
-                <div class="card-header">
+            <div class="c-card mb-3">
+                <div class="c-card__header">
                     <h6 class="mb-0">Visual Editor</h6>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <p class="mb-3">Customize the appearance of your passes with the visual editor:</p>
                     
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <a href="{{ url_for('wallet_config.visual_editor', pass_type='ecs') }}" class="btn btn-outline-primary w-100">
+                            <a href="{{ url_for('wallet_config.visual_editor', pass_type='ecs') }}" class="c-btn c-btn--outline-primary w-100">
                                 <i class="ti ti-brush me-1"></i> ECS Pass Editor
                             </a>
                         </div>
                         <div class="col-md-6">
-                            <a href="{{ url_for('wallet_config.visual_editor', pass_type='pub') }}" class="btn btn-outline-primary w-100">
+                            <a href="{{ url_for('wallet_config.visual_editor', pass_type='pub') }}" class="c-btn c-btn--outline-primary w-100">
                                 <i class="ti ti-brush me-1"></i> Pub League Editor
                             </a>
                         </div>
                     </div>
                     
-                    <div class="alert bg-body-tertiary border">
+                    <div class="alert bg-body-tertiary border" data-alert>
                         <h6><i class="ti ti-info-circle me-1"></i> Template Features</h6>
                         <ul class="small mb-0">
                             <li>Customize colors, text, and formatting</li>
@@ -211,11 +211,11 @@
         </div>
         
         <div class="col-md-5">
-            <div class="card mb-3">
-                <div class="card-header">
+            <div class="c-card mb-3">
+                <div class="c-card__header">
                     <h6 class="mb-0">Generate Default Templates</h6>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <p class="mb-3">Need a starting point? Generate default templates for your passes:</p>
                     
                     <div class="mb-3">
@@ -224,7 +224,7 @@
                             <input type="hidden" name="pass_type_id" value="{{ ecs_type.id }}">
                             <input type="hidden" name="platform" value="apple">
                             <input type="hidden" name="is_wizard" value="true">
-                            <button type="submit" class="btn btn-outline-success w-100 mb-2">
+                            <button type="submit" class="c-btn c-btn--outline-success w-100 mb-2">
                                 <i class="ti ti-wand me-1"></i> Generate ECS Template
                             </button>
                         </form>
@@ -234,13 +234,13 @@
                             <input type="hidden" name="pass_type_id" value="{{ pub_type.id }}">
                             <input type="hidden" name="platform" value="apple">
                             <input type="hidden" name="is_wizard" value="true">
-                            <button type="submit" class="btn btn-outline-success w-100">
+                            <button type="submit" class="c-btn c-btn--outline-success w-100">
                                 <i class="ti ti-wand me-1"></i> Generate Pub League Template
                             </button>
                         </form>
                     </div>
                     
-                    <div class="alert bg-body-tertiary border">
+                    <div class="alert bg-body-tertiary border" data-alert>
                         <small class="text-muted mb-0">
                             Generated templates include basic pass information and formatting based on your pass type settings.
                             You can customize them further after generation.
@@ -253,11 +253,11 @@
 </div>
 
 <!-- Template Design Tips -->
-<div class="card">
-    <div class="card-header">
+<div class="c-card">
+    <div class="c-card__header">
         <h6 class="mb-0"><i class="ti ti-bulb me-2"></i>Template Design Tips</h6>
     </div>
-    <div class="card-body">
+    <div class="c-card__body">
         <div class="row">
             <div class="col-md-4">
                 <h6>Layout</h6>
@@ -291,20 +291,20 @@
 </div>
 
 <!-- Create Template Modal -->
-<div class="modal fade" id="createTemplateModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Create Custom Template</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal c-modal fade" id="createTemplateModal" tabindex="-1" data-modal aria-labelledby="createTemplateModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="createTemplateModalLabel">Create Custom Template</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
             </div>
             <form action="{{ url_for('wallet_config.create_template') }}" method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="is_wizard" value="true">
-                <div class="modal-body">
+                <div class="modal-body c-modal__body" data-modal-body>
                     <div class="mb-3">
                         <label class="form-label">Pass Type</label>
-                        <select name="pass_type_id" class="form-select" required>
+                        <select name="pass_type_id" class="form-select" required data-form-select>
                             <option value="">Select pass type...</option>
                             <option value="{{ ecs_type.id }}">ECS Membership</option>
                             <option value="{{ pub_type.id }}">Pub League</option>
@@ -313,12 +313,12 @@
                     
                     <div class="mb-3">
                         <label class="form-label">Template Name</label>
-                        <input type="text" name="name" class="form-control" placeholder="e.g. Standard ECS Template" required>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. Standard ECS Template" required data-form-control>
                     </div>
                     
                     <div class="mb-3">
                         <label class="form-label">Platform</label>
-                        <select name="platform" class="form-select" required>
+                        <select name="platform" class="form-select" required data-form-select>
                             <option value="apple">Apple Wallet</option>
                         </select>
                         <small class="form-text text-muted">
@@ -361,7 +361,7 @@
       "messageEncoding": "utf-8"
     }
   ]
-}'></textarea>
+}' data-form-control></textarea>
                         <small class="form-text text-muted">Enter valid JSON template structure for the pass</small>
                     </div>
                     
@@ -372,9 +372,9 @@
                         </label>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Create Template</button>
+                <div class="modal-footer c-modal__footer" data-modal-footer>
+                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                    <button type="submit" class="c-btn c-btn--primary">Create Template</button>
                 </div>
             </form>
         </div>
@@ -382,22 +382,22 @@
 </div>
 
 <!-- Generate ECS Template Modal -->
-<div class="modal fade" id="generateEcsTemplateModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Generate ECS Membership Template</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal c-modal fade" id="generateEcsTemplateModal" tabindex="-1" data-modal aria-labelledby="generateEcsTemplateModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="generateEcsTemplateModalLabel">Generate ECS Membership Template</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
             </div>
             <form action="{{ url_for('wallet_config.generate_default_template') }}" method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="pass_type_id" value="{{ ecs_type.id }}">
                 <input type="hidden" name="platform" value="apple">
                 <input type="hidden" name="is_wizard" value="true">
-                <div class="modal-body">
+                <div class="modal-body c-modal__body" data-modal-body>
                     <p>This will generate a default template for ECS Membership passes with standard fields and formatting.</p>
                     
-                    <div class="alert alert-info">
+                    <div class="alert alert-info" data-alert>
                         <i class="ti ti-info-circle me-2"></i> The template will include:
                         <ul class="mb-0 mt-2">
                             <li>Member name display</li>
@@ -407,9 +407,9 @@
                         </ul>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">Generate Template</button>
+                <div class="modal-footer c-modal__footer" data-modal-footer>
+                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                    <button type="submit" class="c-btn c-btn--success">Generate Template</button>
                 </div>
             </form>
         </div>
@@ -417,22 +417,22 @@
 </div>
 
 <!-- Generate Pub League Template Modal -->
-<div class="modal fade" id="generatePubTemplateModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Generate Pub League Template</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal c-modal fade" id="generatePubTemplateModal" tabindex="-1" data-modal aria-labelledby="generatePubTemplateModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="generatePubTemplateModalLabel">Generate Pub League Template</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
             </div>
             <form action="{{ url_for('wallet_config.generate_default_template') }}" method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="pass_type_id" value="{{ pub_type.id }}">
                 <input type="hidden" name="platform" value="apple">
                 <input type="hidden" name="is_wizard" value="true">
-                <div class="modal-body">
+                <div class="modal-body c-modal__body" data-modal-body>
                     <p>This will generate a default template for Pub League passes with standard fields and formatting.</p>
 
-                    <div class="alert alert-info">
+                    <div class="alert alert-info" data-alert>
                         <i class="ti ti-info-circle me-2"></i> The template will include:
                         <ul class="mb-0 mt-2">
                             <li>Member name display</li>
@@ -442,9 +442,9 @@
                         </ul>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">Generate Template</button>
+                <div class="modal-footer c-modal__footer" data-modal-footer>
+                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                    <button type="submit" class="c-btn c-btn--success">Generate Template</button>
                 </div>
             </form>
         </div>

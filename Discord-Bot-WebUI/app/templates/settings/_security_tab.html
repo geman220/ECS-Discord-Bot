@@ -1,126 +1,129 @@
 {# Security Settings Tab Partial #}
-<div class="tab-pane fade" id="tab-security" role="tabpanel">
+<div class="c-settings-tab" id="tab-security" role="tabpanel" data-component="settings-tab" data-tab-pane="security">
     <div class="row">
+        <!-- Password Section -->
         <div class="col-lg-6 mb-4">
-            <div class="card settings-card h-100">
-                <div class="card-header d-flex align-items-center pb-2 border-bottom">
-                    <div class="settings-icon bg-warning bg-opacity-10 text-warning me-3">
+            <div class="c-settings-card" data-component="settings-card">
+                <div class="c-settings-card__header">
+                    <div class="c-settings-card__icon c-settings-card__icon--warning">
                         <i class="ti ti-key"></i>
                     </div>
-                    <div>
-                        <h5 class="card-title mb-0">Password</h5>
-                        <small class="text-muted">Update your account password</small>
+                    <div class="c-settings-card__header-info">
+                        <h5 class="c-settings-card__title">Password</h5>
+                        <small class="c-settings-card__subtitle">Update your account password</small>
                     </div>
                 </div>
-                <div class="card-body pt-3">
-                    <form id="passwordChangeForm" action="{{ url_for('account.change_password') }}" method="POST">
+                <div class="c-settings-card__body">
+                    <form id="passwordChangeForm"
+                          action="{{ url_for('account.change_password') }}"
+                          method="POST"
+                          class="c-settings-form"
+                          data-form="password-change"
+                          data-component="settings-form">
                         {{ password_form.hidden_tag() }}
 
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Current Password</label>
-                            {{ password_form.current_password(class="form-control", id="current_password", placeholder="Enter your current password") }}
+                        <div class="c-settings-field" data-component="form-field">
+                            <label for="current_password" class="c-settings-field__label">Current Password</label>
+                            {{ password_form.current_password(class="c-settings-field__input", id="current_password", placeholder="Enter your current password", autocomplete="current-password", **{"data-input": "current-password"}) }}
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">New Password</label>
-                            {{ password_form.new_password(class="form-control", id="new_password", placeholder="Choose a new password") }}
-                            <div class="form-text">Use at least 8 characters with a mix of letters and numbers</div>
+                        <div class="c-settings-field" data-component="form-field">
+                            <label for="new_password" class="c-settings-field__label">New Password</label>
+                            {{ password_form.new_password(class="c-settings-field__input", id="new_password", placeholder="Choose a new password", autocomplete="new-password", **{"data-input": "new-password"}) }}
+                            <p class="c-settings-field__help">Use at least 8 characters with a mix of letters and numbers</p>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Confirm New Password</label>
-                            {{ password_form.confirm_password(class="form-control", id="confirm_password", placeholder="Confirm your new password") }}
+                        <div class="c-settings-field" data-component="form-field">
+                            <label for="confirm_password" class="c-settings-field__label">Confirm New Password</label>
+                            {{ password_form.confirm_password(class="c-settings-field__input", id="confirm_password", placeholder="Confirm your new password", autocomplete="new-password", **{"data-input": "confirm-password"}) }}
                         </div>
 
-                        <button type="submit" class="btn btn-primary">
-                            <i class="ti ti-refresh me-2"></i>Update Password
+                        <button type="submit" class="c-settings-btn c-settings-btn--primary" data-action="update-password">
+                            <i class="ti ti-refresh"></i>
+                            <span>Update Password</span>
                         </button>
                     </form>
                 </div>
             </div>
         </div>
 
+        <!-- Two-Factor Authentication Section -->
         <div class="col-lg-6 mb-4">
-            <div class="card settings-card h-100">
-                <div class="card-header d-flex align-items-center pb-2 border-bottom">
-                    <div class="settings-icon bg-success bg-opacity-10 text-success me-3">
+            <div class="c-settings-card" data-component="settings-card">
+                <div class="c-settings-card__header">
+                    <div class="c-settings-card__icon c-settings-card__icon--success">
                         <i class="ti ti-shield-lock"></i>
                     </div>
-                    <div>
-                        <h5 class="card-title mb-0">Two-Factor Authentication</h5>
-                        <small class="text-muted">Add an extra layer of security</small>
+                    <div class="c-settings-card__header-info">
+                        <h5 class="c-settings-card__title">Two-Factor Authentication</h5>
+                        <small class="c-settings-card__subtitle">Add an extra layer of security</small>
                     </div>
                 </div>
-                <div class="card-body pt-3">
+                <div class="c-settings-card__body c-settings-card__body--centered">
                     {% if safe_current_user.is_2fa_enabled %}
-                    <div class="text-center mb-4">
-                        <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                            <i class="ti ti-shield-check text-success" style="font-size: 2.5rem;"></i>
-                        </div>
-                        <h6 class="fw-semibold text-success">2FA is Enabled</h6>
-                        <p class="text-muted small mb-0">Your account is protected with two-factor authentication</p>
+                    <div class="c-status-circle c-status-circle--success">
+                        <i class="ti ti-shield-check"></i>
                     </div>
+                    <h6 class="c-status-text c-status-text--success">2FA is Enabled</h6>
+                    <p class="c-status-description">Your account is protected with two-factor authentication</p>
 
-                    <form id="disable2FAForm" action="{{ url_for('account.disable_2fa') }}" method="POST">
+                    <form id="disable2FAForm"
+                          action="{{ url_for('account.disable_2fa') }}"
+                          method="POST"
+                          data-form="disable-2fa">
                         {{ disable_2fa_form.hidden_tag() }}
-                        <div class="d-grid">
-                            {{ disable_2fa_form.submit_disable_2fa(class="btn btn-outline-danger") }}
-                        </div>
+                        <button type="submit" class="c-settings-btn c-settings-btn--danger c-settings-btn--block" data-action="disable-2fa">
+                            <i class="ti ti-shield-off"></i>
+                            <span>Disable 2FA</span>
+                        </button>
                     </form>
                     {% else %}
-                    <div class="text-center mb-4">
-                        <div class="rounded-circle bg-warning bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                            <i class="ti ti-shield-off text-warning" style="font-size: 2.5rem;"></i>
-                        </div>
-                        <h6 class="fw-semibold text-warning">2FA is Disabled</h6>
-                        <p class="text-muted small mb-0">Your account is not protected with 2FA</p>
+                    <div class="c-status-circle c-status-circle--warning">
+                        <i class="ti ti-shield-off"></i>
                     </div>
+                    <h6 class="c-status-text c-status-text--warning">2FA is Disabled</h6>
+                    <p class="c-status-description">Your account is not protected with 2FA</p>
 
-                    <div class="alert alert-light border mb-3">
-                        <h6 class="fw-semibold mb-2">Why enable 2FA?</h6>
-                        <ul class="mb-0 small text-muted ps-3">
+                    <div class="c-info-box c-info-box--primary" data-component="info-box">
+                        <h6 class="c-info-box__title">Why enable 2FA?</h6>
+                        <ul class="c-info-box__list">
                             <li>Protects your account even if password is compromised</li>
                             <li>Uses your phone as a second verification step</li>
                             <li>Industry-standard security practice</li>
                         </ul>
                     </div>
 
-                    <div class="d-grid">
-                        <button id="enable2FABtn" type="button" class="btn btn-primary">
-                            <i class="ti ti-shield-plus me-2"></i>Enable 2FA
-                        </button>
-                    </div>
+                    <button id="enable2FABtn"
+                            type="button"
+                            class="c-settings-btn c-settings-btn--primary c-settings-btn--block"
+                            data-action="enable-2fa">
+                        <i class="ti ti-shield-plus"></i>
+                        <span>Enable 2FA</span>
+                    </button>
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Security Tips Card -->
-    <div class="card border-0 bg-light">
-        <div class="card-body">
-            <h6 class="fw-semibold mb-3">
-                <i class="ti ti-bulb me-2 text-warning"></i>Security Tips
-            </h6>
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <div class="d-flex align-items-start">
-                        <i class="ti ti-check text-success me-2 mt-1"></i>
-                        <div class="small">Use a unique password that you don't use elsewhere</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="d-flex align-items-start">
-                        <i class="ti ti-check text-success me-2 mt-1"></i>
-                        <div class="small">Enable 2FA for maximum protection</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="d-flex align-items-start">
-                        <i class="ti ti-check text-success me-2 mt-1"></i>
-                        <div class="small">Keep your authenticator app backed up</div>
-                    </div>
-                </div>
+    <!-- Security Tips -->
+    <div class="c-tips-box" data-component="tips-box">
+        <h6 class="c-tips-box__title">
+            <i class="ti ti-bulb"></i>
+            Security Tips
+        </h6>
+        <div class="c-tips-box__grid">
+            <div class="c-tips-box__item">
+                <i class="ti ti-check"></i>
+                <span class="c-tips-box__item-text">Use a unique password that you don't use elsewhere</span>
+            </div>
+            <div class="c-tips-box__item">
+                <i class="ti ti-check"></i>
+                <span class="c-tips-box__item-text">Enable 2FA for maximum protection</span>
+            </div>
+            <div class="c-tips-box__item">
+                <i class="ti ti-check"></i>
+                <span class="c-tips-box__item-text">Keep your authenticator app backed up</span>
             </div>
         </div>
     </div>

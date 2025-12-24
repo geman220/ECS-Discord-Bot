@@ -9,698 +9,15 @@
 {% endblock %}
 
 {% block custom_css %}
-<style>
-/* Mobile-first match page optimizations */
-@media (max-width: 767.98px) {
-    /* Compact match header badges */
-    .match-header-wrapper .badge {
-        font-size: 0.75rem !important;
-        padding: 0.25rem 0.5rem !important;
-        margin-bottom: 0.25rem;
-    }
-    
-    .match-header-wrapper .d-flex.flex-wrap {
-        gap: 0.375rem !important;
-    }
-    
-    /* Mobile match details grid */
-    .match-details-mobile {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.75rem;
-        margin-bottom: 1rem;
-    }
-    
-    .match-detail-item {
-        display: flex;
-        align-items: center;
-        padding: 0.75rem;
-        background: var(--ecs-neutral-5, #f8f9fa);
-        border-radius: 8px;
-        border-left: 3px solid var(--ecs-primary);
-    }
-    
-    .match-detail-item .avatar {
-        width: 32px !important;
-        height: 32px !important;
-        margin-right: 0.5rem !important;
-    }
-    
-    .match-detail-item .avatar i {
-        font-size: 0.875rem;
-    }
-    
-    .match-detail-content h6 {
-        font-size: 0.75rem;
-        margin-bottom: 0.125rem;
-        color: var(--ecs-neutral-50, #6c757d);
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .match-detail-content span {
-        font-size: 0.875rem;
-        font-weight: 500;
-        line-height: 1.2;
-    }
-    
-    /* Mobile player card system */
-    .player-card-mobile {
-        background: var(--ecs-neutral-0, #ffffff);
-        border: 1px solid var(--ecs-neutral-20, #dee2e6);
-        border-radius: 8px;
-        margin-bottom: 0.5rem;
-        overflow: hidden;
-        transition: all 0.2s ease;
-    }
-    
-    .player-card-mobile:hover {
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        transform: translateY(-1px);
-    }
-    
-    .player-card-content {
-        padding: 0.75rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-    
-    .player-info-section {
-        display: flex;
-        align-items: center;
-        flex: 1;
-        min-width: 0;
-    }
-    
-    .player-name-section {
-        margin-left: 0.5rem;
-        flex: 1;
-        min-width: 0;
-    }
-    
-    .player-name-mobile {
-        font-weight: 600;
-        font-size: 0.875rem;
-        margin-bottom: 0.125rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    
-    .player-role-mobile {
-        font-size: 0.75rem;
-        color: var(--ecs-neutral-50, #6c757d);
-    }
-    
-    .player-status-section {
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-    }
-    
-    .status-badge-mobile {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.875rem;
-        font-weight: 600;
-    }
-    
-    /* Mobile RSVP summary cards - more compact */
-    .rsvp-summary-mobile {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr 1fr;
-        gap: 0.25rem;
-        margin-bottom: 0.75rem;
-    }
-    
-    .rsvp-card-mobile {
-        padding: 0.5rem 0.25rem;
-        text-align: center;
-        border-radius: 6px;
-        border: 1px solid var(--ecs-border-color);
-        min-height: auto;
-        background-color: var(--ecs-card-bg);
-        color: var(--ecs-text-primary);
-    }
-    
-    .rsvp-card-mobile .fs-4 {
-        font-size: 1.25rem !important;
-        font-weight: 700;
-        line-height: 1.2;
-    }
-    
-    .rsvp-card-mobile .small {
-        font-size: 0.625rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.25px;
-        line-height: 1;
-        margin-top: 0.125rem;
-    }
-    
-    /* Compact mobile player list */
-    .player-list-mobile-compact {
-        max-height: 280px;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        border-radius: 6px;
-        border: 1px solid var(--ecs-border-color);
-        background-color: var(--ecs-card-bg);
-    }
-
-    .player-item-compact {
-        padding: 0.5rem;
-        border-bottom: 1px solid var(--ecs-border-light);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        min-height: auto;
-        background-color: var(--ecs-item-bg, transparent);
-    }
-
-    .player-item-compact:hover {
-        background-color: var(--ecs-item-hover-bg, var(--ecs-neutral-5));
-    }
-    
-    .player-item-compact:last-child {
-        border-bottom: none;
-    }
-    
-    .player-info-compact {
-        display: flex;
-        align-items: center;
-        flex: 1;
-        min-width: 0;
-    }
-    
-    .player-info-compact .avatar {
-        width: 28px !important;
-        height: 28px !important;
-        margin-right: 0.5rem !important;
-    }
-    
-    .player-name-compact {
-        font-size: 0.8rem;
-        font-weight: 600;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 120px;
-        color: var(--ecs-text-primary);
-        text-decoration: none;
-    }
-
-    .player-name-compact:hover {
-        color: var(--ecs-primary);
-    }
-    
-    .player-status-compact {
-        margin-left: 0.5rem;
-    }
-    
-    .player-status-compact .badge {
-        font-size: 0.625rem;
-        padding: 0.25rem 0.375rem;
-        min-width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .player-status-compact .badge i {
-        font-size: 0.75rem;
-    }
-    
-    /* Summary stats at top */
-    .team-summary-mobile {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 0.75rem;
-        padding: 0.75rem;
-        background: var(--ecs-summary-bg, var(--ecs-neutral-5));
-        border-radius: 8px;
-        border-left: 4px solid var(--ecs-primary);
-        color: var(--ecs-text-primary, var(--ecs-neutral-90));
-    }
-
-    .team-name-mobile {
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: var(--ecs-primary);
-        margin: 0;
-    }
-
-    .team-count-mobile {
-        font-size: 0.8rem;
-        color: var(--ecs-neutral-50);
-        font-weight: 600;
-    }
-    
-    /* Quick stats row */
-    .quick-stats-mobile {
-        display: flex;
-        gap: 0.5rem;
-        margin-bottom: 0.75rem;
-        font-size: 0.75rem;
-        justify-content: center;
-    }
-    
-    .quick-stat {
-        padding: 0.25rem 0.5rem;
-        border-radius: 12px;
-        font-weight: 600;
-        color: var(--ecs-neutral-0, #ffffff);
-    }
-
-    .quick-stat.available {
-        background: var(--ecs-success, #198754);
-    }
-
-    .quick-stat.unavailable {
-        background: var(--ecs-danger, #dc3545);
-    }
-
-    .quick-stat.maybe {
-        background: var(--ecs-warning, #ffc107);
-        color: var(--ecs-neutral-90, #212529);
-    }
-
-    .quick-stat.no-response {
-        background: var(--ecs-neutral-50, #6c757d);
-    }
-    
-    /* Quick stats styling for mobile and desktop */
-    .quick-stats {
-        display: flex;
-        gap: 0.5rem;
-        font-size: 0.75rem;
-        justify-content: center;
-    }
-    
-    .quick-stats-desktop {
-        display: flex;
-        gap: 0.75rem;
-        margin-bottom: 0.75rem;
-        justify-content: flex-start;
-        flex-wrap: wrap;
-    }
-    
-    /* Desktop compact styles - CONSTRAINED */
-    .team-summary-desktop {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 0.75rem;
-        padding: 0.5rem 0.75rem;
-        background: var(--ecs-summary-bg, var(--ecs-neutral-5));
-        border-radius: 6px;
-        border-left: 3px solid var(--ecs-primary);
-        color: var(--ecs-text-primary, var(--ecs-neutral-90));
-        font-size: 0.875rem;
-    }
-
-    .player-list-desktop-compact {
-        max-height: 300px; /* REDUCED from 400px */
-        overflow-y: auto;
-        overflow-x: hidden; /* Prevent horizontal overflow */
-        -webkit-overflow-scrolling: touch;
-        border-radius: 6px;
-        border: 1px solid var(--ecs-border-color);
-        background-color: var(--ecs-card-bg);
-        width: 100%; /* Ensure it doesn't exceed container */
-        box-sizing: border-box;
-    }
-
-    .player-item-desktop-compact {
-        padding: 0.5rem 0.75rem; /* REDUCED padding */
-        border-bottom: 1px solid var(--ecs-border-light);
-        display: flex;
-        align-items: center;
-        min-height: auto;
-        background-color: var(--ecs-item-bg, transparent);
-        width: 100%;
-        box-sizing: border-box;
-        overflow: hidden; /* Prevent content overflow */
-    }
-
-    .player-item-desktop-compact:hover {
-        background-color: var(--ecs-item-hover-bg, var(--ecs-neutral-5));
-    }
-    
-    .player-item-desktop-compact:last-child {
-        border-bottom: none;
-    }
-    
-    .player-name-desktop-compact {
-        font-size: 0.8rem; /* SMALLER font */
-        font-weight: 600;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 140px; /* REDUCED max width */
-        flex: 1; /* Take available space */
-        margin-right: 0.5rem;
-        color: var(--ecs-text-primary);
-        text-decoration: none;
-    }
-
-    .player-name-desktop-compact:hover {
-        color: var(--ecs-primary);
-    }
-    
-    .status-icon-desktop {
-        font-size: 1rem;
-        margin-left: auto;
-    }
-    
-    .status-icon-compact {
-        font-size: 0.875rem;
-        margin-left: auto;
-    }
-    
-    /* Sub player styling */
-    .sub-player {
-        background-color: var(--ecs-sub-player-bg, rgba(40, 167, 69, 0.1)) !important;
-        border-left: 3px solid var(--ecs-success);
-    }
-    
-    /* Badge styling with dark mode support */
-    .badge-xs {
-        font-size: 0.625rem;
-        padding: 0.125rem 0.375rem;
-        border-radius: 0.25rem;
-    }
-    
-    .badge-sm {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.375rem;
-    }
-    
-    .coach-icon, .ref-icon {
-        position: absolute;
-        top: -2px;
-        right: -2px;
-        font-size: 0.6rem;
-        background: var(--ecs-card-bg, var(--ecs-neutral-0));
-        border-radius: 50%;
-        padding: 2px;
-    }
-
-    .coach-icon {
-        color: var(--ecs-primary);
-    }
-
-    .ref-icon {
-        color: var(--ecs-warning);
-    }
-    
-    /* Dark mode overrides for all new compact classes */
-    .dark-mode .player-list-mobile-compact,
-    .dark-mode .player-list-desktop-compact {
-        background-color: var(--ecs-dark-bg-card, #18181b);
-        border-color: var(--ecs-dark-border, #3f3f46);
-    }
-
-    .dark-mode .player-item-compact,
-    .dark-mode .player-item-desktop-compact {
-        border-bottom-color: var(--ecs-dark-border, #3f3f46);
-    }
-
-    .dark-mode .player-item-compact:hover,
-    .dark-mode .player-item-desktop-compact:hover {
-        background-color: var(--ecs-dark-bg-elevated, #27272a);
-    }
-
-    .dark-mode .team-summary-mobile,
-    .dark-mode .team-summary-desktop {
-        background-color: var(--ecs-dark-bg-elevated, #27272a);
-        color: var(--ecs-neutral-20, #e9ecef);
-    }
-
-    .dark-mode .rsvp-card-mobile {
-        background-color: var(--ecs-dark-bg-card, #18181b);
-        color: var(--ecs-neutral-20, #e9ecef);
-        border-color: var(--ecs-dark-border, #3f3f46);
-    }
-
-    .dark-mode .player-name-compact,
-    .dark-mode .player-name-desktop-compact {
-        color: var(--ecs-neutral-20, #e9ecef);
-    }
-
-    .dark-mode .sub-player {
-        background-color: var(--ecs-sub-player-dark-bg, rgba(40, 167, 69, 0.2)) !important;
-    }
-    
-    /* Comprehensive Dark Mode Styles using data-style attribute */
-    [data-style="dark"] .player-list-mobile-compact,
-    [data-style="dark"] .player-list-desktop-compact {
-        background-color: var(--ecs-dark-bg-card, #18181b) !important;
-        border-color: var(--ecs-dark-border, #3f3f46) !important;
-    }
-
-    [data-style="dark"] .player-item-compact,
-    [data-style="dark"] .player-item-desktop-compact {
-        background-color: var(--ecs-dark-bg-card, #18181b) !important;
-        border-bottom-color: var(--ecs-dark-border, #3f3f46) !important;
-    }
-
-    [data-style="dark"] .player-item-compact:hover,
-    [data-style="dark"] .player-item-desktop-compact:hover {
-        background-color: var(--ecs-dark-bg-elevated, #27272a) !important;
-    }
-
-    [data-style="dark"] .player-name-compact,
-    [data-style="dark"] .player-name-desktop-compact {
-        color: var(--ecs-neutral-20, #e9ecef) !important;
-    }
-
-    [data-style="dark"] .team-summary-mobile,
-    [data-style="dark"] .team-summary-desktop {
-        background-color: var(--ecs-dark-bg-elevated, #27272a) !important;
-        color: var(--ecs-neutral-20, #e9ecef) !important;
-    }
-
-    [data-style="dark"] .rsvp-card-mobile {
-        background-color: var(--ecs-dark-bg-card, #18181b) !important;
-        color: var(--ecs-neutral-20, #e9ecef) !important;
-        border-color: var(--ecs-dark-border, #3f3f46) !important;
-    }
-
-    [data-style="dark"] .match-detail-item {
-        background-color: var(--ecs-dark-bg-card, #18181b) !important;
-    }
-
-    [data-style="dark"] .match-detail-content h6,
-    [data-style="dark"] .match-detail-content span {
-        color: var(--ecs-neutral-20, #e9ecef) !important;
-    }
-
-    [data-style="dark"] .sub-player {
-        background-color: var(--ecs-sub-player-dark-bg, rgba(40, 167, 69, 0.2)) !important;
-    }
-
-    [data-style="dark"] .mobile-action-bar {
-        background: var(--ecs-dark-bg-card, #18181b) !important;
-        border-top-color: var(--ecs-dark-border, #3f3f46) !important;
-        color: var(--ecs-neutral-20, #e9ecef) !important;
-    }
-    
-    /* RSVP Cards Dark Mode - Override Bootstrap opacity backgrounds */
-    [data-style="dark"] .bg-success.bg-opacity-10 {
-        background-color: rgba(40, 167, 69, 0.15) !important;
-        color: var(--ecs-neutral-20, #e9ecef) !important;
-    }
-
-    [data-style="dark"] .bg-warning.bg-opacity-10 {
-        background-color: rgba(255, 193, 7, 0.15) !important;
-        color: var(--ecs-neutral-20, #e9ecef) !important;
-    }
-
-    [data-style="dark"] .bg-danger.bg-opacity-10 {
-        background-color: rgba(220, 53, 69, 0.15) !important;
-        color: var(--ecs-neutral-20, #e9ecef) !important;
-    }
-
-    [data-style="dark"] .bg-secondary.bg-opacity-10 {
-        background-color: rgba(108, 117, 125, 0.15) !important;
-        color: var(--ecs-neutral-20, #e9ecef) !important;
-    }
-
-    [data-style="dark"] .bg-primary.bg-opacity-10 {
-        background-color: rgba(13, 110, 253, 0.15) !important;
-        color: var(--ecs-neutral-20, #e9ecef) !important;
-    }
-    
-    /* Mobile RSVP Cards */
-    [data-style="dark"] .rsvp-card-mobile {
-        background-color: var(--ecs-dark-bg-card, #18181b) !important;
-        color: var(--ecs-neutral-20, #e9ecef) !important;
-        border-color: var(--ecs-dark-border, #3f3f46) !important;
-    }
-
-    [data-style="dark"] .rsvp-card-mobile.bg-success.bg-opacity-10 {
-        background-color: rgba(40, 167, 69, 0.15) !important;
-    }
-
-    [data-style="dark"] .rsvp-card-mobile.bg-warning.bg-opacity-10 {
-        background-color: rgba(255, 193, 7, 0.15) !important;
-    }
-
-    [data-style="dark"] .rsvp-card-mobile.bg-danger.bg-opacity-10 {
-        background-color: rgba(220, 53, 69, 0.15) !important;
-    }
-
-    [data-style="dark"] .rsvp-card-mobile.bg-secondary.bg-opacity-10 {
-        background-color: rgba(108, 117, 125, 0.15) !important;
-    }
-
-    /* Text colors in dark mode */
-    [data-style="dark"] .fw-bold,
-    [data-style="dark"] .small {
-        color: var(--ecs-neutral-20, #e9ecef) !important;
-    }
-
-    /* Card text elements */
-    [data-style="dark"] .card .fw-bold,
-    [data-style="dark"] .card .small,
-    [data-style="dark"] .card span:not([class*="text-"]) {
-        color: var(--ecs-neutral-20, #e9ecef) !important;
-    }
-    
-    /* Mobile action buttons */
-    .mobile-action-bar {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: var(--ecs-neutral-0, #ffffff);
-        padding: 0.75rem;
-        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-        z-index: 1020;
-        border-top: 1px solid var(--ecs-neutral-20, #dee2e6);
-    }
-    
-    .mobile-action-buttons {
-        display: flex;
-        gap: 0.5rem;
-        max-width: 500px;
-        margin: 0 auto;
-    }
-    
-    .mobile-action-buttons .btn {
-        flex: 1;
-        padding: 0.75rem 0.5rem;
-        font-size: 0.875rem;
-        border-radius: 8px;
-    }
-    
-    /* Add bottom padding to prevent content being hidden behind action bar */
-    .container-xxl {
-        padding-bottom: 80px;
-    }
-    
-    /* Hide desktop-only elements */
-    .d-none.d-md-block {
-        display: none !important;
-    }
-    
-    /* Simplify sort dropdown on mobile */
-    .dropdown-toggle {
-        font-size: 0.75rem !important;
-        padding: 0.375rem 0.5rem !important;
-    }
-    
-    /* Mobile team tabs - make them more touch-friendly */
-    .nav-tabs .nav-link {
-        padding: 0.75rem 0.5rem !important;
-        font-size: 0.875rem !important;
-    }
-    
-    .nav-tabs .nav-link .badge {
-        font-size: 0.625rem !important;
-        padding: 0.125rem 0.375rem !important;
-    }
-}
-
-/* Desktop enhancements */
-@media (min-width: 768px) {
-    .mobile-action-bar {
-        display: none;
-    }
-    
-    .container-xxl {
-        padding-bottom: 0;
-    }
-    
-    /* Enhanced desktop player items */
-    .player-item {
-        transition: all 0.2s ease;
-        border-radius: 8px;
-        margin-bottom: 0.25rem;
-    }
-    
-    .player-item:hover {
-        background: var(--ecs-neutral-5, #f8f9fa) !important;
-        transform: translateX(4px);
-    }
-}
-
-/* Touch-friendly improvements for all screen sizes */
-.avatar {
-    transition: all 0.2s ease;
-}
-
-.avatar:hover {
-    transform: scale(1.05);
-}
-
-.badge {
-    transition: all 0.2s ease;
-}
-
-.btn {
-    transition: all 0.2s ease;
-}
-
-.btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-}
-
-/* Color coding for quick recognition */
-.bg-success.bg-opacity-10 {
-    border-left: 3px solid var(--ecs-success, #198754) !important;
-}
-
-.bg-warning.bg-opacity-10 {
-    border-left: 3px solid var(--ecs-warning, #ffc107) !important;
-}
-
-.bg-danger.bg-opacity-10 {
-    border-left: 3px solid var(--ecs-danger, #dc3545) !important;
-}
-
-.bg-secondary.bg-opacity-10 {
-    border-left: 3px solid var(--ecs-neutral-50, #6c757d) !important;
-}
-</style>
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/match-view.css') }}">
 {% endblock %}
 
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Match Header Card -->
-    <div class="card bg-primary mb-4">
-        <div class="card-body p-0 position-relative overflow-hidden">
+    <div class="c-card-modern c-card-modern--match c-card-modern--primary mb-4">
+        <div class="c-card-modern__body p-0 position-relative overflow-hidden">
             <div class="d-flex match-header-wrapper p-4">
                 <div class="match-info text-white z-1 w-100">
                     {% if is_ecs_fc_match %}
@@ -748,11 +65,11 @@
                         <h4 class="text-white mb-0">
                             <span class="fw-bold">{{ match.home_team_score }}</span> - <span class="fw-bold">{{ match.away_team_score }}</span>
                             {% if match.home_team_score > match.away_team_score %}
-                            <span class="badge bg-success ms-2">{{ match.home_team.name }} Won</span>
+                            <span class="badge bg-success ms-2" data-badge>{{ match.home_team.name }} Won</span>
                             {% elif match.home_team_score < match.away_team_score %}
-                            <span class="badge bg-success ms-2">{{ match.away_team.name }} Won</span>
+                            <span class="badge bg-success ms-2" data-badge>{{ match.away_team.name }} Won</span>
                             {% else %}
-                            <span class="badge bg-info ms-2">Draw</span>
+                            <span class="badge bg-info ms-2" data-badge>Draw</span>
                             {% endif %}
                         </h4>
                     </div>
@@ -761,11 +78,11 @@
                     {% if safe_current_user.has_permission('view_rsvps') %}
                     <div class="mt-3">
                         {% if is_ecs_fc_match %}
-                        <a href="{{ url_for('admin.rsvp_status', match_id='ecs_' + ecs_match.id|string) }}" class="btn btn-outline-light btn-sm ecs-btn ecs-btn-sm ecs-btn-icon">
+                        <a href="{{ url_for('admin.rsvp_status', match_id='ecs_' + ecs_match.id|string) }}" class="c-btn c-btn--outline-light c-btn--sm ecs-btn ecs-btn-sm ecs-btn-icon">
                             <i class="ti ti-users me-1"></i>Manage RSVPs
                         </a>
                         {% else %}
-                        <a href="{{ url_for('admin.rsvp_status', match_id=match.id) }}" class="btn btn-outline-light btn-sm ecs-btn ecs-btn-sm ecs-btn-icon">
+                        <a href="{{ url_for('admin.rsvp_status', match_id=match.id) }}" class="c-btn c-btn--outline-light c-btn--sm ecs-btn ecs-btn-sm ecs-btn-icon">
                             <i class="ti ti-users me-1"></i>Manage RSVPs
                         </a>
                         {% endif %}
@@ -775,11 +92,11 @@
                     {% if safe_current_user.has_permission('view_match_reporting') %}
                     <div class="mt-3 d-md-none">
                         {% if is_ecs_fc_match %}
-                        <button class="btn btn-light edit-match-btn w-100 ecs-btn ecs-btn-icon" data-match-id="ecs_{{ ecs_match.id }}" data-is-ecs-fc="true">
+                        <button class="c-btn c-btn--light edit-match-btn w-100 ecs-btn ecs-btn-icon" data-match-id="ecs_{{ ecs_match.id }}" data-is-ecs-fc="true">
                             <i class="ti ti-report me-1"></i>Report ECS FC Match
                         </button>
                         {% else %}
-                        <button class="btn btn-light edit-match-btn w-100 ecs-btn ecs-btn-icon" data-match-id="{{ match.id }}">
+                        <button class="c-btn c-btn--light edit-match-btn w-100 ecs-btn ecs-btn-icon" data-match-id="{{ match.id }}">
                             <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %} me-1"></i>
                             {% if match.reported %}Edit Match Report{% else %}Submit Match Report{% endif %}
                         </button>
@@ -791,11 +108,11 @@
                 {% if safe_current_user.has_permission('view_match_reporting') %}
                 <div class="ms-auto align-self-start mt-2 mt-sm-0 d-none d-md-block">
                     {% if is_ecs_fc_match %}
-                    <button class="btn btn-light edit-match-btn ecs-btn ecs-btn-icon" data-match-id="ecs_{{ ecs_match.id }}" data-is-ecs-fc="true">
+                    <button class="c-btn c-btn--light edit-match-btn ecs-btn ecs-btn-icon" data-match-id="ecs_{{ ecs_match.id }}" data-is-ecs-fc="true">
                         <i class="ti ti-report me-1"></i>Report ECS FC Match
                     </button>
                     {% else %}
-                    <button class="btn btn-light edit-match-btn ecs-btn ecs-btn-icon" data-match-id="{{ match.id }}">
+                    <button class="c-btn c-btn--light edit-match-btn ecs-btn ecs-btn-icon" data-match-id="{{ match.id }}">
                         <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %} me-1"></i>
                         {% if match.reported %}Edit Match Report{% else %}Submit Match Report{% endif %}
                     </button>
@@ -809,11 +126,11 @@
     <!-- Match Details Row -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header border-bottom">
-                    <h5 class="card-title mb-0">Match Details</h5>
+            <div class="c-card">
+                <div class="c-card__header border-bottom">
+                    <h5 class="c-card__title mb-0">Match Details</h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <!-- Mobile-optimized match details -->
                     <div class="match-details-mobile d-md-none">
                         <div class="match-detail-item">
@@ -836,7 +153,7 @@
                             </div>
                         </div>
 
-                        <div class="match-detail-item" style="grid-column: 1 / -1;">
+                        <div class="match-detail-item match-detail-full-width">
                             <div class="avatar bg-label-info">
                                 <i class="ti ti-calendar"></i>
                             </div>
@@ -847,7 +164,7 @@
                         </div>
 
                         {% if is_ecs_fc_match and ecs_match.field_name %}
-                        <div class="match-detail-item" style="grid-column: 1 / -1;">
+                        <div class="match-detail-item match-detail-full-width">
                             <div class="avatar bg-label-warning">
                                 <i class="ti ti-world"></i>
                             </div>
@@ -937,27 +254,27 @@
         <div class="col-12">
             <div class="row mb-4 d-none d-md-flex">
                 <div class="col-lg-6 mb-4">
-            <div class="card desktop-team-card">
-                <div class="card-header border-bottom">
+            <div class="c-card desktop-team-card">
+                <div class="c-card__header border-bottom">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
+                        <h5 class="c-card__title mb-0">
                             <a href="{{ url_for('teams.team_details', team_id=match.home_team.id) }}" class="text-decoration-none">
                                 {{ match.home_team.name }}
                             </a>
-                            <span class="badge bg-label-primary ms-2">Home</span>
+                            <span class="badge bg-label-primary ms-2" data-badge>Home</span>
                         </h5>
                         {% if safe_current_user.has_permission('view_team_record') %}
-                        <span class="badge bg-primary">
+                        <span class="badge bg-primary" data-badge>
                             Record: {{ match.home_team.wins }}-{{ match.home_team.losses }}-{{ match.home_team.ties }}
                         </span>
                         {% endif %}
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <!-- RSVP Summary Cards -->
                     <div class="row mb-3 rsvp-summary-row">
                         <div class="col-6 col-md-3 mb-2 mb-md-0">
-                            <div class="card bg-success bg-opacity-10 text-center p-2 h-100">
+                            <div class="c-card bg-success bg-opacity-10 text-center p-2 h-100">
                                 <div class="d-flex flex-column">
                                     <span class="fw-bold">{{ home_rsvp_data['available'] | length }}</span>
                                     <span class="small">Available</span>
@@ -965,7 +282,7 @@
                             </div>
                         </div>
                         <div class="col-6 col-md-3 mb-2 mb-md-0">
-                            <div class="card bg-warning bg-opacity-10 text-center p-2 h-100">
+                            <div class="c-card bg-warning bg-opacity-10 text-center p-2 h-100">
                                 <div class="d-flex flex-column">
                                     <span class="fw-bold">{{ home_rsvp_data['maybe'] | length }}</span>
                                     <span class="small">Maybe</span>
@@ -973,7 +290,7 @@
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="card bg-danger bg-opacity-10 text-center p-2 h-100">
+                            <div class="c-card bg-danger bg-opacity-10 text-center p-2 h-100">
                                 <div class="d-flex flex-column">
                                     <span class="fw-bold">{{ home_rsvp_data['not_available'] | length }}</span>
                                     <span class="small">Unavailable</span>
@@ -981,7 +298,7 @@
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="card bg-secondary bg-opacity-10 text-center p-2 h-100">
+                            <div class="c-card bg-secondary bg-opacity-10 text-center p-2 h-100">
                                 <div class="d-flex flex-column">
                                     <span class="fw-bold">{{ home_rsvp_data['no_response'] | length }}</span>
                                     <span class="small">No Response</span>
@@ -1037,7 +354,7 @@
                                          alt="{{ player.name }}" class="rounded-circle">
                                 </div>
                                 <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="player-name-desktop-compact">{{ player.name }}</a>
-                                <span class="badge badge-sm bg-light text-muted me-1">Sub</span>
+                                <span class="badge badge-sm bg-light text-muted me-1" data-badge>Sub</span>
                                 <i class="ti ti-check text-success status-icon-desktop"></i>
                             </div>
                             {% endif %}
@@ -1049,27 +366,27 @@
 
         <!-- Away Team Card (Desktop) -->
         <div class="col-lg-6 mb-4">
-            <div class="card desktop-team-card">
-                <div class="card-header border-bottom">
+            <div class="c-card desktop-team-card">
+                <div class="c-card__header border-bottom">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
+                        <h5 class="c-card__title mb-0">
                             <a href="{{ url_for('teams.team_details', team_id=match.away_team.id) }}" class="text-decoration-none">
                                 {{ match.away_team.name }}
                             </a>
-                            <span class="badge bg-label-info ms-2">Away</span>
+                            <span class="badge bg-label-info ms-2" data-badge>Away</span>
                         </h5>
                         {% if safe_current_user.has_permission('view_team_record') %}
-                        <span class="badge bg-primary">
+                        <span class="badge bg-primary" data-badge>
                             Record: {{ match.away_team.wins }}-{{ match.away_team.losses }}-{{ match.away_team.ties }}
                         </span>
                         {% endif %}
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <!-- RSVP Summary Cards -->
                     <div class="row mb-3 rsvp-summary-row">
                         <div class="col-6 col-md-3 mb-2 mb-md-0">
-                            <div class="card bg-success bg-opacity-10 text-center p-2 h-100">
+                            <div class="c-card bg-success bg-opacity-10 text-center p-2 h-100">
                                 <div class="d-flex flex-column">
                                     <span class="fw-bold">{{ away_rsvp_data['available'] | length }}</span>
                                     <span class="small">Available</span>
@@ -1077,7 +394,7 @@
                             </div>
                         </div>
                         <div class="col-6 col-md-3 mb-2 mb-md-0">
-                            <div class="card bg-warning bg-opacity-10 text-center p-2 h-100">
+                            <div class="c-card bg-warning bg-opacity-10 text-center p-2 h-100">
                                 <div class="d-flex flex-column">
                                     <span class="fw-bold">{{ away_rsvp_data['maybe'] | length }}</span>
                                     <span class="small">Maybe</span>
@@ -1085,7 +402,7 @@
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="card bg-danger bg-opacity-10 text-center p-2 h-100">
+                            <div class="c-card bg-danger bg-opacity-10 text-center p-2 h-100">
                                 <div class="d-flex flex-column">
                                     <span class="fw-bold">{{ away_rsvp_data['not_available'] | length }}</span>
                                     <span class="small">Unavailable</span>
@@ -1093,7 +410,7 @@
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="card bg-secondary bg-opacity-10 text-center p-2 h-100">
+                            <div class="c-card bg-secondary bg-opacity-10 text-center p-2 h-100">
                                 <div class="d-flex flex-column">
                                     <span class="fw-bold">{{ away_rsvp_data['no_response'] | length }}</span>
                                     <span class="small">No Response</span>
@@ -1149,7 +466,7 @@
                                          alt="{{ player.name }}" class="rounded-circle">
                                 </div>
                                 <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="player-name-desktop-compact">{{ player.name }}</a>
-                                <span class="badge badge-sm bg-light text-muted me-1">Sub</span>
+                                <span class="badge badge-sm bg-light text-muted me-1" data-badge>Sub</span>
                                 <i class="ti ti-check text-success status-icon-desktop"></i>
                             </div>
                             {% endif %}
@@ -1168,23 +485,23 @@
         {% if is_ecs_fc_match %}
         <!-- ECS FC Match - Single Team Layout -->
         <div class="col-12 mb-4">
-            <div class="card">
-                <div class="card-header border-bottom">
+            <div class="c-card">
+                <div class="c-card__header border-bottom">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
+                        <h5 class="c-card__title mb-0">
                             <i class="fas fa-futbol me-2"></i>{{ team.name }} Squad
                         </h5>
-                        <span class="badge bg-warning">
+                        <span class="badge bg-warning" data-badge>
                             <i class="fas fa-futbol me-1"></i>ECS FC
                         </span>
                     </div>
                 </div>
-                <div class="card-body p-3">
+                <div class="c-card__body p-3">
                     <!-- RSVP Summary -->
                     <div class="d-flex justify-content-between mb-3">
                         <h6 class="fw-bold mb-0">RSVP Summary</h6>
                         {% if safe_current_user.has_permission('view_team_record') %}
-                        <span class="badge bg-primary">
+                        <span class="badge bg-primary" data-badge>
                             <i class="fas fa-futbol me-1"></i>ECS FC Team
                         </span>
                         {% endif %}
@@ -1217,7 +534,7 @@
                     <!-- Desktop RSVP Summary Cards -->
                     <div class="row mb-4 g-2 d-none d-md-flex">
                         <div class="col-6 col-sm-3 mb-2">
-                            <div class="card bg-success bg-opacity-10 text-center p-2 h-100">
+                            <div class="c-card bg-success bg-opacity-10 text-center p-2 h-100">
                                 <div class="d-flex align-items-center justify-content-around">
                                     <i class="ti ti-check fs-4 text-success"></i>
                                     <div class="d-flex flex-column ms-2">
@@ -1228,7 +545,7 @@
                             </div>
                         </div>
                         <div class="col-6 col-sm-3 mb-2">
-                            <div class="card bg-warning bg-opacity-10 text-center p-2 h-100">
+                            <div class="c-card bg-warning bg-opacity-10 text-center p-2 h-100">
                                 <div class="d-flex align-items-center justify-content-around">
                                     <i class="ti ti-question-mark fs-4 text-warning"></i>
                                     <div class="d-flex flex-column ms-2">
@@ -1239,7 +556,7 @@
                             </div>
                         </div>
                         <div class="col-6 col-sm-3">
-                            <div class="card bg-danger bg-opacity-10 text-center p-2 h-100">
+                            <div class="c-card bg-danger bg-opacity-10 text-center p-2 h-100">
                                 <div class="d-flex align-items-center justify-content-around">
                                     <i class="ti ti-x fs-4 text-danger"></i>
                                     <div class="d-flex flex-column ms-2">
@@ -1250,7 +567,7 @@
                             </div>
                         </div>
                         <div class="col-6 col-sm-3">
-                            <div class="card bg-secondary bg-opacity-10 text-center p-2 h-100">
+                            <div class="c-card bg-secondary bg-opacity-10 text-center p-2 h-100">
                                 <div class="d-flex align-items-center justify-content-around">
                                     <i class="ti ti-minus fs-4 text-secondary"></i>
                                     <div class="d-flex flex-column ms-2">
@@ -1266,18 +583,18 @@
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h6 class="fw-bold mb-0">Team Roster</h6>
                         <div class="dropdown">
-                            <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <button class="c-btn c-btn--sm c-btn--outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-dropdown-toggle>
                                 <i class="ti ti-sort-ascending"></i>
                                 {% if sort_by == 'name' %}A-Z{% elif sort_by == 'response' %}RSVP{% else %}Sort{% endif %}
                             </button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#" onclick="changeSort('default')">
+                            <ul class="dropdown-menu" data-dropdown-menu>
+                                <li><a class="dropdown-item js-change-sort" href="#" data-action="change-sort" data-sort-type="default">
                                     <i class="ti ti-list"></i> Default Order
                                 </a></li>
-                                <li><a class="dropdown-item" href="#" onclick="changeSort('name')">
+                                <li><a class="dropdown-item js-change-sort" href="#" data-action="change-sort" data-sort-type="name">
                                     <i class="ti ti-sort-a-z"></i> Alphabetical
                                 </a></li>
-                                <li><a class="dropdown-item" href="#" onclick="changeSort('response')">
+                                <li><a class="dropdown-item js-change-sort" href="#" data-action="change-sort" data-sort-type="response">
                                     <i class="ti ti-check"></i> By RSVP Status
                                 </a></li>
                             </ul>
@@ -1295,11 +612,11 @@
                                     <span class="avatar-status bg-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Coach"></span>
                                     {% endif %}
                                     {% if player.is_ref %}
-                                    <span class="avatar-status bg-warning" style="bottom: auto; top: 0;" data-bs-toggle="tooltip" data-bs-placement="top" title="Referee"></span>
+                                    <span class="avatar-status bg-warning avatar-badge-top" data-bs-toggle="tooltip" data-bs-placement="top" title="Referee" data-badge></span>
                                     {% endif %}
                                 </div>
                                 <div class="player-details">
-                                    <span class="fw-semibold d-block text-truncate" style="max-width: 120px;">{{ player.name }}</span>
+                                    <span class="fw-semibold player-name-truncate">{{ player.name }}</span>
                                 </div>
                             </a>
                             {% if safe_current_user.has_permission('view_rsvps') %}
@@ -1314,19 +631,19 @@
                                 {% endif %}
                                 
                                 {% if availability == 'yes' %}
-                                <span class="badge bg-success">
+                                <span class="badge bg-success" data-badge>
                                     <i class="ti ti-check"></i>
                                 </span>
                                 {% elif availability == 'no' %}
-                                <span class="badge bg-danger">
+                                <span class="badge bg-danger" data-badge>
                                     <i class="ti ti-x"></i>
                                 </span>
                                 {% elif availability == 'maybe' %}
-                                <span class="badge bg-warning">
+                                <span class="badge bg-warning" data-badge>
                                     <i class="ti ti-question-mark"></i>
                                 </span>
                                 {% else %}
-                                <span class="badge bg-secondary">
+                                <span class="badge bg-secondary" data-badge>
                                     <i class="ti ti-minus"></i>
                                 </span>
                                 {% endif %}
@@ -1348,17 +665,17 @@
                                         <span class="avatar-status bg-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Coach"></span>
                                         {% endif %}
                                         {% if player.is_ref %}
-                                        <span class="avatar-status bg-warning" style="bottom: auto; top: 0;" data-bs-toggle="tooltip" data-bs-placement="top" title="Referee"></span>
+                                        <span class="avatar-status bg-warning avatar-badge-top" data-bs-toggle="tooltip" data-bs-placement="top" title="Referee" data-badge></span>
                                         {% endif %}
                                     </div>
                                     <div class="player-details">
-                                        <span class="fw-semibold d-block text-truncate" style="max-width: 120px;">{{ player.name }}</span>
+                                        <span class="fw-semibold player-name-truncate">{{ player.name }}</span>
                                         <small class="text-muted">Substitute</small>
                                     </div>
                                 </a>
                                 {% if safe_current_user.has_permission('view_rsvps') %}
                                 <div class="player-status ms-auto">
-                                    <span class="badge bg-success">
+                                    <span class="badge bg-success" data-badge>
                                         <i class="ti ti-check"></i> Sub
                                     </span>
                                 </div>
@@ -1373,30 +690,30 @@
         {% else %}
         <!-- Regular Match - Mobile Team Tabs (visible on mobile only) -->
         <div class="col-12 d-md-none mb-4">
-            <div class="card">
-                <div class="card-header border-bottom p-0">
-                    <ul class="nav nav-tabs card-header-tabs nav-fill" role="tablist">
+            <div class="c-card">
+                <div class="c-card__header border-bottom p-0">
+                    <ul class="nav nav-tabs c-card__header c-card__header--tabs nav-fill" role="tablist" data-tabs>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="home-team-tab" data-bs-toggle="tab" data-bs-target="#home-team-content" type="button" role="tab" aria-controls="home-team-content" aria-selected="true">
-                                {{ match.home_team.name }} <span class="badge bg-label-primary">Home</span>
+                                {{ match.home_team.name }} <span class="badge bg-label-primary" data-badge>Home</span>
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="away-team-tab" data-bs-toggle="tab" data-bs-target="#away-team-content" type="button" role="tab" aria-controls="away-team-content" aria-selected="false">
-                                {{ match.away_team.name }} <span class="badge bg-label-info">Away</span>
+                                {{ match.away_team.name }} <span class="badge bg-label-info" data-badge>Away</span>
                             </button>
                         </li>
                     </ul>
                 </div>
-                <div class="card-body p-0">
+                <div class="c-card__body p-0">
                     <div class="tab-content">
                         <!-- Home Team Tab Content (Mobile) -->
-                        <div class="tab-pane fade show active p-3" id="home-team-content" role="tabpanel" aria-labelledby="home-team-tab">
+                        <div class="tab-pane fade show active p-3" id="home-team-content" role="tabpanel" aria-labelledby="home-team-tab" data-tab-pane>
                             <!-- RSVP Summary -->
                             <div class="d-flex justify-content-between mb-3">
                                 <h6 class="fw-bold mb-0">RSVP Summary</h6>
                                 {% if safe_current_user.has_permission('view_team_record') %}
-                                <span class="badge bg-primary">
+                                <span class="badge bg-primary" data-badge>
                                     Record: {{ match.home_team.wins }}-{{ match.home_team.losses }}-{{ match.home_team.ties }}
                                 </span>
                                 {% endif %}
@@ -1467,7 +784,7 @@
                                                  alt="{{ player.name }}" class="rounded-circle">
                                         </div>
                                         <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="player-name-compact">{{ player.name }}</a>
-                                        <span class="badge badge-xs bg-light text-muted me-1">Sub</span>
+                                        <span class="badge badge-xs bg-light text-muted me-1" data-badge>Sub</span>
                                         <i class="ti ti-check text-success status-icon-compact"></i>
                                     </div>
                                     {% endif %}
@@ -1476,12 +793,12 @@
                         </div>
                         
                         <!-- Away Team Tab Content (Mobile) -->
-                        <div class="tab-pane fade p-3" id="away-team-content" role="tabpanel" aria-labelledby="away-team-tab">
+                        <div class="tab-pane fade p-3" id="away-team-content" role="tabpanel" aria-labelledby="away-team-tab" data-tab-pane>
                             <!-- RSVP Summary -->
                             <div class="d-flex justify-content-between mb-3">
                                 <h6 class="fw-bold mb-0">RSVP Summary</h6>
                                 {% if safe_current_user.has_permission('view_team_record') %}
-                                <span class="badge bg-primary">
+                                <span class="badge bg-primary" data-badge>
                                     Record: {{ match.away_team.wins }}-{{ match.away_team.losses }}-{{ match.away_team.ties }}
                                 </span>
                                 {% endif %}
@@ -1554,7 +871,7 @@
                                                  alt="{{ player.name }}" class="rounded-circle">
                                         </div>
                                         <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="player-name-compact">{{ player.name }}</a>
-                                        <span class="badge badge-xs bg-light text-muted me-1">Sub</span>
+                                        <span class="badge badge-xs bg-light text-muted me-1" data-badge>Sub</span>
                                         <i class="ti ti-check text-success status-icon-compact"></i>
                                     </div>
                                     {% endif %}
@@ -1572,18 +889,18 @@
     <div class="mobile-action-bar">
         <div class="mobile-action-buttons">
             {% if safe_current_user.has_permission('view_rsvps') %}
-            <a href="{{ url_for('admin.rsvp_status', match_id='ecs_' + ecs_match.id|string if is_ecs_fc_match else match.id) }}" class="btn btn-primary">
+            <a href="{{ url_for('admin.rsvp_status', match_id='ecs_' + ecs_match.id|string if is_ecs_fc_match else match.id) }}" class="c-btn c-btn--primary">
                 <i class="ti ti-users me-1"></i>RSVPs
             </a>
             {% endif %}
             
             {% if safe_current_user.has_permission('view_match_reporting') %}
             {% if is_ecs_fc_match %}
-            <button class="btn btn-success edit-match-btn" data-match-id="ecs_{{ ecs_match.id }}" data-is-ecs-fc="true">
+            <button class="c-btn c-btn--success edit-match-btn" data-match-id="ecs_{{ ecs_match.id }}" data-is-ecs-fc="true">
                 <i class="ti ti-report me-1"></i>Report Match Results
             </button>
             {% else %}
-            <button class="btn btn-success edit-match-btn" data-match-id="{{ match.id }}">
+            <button class="c-btn c-btn--success edit-match-btn" data-match-id="{{ match.id }}">
                 <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %} me-1"></i>
                 {% if match.reported %}Edit Match Report{% else %}Submit Match Report{% endif %}
             </button>
@@ -1600,21 +917,24 @@
     // Make player choices globally available for the report_match.js script
     window.playerChoices = {{ player_choices | tojson | safe }};
     
-    // Function to change player sorting
-    function changeSort(sortType) {
-        const currentUrl = new URL(window.location.href);
-        
-        if (sortType === 'default') {
-            // Remove sort parameter to go back to default
-            currentUrl.searchParams.delete('sort');
-        } else {
-            // Add or update sort parameter
-            currentUrl.searchParams.set('sort', sortType);
+    // Event delegation for player sorting (standardized pattern)
+    document.addEventListener('click', function(e) {
+        const sortLink = e.target.closest('[data-action="change-sort"]');
+        if (sortLink) {
+            e.preventDefault();
+            const sortType = sortLink.dataset.sortType;
+            const currentUrl = new URL(window.location.href);
+
+            if (sortType === 'default') {
+                currentUrl.searchParams.delete('sort');
+            } else {
+                currentUrl.searchParams.set('sort', sortType);
+            }
+
+            window.location.href = currentUrl.toString();
         }
-        
-        window.location.href = currentUrl.toString();
-    }
-    
+    });
+
     document.addEventListener('DOMContentLoaded', function () {
         // Initialize tooltips
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -1624,168 +944,9 @@
         
         // Load match modals if they don't exist
         if (!document.getElementById('reportMatchModal-{{ match.id if match else ecs_match.id }}')) {
-        overflow-y: auto;
-    }
-    
-    .player-item:hover {
-        background-color: var(--bs-body-bg);
-    }
-    
-    .avatar {
-        position: relative;
-    }
-    
-    .avatar-md img {
-        width: 40px;
-        height: 40px;
-        object-fit: cover;
-    }
-    
-    .avatar-status {
-        position: absolute;
-        bottom: 0;
-        right: 0;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        border: 2px solid var(--bs-body-bg);
-    }
-    
-    /* Match Styling */
-    .match-detail-card {
-        border-radius: 0.5rem;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-        transition: box-shadow 0.3s ease;
-    }
-    
-    .match-detail-card:hover {
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    }
-    
-    /* RSVP Summary Counter */
-    .rsvp-counter {
-        transition: transform 0.2s ease;
-    }
-    
-    .rsvp-counter:hover {
-        transform: scale(1.05);
-    }
-    
-    /* Badge Pills */
-    .badge-pill {
-        border-radius: 50rem;
-        padding-right: 0.6em;
-        padding-left: 0.6em;
-    }
-    
-    /* Clean button styling */
-    .ecs-btn {
-        transform: none !important;
-        transition: all 0.2s ease-in-out !important;
-        box-shadow: none !important;
-    }
-    
-    /* Responsive Adjustments */
-    @media (max-width: 768px) {
-        .match-header-wrapper {
-            flex-direction: column;
+            console.log('Match modal not found - may need to be loaded dynamically');
         }
-        
-        .match-info .badge {
-            font-size: 0.7rem;
-        }
-        
-        .player-item {
-            padding-left: 0.5rem !important;
-            padding-right: 0.5rem !important;
-        }
-        
-        .player-details h6 {
-            font-size: 0.8rem;
-        }
-        
-        .player-details small {
-            font-size: 0.7rem;
-        }
-        
-        .player-status .badge {
-            font-size: 0.7rem;
-            padding: 0.25rem 0.5rem;
-        }
-        
-        .avatar-md img {
-            width: 30px;
-            height: 30px;
-        }
-        
-        .card-body {
-            padding: 1rem 0.5rem;
-        }
-        
-        /* Enhance report modal for mobile */
-        #reportMatchModal .modal-dialog {
-            margin: 10px;
-            max-width: calc(100% - 20px);
-        }
-        
-        #reportMatchModal .input-group {
-            flex-wrap: wrap;
-        }
-        
-        #reportMatchModal .input-group > * {
-            width: 100%;
-            margin-bottom: 5px;
-            border-radius: 0.375rem !important;
-        }
-        
-        /* Increase touch targets */
-        #reportMatchModal .btn {
-            min-height: 44px;
-        }
-    }
-    
-    @media (max-width: 576px) {
-        .match-info h1 {
-            font-size: 1.5rem;
-        }
-        
-        .match-info .badge {
-            font-size: 0.65rem;
-            padding: 0.25rem 0.5rem;
-        }
-        
-        .player-status {
-            margin-left: auto;
-        }
-        
-        .player-details {
-            max-width: 120px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        /* Better column management on phone */
-        .col-3 {
-            width: 50%;
-            margin-bottom: 10px;
-        }
-        
-        /* Ensure inputs are large enough for touch */
-        input, select, textarea, button {
-            font-size: 16px !important; /* Prevent iOS zoom */
-            min-height: 44px;
-        }
-        
-        /* Force form elements to stay visible */
-        .form-control, .form-select {
-            z-index: auto !important;
-        }
-        
-        /* Ensure buttons are big enough */
-        .btn {
-            padding: 0.4rem 0.75rem;
-            font-size: 0.9rem;
-        }
-    }
+    });
+</script>
 {% endblock %}
 

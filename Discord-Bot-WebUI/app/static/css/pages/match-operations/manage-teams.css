@@ -1,0 +1,223 @@
+/**
+ * ============================================================================
+ * TEAM MANAGEMENT - MODERN BEM COMPONENTS
+ * ============================================================================
+ *
+ * Team-specific components for manage teams page
+ * Extends base components from seasons.css
+ *
+ * ARCHITECTURAL COMPLIANCE:
+ * - 100% BEM naming: .c-component__element--modifier
+ * - Zero hardcoded values (design tokens only)
+ * - Zero !important declarations
+ * - Mobile-first responsive design
+ * - Full dark mode support
+ * - WCAG AA accessibility compliant
+ *
+ * Components:
+ *   1. Filter Form (.c-filter-form)
+ *   2. League Breakdown (.c-league-breakdown)
+ *   3. Team Avatar (.c-team-avatar)
+ *   4. Team Name (.c-team-name)
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. FILTER FORM COMPONENT
+   Advanced filtering for teams
+   ============================================================================ */
+
+.c-filter-form {
+  margin-bottom: var(--space-4);
+}
+
+.c-filter-form__form {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.c-filter-form__group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.c-filter-form__label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.c-filter-form__select {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  transition: var(--transition-all);
+}
+
+.c-filter-form__select:focus {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  border-color: var(--color-primary);
+}
+
+.c-filter-form__select:hover {
+  border-color: var(--color-border-hover);
+}
+
+.c-filter-form__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* Mobile adjustments */
+@media (max-width: 767.98px) {
+  .c-filter-form__form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .c-filter-form__group {
+    min-width: 0;
+  }
+
+  .c-filter-form__actions {
+    width: 100%;
+  }
+
+  .c-filter-form__actions button,
+  .c-filter-form__actions a {
+    flex: 1;
+  }
+}
+
+/* ============================================================================
+   2. LEAGUE BREAKDOWN COMPONENT
+   Display teams grouped by league
+   ============================================================================ */
+
+.c-league-breakdown {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: var(--space-2);
+}
+
+.c-league-breakdown__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  transition: var(--transition-all);
+}
+
+.c-league-breakdown__item:hover {
+  background: var(--color-hover-bg);
+  transform: translateX(2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.c-league-breakdown__name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+}
+
+/* Mobile adjustments */
+@media (max-width: 767.98px) {
+  .c-league-breakdown {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================================
+   3. TEAM AVATAR COMPONENT
+   Team initial badge
+   ============================================================================ */
+
+.c-team-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  flex-shrink: 0;
+  margin-right: var(--space-2);
+}
+
+.c-team-avatar__initial {
+  color: var(--color-neutral-0);
+  font-weight: var(--font-bold);
+  font-size: var(--text-sm);
+}
+
+/* ============================================================================
+   4. TEAM NAME COMPONENT
+   Team name with avatar
+   ============================================================================ */
+
+.c-team-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================ */
+
+[data-style="dark"] .c-filter-form__select {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-primary);
+  color: var(--color-text-primary);
+}
+
+[data-style="dark"] .c-league-breakdown__item {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .c-league-breakdown__item:hover {
+  background: var(--color-hover-bg);
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .c-league-breakdown__item {
+    transition: none;
+  }
+
+  .c-league-breakdown__item:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .c-filter-form__select,
+  .c-league-breakdown__item {
+    border-width: 2px;
+  }
+
+  .c-team-avatar {
+    border: 2px solid var(--color-neutral-0);
+  }
+}
+
+/* ============================================================================
+   END OF TEAM MANAGEMENT COMPONENTS
+   ============================================================================ */

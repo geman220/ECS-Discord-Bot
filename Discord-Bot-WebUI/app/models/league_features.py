@@ -11,6 +11,7 @@ This module contains models for various league features:
 - DraftOrderHistory: Draft order tracking
 - MessageCategory: Message categories
 - MessageTemplate: Message templates
+- LeagueSetting: Configurable league-specific settings
 """
 
 import logging
@@ -206,7 +207,22 @@ class MessageCategory(db.Model):
 class MessageTemplate(db.Model):
     """Model representing configurable message templates."""
     __tablename__ = 'message_templates'
-    
+
+    # Channel type constants
+    CHANNEL_DISCORD_DM = 'discord_dm'
+    CHANNEL_DISCORD_POST = 'discord_channel'
+    CHANNEL_SMS = 'sms'
+    CHANNEL_EMAIL = 'email'
+    CHANNEL_ANNOUNCEMENT = 'announcement'
+
+    CHANNEL_TYPES = [
+        (CHANNEL_DISCORD_DM, 'Discord DM'),
+        (CHANNEL_DISCORD_POST, 'Discord Channel Post'),
+        (CHANNEL_SMS, 'SMS Message'),
+        (CHANNEL_EMAIL, 'Email'),
+        (CHANNEL_ANNOUNCEMENT, 'System Announcement'),
+    ]
+
     id = db.Column(db.Integer, primary_key=True)
     category_id = db.Column(db.Integer, db.ForeignKey('message_categories.id', ondelete='CASCADE'), nullable=False)
     key = db.Column(db.String(100), nullable=False)
@@ -215,6 +231,9 @@ class MessageTemplate(db.Model):
     message_content = db.Column(db.Text, nullable=False)
     variables = db.Column(JSON, nullable=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+    # New fields for better UX
+    channel_type = db.Column(db.String(50), nullable=True)  # discord_dm, sms, email, etc.
+    usage_context = db.Column(db.Text, nullable=True)  # Human-readable description of when/where used
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
@@ -248,6 +267,59 @@ class MessageTemplate(db.Model):
             cls.key == template_key,
             cls.is_active == True
         ).first()
-    
+
+    def get_channel_type_display(self):
+        """Get human-readable channel type name."""
+        for value, display in self.CHANNEL_TYPES:
+            if value == self.channel_type:
+                return display
+        return self.channel_type or 'Not Specified'
+
     def __repr__(self):
         return f"<MessageTemplate: {self.category.name}.{self.key}>"
+
+
+class LeagueSetting(db.Model):
+    """Model for configurable league-specific information.
+
+    Stores league welcome messages, contact info, and display names
+    that can be edited by admins in the UI instead of being hardcoded
+    in the Discord bot.
+    """
+    __tablename__ = 'league_settings'
+
+    id = db.Column(db.Integer, primary_key=True)
+    league_key = db.Column(db.String(50), unique=True, nullable=False)  # pub_league_classic, pub_league_premier, ecs_fc
+    display_name = db.Column(db.String(100), nullable=False)  # Human-readable name
+    welcome_message = db.Column(db.Text, nullable=False)  # Message sent to new users
+    contact_info = db.Column(db.Text, nullable=False)  # How to get help
+    emoji = db.Column(db.String(10), nullable=True)  # Optional emoji for display
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    sort_order = db.Column(db.Integer, default=0, nullable=False)  # For display ordering
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        """Convert to dictionary for API responses."""
+        return {
+            'id': self.id,
+            'league_key': self.league_key,
+            'display_name': self.display_name,
+            'welcome_message': self.welcome_message,
+            'contact_info': self.contact_info,
+            'emoji': self.emoji,
+            'is_active': self.is_active,
+        }
+
+    @classmethod
+    def get_by_key(cls, league_key: str):
+        """Get league setting by key."""
+        return cls.query.filter_by(league_key=league_key, is_active=True).first()
+
+    @classmethod
+    def get_all_active(cls):
+        """Get all active league settings ordered by sort_order."""
+        return cls.query.filter_by(is_active=True).order_by(cls.sort_order).all()
+
+    def __repr__(self):
+        return f"<LeagueSetting: {self.league_key}>"

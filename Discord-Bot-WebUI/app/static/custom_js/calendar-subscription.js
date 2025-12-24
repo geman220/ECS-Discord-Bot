@@ -22,22 +22,17 @@ const CalendarSubscription = (function() {
 
     /**
      * Bind event handlers
+     * NOTE: Event handlers are now managed by the centralized EventDelegation system.
+     * Actions are registered in /app/static/js/event-delegation.js
+     * Elements use data-action and data-on-change attributes for delegation.
      */
     function bindEvents() {
-        // Copy URL button
-        document.getElementById('copySubscriptionUrl')?.addEventListener('click', copySubscriptionUrl);
-
-        // Regenerate token button
-        document.getElementById('regenerateSubscriptionToken')?.addEventListener('click', regenerateToken);
-
-        // Subscribe buttons
-        document.getElementById('subscribeWebcal')?.addEventListener('click', subscribeViaWebcal);
-        document.getElementById('subscribeGoogle')?.addEventListener('click', subscribeViaGoogle);
-
-        // Preference toggles
-        document.getElementById('subIncludeMatches')?.addEventListener('change', updatePreferences);
-        document.getElementById('subIncludeLeagueEvents')?.addEventListener('change', updatePreferences);
-        document.getElementById('subIncludeRefAssignments')?.addEventListener('change', updatePreferences);
+        // All event handlers moved to EventDelegation system:
+        // - copy-subscription-url (click)
+        // - regenerate-subscription-token (click)
+        // - subscribe-webcal (click)
+        // - subscribe-google (click)
+        // - update-calendar-preferences (change)
     }
 
     /**
@@ -82,11 +77,18 @@ const CalendarSubscription = (function() {
             urlInput.value = subscription.feed_url || '';
         }
 
-        // Update webcal URL
+        // Update webcal URL and feed URL for delegation
         const webcalUrl = subscription.webcal_url;
+        const feedUrl = subscription.feed_url;
+
         const webcalBtn = document.getElementById('subscribeWebcal');
         if (webcalBtn && webcalUrl) {
             webcalBtn.dataset.webcalUrl = webcalUrl;
+        }
+
+        const googleBtn = document.getElementById('subscribeGoogle');
+        if (googleBtn && feedUrl) {
+            googleBtn.dataset.feedUrl = feedUrl;
         }
 
         // Update preference toggles
@@ -121,135 +123,14 @@ const CalendarSubscription = (function() {
     }
 
     /**
-     * Copy subscription URL to clipboard
+     * NOTE: Event handler functions removed - now handled by EventDelegation system
+     * See /app/static/js/event-delegation.js for implementations:
+     * - copy-subscription-url
+     * - regenerate-subscription-token
+     * - subscribe-webcal
+     * - subscribe-google
+     * - update-calendar-preferences
      */
-    async function copySubscriptionUrl() {
-        const urlInput = document.getElementById('subscriptionUrl');
-        if (!urlInput || !urlInput.value) {
-            showToast('warning', 'No subscription URL available');
-            return;
-        }
-
-        try {
-            await navigator.clipboard.writeText(urlInput.value);
-            showToast('success', 'URL copied to clipboard');
-
-            // Visual feedback
-            const copyBtn = document.getElementById('copySubscriptionUrl');
-            if (copyBtn) {
-                const originalHtml = copyBtn.innerHTML;
-                copyBtn.innerHTML = '<i class="ti ti-check me-1"></i>Copied!';
-                setTimeout(() => {
-                    copyBtn.innerHTML = originalHtml;
-                }, 2000);
-            }
-        } catch (error) {
-            // Fallback for older browsers
-            urlInput.select();
-            document.execCommand('copy');
-            showToast('success', 'URL copied to clipboard');
-        }
-    }
-
-    /**
-     * Regenerate the subscription token
-     */
-    async function regenerateToken() {
-        if (!confirm('Are you sure you want to regenerate your subscription URL?\n\nYour existing calendar subscriptions will stop working and you will need to re-subscribe with the new URL.')) {
-            return;
-        }
-
-        setLoading(true);
-
-        try {
-            const response = await fetch('/api/calendar/subscription/regenerate', {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to regenerate token');
-            }
-
-            const data = await response.json();
-            subscription = data;
-            renderSubscription();
-            showToast('success', 'Subscription URL regenerated successfully');
-
-        } catch (error) {
-            console.error('Error regenerating token:', error);
-            showToast('error', 'Failed to regenerate subscription URL');
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    /**
-     * Subscribe via webcal:// protocol (iOS/macOS)
-     */
-    function subscribeViaWebcal() {
-        const btn = document.getElementById('subscribeWebcal');
-        const webcalUrl = btn?.dataset.webcalUrl || subscription?.webcal_url;
-
-        if (webcalUrl) {
-            window.location.href = webcalUrl;
-        } else {
-            showToast('warning', 'Subscription URL not available');
-        }
-    }
-
-    /**
-     * Subscribe via Google Calendar
-     */
-    function subscribeViaGoogle() {
-        if (!subscription?.feed_url) {
-            showToast('warning', 'Subscription URL not available');
-            return;
-        }
-
-        // Google Calendar subscription URL
-        const googleUrl = 'https://calendar.google.com/calendar/r?cid=' + encodeURIComponent(subscription.feed_url);
-        window.open(googleUrl, '_blank');
-    }
-
-    /**
-     * Update subscription preferences
-     */
-    async function updatePreferences() {
-        const preferences = {
-            include_team_matches: document.getElementById('subIncludeMatches')?.checked ?? true,
-            include_league_events: document.getElementById('subIncludeLeagueEvents')?.checked ?? true,
-            include_ref_assignments: document.getElementById('subIncludeRefAssignments')?.checked ?? true
-        };
-
-        try {
-            const response = await fetch('/api/calendar/subscription/preferences', {
-                method: 'PUT',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(preferences)
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to update preferences');
-            }
-
-            const data = await response.json();
-            subscription = { ...subscription, ...data };
-            showToast('success', 'Preferences updated');
-
-        } catch (error) {
-            console.error('Error updating preferences:', error);
-            showToast('error', 'Failed to update preferences');
-            // Revert UI to previous state
-            loadSubscription();
-        }
-    }
 
     /**
      * Set loading state
@@ -261,10 +142,10 @@ const CalendarSubscription = (function() {
         const content = document.getElementById('subscriptionContent');
 
         if (loadingIndicator) {
-            loadingIndicator.style.display = loading ? 'block' : 'none';
+            loadingIndicator.classList.toggle('u-hidden', !loading);
         }
         if (content) {
-            content.style.display = loading ? 'none' : 'block';
+            content.classList.toggle('u-hidden', loading);
         }
     }
 
@@ -276,7 +157,7 @@ const CalendarSubscription = (function() {
         const errorContainer = document.getElementById('subscriptionError');
         if (errorContainer) {
             errorContainer.textContent = message;
-            errorContainer.style.display = 'block';
+            errorContainer.classList.remove('u-hidden');
         }
     }
 
@@ -333,109 +214,116 @@ const CalendarSubscription = (function() {
         const { isReferee = false } = options;
 
         return `
-        <div class="card settings-card mb-4" id="calendarSubscriptionCard">
-            <div class="card-header d-flex align-items-center pb-2 border-bottom">
-                <div class="settings-icon bg-info bg-opacity-10 text-info me-3">
+        <div class="js-settings-card u-card u-mb-4" id="calendarSubscriptionCard">
+            <div class="u-card-header u-flex u-align-center u-pb-2 u-border-bottom">
+                <div class="js-settings-icon u-bg-info u-bg-opacity-10 u-text-info u-me-3">
                     <i class="ti ti-calendar-share"></i>
                 </div>
                 <div>
-                    <h5 class="card-title mb-0">Calendar Subscription</h5>
-                    <small class="text-muted">Sync your schedule to Google, Apple, or Outlook</small>
+                    <h5 class="u-card-title u-mb-0">Calendar Subscription</h5>
+                    <small class="u-text-muted">Sync your schedule to Google, Apple, or Outlook</small>
                 </div>
             </div>
-            <div class="card-body pt-3">
+            <div class="u-card-body u-pt-3">
                 <!-- Loading State -->
-                <div id="subscriptionLoading" class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
+                <div id="subscriptionLoading" class="u-text-center u-py-4">
+                    <div class="u-spinner u-text-primary" role="status">
+                        <span class="u-visually-hidden">Loading...</span>
                     </div>
-                    <p class="text-muted mt-2 mb-0">Loading subscription...</p>
+                    <p class="u-text-muted u-mt-2 u-mb-0">Loading subscription...</p>
                 </div>
 
                 <!-- Error State -->
-                <div id="subscriptionError" class="alert alert-danger" style="display: none;"></div>
+                <div id="subscriptionError" class="u-alert u-alert-danger u-hidden"></div>
 
                 <!-- Content -->
-                <div id="subscriptionContent" style="display: none;">
+                <div id="subscriptionContent" class="u-hidden">
                     <!-- Subscription URL -->
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Your Subscription URL</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="subscriptionUrl" readonly
+                    <div class="u-mb-3">
+                        <label class="u-form-label u-fw-semibold">Your Subscription URL</label>
+                        <div class="u-input-group">
+                            <input type="text" class="u-form-control" id="subscriptionUrl" readonly
                                    placeholder="Loading...">
-                            <button class="btn btn-outline-primary" type="button" id="copySubscriptionUrl">
-                                <i class="ti ti-copy me-1"></i>Copy
+                            <button class="js-copy-btn u-btn u-btn-outline-primary" type="button" id="copySubscriptionUrl"
+                                    data-action="copy-subscription-url">
+                                <i class="ti ti-copy u-me-1"></i>Copy
                             </button>
                         </div>
-                        <small class="text-muted">This is your personal calendar feed URL. Keep it private.</small>
+                        <small class="u-text-muted">This is your personal calendar feed URL. Keep it private.</small>
                     </div>
 
                     <!-- Quick Subscribe Buttons -->
-                    <div class="mb-4">
-                        <label class="form-label fw-semibold">Quick Subscribe</label>
-                        <div class="d-flex gap-2 flex-wrap">
-                            <button type="button" class="btn btn-outline-secondary" id="subscribeWebcal">
-                                <i class="ti ti-device-mobile me-1"></i>iOS / macOS
+                    <div class="u-mb-4">
+                        <label class="u-form-label u-fw-semibold">Quick Subscribe</label>
+                        <div class="u-flex u-gap-2 u-flex-wrap">
+                            <button type="button" class="js-subscribe-webcal u-btn u-btn-outline-secondary" id="subscribeWebcal"
+                                    data-action="subscribe-webcal">
+                                <i class="ti ti-device-mobile u-me-1"></i>iOS / macOS
                             </button>
-                            <button type="button" class="btn btn-outline-secondary" id="subscribeGoogle">
-                                <i class="ti ti-brand-google me-1"></i>Google Calendar
+                            <button type="button" class="js-subscribe-google u-btn u-btn-outline-secondary" id="subscribeGoogle"
+                                    data-action="subscribe-google">
+                                <i class="ti ti-brand-google u-me-1"></i>Google Calendar
                             </button>
                         </div>
-                        <small class="text-muted d-block mt-2">
+                        <small class="u-text-muted u-block u-mt-2">
                             For Outlook: Copy the URL above and add it as a subscription calendar.
                         </small>
                     </div>
 
                     <!-- Preferences -->
-                    <div class="mb-4">
-                        <label class="form-label fw-semibold">Include in Calendar</label>
-                        <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox" id="subIncludeMatches" checked>
-                            <label class="form-check-label" for="subIncludeMatches">
-                                <i class="ti ti-ball-football me-1"></i>Team Matches
+                    <div class="u-mb-4">
+                        <label class="u-form-label u-fw-semibold">Include in Calendar</label>
+                        <div class="u-form-check u-form-switch u-mb-2">
+                            <input class="u-form-check-input" type="checkbox" id="subIncludeMatches" checked
+                                   data-on-change="update-calendar-preferences">
+                            <label class="u-form-check-label" for="subIncludeMatches">
+                                <i class="ti ti-ball-football u-me-1"></i>Team Matches
                             </label>
                         </div>
-                        <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox" id="subIncludeLeagueEvents" checked>
-                            <label class="form-check-label" for="subIncludeLeagueEvents">
-                                <i class="ti ti-calendar-event me-1"></i>League Events
+                        <div class="u-form-check u-form-switch u-mb-2">
+                            <input class="u-form-check-input" type="checkbox" id="subIncludeLeagueEvents" checked
+                                   data-on-change="update-calendar-preferences">
+                            <label class="u-form-check-label" for="subIncludeLeagueEvents">
+                                <i class="ti ti-calendar-event u-me-1"></i>League Events
                             </label>
                         </div>
                         ${isReferee ? `
-                        <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox" id="subIncludeRefAssignments" checked>
-                            <label class="form-check-label" for="subIncludeRefAssignments">
-                                <i class="ti ti-whistle me-1"></i>Referee Assignments
+                        <div class="u-form-check u-form-switch u-mb-2">
+                            <input class="u-form-check-input" type="checkbox" id="subIncludeRefAssignments" checked
+                                   data-on-change="update-calendar-preferences">
+                            <label class="u-form-check-label" for="subIncludeRefAssignments">
+                                <i class="ti ti-whistle u-me-1"></i>Referee Assignments
                             </label>
                         </div>
-                        ` : '<div id="subIncludeRefAssignments" style="display:none;"></div>'}
+                        ` : '<div id="subIncludeRefAssignments" class="u-hidden"></div>'}
                     </div>
 
                     <!-- Stats -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-6">
-                            <div class="bg-light rounded p-3 text-center">
-                                <small class="text-muted d-block">Last Synced</small>
-                                <span class="fw-semibold" id="subLastAccessed">Never</span>
+                    <div class="u-row u-gap-3 u-mb-4">
+                        <div class="u-col-6">
+                            <div class="u-bg-light u-rounded u-p-3 u-text-center">
+                                <small class="u-text-muted u-block">Last Synced</small>
+                                <span class="u-fw-semibold" id="subLastAccessed">Never</span>
                             </div>
                         </div>
-                        <div class="col-6">
-                            <div class="bg-light rounded p-3 text-center">
-                                <small class="text-muted d-block">Total Syncs</small>
-                                <span class="fw-semibold" id="subAccessCount">0</span>
+                        <div class="u-col-6">
+                            <div class="u-bg-light u-rounded u-p-3 u-text-center">
+                                <small class="u-text-muted u-block">Total Syncs</small>
+                                <span class="u-fw-semibold" id="subAccessCount">0</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- Security -->
-                    <div class="border-top pt-3">
-                        <h6 class="fw-semibold text-muted small text-uppercase mb-2">Security</h6>
-                        <p class="text-muted small mb-3">
+                    <div class="u-border-top u-pt-3">
+                        <h6 class="u-fw-semibold u-text-muted u-small u-text-uppercase u-mb-2">Security</h6>
+                        <p class="u-text-muted u-small u-mb-3">
                             If you believe your subscription URL has been compromised, regenerate it below.
                             This will invalidate your current URL.
                         </p>
-                        <button type="button" class="btn btn-outline-danger btn-sm" id="regenerateSubscriptionToken">
-                            <i class="ti ti-refresh me-1"></i>Regenerate URL
+                        <button type="button" class="js-regenerate-token u-btn u-btn-outline-danger u-btn-sm" id="regenerateSubscriptionToken"
+                                data-action="regenerate-subscription-token">
+                            <i class="ti ti-refresh u-me-1"></i>Regenerate URL
                         </button>
                     </div>
                 </div>

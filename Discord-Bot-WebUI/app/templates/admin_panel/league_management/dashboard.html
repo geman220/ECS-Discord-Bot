@@ -2,6 +2,11 @@
 
 {% block panel_description %}League Management Hub - Centralized control for seasons, teams, and schedules{% endblock %}
 
+{% block custom_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/league-management.css') }}">
+{% endblock %}
+
 {% block breadcrumb_items %}
 <li class="breadcrumb-item active">League Management</li>
 {% endblock %}
@@ -10,19 +15,19 @@
 <div class="row">
     <!-- Welcome Card -->
     <div class="col-12 mb-4">
-        <div class="card bg-gradient-primary text-white">
-            <div class="card-body py-4">
-                <div class="d-flex justify-content-between align-items-center">
+        <div class="c-league-hero">
+            <div class="c-league-hero__body">
+                <div class="c-league-hero__content">
                     <div>
-                        <h4 class="text-white mb-2">
-                            <i class="ti ti-tournament me-2"></i>League Management Hub
+                        <h4 class="c-league-hero__title">
+                            <i class="ti ti-tournament"></i>League Management Hub
                         </h4>
-                        <p class="mb-0 opacity-75">
+                        <p class="c-league-hero__description">
                             Centralized management for seasons, teams, schedules, and Discord integration
                         </p>
                     </div>
-                    <a href="{{ url_for('admin_panel.season_wizard') }}" class="btn btn-light">
-                        <i class="ti ti-plus me-1"></i>New Season
+                    <a href="{{ url_for('admin_panel.season_wizard') }}" class="c-league-hero__btn">
+                        <i class="ti ti-plus"></i>New Season
                     </a>
                 </div>
             </div>
@@ -34,18 +39,18 @@
 <div class="row mb-4">
     <!-- Pub League Card -->
     <div class="col-lg-6 mb-4 mb-lg-0">
-        <div class="card h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="c-card h-100">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
                     <i class="ti ti-trophy text-warning me-2"></i>Pub League
                 </h5>
                 {% if stats.pub_league.current_season %}
-                <span class="badge bg-success">Active</span>
+                <span class="badge bg-success" data-badge>Active</span>
                 {% else %}
-                <span class="badge bg-secondary">No Active Season</span>
+                <span class="badge bg-secondary" data-badge>No Active Season</span>
                 {% endif %}
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if stats.pub_league.current_season %}
                 <div class="mb-3">
                     <h6 class="text-muted mb-1">Current Season</h6>
@@ -87,13 +92,13 @@
                 </div>
                 {% else %}
                 <div class="text-center py-4">
-                    <i class="ti ti-calendar-off text-muted" style="font-size: 3rem;"></i>
+                    <i class="ti ti-calendar-off text-muted icon-xxl"></i>
                     <p class="text-muted mt-2 mb-0">No active Pub League season</p>
                 </div>
                 {% endif %}
 
                 <div class="d-grid gap-2">
-                    <a href="{{ url_for('admin_panel.season_wizard') }}?type=pub_league" class="btn btn-outline-primary">
+                    <a href="{{ url_for('admin_panel.season_wizard') }}?type=pub_league" class="c-btn c-btn--outline-primary">
                         <i class="ti ti-plus me-1"></i>Create Pub League Season
                     </a>
                 </div>
@@ -103,18 +108,18 @@
 
     <!-- ECS FC Card -->
     <div class="col-lg-6">
-        <div class="card h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="c-card h-100">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
                     <i class="ti ti-ball-football text-primary me-2"></i>ECS FC
                 </h5>
                 {% if stats.ecs_fc.current_season %}
-                <span class="badge bg-success">Active</span>
+                <span class="badge bg-success" data-badge>Active</span>
                 {% else %}
-                <span class="badge bg-secondary">No Active Season</span>
+                <span class="badge bg-secondary" data-badge>No Active Season</span>
                 {% endif %}
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if stats.ecs_fc.current_season %}
                 <div class="mb-3">
                     <h6 class="text-muted mb-1">Current Season</h6>
@@ -151,13 +156,13 @@
                 </div>
                 {% else %}
                 <div class="text-center py-4">
-                    <i class="ti ti-calendar-off text-muted" style="font-size: 3rem;"></i>
+                    <i class="ti ti-calendar-off text-muted icon-xxl"></i>
                     <p class="text-muted mt-2 mb-0">No active ECS FC season</p>
                 </div>
                 {% endif %}
 
                 <div class="d-grid gap-2">
-                    <a href="{{ url_for('admin_panel.season_wizard') }}?type=ecs_fc" class="btn btn-outline-primary">
+                    <a href="{{ url_for('admin_panel.season_wizard') }}?type=ecs_fc" class="c-btn c-btn--outline-primary">
                         <i class="ti ti-plus me-1"></i>Create ECS FC Season
                     </a>
                 </div>
@@ -169,36 +174,28 @@
 <!-- Quick Actions -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
+        <div class="c-card">
+            <div class="c-card__header">
                 <h5 class="mb-0"><i class="ti ti-bolt me-2"></i>Quick Actions</h5>
             </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-3 col-6">
-                        <a href="{{ url_for('admin_panel.season_wizard') }}" class="btn btn-primary w-100 py-3">
-                            <i class="ti ti-plus d-block mb-1" style="font-size: 1.5rem;"></i>
-                            New Season
-                        </a>
-                    </div>
-                    <div class="col-md-3 col-6">
-                        <a href="{{ url_for('admin_panel.league_management_teams') }}" class="btn btn-outline-primary w-100 py-3">
-                            <i class="ti ti-users-group d-block mb-1" style="font-size: 1.5rem;"></i>
-                            Manage Teams
-                        </a>
-                    </div>
-                    <div class="col-md-3 col-6">
-                        <a href="{{ url_for('admin_panel.league_management_seasons') }}" class="btn btn-outline-primary w-100 py-3">
-                            <i class="ti ti-calendar d-block mb-1" style="font-size: 1.5rem;"></i>
-                            View Seasons
-                        </a>
-                    </div>
-                    <div class="col-md-3 col-6">
-                        <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="btn btn-outline-primary w-100 py-3">
-                            <i class="ti ti-calendar-event d-block mb-1" style="font-size: 1.5rem;"></i>
-                            Auto Schedule
-                        </a>
-                    </div>
+            <div class="c-card__body">
+                <div class="c-quick-actions">
+                    <a href="{{ url_for('admin_panel.season_wizard') }}" class="c-quick-action">
+                        <i class="ti ti-plus c-quick-action__icon"></i>
+                        New Season
+                    </a>
+                    <a href="{{ url_for('admin_panel.league_management_teams') }}" class="c-quick-action c-quick-action--outline">
+                        <i class="ti ti-users-group c-quick-action__icon"></i>
+                        Manage Teams
+                    </a>
+                    <a href="{{ url_for('admin_panel.league_management_seasons') }}" class="c-quick-action c-quick-action--outline">
+                        <i class="ti ti-calendar c-quick-action__icon"></i>
+                        View Seasons
+                    </a>
+                    <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="c-quick-action c-quick-action--outline">
+                        <i class="ti ti-calendar-event c-quick-action__icon"></i>
+                        Auto Schedule
+                    </a>
                 </div>
             </div>
         </div>
@@ -208,36 +205,36 @@
 <!-- Overall Stats -->
 <div class="row mb-4">
     <div class="col-md-3 col-6 mb-3 mb-md-0">
-        <div class="card">
-            <div class="card-body text-center">
-                <i class="ti ti-calendar text-primary mb-2" style="font-size: 2rem;"></i>
+        <div class="c-card">
+            <div class="c-card__body text-center">
+                <i class="ti ti-calendar text-primary mb-2 icon-xl"></i>
                 <h3 class="mb-0">{{ stats.total_seasons }}</h3>
                 <small class="text-muted">Total Seasons</small>
             </div>
         </div>
     </div>
     <div class="col-md-3 col-6 mb-3 mb-md-0">
-        <div class="card">
-            <div class="card-body text-center">
-                <i class="ti ti-users text-success mb-2" style="font-size: 2rem;"></i>
+        <div class="c-card">
+            <div class="c-card__body text-center">
+                <i class="ti ti-users text-success mb-2 icon-xl"></i>
                 <h3 class="mb-0">{{ stats.total_teams }}</h3>
                 <small class="text-muted">Total Teams</small>
             </div>
         </div>
     </div>
     <div class="col-md-3 col-6">
-        <div class="card">
-            <div class="card-body text-center">
-                <i class="ti ti-ball-football text-warning mb-2" style="font-size: 2rem;"></i>
+        <div class="c-card">
+            <div class="c-card__body text-center">
+                <i class="ti ti-ball-football text-warning mb-2 icon-xl"></i>
                 <h3 class="mb-0">{{ stats.total_matches }}</h3>
                 <small class="text-muted">Total Matches</small>
             </div>
         </div>
     </div>
     <div class="col-md-3 col-6">
-        <div class="card">
-            <div class="card-body text-center">
-                <i class="ti ti-brand-discord text-info mb-2" style="font-size: 2rem;"></i>
+        <div class="c-card">
+            <div class="c-card__body text-center">
+                <i class="ti ti-brand-discord text-info mb-2 icon-xl"></i>
                 <h3 class="mb-0">{{ stats.pub_league.teams_count + stats.ecs_fc.teams_count }}</h3>
                 <small class="text-muted">Active Teams</small>
             </div>
@@ -248,29 +245,29 @@
 <!-- Recent Activity -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="ti ti-history me-2"></i>Recent Activity</h5>
-                <a href="{{ url_for('admin_panel.league_management_history') }}" class="btn btn-sm btn-outline-primary">
+                <a href="{{ url_for('admin_panel.league_management_history') }}" class="c-btn c-btn--sm c-btn--outline-primary">
                     View All
                 </a>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if stats.recent_activity %}
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable mb-0" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Action</th>
-                                <th>Resource</th>
-                                <th>When</th>
+                                <th scope="col">Action</th>
+                                <th scope="col">Resource</th>
+                                <th scope="col">When</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for activity in stats.recent_activity[:5] %}
                             <tr>
                                 <td>
-                                    <span class="badge bg-label-primary">{{ activity.action }}</span>
+                                    <span class="badge bg-label-primary" data-badge>{{ activity.action }}</span>
                                 </td>
                                 <td>{{ activity.resource_type }} #{{ activity.resource_id }}</td>
                                 <td>
@@ -287,7 +284,7 @@
                 </div>
                 {% else %}
                 <div class="text-center py-4">
-                    <i class="ti ti-history text-muted" style="font-size: 2rem;"></i>
+                    <i class="ti ti-history text-muted icon-xl"></i>
                     <p class="text-muted mt-2 mb-0">No recent activity</p>
                 </div>
                 {% endif %}
@@ -299,28 +296,28 @@
 <!-- Links to Legacy Systems -->
 <div class="row mt-4">
     <div class="col-12">
-        <div class="card bg-body-tertiary">
-            <div class="card-body">
-                <h6 class="text-muted mb-3">
-                    <i class="ti ti-link me-1"></i>Legacy Systems (Fallback)
+        <div class="c-card c-legacy-card">
+            <div class="c-card__body">
+                <h6 class="c-legacy-card__title">
+                    <i class="ti ti-link"></i>Legacy Systems (Fallback)
                 </h6>
-                <div class="d-flex flex-wrap gap-2">
-                    <a href="{{ url_for('publeague.manage_teams') }}" class="btn btn-sm btn-outline-secondary">
+                <div class="c-legacy-card__links">
+                    <a href="{{ url_for('publeague.manage_teams') }}" class="c-btn c-btn--sm c-btn--outline-secondary">
                         <i class="ti ti-users me-1"></i>Pub League Teams
                     </a>
-                    <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="btn btn-sm btn-outline-secondary">
+                    <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="c-btn c-btn--sm c-btn--outline-secondary">
                         <i class="ti ti-calendar me-1"></i>Auto Schedule
                     </a>
-                    <a href="{{ url_for('admin_panel.match_operations') }}" class="btn btn-sm btn-outline-secondary">
+                    <a href="{{ url_for('admin_panel.match_operations') }}" class="c-btn c-btn--sm c-btn--outline-secondary">
                         <i class="ti ti-trophy me-1"></i>Match Operations
                     </a>
-                    <a href="{{ url_for('publeague.season.manage_seasons') }}" class="btn btn-sm btn-outline-secondary">
+                    <a href="{{ url_for('publeague.season.manage_seasons') }}" class="c-btn c-btn--sm c-btn--outline-secondary">
                         <i class="ti ti-calendar-stats me-1"></i>Season Management
                     </a>
                 </div>
-                <small class="text-muted d-block mt-2">
+                <p class="c-legacy-card__help">
                     These links provide access to the original management interfaces if needed.
-                </small>
+                </p>
             </div>
         </div>
     </div>

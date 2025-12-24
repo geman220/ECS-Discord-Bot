@@ -2,98 +2,172 @@
 
 {% block title %}Match Results - Admin Panel{% endblock %}
 
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.match_operations') }}">Match Operations</a>
+</li>
+<li class="breadcrumb-item active">Match Results</li>
+{% endblock %}
+
 {% block panel_content %}
-<div class="admin-panel-content">
-    <div class="row">
-        <div class="large-12 columns">
-            <h2>Match Results</h2>
-            
-            <div class="row">
-                <div class="large-4 columns">
-                    <div class="stat-card">
-                        <h5>Completed Matches</h5>
-                        <span class="stat-number">{{ stats.completed_matches }}</span>
-                    </div>
-                </div>
-                <div class="large-4 columns">
-                    <div class="stat-card">
-                        <h5>Pending Results</h5>
-                        <span class="stat-number">{{ stats.pending_results }}</span>
-                    </div>
-                </div>
-                <div class="large-4 columns">
-                    <div class="stat-card">
-                        <h5>Recent Results</h5>
-                        <span class="stat-number">{{ stats.recent_results|length }}</span>
-                    </div>
-                </div>
+
+<!-- Statistics Cards -->
+<div class="c-stats-grid" data-component="stats-grid">
+    <div class="c-stat-card c-stat-card--primary">
+        <div class="c-stat-card__content">
+            <div class="c-stat-card__body">
+                <h5 class="c-stat-card__value">{{ stats.completed_matches }}</h5>
+                <p class="c-stat-card__label">Completed Matches</p>
             </div>
-            
-            <div class="row">
-                <div class="large-6 columns">
-                    <h4>Matches Awaiting Results</h4>
-                    {% if pending_results %}
-                    <table>
-                        <thead>
+            <i class="ti ti-check c-stat-card__icon"></i>
+        </div>
+    </div>
+    <div class="c-stat-card c-stat-card--warning">
+        <div class="c-stat-card__content">
+            <div class="c-stat-card__body">
+                <h5 class="c-stat-card__value">{{ stats.pending_results }}</h5>
+                <p class="c-stat-card__label">Pending Results</p>
+            </div>
+            <i class="ti ti-clock c-stat-card__icon"></i>
+        </div>
+    </div>
+    <div class="c-stat-card c-stat-card--info">
+        <div class="c-stat-card__content">
+            <div class="c-stat-card__body">
+                <h5 class="c-stat-card__value">{{ stats.recent_results|length }}</h5>
+                <p class="c-stat-card__label">Recent Results</p>
+            </div>
+            <i class="ti ti-history c-stat-card__icon"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Match Results Content -->
+<div class="c-match-columns" data-component="match-columns">
+    <!-- Matches Awaiting Results -->
+    <div class="c-match-column" data-column-type="pending">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title">
+                    <i class="ti ti-clock"></i>
+                    Matches Awaiting Results
+                </h5>
+            </div>
+            <div class="c-card__body">
+                {% if pending_results %}
+                <div class="c-table-responsive">
+                    <table class="c-table">
+                        <thead class="c-table__head">
                             <tr>
-                                <th>Date</th>
-                                <th>Home Team</th>
-                                <th>Away Team</th>
-                                <th>Actions</th>
+                                <th class="c-table__header" scope="col">Date</th>
+                                <th class="c-table__header" scope="col">Home Team</th>
+                                <th class="c-table__header" scope="col">Away Team</th>
+                                <th class="c-table__header" scope="col">Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="c-table__body">
                             {% for match in pending_results %}
-                            <tr>
-                                <td>{{ match.date.strftime('%Y-%m-%d') if match.date else 'TBD' }}</td>
-                                <td>{{ match.home_team.name if match.home_team else 'TBD' }}</td>
-                                <td>{{ match.away_team.name if match.away_team else 'TBD' }}</td>
-                                <td>
-                                    <button class="button small" onclick="enterResult({{ match.id }})">Enter Result</button>
+                            <tr class="c-table__row">
+                                <td class="c-table__cell">{{ match.date.strftime('%Y-%m-%d') if match.date else 'TBD' }}</td>
+                                <td class="c-table__cell">{{ match.home_team.name if match.home_team else 'TBD' }}</td>
+                                <td class="c-table__cell">{{ match.away_team.name if match.away_team else 'TBD' }}</td>
+                                <td class="c-table__cell">
+                                    <button class="c-btn c-btn--sm c-btn--primary" data-action="enter-result" data-match-id="{{ match.id }}">
+                                        Enter Result
+                                    </button>
                                 </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
-                    {% else %}
-                    <p>No matches awaiting results.</p>
-                    {% endif %}
                 </div>
-                
-                <div class="large-6 columns">
-                    <h4>Recent Results</h4>
-                    {% if completed_matches %}
-                    <table>
-                        <thead>
+                {% else %}
+                <div class="c-empty-state c-empty-state--compact">
+                    <i class="ti ti-check-circle c-empty-state__icon"></i>
+                    <p class="c-empty-state__text">No matches awaiting results.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Results -->
+    <div class="c-match-column" data-column-type="recent">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title">
+                    <i class="ti ti-history"></i>
+                    Recent Results
+                </h5>
+            </div>
+            <div class="c-card__body">
+                {% if completed_matches %}
+                <div class="c-table-responsive">
+                    <table class="c-table">
+                        <thead class="c-table__head">
                             <tr>
-                                <th>Date</th>
-                                <th>Teams</th>
-                                <th>Score</th>
+                                <th class="c-table__header" scope="col">Date</th>
+                                <th class="c-table__header" scope="col">Teams</th>
+                                <th class="c-table__header" scope="col">Score</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="c-table__body">
                             {% for match in completed_matches[:10] %}
-                            <tr>
-                                <td>{{ match.date.strftime('%Y-%m-%d') if match.date else 'N/A' }}</td>
-                                <td>{{ match.home_team.name if match.home_team else 'TBD' }} vs {{ match.away_team.name if match.away_team else 'TBD' }}</td>
-                                <td>{{ match.home_team_score }}-{{ match.away_team_score }}</td>
+                            <tr class="c-table__row">
+                                <td class="c-table__cell">{{ match.date.strftime('%Y-%m-%d') if match.date else 'N/A' }}</td>
+                                <td class="c-table__cell">{{ match.home_team.name if match.home_team else 'TBD' }} vs {{ match.away_team.name if match.away_team else 'TBD' }}</td>
+                                <td class="c-table__cell">
+                                    <span class="c-badge c-badge--success">{{ match.home_team_score }}-{{ match.away_team_score }}</span>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
-                    {% else %}
-                    <p>No completed matches found.</p>
-                    {% endif %}
                 </div>
+                {% else %}
+                <div class="c-empty-state c-empty-state--compact">
+                    <i class="ti ti-trophy c-empty-state__icon"></i>
+                    <p class="c-empty-state__text">No completed matches found.</p>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
+{% endblock %}
+
+{% block custom_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/match-operations/seasons.css') }}">
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
 <script>
+// Event delegation for match result actions
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        const matchId = target.dataset.matchId;
+
+        switch(action) {
+            case 'enter-result':
+                enterResult(matchId);
+                break;
+        }
+    });
+});
+
 function enterResult(matchId) {
-    // Placeholder for result entry functionality
-    alert('Result entry feature will be implemented here');
+    Swal.fire({
+        title: 'Enter Match Result',
+        text: 'Result entry feature will be implemented here',
+        icon: 'info'
+    });
 }
 </script>
 {% endblock %}

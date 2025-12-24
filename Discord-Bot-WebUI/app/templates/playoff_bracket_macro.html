@@ -13,14 +13,14 @@
 
     {# Loading state #}
     <div class="bracket-loading text-center py-5">
-        <div class="spinner-border text-primary" role="status">
+        <div class="spinner-border text-primary" role="status" data-spinner>
             <span class="visually-hidden">Loading playoff bracket...</span>
         </div>
         <p class="text-muted mt-2">Loading playoff bracket...</p>
     </div>
 
     {# Error state (hidden by default) #}
-    <div class="bracket-error alert alert-warning d-none">
+    <div class="bracket-error alert alert-warning d-none" data-alert>
         <i class="ti ti-alert-circle me-2"></i>
         <span class="bracket-error-message">No playoff data available</span>
     </div>
@@ -34,7 +34,7 @@
                 Playoff Bracket
             </h3>
             <p class="text-muted mb-0">
-                <span class="badge bg-label-info">
+                <span class="badge bg-label-info" data-badge>
                     <i class="ti ti-calendar me-1"></i>
                     <span class="bracket-status-text">Group Stage in Progress</span>
                 </span>
@@ -46,13 +46,13 @@
             <div class="row g-4">
                 {# Left side - Group A #}
                 <div class="col-lg-6 col-12">
-                    <div class="card border-primary">
-                        <div class="card-header bg-primary text-white">
+                    <div class="c-card border-primary">
+                        <div class="c-card__header bg-primary text-white">
                             <h5 class="mb-0">
                                 <i class="ti ti-users me-2"></i>Group A
                             </h5>
                         </div>
-                        <div class="card-body">
+                        <div class="c-card__body">
                             {# Group A matches #}
                             <div class="group-matches" id="groupAMatches">
                                 {# Populated by JavaScript #}
@@ -73,13 +73,13 @@
 
                 {# Right side - Group B #}
                 <div class="col-lg-6 col-12">
-                    <div class="card border-info">
-                        <div class="card-header bg-info text-white">
+                    <div class="c-card border-info">
+                        <div class="c-card__header bg-info text-white">
                             <h5 class="mb-0">
                                 <i class="ti ti-users me-2"></i>Group B
                             </h5>
                         </div>
-                        <div class="card-body">
+                        <div class="c-card__body">
                             {# Group B matches #}
                             <div class="group-matches" id="groupBMatches">
                                 {# Populated by JavaScript #}
@@ -101,13 +101,13 @@
 
             {# Placement Finals - Week 2 Afternoon #}
             <div class="placement-finals mt-4" id="placementFinals">
-                <div class="card border-warning">
-                    <div class="card-header bg-warning">
+                <div class="c-card border-warning">
+                    <div class="c-card__header bg-warning">
                         <h5 class="mb-0">
                             <i class="ti ti-trophy me-2"></i>Placement Finals - Week 2
                         </h5>
                     </div>
-                    <div class="card-body">
+                    <div class="c-card__body">
                         <div class="row g-3">
                             {# Championship and 7th place at 11:50 #}
                             <div class="col-md-6 col-12">
@@ -169,24 +169,39 @@
 </div>
 
 {# Include the bracket CSS #}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/features/playoff_bracket.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/features/playoff-bracket.css') }}">
 
 {# Include the bracket JavaScript #}
 <script src="{{ url_for('static', filename='custom_js/playoff_bracket.js') }}"></script>
 
-{# Initialize bracket on page load #}
+<!--
+MIGRATION NOTE: Playoff bracket system refactored for cleaner event handling
+All event handlers now use data-* attributes and .js-* classes for binding
+
+Event delegation implemented:
+- .js-open-match-report → data-action="open-match-report" with data-match-id
+- Match card clicks handled via delegated event listeners in playoff_bracket.js
+- Bracket initialization uses data attributes from .playoff-bracket-container
+
+The PlayoffBracket class in playoff_bracket.js handles:
+- Auto-initialization via DOMContentLoaded
+- Loading bracket data from API
+- Rendering match cards and group standings
+- Handling match report button clicks
+- Real-time updates via WebSocket (if enabled)
+-->
+
+{# Initialize bracket on page load - minimal inline script #}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const bracketContainer = document.querySelector('.playoff-bracket-container');
-    if (bracketContainer) {
+    if (bracketContainer && window.PlayoffBracket) {
         const leagueId = bracketContainer.dataset.leagueId;
         const seasonId = bracketContainer.dataset.seasonId;
         const currentTeamId = bracketContainer.dataset.currentTeam || null;
 
-        if (window.PlayoffBracket) {
-            window.playoffBracket = new PlayoffBracket(leagueId, seasonId, currentTeamId);
-            window.playoffBracket.initialize();
-        }
+        window.playoffBracket = new PlayoffBracket(leagueId, seasonId, currentTeamId);
+        window.playoffBracket.initialize();
     }
 });
 </script>
@@ -195,10 +210,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {# Compact match card for use within the bracket #}
 {% macro render_bracket_match_card(match_id) %}
-<div class="bracket-match-card"
+<div class="bracket-match-card js-bracket-match-card"
      data-match-id="{{ match_id }}"
-     data-bs-toggle="tooltip"
-     title="Click to report match">
+     role="article"
+     aria-label="Match card">
     <div class="match-teams">
         <div class="team home-team">
             <span class="team-name">TBD</span>
@@ -220,8 +235,10 @@ document.addEventListener('DOMContentLoaded', function() {
             <span class="location-text">TBD</span>
         </span>
     </div>
-    <button class="btn btn-sm btn-primary match-report-btn"
-            onclick="openMatchReportModal({{ match_id }})">
+    <button class="c-btn c-btn--sm c-btn--primary match-report-btn js-open-match-report"
+            data-action="open-match-report"
+            data-match-id="{{ match_id }}"
+            aria-label="Report match result">
         <i class="ti ti-pencil"></i>
         <span class="d-none d-md-inline">Report</span>
     </button>

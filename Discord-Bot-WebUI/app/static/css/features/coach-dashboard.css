@@ -1,0 +1,618 @@
+/**
+ * ============================================================================
+ * Coach Dashboard - Athletic Performance Aesthetic
+ * ============================================================================
+ *
+ * Bold, action-oriented interface with dynamic energy
+ * Features performance metrics styling and data visualization
+ *
+ * BEM Components:
+ *   - c-coach-dashboard: Main dashboard container
+ *   - c-team-stats: Team statistics cards
+ *   - c-player-roster: Player roster table
+ *   - c-match-card: Match reporting cards
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   COACH DASHBOARD CONTAINER
+   Main dashboard layout
+   ============================================================================ */
+
+.c-coach-dashboard {
+    --dashboard-spacing: var(--space-4);
+}
+
+.c-coach-dashboard__header {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-600) 100%);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    margin-bottom: var(--space-4);
+    color: var(--color-neutral-0);
+    box-shadow: var(--shadow-lg);
+}
+
+.c-coach-dashboard__title {
+    font-size: var(--text-3xl);
+    font-weight: var(--font-bold);
+    margin-bottom: var(--space-2);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.c-coach-dashboard__subtitle {
+    opacity: 0.9;
+    font-size: var(--text-base);
+}
+
+.c-coach-dashboard__teams {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+    margin-top: var(--space-2);
+}
+
+/* ============================================================================
+   TEAM STATS GRID
+   Performance statistics cards
+   ============================================================================ */
+
+.c-team-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+}
+
+.c-team-stats__card {
+    background: var(--color-bg-card);
+    border: var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    transition: all var(--duration-fast) var(--ease-smooth);
+    position: relative;
+    overflow: hidden;
+}
+
+.c-team-stats__card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--color-primary), var(--color-primary-400));
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-smooth);
+}
+
+.c-team-stats__card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.c-team-stats__card:hover::before {
+    opacity: 1;
+}
+
+.c-team-stats__header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+    padding-bottom: var(--space-2);
+    border-bottom: var(--border);
+}
+
+.c-team-stats__icon {
+    color: var(--color-primary);
+    font-size: var(--text-xl);
+}
+
+.c-team-stats__title {
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    color: var(--color-text-primary);
+    margin: 0;
+}
+
+.c-team-stats__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.c-team-stats__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.c-team-stats__label {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+}
+
+.c-team-stats__value {
+    font-weight: var(--font-bold);
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+    color: var(--color-text-primary);
+}
+
+.c-team-stats__value--primary {
+    color: var(--color-primary);
+}
+
+.c-team-stats__value--success {
+    color: var(--color-success);
+}
+
+.c-team-stats__value--danger {
+    color: var(--color-danger);
+}
+
+/* ============================================================================
+   PLAYER ROSTER
+   Enhanced roster table
+   ============================================================================ */
+
+.c-player-roster {
+    background: var(--color-bg-card);
+    border: var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: var(--space-4);
+}
+
+.c-player-roster__header {
+    background: var(--color-bg-secondary);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    transition: background var(--duration-fast) var(--ease-smooth);
+}
+
+.c-player-roster__header:hover {
+    background: var(--color-bg-tertiary);
+}
+
+.c-player-roster__title {
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    color: var(--color-text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.c-player-roster__count {
+    font-size: var(--text-sm);
+}
+
+.c-player-roster__toggle {
+    color: var(--color-text-secondary);
+    transition: transform var(--duration-fast) var(--ease-smooth);
+}
+
+.c-player-roster__header[aria-expanded="false"] .c-player-roster__toggle {
+    transform: rotate(-90deg);
+}
+
+.c-player-roster__table {
+    width: 100%;
+}
+
+.c-player-roster__table th {
+    background: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: var(--space-2) var(--space-3);
+}
+
+.c-player-roster__table td {
+    padding: var(--space-3);
+    border-bottom: var(--border);
+    font-size: var(--text-sm);
+}
+
+.c-player-roster__table tr:last-child td {
+    border-bottom: none;
+}
+
+.c-player-roster__table tr:hover {
+    background: var(--color-bg-secondary);
+}
+
+.c-player-roster__player-name {
+    font-weight: var(--font-semibold);
+    color: var(--color-text-primary);
+}
+
+.c-player-roster__stat-badge {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+}
+
+/* ============================================================================
+   MATCH CARDS
+   Match reporting interface
+   ============================================================================ */
+
+.c-match-section {
+    margin-bottom: var(--space-4);
+}
+
+.c-match-section__header {
+    font-size: var(--text-xl);
+    font-weight: var(--font-bold);
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-3);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.c-match-section__icon {
+    color: var(--color-primary);
+}
+
+.c-match-card-list {
+    background: var(--color-bg-card);
+    border: var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+/* Today's matches - special styling */
+.c-match-card-list--today {
+    border: 2px solid var(--color-warning);
+    box-shadow: 0 0 0 4px rgba(var(--color-warning-rgb), 0.1);
+}
+
+.c-match-card-list--today .c-match-card-list__header {
+    background: var(--color-warning);
+    color: var(--color-neutral-900);
+}
+
+/* Needs reporting - urgent styling */
+.c-match-card-list--urgent {
+    border: 2px solid var(--color-danger);
+    box-shadow: 0 0 0 4px rgba(var(--color-danger-rgb), 0.1);
+}
+
+.c-match-card-list--urgent .c-match-card-list__header {
+    background: var(--color-danger);
+    color: var(--color-neutral-0);
+}
+
+.c-match-card-list__header {
+    background: var(--color-bg-secondary);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.c-match-card-list__title {
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.c-match-card-list__count {
+    font-size: var(--text-sm);
+}
+
+.c-match-card {
+    padding: var(--space-4);
+    border-bottom: var(--border);
+    transition: background var(--duration-fast) var(--ease-smooth);
+}
+
+.c-match-card:last-child {
+    border-bottom: none;
+}
+
+.c-match-card:hover {
+    background: var(--color-bg-secondary);
+}
+
+.c-match-card__content {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: var(--space-4);
+}
+
+.c-match-card__teams {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.c-match-card__team {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.c-match-card__team-name {
+    font-weight: var(--font-semibold);
+    color: var(--color-text-primary);
+}
+
+.c-match-card__score {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xl);
+    font-weight: var(--font-bold);
+    min-width: 40px;
+    text-align: right;
+}
+
+.c-match-card__score--reported {
+    color: var(--color-primary);
+}
+
+.c-match-card__score--pending {
+    color: var(--color-text-muted);
+}
+
+.c-match-card__vs {
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    margin: var(--space-1) 0;
+}
+
+.c-match-card__meta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
+}
+
+.c-match-card__detail {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.c-match-card__actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.c-match-card__status {
+    margin-bottom: var(--space-2);
+}
+
+.c-match-card__rsvp {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-2);
+}
+
+.c-match-card__button {
+    width: 100%;
+}
+
+/* ============================================================================
+   EMPTY STATE
+   No access or no data states
+   ============================================================================ */
+
+.c-coach-empty {
+    background: var(--color-bg-card);
+    border: var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-8);
+    text-align: center;
+}
+
+.c-coach-empty__icon {
+    font-size: 4rem;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-3);
+}
+
+.c-coach-empty__title {
+    font-size: var(--text-xl);
+    font-weight: var(--font-semibold);
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-2);
+}
+
+.c-coach-empty__description {
+    color: var(--color-text-secondary);
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
+   Mobile optimizations
+   ============================================================================ */
+
+@media (max-width: 992px) {
+    .c-team-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .c-match-card__content {
+        grid-template-columns: 1fr;
+    }
+
+    .c-coach-dashboard__header {
+        padding: var(--space-4);
+    }
+
+    .c-coach-dashboard__title {
+        font-size: var(--text-2xl);
+    }
+}
+
+@media (max-width: 768px) {
+    .c-match-card__score {
+        font-size: var(--text-xl);
+    }
+
+    .c-player-roster__table th:not(:first-child):not(:last-child),
+    .c-player-roster__table td:not(:first-child):not(:last-child) {
+        display: none;
+    }
+
+    .c-coach-dashboard__teams {
+        flex-direction: column;
+    }
+}
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   Enhanced dark theme
+   ============================================================================ */
+
+[data-style="dark"] {
+    .c-coach-dashboard__header {
+        background: linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%);
+    }
+
+    .c-team-stats__card,
+    .c-player-roster,
+    .c-match-card-list,
+    .c-coach-empty {
+        background: var(--color-neutral-800);
+        border-color: var(--color-neutral-700);
+    }
+
+    .c-team-stats__card:hover {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .c-player-roster__header,
+    .c-match-card-list__header {
+        background: var(--color-neutral-900);
+    }
+
+    .c-player-roster__header:hover {
+        background: var(--color-neutral-800);
+    }
+
+    .c-match-card:hover,
+    .c-player-roster__table tr:hover {
+        background: var(--color-neutral-900);
+    }
+
+    .c-match-card-list--today {
+        border-color: var(--color-warning-500);
+    }
+
+    .c-match-card-list--urgent {
+        border-color: var(--color-danger-500);
+    }
+
+    .c-player-roster__table th {
+        background: var(--color-neutral-900);
+    }
+}
+
+/* ============================================================================
+   ANIMATIONS
+   Performance-focused micro-interactions
+   ============================================================================ */
+
+@keyframes statPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.c-team-stats__value--updated {
+    animation: statPulse 0.5s ease-out;
+}
+
+@keyframes urgentBlink {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.c-match-card-list--urgent .c-match-card-list__title::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    margin-right: var(--space-2);
+    animation: urgentBlink 1.5s ease-in-out infinite;
+}
+
+/* ============================================================================
+   UTILITY OVERRIDES
+   Chevron collapse rotation and mobile modal fixes
+   ============================================================================ */
+
+/* Collapse toggle chevron rotation */
+.card-header[data-bs-toggle="collapse"] .ti-chevron-down,
+[data-collapse-toggle] .ti-chevron-down {
+    transition: transform var(--duration-normal) var(--ease-smooth);
+}
+
+.card-header[aria-expanded="false"] .ti-chevron-down,
+[data-collapse-toggle][aria-expanded="false"] .ti-chevron-down {
+    transform: rotate(-90deg);
+}
+
+/* Cursor pointer utility */
+.u-cursor-pointer {
+    cursor: pointer;
+}
+
+/* Mobile modal fullscreen */
+@media (max-width: 767.98px) {
+    .ecs-modal .modal-dialog {
+        margin: 0;
+        max-width: 100%;
+        height: 100%;
+    }
+
+    .ecs-modal .modal-content {
+        height: 100%;
+        border-radius: 0;
+    }
+
+    /* Ensure touch-friendly button sizes */
+    .btn {
+        min-height: 44px;
+    }
+}
+
+/* Icon empty state styling */
+.icon-empty-state {
+    font-size: 4rem;
+    color: var(--color-text-muted);
+}

@@ -15,60 +15,60 @@
     <!-- Scheduled Messages Overview -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
+            <div class="c-card bg-primary text-white">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title text-white mb-1">{{ scheduled_messages|length }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Total Scheduled</p>
+                            <h5 class="c-card__title text-white mb-1">{{ scheduled_messages|length }}</h5>
+                            <p class="c-card__description small opacity-75 mb-0">Total Scheduled</p>
                         </div>
                         <div class="card-icon">
-                            <i class="ti ti-calendar-time" style="font-size: 2rem; opacity: 0.5;"></i>
+                            <i class="ti ti-calendar-time u-card-icon-stat"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
+            <div class="c-card bg-warning text-white">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title text-white mb-1">{{ pending_messages }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Pending</p>
+                            <h5 class="c-card__title text-white mb-1">{{ pending_messages }}</h5>
+                            <p class="c-card__description small opacity-75 mb-0">Pending</p>
                         </div>
                         <div class="card-icon">
-                            <i class="ti ti-clock-pause" style="font-size: 2rem; opacity: 0.5;"></i>
+                            <i class="ti ti-clock-pause u-card-icon-stat"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
+            <div class="c-card bg-success text-white">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title text-white mb-1">{{ sent_messages }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Sent Today</p>
+                            <h5 class="c-card__title text-white mb-1">{{ sent_messages }}</h5>
+                            <p class="c-card__description small opacity-75 mb-0">Sent Today</p>
                         </div>
                         <div class="card-icon">
-                            <i class="ti ti-send" style="font-size: 2rem; opacity: 0.5;"></i>
+                            <i class="ti ti-send u-card-icon-stat"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-danger text-white">
-                <div class="card-body">
+            <div class="c-card bg-danger text-white">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title text-white mb-1">{{ failed_messages }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Failed</p>
+                            <h5 class="c-card__title text-white mb-1">{{ failed_messages }}</h5>
+                            <p class="c-card__description small opacity-75 mb-0">Failed</p>
                         </div>
                         <div class="card-icon">
-                            <i class="ti ti-alert-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                            <i class="ti ti-alert-circle u-card-icon-stat"></i>
                         </div>
                     </div>
                 </div>
@@ -79,23 +79,23 @@
     <!-- Schedule New Message -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-plus me-2"></i>Schedule New Message
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <form method="POST" action="{{ url_for('admin_panel.create_scheduled_message') }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="message_title" class="form-label">Message Title</label>
-                                <input type="text" class="form-control" id="message_title" name="title" required>
+                                <input type="text" class="form-control" id="message_title" name="title" required data-form-control>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="message_type" class="form-label">Message Type</label>
-                                <select class="form-select" id="message_type" name="message_type" required>
+                                <select class="form-select" id="message_type" name="message_type" required data-form-select>
                                     <option value="">Select type...</option>
                                     <option value="announcement">Announcement</option>
                                     <option value="reminder">Reminder</option>
@@ -107,11 +107,11 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="schedule_date" class="form-label">Schedule Date</label>
-                                <input type="datetime-local" class="form-control" id="schedule_date" name="schedule_date" required>
+                                <input type="datetime-local" class="form-control" id="schedule_date" name="schedule_date" required data-form-control>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="target_channel" class="form-label">Target Channel</label>
-                                <select class="form-select" id="target_channel" name="target_channel" required>
+                                <select class="form-select" id="target_channel" name="target_channel" required data-form-select>
                                     <option value="">Select channel...</option>
                                     <option value="general">General</option>
                                     <option value="announcements">Announcements</option>
@@ -124,7 +124,7 @@
                         <div class="mb-3">
                             <label for="message_content" class="form-label">Message Content</label>
                             <textarea class="form-control" id="message_content" name="content" rows="4" required 
-                                      placeholder="Enter your message content here..."></textarea>
+                                      placeholder="Enter your message content here..." data-form-control></textarea>
                             <small class="form-text text-muted">You can use markdown formatting and mention @everyone or @here</small>
                         </div>
                         <div class="row">
@@ -136,9 +136,9 @@
                                     </label>
                                 </div>
                             </div>
-                            <div class="col-md-6 mb-3" id="recurrence_options" style="display: none;">
+                            <div class="col-md-6 mb-3 u-hidden" id="recurrence_options">
                                 <label for="recurrence_pattern" class="form-label">Recurrence Pattern</label>
-                                <select class="form-select" id="recurrence_pattern" name="recurrence_pattern">
+                                <select class="form-select" id="recurrence_pattern" name="recurrence_pattern" data-form-select>
                                     <option value="daily">Daily</option>
                                     <option value="weekly">Weekly</option>
                                     <option value="monthly">Monthly</option>
@@ -146,14 +146,14 @@
                             </div>
                         </div>
                         <div class="d-flex justify-content-between">
-                            <button type="button" class="btn btn-outline-secondary" onclick="window.history.back()">
+                            <button type="button" class="c-btn c-btn--outline-secondary js-go-back" data-action="go-back">
                                 <i class="ti ti-arrow-left me-1"></i>Back
                             </button>
                             <div>
-                                <button type="button" class="btn btn-outline-primary me-2" onclick="previewMessage()">
+                                <button type="button" class="c-btn c-btn--outline-primary me-2 js-preview-message" data-action="preview-message">
                                     <i class="ti ti-eye me-1"></i>Preview
                                 </button>
-                                <button type="submit" class="btn btn-success">
+                                <button type="submit" class="c-btn c-btn--success">
                                     <i class="ti ti-calendar-plus me-1"></i>Schedule Message
                                 </button>
                             </div>
@@ -167,38 +167,38 @@
     <!-- Scheduled Messages Queue -->
     <div class="row">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-list me-2"></i>Message Queue
                     </h5>
                     <div class="btn-group" role="group">
                         <input type="radio" class="btn-check" name="queue_filter" id="filter_all" autocomplete="off" checked>
-                        <label class="btn btn-outline-primary btn-sm" for="filter_all">All</label>
+                        <label class="c-btn c-btn--outline-primary c-btn--sm" for="filter_all">All</label>
                         
                         <input type="radio" class="btn-check" name="queue_filter" id="filter_pending" autocomplete="off">
-                        <label class="btn btn-outline-primary btn-sm" for="filter_pending">Pending</label>
+                        <label class="c-btn c-btn--outline-primary c-btn--sm" for="filter_pending">Pending</label>
                         
                         <input type="radio" class="btn-check" name="queue_filter" id="filter_sent" autocomplete="off">
-                        <label class="btn btn-outline-primary btn-sm" for="filter_sent">Sent</label>
+                        <label class="c-btn c-btn--outline-primary c-btn--sm" for="filter_sent">Sent</label>
                         
                         <input type="radio" class="btn-check" name="queue_filter" id="filter_failed" autocomplete="off">
-                        <label class="btn btn-outline-primary btn-sm" for="filter_failed">Failed</label>
+                        <label class="c-btn c-btn--outline-primary c-btn--sm" for="filter_failed">Failed</label>
                     </div>
                 </div>
-                <div class="card-body p-0">
+                <div class="c-card__body p-0">
                     {% if scheduled_messages %}
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
+                    <div class="c-table-wrapper" data-table-responsive>
+                        <table class="c-table c-table--hoverable mb-0" data-table>
+                            <thead class="c-table--light" scope="col">
                                 <tr>
-                                    <th>Message</th>
-                                    <th>Type</th>
-                                    <th>Channel</th>
-                                    <th>Scheduled For</th>
-                                    <th>Status</th>
-                                    <th>Created By</th>
-                                    <th>Actions</th>
+                                    <th scope="col">Message</th>
+                                    <th scope="col">Type</th>
+                                    <th scope="col">Channel</th>
+                                    <th scope="col">Scheduled For</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col">Created By</th>
+                                    <th scope="col">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -214,7 +214,7 @@
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="badge bg-secondary">{{ message.message_type|title }}</span>
+                                        <span class="badge bg-secondary" data-badge>{{ message.message_type|title }}</span>
                                     </td>
                                     <td>
                                         <i class="ti ti-hash me-1"></i>{{ message.target_channel }}
@@ -238,7 +238,7 @@
                                     </td>
                                     <td>
                                         {% set status = message.status or 'pending' %}
-                                        <span class="badge bg-{% if status == 'sent' %}success{% elif status == 'failed' %}danger{% elif status == 'cancelled' %}secondary{% else %}warning{% endif %}">
+                                        <span class="badge bg-{% if status == 'sent' %}success{% elif status == 'failed' %}danger{% elif status == 'cancelled' %}secondary{% else %}warning{% endif %}" data-badge>
                                             {{ status|title }}
                                         </span>
                                     </td>
@@ -247,22 +247,33 @@
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-info" 
-                                                    onclick="viewScheduledMessage({{ message.id }}, '{{ message.title }}')">
+                                            <button class="c-btn c-btn--outline-info js-view-message"
+                                                    data-action="view-scheduled-message"
+                                                    data-message-id="{{ message.id }}"
+                                                    data-title="{{ message.title }}">
                                                 <i class="ti ti-eye"></i>
                                             </button>
                                             {% if (message.status or 'pending') == 'pending' %}
-                                            <button class="btn btn-outline-warning" 
-                                                    onclick="editScheduledMessage({{ message.id }})">
+                                            <button class="c-btn c-btn--outline-warning js-edit-message"
+                                                    data-action="edit-scheduled-message"
+                                                    data-message-id="{{ message.id }}">
                                                 <i class="ti ti-edit"></i>
                                             </button>
-                                            <button class="btn btn-outline-danger" 
-                                                    onclick="cancelScheduledMessage({{ message.id }}, '{{ message.title }}')">
+                                            <button class="c-btn c-btn--outline-danger js-cancel-message"
+                                                    data-action="cancel-scheduled-message"
+                                                    data-message-id="{{ message.id }}"
+                                                    data-title="{{ message.title }}"
+                                                    data-cancel-url="{{ url_for('admin_panel.cancel_scheduled_message') }}"
+                                                    data-csrf-token="{{ csrf_token() }}">
                                                 <i class="ti ti-x"></i>
                                             </button>
                                             {% elif (message.status or 'pending') == 'failed' %}
-                                            <button class="btn btn-outline-success" 
-                                                    onclick="retryScheduledMessage({{ message.id }}, '{{ message.title }}')">
+                                            <button class="c-btn c-btn--outline-success js-retry-message"
+                                                    data-action="retry-scheduled-message"
+                                                    data-message-id="{{ message.id }}"
+                                                    data-title="{{ message.title }}"
+                                                    data-retry-url="{{ url_for('admin_panel.retry_scheduled_message') }}"
+                                                    data-csrf-token="{{ csrf_token() }}">
                                                 <i class="ti ti-refresh"></i>
                                             </button>
                                             {% endif %}
@@ -275,7 +286,7 @@
                     </div>
                     {% else %}
                     <div class="text-center py-5">
-                        <i class="ti ti-calendar-x text-muted" style="font-size: 4rem;"></i>
+                        <i class="ti ti-calendar-x text-muted u-text-4xl"></i>
                         <h5 class="text-muted mt-3">No scheduled messages</h5>
                         <p class="text-muted">Create your first scheduled message to get started.</p>
                     </div>
@@ -286,53 +297,53 @@
     </div>
 
     <!-- Message Details Modal -->
-    <div class="modal fade" id="messageDetailsModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="message_details_title">Message Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal c-modal fade" data-modal id="messageDetailsModal" tabindex="-1" aria-labelledby="message_details_title">
+        <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+            <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+                <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                    <h5 class="modal-title c-modal__title" id="message_details_title">Message Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
                 </div>
-                <div class="modal-body" id="message_details_content">
+                <div class="modal-body c-modal__body" data-modal-body id="message_details_content" data-modal-body aria-labelledby="message_details_contentLabel">
                     <!-- Message details will be loaded here -->
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Message Preview Modal -->
-    <div class="modal fade" id="messagePreviewModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Message Preview</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal c-modal fade" data-modal id="messagePreviewModal" tabindex="-1" aria-labelledby="message_details_contentLabel">
+        <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+            <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+                <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                    <h5 class="modal-title c-modal__title" id="message_details_contentLabel">Message Preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
                 </div>
-                <div class="modal-body">
-                    <div class="card">
-                        <div class="card-header">
+                <div class="modal-body c-modal__body" data-modal-body data-modal-body>
+                    <div class="c-card">
+                        <div class="c-card__header">
                             <div class="d-flex align-items-center">
                                 <i class="ti ti-hash me-2"></i>
                                 <span id="preview_channel">general</span>
-                                <span class="badge bg-primary ms-2" id="preview_type">announcement</span>
+                                <span class="badge bg-primary ms-2" id="preview_type" data-badge>announcement</span>
                             </div>
                         </div>
-                        <div class="card-body">
+                        <div class="c-card__body">
                             <h6 id="preview_title">Message Title</h6>
                             <div id="preview_content">Message content will appear here...</div>
                         </div>
-                        <div class="card-footer">
+                        <div class="c-card__footer">
                             <small class="text-muted">
                                 Scheduled for: <span id="preview_schedule">Not set</span>
                             </small>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
                 </div>
             </div>
         </div>
@@ -344,239 +355,6 @@
 {% endblock %}
 
 {% block custom_js %}
-<script>
-// Handle recurring message checkbox
-document.getElementById('is_recurring').addEventListener('change', function() {
-    const recurrenceOptions = document.getElementById('recurrence_options');
-    if (this.checked) {
-        recurrenceOptions.style.display = 'block';
-        document.getElementById('recurrence_pattern').required = true;
-    } else {
-        recurrenceOptions.style.display = 'none';
-        document.getElementById('recurrence_pattern').required = false;
-    }
-});
-
-// Handle queue filtering
-document.querySelectorAll('input[name="queue_filter"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-        const filterValue = this.id.replace('filter_', '');
-        const rows = document.querySelectorAll('.message-row');
-        
-        rows.forEach(row => {
-            const status = row.dataset.status;
-            
-            if (filterValue === 'all') {
-                row.style.display = '';
-            } else if (status === filterValue) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
-        });
-    });
-});
-
-function previewMessage() {
-    const title = document.getElementById('message_title').value;
-    const content = document.getElementById('message_content').value;
-    const type = document.getElementById('message_type').value;
-    const channel = document.getElementById('target_channel').value;
-    const scheduleDate = document.getElementById('schedule_date').value;
-    
-    if (!title || !content || !type || !channel) {
-        Swal.fire('Error', 'Please fill in all required fields before previewing', 'error');
-        return;
-    }
-    
-    document.getElementById('preview_title').textContent = title;
-    document.getElementById('preview_content').textContent = content;
-    document.getElementById('preview_type').textContent = type;
-    document.getElementById('preview_channel').textContent = channel;
-    document.getElementById('preview_schedule').textContent = scheduleDate || 'Not set';
-    
-    const modal = new bootstrap.Modal(document.getElementById('messagePreviewModal'));
-    modal.show();
-}
-
-function viewScheduledMessage(messageId, messageTitle) {
-    document.getElementById('message_details_title').textContent = `Details for "${messageTitle}"`;
-    document.getElementById('message_details_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
-
-    const modal = new bootstrap.Modal(document.getElementById('messageDetailsModal'));
-    modal.show();
-
-    // Load message details via AJAX
-    fetch(`/admin-panel/communication/scheduled-messages/${messageId}/details`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById('message_details_content').innerHTML = data.html;
-            } else {
-                document.getElementById('message_details_content').innerHTML = '<div class="alert alert-danger">Error loading message details</div>';
-            }
-        })
-        .catch(error => {
-            document.getElementById('message_details_content').innerHTML = '<div class="alert alert-danger">Error loading message details</div>';
-        });
-}
-
-function editScheduledMessage(messageId) {
-    // First fetch the message details
-    fetch(`/admin-panel/communication/scheduled-messages/${messageId}/details`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const message = data.message;
-                // Format the datetime for the input
-                const scheduledTime = message.scheduled_send_time ? message.scheduled_send_time.slice(0, 16) : '';
-
-                Swal.fire({
-                    title: 'Edit Scheduled Message',
-                    html: `
-                        <div class="text-start">
-                            <div class="mb-3">
-                                <label class="form-label">Message Type</label>
-                                <select id="editMessageType" class="form-select">
-                                    <option value="standard" ${message.message_type === 'standard' ? 'selected' : ''}>Standard</option>
-                                    <option value="announcement" ${message.message_type === 'announcement' ? 'selected' : ''}>Announcement</option>
-                                    <option value="reminder" ${message.message_type === 'reminder' ? 'selected' : ''}>Reminder</option>
-                                    <option value="notification" ${message.message_type === 'notification' ? 'selected' : ''}>Notification</option>
-                                    <option value="alert" ${message.message_type === 'alert' ? 'selected' : ''}>Alert</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Scheduled Time <span class="text-danger">*</span></label>
-                                <input type="datetime-local" id="editScheduledTime" class="form-control" value="${scheduledTime}">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Match ID</label>
-                                <input type="text" class="form-control" value="${message.match_id || 'N/A'}" disabled>
-                                <small class="text-muted">Match ID cannot be changed</small>
-                            </div>
-                        </div>
-                    `,
-                    showCancelButton: true,
-                    confirmButtonText: 'Save Changes',
-                    cancelButtonText: 'Cancel',
-                    preConfirm: () => {
-                        const scheduledTime = document.getElementById('editScheduledTime').value;
-                        if (!scheduledTime) {
-                            Swal.showValidationMessage('Scheduled time is required');
-                            return false;
-                        }
-                        return {
-                            message_type: document.getElementById('editMessageType').value,
-                            scheduled_time: scheduledTime
-                        };
-                    }
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        const formData = new FormData();
-                        formData.append('message_type', result.value.message_type);
-                        formData.append('scheduled_time', result.value.scheduled_time);
-
-                        fetch(`/admin-panel/communication/scheduled-messages/${messageId}/update`, {
-                            method: 'POST',
-                            body: formData
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                Swal.fire('Success', data.message, 'success').then(() => location.reload());
-                            } else {
-                                Swal.fire('Error', data.message, 'error');
-                            }
-                        })
-                        .catch(() => Swal.fire('Error', 'Failed to update message', 'error'));
-                    }
-                });
-            } else {
-                Swal.fire('Error', data.message, 'error');
-            }
-        })
-        .catch(() => Swal.fire('Error', 'Failed to load message details', 'error'));
-}
-
-function cancelScheduledMessage(messageId, messageTitle) {
-    Swal.fire({
-        title: 'Cancel Scheduled Message?',
-        text: `Cancel the scheduled message "${messageTitle}"? This action cannot be undone.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : 'var(--ecs-danger)',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-        confirmButtonText: 'Yes, cancel it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Create form and submit
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '{{ url_for("admin_panel.cancel_scheduled_message") }}';
-            
-            const csrfToken = document.createElement('input');
-            csrfToken.type = 'hidden';
-            csrfToken.name = 'csrf_token';
-            csrfToken.value = '{{ csrf_token() }}';
-            
-            const messageIdInput = document.createElement('input');
-            messageIdInput.type = 'hidden';
-            messageIdInput.name = 'message_id';
-            messageIdInput.value = messageId;
-            
-            form.appendChild(csrfToken);
-            form.appendChild(messageIdInput);
-            document.body.appendChild(form);
-            form.submit();
-        }
-    });
-}
-
-function retryScheduledMessage(messageId, messageTitle) {
-    Swal.fire({
-        title: 'Retry Scheduled Message?',
-        text: `Retry sending the failed message "${messageTitle}"?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : 'var(--ecs-success)',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-        confirmButtonText: 'Yes, retry!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Create form and submit
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '{{ url_for("admin_panel.retry_scheduled_message") }}';
-            
-            const csrfToken = document.createElement('input');
-            csrfToken.type = 'hidden';
-            csrfToken.name = 'csrf_token';
-            csrfToken.value = '{{ csrf_token() }}';
-            
-            const messageIdInput = document.createElement('input');
-            messageIdInput.type = 'hidden';
-            messageIdInput.name = 'message_id';
-            messageIdInput.value = messageId;
-            
-            form.appendChild(csrfToken);
-            form.appendChild(messageIdInput);
-            document.body.appendChild(form);
-            form.submit();
-        }
-    });
-}
-
-// Set minimum date to current date/time
-document.addEventListener('DOMContentLoaded', function() {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hour = String(now.getHours()).padStart(2, '0');
-    const minute = String(now.getMinutes()).padStart(2, '0');
-    
-    const minDateTime = `${year}-${month}-${day}T${hour}:${minute}`;
-    document.getElementById('schedule_date').min = minDateTime;
-});
-</script>
+{{ super() }}
+<script src="{{ url_for('static', filename='js/admin/scheduled-messages.js') }}"></script>
 {% endblock %}

@@ -4,6 +4,10 @@
 
 {% block panel_description %}Real-time ESPN data integration and live reporting control center{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/live-reporting-dashboard.css') }}">
+{% endblock %}
+
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{{ url_for('admin_panel.mls_overview') }}">MLS Management</a></li>
 <li class="breadcrumb-item active">Live Reporting</li>
@@ -11,23 +15,23 @@
 
 {% block panel_content %}
 <!-- Page Header -->
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0">
-        <i class="ti ti-broadcast me-2 text-primary"></i>Live Reporting Dashboard
+<div class="live-reporting-header">
+    <h4>
+        <i class="ti ti-broadcast"></i>Live Reporting Dashboard
     </h4>
-    <div>
-        <span class="badge bg-light text-dark me-2">
-            <i class="ti ti-refresh me-1" id="refreshIcon"></i>
+    <div class="d-flex align-items-center gap-2">
+        <span class="auto-refresh-badge" data-badge>
+            <i class="ti ti-refresh" id="refreshIcon"></i>
             Auto-refresh: <span id="countdown">30</span>s
         </span>
-        <button class="btn btn-outline-primary btn-sm" onclick="location.reload()">
+        <button class="c-btn c-btn--outline-primary c-btn--sm js-refresh-page" data-action="refresh-page">
             <i class="ti ti-refresh me-1"></i>Refresh Now
         </button>
     </div>
 </div>
 
 {% if error %}
-<div class="alert alert-danger mb-4">
+<div class="alert alert-danger mb-4" data-alert>
     <i class="ti ti-alert-circle me-2"></i>
     Error loading dashboard: {{ error }}
 </div>
@@ -37,15 +41,15 @@
 <div class="row mb-4">
     <!-- Real-time Service Status -->
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card h-100" style="border-left: 4px solid {% if realtime_health.health == 'healthy' %}var(--ecs-success, #198754){% elif realtime_health.health == 'degraded' %}var(--ecs-warning, #ffc107){% else %}var(--ecs-danger, #dc3545){% endif %};">
-            <div class="card-body">
+        <div class="c-card live-reporting-status-card h-100 {% if realtime_health.health == 'healthy' %}card-border-health-healthy{% elif realtime_health.health == 'degraded' %}card-border-health-degraded{% else %}card-border-health-unhealthy{% endif %}">
+            <div class="c-card__body">
                 <div class="d-flex align-items-center mb-2">
-                    <i class="ti ti-server me-2 text-primary" style="font-size: 1.5rem;"></i>
+                    <i class="ti ti-server me-2 text-primary icon-status-card"></i>
                     <h6 class="mb-0">Real-time Service</h6>
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <span class="badge bg-{% if realtime_health.health == 'healthy' %}success{% elif realtime_health.health == 'degraded' %}warning{% else %}danger{% endif %}">
+                        <span class="badge bg-{% if realtime_health.health == 'healthy' %}success{% elif realtime_health.health == 'degraded' %}warning{% else %}danger{% endif %}" data-badge>
                             {{ realtime_health.health|default('unknown')|title }}
                         </span>
                     </div>
@@ -58,9 +62,9 @@
                     </small>
                 </div>
                 {% if realtime_health.is_running %}
-                <small class="text-success mt-2 d-block"><i class="ti ti-check"></i> Service running</small>
+                <small class="live-reporting-success mt-2 d-block"><i class="ti ti-check"></i> Service running</small>
                 {% else %}
-                <small class="text-danger mt-2 d-block"><i class="ti ti-x"></i> Service offline</small>
+                <small class="live-reporting-danger mt-2 d-block"><i class="ti ti-x"></i> Service offline</small>
                 {% endif %}
             </div>
         </div>
@@ -68,13 +72,13 @@
 
     <!-- Active Sessions -->
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card h-100" style="border-left: 4px solid var(--ecs-primary, #0d6efd);">
-            <div class="card-body">
+        <div class="c-card live-reporting-status-card card-border-primary h-100">
+            <div class="c-card__body">
                 <div class="d-flex align-items-center mb-2">
-                    <i class="ti ti-player-play me-2 text-info" style="font-size: 1.5rem;"></i>
+                    <i class="ti ti-player-play me-2 text-info icon-status-card"></i>
                     <h6 class="mb-0">Active Sessions</h6>
                 </div>
-                <h3 class="mb-0 text-info">{{ stats.active_sessions }}</h3>
+                <h3 class="session-count mb-0">{{ stats.active_sessions }}</h3>
                 <small class="text-muted">Live reporting sessions</small>
                 {% if coordination_status.database_sessions %}
                 <div class="mt-2">
@@ -87,13 +91,13 @@
 
     <!-- Coordination Status -->
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card h-100" style="border-left: 4px solid {% if coordination_status.coordination_status == 'healthy' %}var(--ecs-success, #198754){% else %}var(--ecs-warning, #ffc107){% endif %};">
-            <div class="card-body">
+        <div class="c-card live-reporting-status-card h-100 {% if coordination_status.coordination_status == 'healthy' %}card-border-coordination-healthy{% else %}card-border-coordination-degraded{% endif %}">
+            <div class="c-card__body">
                 <div class="d-flex align-items-center mb-2">
-                    <i class="ti ti-link me-2 text-warning" style="font-size: 1.5rem;"></i>
+                    <i class="ti ti-link me-2 text-warning icon-status-card"></i>
                     <h6 class="mb-0">Coordination</h6>
                 </div>
-                <span class="badge bg-{% if coordination_status.coordination_status == 'healthy' %}success{% else %}warning{% endif %}">
+                <span class="badge bg-{% if coordination_status.coordination_status == 'healthy' %}success{% else %}warning{% endif %}" data-badge>
                     {{ coordination_status.coordination_status|default('unknown')|title }}
                 </span>
                 <small class="text-muted d-block mt-2">Celery ↔ Real-time Bridge</small>
@@ -103,10 +107,10 @@
 
     <!-- Upcoming Matches -->
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card h-100" style="border-left: 4px solid var(--ecs-neutral-50, #6c757d);">
-            <div class="card-body">
+        <div class="c-card live-reporting-status-card card-border-neutral h-100">
+            <div class="c-card__body">
                 <div class="d-flex align-items-center mb-2">
-                    <i class="ti ti-calendar me-2 text-secondary" style="font-size: 1.5rem;"></i>
+                    <i class="ti ti-calendar me-2 text-secondary icon-status-card"></i>
                     <h6 class="mb-0">Upcoming Matches</h6>
                 </div>
                 <h3 class="mb-0">{{ stats.upcoming_matches }}</h3>
@@ -120,25 +124,25 @@
 <div class="row">
     <!-- Active Sessions List -->
     <div class="col-lg-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
+        <div class="c-card h-100">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-broadcast me-2"></i>Active Sessions
                 </h5>
-                <a href="{{ url_for('admin_panel.mls_task_monitoring') }}" class="btn btn-sm btn-outline-primary">
+                <a href="{{ url_for('admin_panel.mls_task_monitoring') }}" class="c-btn c-btn--sm c-btn--outline-primary">
                     Task Monitor
                 </a>
             </div>
-            <div class="card-body p-0">
-                <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+            <div class="c-card__body p-0">
+                <div class="live-reporting-table-scroll">
                     {% if active_sessions %}
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light sticky-top">
+                    <table class="c-table c-table--hoverable live-reporting-table" data-table>
+                        <thead class="c-table--light sticky-top" scope="col">
                             <tr>
-                                <th>Match</th>
-                                <th>Status</th>
-                                <th>Updates</th>
-                                <th>Actions</th>
+                                <th scope="col">Match</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Updates</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -151,9 +155,9 @@
                                 </td>
                                 <td>
                                     {% if session.last_status %}
-                                    <span class="badge bg-info">{{ session.last_status }}</span>
+                                    <span class="badge bg-info" data-badge>{{ session.last_status }}</span>
                                     {% else %}
-                                    <span class="badge bg-secondary">Active</span>
+                                    <span class="badge bg-secondary" data-badge>Active</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -163,9 +167,7 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <button class="btn btn-xs btn-outline-danger"
-                                            onclick="stopSession({{ session.id }})"
-                                            title="Stop Session">
+                                    <button class="c-btn btn-xs c-btn--outline-danger live-reporting-action-btn js-stop-session" data-action="stop-session" data-session-id="{{ session.id }}" title="Stop Session">
                                         <i class="ti ti-player-stop"></i>
                                     </button>
                                 </td>
@@ -174,9 +176,9 @@
                         </tbody>
                     </table>
                     {% else %}
-                    <div class="text-center py-5 text-muted">
-                        <i class="ti ti-moon" style="font-size: 3rem;"></i>
-                        <p class="mt-2 mb-0">No active live reporting sessions</p>
+                    <div class="live-reporting-empty-state">
+                        <i class="ti ti-moon icon-empty-state"></i>
+                        <p>No active live reporting sessions</p>
                     </div>
                     {% endif %}
                 </div>
@@ -186,25 +188,25 @@
 
     <!-- Upcoming Matches List -->
     <div class="col-lg-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
+        <div class="c-card h-100">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-calendar me-2"></i>Upcoming Matches
                 </h5>
-                <a href="{{ url_for('admin_panel.mls_matches') }}" class="btn btn-sm btn-outline-primary">
+                <a href="{{ url_for('admin_panel.mls_matches') }}" class="c-btn c-btn--sm c-btn--outline-primary">
                     All Matches
                 </a>
             </div>
-            <div class="card-body p-0">
-                <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+            <div class="c-card__body p-0">
+                <div class="live-reporting-table-scroll">
                     {% if upcoming_matches %}
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light sticky-top">
+                    <table class="c-table c-table--hoverable live-reporting-table" data-table>
+                        <thead class="c-table--light sticky-top" scope="col">
                             <tr>
-                                <th>Match</th>
-                                <th>Date/Time</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th scope="col">Match</th>
+                                <th scope="col">Date/Time</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -228,22 +230,18 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <span class="badge" style="background-color: {{ match.status_color }};">
-                                        <i class="ti ti-{{ match.status_icon }} me-1"></i>
+                                    <span class="match-status-badge" data-status-color="{{ match.status_color }}" data-badge>
+                                        <i class="ti ti-{{ match.status_icon }}"></i>
                                         {{ match.status_display }}
                                     </span>
                                 </td>
                                 <td>
                                     {% if match.live_reporting_status != 'running' %}
-                                    <button class="btn btn-xs btn-outline-success"
-                                            onclick="startReporting({{ match.id }})"
-                                            title="Start Live Reporting">
+                                    <button class="c-btn btn-xs c-btn--outline-success live-reporting-action-btn js-start-reporting" data-action="start-reporting" data-match-id="{{ match.id }}" title="Start Live Reporting">
                                         <i class="ti ti-player-play"></i>
                                     </button>
                                     {% else %}
-                                    <button class="btn btn-xs btn-outline-danger"
-                                            onclick="stopReporting({{ match.id }})"
-                                            title="Stop Live Reporting">
+                                    <button class="c-btn btn-xs c-btn--outline-danger live-reporting-action-btn js-stop-reporting" data-action="stop-reporting" data-match-id="{{ match.id }}" title="Stop Live Reporting">
                                         <i class="ti ti-player-stop"></i>
                                     </button>
                                     {% endif %}
@@ -253,9 +251,9 @@
                         </tbody>
                     </table>
                     {% else %}
-                    <div class="text-center py-5 text-muted">
-                        <i class="ti ti-calendar-off" style="font-size: 3rem;"></i>
-                        <p class="mt-2 mb-0">No upcoming matches in next 14 days</p>
+                    <div class="live-reporting-empty-state">
+                        <i class="ti ti-calendar-off icon-empty-state"></i>
+                        <p>No upcoming matches in next 14 days</p>
                     </div>
                     {% endif %}
                 </div>
@@ -268,23 +266,23 @@
 {% if recent_sessions %}
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-history me-2"></i>Recent Sessions (Last 24 Hours)
                 </h5>
             </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
+            <div class="c-card__body p-0">
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable recent-sessions-table" data-table>
+                        <thead class="c-table--light" scope="col">
                             <tr>
-                                <th>Session ID</th>
-                                <th>Match</th>
-                                <th>Started</th>
-                                <th>Ended</th>
-                                <th>Updates</th>
-                                <th>Status</th>
+                                <th scope="col">Session ID</th>
+                                <th scope="col">Match</th>
+                                <th scope="col">Started</th>
+                                <th scope="col">Ended</th>
+                                <th scope="col">Updates</th>
+                                <th scope="col">Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -301,11 +299,11 @@
                                 <td>{{ session.update_count or 0 }}</td>
                                 <td>
                                     {% if session.is_active %}
-                                    <span class="badge bg-success">Active</span>
+                                    <span class="badge bg-success" data-badge>Active</span>
                                     {% elif session.ended_at %}
-                                    <span class="badge bg-secondary">Completed</span>
+                                    <span class="badge bg-secondary" data-badge>Completed</span>
                                     {% else %}
-                                    <span class="badge bg-warning">Unknown</span>
+                                    <span class="badge bg-warning" data-badge>Unknown</span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -321,8 +319,44 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
 const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+// Event delegation for live reporting buttons
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.js-refresh-page').forEach(btn => {
+        btn.addEventListener('click', function() {
+            location.reload();
+        });
+    });
+
+    document.querySelectorAll('.js-stop-session').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const sessionId = this.dataset.sessionId;
+            stopSession(sessionId);
+        });
+    });
+
+    document.querySelectorAll('.js-start-reporting').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const matchId = this.dataset.matchId;
+            startReporting(matchId);
+        });
+    });
+
+    document.querySelectorAll('.js-stop-reporting').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const matchId = this.dataset.matchId;
+            stopReporting(matchId);
+        });
+    });
+
+    // Apply dynamic status badge colors from data attributes
+    document.querySelectorAll('.match-status-badge[data-status-color]').forEach(badge => {
+        badge.style.backgroundColor = badge.dataset.statusColor;
+    });
+});
 
 // Auto-refresh countdown
 let countdown = 30;

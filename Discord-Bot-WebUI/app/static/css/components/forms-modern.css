@@ -1,0 +1,505 @@
+/**
+ * ============================================================================
+ * MODERN FORMS COMPONENT - ATHLETIC PRECISION
+ * ============================================================================
+ *
+ * Design: Clean, responsive forms with athletic focus states
+ * - Glowing focus (like navbar search)
+ * - Floating labels with smooth animation
+ * - Validation states with icons
+ * - Custom checkbox/radio designs
+ * - File uploads with previews
+ *
+ * Architecture:
+ * - BEM naming: c-form-modern, c-form-modern__input, etc.
+ * - Design tokens only
+ * - State classes: is-invalid, is-valid, is-focused
+ * - Event delegation: data-form-control, data-form-select, etc.
+ * - Zero !important
+ *
+ * Components:
+ * - Text inputs, textareas, selects
+ * - Checkboxes and radios (custom styled)
+ * - File uploads
+ * - Input groups (prefix/suffix)
+ * - Validation feedback
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   FORM GROUP - Container for label + input
+   ============================================================================ */
+
+.c-form-modern__group {
+  position: relative;
+  margin-bottom: var(--space-5);
+}
+
+.c-form-modern__group--inline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* ============================================================================
+   LABELS
+   ============================================================================ */
+
+.c-form-modern__label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+  line-height: var(--leading-tight);
+}
+
+.c-form-modern__label--required::after {
+  content: '*';
+  color: var(--color-danger);
+  margin-left: var(--space-1);
+}
+
+/* Floating label variant */
+.c-form-modern__label--floating {
+  position: absolute;
+  left: var(--space-4);
+  top: var(--space-3);
+  padding: 0 var(--space-1);
+  margin: 0;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-muted);
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
+}
+
+.c-form-modern__input:focus ~ .c-form-modern__label--floating,
+.c-form-modern__input:not(:placeholder-shown) ~ .c-form-modern__label--floating,
+.c-form-modern__input.is-filled ~ .c-form-modern__label--floating {
+  top: -0.625rem;
+  font-size: var(--text-xs);
+  color: var(--color-primary);
+}
+
+/* ============================================================================
+   TEXT INPUTS & TEXTAREAS
+   ============================================================================ */
+
+.c-form-modern__input {
+  /* Layout */
+  width: 100%;
+  display: block;
+
+  /* Spacing */
+  padding: var(--space-3) var(--space-4);
+
+  /* Typography */
+  font-size: var(--text-sm);
+  font-family: inherit;
+  font-weight: var(--font-normal);
+  color: var(--color-text-primary);
+  line-height: var(--leading-normal);
+
+  /* Visual */
+  background: var(--color-bg-elevated);
+  border: 2px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+
+  /* Interaction */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+
+.c-form-modern__input::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Focus state - athletic glow */
+.c-form-modern__input:focus {
+  border-color: var(--color-primary);
+  box-shadow:
+    0 0 0 4px rgba(14, 165, 233, 0.1),
+    0 4px 12px rgba(14, 165, 233, 0.08);
+  transform: translateY(-1px);
+}
+
+/* Dark mode */
+[data-style="dark"] .c-form-modern__input {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--color-neutral-200);
+}
+
+[data-style="dark"] .c-form-modern__input:focus {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 0 0 4px rgba(14, 165, 233, 0.2),
+    0 4px 12px rgba(14, 165, 233, 0.15);
+}
+
+/* Textarea */
+.c-form-modern__textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+/* 2FA/OTP Code Input */
+.c-form-modern__input--2fa {
+  text-align: center;
+  font-size: 1.5rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  letter-spacing: 0.5em;
+  padding-right: 0;
+}
+
+/* ============================================================================
+   SELECT DROPDOWNS
+   ============================================================================ */
+
+.c-form-modern__select {
+  /* Inherits input styles */
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-4) center;
+  padding-right: var(--space-10);
+  cursor: pointer;
+}
+
+[data-style="dark"] .c-form-modern__select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%9CA3AF' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+}
+
+/* ============================================================================
+   VALIDATION STATES
+   ============================================================================ */
+
+/* Invalid */
+.c-form-modern__input.is-invalid,
+.c-form-modern__input:invalid {
+  border-color: var(--color-danger);
+}
+
+.c-form-modern__input.is-invalid:focus {
+  box-shadow:
+    0 0 0 4px rgba(239, 68, 68, 0.1),
+    0 4px 12px rgba(239, 68, 68, 0.08);
+}
+
+/* Valid */
+.c-form-modern__input.is-valid {
+  border-color: var(--color-success);
+}
+
+.c-form-modern__input.is-valid:focus {
+  box-shadow:
+    0 0 0 4px rgba(16, 185, 129, 0.1),
+    0 4px 12px rgba(16, 185, 129, 0.08);
+}
+
+/* Feedback messages */
+.c-form-modern__feedback {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  font-size: var(--text-xs);
+  line-height: var(--leading-tight);
+}
+
+.c-form-modern__feedback--invalid {
+  color: var(--color-danger);
+}
+
+.c-form-modern__feedback--valid {
+  color: var(--color-success);
+}
+
+.c-form-modern__feedback--info {
+  color: var(--color-text-muted);
+}
+
+/* ============================================================================
+   CHECKBOXES & RADIOS - Custom styled
+   ============================================================================ */
+
+.c-form-modern__checkbox,
+.c-form-modern__radio {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+  user-select: none;
+  padding: var(--space-2) 0;
+}
+
+.c-form-modern__checkbox-input,
+.c-form-modern__radio-input {
+  /* Hide default */
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.c-form-modern__checkbox-box,
+.c-form-modern__radio-box {
+  position: relative;
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+
+  background: var(--color-bg-elevated);
+  border: 2px solid var(--color-border-primary);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.c-form-modern__checkbox-box {
+  border-radius: var(--radius-sm);
+}
+
+.c-form-modern__radio-box {
+  border-radius: 50%;
+}
+
+/* Checked state */
+.c-form-modern__checkbox-input:checked + .c-form-modern__checkbox-box,
+.c-form-modern__radio-input:checked + .c-form-modern__radio-box {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* Checkmark */
+.c-form-modern__checkbox-box::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.c-form-modern__checkbox-input:checked + .c-form-modern__checkbox-box::after {
+  transform: rotate(45deg) scale(1);
+}
+
+/* Radio dot */
+.c-form-modern__radio-box::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.c-form-modern__radio-input:checked + .c-form-modern__radio-box::after {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Focus state */
+.c-form-modern__checkbox-input:focus + .c-form-modern__checkbox-box,
+.c-form-modern__radio-input:focus + .c-form-modern__radio-box {
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
+}
+
+/* Checkbox label text (alternative structure) */
+.c-form-modern__checkbox-label {
+  flex: 1;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+/* ============================================================================
+   FILE UPLOAD
+   ============================================================================ */
+
+.c-form-modern__file {
+  position: relative;
+}
+
+.c-form-modern__file-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.c-form-modern__file-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+
+  background: var(--color-bg-elevated);
+  border: 2px dashed var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+.c-form-modern__file-label:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.c-form-modern__file-icon {
+  font-size: 2rem;
+  color: var(--color-text-muted);
+}
+
+.c-form-modern__file-text {
+  flex: 1;
+}
+
+.c-form-modern__file-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-1);
+}
+
+.c-form-modern__file-subtitle {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* ============================================================================
+   INPUT GROUPS - Prefix/Suffix
+   ============================================================================ */
+
+.c-form-modern__input-group {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.c-form-modern__input-group .c-form-modern__input {
+  flex: 1;
+}
+
+.c-form-modern__input-prefix,
+.c-form-modern__input-suffix {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-3);
+  background: var(--color-neutral-50);
+  border: 2px solid var(--color-border-primary);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.c-form-modern__input-prefix {
+  border-right: none;
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+
+.c-form-modern__input-suffix {
+  border-left: none;
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+}
+
+.c-form-modern__input-group .c-form-modern__input {
+  border-radius: 0;
+}
+
+.c-form-modern__input-group .c-form-modern__input:first-child {
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+
+.c-form-modern__input-group .c-form-modern__input:last-child {
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+}
+
+[data-style="dark"] .c-form-modern__input-prefix,
+[data-style="dark"] .c-form-modern__input-suffix {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================================================
+   SEARCH INPUT - Special variant with icon
+   ============================================================================ */
+
+.c-form-modern__search {
+  position: relative;
+}
+
+.c-form-modern__search-icon {
+  position: absolute;
+  left: var(--space-4);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.125rem;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.c-form-modern__search .c-form-modern__input {
+  padding-left: var(--space-10);
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .c-form-modern__group--inline {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .c-form-modern__input-group {
+    flex-direction: column;
+  }
+
+  .c-form-modern__input-prefix,
+  .c-form-modern__input-suffix {
+    border: 2px solid var(--color-border-primary);
+    border-radius: var(--radius-lg);
+  }
+
+  .c-form-modern__input-group .c-form-modern__input {
+    border-radius: var(--radius-lg);
+  }
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+.c-form-modern__input:focus-visible,
+.c-form-modern__checkbox-input:focus-visible + .c-form-modern__checkbox-box,
+.c-form-modern__radio-input:focus-visible + .c-form-modern__radio-box {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .c-form-modern__input,
+  .c-form-modern__checkbox-box,
+  .c-form-modern__radio-box,
+  .c-form-modern__file-label {
+    transition: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .c-form-modern__input,
+  .c-form-modern__checkbox-box,
+  .c-form-modern__radio-box {
+    border-width: 3px;
+  }
+}

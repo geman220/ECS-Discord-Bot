@@ -5,16 +5,16 @@
 {% block panel_content %}
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-speakerphone me-2"></i>{{ title }}
                 </h5>
-                <a href="{{ url_for('admin_panel.announcements') }}" class="btn btn-outline-secondary btn-sm">
+                <a href="{{ url_for('admin_panel.announcements') }}" class="c-btn c-btn--outline-secondary c-btn--sm">
                     <i class="ti ti-arrow-left me-1"></i>Back to Announcements
                 </a>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <form method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     
@@ -24,14 +24,14 @@
                                 <label for="title" class="form-label">Announcement Title *</label>
                                 <input type="text" class="form-control" id="title" name="title" 
                                        value="{{ announcement.title if announcement else '' }}" 
-                                       required maxlength="255">
+                                       required maxlength="255" data-form-control>
                                 <div class="form-text">Clear, concise title for the announcement</div>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="priority" class="form-label">Priority</label>
-                                <select class="form-select" id="priority" name="priority">
+                                <select class="form-select" id="priority" name="priority" data-form-select>
                                     <option value="low" {% if announcement and announcement.priority == 'low' %}selected{% endif %}>Low</option>
                                     <option value="normal" {% if not announcement or announcement.priority == 'normal' %}selected{% endif %}>Normal</option>
                                     <option value="medium" {% if announcement and announcement.priority == 'medium' %}selected{% endif %}>Medium</option>
@@ -45,7 +45,7 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="announcement_type" class="form-label">Type</label>
-                                <select class="form-select" id="announcement_type" name="announcement_type">
+                                <select class="form-select" id="announcement_type" name="announcement_type" data-form-select>
                                     <option value="general" {% if not announcement or announcement.announcement_type == 'general' %}selected{% endif %}>General</option>
                                     <option value="league" {% if announcement and announcement.announcement_type == 'league' %}selected{% endif %}>League</option>
                                     <option value="match" {% if announcement and announcement.announcement_type == 'match' %}selected{% endif %}>Match</option>
@@ -58,7 +58,7 @@
                     
                     <div class="mb-3">
                         <label for="content" class="form-label">Content *</label>
-                        <textarea class="form-control" id="content" name="content" rows="8" required>{{ announcement.content if announcement else '' }}</textarea>
+                        <textarea class="form-control" id="content" name="content" rows="8" required data-form-control>{{ announcement.content if announcement else '' }}</textarea>
                         <div class="form-text">Detailed announcement content. Supports basic HTML formatting.</div>
                     </div>
                     
@@ -67,16 +67,16 @@
                             <div class="d-flex justify-content-between">
                                 <div>
                                     {% if announcement %}
-                                    <button type="button" class="btn btn-danger" onclick="confirmDelete({{ announcement.id }})">
+                                    <button type="button" class="c-btn c-btn--danger" data-action="delete-announcement" data-id="{{ announcement.id }}">
                                         <i class="ti ti-trash me-1"></i>Delete Announcement
                                     </button>
                                     {% endif %}
                                 </div>
                                 <div>
-                                    <a href="{{ url_for('admin_panel.announcements') }}" class="btn btn-secondary me-2">
+                                    <a href="{{ url_for('admin_panel.announcements') }}" class="c-btn c-btn--secondary me-2">
                                         <i class="ti ti-x me-1"></i>Cancel
                                     </a>
-                                    <button type="submit" class="btn btn-primary">
+                                    <button type="submit" class="c-btn c-btn--primary">
                                         <i class="ti ti-device-floppy me-1"></i>{% if announcement %}Update{% else %}Create{% endif %} Announcement
                                     </button>
                                 </div>
@@ -92,22 +92,22 @@
 <!-- Preview Card -->
 <div class="row mt-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h6 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h6 class="c-card__title mb-0">
                     <i class="ti ti-eye me-2"></i>Preview
                 </h6>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div id="preview-content">
-                    <div class="alert alert-info">
+                    <div class="alert alert-info" data-alert>
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <h6 class="alert-heading" id="preview-title">{{ announcement.title if announcement else 'Announcement Title' }}</h6>
                                 <div id="preview-body">{{ announcement.content if announcement else 'Announcement content will appear here...' }}</div>
                             </div>
                             <div>
-                                <span class="badge bg-info" id="preview-priority">{{ (announcement.priority if announcement else 'normal').title() }}</span>
+                                <span class="badge bg-info" id="preview-priority" data-badge>{{ (announcement.priority if announcement else 'normal').title() }}</span>
                             </div>
                         </div>
                         <hr>
@@ -127,81 +127,5 @@
 
 {% block custom_js %}
 {{ super() }}
-<script>
-// Live preview updates
-document.addEventListener('DOMContentLoaded', function() {
-    const titleInput = document.getElementById('title');
-    const contentInput = document.getElementById('content');
-    const prioritySelect = document.getElementById('priority');
-    const typeSelect = document.getElementById('announcement_type');
-    
-    const previewTitle = document.getElementById('preview-title');
-    const previewBody = document.getElementById('preview-body');
-    const previewPriority = document.getElementById('preview-priority');
-    const previewType = document.getElementById('preview-type');
-    
-    function updatePreview() {
-        previewTitle.textContent = titleInput.value || 'Announcement Title';
-        previewBody.textContent = contentInput.value || 'Announcement content will appear here...';
-        previewPriority.textContent = prioritySelect.value.charAt(0).toUpperCase() + prioritySelect.value.slice(1);
-        previewType.textContent = typeSelect.value.charAt(0).toUpperCase() + typeSelect.value.slice(1);
-        
-        // Update priority badge color
-        previewPriority.className = 'badge ';
-        switch(prioritySelect.value) {
-            case 'high':
-                previewPriority.className += 'bg-danger';
-                break;
-            case 'medium':
-                previewPriority.className += 'bg-warning';
-                break;
-            case 'low':
-                previewPriority.className += 'bg-secondary';
-                break;
-            default:
-                previewPriority.className += 'bg-info';
-        }
-    }
-    
-    titleInput.addEventListener('input', updatePreview);
-    contentInput.addEventListener('input', updatePreview);
-    prioritySelect.addEventListener('change', updatePreview);
-    typeSelect.addEventListener('change', updatePreview);
-    
-    // Character count for content
-    const maxChars = 2000;
-    const charCount = document.createElement('div');
-    charCount.className = 'form-text';
-    charCount.innerHTML = `<small>Characters: <span id="char-count">${contentInput.value.length}</span>/${maxChars}</small>`;
-    contentInput.parentNode.appendChild(charCount);
-    
-    contentInput.addEventListener('input', function() {
-        document.getElementById('char-count').textContent = this.value.length;
-        if (this.value.length > maxChars * 0.9) {
-            charCount.className = 'form-text text-warning';
-        } else if (this.value.length > maxChars) {
-            charCount.className = 'form-text text-danger';
-        } else {
-            charCount.className = 'form-text';
-        }
-    });
-});
-
-function confirmDelete(announcementId) {
-    if (confirm('Are you sure you want to delete this announcement? This action cannot be undone.')) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `{{ url_for('admin_panel.delete_announcement', announcement_id='') }}${announcementId}`;
-        
-        const csrfToken = document.createElement('input');
-        csrfToken.type = 'hidden';
-        csrfToken.name = 'csrf_token';
-        csrfToken.value = '{{ csrf_token() }}';
-        form.appendChild(csrfToken);
-        
-        document.body.appendChild(form);
-        form.submit();
-    }
-}
-</script>
+<script src="{{ url_for('static', filename='js/admin/announcement-form.js') }}"></script>
 {% endblock %}

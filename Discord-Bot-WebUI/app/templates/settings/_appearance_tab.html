@@ -1,81 +1,54 @@
-<!-- Appearance Tab -->
-<div class="tab-pane fade" id="tab-appearance">
+{# Appearance Settings Tab Partial #}
+<div class="c-settings-tab" id="tab-appearance" role="tabpanel" data-component="settings-tab" data-tab-pane="appearance">
     <div class="row">
         <div class="col-12">
-            <!-- Theme Variant Section -->
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="ti ti-brush me-2 text-primary"></i>Theme Style
-                    </h5>
+            <!-- Theme Style Section -->
+            <div class="c-settings-card" data-component="settings-card">
+                <div class="c-settings-card__header">
+                    <div class="c-settings-card__icon c-settings-card__icon--primary">
+                        <i class="ti ti-brush"></i>
+                    </div>
+                    <div class="c-settings-card__header-info">
+                        <h5 class="c-settings-card__title">Theme Style</h5>
+                        <small class="c-settings-card__subtitle">Our modern design provides a clean, professional interface</small>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <p class="text-muted mb-4">Choose between our classic interface or the new modern design.</p>
+                <div class="c-settings-card__body">
+                    <div class="c-info-box c-info-box--primary" data-component="info-box">
+                        <p class="c-settings-card__subtitle" style="margin: 0;">
+                            <i class="ti ti-info-circle"></i>
+                            <strong>Modern Theme:</strong> The modern design is our current standard, offering improved readability, accessibility, and performance. It supports light and dark color modes.
+                        </p>
+                    </div>
 
-                    <div class="row g-4">
-                        <!-- Classic Theme Card -->
-                        <div class="col-md-6">
-                            <div class="theme-preview-card theme-selection-card border rounded-3 p-3 h-100 {{ 'border-primary border-2' if session.get('theme_variant', 'classic') == 'classic' else '' }}"
-                                 data-variant="classic"
-                                 onclick="selectThemeVariant('classic')">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <div>
-                                        <h6 class="mb-1">
-                                            <i class="ti ti-layout-dashboard me-1"></i>
-                                            Classic
-                                        </h6>
-                                        <span class="badge bg-label-secondary">Current Default</span>
-                                    </div>
-                                    {% if session.get('theme_variant', 'classic') == 'classic' %}
-                                    <span class="badge bg-primary">
-                                        <i class="ti ti-check"></i> Active
-                                    </span>
-                                    {% endif %}
-                                </div>
-
-                                <!-- Preview mockup -->
-                                <div class="theme-preview-mockup theme-preview-default mb-3">
-                                    <div class="theme-preview-nav"></div>
-                                    <div class="theme-preview-sidebar"></div>
-                                    <div class="theme-preview-card"></div>
-                                    <div class="theme-preview-button"></div>
-                                </div>
-
-                                <p class="text-muted small mb-0">
-                                    The familiar purple-themed interface you know. Stable and tested.
-                                </p>
-                            </div>
-                        </div>
-
+                    <div class="row g-4 mt-3">
                         <!-- Modern Theme Card -->
                         <div class="col-md-6">
-                            <div class="theme-preview-card theme-selection-card border rounded-3 p-3 h-100 {{ 'border-primary border-2' if session.get('theme_variant') == 'modern' else '' }}"
+                            <div class="c-theme-card is-active"
                                  data-variant="modern"
-                                 onclick="selectThemeVariant('modern')">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                 data-action="select-theme-variant">
+                                <div class="c-theme-card__header">
                                     <div>
-                                        <h6 class="mb-1">
-                                            <i class="ti ti-sparkles me-1"></i>
+                                        <h6 class="c-theme-card__name">
+                                            <i class="ti ti-sparkles"></i>
                                             Modern
                                         </h6>
-                                        <span class="badge bg-label-success">New Design</span>
+                                        <span class="c-badge c-badge--success">Active</span>
                                     </div>
-                                    {% if session.get('theme_variant') == 'modern' %}
-                                    <span class="badge bg-primary">
-                                        <i class="ti ti-check"></i> Active
+                                    <span class="c-badge c-badge--primary">
+                                        <i class="ti ti-check"></i> Current
                                     </span>
-                                    {% endif %}
                                 </div>
 
                                 <!-- Preview mockup -->
-                                <div class="theme-preview-mockup theme-preview-emerald mb-3">
-                                    <div class="theme-preview-nav"></div>
-                                    <div class="theme-preview-sidebar"></div>
-                                    <div class="theme-preview-card"></div>
-                                    <div class="theme-preview-button"></div>
+                                <div class="c-theme-card__preview">
+                                    <div class="c-theme-card__preview-nav"></div>
+                                    <div class="c-theme-card__preview-sidebar"></div>
+                                    <div class="c-theme-card__preview-content"></div>
+                                    <div class="c-theme-card__preview-button"></div>
                                 </div>
 
-                                <p class="text-muted small mb-0">
+                                <p class="c-theme-card__description">
                                     Clean, professional design with violet accents and improved readability.
                                 </p>
                             </div>
@@ -85,44 +58,57 @@
             </div>
 
             <!-- Color Mode Section -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="ti ti-sun-moon me-2 text-primary"></i>Color Mode
-                    </h5>
+            <div class="c-settings-card" data-component="settings-card">
+                <div class="c-settings-card__header">
+                    <div class="c-settings-card__icon c-settings-card__icon--info">
+                        <i class="ti ti-sun-moon"></i>
+                    </div>
+                    <div class="c-settings-card__header-info">
+                        <h5 class="c-settings-card__title">Color Mode</h5>
+                        <small class="c-settings-card__subtitle">Choose between light, dark, or system-based color mode</small>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <p class="text-muted mb-4">Choose between light, dark, or system-based color mode. You can also change this from the navbar.</p>
+                <div class="c-settings-card__body">
+                    <p class="c-settings-card__subtitle mb-4">You can also change this from the navbar theme switcher.</p>
 
-                    <div class="d-flex flex-wrap gap-3">
-                        <button type="button" class="btn {{ 'btn-primary' if session.get('theme', 'light') == 'light' else 'btn-outline-secondary' }}"
-                                onclick="window.themeSwitcher.setTheme('light')">
-                            <i class="ti ti-sun me-2"></i>Light
+                    <div class="c-color-mode" data-component="color-mode-selector">
+                        <button type="button"
+                                class="c-color-mode__btn {{ 'is-active' if session.get('theme', 'light') == 'light' }}"
+                                data-action="set-theme"
+                                data-theme="light">
+                            <i class="ti ti-sun"></i>
+                            Light
                         </button>
-                        <button type="button" class="btn {{ 'btn-primary' if session.get('theme') == 'dark' else 'btn-outline-secondary' }}"
-                                onclick="window.themeSwitcher.setTheme('dark')">
-                            <i class="ti ti-moon me-2"></i>Dark
+                        <button type="button"
+                                class="c-color-mode__btn {{ 'is-active' if session.get('theme') == 'dark' }}"
+                                data-action="set-theme"
+                                data-theme="dark">
+                            <i class="ti ti-moon"></i>
+                            Dark
                         </button>
-                        <button type="button" class="btn {{ 'btn-primary' if session.get('theme') == 'system' else 'btn-outline-secondary' }}"
-                                onclick="window.themeSwitcher.setTheme('system')">
-                            <i class="ti ti-device-desktop me-2"></i>System
+                        <button type="button"
+                                class="c-color-mode__btn {{ 'is-active' if session.get('theme') == 'system' }}"
+                                data-action="set-theme"
+                                data-theme="system">
+                            <i class="ti ti-device-desktop"></i>
+                            System
                         </button>
                     </div>
                 </div>
             </div>
 
             <!-- Info Card -->
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex">
-                        <div class="flex-shrink-0 me-3">
-                            <i class="ti ti-info-circle text-info fs-3"></i>
+            <div class="c-settings-card" data-component="settings-card">
+                <div class="c-settings-card__body">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="c-settings-card__icon c-settings-card__icon--info" style="width: 32px; height: 32px; min-width: 32px; font-size: 1rem;">
+                            <i class="ti ti-info-circle"></i>
                         </div>
                         <div>
-                            <h6 class="mb-1">About Theme Variants</h6>
-                            <p class="text-muted mb-0 small">
-                                The Modern theme is a complete redesign with new colors, typography, and component styling.
-                                You can switch back to Classic at any time. Both themes support light and dark color modes.
+                            <h6 class="c-settings-card__title" style="font-size: 0.9375rem;">About the Modern Theme</h6>
+                            <p class="c-settings-card__subtitle" style="margin: 0;">
+                                The Modern theme is our complete redesign with refined colors, typography, and component styling.
+                                It provides an improved user experience with better accessibility and performance. Choose your preferred color mode above.
                             </p>
                         </div>
                     </div>
@@ -131,15 +117,3 @@
         </div>
     </div>
 </div>
-
-<script>
-function selectThemeVariant(variant) {
-    if (window.themeSwitcher) {
-        window.themeSwitcher.setVariant(variant);
-    } else {
-        console.error('Theme switcher not initialized');
-    }
-}
-
-// Hover effects handled by CSS - no JavaScript needed for hover states
-</script>

@@ -1138,9 +1138,9 @@ def set_theme():
 @main.route('/set-theme-variant', methods=['POST'])
 def set_theme_variant():
     """
-    Set the user's theme variant preference (classic or modern).
+    Set the user's theme variant preference (modern only).
 
-    This endpoint allows users to toggle between classic and modern theme variants.
+    This endpoint allows users to set the modern theme variant.
     The preference is stored in the session and persists between page loads.
 
     Returns:
@@ -1151,8 +1151,9 @@ def set_theme_variant():
         return jsonify({"success": False, "message": "Variant not provided"}), 400
 
     variant = data['variant']
-    if variant not in ['classic', 'modern']:
-        return jsonify({"success": False, "message": "Invalid variant"}), 400
+    # Only modern variant is supported
+    if variant not in ['modern']:
+        return jsonify({"success": False, "message": "Invalid variant. Only 'modern' is supported"}), 400
 
     # Store variant in session
     session['theme_variant'] = variant

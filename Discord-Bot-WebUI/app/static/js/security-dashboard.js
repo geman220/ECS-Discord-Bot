@@ -1,6 +1,14 @@
 /**
  * Security Dashboard JavaScript
  * Handles real-time updates, IP unbanning, and log viewing
+ *
+ * CONVERTED TO EVENT DELEGATION (Phase 2.2 Sprint 3)
+ * - All addEventListener calls removed
+ * - All actions registered in event-delegation.js
+ * - Uses data-action attributes for all interactive elements
+ *
+ * @version 2.0.0 - Event Delegation
+ * @date 2025-12-16
  */
 
 class SecurityDashboard {
@@ -11,7 +19,7 @@ class SecurityDashboard {
     }
 
     init() {
-        this.bindEvents();
+        // NOTE: bindEvents() removed - now using centralized event delegation
         this.initTooltips();
         this.loadSecurityEvents();
         this.loadSecurityLogs();
@@ -19,56 +27,15 @@ class SecurityDashboard {
         this.startAutoRefresh();
     }
 
-    bindEvents() {
-        // Refresh button
-        const refreshBtn = document.getElementById('refreshBtn');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => this.refreshAll());
-        }
-
-        // Refresh events button
-        const refreshEventsBtn = document.getElementById('refreshEventsBtn');
-        if (refreshEventsBtn) {
-            refreshEventsBtn.addEventListener('click', () => this.loadSecurityEvents());
-        }
-
-        // Refresh logs button
-        const refreshLogsBtn = document.getElementById('refreshLogsBtn');
-        if (refreshLogsBtn) {
-            refreshLogsBtn.addEventListener('click', () => this.loadSecurityLogs());
-        }
-
-        // Unban buttons (using event delegation)
-        document.addEventListener('click', (e) => {
-            if (e.target.closest('.unban-btn')) {
-                const btn = e.target.closest('.unban-btn');
-                const ip = btn.getAttribute('data-ip');
-                this.unbanIP(ip, btn);
-            }
-        });
-
-        // Ban IP buttons from security events (using event delegation)
-        document.addEventListener('click', (e) => {
-            if (e.target.closest('.ban-ip-btn')) {
-                const btn = e.target.closest('.ban-ip-btn');
-                const ip = btn.getAttribute('data-ip');
-                const reason = btn.getAttribute('data-reason') || 'Security event';
-                this.quickBanIP(ip, reason);
-            }
-        });
-
-        // Ban IP button
-        const confirmBanBtn = document.getElementById('confirmBanBtn');
-        if (confirmBanBtn) {
-            confirmBanBtn.addEventListener('click', () => this.banIP());
-        }
-
-        // Clear all bans button
-        const clearAllBansBtn = document.getElementById('clearAllBansBtn');
-        if (clearAllBansBtn) {
-            clearAllBansBtn.addEventListener('click', () => this.clearAllBans());
-        }
-    }
+    // bindEvents() method removed - converted to event delegation system
+    // All event handlers now registered in event-delegation.js:
+    // - refresh-stats (refresh all data)
+    // - refresh-events (refresh security events)
+    // - refresh-logs (refresh security logs)
+    // - unban-ip (unban specific IP)
+    // - ban-ip-quick (quick ban from event list)
+    // - ban-ip-confirm (confirm ban from modal)
+    // - clear-all-bans (clear all IP bans)
 
     initTooltips() {
         // Initialize Bootstrap tooltips
@@ -79,10 +46,10 @@ class SecurityDashboard {
     async refreshAll() {
         const refreshBtn = document.getElementById('refreshBtn');
         const refreshIndicator = document.getElementById('refreshIndicator');
-        
+
         if (refreshBtn && refreshIndicator) {
             refreshBtn.disabled = true;
-            refreshIndicator.classList.add('active');
+            refreshIndicator.classList.add('is-active');
         }
 
         try {
@@ -91,7 +58,7 @@ class SecurityDashboard {
                 this.loadSecurityLogs(),
                 this.refreshStats()
             ]);
-            
+
             // Update last updated time
             const lastUpdated = document.getElementById('lastUpdated');
             if (lastUpdated) {
@@ -103,7 +70,7 @@ class SecurityDashboard {
         } finally {
             if (refreshBtn && refreshIndicator) {
                 refreshBtn.disabled = false;
-                refreshIndicator.classList.remove('active');
+                refreshIndicator.classList.remove('is-active');
             }
         }
     }
@@ -181,9 +148,9 @@ class SecurityDashboard {
 
         if (events.length === 0) {
             container.innerHTML = `
-                <div class="text-center py-4">
-                    <i class="ti ti-shield-check text-success mb-2" style="font-size: 2rem;"></i>
-                    <p class="text-muted mb-0">No recent security events</p>
+                <div class="u-text-center u-py-4">
+                    <i class="ti ti-shield-check u-text-success u-mb-2 u-fs-1"></i>
+                    <p class="u-text-muted u-mb-0">No recent security events</p>
                 </div>
             `;
             return;
@@ -193,29 +160,29 @@ class SecurityDashboard {
             const severityClass = this.getSeverityClass(event.severity);
             const iconClass = this.getEventIcon(event.type);
             const timestamp = new Date(event.timestamp).toLocaleString();
-            
+
             return `
-                <div class="event-item ${event.severity}">
-                    <div class="d-flex align-items-start">
-                        <div class="avatar avatar-sm me-3">
-                            <div class="avatar-initial bg-light-${severityClass} rounded-circle">
-                                <i class="ti ${iconClass} text-${severityClass}"></i>
+                <div class="js-event-item" data-severity="${event.severity}">
+                    <div class="u-flex u-align-start">
+                        <div class="u-avatar u-avatar-sm u-me-3">
+                            <div class="u-avatar-initial u-bg-light-${severityClass} u-rounded-circle">
+                                <i class="ti ${iconClass} u-text-${severityClass}"></i>
                             </div>
                         </div>
-                        <div class="flex-grow-1">
-                            <div class="d-flex justify-content-between align-items-start">
+                        <div class="u-flex-grow">
+                            <div class="u-flex u-justify-between u-align-start">
                                 <div>
-                                    <h6 class="mb-1">${this.formatEventTitle(event.type)}</h6>
-                                    <p class="mb-1 text-muted">${event.description}</p>
-                                    <small class="text-muted">
-                                        <i class="ti ti-clock me-1"></i>
+                                    <h6 class="u-mb-1">${this.formatEventTitle(event.type)}</h6>
+                                    <p class="u-mb-1 u-text-muted">${event.description}</p>
+                                    <small class="u-text-muted">
+                                        <i class="ti ti-clock u-me-1"></i>
                                         ${timestamp}
                                     </small>
                                 </div>
-                                <div class="ms-2">
+                                <div class="u-ms-2">
                                     ${this.shouldShowBanButton(event) ? `
-                                        <button class="btn btn-outline-danger btn-xs ban-ip-btn" data-ip="${event.ip}" data-reason="Security event: ${event.type}">
-                                            <i class="ti ti-ban" style="font-size: 0.75rem;"></i>
+                                        <button class="u-btn u-btn-outline-danger u-btn-xs" data-action="ban-ip-quick" data-ip="${event.ip}" data-reason="Security event: ${event.type}">
+                                            <i class="ti ti-ban"></i>
                                             Ban
                                         </button>
                                     ` : ''}
@@ -236,9 +203,9 @@ class SecurityDashboard {
 
         if (logs.length === 0) {
             container.innerHTML = `
-                <div class="text-center py-4">
-                    <i class="ti ti-file-text text-muted mb-2" style="font-size: 2rem;"></i>
-                    <p class="text-muted mb-0">No recent logs</p>
+                <div class="u-text-center u-py-4">
+                    <i class="ti ti-file-text u-text-muted u-mb-2 u-fs-1"></i>
+                    <p class="u-text-muted u-mb-0">No recent logs</p>
                 </div>
             `;
             return;
@@ -249,22 +216,22 @@ class SecurityDashboard {
             const levelIcon = this.getLogLevelIcon(log.level);
             const timestamp = new Date(log.timestamp);
             const timeFormatted = timestamp.toLocaleDateString() + ' ' + timestamp.toLocaleTimeString();
-            
+
             return `
-                <div class="d-flex align-items-start mb-3 p-3 border rounded">
-                    <div class="avatar avatar-sm me-3">
-                        <div class="avatar-initial bg-light-${levelClass} rounded-circle">
-                            <i class="ti ${levelIcon} text-${levelClass}"></i>
+                <div class="js-log-item u-flex u-align-start u-mb-3 u-p-3 u-border u-rounded">
+                    <div class="u-avatar u-avatar-sm u-me-3">
+                        <div class="u-avatar-initial u-bg-light-${levelClass} u-rounded-circle">
+                            <i class="ti ${levelIcon} u-text-${levelClass}"></i>
                         </div>
                     </div>
-                    <div class="flex-grow-1">
-                        <div class="d-flex justify-content-between align-items-start mb-1">
-                            <span class="badge bg-light-${levelClass} text-${levelClass}">${log.level}</span>
-                            <small class="text-muted">${log.source}</small>
+                    <div class="u-flex-grow">
+                        <div class="u-flex u-justify-between u-align-start u-mb-1">
+                            <span class="u-badge u-bg-light-${levelClass} u-text-${levelClass}">${log.level}</span>
+                            <small class="u-text-muted">${log.source}</small>
                         </div>
-                        <p class="mb-2 fw-medium">${log.message}</p>
-                        <small class="text-muted">
-                            <i class="ti ti-clock me-1"></i>
+                        <p class="u-mb-2 u-fw-medium">${log.message}</p>
+                        <small class="u-text-muted">
+                            <i class="ti ti-clock u-me-1"></i>
                             ${timeFormatted}
                         </small>
                     </div>
@@ -279,9 +246,9 @@ class SecurityDashboard {
         const container = document.getElementById('securityEvents');
         if (container) {
             container.innerHTML = `
-                <div class="text-center py-4">
-                    <i class="ti ti-alert-triangle text-warning mb-2" style="font-size: 2rem;"></i>
-                    <p class="text-muted mb-0">Error loading security events</p>
+                <div class="u-text-center u-py-4">
+                    <i class="ti ti-alert-triangle u-text-warning u-mb-2 u-fs-1"></i>
+                    <p class="u-text-muted u-mb-0">Error loading security events</p>
                 </div>
             `;
         }
@@ -291,9 +258,9 @@ class SecurityDashboard {
         const container = document.getElementById('securityLogs');
         if (container) {
             container.innerHTML = `
-                <div class="text-center py-4">
-                    <i class="ti ti-alert-triangle text-warning mb-2" style="font-size: 2rem;"></i>
-                    <p class="text-muted mb-0">Error loading security logs</p>
+                <div class="u-text-center u-py-4">
+                    <i class="ti ti-alert-triangle u-text-warning u-mb-2 u-fs-1"></i>
+                    <p class="u-text-muted u-mb-0">Error loading security logs</p>
                 </div>
             `;
         }
@@ -307,17 +274,17 @@ class SecurityDashboard {
         button.innerHTML = '<i class="ti ti-loader-2"></i> Unbanning...';
 
         try {
-            // Get CSRF token from meta tag
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            
+            // Get CSRF token from meta tag (vanilla JS, no jQuery)
+            const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
+
             const requestData = {
                 ip_address: ip
             };
-            
+
             const headers = {
                 'Content-Type': 'application/json'
             };
-            
+
             // Add CSRF token if available
             if (csrfToken) {
                 headers['X-CSRFToken'] = csrfToken;
@@ -337,13 +304,13 @@ class SecurityDashboard {
             
             if (data.success) {
                 // Remove the IP from the list
-                const ipContainer = button.closest('.border');
+                const ipContainer = button.closest('[data-banned-ip]');
                 if (ipContainer) {
                     ipContainer.remove();
                 }
-                
+
                 this.showAlert(data.message, 'success');
-                
+
                 // Update blacklisted count
                 this.refreshStats();
             } else {
@@ -375,7 +342,7 @@ class SecurityDashboard {
         confirmBanBtn.innerHTML = '<i class="ti ti-loader-2"></i> Banning...';
 
         try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
             
             const requestData = {
                 ip_address: ipAddress,
@@ -436,7 +403,7 @@ class SecurityDashboard {
         clearAllBansBtn.innerHTML = '<i class="ti ti-loader-2"></i> Clearing...';
 
         try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
             
             const headers = {
                 'Content-Type': 'application/json'
@@ -491,7 +458,7 @@ class SecurityDashboard {
                     
                     if (remaining === 0) {
                         // IP ban expired, remove from list
-                        const ipContainer = element.closest('.border');
+                        const ipContainer = element.closest('[data-banned-ip]');
                         if (ipContainer) {
                             ipContainer.remove();
                         }
@@ -582,7 +549,7 @@ class SecurityDashboard {
         if (!confirmed) return;
 
         try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
             
             const requestData = {
                 ip_address: ip,

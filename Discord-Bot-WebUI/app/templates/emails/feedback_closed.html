@@ -58,7 +58,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1 style="margin: 0;">Feedback Closed</h1>
+            <h1 class="u-m-0">Feedback Closed</h1>
         </div>
         <div class="content">
             <p>Dear {{ feedback.user.username }},</p>
@@ -71,7 +71,7 @@
             </ul>
             <p>We appreciate your feedback and hope that we have addressed your concerns satisfactorily. If you have any questions or if you feel that this feedback was closed prematurely, please don't hesitate to contact our support team.</p>
             <p>Thank you for helping us improve our services.</p>
-            <p style="text-align: center;">
+            <p>
                 <a href="{{ url_for('feedback.view_feedback', feedback_id=feedback.id, _external=True) }}" class="button">View Feedback</a>
             </p>
         </div>

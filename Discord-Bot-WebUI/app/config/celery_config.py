@@ -66,7 +66,9 @@ class CeleryConfig:
         'app.tasks.tasks_ecs_fc_subs',
         'app.tasks.mobile_analytics_cleanup',
         'app.tasks.security_cleanup',
-        'app.tasks.emergency_recovery'
+        'app.tasks.emergency_recovery',
+        'app.tasks.tasks_notification_reminders',  # Unified notification system reminders
+        'app.tasks.tasks_push_notifications',  # Push notification campaigns
     )
 
     # Task Settings - Industry Best Practices
@@ -188,6 +190,8 @@ class CeleryConfig:
         'app.tasks.tasks_ecs_fc_subs.*': {'queue': 'celery'},
         'app.tasks.mobile_analytics_cleanup.*': {'queue': 'celery'},
         'app.tasks.security_cleanup.*': {'queue': 'celery'},
+        'app.tasks.tasks_notification_reminders.*': {'queue': 'celery'},
+        'app.tasks.tasks_push_notifications.*': {'queue': 'celery'},
     }
 
     # Beat Configuration
@@ -460,4 +464,35 @@ class CeleryConfig:
         #         'expires': 540  # Task expires after 9 minutes
         #     }
         # }
+
+        # =====================================================================
+        # UNIFIED NOTIFICATION SYSTEM - Automated Reminders
+        # =====================================================================
+        # RSVP reminders: Daily at 9 AM PST for matches in 3-5 days
+        'send-rsvp-reminders': {
+            'task': 'app.tasks.tasks_notification_reminders.send_rsvp_reminders',
+            'schedule': crontab(hour=9, minute=0),  # Daily at 9 AM
+            'options': {
+                'queue': 'celery',
+                'expires': 3540  # Task expires after 59 minutes
+            }
+        },
+        # Match reminders: Daily at 6 PM PST for tomorrow's matches
+        'send-match-reminders-daily': {
+            'task': 'app.tasks.tasks_notification_reminders.send_match_reminders_daily',
+            'schedule': crontab(hour=18, minute=0),  # Daily at 6 PM
+            'options': {
+                'queue': 'celery',
+                'expires': 3540  # Task expires after 59 minutes
+            }
+        },
+        # Urgent match reminders: Hourly check for matches in 2-4 hours
+        'send-match-reminders-urgent': {
+            'task': 'app.tasks.tasks_notification_reminders.send_match_reminders_urgent',
+            'schedule': crontab(minute=0),  # Every hour at :00
+            'options': {
+                'queue': 'celery',
+                'expires': 3540  # Task expires after 59 minutes
+            }
+        },
     }

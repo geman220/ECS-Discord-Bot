@@ -31,11 +31,11 @@
       });
 
       // Then process all tables within .table-responsive containers
-      const responsiveTables = document.querySelectorAll('.table-responsive table');
+      const responsiveTables = document.querySelectorAll('[data-table-responsive] table');
       responsiveTables.forEach(table => {
         // Skip if already processed or if it's within a horizontal-mobile table
         if (!table.classList.contains('mobile-card-processed') &&
-            !table.closest('.table-horizontal-mobile')) {
+            !table.closest('[data-table-horizontal-mobile]')) {
           this.processTable(table);
         }
       });
@@ -44,8 +44,8 @@
       const standaloneTables = document.querySelectorAll('table.table:not(.mobile-card-processed)');
       standaloneTables.forEach(table => {
         // Only process if not already in a .table-responsive container
-        if (!table.closest('.table-responsive') &&
-            !table.closest('.table-horizontal-mobile') &&
+        if (!table.closest('[data-table-responsive]') &&
+            !table.closest('[data-table-horizontal-mobile]') &&
             window.innerWidth < 992) {
           this.processTable(table);
         }
@@ -119,8 +119,8 @@
         return (
           child.tagName === 'BUTTON' ||
           child.tagName === 'A' && child.classList.contains('btn') ||
-          child.classList.contains('dropdown') ||
-          child.classList.contains('btn-group')
+          child.hasAttribute('data-dropdown') ||
+          child.hasAttribute('data-btn-group')
         );
       });
     },
@@ -132,24 +132,24 @@
      */
     isCellWithAvatar: function(cell) {
       return (
-        cell.querySelector('.avatar') !== null ||
-        cell.querySelector('img[class*="rounded-circle"]') !== null ||
-        cell.querySelector('img[class*="avatar"]') !== null
+        cell.querySelector('[data-avatar]') !== null ||
+        cell.querySelector('img[data-rounded-circle]') !== null ||
+        cell.querySelector('img[data-avatar]') !== null
       );
     },
     
     /**
-     * Track scrolling on .table-responsive-scroll elements
+     * Track scrolling on table-responsive-scroll elements
      */
     setupScrollTracking: function() {
-      const scrollTables = document.querySelectorAll('.table-responsive-scroll');
-      
+      const scrollTables = document.querySelectorAll('[data-table-responsive-scroll]');
+
       scrollTables.forEach(tableWrapper => {
         tableWrapper.addEventListener('scroll', function() {
           if (this.scrollLeft > 10) {
-            this.classList.add('scrolled');
+            this.classList.add('is-scrolled');
           } else {
-            this.classList.remove('scrolled');
+            this.classList.remove('is-scrolled');
           }
         });
       });
@@ -225,11 +225,22 @@
     }
   };
   
-  // Initialize when document is ready
-  document.addEventListener('DOMContentLoaded', function() {
-    ResponsiveTables.init();
-  });
-  
   // Make available globally
   window.ResponsiveTables = ResponsiveTables;
+
+  // Register with InitSystem if available
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('responsive-tables', function() {
+      ResponsiveTables.init();
+    }, {
+      priority: 60,
+      description: 'Responsive table system (card view on mobile, data-labels)',
+      reinitializable: true
+    });
+  } else {
+    // Fallback: Initialize when document is ready
+    document.addEventListener('DOMContentLoaded', function() {
+      ResponsiveTables.init();
+    });
+  }
 })();

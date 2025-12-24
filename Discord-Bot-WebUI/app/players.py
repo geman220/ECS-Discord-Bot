@@ -26,7 +26,7 @@ from datetime import datetime, timedelta
 # Local application imports
 from app.models import (
     Player, Team, League, Season, PlayerSeasonStats, PlayerCareerStats,
-    User, Notification, Role, PlayerStatAudit, Match,
+    User, Notification, Role, PlayerStatAudit, Match, Availability,
     PlayerEvent, user_roles, PlayerTeamSeason
 )
 from app.core import db, celery
@@ -47,6 +47,7 @@ from app.profile_helpers import (
 )
 from app.tasks.player_sync import sync_players_with_woocommerce
 from app.utils.sync_data_manager import get_sync_data, delete_sync_data
+from app.sockets.presence import PresenceManager
 
 
 logger = logging.getLogger(__name__)
@@ -262,10 +263,18 @@ def player_profile(player_id):
     # Check if user can access this profile
     is_own_profile = (safe_current_user.id == player.user_id)
     is_global_admin = 'Global Admin' in user_roles
-    
-    # Players can view basic profile info of others, but coaches/admins can view full profiles
-    can_view_basic_profile = True  # Everyone can see basic profile info
-    
+
+    # Get profile visibility settings
+    from app.services.profile_visibility_service import get_profile_visibility
+    profile_visibility_flags = get_profile_visibility(
+        viewer_user=safe_current_user,
+        profile_owner_user=player.user,
+        profile_owner_player=player,
+        viewer_roles=user_roles,
+        current_season=current_season,
+        session=session
+    )
+
     # Only deny access if no authentication
     if not safe_current_user.is_authenticated:
         show_error('Please log in to view player profiles.')
@@ -284,11 +293,33 @@ def player_profile(player_id):
             session.commit()
             return redirect(url_for('main.index'))
 
+        # Get matches where player already has stats (for display)
         matches = session.query(Match).join(PlayerEvent).options(
             joinedload(Match.home_team),
             joinedload(Match.away_team),
-            joinedload(Match.events)
+            joinedload(Match.events),
+            joinedload(Match.schedule)
         ).filter(PlayerEvent.player_id == player_id).all()
+
+        # Get ALL matches the player participated in (for Add Stat dropdown)
+        # This includes matches where player had availability (responded yes/maybe)
+        participated_matches = session.query(Match).join(Availability).options(
+            joinedload(Match.home_team),
+            joinedload(Match.away_team),
+            joinedload(Match.schedule)
+        ).filter(
+            Availability.player_id == player_id,
+            Availability.response.in_(['yes', 'maybe', 'available'])
+        ).order_by(Match.date.desc()).all()
+
+        # Build a lookup of player's team assignments by season (can have multiple teams per season)
+        # Use lists instead of sets because Jinja2 doesn't have set() as a builtin
+        season_team_lookup = {}
+        for assignment in player.season_assignments:
+            if assignment.season_id not in season_team_lookup:
+                season_team_lookup[assignment.season_id] = []
+            if assignment.team_id not in season_team_lookup[assignment.season_id]:
+                season_team_lookup[assignment.season_id].append(assignment.team_id)
 
         jersey_sizes = session.query(Player.jersey_size).distinct().all()
         jersey_size_choices = [(size[0], size[0]) for size in jersey_sizes if size[0]]
@@ -437,7 +468,15 @@ def player_profile(player_id):
         # the transaction open during template rendering, which can be slow
         # and cause idle-in-transaction timeouts
         session.commit()
-        
+
+        # Check online status for the player being viewed
+        player_is_online = False
+        if player.user_id:
+            try:
+                player_is_online = PresenceManager.is_user_online(player.user_id)
+            except Exception as e:
+                logger.warning(f"Could not check online status for user {player.user_id}: {e}")
+
         return render_template(
             'player_profile.html',
             title='Player Profile',
@@ -464,7 +503,18 @@ def player_profile(player_id):
             can_edit_admin_notes=can_edit_admin_notes,
             can_edit_profile=can_edit_profile,
             can_view_draft_history=can_view_draft_history,
-            profile_expired=profile_expired
+            profile_expired=profile_expired,
+            # Online status
+            player_is_online=player_is_online,
+            # Profile visibility flags (based on user's privacy settings)
+            profile_visibility=profile_visibility_flags,
+            can_view_position=profile_visibility_flags.get('can_view_position', False),
+            can_view_team_history=profile_visibility_flags.get('can_view_team_history', False),
+            can_view_detailed_profile=profile_visibility_flags.get('can_view_detailed_profile', False),
+            profile_is_restricted=profile_visibility_flags.get('is_restricted', False),
+            # Matches for Add Stat dropdown (all participated matches)
+            participated_matches=participated_matches,
+            season_team_lookup=season_team_lookup
         )
     except Exception as e:
         logger.error(f"Error in player_profile: {str(e)}", exc_info=True)
@@ -748,30 +798,308 @@ def profile_wizard():
     )
 
 
-@players_bp.route('/profile/<int:player_id>/verify', endpoint='verify_profile', methods=['POST'])
+@players_bp.route('/verify', endpoint='verify_my_profile', methods=['GET'])
 @login_required
-def verify_profile(player_id):
+def verify_my_profile():
     """
-    Verify a player's profile without making changes.
-    Updates the profile_last_updated timestamp to mark the profile as current.
-    Only the profile owner can verify their own profile.
+    General verification endpoint for QR codes.
+    Automatically finds the logged-in user's player profile and redirects to wizard.
+
+    Usage: Print QR code pointing to /players/verify
+    - If not logged in: Flask-Login redirects to login, then back here
+    - If logged in: Finds player profile and redirects to wizard
+    - If no player profile: Shows error with instructions
+    """
+    session = g.db_session
+
+    # Find player associated with current user
+    player = session.query(Player).filter(
+        Player.user_id == safe_current_user.id
+    ).first()
+
+    if not player:
+        # User exists but has no player profile
+        show_error(
+            'No player profile found for your account. '
+            'Please contact a league admin if you believe this is an error.'
+        )
+        return redirect(url_for('main.index'))
+
+    # Redirect to the wizard
+    return redirect(url_for('players.wizard_profile', player_id=player.id))
+
+
+@players_bp.route('/profile/<int:player_id>/verify', endpoint='verify_profile_redirect', methods=['GET'])
+@login_required
+def verify_profile_redirect(player_id):
+    """
+    Redirect to the profile verification wizard.
+    All devices now use the unified 5-step wizard experience.
     """
     session = g.db_session
     player = session.query(Player).get(player_id)
+
     if not player:
         abort(404)
-    
+
     # Check if user can verify this profile (only their own)
     is_own_profile = (safe_current_user.id == player.user_id)
     if not is_own_profile:
         show_error('You can only verify your own profile.')
         return redirect(url_for('players.player_profile', player_id=player_id))
-    
+
+    # Redirect to the wizard with player_id
+    return redirect(url_for('players.wizard_profile', player_id=player_id))
+
+
+@players_bp.route('/profile/<int:player_id>/wizard', endpoint='wizard_profile', methods=['GET'])
+@login_required
+def wizard_profile(player_id):
+    """
+    5-step profile verification wizard.
+    Mobile-first step-by-step verification process.
+    """
+    session = g.db_session
+    player = session.query(Player).get(player_id)
+
+    if not player:
+        abort(404)
+
+    # Check if user can access this wizard (only their own profile)
+    is_own_profile = (safe_current_user.id == player.user_id)
+    if not is_own_profile:
+        show_error('You can only verify your own profile.')
+        return redirect(url_for('players.player_profile', player_id=player_id))
+
+    user = player.user
+
+    # Build jersey size choices from existing data
+    jersey_sizes = session.query(Player.jersey_size).distinct().all()
+    jersey_size_choices = [(size[0], size[0]) for size in jersey_sizes if size[0]]
+
+    form = PlayerProfileForm(obj=player)
+    form.jersey_size.choices = jersey_size_choices
+
+    # Initialize form data
+    form.email.data = user.email
+    form.other_positions.data = (
+        player.other_positions.strip('{}').split(',')
+        if player.other_positions else []
+    )
+    form.positions_not_to_play.data = (
+        player.positions_not_to_play.strip('{}').split(',')
+        if player.positions_not_to_play else []
+    )
+
+    # Check if profile is expired (5 months)
+    profile_expired = False
+    if player.profile_last_updated:
+        five_months_ago = datetime.utcnow() - timedelta(days=150)
+        profile_expired = player.profile_last_updated < five_months_ago
+
+    session.commit()
+
+    return render_template(
+        'player_profile_wizard.html',
+        title='Profile Verification',
+        player=player,
+        user=user,
+        form=form,
+        profile_expired=profile_expired
+    )
+
+
+@players_bp.route('/profile/<int:player_id>/wizard/update', endpoint='wizard_profile_update', methods=['POST'])
+@login_required
+def wizard_profile_update(player_id):
+    """
+    Handle the wizard form submission.
+    Updates the player profile and marks it as verified.
+    """
+    session = g.db_session
+    player = session.query(Player).get(player_id)
+
+    if not player:
+        abort(404)
+
+    # Check if user can update this profile
+    is_own_profile = (safe_current_user.id == player.user_id)
+    if not is_own_profile:
+        show_error('You can only update your own profile.')
+        return redirect(url_for('players.player_profile', player_id=player_id))
+
+    user = player.user
+
     try:
-        from app.profile_helpers import handle_profile_verification
-        return handle_profile_verification(player)
+        # Update player fields from form
+        player.name = request.form.get('name', player.name)
+        player.phone = request.form.get('phone', player.phone)
+        player.jersey_size = request.form.get('jersey_size', player.jersey_size)
+        player.pronouns = request.form.get('pronouns', player.pronouns)
+        player.favorite_position = request.form.get('favorite_position', player.favorite_position)
+        player.frequency_play_goal = request.form.get('frequency_play_goal', player.frequency_play_goal)
+        player.expected_weeks_available = request.form.get('expected_weeks_available', player.expected_weeks_available)
+        player.willing_to_referee = request.form.get('willing_to_referee', player.willing_to_referee)
+        player.player_notes = request.form.get('player_notes', player.player_notes)
+
+        # Handle multi-select fields
+        other_positions = request.form.getlist('other_positions')
+        if other_positions:
+            player.other_positions = "{" + ",".join(other_positions) + "}"
+
+        positions_not_to_play = request.form.getlist('positions_not_to_play')
+        if positions_not_to_play:
+            player.positions_not_to_play = "{" + ",".join(positions_not_to_play) + "}"
+
+        # Update email on user if provided and different
+        new_email = request.form.get('email')
+        if new_email and new_email != user.email:
+            # Check if email is already in use by another user
+            existing_user = session.query(User).filter(
+                User.email == new_email,
+                User.id != user.id
+            ).first()
+            if existing_user:
+                show_error('Email address is already in use by another account.')
+                return redirect(url_for('players.wizard_profile', player_id=player_id))
+            user.email = new_email
+
+        # Mark profile as verified
+        player.profile_last_updated = datetime.utcnow()
+
+        session.commit()
+
+        logger.info(f"Profile wizard completed for player {player_id} by user {safe_current_user.id}")
+
+        show_success('Your profile has been verified and updated successfully!')
+        return redirect(url_for('players.mobile_profile_success', player_id=player_id, action='verified'))
+
     except Exception as e:
+        session.rollback()
+        logger.exception(f"Error in wizard profile update for player {player_id}: {str(e)}")
+        show_error('An error occurred while saving your profile. Please try again.')
+        return redirect(url_for('players.wizard_profile', player_id=player_id))
+
+
+@players_bp.route('/profile/<int:player_id>/wizard/auto-save', endpoint='wizard_auto_save', methods=['POST'])
+@login_required
+def wizard_auto_save(player_id):
+    """
+    Handle auto-save requests from the wizard.
+    Saves form data without marking profile as verified.
+    """
+    session = g.db_session
+    player = session.query(Player).get(player_id)
+
+    if not player:
+        return jsonify({'success': False, 'error': 'Player not found'}), 404
+
+    # Check if user can update this profile
+    is_own_profile = (safe_current_user.id == player.user_id)
+    if not is_own_profile:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+
+        # Update player fields from JSON data
+        if 'name' in data and data['name']:
+            player.name = data['name']
+        if 'phone' in data:
+            player.phone = data['phone']
+        if 'jersey_size' in data:
+            player.jersey_size = data['jersey_size']
+        if 'pronouns' in data:
+            player.pronouns = data['pronouns']
+        if 'favorite_position' in data:
+            player.favorite_position = data['favorite_position']
+        if 'frequency_play_goal' in data:
+            player.frequency_play_goal = data['frequency_play_goal']
+        if 'expected_weeks_available' in data:
+            player.expected_weeks_available = data['expected_weeks_available']
+        if 'willing_to_referee' in data:
+            player.willing_to_referee = data['willing_to_referee']
+        if 'player_notes' in data:
+            player.player_notes = data['player_notes']
+
+        # Handle array fields
+        if 'other_positions' in data:
+            positions = data['other_positions']
+            if isinstance(positions, list):
+                player.other_positions = "{" + ",".join(positions) + "}" if positions else None
+            elif positions:
+                player.other_positions = "{" + positions + "}"
+
+        if 'positions_not_to_play' in data:
+            positions = data['positions_not_to_play']
+            if isinstance(positions, list):
+                player.positions_not_to_play = "{" + ",".join(positions) + "}" if positions else None
+            elif positions:
+                player.positions_not_to_play = "{" + positions + "}"
+
+        session.commit()
+
+        logger.debug(f"Auto-saved profile data for player {player_id}")
+
+        return jsonify({'success': True, 'message': 'Saved'})
+
+    except Exception as e:
+        session.rollback()
+        logger.exception(f"Error auto-saving profile for player {player_id}: {str(e)}")
+        return jsonify({'success': False, 'error': 'Save failed'}), 500
+
+
+@players_bp.route('/profile/<int:player_id>/verify', endpoint='verify_profile', methods=['POST'])
+@login_required
+def verify_profile(player_id):
+    """
+    Verify a player's profile without making changes (AJAX/form submission).
+    Updates the profile_last_updated timestamp to mark the profile as current.
+    Only the profile owner can verify their own profile.
+
+    Supports both AJAX (returns JSON) and regular form submissions (returns redirect).
+    """
+    session = g.db_session
+    player = session.query(Player).get(player_id)
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    if not player:
+        if is_ajax:
+            return jsonify({'success': False, 'error': 'Player not found'}), 404
+        abort(404)
+
+    # Check if user can verify this profile (only their own)
+    is_own_profile = (safe_current_user.id == player.user_id)
+    if not is_own_profile:
+        if is_ajax:
+            return jsonify({'success': False, 'error': 'You can only verify your own profile.'}), 403
+        show_error('You can only verify your own profile.')
+        return redirect(url_for('players.player_profile', player_id=player_id))
+
+    try:
+        from datetime import datetime
+        player.profile_last_updated = datetime.utcnow()
+        session.add(player)
+        session.commit()
+
+        logger.info(f"Profile verification timestamp updated for player {player_id}")
+
+        if is_ajax:
+            return jsonify({
+                'success': True,
+                'message': 'Profile verified successfully. Thank you for confirming your information is current.'
+            })
+
+        # For non-AJAX requests, use the existing helper
+        show_success('Profile verified successfully. Thank you for confirming your information is current.')
+        return redirect(url_for('players.player_profile', player_id=player_id))
+    except Exception as e:
+        session.rollback()
         logger.exception(f"Error verifying profile for player {player_id}: {str(e)}")
+        if is_ajax:
+            return jsonify({'success': False, 'error': 'Error verifying profile.'}), 500
         show_error('Error verifying profile.')
         return redirect(url_for('players.player_profile', player_id=player_id))
 
@@ -877,7 +1205,7 @@ def create_profile():
 def edit_match_stat(stat_id):
     """
     Edit match stat details.
-    GET returns the current stat values.
+    GET returns the current stat values (event_type and minute).
     POST updates the stat with provided data.
     """
     session = g.db_session
@@ -886,23 +1214,28 @@ def edit_match_stat(stat_id):
         if not match_stat:
             abort(404)
         return jsonify({
-            'goals': match_stat.goals,
-            'assists': match_stat.assists,
-            'yellow_cards': match_stat.yellow_cards,
-            'red_cards': match_stat.red_cards,
+            'id': match_stat.id,
+            'event_type': match_stat.event_type.value if match_stat.event_type else None,
+            'minute': match_stat.minute,
+            'match_id': match_stat.match_id,
+            'match_date': match_stat.match.date.strftime('%b %d, %Y') if match_stat.match else None,
         })
 
     if request.method == 'POST':
         try:
-            match_stat = session.query(PlayerEvent).get_or_404(stat_id)
-            match_stat.goals = request.form.get('goals', 0)
-            match_stat.assists = request.form.get('assists', 0)
-            match_stat.yellow_cards = request.form.get('yellow_cards', 0)
-            match_stat.red_cards = request.form.get('red_cards', 0)
+            match_stat = session.query(PlayerEvent).get(stat_id)
+            if not match_stat:
+                abort(404)
+
+            # Update minute (event_type typically shouldn't change - delete and re-add instead)
+            new_minute = request.form.get('minute')
+            if new_minute is not None:
+                match_stat.minute = new_minute if new_minute.strip() else None
+
             return jsonify({'success': True})
         except (SQLAlchemyError, ValueError) as e:
             current_app.logger.error(f"Error editing match stat {stat_id}: {str(e)}")
-            return jsonify({'success': False}), 500
+            return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @players_bp.route('/remove_match_stat/<int:stat_id>', endpoint='remove_match_stat', methods=['POST'])

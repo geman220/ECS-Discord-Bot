@@ -1,0 +1,586 @@
+/**
+ * ============================================================================
+ * STORE MANAGEMENT - RETAIL DASHBOARD AESTHETIC
+ * ============================================================================
+ *
+ * Design Philosophy: Modern E-Commerce Control Panel
+ * - Clean data visualization with emphasis on metrics
+ * - Organized action panels with clear hierarchy
+ * - Table-first data display with scannable rows
+ * - Vibrant status indicators
+ * - Professional retail atmosphere
+ *
+ * Components:
+ *   1. Store Stats (.c-store-stats)
+ *   2. Management Grid & Panels (.c-management-grid, .c-mgmt-panel)
+ *   3. Management Actions (.c-mgmt-action)
+ *   4. Orders Table (.c-orders-table)
+ *   5. Empty State (.c-empty-state)
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   DESIGN TOKENS - Retail Color Palette
+   ============================================================================ */
+
+:root {
+  --store-primary: #6366f1;
+  --store-success: #22c55e;
+  --store-warning: #f59e0b;
+  --store-info: #3b82f6;
+  --store-danger: #ef4444;
+
+  --store-bg-base: #f9fafb;
+  --store-bg-card: #ffffff;
+  --store-border: #e5e7eb;
+  --store-border-hover: #d1d5db;
+
+  --store-text-primary: #111827;
+  --store-text-secondary: #6b7280;
+  --store-text-muted: #9ca3af;
+
+  --store-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --store-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --store-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  --store-radius: 12px;
+  --store-radius-lg: 16px;
+}
+
+[data-style="dark"] {
+  --store-bg-base: #111827;
+  --store-bg-card: #1f2937;
+  --store-border: #374151;
+  --store-border-hover: #4b5563;
+
+  --store-text-primary: #f9fafb;
+  --store-text-secondary: #d1d5db;
+  --store-text-muted: #9ca3af;
+
+  --store-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+  --store-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --store-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.5);
+}
+
+/* ============================================================================
+   1. STORE STATS
+   Metric cards with icons
+   ============================================================================ */
+
+.c-store-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 768px) {
+  .c-store-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+.c-store-stat {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  background: var(--store-bg-card);
+  border: 1px solid var(--store-border);
+  border-radius: var(--store-radius);
+  box-shadow: var(--store-shadow-sm);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.c-store-stat::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 4px;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.c-store-stat:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--store-shadow-md);
+}
+
+.c-store-stat:hover::before {
+  opacity: 1;
+}
+
+.c-store-stat__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  flex-shrink: 0;
+  background: currentColor;
+  color: white;
+  opacity: 0.9;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.c-store-stat:hover .c-store-stat__icon {
+  transform: rotate(-5deg) scale(1.05);
+}
+
+.c-store-stat__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-store-stat__value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--store-text-primary);
+  line-height: 1;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+
+.c-store-stat__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--store-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Stat variants */
+.c-store-stat--primary {
+  color: var(--store-primary);
+}
+
+.c-store-stat--success {
+  color: var(--store-success);
+}
+
+.c-store-stat--warning {
+  color: var(--store-warning);
+}
+
+.c-store-stat--info {
+  color: var(--store-info);
+}
+
+/* ============================================================================
+   2. MANAGEMENT GRID & PANELS
+   Organized action panels
+   ============================================================================ */
+
+.c-management-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 768px) {
+  .c-management-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.c-mgmt-panel {
+  background: var(--store-bg-card);
+  border: 1px solid var(--store-border);
+  border-radius: var(--store-radius-lg);
+  padding: 24px;
+  box-shadow: var(--store-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.3s ease;
+}
+
+.c-mgmt-panel:hover {
+  box-shadow: var(--store-shadow-md);
+}
+
+.c-mgmt-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.c-mgmt-panel__icon {
+  font-size: 24px;
+  color: var(--store-primary);
+}
+
+.c-mgmt-panel__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--store-text-primary);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.c-mgmt-panel__description {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--store-text-muted);
+  margin: 0 0 20px 0;
+}
+
+.c-mgmt-panel__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ============================================================================
+   3. MANAGEMENT ACTIONS
+   Clickable action items
+   ============================================================================ */
+
+.c-mgmt-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--store-bg-base);
+  border: 1px solid var(--store-border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+  width: 100%;
+}
+
+.c-mgmt-action:hover {
+  background: var(--store-bg-card);
+  border-color: var(--store-border-hover);
+  box-shadow: var(--store-shadow-sm);
+  transform: translateX(4px);
+}
+
+.c-mgmt-action:active {
+  transform: translateX(2px);
+}
+
+.c-mgmt-action__content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.c-mgmt-action__icon {
+  font-size: 20px;
+  color: var(--store-text-secondary);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.c-mgmt-action:hover .c-mgmt-action__icon {
+  transform: scale(1.1);
+}
+
+.c-mgmt-action__label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--store-text-primary);
+}
+
+.c-mgmt-action__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 10px;
+  background: var(--store-primary);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.c-mgmt-action__badge--warning {
+  background: var(--store-warning);
+}
+
+.c-mgmt-action__badge--success {
+  background: var(--store-success);
+}
+
+.c-mgmt-action__arrow {
+  font-size: 18px;
+  color: var(--store-text-muted);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.c-mgmt-action:hover .c-mgmt-action__arrow {
+  transform: translateX(4px);
+}
+
+/* ============================================================================
+   4. ORDERS TABLE
+   Data table with status indicators
+   ============================================================================ */
+
+.c-orders-section {
+  background: var(--store-bg-card);
+  border: 1px solid var(--store-border);
+  border-radius: var(--store-radius-lg);
+  padding: 24px;
+  box-shadow: var(--store-shadow-sm);
+}
+
+.c-orders-section__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--store-border);
+}
+
+.c-orders-section__icon {
+  font-size: 24px;
+  color: var(--store-primary);
+}
+
+.c-orders-section__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--store-text-primary);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.c-orders-table__wrapper {
+  overflow-x: auto;
+  border-radius: var(--store-radius);
+  border: 1px solid var(--store-border);
+}
+
+.c-orders-table__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.c-orders-table__head {
+  background: var(--store-bg-base);
+  border-bottom: 2px solid var(--store-border);
+}
+
+.c-orders-table__head th {
+  padding: 14px 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--store-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.c-orders-table__body {
+  /* Body container */
+}
+
+.c-orders-table__row {
+  border-bottom: 1px solid var(--store-border);
+  transition: background-color 0.15s ease;
+}
+
+.c-orders-table__row:last-child {
+  border-bottom: none;
+}
+
+.c-orders-table__row:hover {
+  background: var(--store-bg-base);
+}
+
+.c-orders-table__cell {
+  padding: 16px;
+  color: var(--store-text-primary);
+}
+
+.c-orders-table__cell--id {
+  font-weight: 600;
+  color: var(--store-primary);
+  font-family: monospace;
+}
+
+.c-orders-table__status {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.c-orders-table__status--success {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--store-success);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.c-orders-table__status--warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--store-warning);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.c-orders-table__status--secondary {
+  background: rgba(107, 114, 128, 0.1);
+  color: var(--store-text-secondary);
+  border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
+.c-orders-table__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: transparent;
+  border: 1.5px solid var(--store-primary);
+  border-radius: 8px;
+  color: var(--store-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.c-orders-table__action:hover {
+  background: var(--store-primary);
+  color: white;
+  box-shadow: var(--store-shadow-sm);
+}
+
+.c-orders-table__action:active {
+  transform: scale(0.97);
+}
+
+.c-orders-table__action i {
+  font-size: 16px;
+}
+
+/* Mobile responsive table */
+@media (max-width: 768px) {
+  .c-orders-table__head th {
+    padding: 12px 10px;
+    font-size: 11px;
+  }
+
+  .c-orders-table__cell {
+    padding: 12px 10px;
+    font-size: 13px;
+  }
+
+  .c-orders-table__action span {
+    display: none;
+  }
+
+  .c-orders-table__action {
+    padding: 8px;
+  }
+}
+
+/* ============================================================================
+   5. EMPTY STATE
+   No data display
+   ============================================================================ */
+
+.c-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: var(--store-bg-card);
+  border: 1px dashed var(--store-border);
+  border-radius: var(--store-radius-lg);
+  text-align: center;
+}
+
+.c-empty-state__icon {
+  font-size: 56px;
+  color: var(--store-primary);
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.c-empty-state__message {
+  font-size: 15px;
+  color: var(--store-text-muted);
+  margin: 0;
+  max-width: 400px;
+  line-height: 1.6;
+}
+
+/* ============================================================================
+   ACCESSIBILITY & MOTION
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .c-store-stat,
+  .c-store-stat__icon,
+  .c-mgmt-action,
+  .c-mgmt-action__icon,
+  .c-mgmt-action__arrow,
+  .c-orders-table__row,
+  .c-orders-table__action {
+    transition: none;
+  }
+
+  .c-store-stat:hover,
+  .c-mgmt-action:hover,
+  .c-store-stat:hover .c-store-stat__icon,
+  .c-mgmt-action:hover .c-mgmt-action__icon,
+  .c-mgmt-action:hover .c-mgmt-action__arrow {
+    transform: none;
+  }
+}
+
+.c-mgmt-action:focus-visible,
+.c-orders-table__action:focus-visible {
+  outline: 2px solid var(--store-primary);
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+@media print {
+  .c-store-stats,
+  .c-management-grid,
+  .c-orders-section {
+    break-inside: avoid;
+  }
+
+  .c-store-stat,
+  .c-mgmt-panel,
+  .c-orders-section {
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+
+  .c-mgmt-action,
+  .c-orders-table__action {
+    display: none;
+  }
+}

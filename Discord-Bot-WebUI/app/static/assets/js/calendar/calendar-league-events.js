@@ -122,7 +122,7 @@ const LeagueEventManager = (function() {
                         </form>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-danger me-auto" id="deleteEventBtn" style="display: none;">
+                        <button type="button" class="btn btn-outline-danger me-auto calendar-delete-event-btn" id="deleteEventBtn">
                             <i class="ti ti-trash me-1"></i> Delete
                         </button>
                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -182,7 +182,7 @@ const LeagueEventManager = (function() {
         document.getElementById('leagueEventForm').reset();
         document.getElementById('eventId').value = '';
         document.getElementById('eventModalTitle').textContent = 'Create League Event';
-        document.getElementById('deleteEventBtn').style.display = 'none';
+        document.getElementById('deleteEventBtn').classList.remove('is-visible');
         document.getElementById('saveEventBtn').innerHTML = '<i class="ti ti-check me-1"></i> Create Event';
 
         // Set default date if provided
@@ -228,7 +228,7 @@ const LeagueEventManager = (function() {
 
         // Update modal title and buttons
         document.getElementById('eventModalTitle').textContent = 'Edit League Event';
-        document.getElementById('deleteEventBtn').style.display = 'block';
+        document.getElementById('deleteEventBtn').classList.add('is-visible');
         document.getElementById('saveEventBtn').innerHTML = '<i class="ti ti-check me-1"></i> Save Changes';
 
         modal.show();

@@ -1,0 +1,547 @@
+/**
+ * MOBILE UTILITIES
+ * ================
+ * Mobile-specific utilities, iOS fixes, touch targets, and responsive helpers
+ *
+ * Classes:
+ * - iOS-specific fixes (.ios-*)
+ * - Touch target utilities (.touch-*)
+ * - Mobile scrolling (.modal-body-scrollable)
+ * - Tap highlight controls
+ * - Safe area utilities
+ * - Mobile-first responsive helpers
+ *
+ * Usage:
+ * - Ensure minimum 44px touch targets
+ * - Fix iOS rendering issues
+ * - Support safe areas for notched devices
+ * - Enable smooth touch scrolling
+ */
+
+/* ============================================
+   iOS INPUT FIXES
+   ============================================ */
+
+/**
+ * Fix iOS zoom on input focus
+ * Prevents iOS from zooming when inputs are focused
+ */
+.ios-input,
+.ios-input-fix {
+    font-size: 16px !important;
+}
+
+/**
+ * Fix iOS input shadow/inner styling
+ */
+.ios-input,
+.ios-input-fix,
+input.ios-input,
+select.ios-input,
+textarea.ios-input {
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+}
+
+/**
+ * Fix iOS button styling
+ */
+button.ios-button,
+.ios-button {
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    border-radius: 0 !important;
+}
+
+/**
+ * Fix iOS select dropdown
+ */
+select.ios-select,
+.ios-select {
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.75rem center !important;
+    background-size: 12px !important;
+    padding-right: 2.5rem !important;
+}
+
+[data-style="dark"] select.ios-select,
+[data-style="dark"] .ios-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23fff' d='M6 9L1 4h10z'/%3E%3C/svg%3E") !important;
+}
+
+/* ============================================
+   TOUCH TARGET UTILITIES
+   ============================================ */
+
+/**
+ * Minimum 44x44px touch targets (Apple HIG)
+ * Ensures buttons/links are easily tappable
+ */
+.touch-target {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.touch-target-sm {
+    min-width: 36px !important;
+    min-height: 36px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.touch-target-lg {
+    min-width: 56px !important;
+    min-height: 56px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* ============================================
+   TAP HIGHLIGHT UTILITIES
+   ============================================ */
+
+/**
+ * Remove tap highlight on mobile
+ */
+.tap-highlight-none {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+}
+
+/**
+ * Custom tap highlight color
+ */
+.tap-highlight-primary {
+    -webkit-tap-highlight-color: rgba(13, 110, 253, 0.2) !important;
+}
+
+.tap-highlight-success {
+    -webkit-tap-highlight-color: rgba(25, 135, 84, 0.2) !important;
+}
+
+.tap-highlight-danger {
+    -webkit-tap-highlight-color: rgba(220, 53, 69, 0.2) !important;
+}
+
+/* ============================================
+   MOBILE SCROLLING
+   ============================================ */
+
+/**
+ * Enable momentum scrolling on iOS
+ */
+.mobile-scroll,
+.ios-scroll {
+    -webkit-overflow-scrolling: touch !important;
+}
+
+/**
+ * Modal body scrollable on mobile
+ */
+.modal-body-scrollable {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-height: calc(100vh - 200px) !important;
+}
+
+@media (max-width: 767.98px) {
+    .modal-body-scrollable {
+        max-height: calc(100vh - 150px) !important;
+    }
+}
+
+/**
+ * Full viewport height scrollable container
+ */
+.mobile-viewport-scroll {
+    height: 100vh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+/* ============================================
+   SAFE AREA UTILITIES
+   ============================================ */
+
+/**
+ * Support for iOS safe areas (notched devices)
+ */
+.safe-area-inset-top {
+    padding-top: env(safe-area-inset-top) !important;
+}
+
+.safe-area-inset-right {
+    padding-right: env(safe-area-inset-right) !important;
+}
+
+.safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom) !important;
+}
+
+.safe-area-inset-left {
+    padding-left: env(safe-area-inset-left) !important;
+}
+
+.safe-area-inset {
+    padding-top: env(safe-area-inset-top) !important;
+    padding-right: env(safe-area-inset-right) !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+    padding-left: env(safe-area-inset-left) !important;
+}
+
+/* ============================================
+   MOBILE VIEWPORT FIXES
+   ============================================ */
+
+/**
+ * Fix 100vh issues on mobile browsers
+ * Mobile browsers don't account for address bar
+ */
+.mobile-vh-100 {
+    min-height: 100vh !important;
+    min-height: -webkit-fill-available !important;
+}
+
+.mobile-vh-fix {
+    height: calc(var(--vh, 1vh) * 100) !important;
+}
+
+/**
+ * Prevent iOS rubber band scroll
+ */
+.prevent-overscroll {
+    overscroll-behavior: none !important;
+}
+
+.prevent-overscroll-y {
+    overscroll-behavior-y: none !important;
+}
+
+.prevent-overscroll-x {
+    overscroll-behavior-x: none !important;
+}
+
+/* ============================================
+   MOBILE TEXT RENDERING
+   ============================================ */
+
+/**
+ * Optimize text rendering on mobile
+ */
+.mobile-text-optimize {
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+    text-rendering: optimizeLegibility !important;
+}
+
+/**
+ * Prevent text size adjustment on mobile
+ */
+.mobile-text-size-fixed {
+    -webkit-text-size-adjust: 100% !important;
+    -moz-text-size-adjust: 100% !important;
+    -ms-text-size-adjust: 100% !important;
+    text-size-adjust: 100% !important;
+}
+
+/* ============================================
+   MOBILE LAYOUT UTILITIES
+   ============================================ */
+
+/**
+ * Full width on mobile only
+ */
+@media (max-width: 767.98px) {
+    .mobile-full-width {
+        width: 100% !important;
+    }
+
+    .mobile-no-padding {
+        padding: 0 !important;
+    }
+
+    .mobile-no-margin {
+        margin: 0 !important;
+    }
+
+    .mobile-text-center {
+        text-align: center !important;
+    }
+}
+
+/* ============================================
+   MOBILE NAVIGATION HELPERS
+   ============================================ */
+
+/**
+ * Bottom navigation spacing
+ */
+.mobile-bottom-nav-spacer {
+    padding-bottom: 80px !important;
+}
+
+@media (max-width: 767.98px) {
+    .mobile-bottom-nav-spacer {
+        padding-bottom: 60px !important;
+    }
+}
+
+/**
+ * Fixed bottom element (for mobile nav)
+ */
+.mobile-fixed-bottom {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: var(--z-fixed, 1030) !important;
+}
+
+/* ============================================
+   MOBILE FORM HELPERS
+   ============================================ */
+
+/**
+ * Larger form controls on mobile
+ */
+@media (max-width: 767.98px) {
+    .mobile-form-control-lg input,
+    .mobile-form-control-lg select,
+    .mobile-form-control-lg textarea,
+    .mobile-form-control-lg .form-control {
+        min-height: 44px !important;
+        font-size: 16px !important;
+        padding: 0.75rem !important;
+    }
+
+    .mobile-btn-lg,
+    .mobile-btn-lg .btn {
+        min-height: 44px !important;
+        font-size: 16px !important;
+        padding: 0.75rem 1.5rem !important;
+    }
+}
+
+/* ============================================
+   MOBILE MODAL FIXES
+   ============================================ */
+
+/**
+ * Full screen modal on mobile
+ */
+@media (max-width: 767.98px) {
+    .mobile-modal-fullscreen .modal-dialog {
+        margin: 0 !important;
+        max-width: 100% !important;
+        height: 100vh !important;
+    }
+
+    .mobile-modal-fullscreen .modal-content {
+        height: 100% !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+    }
+}
+
+/* ============================================
+   MOBILE TABLE HELPERS
+   ============================================ */
+
+/**
+ * Horizontal scroll for tables on mobile
+ */
+@media (max-width: 767.98px) {
+    .mobile-table-scroll {
+        display: block !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        width: 100% !important;
+    }
+
+    .mobile-table-scroll table {
+        min-width: 600px !important;
+    }
+}
+
+/* ============================================
+   MOBILE HIDE/SHOW UTILITIES
+   ============================================ */
+
+/**
+ * Show only on mobile
+ */
+.mobile-only {
+    display: none !important;
+}
+
+@media (max-width: 767.98px) {
+    .mobile-only {
+        display: block !important;
+    }
+
+    .mobile-only-flex {
+        display: flex !important;
+    }
+
+    .mobile-only-inline {
+        display: inline !important;
+    }
+
+    .mobile-only-inline-block {
+        display: inline-block !important;
+    }
+}
+
+/**
+ * Hide on mobile
+ */
+@media (max-width: 767.98px) {
+    .mobile-hidden {
+        display: none !important;
+    }
+}
+
+/**
+ * Hide on desktop
+ */
+@media (min-width: 768px) {
+    .desktop-hidden {
+        display: none !important;
+    }
+}
+
+/* ============================================
+   MOBILE SPACING UTILITIES
+   ============================================ */
+
+@media (max-width: 767.98px) {
+    .mobile-p-0 { padding: 0 !important; }
+    .mobile-p-1 { padding: 0.25rem !important; }
+    .mobile-p-2 { padding: 0.5rem !important; }
+    .mobile-p-3 { padding: 1rem !important; }
+    .mobile-p-4 { padding: 1.5rem !important; }
+
+    .mobile-m-0 { margin: 0 !important; }
+    .mobile-m-1 { margin: 0.25rem !important; }
+    .mobile-m-2 { margin: 0.5rem !important; }
+    .mobile-m-3 { margin: 1rem !important; }
+    .mobile-m-4 { margin: 1.5rem !important; }
+
+    .mobile-mt-0 { margin-top: 0 !important; }
+    .mobile-mb-0 { margin-bottom: 0 !important; }
+    .mobile-mt-3 { margin-top: 1rem !important; }
+    .mobile-mb-3 { margin-bottom: 1rem !important; }
+}
+
+/* ============================================
+   ORIENTATION UTILITIES
+   ============================================ */
+
+/**
+ * Show/hide based on orientation
+ */
+@media (orientation: portrait) {
+    .portrait-only {
+        display: block !important;
+    }
+
+    .landscape-only {
+        display: none !important;
+    }
+}
+
+@media (orientation: landscape) {
+    .landscape-only {
+        display: block !important;
+    }
+
+    .portrait-only {
+        display: none !important;
+    }
+}
+
+/* ============================================
+   MOBILE PERFORMANCE
+   ============================================ */
+
+/**
+ * Hardware acceleration for smooth animations
+ */
+.mobile-gpu-accelerated {
+    transform: translateZ(0) !important;
+    backface-visibility: hidden !important;
+    perspective: 1000px !important;
+}
+
+/**
+ * Disable animations on low-end devices
+ */
+@media (prefers-reduced-motion: reduce) {
+    .mobile-gpu-accelerated {
+        transform: none !important;
+    }
+}
+
+/* ============================================
+   MOBILE KEYBOARD UTILITIES
+   ============================================ */
+
+/**
+ * Modal adjustments for keyboard visibility
+ */
+.modal-keyboard-visible {
+    max-height: calc(100vh - 340px) !important;
+    overflow-y: auto !important;
+}
+
+.modal-keyboard-shift {
+    transform: translateY(-50px) !important;
+}
+
+.modal-reset {
+    max-height: none !important;
+    overflow-y: visible !important;
+    transform: none !important;
+}
+
+/**
+ * Dropdown positioning for keyboard
+ */
+.dropdown-above-keyboard {
+    top: auto !important;
+    bottom: 100% !important;
+    margin-bottom: 5px !important;
+}
+
+/**
+ * iOS date input styling
+ */
+.ios-date-input {
+    min-height: 44px !important;
+    padding-right: 8px !important;
+}
+
+/**
+ * iOS viewport height fix
+ */
+.ios-vh-fix {
+    height: calc(var(--vh, 1vh) * 100) !important;
+}
+
+/**
+ * Font size fix for iOS inputs (prevent zoom)
+ */
+.ios-no-zoom {
+    font-size: 16px !important;
+}

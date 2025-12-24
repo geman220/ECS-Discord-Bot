@@ -8,215 +8,253 @@
 
 {% block panel_content %}
 <!-- Store Overview Cards -->
-<div class="row mb-4">
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.total_items or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Total Items</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-package" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
-            </div>
+<div class="c-store-stats" data-component="store-stats">
+    <div class="c-store-stat c-store-stat--primary" data-component="store-stat">
+        <div class="c-store-stat__icon">
+            <i class="ti ti-package"></i>
+        </div>
+        <div class="c-store-stat__content">
+            <div class="c-store-stat__value">{{ stats.total_items or 0 }}</div>
+            <div class="c-store-stat__label">Total Items</div>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.total_orders or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Total Orders</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-shopping-cart" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
-            </div>
+    <div class="c-store-stat c-store-stat--success" data-component="store-stat">
+        <div class="c-store-stat__icon">
+            <i class="ti ti-shopping-cart"></i>
+        </div>
+        <div class="c-store-stat__content">
+            <div class="c-store-stat__value">{{ stats.total_orders or 0 }}</div>
+            <div class="c-store-stat__label">Total Orders</div>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.pending_orders or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Pending Orders</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-clock" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
-            </div>
+    <div class="c-store-stat c-store-stat--warning" data-component="store-stat">
+        <div class="c-store-stat__icon">
+            <i class="ti ti-clock"></i>
+        </div>
+        <div class="c-store-stat__content">
+            <div class="c-store-stat__value">{{ stats.pending_orders or 0 }}</div>
+            <div class="c-store-stat__label">Pending Orders</div>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">${{ stats.revenue_total or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Total Revenue</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-currency-dollar" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
-            </div>
+    <div class="c-store-stat c-store-stat--info" data-component="store-stat">
+        <div class="c-store-stat__icon">
+            <i class="ti ti-currency-dollar"></i>
+        </div>
+        <div class="c-store-stat__content">
+            <div class="c-store-stat__value">${{ stats.revenue_total or 0 }}</div>
+            <div class="c-store-stat__label">Total Revenue</div>
         </div>
     </div>
 </div>
 
 <!-- Store Management Actions -->
-<div class="row mb-4">
-    <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-package me-2"></i>Product Management
-                </h5>
-            </div>
-            <div class="card-body">
-                <p>Manage store items, inventory, and product categories</p>
-                <div class="list-group list-group-flush">
-                    <button class="list-group-item list-group-item-action" onclick="addNewProduct()">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="ti ti-plus me-2"></i>Add New Product
-                            </div>
-                            <i class="ti ti-chevron-right"></i>
-                        </div>
-                    </button>
-                    <button class="list-group-item list-group-item-action" onclick="viewAllProducts()">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="ti ti-list me-2"></i>View All Products
-                            </div>
-                            <span class="badge bg-primary">{{ stats.total_items or 0 }}</span>
-                        </div>
-                    </button>
-                    <button class="list-group-item list-group-item-action" onclick="manageCategories()">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="ti ti-category me-2"></i>Product Categories
-                            </div>
-                            <i class="ti ti-chevron-right"></i>
-                        </div>
-                    </button>
+<div class="c-management-grid" data-component="management-grid">
+    <div class="c-mgmt-panel" data-component="mgmt-panel">
+        <div class="c-mgmt-panel__header">
+            <i class="ti ti-package c-mgmt-panel__icon"></i>
+            <h5 class="c-mgmt-panel__title">Product Management</h5>
+        </div>
+        <p class="c-mgmt-panel__description">Manage store items, inventory, and product categories</p>
+        <div class="c-mgmt-panel__actions">
+            <button class="c-mgmt-action" data-action="add-new-product">
+                <div class="c-mgmt-action__content">
+                    <i class="ti ti-plus c-mgmt-action__icon"></i>
+                    <span class="c-mgmt-action__label">Add New Product</span>
                 </div>
-            </div>
+                <i class="ti ti-chevron-right c-mgmt-action__arrow"></i>
+            </button>
+            <button class="c-mgmt-action" data-action="view-all-products">
+                <div class="c-mgmt-action__content">
+                    <i class="ti ti-list c-mgmt-action__icon"></i>
+                    <span class="c-mgmt-action__label">View All Products</span>
+                </div>
+                <span class="c-mgmt-action__badge">{{ stats.total_items or 0 }}</span>
+            </button>
+            <button class="c-mgmt-action" data-action="manage-categories">
+                <div class="c-mgmt-action__content">
+                    <i class="ti ti-category c-mgmt-action__icon"></i>
+                    <span class="c-mgmt-action__label">Product Categories</span>
+                </div>
+                <i class="ti ti-chevron-right c-mgmt-action__arrow"></i>
+            </button>
         </div>
     </div>
-    
-    <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-clipboard-list me-2"></i>Order Management
-                </h5>
-            </div>
-            <div class="card-body">
-                <p>Process orders, manage fulfillment, and track deliveries</p>
-                <div class="list-group list-group-flush">
-                    <button class="list-group-item list-group-item-action" onclick="viewPendingOrders()">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="ti ti-clock me-2"></i>Pending Orders
-                            </div>
-                            <span class="badge bg-warning">{{ stats.pending_orders or 0 }}</span>
-                        </div>
-                    </button>
-                    <button class="list-group-item list-group-item-action" onclick="viewCompletedOrders()">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="ti ti-check me-2"></i>Completed Orders
-                            </div>
-                            <span class="badge bg-success">{{ stats.completed_orders or 0 }}</span>
-                        </div>
-                    </button>
-                    <button class="list-group-item list-group-item-action" onclick="searchOrders()">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="ti ti-search me-2"></i>Search Orders
-                            </div>
-                            <i class="ti ti-chevron-right"></i>
-                        </div>
-                    </button>
+
+    <div class="c-mgmt-panel" data-component="mgmt-panel">
+        <div class="c-mgmt-panel__header">
+            <i class="ti ti-clipboard-list c-mgmt-panel__icon"></i>
+            <h5 class="c-mgmt-panel__title">Order Management</h5>
+        </div>
+        <p class="c-mgmt-panel__description">Process orders, manage fulfillment, and track deliveries</p>
+        <div class="c-mgmt-panel__actions">
+            <button class="c-mgmt-action" data-action="view-pending-orders">
+                <div class="c-mgmt-action__content">
+                    <i class="ti ti-clock c-mgmt-action__icon"></i>
+                    <span class="c-mgmt-action__label">Pending Orders</span>
                 </div>
-            </div>
+                <span class="c-mgmt-action__badge c-mgmt-action__badge--warning">{{ stats.pending_orders or 0 }}</span>
+            </button>
+            <button class="c-mgmt-action" data-action="view-completed-orders">
+                <div class="c-mgmt-action__content">
+                    <i class="ti ti-check c-mgmt-action__icon"></i>
+                    <span class="c-mgmt-action__label">Completed Orders</span>
+                </div>
+                <span class="c-mgmt-action__badge c-mgmt-action__badge--success">{{ stats.completed_orders or 0 }}</span>
+            </button>
+            <button class="c-mgmt-action" data-action="search-orders">
+                <div class="c-mgmt-action__content">
+                    <i class="ti ti-search c-mgmt-action__icon"></i>
+                    <span class="c-mgmt-action__label">Search Orders</span>
+                </div>
+                <i class="ti ti-chevron-right c-mgmt-action__arrow"></i>
+            </button>
         </div>
     </div>
 </div>
 
 <!-- Recent Orders -->
 {% if recent_orders %}
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-history me-2"></i>Recent Orders
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Order ID</th>
-                                <th>Customer</th>
-                                <th>Items</th>
-                                <th>Total</th>
-                                <th>Status</th>
-                                <th>Date</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for order in recent_orders %}
-                            <tr>
-                                <td>#{{ order.id }}</td>
-                                <td>{{ order.orderer.name or order.orderer.username if order.orderer else 'N/A' }}</td>
-                                <td>{{order.quantity or 1}} × {{ order.item.name if order.item else 'Unknown Item' }}</td>
-                                <td>N/A</td>
-                                <td>
-                                    <span class="badge bg-{% if order.status == 'completed' %}success{% elif order.status == 'pending' %}warning{% else %}secondary{% endif %}">
-                                        {{ order.status.title() if order.status else 'Unknown' }}
-                                    </span>
-                                </td>
-                                <td>{{ order.order_date.strftime('%Y-%m-%d') if order.order_date else 'N/A' }}</td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary" onclick="viewOrder({{ order.id }})">
-                                        <i class="ti ti-eye me-1"></i>View
-                                    </button>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+<div class="c-orders-section" data-component="orders-section">
+    <div class="c-orders-section__header">
+        <i class="ti ti-history c-orders-section__icon"></i>
+        <h5 class="c-orders-section__title">Recent Orders</h5>
+    </div>
+    <div class="c-orders-table" data-component="orders-table">
+        <div class="c-orders-table__wrapper">
+            <table class="c-orders-table__table">
+                <thead class="c-orders-table__head">
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="c-orders-table__body">
+                    {% for order in recent_orders %}
+                    <tr class="c-orders-table__row">
+                        <td class="c-orders-table__cell c-orders-table__cell--id">#{{ order.id }}</td>
+                        <td class="c-orders-table__cell">{{ order.orderer.name or order.orderer.username if order.orderer else 'N/A' }}</td>
+                        <td class="c-orders-table__cell">{{order.quantity or 1}} × {{ order.item.name if order.item else 'Unknown Item' }}</td>
+                        <td class="c-orders-table__cell">N/A</td>
+                        <td class="c-orders-table__cell">
+                            <span class="c-orders-table__status c-orders-table__status--{% if order.status == 'completed' %}success{% elif order.status == 'pending' %}warning{% else %}secondary{% endif %}">
+                                {{ order.status.title() if order.status else 'Unknown' }}
+                            </span>
+                        </td>
+                        <td class="c-orders-table__cell">{{ order.order_date.strftime('%Y-%m-%d') if order.order_date else 'N/A' }}</td>
+                        <td class="c-orders-table__cell">
+                            <button class="c-orders-table__action" data-action="view-order" data-order-id="{{ order.id }}">
+                                <i class="ti ti-eye"></i>
+                                <span>View</span>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 {% else %}
-<div class="row">
-    <div class="col-12">
-        <div class="alert alert-info">
-            <i class="ti ti-info-circle me-2"></i>
-            No orders found. Start by adding products to your store!
-        </div>
-    </div>
+<div class="c-empty-state" data-component="empty-state">
+    <i class="ti ti-info-circle c-empty-state__icon"></i>
+    <p class="c-empty-state__message">No orders found. Start by adding products to your store!</p>
 </div>
 {% endif %}
 {% endblock %}
 
+{% block custom_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin-panel/store-management.css') }}" />
+{% endblock %}
+
 {% block custom_js %}
+{{ super() }}
 <script>
+// Event delegation for modern pattern
+document.addEventListener('DOMContentLoaded', function() {
+    // Add New Product
+    document.querySelectorAll('.js-add-new-product').forEach(btn => {
+        btn.addEventListener('click', function() {
+            addNewProduct();
+        });
+    });
+
+    // View All Products
+    document.querySelectorAll('.js-view-all-products').forEach(btn => {
+        btn.addEventListener('click', function() {
+            viewAllProducts();
+        });
+    });
+
+    // Manage Categories
+    document.querySelectorAll('.js-manage-categories').forEach(btn => {
+        btn.addEventListener('click', function() {
+            manageCategories();
+        });
+    });
+
+    // View Pending Orders
+    document.querySelectorAll('.js-view-pending-orders').forEach(btn => {
+        btn.addEventListener('click', function() {
+            viewPendingOrders();
+        });
+    });
+
+    // View Completed Orders
+    document.querySelectorAll('.js-view-completed-orders').forEach(btn => {
+        btn.addEventListener('click', function() {
+            viewCompletedOrders();
+        });
+    });
+
+    // Search Orders
+    document.querySelectorAll('.js-search-orders').forEach(btn => {
+        btn.addEventListener('click', function() {
+            searchOrders();
+        });
+    });
+
+    // View Order
+    document.querySelectorAll('.js-view-order').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const orderId = this.dataset.orderId;
+            viewOrder(orderId);
+        });
+    });
+});
+
+// Event delegation for Swal-generated buttons
+document.addEventListener('click', function(e) {
+    // Add Category
+    if (e.target.closest('.js-add-category')) {
+        addCategory();
+    }
+    // Delete Category
+    if (e.target.closest('.js-delete-category')) {
+        const category = e.target.closest('.js-delete-category').getAttribute('data-category');
+        deleteCategory(category);
+    }
+    // Process Order
+    if (e.target.closest('.js-process-order')) {
+        const orderId = e.target.closest('.js-process-order').getAttribute('data-order-id');
+        processOrder(orderId);
+    }
+    // View Order
+    if (e.target.closest('.js-view-order')) {
+        const orderId = e.target.closest('.js-view-order').getAttribute('data-order-id');
+        viewOrder(orderId);
+    }
+    // Perform Order Search
+    if (e.target.closest('.js-perform-order-search')) {
+        performOrderSearch();
+    }
+});
+
 // Store Product Management Functions
 function addNewProduct() {
     Swal.fire({
@@ -225,29 +263,29 @@ function addNewProduct() {
             <div class="text-start">
                 <div class="mb-3">
                     <label class="form-label">Product Name</label>
-                    <input type="text" class="form-control" id="productName" placeholder="Enter product name">
+                    <input type="text" class="form-control" id="productName" placeholder="Enter product name" data-form-control>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Description</label>
-                    <textarea class="form-control" id="productDescription" rows="3" placeholder="Product description"></textarea>
+                    <textarea class="form-control" id="productDescription" rows="3" placeholder="Product description" data-form-control></textarea>
                 </div>
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label class="form-label">Price ($)</label>
-                            <input type="number" class="form-control" id="productPrice" placeholder="0.00" step="0.01">
+                            <input type="number" class="form-control" id="productPrice" placeholder="0.00" step="0.01" data-form-control>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label class="form-label">Stock Quantity</label>
-                            <input type="number" class="form-control" id="productStock" placeholder="0">
+                            <input type="number" class="form-control" id="productStock" placeholder="0" data-form-control>
                         </div>
                     </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Category</label>
-                    <select class="form-select" id="productCategory">
+                    <select class="form-select" id="productCategory" data-form-select>
                         <option value="">Select category</option>
                         <option value="jersey">Jerseys</option>
                         <option value="merchandise">Merchandise</option>
@@ -288,15 +326,15 @@ function viewAllProducts() {
         title: 'All Products',
         html: `
             <div class="text-start">
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--compact" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Name</th>
-                                <th>Category</th>
-                                <th>Price</th>
-                                <th>Stock</th>
-                                <th>Status</th>
+                                <th scope="col">Name</th>
+                                <th scope="col">Category</th>
+                                <th scope="col">Price</th>
+                                <th scope="col">Stock</th>
+                                <th scope="col">Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -305,21 +343,21 @@ function viewAllProducts() {
                                 <td>Jerseys</td>
                                 <td>$45.00</td>
                                 <td>12</td>
-                                <td><span class="badge bg-success">Active</span></td>
+                                <td><span class="badge bg-success" data-badge>Active</span></td>
                             </tr>
                             <tr>
                                 <td>Team Scarf</td>
                                 <td>Merchandise</td>
                                 <td>$15.00</td>
                                 <td>5</td>
-                                <td><span class="badge bg-warning">Low Stock</span></td>
+                                <td><span class="badge bg-warning" data-badge>Low Stock</span></td>
                             </tr>
                             <tr>
                                 <td>ECS FC Mug</td>
                                 <td>Merchandise</td>
                                 <td>$12.00</td>
                                 <td>0</td>
-                                <td><span class="badge bg-danger">Out of Stock</span></td>
+                                <td><span class="badge bg-danger" data-badge>Out of Stock</span></td>
                             </tr>
                         </tbody>
                     </table>
@@ -339,32 +377,32 @@ function manageCategories() {
             <div class="text-start">
                 <div class="row mb-3">
                     <div class="col-md-8">
-                        <input type="text" class="form-control" id="newCategoryName" placeholder="New category name">
+                        <input type="text" class="form-control" id="newCategoryName" placeholder="New category name" data-form-control>
                     </div>
                     <div class="col-md-4">
-                        <button class="btn btn-primary w-100" onclick="addCategory()">Add Category</button>
+                        <button class="c-btn c-btn--primary w-100 js-add-category" data-action="add-category">Add Category</button>
                     </div>
                 </div>
                 <div class="list-group">
                     <div class="list-group-item d-flex justify-content-between align-items-center">
                         <span><i class="ti ti-hanger me-2"></i>Jerseys</span>
                         <div>
-                            <span class="badge bg-primary me-2">3 items</span>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory('jerseys')">Delete</button>
+                            <span class="badge bg-primary me-2" data-badge>3 items</span>
+                            <button class="c-btn c-btn--sm c-btn--outline-danger js-delete-category" data-action="delete-category" data-category="jerseys">Delete</button>
                         </div>
                     </div>
                     <div class="list-group-item d-flex justify-content-between align-items-center">
                         <span><i class="ti ti-gift me-2"></i>Merchandise</span>
                         <div>
-                            <span class="badge bg-primary me-2">8 items</span>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory('merchandise')">Delete</button>
+                            <span class="badge bg-primary me-2" data-badge>8 items</span>
+                            <button class="c-btn c-btn--sm c-btn--outline-danger js-delete-category" data-action="delete-category" data-category="merchandise">Delete</button>
                         </div>
                     </div>
                     <div class="list-group-item d-flex justify-content-between align-items-center">
                         <span><i class="ti ti-tools me-2"></i>Equipment</span>
                         <div>
-                            <span class="badge bg-primary me-2">2 items</span>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory('equipment')">Delete</button>
+                            <span class="badge bg-primary me-2" data-badge>2 items</span>
+                            <button class="c-btn c-btn--sm c-btn--outline-danger js-delete-category" data-action="delete-category" data-category="equipment">Delete</button>
                         </div>
                     </div>
                 </div>
@@ -382,15 +420,15 @@ function viewPendingOrders() {
         title: 'Pending Orders',
         html: `
             <div class="text-start">
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--compact" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Order ID</th>
-                                <th>Customer</th>
-                                <th>Items</th>
-                                <th>Date</th>
-                                <th>Actions</th>
+                                <th scope="col">Order ID</th>
+                                <th scope="col">Customer</th>
+                                <th scope="col">Items</th>
+                                <th scope="col">Date</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -400,8 +438,8 @@ function viewPendingOrders() {
                                 <td>2 × ECS FC Jersey</td>
                                 <td>2025-07-31</td>
                                 <td>
-                                    <button class="btn btn-sm btn-success me-1" onclick="processOrder(1001)">Process</button>
-                                    <button class="btn btn-sm btn-outline-secondary" onclick="viewOrder(1001)">View</button>
+                                    <button class="c-btn c-btn--sm c-btn--success me-1 js-process-order" data-action="process-order" data-order-id="1001">Process</button>
+                                    <button class="c-btn c-btn--sm c-btn--outline-secondary js-view-order" data-action="view-order" data-order-id="1001">View</button>
                                 </td>
                             </tr>
                             <tr>
@@ -410,8 +448,8 @@ function viewPendingOrders() {
                                 <td>1 × Team Scarf</td>
                                 <td>2025-07-31</td>
                                 <td>
-                                    <button class="btn btn-sm btn-success me-1" onclick="processOrder(1002)">Process</button>
-                                    <button class="btn btn-sm btn-outline-secondary" onclick="viewOrder(1002)">View</button>
+                                    <button class="c-btn c-btn--sm c-btn--success me-1 js-process-order" data-action="process-order" data-order-id="1002">Process</button>
+                                    <button class="c-btn c-btn--sm c-btn--outline-secondary js-view-order" data-action="view-order" data-order-id="1002">View</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -430,15 +468,15 @@ function viewCompletedOrders() {
         title: 'Completed Orders',
         html: `
             <div class="text-start">
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--compact" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Order ID</th>
-                                <th>Customer</th>
-                                <th>Items</th>
-                                <th>Completed Date</th>
-                                <th>Actions</th>
+                                <th scope="col">Order ID</th>
+                                <th scope="col">Customer</th>
+                                <th scope="col">Items</th>
+                                <th scope="col">Completed Date</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -448,7 +486,7 @@ function viewCompletedOrders() {
                                 <td>1 × ECS FC Mug</td>
                                 <td>2025-07-30</td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-secondary" onclick="viewOrder(998)">View</button>
+                                    <button class="c-btn c-btn--sm c-btn--outline-secondary js-view-order" data-action="view-order" data-order-id="998">View</button>
                                 </td>
                             </tr>
                             <tr>
@@ -457,7 +495,7 @@ function viewCompletedOrders() {
                                 <td>3 × Team Scarf</td>
                                 <td>2025-07-29</td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-secondary" onclick="viewOrder(997)">View</button>
+                                    <button class="c-btn c-btn--sm c-btn--outline-secondary js-view-order" data-action="view-order" data-order-id="997">View</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -479,17 +517,17 @@ function searchOrders() {
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <label class="form-label">Order ID</label>
-                        <input type="text" class="form-control" id="searchOrderId" placeholder="Enter order ID">
+                        <input type="text" class="form-control" id="searchOrderId" placeholder="Enter order ID" data-form-control>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Customer Name</label>
-                        <input type="text" class="form-control" id="searchCustomer" placeholder="Enter customer name">
+                        <input type="text" class="form-control" id="searchCustomer" placeholder="Enter customer name" data-form-control>
                     </div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <label class="form-label">Status</label>
-                        <select class="form-select" id="searchStatus">
+                        <select class="form-select" id="searchStatus" data-form-select>
                             <option value="">All statuses</option>
                             <option value="pending">Pending</option>
                             <option value="processing">Processing</option>
@@ -499,7 +537,7 @@ function searchOrders() {
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Date Range</label>
-                        <select class="form-select" id="searchDateRange">
+                        <select class="form-select" id="searchDateRange" data-form-select>
                             <option value="">All dates</option>
                             <option value="today">Today</option>
                             <option value="week">This week</option>
@@ -508,7 +546,7 @@ function searchOrders() {
                     </div>
                 </div>
                 <div class="text-center">
-                    <button class="btn btn-primary" onclick="performOrderSearch()">Search Orders</button>
+                    <button class="c-btn c-btn--primary js-perform-order-search" data-action="perform-order-search">Search Orders</button>
                 </div>
                 <div id="searchResults" class="mt-3"></div>
                 <p class="text-muted mt-3"><small>Note: Search functionality connects to the database when configured.</small></p>
@@ -545,7 +583,7 @@ function performOrderSearch() {
     // TODO: Implement actual search
     const resultsDiv = document.getElementById('searchResults');
     resultsDiv.innerHTML = `
-        <div class="alert alert-info">
+        <div class="alert alert-info" data-alert>
             <strong>Search Parameters:</strong><br>
             Order ID: ${orderId || 'Any'}<br>
             Customer: ${customer || 'Any'}<br>

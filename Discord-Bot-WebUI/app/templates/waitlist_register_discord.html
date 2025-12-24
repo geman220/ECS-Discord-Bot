@@ -13,42 +13,43 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/waitlist-registration.css') }}" />
 {% endblock %}
 
-<div class="container-xxl flex-grow-1 container-p-y">
-    <div class="row justify-content-center">
-        <div class="col-12 col-lg-10 col-xl-8">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center py-3">
-                    <div class="flex-grow-1">
-                        <h5 class="mb-1 fw-bold">Complete Waitlist Registration</h5>
-                        <small class="text-muted">Join the waitlist for ECS FC Pub League</small>
-                    </div>
-                    <div class="ms-3 d-flex align-items-center">
-                        <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="ECS FC Pub League Logo" class="logo-sm">
-                    </div>
+<div class="c-waitlist c-waitlist--discord" data-component="waitlist-discord">
+    <div class="c-waitlist__container">
+        <div class="c-waitlist__card">
+            <div class="c-waitlist__card-header">
+                <div class="c-waitlist__header-content">
+                    <h5 class="c-waitlist__title">Complete Waitlist Registration</h5>
+                    <small class="c-waitlist__subtitle">Join the waitlist for ECS FC Pub League</small>
                 </div>
-                <div class="card-body">
-                    <div class="alert alert-warning mb-4">
-                        <h6 class="alert-heading mb-1">
-                            <i class="ti ti-clock me-2"></i>
-                            You're Joining the Waitlist
-                        </h6>
-                        <p class="mb-0">All spots for the current season are filled, but you'll be first in line for future openings and substitute opportunities!</p>
+                <div class="c-waitlist__header-logo">
+                    <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="ECS FC Pub League Logo" class="c-waitlist__logo">
+                </div>
+            </div>
+            <div class="c-waitlist__card-body">
+                    <div class="c-alert c-alert--warning" role="alert" data-alert>
+                        <div class="c-alert__icon">
+                            <i class="ti ti-clock"></i>
+                        </div>
+                        <div class="c-alert__content">
+                            <h6 class="c-alert__title">You're Joining the Waitlist</h6>
+                            <p class="c-alert__message">All spots for the current season are filled, but you'll be first in line for future openings and substitute opportunities!</p>
+                        </div>
                     </div>
 
                     <!-- Discord Info -->
-                    <div class="alert alert-info mb-4">
-                        <div class="d-flex align-items-center">
-                            <i class="ti ti-brand-discord me-3 icon-lg"></i>
-                            <div>
-                                <h6 class="mb-1">Discord Account Connected</h6>
-                                <p class="mb-0"><strong>{{ discord_username }}</strong></p>
-                                <small class="text-muted">{{ discord_email }}</small>
-                            </div>
+                    <div class="c-alert c-alert--info" role="alert" data-alert>
+                        <div class="c-alert__icon">
+                            <i class="ti ti-brand-discord"></i>
+                        </div>
+                        <div class="c-alert__content">
+                            <h6 class="c-alert__title">Discord Account Connected</h6>
+                            <p class="c-alert__message"><strong>{{ discord_username }}</strong></p>
+                            <small class="c-alert__meta">{{ discord_email }}</small>
                         </div>
                     </div>
 
                     <!-- Registration Form -->
-                    <form method="POST" action="{{ url_for('auth.waitlist_register_with_discord') }}" class="needs-validation" novalidate>
+                    <form method="POST" action="{{ url_for('auth.waitlist_register_with_discord') }}" class="c-waitlist__form" data-form novalidate>
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" id="cropped_image_data_main" name="cropped_image_data">
                         
@@ -57,24 +58,24 @@
                             <h6 class="section-header">Personal Information</h6>
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <label class="form-label" for="name">Full Name <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="name" name="name" value="{{ discord_username }}" required>
+                                    <label class="form-label" for="waitlist-discord-name">Full Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="waitlist-discord-name" name="name" value="{{ discord_username }}" required data-form-control>
                                     <div class="invalid-feedback">Please provide your full name.</div>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label" for="email">Email</label>
-                                    <input type="email" class="form-control" id="email" name="email" value="{{ discord_email }}" readonly>
+                                    <label class="form-label" for="waitlist-discord-email">Email</label>
+                                    <input type="email" class="form-control" id="waitlist-discord-email" name="email" value="{{ discord_email }}" readonly data-form-control>
                                 </div>
                             </div>
                             
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <label class="form-label" for="phone">Phone Number</label>
-                                    <input type="tel" class="form-control" id="phone" name="phone" placeholder="Your phone number">
+                                    <label class="form-label" for="waitlist-discord-phone">Phone Number</label>
+                                    <input type="tel" class="form-control" id="waitlist-discord-phone" name="phone" placeholder="Your phone number" data-form-control>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label" for="pronouns">Preferred Pronouns</label>
-                                    <select class="form-select" id="pronouns" name="pronouns">
+                                    <label class="form-label" for="waitlist-discord-pronouns">Preferred Pronouns</label>
+                                    <select class="form-select" id="waitlist-discord-pronouns" name="pronouns" data-form-select>
                                         <option value="">Select pronouns</option>
                                         <option value="he/him">He/Him</option>
                                         <option value="she/her">She/Her</option>
@@ -86,8 +87,8 @@
                             
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <label class="form-label" for="jersey_size">Jersey Size</label>
-                                    <select class="form-select" id="jersey_size" name="jersey_size">
+                                    <label class="form-label" for="waitlist-discord-jersey_size">Jersey Size</label>
+                                    <select class="form-select" id="waitlist-discord-jersey_size" name="jersey_size" data-form-select>
                                         <option value="">Select size</option>
                                         <option value="WXL">WXL</option>
                                         <option value="N/A">N/A</option>
@@ -105,7 +106,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label" for="jersey_number">Preferred Jersey Number</label>
-                                    <input type="number" class="form-control" id="jersey_number" name="jersey_number" min="1" max="99" placeholder="Optional">
+                                    <input type="number" class="form-control" id="jersey_number" name="jersey_number" min="1" max="99" placeholder="Optional" data-form-control>
                                 </div>
                             </div>
                         </div>
@@ -119,14 +120,14 @@
                                         <div class="profile-image-wrapper">
                                             <img id="current-profile-image" src="/static/img/default_player.png" alt="Profile Picture" class="profile-image-lg mb-3">
                                         </div>
-                                        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#profileImageModal">
+                                        <button type="button" class="c-btn c-btn--outline-primary c-btn--sm" data-bs-toggle="modal" data-bs-target="#profileImageModal">
                                             <i class="ti ti-camera me-1"></i> Upload Photo
                                         </button>
                                         <p class="text-muted small mt-2">Optional: Add a profile picture to help others recognize you</p>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <div class="alert alert-info">
+                                    <div class="alert alert-info" data-alert>
                                         <h6 class="alert-heading fw-bold mb-1">
                                             <i class="ti ti-info-circle me-2"></i>Photo Guidelines
                                         </h6>
@@ -144,7 +145,7 @@
                         <!-- League Selection Section -->
                         <div class="mb-4">
                             <h6 class="section-header">League Preference</h6>
-                            <div class="alert alert-primary">
+                            <div class="alert alert-primary" data-alert>
                                 <h6 class="alert-heading fw-bold mb-1">
                                     <i class="ti ti-trophy me-2"></i>Which league are you interested in?
                                 </h6>
@@ -180,8 +181,8 @@
                             <h6 class="section-header">Playing Preferences</h6>
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <label class="form-label" for="favorite_position">Favorite Position</label>
-                                    <select class="form-select" id="favorite_position" name="favorite_position">
+                                    <label class="form-label" for="waitlist-discord-favorite_position">Favorite Position</label>
+                                    <select class="form-select" id="waitlist-discord-favorite_position" name="favorite_position" data-form-select>
                                         <option value="">Select position</option>
                                         <option value="goalkeeper">Goalkeeper</option>
                                         <option value="defender">Defender</option>
@@ -199,8 +200,8 @@
                                     </select>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label" for="frequency_play_goal">Willingness to Play Goal</label>
-                                    <select class="form-select" id="frequency_play_goal" name="frequency_play_goal">
+                                    <label class="form-label" for="waitlist-discord-frequency_play_goal">Willingness to Play Goal</label>
+                                    <select class="form-select" id="waitlist-discord-frequency_play_goal" name="frequency_play_goal" data-form-select>
                                         <option value="">Select frequency</option>
                                         <option value="0">Never</option>
                                         <option value="1">Only if our normal GK is unavailable and there are no other options</option>
@@ -336,8 +337,8 @@
                             <h6 class="section-header">Availability & Preferences</h6>
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <label class="form-label" for="expected_weeks_available">Expected Availability</label>
-                                    <select class="form-select" id="expected_weeks_available" name="expected_weeks_available">
+                                    <label class="form-label" for="waitlist-discord-expected_weeks_available">Expected Availability</label>
+                                    <select class="form-select" id="waitlist-discord-expected_weeks_available" name="expected_weeks_available" data-form-select>
                                         <option value="">Select availability</option>
                                         <option value="1-2">1-2</option>
                                         <option value="3-4">3-4</option>
@@ -348,7 +349,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label" for="willing_to_referee">Interested in Refereeing?</label>
-                                    <select class="form-select" id="willing_to_referee" name="willing_to_referee">
+                                    <select class="form-select" id="willing_to_referee" name="willing_to_referee" data-form-select>
                                         <option value="">Select option</option>
                                         <option value="No">No</option>
                                         <option value="Yes - I'll ref in Classic only">Yes - I'll ref in Classic only</option>
@@ -362,7 +363,7 @@
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label class="form-label" for="unavailable_dates">Unavailable Dates</label>
-                                    <input type="text" class="form-control" id="unavailable_dates" name="unavailable_dates" placeholder="e.g., June 15-20, July 4">
+                                    <input type="text" class="form-control" id="unavailable_dates" name="unavailable_dates" placeholder="e.g., June 15-20, July 4" data-form-control>
                                     <div class="form-text">List any dates you won't be available.</div>
                                 </div>
                             </div>
@@ -384,15 +385,15 @@
                         <div class="mb-4">
                             <h6 class="section-header">Player Notes</h6>
                             <div class="mb-3">
-                                <label class="form-label" for="player_notes">Player Notes</label>
+                                <label class="form-label" for="waitlist-discord-player_notes">Player Notes</label>
                                 <div class="form-text small mb-2">Notes to share with coaches/admins</div>
-                                <textarea class="form-control" id="player_notes" name="player_notes" rows="3" placeholder="Any specific notes or requests (optional)"></textarea>
+                                <textarea class="form-control" id="waitlist-discord-player_notes" name="player_notes" rows="3" placeholder="Any specific notes or requests (optional)" data-form-control></textarea>
                             </div>
                         </div>
 
                         <!-- Liability Waiver and Code of Conduct -->
                         <div class="waiver-section mb-4">
-                            <div class="alert alert-warning">
+                            <div class="alert alert-warning" data-alert>
                                 <h6>⚠️ Please Read Before Completing Registration</h6>
                                 <p class="small mb-0">Registration requires acceptance of our liability waiver and code of conduct.</p>
                             </div>
@@ -446,38 +447,38 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary d-grid w-100" id="complete-waitlist-btn" disabled>
-                            <i class="ti ti-user-plus me-2"></i>
-                            Complete Waitlist Registration
+                        <button type="submit" class="c-btn-modern c-btn-modern--primary c-btn-modern--block" id="complete-waitlist-btn" data-action="submit-waitlist" disabled>
+                            <i class="ti ti-user-plus"></i>
+                            <span>Complete Waitlist Registration</span>
                         </button>
                     </form>
 
                     <!-- Next Steps -->
-                    <div class="text-center mt-4">
-                        <div class="divider my-4">
-                            <div class="divider-text">What Happens Next?</div>
+                    <div class="c-waitlist__next-steps">
+                        <div class="c-divider">
+                            <span class="c-divider__text">What Happens Next?</span>
                         </div>
-                        <div class="row text-center">
-                            <div class="col-md-4 mb-3">
-                                <div class="badge badge-center rounded-pill bg-label-primary mb-2 step-badge">1</div>
-                                <p class="small mb-0">You'll receive a confirmation email and Discord role</p>
+                        <div class="c-waitlist__steps-grid">
+                            <div class="c-waitlist__step">
+                                <div class="c-waitlist__step-badge">1</div>
+                                <p class="c-waitlist__step-text">You'll receive a confirmation email and Discord role</p>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <div class="badge badge-center rounded-pill bg-label-primary mb-2 step-badge">2</div>
-                                <p class="small mb-0">We'll notify you when spots open up</p>
+                            <div class="c-waitlist__step">
+                                <div class="c-waitlist__step-badge">2</div>
+                                <p class="c-waitlist__step-text">We'll notify you when spots open up</p>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <div class="badge badge-center rounded-pill bg-label-primary mb-2 step-badge">3</div>
-                                <p class="small mb-0">You'll get priority access to register</p>
+                            <div class="c-waitlist__step">
+                                <div class="c-waitlist__step-badge">3</div>
+                                <p class="c-waitlist__step-text">You'll get priority access to register</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Footer Links -->
-                    <div class="text-center mt-4">
-                        <a href="{{ url_for('auth.login') }}" class="d-flex align-items-center justify-content-center text-muted">
-                            <i class="ti ti-chevron-left me-1"></i>
-                            Back to login
+                    <div class="c-waitlist__footer">
+                        <a href="{{ url_for('auth.login') }}" class="c-link" data-action="back-to-login">
+                            <i class="ti ti-chevron-left"></i>
+                            <span>Back to login</span>
                         </a>
                     </div>
                 </div>
@@ -487,16 +488,16 @@
 </div>
 
 <!-- Profile Image Upload Modal -->
-<div class="modal fade" id="profileImageModal" tabindex="-1" aria-labelledby="profileImageModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="profileImageModalLabel">Upload and Crop Profile Picture</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal c-modal fade" id="profileImageModal" tabindex="-1" aria-labelledby="profileImageModalLabel" aria-hidden="true" data-modal>
+    <div class="modal-dialog c-modal__dialog modal-xl c-modal__dialog--xl modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="profileImageModalLabel">Upload and Crop Profile Picture</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body>
                 <div class="mb-3">
-                    <input type="file" id="imageInput" accept="image/*" class="form-control" onchange="loadImage(this)">
+                    <input type="file" id="imageInput" accept="image/*" class="form-control js-image-input" data-form-control>
                     <p class="text-muted small mt-2">Supported formats: JPG, PNG, GIF. Maximum size: 10MB</p>
                 </div>
                 
@@ -508,7 +509,7 @@
                         <div class="col-md-4">
                             <div class="controls mb-3">
                                 <label>Crop Size:</label>
-                                <input type="range" id="cropSize" min="100" max="300" value="200" class="form-range" oninput="updateCropSize()">
+                                <input type="range" id="cropSize" min="100" max="300" value="200" class="form-range js-crop-size">
                                 <span id="cropSizeValue">200px</span>
                             </div>
                             <div class="preview mb-3">
@@ -526,9 +527,9 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="applyCropBtn" onclick="applyCrop()" disabled>Apply Changes</button>
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--primary js-apply-crop" id="applyCropBtn" data-action="apply-crop" disabled>Apply Changes</button>
             </div>
         </div>
     </div>
@@ -555,7 +556,27 @@
         ctx = canvas.getContext('2d');
         previewCanvas = document.getElementById('previewCanvas');
         previewCtx = previewCanvas.getContext('2d');
-        
+
+        // Handle image input change
+        const imageInput = document.querySelector('.js-image-input');
+        if (imageInput) {
+            imageInput.addEventListener('change', function() {
+                loadImage(this);
+            });
+        }
+
+        // Handle crop size range input
+        const cropSizeInput = document.querySelector('.js-crop-size');
+        if (cropSizeInput) {
+            cropSizeInput.addEventListener('input', updateCropSize);
+        }
+
+        // Handle apply crop button
+        const applyCropBtn = document.querySelector('.js-apply-crop');
+        if (applyCropBtn) {
+            applyCropBtn.addEventListener('click', applyCrop);
+        }
+
         // Canvas mouse events
         canvas.addEventListener('mousedown', startDrag);
         canvas.addEventListener('mousemove', drag);

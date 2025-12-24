@@ -1,0 +1,755 @@
+/**
+ * ============================================================================
+ * ECS BUTTON COMPONENT
+ * ============================================================================
+ *
+ * Complete button system with variants, sizes, and states.
+ * Replaces inline button styles and provides consistent button UX.
+ *
+ * Structure:
+ *   1. Base Button Styles
+ *   2. Button Variants (Primary, Secondary, Success, etc.)
+ *   3. Button Sizes
+ *   4. Button States (Hover, Active, Disabled, Loading)
+ *   5. Icon Buttons
+ *   6. Button Groups
+ *
+ * Usage:
+ *   <button class="btn btn-primary">Primary Button</button>
+ *   <button class="btn btn-secondary btn-lg">Large Secondary</button>
+ *   <button class="btn btn-success btn-sm">Small Success</button>
+ *
+ * Replaces:
+ *   - Inline style="background: linear-gradient(...)"
+ *   - Inline style="background-color: #7289DA"
+ *   - Hardcoded color values
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. BASE BUTTON STYLES
+   Foundation for all button variants
+   ============================================================================ */
+
+.btn {
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+
+  /* Spacing */
+  padding: var(--space-button-padding-y) var(--space-button-padding-x);
+
+  /* Typography */
+  font-family: var(--font-body);
+  font-size: var(--text-button-size);
+  font-weight: var(--text-button-weight);
+  line-height: var(--leading-normal);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  letter-spacing: var(--tracking-wide);
+
+  /* Visual */
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-button);
+  background-color: transparent;
+  color: inherit;
+  cursor: pointer;
+
+  /* Interaction */
+  transition: var(--transition-button);
+  user-select: none;
+
+  /* Remove browser defaults */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.btn:focus {
+  outline: none;
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* ============================================================================
+   2. BUTTON VARIANTS
+   Color-coded buttons for different actions
+   ============================================================================ */
+
+/* PRIMARY - Main call-to-action */
+.btn-primary {
+  background-color: var(--color-primary-600);
+  border-color: var(--color-primary-600);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-700);
+  border-color: var(--color-primary-700);
+  color: white;
+}
+
+.btn-primary:active {
+  background-color: var(--color-primary-800);
+  border-color: var(--color-primary-800);
+  transform: translateY(1px);
+}
+
+.btn-primary:focus-visible {
+  box-shadow: var(--shadow-focus-primary);
+}
+
+/* SECONDARY - Secondary actions */
+.btn-secondary {
+  background-color: var(--color-secondary-600);
+  border-color: var(--color-secondary-600);
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-secondary-700);
+  border-color: var(--color-secondary-700);
+  color: white;
+}
+
+.btn-secondary:active {
+  background-color: var(--color-secondary-800);
+  border-color: var(--color-secondary-800);
+  transform: translateY(1px);
+}
+
+/* SUCCESS - Positive actions (save, submit, confirm) */
+.btn-success {
+  background-color: var(--color-success-600);
+  border-color: var(--color-success-600);
+  color: white;
+}
+
+.btn-success:hover {
+  background-color: var(--color-success-700);
+  border-color: var(--color-success-700);
+  color: white;
+}
+
+.btn-success:active {
+  background-color: var(--color-success-800);
+  border-color: var(--color-success-800);
+  transform: translateY(1px);
+}
+
+.btn-success:focus-visible {
+  box-shadow: var(--shadow-focus-success);
+}
+
+/* WARNING - Caution actions */
+.btn-warning {
+  background-color: var(--color-warning-600);
+  border-color: var(--color-warning-600);
+  color: var(--color-neutral-900);
+}
+
+.btn-warning:hover {
+  background-color: var(--color-warning-700);
+  border-color: var(--color-warning-700);
+  color: var(--color-neutral-900);
+}
+
+.btn-warning:active {
+  background-color: var(--color-warning-800);
+  border-color: var(--color-warning-800);
+  transform: translateY(1px);
+}
+
+.btn-warning:focus-visible {
+  box-shadow: var(--shadow-focus-warning);
+}
+
+/* DANGER - Destructive actions (delete, remove, cancel) */
+.btn-danger {
+  background-color: var(--color-danger-600);
+  border-color: var(--color-danger-600);
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: var(--color-danger-700);
+  border-color: var(--color-danger-700);
+  color: white;
+}
+
+.btn-danger:active {
+  background-color: var(--color-danger-800);
+  border-color: var(--color-danger-800);
+  transform: translateY(1px);
+}
+
+.btn-danger:focus-visible {
+  box-shadow: var(--shadow-focus-danger);
+}
+
+/* INFO - Informational actions */
+.btn-info {
+  background-color: var(--color-info-600);
+  border-color: var(--color-info-600);
+  color: white;
+}
+
+.btn-info:hover {
+  background-color: var(--color-info-700);
+  border-color: var(--color-info-700);
+  color: white;
+}
+
+.btn-info:active {
+  background-color: var(--color-info-800);
+  border-color: var(--color-info-800);
+  transform: translateY(1px);
+}
+
+.btn-info:focus-visible {
+  box-shadow: var(--shadow-focus-info);
+}
+
+/* ============================================================================
+   3. OUTLINE VARIANTS
+   Hollow buttons with colored borders
+   ============================================================================ */
+
+.btn-outline-primary {
+  background-color: transparent;
+  border-color: var(--color-primary-600);
+  color: var(--color-primary-600);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--color-primary-600);
+  border-color: var(--color-primary-600);
+  color: white;
+}
+
+.btn-outline-secondary {
+  background-color: transparent;
+  border-color: var(--color-secondary-600);
+  color: var(--color-secondary-600);
+}
+
+.btn-outline-secondary:hover {
+  background-color: var(--color-secondary-600);
+  border-color: var(--color-secondary-600);
+  color: white;
+}
+
+.btn-outline-success {
+  background-color: transparent;
+  border-color: var(--color-success-600);
+  color: var(--color-success-600);
+}
+
+.btn-outline-success:hover {
+  background-color: var(--color-success-600);
+  border-color: var(--color-success-600);
+  color: white;
+}
+
+.btn-outline-warning {
+  background-color: transparent;
+  border-color: var(--color-warning-600);
+  color: var(--color-warning-600);
+}
+
+.btn-outline-warning:hover {
+  background-color: var(--color-warning-600);
+  border-color: var(--color-warning-600);
+  color: var(--color-neutral-900);
+}
+
+.btn-outline-danger {
+  background-color: transparent;
+  border-color: var(--color-danger-600);
+  color: var(--color-danger-600);
+}
+
+.btn-outline-danger:hover {
+  background-color: var(--color-danger-600);
+  border-color: var(--color-danger-600);
+  color: white;
+}
+
+.btn-outline-info {
+  background-color: transparent;
+  border-color: var(--color-info-600);
+  color: var(--color-info-600);
+}
+
+.btn-outline-info:hover {
+  background-color: var(--color-info-600);
+  border-color: var(--color-info-600);
+  color: white;
+}
+
+/* ============================================================================
+   4. GHOST/TEXT VARIANTS
+   Minimal buttons without borders or background
+   ============================================================================ */
+
+.btn-ghost,
+.btn-text {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--color-text-primary);
+}
+
+.btn-ghost:hover,
+.btn-text:hover {
+  background-color: var(--color-hover-bg);
+}
+
+.btn-ghost:active,
+.btn-text:active {
+  background-color: var(--color-active-bg);
+  transform: translateY(1px);
+}
+
+/* Colored ghost buttons */
+.btn-ghost-primary {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--color-primary-600);
+}
+
+.btn-ghost-primary:hover {
+  background-color: var(--color-primary-subtle);
+  color: var(--color-primary-700);
+}
+
+.btn-ghost-success {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--color-success-600);
+}
+
+.btn-ghost-success:hover {
+  background-color: var(--color-success-subtle);
+  color: var(--color-success-700);
+}
+
+.btn-ghost-danger {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--color-danger-600);
+}
+
+.btn-ghost-danger:hover {
+  background-color: var(--color-danger-subtle);
+  color: var(--color-danger-700);
+}
+
+/* ============================================================================
+   5. SPECIAL PURPOSE BUTTONS
+   ============================================================================ */
+
+/* Discord brand button */
+.btn-discord {
+  background-color: var(--color-discord-600);
+  border-color: var(--color-discord-600);
+  color: white;
+}
+
+.btn-discord:hover {
+  background-color: var(--color-discord-hover);
+  border-color: var(--color-discord-hover);
+  color: white;
+}
+
+.btn-discord:active,
+.btn-discord.active {
+  background-color: var(--color-discord-800);
+  border-color: var(--color-discord-800);
+}
+
+/* Light/neutral button */
+.btn-light {
+  background-color: var(--color-neutral-100);
+  border-color: var(--color-neutral-100);
+  color: var(--color-neutral-900);
+}
+
+.btn-light:hover {
+  background-color: var(--color-neutral-200);
+  border-color: var(--color-neutral-200);
+  color: var(--color-neutral-900);
+}
+
+/* Dark button */
+.btn-dark {
+  background-color: var(--color-neutral-900);
+  border-color: var(--color-neutral-900);
+  color: white;
+}
+
+.btn-dark:hover {
+  background-color: var(--color-neutral-800);
+  border-color: var(--color-neutral-800);
+  color: white;
+}
+
+/* ============================================================================
+   6. BUTTON SIZES
+   ============================================================================ */
+
+.btn-xs {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+  gap: var(--space-1);
+}
+
+.btn-sm {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  gap: var(--space-1);
+}
+
+.btn-md {
+  /* Default size - already defined in .btn */
+}
+
+.btn-lg {
+  padding: var(--space-4) var(--space-6);
+  font-size: var(--text-lg);
+  gap: var(--space-2);
+}
+
+.btn-xl {
+  padding: var(--space-5) var(--space-8);
+  font-size: var(--text-xl);
+  gap: var(--space-3);
+}
+
+/* ============================================================================
+   7. BUTTON STATES
+   ============================================================================ */
+
+/* Disabled state */
+.btn:disabled,
+.btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Loading state */
+.btn.loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+
+.btn.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  opacity: 0.7;
+}
+
+.btn-sm.loading::after,
+.btn-xs.loading::after {
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+}
+
+.btn-lg.loading::after,
+.btn-xl.loading::after {
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+}
+
+/* Active/pressed state */
+.btn.active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+/* ============================================================================
+   8. ICON BUTTONS
+   Square buttons for icons only
+   ============================================================================ */
+
+.btn-icon {
+  padding: var(--space-2);
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+}
+
+.btn-icon.btn-sm {
+  padding: var(--space-1);
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+}
+
+.btn-icon.btn-lg {
+  padding: var(--space-3);
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+}
+
+.btn-icon.btn-xl {
+  padding: var(--space-4);
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+}
+
+/* ============================================================================
+   9. BUTTON GROUPS
+   Adjacent buttons
+   ============================================================================ */
+
+.btn-group {
+  display: inline-flex;
+  gap: 0;
+}
+
+.btn-group > .btn {
+  border-radius: 0;
+  margin-left: -1px;
+}
+
+.btn-group > .btn:first-child {
+  border-top-left-radius: var(--radius-button);
+  border-bottom-left-radius: var(--radius-button);
+  margin-left: 0;
+}
+
+.btn-group > .btn:last-child {
+  border-top-right-radius: var(--radius-button);
+  border-bottom-right-radius: var(--radius-button);
+}
+
+.btn-group > .btn:focus {
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================================================
+   10. FULL WIDTH BUTTONS
+   ============================================================================ */
+
+.btn-block {
+  display: flex;
+  width: 100%;
+}
+
+/* ============================================================================
+   11. PILL BUTTONS
+   Fully rounded ends
+   ============================================================================ */
+
+.btn-pill {
+  border-radius: var(--radius-full);
+}
+
+/* ============================================================================
+   12. ELEVATED BUTTONS
+   Buttons with shadows
+   ============================================================================ */
+
+.btn-elevated {
+  box-shadow: var(--shadow-md);
+}
+
+.btn-elevated:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.btn-elevated:active {
+  box-shadow: var(--shadow-sm);
+  transform: translateY(0);
+}
+
+/* ============================================================================
+   13. GRADIENT BUTTONS
+   For special emphasis (replaces inline gradients)
+   ============================================================================ */
+
+.btn-gradient-primary {
+  background: linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%);
+  border-color: var(--color-primary-600);
+  color: white;
+}
+
+.btn-gradient-primary:hover {
+  background: linear-gradient(135deg, var(--color-primary-700) 0%, var(--color-primary-800) 100%);
+  border-color: var(--color-primary-700);
+}
+
+.btn-gradient-success {
+  background: linear-gradient(135deg, var(--color-success-600) 0%, var(--color-success-700) 100%);
+  border-color: var(--color-success-600);
+  color: white;
+}
+
+.btn-gradient-success:hover {
+  background: linear-gradient(135deg, var(--color-success-700) 0%, var(--color-success-800) 100%);
+  border-color: var(--color-success-700);
+}
+
+/* Draft button gradient (replaces inline gradient in draft_enhanced.html) */
+.btn-draft {
+  background: linear-gradient(45deg, var(--color-success-600), var(--color-info-500));
+  border-color: var(--color-success-600);
+  color: white;
+  font-weight: var(--font-semibold);
+}
+
+.btn-draft:hover {
+  background: linear-gradient(45deg, var(--color-success-700), var(--color-info-600));
+  border-color: var(--color-success-700);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ============================================================================
+   14. RESPONSIVE BUTTONS
+   Mobile-optimized button sizing
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .btn {
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-mobile-base);
+  }
+
+  .btn-sm {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-mobile-sm);
+  }
+
+  .btn-lg {
+    padding: var(--space-4) var(--space-5);
+    font-size: var(--text-mobile-lg);
+  }
+
+  /* Ensure minimum touch target size */
+  .btn,
+  .btn-sm {
+    min-height: 44px;
+  }
+}
+
+/* ============================================================================
+   15. DARK MODE ADJUSTMENTS
+   ============================================================================ */
+
+[data-style="dark"] .btn-light {
+  background-color: var(--color-neutral-800);
+  border-color: var(--color-neutral-800);
+  color: var(--color-neutral-100);
+}
+
+[data-style="dark"] .btn-light:hover {
+  background-color: var(--color-neutral-700);
+  border-color: var(--color-neutral-700);
+}
+
+[data-style="dark"] .btn-dark {
+  background-color: var(--color-neutral-100);
+  border-color: var(--color-neutral-100);
+  color: var(--color-neutral-900);
+}
+
+[data-style="dark"] .btn-dark:hover {
+  background-color: var(--color-neutral-200);
+  border-color: var(--color-neutral-200);
+}
+
+/* ============================================================================
+   16. THIRD-PARTY BRAND BUTTONS
+   ============================================================================ */
+
+/**
+ * Discord outline button variant
+ * Used for Discord login/register/integration
+ * Replaces inline style="background-color: #7289DA"
+ */
+.btn-discord-outline {
+  background-color: transparent;
+  border-color: var(--color-discord-600);
+  color: var(--color-discord-600);
+}
+
+.btn-discord-outline:hover {
+  background-color: var(--color-discord-600);
+  border-color: var(--color-discord-600);
+  color: white;
+}
+
+.btn-discord-outline:active,
+.btn-discord-outline.active {
+  background-color: var(--color-discord-700);
+  border-color: var(--color-discord-700);
+}
+
+/**
+ * Google branded buttons (for future use)
+ */
+.btn-google {
+  background-color: var(--color-google-600);
+  border-color: var(--color-google-600);
+  color: white;
+}
+
+.btn-google:hover {
+  background-color: var(--color-google-700);
+  border-color: var(--color-google-700);
+  color: white;
+}
+
+.btn-google:active,
+.btn-google.active {
+  background-color: var(--color-google-700);
+  border-color: var(--color-google-700);
+  transform: translateY(1px);
+}
+
+/**
+ * GitHub branded buttons (for future use)
+ */
+.btn-github {
+  background-color: var(--color-github-600);
+  border-color: var(--color-github-600);
+  color: white;
+}
+
+.btn-github:hover {
+  background-color: var(--color-github-700);
+  border-color: var(--color-github-700);
+  color: white;
+}
+
+.btn-github:active,
+.btn-github.active {
+  background-color: var(--color-github-700);
+  border-color: var(--color-github-700);
+  transform: translateY(1px);
+}

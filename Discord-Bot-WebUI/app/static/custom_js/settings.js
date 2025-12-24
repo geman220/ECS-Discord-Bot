@@ -11,6 +11,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const smsVerificationForm = document.getElementById('smsVerificationForm');
     const resendCodeBtn = document.getElementById('resendCodeBtn');
 
+    // Cache SMS step elements
+    const smsConsentStep = document.getElementById('smsConsentStep');
+    const smsVerificationStep = document.getElementById('smsVerificationStep');
+    const smsConfirmationStep = document.getElementById('smsConfirmationStep');
+
     if (accountInfoForm) {
         accountInfoForm.addEventListener('submit', function (e) {
             e.preventDefault();
@@ -77,8 +82,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        smsConsentStep.style.display = 'none';
-                        smsVerificationStep.style.display = 'block';
+                        // Hide consent step and show verification step using is-hidden
+                        smsConsentStep.classList.add('is-hidden');
+                        smsVerificationStep.classList.remove('is-hidden');
                         document.getElementById('sentPhoneNumber').textContent = phoneNumber;
                     } else {
                         Swal.fire({
@@ -107,8 +113,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        smsVerificationStep.style.display = 'none';
-                        smsConfirmationStep.style.display = 'block';
+                        // Hide verification step and show confirmation step using is-hidden
+                        smsVerificationStep.classList.add('is-hidden');
+                        smsConfirmationStep.classList.remove('is-hidden');
                     } else {
                         Swal.fire({
                             icon: 'error',
@@ -118,9 +125,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 });
 
-            // Show resend code button after a delay
+            // Show resend code button after a delay using is-hidden
             setTimeout(function () {
-                resendCodeBtn.style.display = 'inline';
+                resendCodeBtn.classList.remove('is-hidden');
             }, 10000);
         });
     }

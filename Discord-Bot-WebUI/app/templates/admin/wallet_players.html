@@ -2,6 +2,7 @@
 {% block title %}Player Eligibility - Digital Wallets{% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
     /* Filter row - Theme-aware styling */
     .filter-card {
@@ -27,7 +28,7 @@
                     <p class="text-muted mb-0">Review which players are eligible for digital wallet passes</p>
                 </div>
                 <div>
-                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="btn btn-outline-secondary">
+                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-arrow-left me-1"></i>Back to Dashboard
                     </a>
                 </div>
@@ -36,7 +37,7 @@
     </div>
 
     <!-- Info Alert -->
-    <div class="alert alert-info d-flex align-items-start mb-4">
+    <div class="alert alert-info d-flex align-items-start mb-4" data-alert>
         <i class="ti ti-info-circle me-2 mt-1"></i>
         <div>
             <strong>Eligibility Requirements:</strong> Players must be <strong>active</strong> and have a <strong>team assignment</strong> to be eligible for a digital wallet pass.
@@ -44,12 +45,12 @@
     </div>
 
     <!-- Filters -->
-    <div class="card filter-card mb-4">
-        <div class="card-body py-3">
+    <div class="c-card filter-card mb-4">
+        <div class="c-card__body py-3">
             <form method="GET" class="row g-3 align-items-end">
                 <div class="col-md-3">
                     <label class="form-label small text-muted">Team Filter</label>
-                    <select name="team" class="form-select">
+                    <select name="team" class="form-select" data-form-select>
                         <option value="all" {{ 'selected' if current_filters.team == 'all' or not current_filters.team else '' }}>All Teams</option>
                         {% for team in teams %}
                         <option value="{{ team.id }}" {{ 'selected' if current_filters.team == team.id|string else '' }}>
@@ -60,7 +61,7 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small text-muted">Status Filter</label>
-                    <select name="status" class="form-select">
+                    <select name="status" class="form-select" data-form-select>
                         <option value="all" {{ 'selected' if current_filters.status == 'all' or not current_filters.status else '' }}>All Players</option>
                         <option value="eligible" {{ 'selected' if current_filters.status == 'eligible' else '' }}>Eligible Only</option>
                         <option value="active" {{ 'selected' if current_filters.status == 'active' else '' }}>Active Players</option>
@@ -68,11 +69,11 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="c-btn c-btn--primary">
                         <i class="ti ti-filter me-1"></i>Apply Filters
                     </button>
                     {% if current_filters.team != 'all' or current_filters.status != 'all' %}
-                    <a href="{{ url_for('wallet_admin.wallet_players') }}" class="btn btn-outline-secondary ms-2">
+                    <a href="{{ url_for('wallet_admin.wallet_players') }}" class="c-btn c-btn--outline-secondary ms-2">
                         <i class="ti ti-x me-1"></i>Clear
                     </a>
                     {% endif %}
@@ -82,26 +83,26 @@
     </div>
 
     <!-- Players Table -->
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="c-card">
+        <div class="c-card__header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
                 <i class="ti ti-list me-2"></i>Players
-                <span class="badge bg-primary ms-2">{{ players.total }} total</span>
+                <span class="badge bg-primary ms-2" data-badge>{{ players.total }} total</span>
             </h5>
         </div>
-        <div class="card-body">
+        <div class="c-card__body">
             {% if players.items %}
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead class="table-light">
+            <div class="c-table-wrapper" data-table-responsive>
+                <table class="c-table c-table--hoverable" data-table>
+                    <thead class="c-table--light" scope="col">
                         <tr>
-                            <th>Player</th>
-                            <th>Status</th>
-                            <th>Team</th>
-                            <th>League</th>
-                            <th>Contact</th>
-                            <th>Eligible</th>
-                            <th class="text-end">Actions</th>
+                            <th scope="col">Player</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Team</th>
+                            <th scope="col">League</th>
+                            <th scope="col">Contact</th>
+                            <th scope="col">Eligible</th>
+                            <th class="text-end" scope="col">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -122,18 +123,18 @@
                             </td>
                             <td>
                                 {% if player.is_current_player %}
-                                <span class="badge bg-label-success">
+                                <span class="badge bg-label-success" data-badge>
                                     <i class="ti ti-check me-1"></i>Active
                                 </span>
                                 {% else %}
-                                <span class="badge bg-label-secondary">
+                                <span class="badge bg-label-secondary" data-badge>
                                     <i class="ti ti-x me-1"></i>Inactive
                                 </span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if player.primary_team %}
-                                <span class="badge bg-label-info">{{ player.primary_team.name }}</span>
+                                <span class="badge bg-label-info" data-badge>{{ player.primary_team.name }}</span>
                                 {% else %}
                                 <span class="text-muted">No team</span>
                                 {% endif %}
@@ -157,11 +158,11 @@
                             </td>
                             <td>
                                 {% if player.is_current_player and player.primary_team %}
-                                <span class="badge bg-label-success eligibility-badge">
+                                <span class="badge bg-label-success eligibility-badge" data-badge>
                                     <i class="ti ti-check me-1"></i>Eligible
                                 </span>
                                 {% else %}
-                                <span class="badge bg-label-warning eligibility-badge">
+                                <span class="badge bg-label-warning eligibility-badge" data-badge>
                                     <i class="ti ti-alert-triangle me-1"></i>Not Eligible
                                 </span>
                                 {% endif %}
@@ -170,12 +171,12 @@
                                 <div class="btn-group btn-group-sm">
                                     {% if player.is_current_player and player.primary_team %}
                                     <a href="{{ url_for('wallet.get_wallet_pass_by_player', player_id=player.id) }}"
-                                       class="btn btn-outline-success" title="Generate Pass">
+                                       class="c-btn c-btn--outline-success" title="Generate Pass">
                                         <i class="ti ti-download"></i>
                                     </a>
                                     {% endif %}
-                                    <button type="button" class="btn btn-outline-primary"
-                                            onclick="checkPlayerEligibility({{ player.id }})" title="Check Details">
+                                    <button type="button" class="c-btn c-btn--outline-primary"
+                                            data-action="check-player-eligibility" data-id="{{ player.id }}" class="js-check-player-eligibility" title="Check Details">
                                         <i class="ti ti-info-circle"></i>
                                     </button>
                                 </div>
@@ -189,9 +190,9 @@
             <!-- Pagination -->
             {% if players.pages > 1 %}
             <nav class="mt-4">
-                <ul class="pagination justify-content-center mb-0">
+                <ul class="pagination justify-content-center mb-0" data-pagination>
                     {% if players.has_prev %}
-                    <li class="page-item">
+                    <li class="page-item" data-page-item>
                         <a class="page-link" href="{{ url_for_other_page(players.prev_num) }}">
                             <i class="ti ti-chevron-left"></i>
                         </a>
@@ -200,16 +201,16 @@
 
                     {% for page_num in players.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
                         {% if page_num %}
-                        <li class="page-item {{ 'active' if page_num == players.page else '' }}">
+                        <li class="page-item {{ 'active' if page_num == players.page else '' }}" data-page-item data-page-active>
                             <a class="page-link" href="{{ url_for_other_page(page_num) }}">{{ page_num }}</a>
                         </li>
                         {% else %}
-                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                        <li class="page-item disabled" data-page-item data-page-disabled><span class="page-link">...</span></li>
                         {% endif %}
                     {% endfor %}
 
                     {% if players.has_next %}
-                    <li class="page-item">
+                    <li class="page-item" data-page-item>
                         <a class="page-link" href="{{ url_for_other_page(players.next_num) }}">
                             <i class="ti ti-chevron-right"></i>
                         </a>
@@ -220,10 +221,10 @@
             {% endif %}
             {% else %}
             <div class="text-center py-5">
-                <i class="ti ti-user-search text-muted mb-3" style="font-size: 3rem;"></i>
+                <i class="ti ti-user-search text-muted mb-3" class="u-icon-3xl"></i>
                 <h6 class="text-muted">No Players Found</h6>
                 <p class="text-muted mb-3">No players match your current filter criteria.</p>
-                <a href="{{ url_for('wallet_admin.wallet_players') }}" class="btn btn-outline-primary">
+                <a href="{{ url_for('wallet_admin.wallet_players') }}" class="c-btn c-btn--outline-primary">
                     <i class="ti ti-x me-1"></i>Clear Filters
                 </a>
             </div>
@@ -233,18 +234,18 @@
 </div>
 
 <!-- Player Eligibility Modal -->
-<div class="modal fade" id="eligibilityModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
+<div class="modal c-modal fade" data-modal id="eligibilityModal" tabindex="-1" aria-labelledby="eligibilityModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="eligibilityModalLabel">
                     <i class="ti ti-info-circle me-2"></i>Player Eligibility Details
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body" id="eligibilityModalBody">
+            <div class="modal-body c-modal__body" data-modal-body id="eligibilityModalBody" data-modal-body aria-labelledby="eligibilityModalBodyLabel">
                 <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status">
+                    <div class="spinner-border text-primary" role="status" data-spinner>
                         <span class="visually-hidden">Loading...</span>
                     </div>
                     <p class="mt-2 text-muted">Checking eligibility...</p>
@@ -260,10 +261,9 @@
 <script>
 // Check player eligibility details
 function checkPlayerEligibility(playerId) {
-    const modal = new bootstrap.Modal(document.getElementById('eligibilityModal'));
     const modalBody = document.getElementById('eligibilityModalBody');
 
-    modal.show();
+    ModalManager.show('eligibilityModal');
 
     fetch(`{{ url_for('wallet_admin.check_player_eligibility', player_id=0) }}`.replace('0', playerId))
         .then(response => response.json())
@@ -274,7 +274,7 @@ function checkPlayerEligibility(playerId) {
                     <small class="text-muted">Player ID: ${data.player_id}</small>
                 </div>
 
-                <div class="alert alert-${data.eligible ? 'success' : 'warning'} d-flex align-items-center">
+                <div class="alert alert-${data.eligible ? 'success' : 'warning'} d-flex align-items-center" data-alert>
                     <i class="ti ti-${data.eligible ? 'circle-check' : 'alert-triangle'} me-2 fs-4"></i>
                     <div>
                         <strong>${data.eligible ? 'Eligible for Wallet Pass' : 'Not Currently Eligible'}</strong>
@@ -298,11 +298,11 @@ function checkPlayerEligibility(playerId) {
                     <div class="row g-2">
                         <div class="col-6">
                             <small class="text-muted d-block">Status</small>
-                            <span class="badge ${data.info.is_current_player ? 'bg-success' : 'bg-secondary'}">${data.info.is_current_player ? 'Active' : 'Inactive'}</span>
+                            <span class="badge ${data.info.is_current_player ? 'bg-success' : 'bg-secondary'}" data-badge>${data.info.is_current_player ? 'Active' : 'Inactive'}</span>
                         </div>
                         <div class="col-6">
                             <small class="text-muted d-block">User Account</small>
-                            <span class="badge ${data.info.has_user_account ? 'bg-success' : 'bg-secondary'}">${data.info.has_user_account ? 'Yes' : 'No'}</span>
+                            <span class="badge ${data.info.has_user_account ? 'bg-success' : 'bg-secondary'}" data-badge>${data.info.has_user_account ? 'Yes' : 'No'}</span>
                         </div>
                         <div class="col-6">
                             <small class="text-muted d-block">Primary Team</small>
@@ -319,7 +319,7 @@ function checkPlayerEligibility(playerId) {
             modalBody.innerHTML = html;
         })
         .catch(error => {
-            modalBody.innerHTML = '<div class="alert alert-danger"><i class="ti ti-alert-circle me-2"></i>Error checking eligibility. Please try again.</div>';
+            modalBody.innerHTML = '<div class="alert alert-danger" data-alert><i class="ti ti-alert-circle me-2"></i>Error checking eligibility. Please try again.</div>';
         });
 }
 </script>

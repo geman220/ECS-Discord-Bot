@@ -82,8 +82,7 @@ const AssetCropper = {
         }
 
         // Open modal
-        const modal = new bootstrap.Modal(document.getElementById('assetCropperModal'));
-        modal.show();
+        ModalManager.show('assetCropperModal');
     },
 
     /**
@@ -119,7 +118,8 @@ const AssetCropper = {
         this.canvas.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: false });
         this.canvas.addEventListener('touchend', this.handleTouchEnd.bind(this));
 
-        this.canvas.style.cursor = 'move';
+        // Set default cursor for draggable canvas
+        this.canvas.classList.add('cursor-move');
     },
 
     /**
@@ -230,7 +230,9 @@ const AssetCropper = {
         const rect = this.canvas.getBoundingClientRect();
         this.lastX = e.clientX - rect.left;
         this.lastY = e.clientY - rect.top;
-        this.canvas.style.cursor = 'grabbing';
+        // Change to grabbing cursor during drag
+        this.canvas.classList.remove('cursor-move');
+        this.canvas.classList.add('cursor-grabbing');
     },
 
     handleMouseMove(e) {
@@ -252,7 +254,9 @@ const AssetCropper = {
     handleMouseUp() {
         this.isDragging = false;
         if (this.canvas) {
-            this.canvas.style.cursor = 'move';
+            // Restore move cursor after drag
+            this.canvas.classList.remove('cursor-grabbing');
+            this.canvas.classList.add('cursor-move');
         }
     },
 

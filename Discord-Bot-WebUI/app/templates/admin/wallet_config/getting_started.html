@@ -11,18 +11,17 @@
             </h2>
             <p class="text-muted mb-0">Set up digital wallet passes for your members</p>
         </div>
-        <a href="{{ url_for('wallet_admin.wallet_management') }}" class="btn btn-outline-secondary">
+        <a href="{{ url_for('wallet_admin.wallet_management') }}" class="c-btn c-btn--outline-secondary">
             <i class="ti ti-arrow-left me-1"></i> Dashboard
         </a>
     </div>
 
     <!-- Progress Overview -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <h5 class="card-title mb-3">Setup Progress</h5>
-            <div class="progress mb-3" style="height: 20px;">
+    <div class="c-card mb-4">
+        <div class="c-card__body">
+            <h5 class="c-card__title mb-3">Setup Progress</h5>
+            <div class="progress mb-3" class="u-h-20">
                 <div class="progress-bar bg-primary" role="progressbar"
-                     style="width: {{ wallet_config.progress.percent }}%;"
                      aria-valuenow="{{ wallet_config.progress.percent }}"
                      aria-valuemin="0" aria-valuemax="100">
                     {{ wallet_config.progress.percent }}%
@@ -77,22 +76,22 @@
     <div class="row">
         <!-- Step 1: Certificates -->
         <div class="col-md-6 mb-4">
-            <div class="card h-100 {% if wallet_config.progress.certificates %}border-success{% endif %}">
-                <div class="card-header d-flex align-items-center">
-                    <span class="badge bg-primary me-2">1</span>
+            <div class="c-card h-100 {% if wallet_config.progress.certificates %}border-success{% endif %}">
+                <div class="c-card__header d-flex align-items-center">
+                    <span class="badge bg-primary me-2" data-badge>1</span>
                     <h5 class="mb-0">Upload Certificates</h5>
                     {% if wallet_config.progress.certificates %}
                         <i class="ti ti-circle-check text-success ms-auto"></i>
                     {% endif %}
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <p>Apple Wallet passes require signing certificates from Apple Developer Program.</p>
                     <ul class="mb-3">
                         <li>Pass Type ID Certificate (.p12)</li>
                         <li>Private Key (.key or .pem)</li>
                         <li>Apple WWDR Certificate</li>
                     </ul>
-                    <a href="{{ url_for('wallet_config.certificates') }}" class="btn btn-outline-primary">
+                    <a href="{{ url_for('wallet_config.certificates') }}" class="c-btn c-btn--outline-primary">
                         <i class="ti ti-certificate me-1"></i> Manage Certificates
                     </a>
                 </div>
@@ -101,22 +100,22 @@
 
         <!-- Step 2: Assets -->
         <div class="col-md-6 mb-4">
-            <div class="card h-100 {% if wallet_config.progress.assets %}border-success{% endif %}">
-                <div class="card-header d-flex align-items-center">
-                    <span class="badge bg-primary me-2">2</span>
+            <div class="c-card h-100 {% if wallet_config.progress.assets %}border-success{% endif %}">
+                <div class="c-card__header d-flex align-items-center">
+                    <span class="badge bg-primary me-2" data-badge>2</span>
                     <h5 class="mb-0">Upload Pass Assets</h5>
                     {% if wallet_config.progress.assets %}
                         <i class="ti ti-circle-check text-success ms-auto"></i>
                     {% endif %}
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <p>Pass assets include logos and icons that appear on wallet passes.</p>
                     <ul class="mb-3">
                         <li><strong>Icon</strong> - 29x29px (required)</li>
                         <li><strong>Logo</strong> - 160x50px (required)</li>
                         <li>Background - 180x220px (optional)</li>
                     </ul>
-                    <a href="{{ url_for('wallet_config.assets') }}" class="btn btn-outline-primary">
+                    <a href="{{ url_for('wallet_config.assets') }}" class="c-btn c-btn--outline-primary">
                         <i class="ti ti-photo me-1"></i> Manage Assets
                     </a>
                 </div>
@@ -125,22 +124,22 @@
 
         <!-- Step 3: Templates -->
         <div class="col-md-6 mb-4">
-            <div class="card h-100 {% if wallet_config.progress.templates %}border-success{% endif %}">
-                <div class="card-header d-flex align-items-center">
-                    <span class="badge bg-primary me-2">3</span>
+            <div class="c-card h-100 {% if wallet_config.progress.templates %}border-success{% endif %}">
+                <div class="c-card__header d-flex align-items-center">
+                    <span class="badge bg-primary me-2" data-badge>3</span>
                     <h5 class="mb-0">Configure Templates</h5>
                     {% if wallet_config.progress.templates %}
                         <i class="ti ti-circle-check text-success ms-auto"></i>
                     {% endif %}
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <p>Templates define how your passes look - colors, fields, and layout.</p>
                     <ul class="mb-3">
                         <li>Background, foreground, and label colors</li>
                         <li>Field configuration (member name, validity, etc.)</li>
                         <li>Back-of-pass content</li>
                     </ul>
-                    <a href="{{ url_for('wallet_config.templates') }}" class="btn btn-outline-primary">
+                    <a href="{{ url_for('wallet_config.templates') }}" class="c-btn c-btn--outline-primary">
                         <i class="ti ti-template me-1"></i> Manage Templates
                     </a>
                 </div>
@@ -149,22 +148,22 @@
 
         <!-- Step 4: Test -->
         <div class="col-md-6 mb-4">
-            <div class="card h-100 {% if wallet_config.progress.testing %}border-success{% endif %}">
-                <div class="card-header d-flex align-items-center">
-                    <span class="badge bg-primary me-2">4</span>
+            <div class="c-card h-100 {% if wallet_config.progress.testing %}border-success{% endif %}">
+                <div class="c-card__header d-flex align-items-center">
+                    <span class="badge bg-primary me-2" data-badge>4</span>
                     <h5 class="mb-0">Test Your Setup</h5>
                     {% if wallet_config.progress.testing %}
                         <i class="ti ti-circle-check text-success ms-auto"></i>
                     {% endif %}
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <p>Verify your configuration is complete and test pass generation.</p>
                     <ul class="mb-3">
                         <li>Run configuration diagnostics</li>
                         <li>Generate a test pass</li>
                         <li>Install on your device</li>
                     </ul>
-                    <a href="{{ url_for('wallet_config.test') }}" class="btn btn-outline-primary">
+                    <a href="{{ url_for('wallet_config.test') }}" class="c-btn c-btn--outline-primary">
                         <i class="ti ti-test-pipe me-1"></i> Run Tests
                     </a>
                 </div>
@@ -173,24 +172,24 @@
     </div>
 
     <!-- Quick Actions -->
-    <div class="card">
-        <div class="card-header">
+    <div class="c-card">
+        <div class="c-card__header">
             <h5 class="mb-0"><i class="ti ti-bolt me-2"></i>Quick Actions</h5>
         </div>
-        <div class="card-body">
+        <div class="c-card__body">
             <div class="row">
                 <div class="col-md-4 mb-3">
-                    <a href="{{ url_for('wallet_config.setup_wizard') }}" class="btn btn-primary w-100">
+                    <a href="{{ url_for('wallet_config.setup_wizard') }}" class="c-btn c-btn--primary w-100">
                         <i class="ti ti-wand me-1"></i> Setup Wizard
                     </a>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <a href="{{ url_for('wallet_config.diagnostics') }}" class="btn btn-outline-secondary w-100">
+                    <a href="{{ url_for('wallet_config.diagnostics') }}" class="c-btn c-btn--outline-secondary w-100">
                         <i class="ti ti-stethoscope me-1"></i> Diagnostics
                     </a>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <a href="{{ url_for('wallet_config.help_page') }}" class="btn btn-outline-secondary w-100">
+                    <a href="{{ url_for('wallet_config.help_page') }}" class="c-btn c-btn--outline-secondary w-100">
                         <i class="ti ti-help me-1"></i> Help & Documentation
                     </a>
                 </div>

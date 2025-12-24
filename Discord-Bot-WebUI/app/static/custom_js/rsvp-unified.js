@@ -177,10 +177,8 @@ document.addEventListener('DOMContentLoaded', function() {
           }, 100);
           
           // Style improvements
-          $('.dataTables_filter .form-control').removeClass('form-control-sm');
-          $('.dataTables_length .form-select').removeClass('form-select-sm');
-          $('.dataTables_filter input').addClass('rounded-pill');
-          $('.dataTables_length select').addClass('rounded-pill');
+          $('[data-datatable="filter"] input').removeClass('form-control-sm').addClass('rounded-pill');
+          $('[data-datatable="length"] select').removeClass('form-select-sm').addClass('rounded-pill');
         }
         
         // Fix z-index and overflow issues
@@ -191,31 +189,53 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Fix tabs
         bindTabHandlers();
-        
+
       } catch (e) {
         // console.error("Error initializing RSVP page:", e);
       }
     });
   }
+
+  // Apply DataTables arrow fix after initialization
+  setTimeout(function() {
+    removeDataTablesArrows();
+  }, 1000);
 });
 
 /**
  * Fix dropdown menu z-index and container overflow issues
+ *
+ * REFACTORED APPROACH:
+ * ====================
+ * Previously used inline styles to fix DataTables dropdown clipping.
+ * Now uses CSS utility classes from /static/css/utilities/datatable-utils.css
+ *
+ * CSS classes applied:
+ * - .dt-dropdown: Sets z-index: 9999 and position: absolute on dropdown menus
+ * - .dt-container-visible: Sets overflow: visible and position: relative on containers
+ *
+ * Benefits of CSS approach:
+ * - No repeated style manipulation after each DataTable redraw
+ * - Better performance (CSS declarations vs JavaScript DOM manipulation)
+ * - More maintainable and declarative
+ * - Works even if JavaScript is delayed or fails
+ * - Uses !important to override DataTables inline styles
+ *
+ * Note: This function now only adds CSS classes instead of manipulating styles directly.
+ * The heavy lifting is done by CSS, which is more performant and maintainable.
  */
 function fixDropdownsAndOverflow() {
   try {
-    // Fix dropdowns
-    var dropdowns = document.querySelectorAll('.dropdown-menu');
+    // Add utility classes to dropdown menus
+    var dropdowns = document.querySelectorAll('[data-dropdown]');
     for (var i = 0; i < dropdowns.length; i++) {
-      dropdowns[i].style.zIndex = '9999';
-      dropdowns[i].style.position = 'absolute';
+      dropdowns[i].classList.add('dt-dropdown');
     }
-    
-    // Fix containers
-    var containers = document.querySelectorAll('.table-responsive, .card-body, .tab-content, .tab-pane, div.dataTables_wrapper');
+
+    // Add utility classes to containers
+    var containers = document.querySelectorAll('[data-container="table"], [data-container="card"], [data-container="tab"], div.dataTables_wrapper');
     for (var j = 0; j < containers.length; j++) {
-      containers[j].style.overflow = 'visible';
-      containers[j].style.position = 'relative';
+      containers[j].classList.add('dt-container-visible');
     }
   } catch (e) {
     // console.error("Error fixing dropdowns:", e);
@@ -264,143 +284,20 @@ function bindEventHandlers() {
         });
       }
       
-      // SMS Modal handling
-      $('.send-sms-btn').on('click', function() {
-        try {
-          var playerName = $(this).data('player-name') || 'Player';
-          var playerId = $(this).data('player-id') || '';
-          var phone = $(this).data('phone') || '';
-          
-          $('#smsPlayerName').text(playerName);
-          $('#smsPlayerId').val(playerId);
-          $('#smsPlayerPhone').val(phone);
-          $('#smsPlayerPhoneDisplay').text(formatPhoneNumber(phone));
-          $('#smsMessage').val('');
-          $('#smsCharCount').text('0');
-          
-          if (window.bootstrap && document.getElementById('sendSmsModal')) {
-            var modal = new bootstrap.Modal(document.getElementById('sendSmsModal'));
-            modal.show();
-          }
-        } catch (e) {
-          // console.error("Error showing SMS modal:", e);
-        }
-      });
+      // SMS Modal handling - REMOVED
+      // Now handled by event delegation via data-action="rsvp-request-sms"
+      // Event delegation will call the handler registered in event-delegation.js
+      // $('.send-sms-btn').on('click', function() { ... });
       
-      // Discord DM Modal handling
-      $('.send-discord-dm-btn').on('click', function() {
-        try {
-          var playerName = $(this).data('player-name') || 'Player';
-          var playerId = $(this).data('player-id') || '';
-          var discordId = $(this).data('discord-id') || '';
-          
-          $('#discordPlayerName').text(playerName);
-          $('#discordPlayerId').val(playerId);
-          $('#discordId').val(discordId);
-          $('#discordMessage').val('');
-          $('#discordCharCount').text('0');
-          
-          if (window.bootstrap && document.getElementById('sendDiscordDmModal')) {
-            var modal = new bootstrap.Modal(document.getElementById('sendDiscordDmModal'));
-            modal.show();
-          }
-        } catch (e) {
-          // console.error("Error showing Discord modal:", e);
-        }
-      });
+      // Discord DM Modal handling - REMOVED
+      // Now handled by event delegation via data-action="rsvp-request-discord-dm"
+      // Event delegation will call the handler registered in event-delegation.js
+      // $('.send-discord-dm-btn').on('click', function() { ... });
       
-      // RSVP Update handling
-      $('.update-rsvp-btn').on('click', function() {
-        try {
-          var playerId = $(this).data('player-id') || '';
-          var matchId = $(this).data('match-id') || '';
-          var response = $(this).data('response') || '';
-          
-          if (!playerId || !matchId || !response) {
-            // console.error("Missing required data for RSVP update");
-            return;
-          }
-          
-          // Use SweetAlert2 instead of the native confirm dialog
-          Swal.fire({
-            title: 'Update RSVP Status?',
-            text: 'Are you sure you want to update this player\'s RSVP status?',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, update it',
-            cancelButtonText: 'Cancel',
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#0d6efd',
-            customClass: {
-              confirmButton: 'btn btn-primary',
-              cancelButton: 'btn btn-outline-secondary'
-            },
-            buttonsStyling: false
-          }).then((result) => {
-            if (result.isConfirmed) {
-              var formData = new FormData();
-              var csrfToken = $('input[name="csrf_token"]').val() || '';
-              
-              formData.append('csrf_token', csrfToken);
-              formData.append('player_id', playerId);
-              formData.append('match_id', matchId);
-              formData.append('response', response);
-              
-              // Show loading state
-              Swal.fire({
-                title: 'Updating...',
-                allowOutsideClick: false,
-                didOpen: () => {
-                  Swal.showLoading();
-                }
-              });
-              
-              // Simple fetch with improved error handling
-              fetch('/admin/update_rsvp', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                  'X-Requested-With': 'XMLHttpRequest'
-                }
-              })
-              .then(function(response) {
-                if (!response.ok) {
-                  throw new Error('Network response was not ok');
-                }
-                return response.json(); 
-              })
-              .then(function(data) {
-                if (data.success) {
-                  Swal.fire({
-                    title: 'Success!',
-                    text: 'RSVP updated successfully.',
-                    icon: 'success',
-                    timer: 1500,
-                    showConfirmButton: false
-                  }).then(() => {
-                    window.location.reload();
-                  });
-                } else {
-                  Swal.fire({
-                    title: 'Error',
-                    text: data.message || 'Error updating RSVP.',
-                    icon: 'error'
-                  });
-                }
-              })
-              .catch(function(error) {
-                // console.error('Error:', error);
-                Swal.fire({
-                  title: 'Error',
-                  text: 'An error occurred while updating RSVP. Please try again.',
-                  icon: 'error'
-                });
-              });
-            }
-          });
-        } catch (e) {
-          // console.error("Error handling RSVP update:", e);
-        }
-      });
+      // RSVP Update handling - REMOVED
+      // Now handled by event delegation via data-action="rsvp-update-status"
+      // Event delegation will call the updateRSVPStatus function in event-delegation.js
+      // $('.update-rsvp-btn').on('click', function() { ... });
       
       // Character counting for SMS
       $('#smsMessage').on('input', function() {
@@ -468,8 +365,9 @@ function bindEventHandlers() {
               if (window.toastr) {
                 toastr.success('SMS sent successfully.');
               }
-              if (window.bootstrap && document.getElementById('sendSmsModal')) {
-                bootstrap.Modal.getInstance(document.getElementById('sendSmsModal')).hide();
+              var smsModal = document.querySelector('[data-modal="send-sms"]');
+              if (window.bootstrap && smsModal) {
+                bootstrap.Modal.getInstance(smsModal).hide();
               }
             } else {
               if (window.toastr) {
@@ -525,8 +423,9 @@ function bindEventHandlers() {
               if (window.toastr) {
                 toastr.success('Discord DM sent successfully.');
               }
-              if (window.bootstrap && document.getElementById('sendDiscordDmModal')) {
-                bootstrap.Modal.getInstance(document.getElementById('sendDiscordDmModal')).hide();
+              var discordModal = document.querySelector('[data-modal="send-discord-dm"]');
+              if (window.bootstrap && discordModal) {
+                bootstrap.Modal.getInstance(discordModal).hide();
               }
             } else {
               if (window.toastr) {
@@ -704,8 +603,9 @@ function loadAvailableSubs() {
             }
             
             // Hide modal
-            if (window.bootstrap && document.getElementById('assignSubModalRSVP')) {
-              var modal = bootstrap.Modal.getInstance(document.getElementById('assignSubModalRSVP'));
+            var assignModal = document.querySelector('[data-modal="assign-sub"]');
+            if (window.bootstrap && assignModal) {
+              var modal = bootstrap.Modal.getInstance(assignModal);
               modal.hide();
             }
           } else {
@@ -952,10 +852,3 @@ function removeDataTablesArrows() {
     // Silent fail
   }
 }
-
-// Apply the fix immediately after DataTables initialization
-document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(function() {
-    removeDataTablesArrows();
-  }, 1000);
-});

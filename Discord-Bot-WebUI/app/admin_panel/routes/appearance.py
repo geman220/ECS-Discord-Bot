@@ -4,18 +4,25 @@
 Appearance Management Routes
 
 Admin panel routes for customizing the application's visual appearance,
-including color palette customization for both light and dark modes.
+including comprehensive design token management:
+- Colors (light/dark modes)
+- Typography (fonts, scale)
+- Spacing (scale multipliers)
+- Components (border radius, shadows)
+- Animations (enabled, speed)
+- Theme variants (modern, modern-v2)
 """
 
 import json
 import os
 from flask import (
     render_template, request, jsonify, flash, redirect, url_for,
-    current_app, g
+    current_app, g, send_file
 )
 from flask_login import login_required, current_user
 from app.admin_panel import admin_panel_bp
 from app.decorators import role_required
+from typing import Dict, Any, Optional
 
 # Default theme colors (Professional Edition - from theme-variables.css)
 DEFAULT_COLORS = {
@@ -62,37 +69,161 @@ DEFAULT_COLORS = {
     }
 }
 
-# Path to store custom colors (in instance folder)
+# Default design tokens (full system)
+DEFAULT_DESIGN_TOKENS = {
+    "theme_variant": "modern",
+    "colors": DEFAULT_COLORS,
+    "typography": {
+        "display_font": "Inter",
+        "body_font": "Inter",
+        "mono_font": "JetBrains Mono",
+        "scale_multiplier": 1.0
+    },
+    "spacing": {
+        "scale_multiplier": 1.0
+    },
+    "components": {
+        "border_radius": "default",  # "sharp", "default", "rounded"
+        "shadow_intensity": "default"  # "none", "subtle", "default", "strong"
+    },
+    "animations": {
+        "enabled": True,
+        "speed": "default"  # "slow", "default", "fast"
+    }
+}
+
+# ============================================================================
+# File Path Management
+# ============================================================================
+
 def get_colors_file_path():
-    """Get the path to the custom colors JSON file."""
+    """Get the path to the custom colors JSON file (LEGACY)."""
     instance_path = current_app.instance_path
     os.makedirs(instance_path, exist_ok=True)
     return os.path.join(instance_path, 'theme_colors.json')
 
 
-def load_custom_colors():
-    """Load custom colors from file, or return None if not set."""
+def get_design_tokens_file_path():
+    """Get the path to the design tokens JSON file."""
+    instance_path = current_app.instance_path
+    os.makedirs(instance_path, exist_ok=True)
+    return os.path.join(instance_path, 'design_tokens.json')
+
+
+# ============================================================================
+# Design Token Management
+# ============================================================================
+
+def load_design_tokens() -> Optional[Dict[str, Any]]:
+    """
+    Load design tokens from file with migration support.
+
+    Priority:
+    1. design_tokens.json (new format)
+    2. theme_colors.json (legacy format - auto-migrate)
+    3. None (use defaults)
+    """
     try:
-        file_path = get_colors_file_path()
-        if os.path.exists(file_path):
-            with open(file_path, 'r') as f:
-                return json.load(f)
+        # Try new format first
+        tokens_path = get_design_tokens_file_path()
+        if os.path.exists(tokens_path):
+            with open(tokens_path, 'r') as f:
+                tokens = json.load(f)
+                # Validate structure
+                if validate_design_tokens(tokens):
+                    return tokens
+                else:
+                    current_app.logger.warning("Invalid design tokens structure, using defaults")
+                    return None
+
+        # Try legacy format and migrate
+        colors_path = get_colors_file_path()
+        if os.path.exists(colors_path):
+            with open(colors_path, 'r') as f:
+                colors = json.load(f)
+                # Migrate to new format
+                tokens = migrate_colors_to_tokens(colors)
+                # Save migrated format
+                save_design_tokens(tokens)
+                current_app.logger.info("Migrated theme_colors.json to design_tokens.json")
+                return tokens
+
     except Exception as e:
-        current_app.logger.error(f"Error loading custom colors: {e}")
+        current_app.logger.error(f"Error loading design tokens: {e}")
+
     return None
 
 
-def save_custom_colors(colors):
-    """Save custom colors to file."""
+def save_design_tokens(tokens: Dict[str, Any]) -> bool:
+    """Save design tokens to file."""
     try:
-        file_path = get_colors_file_path()
+        file_path = get_design_tokens_file_path()
         with open(file_path, 'w') as f:
-            json.dump(colors, f, indent=2)
+            json.dump(tokens, f, indent=2)
         return True
     except Exception as e:
-        current_app.logger.error(f"Error saving custom colors: {e}")
+        current_app.logger.error(f"Error saving design tokens: {e}")
         return False
 
+
+def validate_design_tokens(tokens: Dict[str, Any]) -> bool:
+    """Validate design tokens structure."""
+    if not isinstance(tokens, dict):
+        return False
+
+    # Check required top-level keys
+    required_keys = ['colors', 'typography', 'spacing', 'components', 'animations']
+    for key in required_keys:
+        if key not in tokens:
+            return False
+
+    # Validate colors structure
+    if 'light' not in tokens['colors'] or 'dark' not in tokens['colors']:
+        return False
+
+    return True
+
+
+def migrate_colors_to_tokens(colors: Dict[str, Any]) -> Dict[str, Any]:
+    """Migrate legacy theme_colors.json to design_tokens.json format."""
+    tokens = DEFAULT_DESIGN_TOKENS.copy()
+    tokens['colors'] = colors
+    return tokens
+
+
+# ============================================================================
+# Legacy Support Functions (for backward compatibility)
+# ============================================================================
+
+def load_custom_colors() -> Optional[Dict[str, Any]]:
+    """
+    Load custom colors from file, or return None if not set.
+
+    This function maintains backward compatibility by returning just the colors
+    from the design tokens system.
+    """
+    tokens = load_design_tokens()
+    return tokens['colors'] if tokens else None
+
+
+def save_custom_colors(colors: Dict[str, Any]) -> bool:
+    """
+    Save custom colors to file.
+
+    This function maintains backward compatibility by updating only the colors
+    in the design tokens system.
+    """
+    tokens = load_design_tokens()
+    if tokens is None:
+        tokens = DEFAULT_DESIGN_TOKENS.copy()
+
+    tokens['colors'] = colors
+    return save_design_tokens(tokens)
+
+
+# ============================================================================
+# Main Routes
+# ============================================================================
 
 @admin_panel_bp.route('/appearance')
 @login_required
@@ -100,16 +231,22 @@ def save_custom_colors(colors):
 def appearance():
     """
     Display the appearance customization page.
-    Allows admins to customize the color palette.
+    Allows admins to customize the color palette (legacy support).
     """
     custom_colors = load_custom_colors()
     colors = custom_colors if custom_colors else DEFAULT_COLORS
+
+    # Load full tokens for context
+    tokens = load_design_tokens()
+    has_custom_tokens = tokens is not None
 
     return render_template(
         'admin_panel/appearance.html',
         colors=colors,
         default_colors=DEFAULT_COLORS,
-        has_custom_colors=custom_colors is not None
+        has_custom_colors=custom_colors is not None,
+        design_tokens=tokens if tokens else DEFAULT_DESIGN_TOKENS,
+        has_custom_tokens=has_custom_tokens
     )
 
 
@@ -214,10 +351,407 @@ def import_colors():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
-# Helper function for templates to get custom colors
+# ============================================================================
+# Typography Routes
+# ============================================================================
+
+@admin_panel_bp.route('/appearance/typography')
+@login_required
+@role_required(['Global Admin'])
+def typography():
+    """Display typography settings page."""
+    tokens = load_design_tokens()
+    current_typography = tokens['typography'] if tokens else DEFAULT_DESIGN_TOKENS['typography']
+
+    return render_template(
+        'admin_panel/appearance_typography.html',
+        typography=current_typography,
+        default_typography=DEFAULT_DESIGN_TOKENS['typography']
+    )
+
+
+@admin_panel_bp.route('/appearance/save-typography', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def save_typography():
+    """Save typography settings."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "message": "No data provided"}), 400
+
+        # Validate typography data
+        required_keys = ['display_font', 'body_font', 'mono_font', 'scale_multiplier']
+        for key in required_keys:
+            if key not in data:
+                return jsonify({"success": False, "message": f"Missing required field: {key}"}), 400
+
+        # Validate scale multiplier
+        scale = float(data['scale_multiplier'])
+        if scale < 0.5 or scale > 2.0:
+            return jsonify({"success": False, "message": "Scale multiplier must be between 0.5 and 2.0"}), 400
+
+        # Load current tokens
+        tokens = load_design_tokens()
+        if tokens is None:
+            tokens = DEFAULT_DESIGN_TOKENS.copy()
+
+        # Update typography
+        tokens['typography'] = {
+            'display_font': data['display_font'],
+            'body_font': data['body_font'],
+            'mono_font': data['mono_font'],
+            'scale_multiplier': scale
+        }
+
+        # Save tokens
+        if save_design_tokens(tokens):
+            return jsonify({
+                "success": True,
+                "message": "Typography settings saved successfully. Refresh to see changes."
+            })
+        else:
+            return jsonify({"success": False, "message": "Failed to save typography settings"}), 500
+
+    except Exception as e:
+        current_app.logger.error(f"Error saving typography: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+# ============================================================================
+# Spacing Routes
+# ============================================================================
+
+@admin_panel_bp.route('/appearance/spacing')
+@login_required
+@role_required(['Global Admin'])
+def spacing():
+    """Display spacing settings page."""
+    tokens = load_design_tokens()
+    current_spacing = tokens['spacing'] if tokens else DEFAULT_DESIGN_TOKENS['spacing']
+
+    return render_template(
+        'admin_panel/appearance_spacing.html',
+        spacing=current_spacing,
+        default_spacing=DEFAULT_DESIGN_TOKENS['spacing']
+    )
+
+
+@admin_panel_bp.route('/appearance/save-spacing', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def save_spacing():
+    """Save spacing settings."""
+    try:
+        data = request.get_json()
+        if not data or 'scale_multiplier' not in data:
+            return jsonify({"success": False, "message": "No scale multiplier provided"}), 400
+
+        # Validate scale multiplier
+        scale = float(data['scale_multiplier'])
+        if scale < 0.5 or scale > 2.0:
+            return jsonify({"success": False, "message": "Scale multiplier must be between 0.5 and 2.0"}), 400
+
+        # Load current tokens
+        tokens = load_design_tokens()
+        if tokens is None:
+            tokens = DEFAULT_DESIGN_TOKENS.copy()
+
+        # Update spacing
+        tokens['spacing'] = {'scale_multiplier': scale}
+
+        # Save tokens
+        if save_design_tokens(tokens):
+            return jsonify({
+                "success": True,
+                "message": "Spacing settings saved successfully. Refresh to see changes."
+            })
+        else:
+            return jsonify({"success": False, "message": "Failed to save spacing settings"}), 500
+
+    except Exception as e:
+        current_app.logger.error(f"Error saving spacing: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+# ============================================================================
+# Component Routes
+# ============================================================================
+
+@admin_panel_bp.route('/appearance/components')
+@login_required
+@role_required(['Global Admin'])
+def components():
+    """Display component settings page."""
+    tokens = load_design_tokens()
+    current_components = tokens['components'] if tokens else DEFAULT_DESIGN_TOKENS['components']
+
+    return render_template(
+        'admin_panel/appearance_components.html',
+        components=current_components,
+        default_components=DEFAULT_DESIGN_TOKENS['components']
+    )
+
+
+@admin_panel_bp.route('/appearance/save-components', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def save_components():
+    """Save component settings."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "message": "No data provided"}), 400
+
+        # Validate component data
+        valid_border_radius = ['sharp', 'default', 'rounded']
+        valid_shadow_intensity = ['none', 'subtle', 'default', 'strong']
+
+        border_radius = data.get('border_radius')
+        shadow_intensity = data.get('shadow_intensity')
+
+        if border_radius not in valid_border_radius:
+            return jsonify({"success": False, "message": "Invalid border_radius value"}), 400
+
+        if shadow_intensity not in valid_shadow_intensity:
+            return jsonify({"success": False, "message": "Invalid shadow_intensity value"}), 400
+
+        # Load current tokens
+        tokens = load_design_tokens()
+        if tokens is None:
+            tokens = DEFAULT_DESIGN_TOKENS.copy()
+
+        # Update components
+        tokens['components'] = {
+            'border_radius': border_radius,
+            'shadow_intensity': shadow_intensity
+        }
+
+        # Save tokens
+        if save_design_tokens(tokens):
+            return jsonify({
+                "success": True,
+                "message": "Component settings saved successfully. Refresh to see changes."
+            })
+        else:
+            return jsonify({"success": False, "message": "Failed to save component settings"}), 500
+
+    except Exception as e:
+        current_app.logger.error(f"Error saving components: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+# ============================================================================
+# Animation Routes
+# ============================================================================
+
+@admin_panel_bp.route('/appearance/animations')
+@login_required
+@role_required(['Global Admin'])
+def animations():
+    """Display animation settings page."""
+    tokens = load_design_tokens()
+    current_animations = tokens['animations'] if tokens else DEFAULT_DESIGN_TOKENS['animations']
+
+    return render_template(
+        'admin_panel/appearance_animations.html',
+        animations=current_animations,
+        default_animations=DEFAULT_DESIGN_TOKENS['animations']
+    )
+
+
+@admin_panel_bp.route('/appearance/save-animations', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def save_animations():
+    """Save animation settings."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "message": "No data provided"}), 400
+
+        # Validate animation data
+        valid_speeds = ['slow', 'default', 'fast']
+
+        enabled = data.get('enabled', True)
+        speed = data.get('speed', 'default')
+
+        if speed not in valid_speeds:
+            return jsonify({"success": False, "message": "Invalid speed value"}), 400
+
+        # Load current tokens
+        tokens = load_design_tokens()
+        if tokens is None:
+            tokens = DEFAULT_DESIGN_TOKENS.copy()
+
+        # Update animations
+        tokens['animations'] = {
+            'enabled': bool(enabled),
+            'speed': speed
+        }
+
+        # Save tokens
+        if save_design_tokens(tokens):
+            return jsonify({
+                "success": True,
+                "message": "Animation settings saved successfully. Refresh to see changes."
+            })
+        else:
+            return jsonify({"success": False, "message": "Failed to save animation settings"}), 500
+
+    except Exception as e:
+        current_app.logger.error(f"Error saving animations: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+# ============================================================================
+# Theme Variant Routes
+# ============================================================================
+
+@admin_panel_bp.route('/appearance/theme-variant')
+@login_required
+@role_required(['Global Admin'])
+def theme_variant():
+    """Display theme variant settings page."""
+    tokens = load_design_tokens()
+    current_variant = tokens.get('theme_variant', 'modern') if tokens else 'modern'
+
+    return render_template(
+        'admin_panel/appearance_theme_variant.html',
+        current_variant=current_variant,
+        available_variants=['modern', 'modern-v2']
+    )
+
+
+@admin_panel_bp.route('/appearance/save-theme-variant', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def save_theme_variant():
+    """Save theme variant setting."""
+    try:
+        data = request.get_json()
+        if not data or 'variant' not in data:
+            return jsonify({"success": False, "message": "No variant provided"}), 400
+
+        # Validate variant
+        valid_variants = ['modern', 'modern-v2']
+        variant = data['variant']
+
+        if variant not in valid_variants:
+            return jsonify({"success": False, "message": "Invalid variant value"}), 400
+
+        # Load current tokens
+        tokens = load_design_tokens()
+        if tokens is None:
+            tokens = DEFAULT_DESIGN_TOKENS.copy()
+
+        # Update variant
+        tokens['theme_variant'] = variant
+
+        # Save tokens
+        if save_design_tokens(tokens):
+            return jsonify({
+                "success": True,
+                "message": f"Theme variant changed to {variant}. Refresh to see changes."
+            })
+        else:
+            return jsonify({"success": False, "message": "Failed to save theme variant"}), 500
+
+    except Exception as e:
+        current_app.logger.error(f"Error saving theme variant: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+# ============================================================================
+# Import/Export Routes (Full Design Tokens)
+# ============================================================================
+
+@admin_panel_bp.route('/appearance/export', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def export_design_tokens():
+    """Export full design token system as JSON."""
+    tokens = load_design_tokens()
+    if tokens is None:
+        tokens = DEFAULT_DESIGN_TOKENS
+
+    return jsonify({
+        "success": True,
+        "tokens": tokens,
+        "is_custom": load_design_tokens() is not None
+    })
+
+
+@admin_panel_bp.route('/appearance/import', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def import_design_tokens():
+    """Import full design token system from JSON."""
+    try:
+        data = request.get_json()
+        if not data or 'tokens' not in data:
+            return jsonify({"success": False, "message": "No tokens provided"}), 400
+
+        tokens = data['tokens']
+
+        # Validate structure
+        if not validate_design_tokens(tokens):
+            return jsonify({"success": False, "message": "Invalid design tokens structure"}), 400
+
+        if save_design_tokens(tokens):
+            return jsonify({
+                "success": True,
+                "message": "Design tokens imported successfully. Refresh to see changes."
+            })
+        else:
+            return jsonify({"success": False, "message": "Failed to import design tokens"}), 500
+
+    except Exception as e:
+        current_app.logger.error(f"Error importing design tokens: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@admin_panel_bp.route('/appearance/reset-all', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def reset_all_tokens():
+    """Reset all design tokens to defaults."""
+    try:
+        tokens_path = get_design_tokens_file_path()
+        colors_path = get_colors_file_path()
+
+        # Remove both files
+        if os.path.exists(tokens_path):
+            os.remove(tokens_path)
+        if os.path.exists(colors_path):
+            os.remove(colors_path)
+
+        return jsonify({
+            "success": True,
+            "message": "All design tokens reset to defaults. Refresh to see changes.",
+            "tokens": DEFAULT_DESIGN_TOKENS
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Error resetting design tokens: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+# ============================================================================
+# Helper Functions for Templates
+# ============================================================================
+
 def get_site_theme_colors():
     """
     Get the current theme colors for use in templates.
     Returns custom colors if set, otherwise returns None.
     """
     return load_custom_colors()
+
+
+def get_site_design_tokens():
+    """
+    Get the current design tokens for use in templates.
+    Returns custom tokens if set, otherwise returns None.
+    """
+    return load_design_tokens()

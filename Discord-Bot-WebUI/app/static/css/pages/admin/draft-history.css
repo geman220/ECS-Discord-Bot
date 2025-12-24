@@ -1,0 +1,144 @@
+/* Draft History Styles */
+.draft-pick-card {
+    transition: all 0.2s ease;
+    border-left: 4px solid var(--bs-primary);
+}
+
+.draft-pick-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.draft-position-badge {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    border-radius: 50%;
+}
+
+.season-section {
+    border-left: 4px solid var(--bs-info);
+    background: linear-gradient(135deg, var(--ecs-neutral-5, #f8f9fa) 0%, var(--ecs-neutral-10, #e9ecef) 100%);
+}
+
+.league-section {
+    border-left: 3px solid var(--bs-secondary);
+}
+
+.edit-draft-pick {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.draft-pick-card:hover .edit-draft-pick {
+    opacity: 1;
+}
+
+.filter-section {
+    background: var(--bs-light);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.no-data-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--bs-secondary);
+}
+
+.no-data-state .empty-icon {
+    font-size: 4rem;
+    opacity: 0.3;
+}
+
+/* Drag and Drop Styles */
+.draggable-card {
+    cursor: move;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.draggable-card:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    transform: translateY(-3px);
+}
+
+.draggable-card:hover::after {
+    content: "🔀 Drag to reorder";
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0,123,255,0.9);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    z-index: 100;
+    animation: fadeInPulse 0.3s ease-in;
+}
+
+@keyframes fadeInPulse {
+    0% { opacity: 0; transform: scale(0.8); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+.draggable-card.dragging {
+    opacity: 0.6;
+    transform: rotate(3deg) scale(1.05);
+    z-index: 1000;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    border: 2px dashed var(--ecs-primary, #007bff);
+}
+
+.sortable-item {
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.sortable-item.drag-over {
+    transform: scale(1.02);
+    z-index: 999;
+}
+
+.sortable-item.drag-over::before {
+    content: "📍 Drop here to insert at position #" attr(data-position);
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, var(--ecs-success, #28a745), var(--ecs-success-light, #20c997));
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    z-index: 1001;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(40,167,69,0.4);
+    animation: dropZonePulse 0.3s ease-in;
+}
+
+@keyframes dropZonePulse {
+    0% { opacity: 0; transform: translateX(-50%) translateY(-10px) scale(0.8); }
+    100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+.sortable-item.drag-over .card {
+    border: 2px solid var(--ecs-success, #28a745);
+    background: rgba(40,167,69,0.05);
+}
+
+.drag-active {
+    background: rgba(0,123,255,0.05);
+}
+
+.drag-active .sortable-item:not(.dragging) {
+    opacity: 0.8;
+}

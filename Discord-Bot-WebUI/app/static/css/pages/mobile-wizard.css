@@ -1,0 +1,94 @@
+/**
+ * Mobile Profile Update Wizard Styles
+ *
+ * Extracted from mobile_base.html inline styles (lines 14-83)
+ * Scoped to mobile wizard pages to avoid conflicts
+ * Uses design tokens where available, with fallbacks matching original values
+ */
+
+/* ============================================
+   MOBILE WIZARD - BODY & LAYOUT
+   ============================================ */
+
+/* Only apply to pages using mobile_base.html */
+.mobile-wizard-body {
+    background: linear-gradient(135deg, var(--ecs-primary, #667eea) 0%, var(--ecs-primary-dark, #764ba2) 100%);
+    min-height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.mobile-wizard-body .mobile-container {
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+/* ============================================
+   MOBILE WIZARD - BOOTSTRAP OVERRIDES
+   ============================================ */
+
+/* Cards in mobile wizard context */
+.mobile-wizard-body .card {
+    border: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    border-radius: 15px;
+}
+
+/* Buttons in mobile wizard context */
+.mobile-wizard-body .btn {
+    border-radius: 12px;
+    padding: 15px 20px;
+    font-weight: 600;
+    text-transform: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.mobile-wizard-body .btn-lg {
+    padding: 18px 25px;
+    font-size: 1.1rem;
+}
+
+/* Forms in mobile wizard context */
+.mobile-wizard-body .form-control,
+.mobile-wizard-body .form-select {
+    border-radius: 12px;
+    padding: 15px;
+    border: 2px solid var(--ecs-neutral-10, #e9ecef);
+    font-size: 16px; /* Prevents zoom on iOS */
+}
+
+.mobile-wizard-body .form-control:focus,
+.mobile-wizard-body .form-select:focus {
+    border-color: var(--ecs-primary, #667eea);
+    box-shadow: 0 0 0 0.2rem rgba(var(--ecs-primary-rgb, 102, 126, 234), 0.25);
+}
+
+.mobile-wizard-body .form-label {
+    font-weight: 600;
+    color: var(--ecs-neutral-60, #495057);
+    margin-bottom: 8px;
+}
+
+/* Alerts in mobile wizard context */
+.mobile-wizard-body .alert {
+    border-radius: 12px;
+    border: none;
+}
+
+/* Badges in mobile wizard context */
+.mobile-wizard-body .badge {
+    font-size: 0.9rem;
+    padding: 8px 12px;
+}
+
+/* ============================================
+   MOBILE WIZARD - RESPONSIVE
+   ============================================ */
+
+/* Remove default margins/padding for full mobile experience */
+@media (max-width: 768px) {
+    .mobile-wizard-body .container-fluid {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+}

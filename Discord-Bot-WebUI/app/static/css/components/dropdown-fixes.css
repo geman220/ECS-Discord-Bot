@@ -1,0 +1,289 @@
+/**
+ * ============================================================================
+ * DROPDOWN FIXES - Z-Index and Positioning
+ * ============================================================================
+ *
+ * Critical z-index fixes for dropdown menus across the application.
+ * Uses CSS variables from core/z-index.css for consistent stacking.
+ *
+ * DO NOT use hardcoded z-index values - use variables from the scale.
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   BOOTSTRAP DROPDOWN OVERRIDES
+   ============================================================================
+   NOTE: BEM components (.c-admin-nav, .c-sidebar) have their own CSS files.
+   This file ONLY handles generic Bootstrap .dropdown-menu elements.
+   Z-index values use CSS variables from core/z-index.css
+   ============================================================================ */
+
+/* Generic Bootstrap dropdown z-index */
+.dropdown-menu {
+  z-index: var(--z-dropdown);
+  position: absolute;
+}
+
+/* ============================================================================
+   SIDEBAR DROPDOWNS
+   Uses --z-sidebar (1035) from core/z-index.css
+   ============================================================================ */
+
+.c-sidebar {
+  z-index: var(--z-sidebar, 1035);
+}
+
+.c-sidebar__submenu {
+  position: relative;
+  z-index: calc(var(--z-sidebar, 1035) + 1);
+}
+
+/* ============================================================================
+   BOOTSTRAP DROPDOWN OVERRIDES
+   ============================================================================ */
+
+/* Force Bootstrap dropdowns above content */
+.dropdown.show .dropdown-menu,
+.dropup.show .dropdown-menu,
+.dropend.show .dropdown-menu,
+.dropstart.show .dropdown-menu {
+  z-index: var(--z-dropdown);
+}
+
+/* Dropdown menu base styling */
+.dropdown-menu {
+  position: absolute;
+  z-index: var(--z-dropdown);
+  min-width: 200px;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.dropdown-menu.show {
+  display: block;
+  animation: dropdown-enter 0.15s ease-out;
+}
+
+@keyframes dropdown-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dropdown items base */
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  text-decoration: none;
+  border-radius: 6px;
+  transition: background-color 150ms ease;
+}
+
+.dropdown-item i {
+  width: 1rem;
+  text-align: center;
+}
+
+/* Dropdown divider */
+.dropdown-divider {
+  height: 0;
+  margin: 8px 0;
+  border: 0;
+}
+
+/* ============================================================================
+   TABLE DROPDOWN FIXES
+   ============================================================================ */
+
+/* Tables with dropdowns need overflow visible when open */
+.c-table-wrapper:has(.dropdown.show),
+.table-responsive:has(.dropdown.show) {
+  overflow: visible !important;
+}
+
+/* Allow dropdowns to escape table scroll containers */
+.table-responsive {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+/* Action dropdowns in table cells - use high z-index but let Bootstrap/Popper handle position */
+td .dropdown-menu,
+.c-table__cell .dropdown-menu {
+  z-index: var(--z-modal-dropdown, 1055);
+}
+
+/* Ensure dropdown parent cells allow overflow */
+td:has(.dropdown),
+.c-table__cell:has(.dropdown) {
+  overflow: visible;
+  position: relative;
+}
+
+/* ============================================================================
+   CARD DROPDOWN FIXES
+   ============================================================================ */
+
+/* Cards containing dropdowns */
+.c-card:has(.dropdown.show) {
+  overflow: visible;
+}
+
+.c-card__header .dropdown-menu {
+  z-index: var(--z-modal-dropdown);
+}
+
+/* ============================================================================
+   NAVBAR USER DROPDOWN
+   ============================================================================ */
+
+.navbar .dropdown-menu,
+.c-navbar .dropdown-menu {
+  z-index: var(--z-modal-dropdown);
+  right: 0;
+  left: auto;
+}
+
+.navbar .dropdown-menu.show {
+  margin-top: var(--space-2, 8px);
+}
+
+/* ============================================================================
+   SELECT2 & TAGIFY DROPDOWNS
+   ============================================================================ */
+
+.select2-container--open {
+  z-index: var(--z-popover);
+}
+
+.select2-dropdown {
+  z-index: var(--z-popover);
+}
+
+.tagify__dropdown {
+  z-index: var(--z-popover);
+}
+
+/* ============================================================================
+   DATEPICKER DROPDOWNS
+   ============================================================================ */
+
+.flatpickr-calendar {
+  z-index: var(--z-popover);
+}
+
+.bootstrap-datetimepicker-widget {
+  z-index: var(--z-popover);
+}
+
+/* ============================================================================
+   LIGHT MODE - Default (no dark mode attribute)
+   ============================================================================ */
+
+/* Light mode is the default - solid white background */
+.dropdown-menu {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 20px 25px -5px rgba(0, 0, 0, 0.05);
+}
+
+.dropdown-item {
+  color: #1e293b;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background: rgba(0, 0, 0, 0.04);
+  color: #1e293b;
+}
+
+.dropdown-item:active {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.dropdown-item i {
+  color: #64748b;
+}
+
+.dropdown-item:hover i {
+  color: var(--ecs-primary, #2563EB);
+}
+
+.dropdown-divider {
+  border-top-color: rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================================================
+   DARK MODE
+   Using CSS variables with hardcoded fallbacks for dark mode
+   IMPORTANT: Uses !important to win over any cascade conflicts
+   ============================================================================ */
+
+[data-style="dark"] .dropdown-menu {
+  /* Explicit solid background - slate palette */
+  background-color: #334155 !important; /* Slate-800 */
+  background: #334155 !important;
+  border-color: #475569 !important; /* Slate-700 */
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.3),
+    0 10px 15px -3px rgba(0, 0, 0, 0.4),
+    0 20px 25px -5px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Extra specificity selectors for stubborn cases (slate palette) */
+html[data-style="dark"] .dropdown-menu,
+[data-style="dark"] .dropdown-menu.show,
+[data-style="dark"] .btn-group .dropdown-menu,
+[data-style="dark"] .table .dropdown-menu,
+[data-style="dark"] .card .dropdown-menu {
+  background-color: #334155 !important; /* Slate-800 */
+  background: #334155 !important;
+}
+
+[data-style="dark"] .dropdown-item {
+  color: var(--color-text-primary, #f8fafc);
+}
+
+[data-style="dark"] .dropdown-item:hover,
+[data-style="dark"] .dropdown-item:focus {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-primary, #f8fafc);
+}
+
+[data-style="dark"] .dropdown-item:active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-style="dark"] .dropdown-item i {
+  color: var(--color-text-muted, #94a3b8);
+}
+
+[data-style="dark"] .dropdown-item:hover i {
+  color: var(--color-primary, #60A5FA);
+}
+
+[data-style="dark"] .dropdown-divider {
+  border-top-color: var(--color-border-primary, rgba(255, 255, 255, 0.1));
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .dropdown-menu.show {
+    animation: none;
+  }
+}

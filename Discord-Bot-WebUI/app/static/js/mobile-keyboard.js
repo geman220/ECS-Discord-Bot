@@ -10,6 +10,8 @@
  * - Dropdown positioning aware of keyboard
  * - Input type optimization
  * - iOS-specific fixes
+ *
+ * REFACTORED: All inline style manipulations replaced with CSS classes
  */
 
 (function (window) {
@@ -117,10 +119,11 @@
 
     /**
      * Adjust modal position when keyboard is visible
+     * REFACTORED: Using CSS classes instead of inline styles
      */
     adjustModalsForKeyboard: function () {
-      document.querySelectorAll('.modal.show').forEach(modal => {
-        const modalDialog = modal.querySelector('.modal-dialog');
+      document.querySelectorAll('[data-modal].show').forEach(modal => {
+        const modalDialog = modal.querySelector('[data-modal-dialog]');
         if (!modalDialog) return;
 
         // Calculate available space
@@ -129,8 +132,7 @@
 
         if (modalHeight > availableHeight) {
           // Modal is taller than available space, make it scrollable
-          modalDialog.style.maxHeight = `${availableHeight - 40}px`;
-          modalDialog.style.overflowY = 'auto';
+          modalDialog.classList.add('modal-keyboard-visible');
         }
 
         // Move modal up if keyboard would cover active input
@@ -139,8 +141,7 @@
           const keyboardTop = window.innerHeight - this.state.keyboardHeight;
 
           if (inputRect.bottom > keyboardTop) {
-            const offset = inputRect.bottom - keyboardTop + 20;
-            modalDialog.style.transform = `translateY(-${offset}px)`;
+            modalDialog.classList.add('modal-keyboard-shift');
           }
         }
       });
@@ -148,30 +149,26 @@
 
     /**
      * Reset modal adjustments after keyboard hide
+     * REFACTORED: Using CSS classes instead of inline styles
      */
     resetModalAdjustments: function () {
-      document.querySelectorAll('.modal.show .modal-dialog').forEach(modalDialog => {
-        modalDialog.style.maxHeight = '';
-        modalDialog.style.overflowY = '';
-        modalDialog.style.transform = '';
+      document.querySelectorAll('[data-modal].show [data-modal-dialog]').forEach(modalDialog => {
+        modalDialog.classList.remove('modal-keyboard-visible', 'modal-keyboard-shift');
       });
     },
 
     /**
      * Adjust dropdown position to avoid keyboard
+     * REFACTORED: Using CSS classes instead of inline styles
      */
     adjustDropdownsForKeyboard: function () {
-      document.querySelectorAll('.dropdown-menu.show, .select2-dropdown').forEach(dropdown => {
+      document.querySelectorAll('[data-dropdown].show, [data-select-dropdown]').forEach(dropdown => {
         const rect = dropdown.getBoundingClientRect();
         const keyboardTop = window.innerHeight - this.state.keyboardHeight;
 
         if (rect.bottom > keyboardTop) {
           // Dropdown would be covered by keyboard, position it above
-          const trigger = dropdown.previousElementSibling || dropdown.parentElement;
-          if (trigger) {
-            const triggerRect = trigger.getBoundingClientRect();
-            dropdown.style.top = `${triggerRect.top - dropdown.offsetHeight - 5}px`;
-          }
+          dropdown.classList.add('dropdown-above-keyboard');
         }
       });
     },
@@ -202,7 +199,7 @@
           });
 
           // Additional scroll if in modal
-          const modal = input.closest('.modal-body');
+          const modal = input.closest('[data-modal-body]');
           if (modal) {
             modal.scrollTop += scrollAmount;
           }
@@ -212,6 +209,7 @@
 
     /**
      * Optimize input types for better mobile keyboards
+     * REFACTORED: Using CSS class for iOS font size fix
      * @param {HTMLElement} input
      */
     optimizeInputType: function (input) {
@@ -262,10 +260,11 @@
       }
 
       // Prevent iOS zoom on focus (16px minimum)
+      // REFACTORED: Using CSS class instead of inline style
       if (this.isIOS()) {
         const fontSize = window.getComputedStyle(input).fontSize;
         if (parseInt(fontSize) < 16) {
-          input.style.fontSize = '16px';
+          input.classList.add('ios-no-zoom');
         }
       }
     },
@@ -311,6 +310,7 @@
 
     /**
      * iOS-specific fixes
+     * REFACTORED: Using CSS classes and custom properties instead of inline styles
      */
     setupIOSFixes: function () {
       if (!this.isIOS()) return;
@@ -332,15 +332,15 @@
       });
 
       // Fix for iOS date inputs
+      // REFACTORED: Using CSS class instead of inline styles
       document.querySelectorAll('input[type="date"], input[type="datetime-local"], input[type="time"]').forEach(input => {
-        input.style.minHeight = '44px';
-        input.style.paddingRight = '8px';
+        input.classList.add('ios-date-input');
       });
 
       // Prevent rubber band scrolling when keyboard is open
       document.addEventListener('touchmove', (e) => {
         if (this.state.isVisible && this.state.activeInput) {
-          const scrollable = e.target.closest('.modal-body, .table-responsive, [data-scrollable]');
+          const scrollable = e.target.closest('[data-modal-body], [data-table-responsive], [data-scrollable]');
           if (!scrollable) {
             e.preventDefault();
           }
@@ -448,6 +448,7 @@
 
     /**
      * Add CSS for keyboard-aware styling
+     * NOTE: Core styles moved to mobile-utils.css, keeping minimal dynamic styles
      */
     addKeyboardStyles: function () {
       if (document.getElementById('mobile-keyboard-styles')) return;
@@ -468,8 +469,8 @@
         }
 
         /* Ensure inputs are visible above keyboard */
-        .form-control:focus,
-        .form-select:focus,
+        [data-form-control]:focus,
+        [data-form-select]:focus,
         textarea:focus {
           position: relative;
           z-index: 10;
@@ -477,14 +478,14 @@
 
         /* iOS-specific: fix 100vh with keyboard */
         @supports (-webkit-touch-callout: none) {
-          .modal-dialog,
-          .full-height-container {
+          [data-modal-dialog],
+          [data-full-height] {
             height: calc(var(--vh, 1vh) * 100);
           }
         }
 
         /* Smooth transitions for keyboard adjustments */
-        .modal-dialog {
+        [data-modal-dialog] {
           transition: transform 0.3s ease, max-height 0.3s ease;
         }
       `;

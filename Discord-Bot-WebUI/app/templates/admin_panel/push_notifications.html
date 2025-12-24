@@ -15,60 +15,60 @@
     <!-- Push Notifications Overview -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
+            <div class="c-card bg-primary text-white">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title text-white mb-1">{{ total_subscribers or 0 }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Total Subscribers</p>
+                            <h5 class="c-card__title text-white mb-1">{{ total_subscribers or 0 }}</h5>
+                            <p class="c-card__description small opacity-75 mb-0">Total Subscribers</p>
                         </div>
                         <div class="card-icon">
-                            <i class="ti ti-users" style="font-size: 2rem; opacity: 0.5;"></i>
+                            <i class="ti ti-users card-icon-stat"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
+            <div class="c-card bg-success text-white">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title text-white mb-1">{{ notifications_sent_today or 0 }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Sent Today</p>
+                            <h5 class="c-card__title text-white mb-1">{{ notifications_sent_today or 0 }}</h5>
+                            <p class="c-card__description small opacity-75 mb-0">Sent Today</p>
                         </div>
                         <div class="card-icon">
-                            <i class="ti ti-send" style="font-size: 2rem; opacity: 0.5;"></i>
+                            <i class="ti ti-send" class="card-icon-stat"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
+            <div class="c-card bg-info text-white">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title text-white mb-1">{{ delivery_rate or '95%' }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Delivery Rate</p>
+                            <h5 class="c-card__title text-white mb-1">{{ delivery_rate or '95%' }}</h5>
+                            <p class="c-card__description small opacity-75 mb-0">Delivery Rate</p>
                         </div>
                         <div class="card-icon">
-                            <i class="ti ti-chart-line" style="font-size: 2rem; opacity: 0.5;"></i>
+                            <i class="ti ti-chart-line" class="card-icon-stat"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
+            <div class="c-card bg-warning text-white">
+                <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title text-white mb-1">{{ click_rate or '12%' }}</h5>
-                            <p class="card-text small opacity-75 mb-0">Click Rate</p>
+                            <h5 class="c-card__title text-white mb-1">{{ click_rate or '12%' }}</h5>
+                            <p class="c-card__description small opacity-75 mb-0">Click Rate</p>
                         </div>
                         <div class="card-icon">
-                            <i class="ti ti-click" style="font-size: 2rem; opacity: 0.5;"></i>
+                            <i class="ti ti-click" class="card-icon-stat"></i>
                         </div>
                     </div>
                 </div>
@@ -79,25 +79,25 @@
     <!-- Send Push Notification -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-send me-2"></i>Send Push Notification
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <form method="POST" action="{{ url_for('admin_panel.send_push_notification') }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="notification_title" class="form-label">Notification Title</label>
                                 <input type="text" class="form-control" id="notification_title" name="title" 
-                                       maxlength="50" required placeholder="League Update">
+                                       maxlength="50" required placeholder="League Update" data-form-control>
                                 <small class="form-text text-muted">Max 50 characters</small>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="notification_priority" class="form-label">Priority</label>
-                                <select class="form-select" id="notification_priority" name="priority" required>
+                                <select class="form-select" id="notification_priority" name="priority" required data-form-select>
                                     <option value="normal">Normal</option>
                                     <option value="high">High</option>
                                     <option value="urgent">Urgent</option>
@@ -107,13 +107,13 @@
                         <div class="mb-3">
                             <label for="notification_body" class="form-label">Message Body</label>
                             <textarea class="form-control" id="notification_body" name="body" rows="3" 
-                                      maxlength="200" required placeholder="Your message here..."></textarea>
+                                      maxlength="200" required placeholder="Your message here..." data-form-control></textarea>
                             <small class="form-text text-muted">Max 200 characters</small>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="target_type" class="form-label">Target Type</label>
-                                <select class="form-select" id="target_type" name="target_type" required>
+                                <select class="form-select" id="target_type" name="target_type" required data-form-select>
                                     <option value="all">All Subscribers</option>
                                     <option value="team">By Team</option>
                                     <option value="league">By League</option>
@@ -125,7 +125,7 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="platform_filter" class="form-label">Platform</label>
-                                <select class="form-select" id="platform_filter" name="platform_filter">
+                                <select class="form-select" id="platform_filter" name="platform_filter" data-form-select>
                                     <option value="all">All Platforms</option>
                                     <option value="ios">iOS Only</option>
                                     <option value="android">Android Only</option>
@@ -137,7 +137,7 @@
                         <div class="row">
                             <div class="col-12 mb-3 d-none" id="team_selector_container">
                                 <label for="team_selector" class="form-label">Select Teams</label>
-                                <select class="form-select" id="team_selector" name="team_ids" multiple>
+                                <select class="form-select" id="team_selector" name="team_ids" multiple data-form-select>
                                     {% for team in teams|default([]) %}
                                     <option value="{{ team.id }}">{{ team.name }} ({{ team.league.name if team.league else 'No league' }})</option>
                                     {% endfor %}
@@ -147,7 +147,7 @@
 
                             <div class="col-12 mb-3 d-none" id="league_selector_container">
                                 <label for="league_selector" class="form-label">Select Leagues</label>
-                                <select class="form-select" id="league_selector" name="league_ids" multiple>
+                                <select class="form-select" id="league_selector" name="league_ids" multiple data-form-select>
                                     {% for league in leagues|default([]) %}
                                     <option value="{{ league.id }}">{{ league.name }}</option>
                                     {% endfor %}
@@ -157,7 +157,7 @@
 
                             <div class="col-12 mb-3 d-none" id="role_selector_container">
                                 <label for="role_selector" class="form-label">Select Roles</label>
-                                <select class="form-select" id="role_selector" name="role_names" multiple>
+                                <select class="form-select" id="role_selector" name="role_names" multiple data-form-select>
                                     {% for role in roles|default([]) %}
                                     <option value="{{ role.name }}">{{ role.name }}</option>
                                     {% endfor %}
@@ -167,7 +167,7 @@
 
                             <div class="col-12 mb-3 d-none" id="pool_selector_container">
                                 <label for="pool_selector" class="form-label">Select Substitute Pool</label>
-                                <select class="form-select" id="pool_selector" name="pool_type">
+                                <select class="form-select" id="pool_selector" name="pool_type" data-form-select>
                                     <option value="all">All Pools</option>
                                     <option value="pub_league">Pub League Sub Pool</option>
                                     <option value="ecs_fc">ECS FC Sub Pool</option>
@@ -176,13 +176,13 @@
 
                             <div class="col-12 mb-3 d-none" id="notification_group_selector_container">
                                 <label for="notification_group_selector" class="form-label">Select Notification Group</label>
-                                <select class="form-select" id="notification_group_selector" name="notification_group_id">
+                                <select class="form-select" id="notification_group_selector" name="notification_group_id" data-form-select>
                                     <option value="">Select a group...</option>
                                     {% for group in notification_groups|default([]) %}
                                     <option value="{{ group.id }}">{{ group.name }} ({{ group.group_type }})</option>
                                     {% endfor %}
                                 </select>
-                                <a href="{{ url_for('admin_panel.notification_groups_list') }}" class="btn btn-sm btn-outline-primary mt-2">
+                                <a href="{{ url_for('admin_panel.notification_groups_list') }}" class="c-btn c-btn--sm c-btn--outline-primary mt-2">
                                     <i class="ti ti-plus me-1"></i>Manage Groups
                                 </a>
                             </div>
@@ -191,7 +191,7 @@
                         <!-- Recipient Count Preview -->
                         <div class="row mb-3">
                             <div class="col-12">
-                                <div class="alert alert-info d-flex align-items-center">
+                                <div class="alert alert-info d-flex align-items-center" data-alert>
                                     <i class="ti ti-users me-2"></i>
                                     <span>Estimated recipients: <strong id="recipient_count">0</strong></span>
                                     <span class="ms-3">
@@ -207,7 +207,7 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="notification_icon" class="form-label">Icon</label>
-                                <select class="form-select" id="notification_icon" name="icon">
+                                <select class="form-select" id="notification_icon" name="icon" data-form-select>
                                     <option value="default">Default</option>
                                     <option value="announcement">Announcement</option>
                                     <option value="match">Match</option>
@@ -218,7 +218,7 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="notification_priority" class="form-label">Priority</label>
-                                <select class="form-select" id="notification_priority" name="priority" required>
+                                <select class="form-select" id="notification_priority" name="priority" required data-form-select>
                                     <option value="normal">Normal</option>
                                     <option value="high">High</option>
                                     <option value="urgent">Urgent</option>
@@ -229,12 +229,12 @@
                             <div class="col-md-6 mb-3">
                                 <label for="action_url" class="form-label">Action URL (Optional)</label>
                                 <input type="url" class="form-control" id="action_url" name="action_url" 
-                                       placeholder="https://example.com/action">
+                                       placeholder="https://example.com/action" data-form-control>
                                 <small class="form-text text-muted">URL to open when notification is clicked</small>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="send_time" class="form-label">Send Time</label>
-                                <select class="form-select" id="send_time" name="send_time" required>
+                                <select class="form-select" id="send_time" name="send_time" required data-form-select>
                                     <option value="now">Send Now</option>
                                     <option value="scheduled">Schedule for Later</option>
                                 </select>
@@ -242,17 +242,17 @@
                         </div>
                         <div class="mb-3 d-none" id="schedule_time_container">
                             <label for="schedule_datetime" class="form-label">Schedule Date & Time</label>
-                            <input type="datetime-local" class="form-control" id="schedule_datetime" name="schedule_datetime">
+                            <input type="datetime-local" class="form-control" id="schedule_datetime" name="schedule_datetime" data-form-control>
                         </div>
                         <div class="d-flex justify-content-between">
-                            <button type="button" class="btn btn-outline-secondary" onclick="window.history.back()">
+                            <button type="button" class="c-btn c-btn--outline-secondary js-go-back" data-action="go-back">
                                 <i class="ti ti-arrow-left me-1"></i>Back
                             </button>
                             <div>
-                                <button type="button" class="btn btn-outline-primary me-2" onclick="previewNotification()">
+                                <button type="button" class="c-btn c-btn--outline-primary me-2 js-preview-notification" data-action="preview-notification">
                                     <i class="ti ti-eye me-1"></i>Preview
                                 </button>
-                                <button type="submit" class="btn btn-success">
+                                <button type="submit" class="c-btn c-btn--success">
                                     <i class="ti ti-send me-1"></i>Send Notification
                                 </button>
                             </div>
@@ -266,38 +266,38 @@
     <!-- Notification History -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header d-flex justify-content-between align-items-center">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-history me-2"></i>Notification History
                     </h5>
                     <div class="btn-group" role="group">
                         <input type="radio" class="btn-check" name="history_filter" id="filter_all_history" autocomplete="off" checked>
-                        <label class="btn btn-outline-primary btn-sm" for="filter_all_history">All</label>
+                        <label class="c-btn c-btn--outline-primary c-btn--sm" for="filter_all_history">All</label>
                         
                         <input type="radio" class="btn-check" name="history_filter" id="filter_sent_history" autocomplete="off">
-                        <label class="btn btn-outline-primary btn-sm" for="filter_sent_history">Sent</label>
+                        <label class="c-btn c-btn--outline-primary c-btn--sm" for="filter_sent_history">Sent</label>
                         
                         <input type="radio" class="btn-check" name="history_filter" id="filter_scheduled_history" autocomplete="off">
-                        <label class="btn btn-outline-primary btn-sm" for="filter_scheduled_history">Scheduled</label>
+                        <label class="c-btn c-btn--outline-primary c-btn--sm" for="filter_scheduled_history">Scheduled</label>
                         
                         <input type="radio" class="btn-check" name="history_filter" id="filter_failed_history" autocomplete="off">
-                        <label class="btn btn-outline-primary btn-sm" for="filter_failed_history">Failed</label>
+                        <label class="c-btn c-btn--outline-primary c-btn--sm" for="filter_failed_history">Failed</label>
                     </div>
                 </div>
-                <div class="card-body p-0">
+                <div class="c-card__body p-0">
                     {% if notification_history %}
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
+                    <div class="c-table-wrapper" data-table-responsive>
+                        <table class="c-table c-table--hoverable mb-0" data-table>
+                            <thead class="c-table--light" scope="col">
                                 <tr>
-                                    <th>Notification</th>
-                                    <th>Target</th>
-                                    <th>Sent</th>
-                                    <th>Delivered</th>
-                                    <th>Clicked</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
+                                    <th scope="col">Notification</th>
+                                    <th scope="col">Target</th>
+                                    <th scope="col">Sent</th>
+                                    <th scope="col">Delivered</th>
+                                    <th scope="col">Clicked</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -308,21 +308,21 @@
                                             <strong>{{ notification.title }}</strong>
                                             <br><small class="text-muted">{{ notification.body[:40] }}...</small>
                                             {% if notification.priority == 'urgent' %}
-                                            <br><span class="badge bg-danger">Urgent</span>
+                                            <br><span class="badge bg-danger" data-badge>Urgent</span>
                                             {% elif notification.priority == 'high' %}
-                                            <br><span class="badge bg-warning">High Priority</span>
+                                            <br><span class="badge bg-warning" data-badge>High Priority</span>
                                             {% endif %}
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="badge bg-info">{{ notification.target_audience|title }}</span>
+                                        <span class="badge bg-info" data-badge>{{ notification.target_audience|title }}</span>
                                         <br><small class="text-muted">{{ notification.target_count or 0 }} recipients</small>
                                     </td>
                                     <td>
                                         <small>{{ notification.sent_at.strftime('%Y-%m-%d %H:%M') if notification.sent_at else 'Not sent' }}</small>
                                     </td>
                                     <td>
-                                        <span class="badge bg-success">{{ notification.delivered_count or 0 }}</span>
+                                        <span class="badge bg-success" data-badge>{{ notification.delivered_count or 0 }}</span>
                                         {% if notification.target_count and notification.target_count > 0 %}
                                         <br><small class="text-muted">
                                             {{ ((notification.delivered_count or 0) / notification.target_count * 100)|round(1) }}%
@@ -330,7 +330,7 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <span class="badge bg-primary">{{ notification.clicked_count or 0 }}</span>
+                                        <span class="badge bg-primary" data-badge>{{ notification.clicked_count or 0 }}</span>
                                         {% if notification.delivered_count and notification.delivered_count > 0 %}
                                         <br><small class="text-muted">
                                             {{ ((notification.clicked_count or 0) / notification.delivered_count * 100)|round(1) }}%
@@ -339,24 +339,29 @@
                                     </td>
                                     <td>
                                         {% set status = notification.status or 'sent' %}
-                                        <span class="badge bg-{% if status == 'sent' %}success{% elif status == 'failed' %}danger{% elif status == 'scheduled' %}warning{% else %}secondary{% endif %}">
+                                        <span class="badge bg-{% if status == 'sent' %}success{% elif status == 'failed' %}danger{% elif status == 'scheduled' %}warning{% else %}secondary{% endif %}" data-badge>
                                             {{ status|title }}
                                         </span>
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-info" 
-                                                    onclick="viewNotificationDetails({{ notification.id }}, '{{ notification.title }}')">
+                                            <button class="c-btn c-btn--outline-info js-view-notification"
+                                                    data-action="view-notification"
+                                                    data-notification-id="{{ notification.id }}"
+                                                    data-notification-title="{{ notification.title }}">
                                                 <i class="ti ti-eye"></i>
                                             </button>
                                             {% if notification.status == 'failed' %}
-                                            <button class="btn btn-outline-success" 
-                                                    onclick="resendNotification({{ notification.id }}, '{{ notification.title }}')">
+                                            <button class="c-btn c-btn--outline-success js-resend-notification"
+                                                    data-action="resend-notification"
+                                                    data-notification-id="{{ notification.id }}"
+                                                    data-notification-title="{{ notification.title }}">
                                                 <i class="ti ti-refresh"></i>
                                             </button>
                                             {% endif %}
-                                            <button class="btn btn-outline-primary" 
-                                                    onclick="duplicateNotification({{ notification.id }})">
+                                            <button class="c-btn c-btn--outline-primary js-duplicate-notification"
+                                                    data-action="duplicate-notification"
+                                                    data-notification-id="{{ notification.id }}">
                                                 <i class="ti ti-copy"></i>
                                             </button>
                                         </div>
@@ -368,7 +373,7 @@
                     </div>
                     {% else %}
                     <div class="text-center py-5">
-                        <i class="ti ti-bell-x text-muted" style="font-size: 4rem;"></i>
+                        <i class="ti ti-bell-x text-muted" class="icon-empty-state"></i>
                         <h5 class="text-muted mt-3">No notifications sent</h5>
                         <p class="text-muted">Your notification history will appear here once you send your first notification.</p>
                     </div>
@@ -381,13 +386,13 @@
     <!-- Notification Settings -->
     <div class="row">
         <div class="col-md-6 mb-3">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-settings me-2"></i>Notification Settings
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <div class="list-group list-group-flush">
                         <div class="list-group-item d-flex justify-content-between align-items-center">
                             <div>
@@ -396,11 +401,11 @@
                                 <br><small class="text-muted">Global push notification system</small>
                             </div>
                             <div>
-                                <span class="badge bg-{% if push_notifications_enabled %}success{% else %}danger{% endif %}">
+                                <span class="badge bg-{% if push_notifications_enabled %}success{% else %}danger{% endif %}" data-badge>
                                     {% if push_notifications_enabled %}Enabled{% else %}Disabled{% endif %}
                                 </span>
                                 <a href="{{ url_for('admin_panel.feature_toggles') }}#notifications" 
-                                   class="btn btn-sm btn-outline-primary ms-2">
+                                   class="c-btn c-btn--sm c-btn--outline-primary ms-2">
                                     <i class="ti ti-settings"></i>
                                 </a>
                             </div>
@@ -412,7 +417,7 @@
                                 <br><small class="text-muted">Prevent notification spam</small>
                             </div>
                             <div>
-                                <span class="badge bg-success">Active</span>
+                                <span class="badge bg-success" data-badge>Active</span>
                                 <small class="text-muted ms-2">100/hour</small>
                             </div>
                         </div>
@@ -423,7 +428,7 @@
                                 <br><small class="text-muted">Respect user sleep times</small>
                             </div>
                             <div>
-                                <span class="badge bg-info">22:00 - 08:00</span>
+                                <span class="badge bg-info" data-badge>22:00 - 08:00</span>
                             </div>
                         </div>
                     </div>
@@ -432,13 +437,13 @@
         </div>
         
         <div class="col-md-6 mb-3">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-chart-pie me-2"></i>Subscription Analytics
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <div class="list-group list-group-flush">
                         <div class="list-group-item">
                             <div class="row">
@@ -449,7 +454,7 @@
                                     </div>
                                 </div>
                                 <div class="col-sm-4 text-end">
-                                    <span class="badge bg-success">{{ active_subscribers or 0 }}</span>
+                                    <span class="badge bg-success" data-badge>{{ active_subscribers or 0 }}</span>
                                 </div>
                             </div>
                         </div>
@@ -462,7 +467,7 @@
                                     </div>
                                 </div>
                                 <div class="col-sm-4 text-end">
-                                    <span class="badge bg-info">{{ new_subscribers_week or 0 }}</span>
+                                    <span class="badge bg-info" data-badge>{{ new_subscribers_week or 0 }}</span>
                                 </div>
                             </div>
                         </div>
@@ -475,7 +480,7 @@
                                     </div>
                                 </div>
                                 <div class="col-sm-4 text-end">
-                                    <span class="badge bg-warning">{{ unsubscribed_count or 0 }}</span>
+                                    <span class="badge bg-warning" data-badge>{{ unsubscribed_count or 0 }}</span>
                                 </div>
                             </div>
                         </div>
@@ -486,20 +491,19 @@
     </div>
 
     <!-- Notification Preview Modal -->
-    <div class="modal fade" id="notificationPreviewModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Notification Preview</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal c-modal fade" data-modal id="notificationPreviewModal" tabindex="-1" data-modal aria-labelledby="notificationPreviewModalLabel">
+        <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+            <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+                <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                    <h5 class="modal-title c-modal__title" id="notificationPreviewModalLabel">Notification Preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
                 </div>
-                <div class="modal-body">
-                    <div class="card">
-                        <div class="card-body">
+                <div class="modal-body c-modal__body" data-modal-body data-modal-body>
+                    <div class="c-card">
+                        <div class="c-card__body">
                             <div class="d-flex align-items-start">
                                 <div class="flex-shrink-0">
-                                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" 
-                                         style="width: 40px; height: 40px;">
+                                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center u-w-h-40">
                                         <i class="ti ti-bell text-white"></i>
                                     </div>
                                 </div>
@@ -519,26 +523,26 @@
                         </small>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Notification Details Modal -->
-    <div class="modal fade" id="notificationDetailsModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="notification_details_title">Notification Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal c-modal fade" data-modal id="notificationDetailsModal" tabindex="-1" data-modal aria-labelledby="notification_details_title">
+        <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+            <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+                <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                    <h5 class="modal-title c-modal__title" id="notification_details_title">Notification Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
                 </div>
-                <div class="modal-body" id="notification_details_content">
+                <div class="modal-body c-modal__body" data-modal-body id="notification_details_content" data-modal-body data-modal-body aria-labelledby="notification_details_contentLabel">
                     <!-- Notification details will be loaded here -->
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
                 </div>
             </div>
         </div>
@@ -574,6 +578,7 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
 // Configuration
 const PushNotificationConfig = {
@@ -775,16 +780,14 @@ function previewNotification() {
     document.getElementById('preview_target').textContent = formatTargetType(targetType);
     document.getElementById('preview_recipients').textContent = document.getElementById('recipient_count').textContent;
 
-    const modal = new bootstrap.Modal(document.getElementById('notificationPreviewModal'));
-    modal.show();
+    ModalManager.show('notificationPreviewModal');
 }
 
 function viewNotificationDetails(notificationId, notificationTitle) {
     document.getElementById('notification_details_title').textContent = `Details for "${notificationTitle}"`;
-    document.getElementById('notification_details_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+    document.getElementById('notification_details_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status" data-spinner></div></div>';
 
-    const modal = new bootstrap.Modal(document.getElementById('notificationDetailsModal'));
-    modal.show();
+    ModalManager.show('notificationDetailsModal');
 
     // Load notification details via AJAX
     fetch(`${PushNotificationConfig.baseUrl}/communication/push-notifications/details?notification_id=${notificationId}`)
@@ -793,11 +796,11 @@ function viewNotificationDetails(notificationId, notificationTitle) {
             if (data.success) {
                 document.getElementById('notification_details_content').innerHTML = data.html;
             } else {
-                document.getElementById('notification_details_content').innerHTML = '<div class="alert alert-danger">Error loading notification details</div>';
+                document.getElementById('notification_details_content').innerHTML = '<div class="alert alert-danger" data-alert>Error loading notification details</div>';
             }
         })
         .catch(error => {
-            document.getElementById('notification_details_content').innerHTML = '<div class="alert alert-danger">Error loading notification details</div>';
+            document.getElementById('notification_details_content').innerHTML = '<div class="alert alert-danger" data-alert>Error loading notification details</div>';
         });
 }
 
@@ -854,6 +857,36 @@ function duplicateNotification(notificationId) {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
+    // Event delegation for buttons
+    document.querySelector('.js-go-back')?.addEventListener('click', function() {
+        window.history.back();
+    });
+
+    document.querySelector('.js-preview-notification')?.addEventListener('click', previewNotification);
+
+    document.querySelectorAll('.js-view-notification').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const notificationId = this.dataset.notificationId;
+            const notificationTitle = this.dataset.notificationTitle;
+            viewNotificationDetails(notificationId, notificationTitle);
+        });
+    });
+
+    document.querySelectorAll('.js-resend-notification').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const notificationId = this.dataset.notificationId;
+            const notificationTitle = this.dataset.notificationTitle;
+            resendNotification(notificationId, notificationTitle);
+        });
+    });
+
+    document.querySelectorAll('.js-duplicate-notification').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const notificationId = this.dataset.notificationId;
+            duplicateNotification(notificationId);
+        });
+    });
+
     // Set minimum datetime to current time
     const now = new Date();
     const year = now.getFullYear();

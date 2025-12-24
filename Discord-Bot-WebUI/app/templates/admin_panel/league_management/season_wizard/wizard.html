@@ -9,223 +9,80 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-    /* Season Wizard - Theme-aware styling using Bootstrap CSS variables */
-    .wizard-container {
-        position: relative;
-    }
-    .wizard-steps {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 0;
-        position: relative;
-        padding: 1.5rem;
-    }
-    .wizard-steps::after {
-        content: '';
-        position: absolute;
-        top: calc(1.5rem + 20px);
-        left: 10%;
-        width: 80%;
-        height: 2px;
-        background-color: var(--bs-border-color);
-        z-index: 1;
-    }
-    .wizard-step {
-        z-index: 2;
-        position: relative;
-        background-color: transparent;
-        flex: 1;
-        text-align: center;
-    }
-    .wizard-step-circle {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 10px;
-        color: #fff;
-        position: relative;
-        font-size: 1.1rem;
-        transition: all 0.3s ease;
-    }
-    .step-active .wizard-step-circle {
-        background-color: var(--bs-primary);
-        box-shadow: 0 0 0 4px rgba(var(--bs-primary-rgb), 0.25);
-    }
-    .step-done .wizard-step-circle {
-        background-color: var(--bs-success);
-    }
-    .step-pending .wizard-step-circle {
-        background-color: var(--bs-secondary);
-        opacity: 0.6;
-    }
-    .wizard-step-text {
-        text-align: center;
-        font-size: 0.85rem;
-        color: var(--bs-body-color);
-    }
-    .step-active .wizard-step-text {
-        color: var(--bs-primary);
-        font-weight: 600;
-    }
-    .step-done .wizard-step-text {
-        color: var(--bs-success);
-    }
-    .step-pending .wizard-step-text {
-        opacity: 0.6;
-    }
-    .wizard-content {
-        padding: 1.5rem;
-        min-height: 400px;
-        border-top: 1px solid var(--bs-border-color);
-    }
-    .wizard-navigation {
-        padding: 1rem 1.5rem;
-        display: flex;
-        justify-content: space-between;
-        border-top: 1px solid var(--bs-border-color);
-        background-color: var(--bs-tertiary-bg);
-    }
-    .tooltip-container {
-        position: relative;
-        cursor: pointer;
-    }
-    .tooltip-container:hover .custom-tooltip {
-        display: block;
-    }
-    .custom-tooltip {
-        display: none;
-        position: absolute;
-        top: -45px;
-        left: 50%;
-        transform: translateX(-50%);
-        padding: 5px 10px;
-        background-color: var(--bs-emphasis-color);
-        color: var(--bs-body-bg);
-        border-radius: 4px;
-        font-size: 12px;
-        white-space: nowrap;
-        z-index: 10;
-    }
-    .custom-tooltip::after {
-        content: '';
-        position: absolute;
-        top: 100%;
-        left: 50%;
-        margin-left: -5px;
-        border-width: 5px;
-        border-style: solid;
-        border-color: var(--bs-emphasis-color) transparent transparent transparent;
-    }
-    /* Step content transitions */
-    .wizard-step-content {
-        display: none;
-    }
-    .wizard-step-content.active {
-        display: block;
-        animation: fadeIn 0.3s ease;
-    }
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    /* Mobile responsive */
-    @media (max-width: 768px) {
-        .wizard-steps {
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-        .wizard-steps::after {
-            display: none;
-        }
-        .wizard-step {
-            flex: 0 0 calc(33.333% - 1rem);
-        }
-        .wizard-step-text {
-            font-size: 0.75rem;
-        }
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/season-wizard.css') }}">
 {% endblock %}
 
 {% block panel_content %}
 <div class="row">
     <div class="col-12">
         <!-- Current Step Info Card -->
-        <div class="alert bg-body-tertiary border-start border-primary border-4 mb-4">
-            <div class="d-flex align-items-center">
-                <div class="me-3">
-                    <i class="ti ti-wand text-primary" style="font-size: 2rem;" id="stepIcon"></i>
-                </div>
-                <div class="flex-grow-1">
-                    <h6 class="mb-1" id="stepTitle">Step 1 of 5: Basic Information</h6>
-                    <p class="mb-0 small text-muted" id="stepDescription">Select the league type and name your season</p>
-                </div>
+        <div class="c-wizard__info">
+            <i class="ti ti-wand c-wizard__info-icon" id="stepIcon"></i>
+            <div class="c-wizard__info-content">
+                <h6 class="c-wizard__info-title" id="stepTitle">Step 1 of 5: Basic Information</h6>
+                <p class="c-wizard__info-description" id="stepDescription">Select the league type and name your season</p>
             </div>
         </div>
 
-        <div class="card wizard-container">
+        <div class="c-wizard">
             <!-- Progress Steps -->
-            <div class="wizard-steps">
-                <div class="wizard-step step-active" data-step="0" id="wizardStep0">
-                    <div class="tooltip-container" onclick="goToStep(0)">
-                        <div class="wizard-step-circle">
+            <ul class="c-wizard__steps">
+                <li class="c-wizard__step c-wizard__step--active" data-step="0" id="wizardStep0">
+                    <div class="c-wizard__step-trigger js-goto-step" data-action="goto-step" data-step="0">
+                        <div class="c-wizard__step-circle">
                             <i class="ti ti-file-description"></i>
                         </div>
-                        <div class="wizard-step-text">Basic Info</div>
-                        <div class="custom-tooltip">Step 1: Season type & name</div>
+                        <div class="c-wizard__step-text">Basic Info</div>
+                        <div class="c-wizard__step-tooltip">Step 1: Season type & name</div>
                     </div>
-                </div>
+                </li>
 
-                <div class="wizard-step step-pending" data-step="1" id="wizardStep1">
-                    <div class="tooltip-container" onclick="goToStep(1)">
-                        <div class="wizard-step-circle">
+                <li class="c-wizard__step c-wizard__step--pending" data-step="1" id="wizardStep1">
+                    <div class="c-wizard__step-trigger js-goto-step" data-action="goto-step" data-step="1">
+                        <div class="c-wizard__step-circle">
                             <i class="ti ti-users-group"></i>
                         </div>
-                        <div class="wizard-step-text">Teams</div>
-                        <div class="custom-tooltip">Step 2: Configure teams</div>
+                        <div class="c-wizard__step-text">Teams</div>
+                        <div class="c-wizard__step-tooltip">Step 2: Configure teams</div>
                     </div>
-                </div>
+                </li>
 
-                <div class="wizard-step step-pending" data-step="2" id="wizardStep2">
-                    <div class="tooltip-container" onclick="goToStep(2)">
-                        <div class="wizard-step-circle">
+                <li class="c-wizard__step c-wizard__step--pending" data-step="2" id="wizardStep2">
+                    <div class="c-wizard__step-trigger js-goto-step" data-action="goto-step" data-step="2">
+                        <div class="c-wizard__step-circle">
                             <i class="ti ti-calendar-event"></i>
                         </div>
-                        <div class="wizard-step-text">Schedule</div>
-                        <div class="custom-tooltip">Step 3: Weeks & dates</div>
+                        <div class="c-wizard__step-text">Schedule</div>
+                        <div class="c-wizard__step-tooltip">Step 3: Weeks & dates</div>
                     </div>
-                </div>
+                </li>
 
-                <div class="wizard-step step-pending" data-step="3" id="wizardStep3">
-                    <div class="tooltip-container" onclick="goToStep(3)">
-                        <div class="wizard-step-circle">
+                <li class="c-wizard__step c-wizard__step--pending" data-step="3" id="wizardStep3">
+                    <div class="c-wizard__step-trigger js-goto-step" data-action="goto-step" data-step="3">
+                        <div class="c-wizard__step-circle">
                             <i class="ti ti-brand-discord"></i>
                         </div>
-                        <div class="wizard-step-text">Discord</div>
-                        <div class="custom-tooltip">Step 4: Preview resources</div>
+                        <div class="c-wizard__step-text">Discord</div>
+                        <div class="c-wizard__step-tooltip">Step 4: Preview resources</div>
                     </div>
-                </div>
+                </li>
 
-                <div class="wizard-step step-pending" data-step="4" id="wizardStep4">
-                    <div class="tooltip-container" onclick="goToStep(4)">
-                        <div class="wizard-step-circle">
+                <li class="c-wizard__step c-wizard__step--pending" data-step="4" id="wizardStep4">
+                    <div class="c-wizard__step-trigger js-goto-step" data-action="goto-step" data-step="4">
+                        <div class="c-wizard__step-circle">
                             <i class="ti ti-check"></i>
                         </div>
-                        <div class="wizard-step-text">Review</div>
-                        <div class="custom-tooltip">Step 5: Confirm & create</div>
+                        <div class="c-wizard__step-text">Review</div>
+                        <div class="c-wizard__step-tooltip">Step 5: Confirm & create</div>
                     </div>
-                </div>
-            </div>
+                </li>
+            </ul>
 
             <!-- Step Content -->
-            <div class="wizard-content">
-                <form id="seasonWizardForm" onsubmit="return false;">
+            <div class="c-wizard__content">
+                <form id="seasonWizardForm">
                     <!-- Step 1: Basic Info -->
-                    <div class="wizard-step-content active" id="step-0">
+                    <div class="c-wizard__panel c-wizard__panel--active" id="step-0">
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">League Type <span class="text-danger">*</span></label>
@@ -248,12 +105,12 @@
                             <div class="col-md-6">
                                 <label class="form-label" for="seasonName">Season Name <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="seasonName" name="season_name"
-                                       placeholder="e.g., Spring 2025" required>
+                                       placeholder="e.g., Spring 2025" required data-form-control>
                                 <small class="text-muted">A unique name for this season</small>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label" for="startDate">Season Start Date</label>
-                                <input type="date" class="form-control" id="startDate" name="start_date">
+                                <input type="date" class="form-control" id="startDate" name="start_date" data-form-control>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-check mt-4">
@@ -267,7 +124,7 @@
                         </div>
 
                         <!-- Rollover Warning -->
-                        <div id="rolloverWarning" class="alert alert-warning mt-3" style="display: none;">
+                        <div id="rolloverWarning" class="alert alert-warning mt-3 u-hidden" data-alert>
                             <i class="ti ti-alert-triangle me-2"></i>
                             <strong>Rollover Warning:</strong> Setting this as current will:
                             <ul class="mb-0 mt-2">
@@ -279,19 +136,19 @@
                     </div>
 
                     <!-- Step 2: Teams -->
-                    <div class="wizard-step-content" id="step-1">
+                    <div class="c-wizard__panel" id="step-1">
                         <!-- Pub League Teams -->
                         <div id="pubLeagueTeams">
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <div class="card border h-100">
-                                        <div class="card-header bg-warning bg-opacity-10">
+                                    <div class="c-card border h-100">
+                                        <div class="c-card__header bg-warning bg-opacity-10">
                                             <h6 class="mb-0"><i class="ti ti-crown me-1"></i>Premier Division</h6>
                                         </div>
-                                        <div class="card-body">
+                                        <div class="c-card__body">
                                             <label class="form-label">Number of Teams</label>
                                             <input type="number" class="form-control" id="premierTeamCount"
-                                                   name="premier_team_count" value="8" min="2" max="16">
+                                                   name="premier_team_count" value="8" min="2" max="16" data-form-control>
                                             <small class="text-muted">Typically 8 teams for round-robin</small>
 
                                             <div class="mt-3">
@@ -302,22 +159,22 @@
                                                     </label>
                                                 </div>
                                             </div>
-                                            <div id="premierCustomNamesDiv" class="mt-2" style="display: none;">
+                                            <div id="premierCustomNamesDiv" class="mt-2 u-hidden">
                                                 <textarea class="form-control" id="premierTeamNames" rows="4"
-                                                          placeholder="Enter one team name per line"></textarea>
+                                                          placeholder="Enter one team name per line" data-form-control></textarea>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <div class="card border h-100">
-                                        <div class="card-header bg-info bg-opacity-10">
+                                    <div class="c-card border h-100">
+                                        <div class="c-card__header bg-info bg-opacity-10">
                                             <h6 class="mb-0"><i class="ti ti-users me-1"></i>Classic Division</h6>
                                         </div>
-                                        <div class="card-body">
+                                        <div class="c-card__body">
                                             <label class="form-label">Number of Teams</label>
                                             <input type="number" class="form-control" id="classicTeamCount"
-                                                   name="classic_team_count" value="4" min="2" max="16">
+                                                   name="classic_team_count" value="4" min="2" max="16" data-form-control>
                                             <small class="text-muted">Typically 4 teams</small>
 
                                             <div class="mt-3">
@@ -328,9 +185,9 @@
                                                     </label>
                                                 </div>
                                             </div>
-                                            <div id="classicCustomNamesDiv" class="mt-2" style="display: none;">
+                                            <div id="classicCustomNamesDiv" class="mt-2 u-hidden">
                                                 <textarea class="form-control" id="classicTeamNames" rows="4"
-                                                          placeholder="Enter one team name per line"></textarea>
+                                                          placeholder="Enter one team name per line" data-form-control></textarea>
                                             </div>
                                         </div>
                                     </div>
@@ -339,17 +196,17 @@
                         </div>
 
                         <!-- ECS FC Teams -->
-                        <div id="ecsFcTeams" style="display: none;">
-                            <div class="card border">
-                                <div class="card-header bg-primary bg-opacity-10">
+                        <div id="ecsFcTeams" class="u-hidden">
+                            <div class="c-card border">
+                                <div class="c-card__header bg-primary bg-opacity-10">
                                     <h6 class="mb-0"><i class="ti ti-ball-football me-1"></i>ECS FC Teams</h6>
                                 </div>
-                                <div class="card-body">
+                                <div class="c-card__body">
                                     <div class="row">
                                         <div class="col-md-6">
                                             <label class="form-label">Number of Teams</label>
                                             <input type="number" class="form-control" id="ecsFcTeamCount"
-                                                   name="team_count" value="8" min="2" max="16">
+                                                   name="team_count" value="8" min="2" max="16" data-form-control>
                                         </div>
                                     </div>
                                     <div class="mt-3">
@@ -360,9 +217,9 @@
                                             </label>
                                         </div>
                                     </div>
-                                    <div id="ecsFcCustomNamesDiv" class="mt-2" style="display: none;">
+                                    <div id="ecsFcCustomNamesDiv" class="mt-2 u-hidden">
                                         <textarea class="form-control" id="ecsFcTeamNames" rows="4"
-                                                  placeholder="Enter one team name per line"></textarea>
+                                                  placeholder="Enter one team name per line" data-form-control></textarea>
                                     </div>
                                 </div>
                             </div>
@@ -380,8 +237,8 @@
                     </div>
 
                     <!-- Step 3: Schedule -->
-                    <div class="wizard-step-content" id="step-2">
-                        <div class="alert alert-info">
+                    <div class="c-wizard__panel" id="step-2">
+                        <div class="alert alert-info" data-alert>
                             <i class="ti ti-info-circle me-2"></i>
                             Detailed schedule configuration can be done via the
                             <a href="{{ url_for('auto_schedule.schedule_manager') }}">Auto Schedule</a>
@@ -392,13 +249,13 @@
                             <div class="col-md-6">
                                 <label class="form-label">Regular Season Weeks</label>
                                 <input type="number" class="form-control" id="regularWeeks"
-                                       name="regular_weeks" value="7" min="1" max="20">
+                                       name="regular_weeks" value="7" min="1" max="20" data-form-control>
                                 <small class="text-muted">Number of regular season weeks</small>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Playoff Weeks</label>
                                 <input type="number" class="form-control" id="playoffWeeks"
-                                       name="playoff_weeks" value="2" min="0" max="6">
+                                       name="playoff_weeks" value="2" min="0" max="6" data-form-control>
                                 <small class="text-muted">Number of playoff weeks</small>
                             </div>
                         </div>
@@ -436,48 +293,48 @@
                     </div>
 
                     <!-- Step 4: Discord Preview -->
-                    <div class="wizard-step-content" id="step-3">
+                    <div class="c-wizard__panel" id="step-3">
                         <div id="discordPreviewLoading" class="text-center py-4">
-                            <div class="spinner-border text-primary" role="status">
+                            <div class="spinner-border text-primary" role="status" data-spinner>
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                             <p class="mt-2 text-muted">Generating preview...</p>
                         </div>
 
-                        <div id="discordPreviewContent" style="display: none;">
+                        <div id="discordPreviewContent" class="u-hidden">
                             <div class="row g-3">
                                 <div class="col-md-4">
-                                    <div class="card border h-100">
-                                        <div class="card-header">
+                                    <div class="c-card border h-100">
+                                        <div class="c-card__header">
                                             <h6 class="mb-0"><i class="ti ti-folder me-1"></i>Categories</h6>
                                         </div>
-                                        <div class="card-body">
+                                        <div class="c-card__body">
                                             <ul id="previewCategories" class="list-unstyled mb-0"></ul>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="card border h-100">
-                                        <div class="card-header">
+                                    <div class="c-card border h-100">
+                                        <div class="c-card__header">
                                             <h6 class="mb-0"><i class="ti ti-message me-1"></i>Channels</h6>
                                         </div>
-                                        <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                        <div class="c-card__body u-max-h-300 u-overflow-y-auto">
                                             <ul id="previewChannels" class="list-unstyled mb-0"></ul>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="card border h-100">
-                                        <div class="card-header">
+                                    <div class="c-card border h-100">
+                                        <div class="c-card__header">
                                             <h6 class="mb-0"><i class="ti ti-shield me-1"></i>Roles</h6>
                                         </div>
-                                        <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                        <div class="c-card__body u-max-h-300 u-overflow-y-auto">
                                             <ul id="previewRoles" class="list-unstyled mb-0"></ul>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="alert alert-info mt-3">
+                            <div class="alert alert-info mt-3" data-alert>
                                 <i class="ti ti-info-circle me-2"></i>
                                 Estimated Discord API calls: <strong id="estimatedApiCalls">0</strong>
                             </div>
@@ -485,13 +342,13 @@
                     </div>
 
                     <!-- Step 5: Review -->
-                    <div class="wizard-step-content" id="step-4">
+                    <div class="c-wizard__panel" id="step-4">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <div class="card border">
-                                    <div class="card-body">
+                                <div class="c-card border">
+                                    <div class="c-card__body">
                                         <h6><i class="ti ti-file-description me-1"></i>Basic Info</h6>
-                                        <table class="table table-sm mb-0">
+                                        <table class="c-table c-table--compact mb-0" data-table>
                                             <tr>
                                                 <td class="text-muted">League Type:</td>
                                                 <td id="reviewLeagueType"></td>
@@ -513,18 +370,18 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="card border">
-                                    <div class="card-body">
+                                <div class="c-card border">
+                                    <div class="c-card__body">
                                         <h6><i class="ti ti-users-group me-1"></i>Teams</h6>
                                         <div id="reviewTeams"></div>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-12">
-                                <div class="card border">
-                                    <div class="card-body">
+                                <div class="c-card border">
+                                    <div class="c-card__body">
                                         <h6><i class="ti ti-calendar me-1"></i>Schedule</h6>
-                                        <table class="table table-sm mb-0">
+                                        <table class="c-table c-table--compact mb-0" data-table>
                                             <tr>
                                                 <td class="text-muted">Regular Weeks:</td>
                                                 <td id="reviewRegularWeeks"></td>
@@ -543,17 +400,17 @@
             </div>
 
             <!-- Navigation -->
-            <div class="wizard-navigation">
+            <div class="c-wizard__navigation">
                 <div>
-                    <button class="btn btn-secondary" id="prevBtn" onclick="wizardPrev()" style="display: none;">
+                    <button type="button" class="c-btn c-btn--secondary js-wizard-prev u-hidden" id="prevBtn" data-action="wizard-prev">
                         <i class="ti ti-arrow-left me-1"></i> Previous
                     </button>
                 </div>
                 <div>
-                    <button class="btn btn-primary" id="nextBtn" onclick="wizardNext()">
+                    <button type="button" class="c-btn c-btn--primary js-wizard-next" id="nextBtn" data-action="wizard-next">
                         Next <i class="ti ti-arrow-right ms-1"></i>
                     </button>
-                    <button class="btn btn-success" id="createBtn" onclick="createSeason()" style="display: none;">
+                    <button type="button" class="c-btn c-btn--success js-create-season u-hidden" id="createBtn" data-action="create-season">
                         <i class="ti ti-check me-1"></i> Create Season
                     </button>
                 </div>
@@ -566,6 +423,68 @@
 {% block custom_js %}
 {{ super() }}
 <script>
+// Event delegation for wizard navigation
+document.addEventListener('DOMContentLoaded', function() {
+    // Step navigation
+    document.querySelectorAll('.js-goto-step').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const step = parseInt(this.dataset.step);
+            goToStep(step);
+        });
+    });
+
+    // Previous button
+    document.querySelectorAll('.js-wizard-prev').forEach(btn => {
+        btn.addEventListener('click', function() {
+            wizardPrev();
+        });
+    });
+
+    // Next button
+    document.querySelectorAll('.js-wizard-next').forEach(btn => {
+        btn.addEventListener('click', function() {
+            wizardNext();
+        });
+    });
+
+    // Create season button
+    document.querySelectorAll('.js-create-season').forEach(btn => {
+        btn.addEventListener('click', function() {
+            createSeason();
+        });
+    });
+
+    // League type change handler
+    document.querySelectorAll('input[name="league_type"]').forEach(radio => {
+        radio.addEventListener('change', handleLeagueTypeChange);
+    });
+
+    // Set as current checkbox handler
+    document.getElementById('setAsCurrent').addEventListener('change', function() {
+        document.getElementById('rolloverWarning').classList.toggle('u-hidden', !this.checked);
+    });
+
+    // Custom names toggle handlers
+    document.getElementById('premierCustomNames').addEventListener('change', function() {
+        document.getElementById('premierCustomNamesDiv').classList.toggle('u-hidden', !this.checked);
+    });
+    document.getElementById('classicCustomNames').addEventListener('change', function() {
+        document.getElementById('classicCustomNamesDiv').classList.toggle('u-hidden', !this.checked);
+    });
+    document.getElementById('ecsFcCustomNames').addEventListener('change', function() {
+        document.getElementById('ecsFcCustomNamesDiv').classList.toggle('u-hidden', !this.checked);
+    });
+
+    // Initialize from URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('type') === 'ecs_fc') {
+        document.getElementById('typeEcsFc').checked = true;
+        handleLeagueTypeChange();
+    }
+
+    updateUI();
+});
+
 let currentStep = 0;
 const totalSteps = 5;
 const stepIcons = ['ti-file-description', 'ti-users-group', 'ti-calendar-event', 'ti-brand-discord', 'ti-check'];
@@ -584,61 +503,29 @@ const stepDescriptions = [
     'Review your configuration before creating'
 ];
 
-document.addEventListener('DOMContentLoaded', function() {
-    // League type change handler
-    document.querySelectorAll('input[name="league_type"]').forEach(radio => {
-        radio.addEventListener('change', handleLeagueTypeChange);
-    });
-
-    // Set as current checkbox handler
-    document.getElementById('setAsCurrent').addEventListener('change', function() {
-        document.getElementById('rolloverWarning').style.display = this.checked ? 'block' : 'none';
-    });
-
-    // Custom names toggle handlers
-    document.getElementById('premierCustomNames').addEventListener('change', function() {
-        document.getElementById('premierCustomNamesDiv').style.display = this.checked ? 'block' : 'none';
-    });
-    document.getElementById('classicCustomNames').addEventListener('change', function() {
-        document.getElementById('classicCustomNamesDiv').style.display = this.checked ? 'block' : 'none';
-    });
-    document.getElementById('ecsFcCustomNames').addEventListener('change', function() {
-        document.getElementById('ecsFcCustomNamesDiv').style.display = this.checked ? 'block' : 'none';
-    });
-
-    // Initialize from URL params
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('type') === 'ecs_fc') {
-        document.getElementById('typeEcsFc').checked = true;
-        handleLeagueTypeChange();
-    }
-
-    updateUI();
-});
-
 function handleLeagueTypeChange() {
     const isPubLeague = document.getElementById('typePubLeague').checked;
-    document.getElementById('pubLeagueTeams').style.display = isPubLeague ? 'block' : 'none';
-    document.getElementById('ecsFcTeams').style.display = isPubLeague ? 'none' : 'block';
-    document.getElementById('specialWeeksSection').style.display = isPubLeague ? 'block' : 'none';
+    document.getElementById('pubLeagueTeams').classList.toggle('u-hidden', !isPubLeague);
+    document.getElementById('ecsFcTeams').classList.toggle('u-hidden', isPubLeague);
+    document.getElementById('specialWeeksSection').classList.toggle('u-hidden', !isPubLeague);
 }
 
 function updateUI() {
     // Update step indicators
     for (let i = 0; i < totalSteps; i++) {
         const stepEl = document.getElementById(`wizardStep${i}`);
-        const circle = stepEl.querySelector('.wizard-step-circle');
+        const circle = stepEl.querySelector('.c-wizard__step-circle');
 
-        stepEl.classList.remove('step-active', 'step-done', 'step-pending');
+        stepEl.classList.remove('c-wizard__step--active', 'c-wizard__step--done', 'c-wizard__step--pending');
 
         if (i < currentStep) {
-            stepEl.classList.add('step-done');
+            stepEl.classList.add('c-wizard__step--done');
             circle.innerHTML = '<i class="ti ti-check"></i>';
         } else if (i === currentStep) {
-            stepEl.classList.add('step-active');
+            stepEl.classList.add('c-wizard__step--active');
             circle.innerHTML = `<i class="ti ${stepIcons[i]}"></i>`;
         } else {
-            stepEl.classList.add('step-pending');
+            stepEl.classList.add('c-wizard__step--pending');
             circle.innerHTML = `<i class="ti ${stepIcons[i]}"></i>`;
         }
     }
@@ -646,18 +533,18 @@ function updateUI() {
     // Update step content visibility
     for (let i = 0; i < totalSteps; i++) {
         const content = document.getElementById(`step-${i}`);
-        content.classList.toggle('active', i === currentStep);
+        content.classList.toggle('c-wizard__panel--active', i === currentStep);
     }
 
     // Update header info
-    document.getElementById('stepIcon').className = `ti ${stepIcons[currentStep]} text-primary`;
+    document.getElementById('stepIcon').className = `ti ${stepIcons[currentStep]} c-wizard__info-icon`;
     document.getElementById('stepTitle').textContent = stepTitles[currentStep];
     document.getElementById('stepDescription').textContent = stepDescriptions[currentStep];
 
     // Update navigation buttons
-    document.getElementById('prevBtn').style.display = currentStep > 0 ? 'inline-block' : 'none';
-    document.getElementById('nextBtn').style.display = currentStep < totalSteps - 1 ? 'inline-block' : 'none';
-    document.getElementById('createBtn').style.display = currentStep === totalSteps - 1 ? 'inline-block' : 'none';
+    document.getElementById('prevBtn').classList.toggle('u-hidden', currentStep === 0);
+    document.getElementById('nextBtn').classList.toggle('u-hidden', currentStep === totalSteps - 1);
+    document.getElementById('createBtn').classList.toggle('u-hidden', currentStep !== totalSteps - 1);
 }
 
 function goToStep(step) {
@@ -754,8 +641,8 @@ function getWizardData() {
 }
 
 function loadDiscordPreview() {
-    document.getElementById('discordPreviewLoading').style.display = 'block';
-    document.getElementById('discordPreviewContent').style.display = 'none';
+    document.getElementById('discordPreviewLoading').classList.remove('u-hidden');
+    document.getElementById('discordPreviewContent').classList.add('u-hidden');
 
     const data = getWizardData();
 
@@ -768,8 +655,8 @@ function loadDiscordPreview() {
     })
     .then(response => response.json())
     .then(result => {
-        document.getElementById('discordPreviewLoading').style.display = 'none';
-        document.getElementById('discordPreviewContent').style.display = 'block';
+        document.getElementById('discordPreviewLoading').classList.add('u-hidden');
+        document.getElementById('discordPreviewContent').classList.remove('u-hidden');
 
         if (result.success) {
             const preview = result.preview;

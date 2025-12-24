@@ -1,52 +1,11 @@
 {% extends "base.html" %}
 
 {% block extra_head %}
-<style>
-/* Role selection styling */
-#editRoles {
-    min-height: 120px;
-}
-
-#editRoles option:checked {
-    background-color: var(--ecs-primary, #0d6efd) !important;
-    color: white !important;
-}
-
-/* Ensure Select2 dropdown appears above modal backdrop */
-.select2-container--open {
-    z-index: 10040 !important;
-}
-
-.select2-dropdown {
-    z-index: 10050 !important;
-}
-
-/* User name display */
-.user-display-name {
-    font-weight: 600;
-    color: var(--bs-body-color);
-    margin-bottom: 0.25rem;
-}
-
-.user-username {
-    font-size: 0.875rem;
-    color: var(--bs-secondary);
-}
-
-/* Ensure mobile action buttons in table cards are properly sized and visible */
-@media (max-width: 991.98px) {
-    /* Make action buttons in mobile table cards more visible */
-    .table-responsive .btn-sm {
-        font-size: 0.7rem;
-        padding: 0.35rem 0.6rem;
-        margin: 0.1rem;
-    }
-}
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/user-management.css') }}">
 {% endblock %}
 
 {% block main_content %}
-<div class="container-xxl flex-grow-1 container-p-y">
+<div class="container-xxl flex-grow-1 container-p-y user-management-page">
     <!-- Page Header -->
     <div class="row mb-4">
         <div class="col-12">
@@ -62,20 +21,20 @@
     <!-- Filters Card -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header border-bottom py-3">
+            <div class="c-card shadow-sm">
+                <div class="c-card__header border-bottom py-3">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
+                        <h5 class="c-card__title mb-0">
                             <i class="ti ti-filter me-2"></i>Filter Users
                         </h5>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="true">
+                        <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary" data-bs-toggle="collapse" data-bs-target="#manage-users-old-filterCollapse" aria-expanded="true" data-collapse-toggle>
                             <i class="ti ti-chevron-down"></i>
                         </button>
                     </div>
                 </div>
-                <div class="collapse show" id="filterCollapse">
-                    <div class="card-body">
-                        <form method="get" action="{{ url_for('user_management.manage_users') }}" class="row g-3 filter-form-row" id="filterForm">
+                <div class="collapse show" id="manage-users-old-filterCollapse">
+                    <div class="c-card__body">
+                        <form method="get" action="{{ url_for('user_management.manage_users') }}" class="row g-3 filter-form-row" id="manage-users-old-filterForm">
                             <div class="col-12 col-sm-6 col-lg-3 filter-form-col">
                                 {{ filter_form.search.label(class="form-label") }}
                                 {{ filter_form.search(class="form-control", placeholder="Search by name, username or email", id="searchInput") }}
@@ -90,7 +49,7 @@
                             </div>
                             <div class="col-12 col-sm-6 col-lg-2 filter-form-col">
                                 {{ filter_form.league.label(class="form-label") }}
-                                {{ filter_form.league(class="form-select", id="leagueFilter") }}
+                                {{ filter_form.league(class="form-select", id="manage-users-old-leagueFilter") }}
                             </div>
                             <div class="col-12 col-sm-6 col-lg-2 filter-form-col">
                                 {{ filter_form.active.label(class="form-label") }}
@@ -111,26 +70,26 @@
         <div class="col-12">
             <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
                 <div class="d-flex flex-column flex-sm-row flex-wrap gap-2 actions-row">
-                    <a href="{{ url_for('user_management.create_user') }}" class="btn btn-primary">
+                    <a href="{{ url_for('user_management.create_user') }}" class="c-btn c-btn--primary">
                         <i class="ti ti-user-plus me-1"></i> Create New User
                     </a>
                     <form method="POST" action="{{ url_for('user_management.update_players') }}" class="d-flex">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-success w-100">
+                        <button type="submit" class="c-btn c-btn--success w-100">
                             <i class="ti ti-refresh me-1"></i> Sync Players from WooCommerce
                         </button>
                     </form>
 
-                    <button type="button" class="btn btn-outline-info" onclick="checkActiveSyncTasks()">
+                    <button type="button" class="c-btn c-btn--outline-info js-check-active-sync-tasks" data-action="check-active-sync-tasks">
                         <i class="ti ti-history me-1"></i> View Active Sync Tasks
                     </button>
 
                     <!-- Export Player Profiles Dropdown -->
                     <div class="dropdown d-flex">
-                        <button class="btn btn-info dropdown-toggle w-100" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button class="c-btn c-btn--info dropdown-toggle w-100" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle>
                             <i class="ti ti-download me-1"></i> Export Player Profiles
                         </button>
-                        <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                        <ul class="dropdown-menu" aria-labelledby="exportDropdown" data-dropdown-menu>
                             <li><h6 class="dropdown-header">Export Active Players</h6></li>
                             <li>
                                 <a class="dropdown-item" href="{{ url_for('user_management.export_player_profiles') }}">
@@ -155,7 +114,7 @@
                     </div>
 
                     <!-- Reset Profile Compliance Button -->
-                    <button type="button" class="btn btn-warning" id="resetComplianceBtn">
+                    <button type="button" class="c-btn c-btn--warning" id="resetComplianceBtn">
                         <i class="ti ti-refresh-alert me-1"></i> Reset Profile Compliance
                     </button>
                 </div>
@@ -169,24 +128,24 @@
     <!-- Users Table Card -->
     <div class="row">
         <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header border-bottom py-3">
-                    <h5 class="card-title mb-0">
+            <div class="c-card shadow-sm">
+                <div class="c-card__header border-bottom py-3">
+                    <h5 class="c-card__title mb-0">
                         <i class="ti ti-list me-2"></i>User List
                     </h5>
                 </div>
                 <!-- Table View (mobile.css will convert to cards automatically) -->
                 <div>
-                    <div class="table-responsive overflow-visible">
-                        <table class="table table-hover mb-0 ecs-table ecs-table-hover user-management-table">
-                        <thead class="table-light">
+                    <div class="c-table-wrapper overflow-visible" data-table-responsive>
+                        <table class="c-table c-table--hoverable mb-0 ecs-table ecs-table-hover user-management-table" data-table>
+                        <thead class="c-table--light" scope="col">
                             <tr>
-                                <th>Name</th>
-                                <th>Roles</th>
-                                <th>Teams</th>
-                                <th>Leagues</th>
-                                <th>Status</th>
-                                <th class="text-end">Actions</th>
+                                <th scope="col">Name</th>
+                                <th scope="col">Roles</th>
+                                <th scope="col">Teams</th>
+                                <th scope="col">Leagues</th>
+                                <th scope="col">Status</th>
+                                <th class="text-end" scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -198,19 +157,19 @@
                                 </td>
                                 <td>
                                     {% for role in user.roles %}
-                                    <span class="badge bg-label-primary">{{ role }}</span>
+                                    <span class="badge bg-label-primary" data-badge>{{ role }}</span>
                                     {% endfor %}
                                 </td>
-                                <td>
-                                    <div class="text-truncate" style="max-width: 200px;">
+                                <td class="user-team-cell">
+                                    <div class="text-truncate">
                                         <strong>{{ user.team if user.team != 'N/A' else 'No Team' }}</strong>
                                         {% if user.secondary_team %}
                                         <br><small class="text-muted">+ {{ user.secondary_team }}</small>
                                         {% endif %}
                                     </div>
                                 </td>
-                                <td>
-                                    <div class="text-truncate" style="max-width: 150px;">
+                                <td class="user-league-cell">
+                                    <div class="text-truncate">
                                         <strong>{{ user.league if user.league else 'None' }}</strong>
                                         {% if user.secondary_league %}
                                         <br><small class="text-muted">+ {{ user.secondary_league }}</small>
@@ -220,25 +179,25 @@
                                 <td>
                                     <div>
                                         {% if user.is_current_player %}
-                                        <span class="badge bg-label-success">Active</span>
+                                        <span class="badge bg-label-success" data-badge>Active</span>
                                         {% else %}
-                                        <span class="badge bg-label-warning">Inactive</span>
+                                        <span class="badge bg-label-warning" data-badge>Inactive</span>
                                         {% endif %}
                                         <br>
                                         {% if user.is_approved %}
-                                        <span class="badge bg-label-success">Approved</span>
+                                        <span class="badge bg-label-success" data-badge>Approved</span>
                                         {% else %}
-                                        <span class="badge bg-label-danger">Pending</span>
+                                        <span class="badge bg-label-danger" data-badge>Pending</span>
                                         {% endif %}
                                     </div>
                                 </td>
-                                <td class="text-end position-relative" style="overflow: visible;" data-label="Actions">
+                                <td class="text-end user-actions-cell" data-label="Actions">
                                     <!-- Desktop Dropdown -->
                                     <div class="dropdown d-none d-lg-block">
-                                        <button class="btn btn-sm btn-icon btn-text-secondary rounded-pill dropdown-toggle hide-arrow ecs-btn ecs-btn-sm ecs-btn-icon" type="button" id="userActions{{ user.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <button class="c-btn c-btn--sm c-btn--icon-only btn-text-secondary rounded-pill dropdown-toggle hide-arrow ecs-btn ecs-btn-sm ecs-btn-icon" type="button" id="userActions{{ user.id }}" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle>
                                             <i class="ti ti-dots-vertical"></i>
                                         </button>
-                                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userActions{{ user.id }}" style="position: absolute;">
+                                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userActions{{ user.id }}" data-dropdown-menu>
                                             <li>
                                                 <a class="dropdown-item edit-user-btn" href="#" data-user-id="{{ user.id }}">
                                                     <i class="ti ti-edit me-2"></i>Edit User
@@ -268,15 +227,15 @@
                                     </div>
                                     <!-- Mobile Action Buttons (only shown on mobile via CSS) -->
                                     <div class="d-lg-none">
-                                        <button class="btn btn-primary btn-sm edit-user-btn me-1 mb-1" data-user-id="{{ user.id }}">
+                                        <button class="c-btn c-btn--primary c-btn--sm edit-user-btn me-1 mb-1" data-user-id="{{ user.id }}">
                                             <i class="ti ti-edit me-1"></i>Edit
                                         </button>
                                         {% if not user.is_approved %}
-                                        <button class="btn btn-success btn-sm approve-user-btn me-1 mb-1" data-user-id="{{ user.id }}">
+                                        <button class="c-btn c-btn--success c-btn--sm approve-user-btn me-1 mb-1" data-user-id="{{ user.id }}">
                                             <i class="ti ti-check me-1"></i>Approve
                                         </button>
                                         {% endif %}
-                                        <button class="btn btn-outline-danger btn-sm remove-user-btn mb-1" data-user-id="{{ user.id }}">
+                                        <button class="c-btn c-btn--outline-danger c-btn--sm remove-user-btn mb-1" data-user-id="{{ user.id }}">
                                             <i class="ti ti-user-off me-1"></i>Remove
                                         </button>
                                     </div>
@@ -290,7 +249,7 @@
 
 
                 {% if pagination.pages > 1 %}
-                <div class="card-footer py-3" id="paginationContainer">
+                <div class="c-card__footer py-3" id="paginationContainer">
                     <nav aria-label="Page navigation">
                         <div class="d-flex justify-content-between align-items-center">
                             <div class="text-muted small">
@@ -298,15 +257,15 @@
                                 {{ pagination.page * pagination.per_page if pagination.page * pagination.per_page < pagination.total else pagination.total }} 
                                 of {{ pagination.total }} entries
                             </div>
-                            <ul class="pagination pagination-sm mb-0">
+                            <ul class="pagination pagination-sm mb-0" data-pagination>
                                 {% if pagination.has_prev %}
-                                <li class="page-item">
+                                <li class="page-item" data-page-item>
                                     <a class="page-link" href="{{ url_for('user_management.manage_users', page=pagination.prev_num, **pagination_args) }}" aria-label="Previous">
                                         <i class="ti ti-chevron-left"></i>
                                     </a>
                                 </li>
                                 {% else %}
-                                <li class="page-item disabled">
+                                <li class="page-item disabled" data-page-item data-page-disabled>
                                     <span class="page-link" aria-label="Previous">
                                         <i class="ti ti-chevron-left"></i>
                                     </span>
@@ -318,11 +277,11 @@
                                 {% set end_page = [pagination.pages, pagination.page + 2]|min %}
                                 
                                 {% if start_page > 1 %}
-                                <li class="page-item">
+                                <li class="page-item" data-page-item>
                                     <a class="page-link" href="{{ url_for('user_management.manage_users', page=1, **pagination_args) }}">1</a>
                                 </li>
                                 {% if start_page > 2 %}
-                                <li class="page-item disabled">
+                                <li class="page-item disabled" data-page-item data-page-disabled>
                                     <span class="page-link">...</span>
                                 </li>
                                 {% endif %}
@@ -330,11 +289,11 @@
 
                                 {% for p in range(start_page, end_page + 1) %}
                                 {% if p == pagination.page %}
-                                <li class="page-item active">
+                                <li class="page-item active" data-page-item data-page-active>
                                     <span class="page-link">{{ p }}</span>
                                 </li>
                                 {% else %}
-                                <li class="page-item">
+                                <li class="page-item" data-page-item>
                                     <a class="page-link" href="{{ url_for('user_management.manage_users', page=p, **pagination_args) }}">{{ p }}</a>
                                 </li>
                                 {% endif %}
@@ -342,23 +301,23 @@
 
                                 {% if end_page < pagination.pages %}
                                 {% if end_page < pagination.pages - 1 %}
-                                <li class="page-item disabled">
+                                <li class="page-item disabled" data-page-item data-page-disabled>
                                     <span class="page-link">...</span>
                                 </li>
                                 {% endif %}
-                                <li class="page-item">
+                                <li class="page-item" data-page-item>
                                     <a class="page-link" href="{{ url_for('user_management.manage_users', page=pagination.pages, **pagination_args) }}">{{ pagination.pages }}</a>
                                 </li>
                                 {% endif %}
 
                                 {% if pagination.has_next %}
-                                <li class="page-item">
+                                <li class="page-item" data-page-item>
                                     <a class="page-link" href="{{ url_for('user_management.manage_users', page=pagination.next_num, **pagination_args) }}" aria-label="Next">
                                         <i class="ti ti-chevron-right"></i>
                                     </a>
                                 </li>
                                 {% else %}
-                                <li class="page-item disabled">
+                                <li class="page-item disabled" data-page-item data-page-disabled>
                                     <span class="page-link" aria-label="Next">
                                         <i class="ti ti-chevron-right"></i>
                                     </span>
@@ -374,39 +333,39 @@
     </div>
 
     <!-- EDIT USER MODAL -->
-    <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
-            <div class="modal-content">
+    <div class="modal c-modal fade" data-modal id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered modal-fullscreen-sm-down" data-modal-dialog>
+            <div class="modal-content c-modal__content" data-modal-content data-modal-content>
                 <form method="POST" action="" id="editUserForm">
-                    <div class="modal-header bg-light">
-                        <h5 class="modal-title" id="editUserModalLabel">
+                    <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                        <h5 class="modal-title c-modal__title" id="editUserModalLabel">
                             <i class="ti ti-edit me-2"></i>Edit User
                         </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
+                    <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                         {{ edit_form.csrf_token }}
                         {{ edit_form.user_id(id='editUserId') }}
 
                         <div class="mb-3">
                             <label for="editUsername" class="form-label">Username</label>
-                            <div class="input-group">
+                            <div class="input-group" data-input-group>
                                 <span class="input-group-text"><i class="ti ti-user"></i></span>
-                                <input type="text" class="form-control" id="editUsername" name="username" required>
+                                <input type="text" class="form-control" id="editUsername" name="username" required data-form-control>
                             </div>
                         </div>
 
                         <div class="mb-3">
                             <label for="editEmail" class="form-label">Email</label>
-                            <div class="input-group">
+                            <div class="input-group" data-input-group>
                                 <span class="input-group-text"><i class="ti ti-mail"></i></span>
-                                <input type="email" class="form-control" id="editEmail" name="email" required>
+                                <input type="email" class="form-control" id="editEmail" name="email" required data-form-control>
                             </div>
                         </div>
 
                         <div class="mb-3">
                             <label for="editRoles" class="form-label">Roles</label>
-                            <select multiple class="form-select select2-multiple" id="editRoles" name="roles">
+                            <select multiple class="form-select select2-multiple" id="editRoles" name="roles" data-form-select>
                                 {% for role in roles %}
                                 <option value="{{ role.id }}">{{ role.name }}</option>
                                 {% endfor %}
@@ -419,7 +378,7 @@
 
                             <div class="mb-3">
                                 <label for="editLeague" class="form-label">League (Primary)</label>
-                                <select class="form-select" id="editLeague" name="league_id">
+                                <select class="form-select" id="editLeague" name="league_id" data-form-select>
                                     <option value="0">Select League</option>
                                     {% for league in leagues %}
                                     {% if league.season.is_current %}
@@ -431,7 +390,7 @@
 
                             <div class="mb-3">
                                 <label for="editSecondaryLeague" class="form-label">Secondary League (optional)</label>
-                                <select class="form-select" id="editSecondaryLeague" name="secondary_league">
+                                <select class="form-select" id="editSecondaryLeague" name="secondary_league" data-form-select>
                                     <option value="0">Select Secondary League</option>
                                     {% for league in leagues %}
                                     {% if league.season.is_current %}
@@ -443,7 +402,7 @@
 
                             <div class="mb-3">
                                 <label for="editTeam" class="form-label">Team (Primary)</label>
-                                <select class="form-select" id="editTeam" name="team_id">
+                                <select class="form-select" id="editTeam" name="team_id" data-form-select>
                                     <option value="0">Select Team</option>
                                     {% for league in leagues %}
                                     {% if league.season.is_current %}
@@ -457,7 +416,7 @@
 
                             <div class="mb-3">
                                 <label for="editSecondaryTeam" class="form-label">Secondary Team (optional)</label>
-                                <select class="form-select" id="editSecondaryTeam" name="secondary_team">
+                                <select class="form-select" id="editSecondaryTeam" name="secondary_team" data-form-select>
                                     <option value="0">Select Secondary Team</option>
                                     {% for league in leagues %}
                                     {% if league.season.is_current %}
@@ -474,16 +433,16 @@
                                 <label class="form-check-label" for="editIsCurrentPlayer">Active Player</label>
                             </div>
 
-                            <div id="noPlayerMessage" class="alert alert-warning d-none">
+                            <div id="noPlayerMessage" class="alert alert-warning d-none" data-alert>
                                 <i class="ti ti-alert-circle me-2"></i>This user does not have a player profile.
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer bg-light">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                        <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>
                             <i class="ti ti-x me-1"></i>Cancel
                         </button>
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="c-btn c-btn--primary">
                             <i class="ti ti-device-floppy me-1"></i>Update User
                         </button>
                     </div>
@@ -495,6 +454,7 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
     // Global variables and reusable functions - accessible to both initial load and AJAX updates
     let editUserModal, editUserForm, editUserUrlTemplate, getUserDataUrl, approveUserUrlTemplate, removeUserUrlTemplate, deleteUserUrlTemplate, csrfToken;
@@ -749,7 +709,7 @@
     // Initialize on DOMContentLoaded
     document.addEventListener('DOMContentLoaded', function () {
         // Initialize global variables
-        editUserModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+        editUserModal = ModalManager.getInstance('editUserModal');
         editUserForm = document.getElementById('editUserForm');
 
         // Initialize Select2 for roles with proper configuration
@@ -799,9 +759,9 @@
 
             options.forEach(option => {
                 if (option.value === '0' || option.dataset.league === leagueId) {
-                    option.style.display = '';
+                    option.classList.remove('team-option-hidden');
                 } else {
-                    option.style.display = 'none';
+                    option.classList.add('team-option-hidden');
                 }
             });
 
@@ -896,6 +856,14 @@
             });
         });
 
+        // Check active sync tasks button
+        document.querySelectorAll('.js-check-active-sync-tasks').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                checkActiveSyncTasks();
+            });
+        });
+
         // WooCommerce sync functionality (rest of the original code...)
         // ... continue with existing sync functionality
     });
@@ -952,7 +920,7 @@
             
             // Show loading indicator
             const tbody = document.querySelector('tbody');
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm text-primary" role="status"><span class="visually-hidden">Loading...</span></div> Filtering...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm text-primary" role="status" data-spinner><span class="visually-hidden">Loading...</span></div> Filtering...</td></tr>';
             
             // Send AJAX request
             fetch(`{{ url_for("user_management.manage_users") }}?${params.toString()}`, {
@@ -979,7 +947,7 @@
                     
                     // Hide pagination during filtering (since we show all results)
                     if (paginationContainer) {
-                        paginationContainer.style.display = 'none';
+                        paginationContainer.classList.add('d-none');
                     }
                     
                     // Re-initialize event listeners for new elements
@@ -1023,18 +991,7 @@
                         const menu = dropdown.querySelector('.dropdown-menu');
                         
                         if (menu && menu.classList.contains('show')) {
-                            // Make sure the menu is in the viewport
-                            const rect = menu.getBoundingClientRect();
-                            if (rect.right > window.innerWidth) {
-                                menu.style.left = 'auto';
-                                menu.style.right = '0';
-                            }
-                            if (rect.bottom > window.innerHeight) {
-                                menu.style.top = 'auto';
-                                menu.style.bottom = '0';
-                            }
-                            
-                            // Z-index handled by centralized CSS system in mobile-scale-system.css
+                            // Z-index handled by centralized CSS system
                         }
                     }, 10);
                 });
@@ -1049,6 +1006,16 @@
                     e.preventDefault();
                     const userId = this.getAttribute('data-user-id');
                     handleEditUserClick(userId);
+                });
+            });
+
+            // Reinitialize reset password buttons
+            document.querySelectorAll('.js-reset-password-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const userId = this.getAttribute('data-user-id');
+                    const username = this.getAttribute('data-username');
+                    setUserForResetPassword(userId, username);
                 });
             });
             
@@ -1092,8 +1059,7 @@
         
         function startWooCommerceSync() {
             // Show progress modal
-            const progressModal = new bootstrap.Modal(document.getElementById('syncProgressModal'));
-            progressModal.show();
+            ModalManager.show('syncProgressModal');
             
             // Refresh page to get fresh CSRF token if needed, then start sync
             const formData = new FormData(syncForm);
@@ -1183,25 +1149,40 @@
         }
         
         function updateProgress(stage, message, progress, isError = false) {
+            const progressBar = document.getElementById('syncProgress');
             document.getElementById('syncStage').textContent = stage;
             document.getElementById('syncMessage').textContent = message;
-            document.getElementById('syncProgress').style.width = `${progress}%`;
+
+            // Use CSS custom property instead of inline style
+            const roundedProgress = Math.round(progress / 10) * 10;
+            progressBar.setAttribute('data-progress', roundedProgress);
+            progressBar.style.setProperty('--sync-progress-width', `${progress}%`);
+            progressBar.setAttribute('aria-valuenow', progress);
+
             if (isError) {
-                document.getElementById('syncProgress').className = 'progress-bar bg-danger';
+                progressBar.className = 'progress-bar bg-danger';
                 // Add close button for errors
                 const modalBody = document.querySelector('#syncProgressModal .modal-body');
                 if (!modalBody.querySelector('.error-actions')) {
                     const errorActions = document.createElement('div');
                     errorActions.className = 'error-actions mt-3 text-center';
                     errorActions.innerHTML = `
-                        <button type="button" class="btn btn-secondary" onclick="window.location.reload()">
+                        <button type="button" class="c-btn c-btn--secondary js-reload-page" data-action="reload-page">
                             Refresh Page
                         </button>
-                        <button type="button" class="btn btn-primary ms-2" data-bs-dismiss="modal">
+                        <button type="button" class="c-btn c-btn--primary ms-2" data-bs-dismiss="modal" data-dismiss>
                             Close
                         </button>
                     `;
                     modalBody.appendChild(errorActions);
+
+                    // Attach event listener for reload button
+                    const reloadBtn = errorActions.querySelector('.js-reload-page');
+                    if (reloadBtn) {
+                        reloadBtn.addEventListener('click', function() {
+                            window.location.reload();
+                        });
+                    }
                 }
             }
         }
@@ -1240,7 +1221,7 @@
                         <small>${flagged.reason}</small><br>
                         <div class="mt-2">
                             ${flagged.orders.map(order => `
-                                <span class="badge bg-info me-1">
+                                <span class="badge bg-info me-1" data-badge>
                                     ${order.product_name} (Qty: ${order.order.quantity}) - ${order.league_name || 'Unknown League'}
                                 </span>
                             `).join('')}
@@ -1274,11 +1255,11 @@
                             </div>
                         </div>
                         <div class="mt-2">
-                            <span class="badge bg-${mismatch.match_details.confidence >= 0.8 ? 'success' : 'warning'}">
+                            <span class="badge bg-${mismatch.match_details.confidence >= 0.8 ? 'success' : 'warning'}" data-badge>
                                 ${mismatch.match_details.match_type} (${Math.round(mismatch.match_details.confidence * 100)}% confidence)
                             </span>
                             ${mismatch.match_details.flags.map(flag => `
-                                <span class="badge bg-secondary ms-1">${flag.replace('_', ' ')}</span>
+                                <span class="badge bg-secondary ms-1" data-badge>${flag.replace('_', ' ')}</span>
                             `).join('')}
                         </div>
                         ${mismatch.match_details.scores ? `
@@ -1373,7 +1354,7 @@
                                 <strong>Task ${task.id}</strong><br>
                                 <small class="text-muted">Started: ${task.created_at}</small>
                             </div>
-                            <button class="btn btn-sm btn-primary" onclick="resumeSyncTask('${task.id}')">
+                            <button class="c-btn c-btn--sm c-btn--primary js-resume-sync-task" data-action="resume-sync-task" data-task-id="${task.id}">
                                 <i class="ti ti-eye me-1"></i>Review
                             </button>
                         </li>`;
@@ -1410,26 +1391,35 @@
         function resumeSyncTask(taskId) {
             window.location.href = `/user_management/sync_review/${taskId}`;
         }
+
+        // Add event delegation for resume sync task buttons
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.js-resume-sync-task')) {
+                const btn = e.target.closest('.js-resume-sync-task');
+                const taskId = btn.getAttribute('data-task-id');
+                resumeSyncTask(taskId);
+            }
+        });
     });
 </script>
 
 <!-- Sync Progress Modal -->
-<div class="modal fade" id="syncProgressModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Syncing Players from WooCommerce</h5>
+<div class="modal c-modal fade" data-modal id="syncProgressModal" tabindex="-1" aria-hidden="true" aria-labelledby="syncProgressModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="syncProgressModalLabel">Syncing Players from WooCommerce</h5>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <div class="text-center mb-3">
-                    <div class="spinner-border text-primary" role="status">
+                    <div class="spinner-border text-primary" role="status" data-spinner>
                         <span class="visually-hidden">Loading...</span>
                     </div>
                 </div>
                 <p><strong>Stage:</strong> <span id="syncStage">Starting...</span></p>
                 <p><strong>Status:</strong> <span id="syncMessage">Initializing sync task...</span></p>
                 <div class="progress mb-2">
-                    <div class="progress-bar" id="syncProgress" role="progressbar" style="width: 0%"></div>
+                    <div class="progress-bar" id="syncProgress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                 </div>
             </div>
         </div>
@@ -1437,53 +1427,53 @@
 </div>
 
 <!-- Sync Review Modal -->
-<div class="modal fade" id="syncReviewModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Review WooCommerce Sync Results</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal c-modal fade" data-modal id="syncReviewModal" tabindex="-1" aria-hidden="true" aria-labelledby="syncReviewModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="syncReviewModalLabel">Review WooCommerce Sync Results</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <!-- Sync Summary -->
                 <div class="row mb-4">
                     <div class="col-md-2">
-                        <div class="card text-center">
-                            <div class="card-body">
-                                <h5 class="card-title text-primary" id="newPlayersCount">0</h5>
-                                <p class="card-text">New Players</p>
+                        <div class="c-card text-center">
+                            <div class="c-card__body">
+                                <h5 class="c-card__title text-primary" id="newPlayersCount">0</h5>
+                                <p class="c-card__description">New Players</p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-2">
-                        <div class="card text-center">
-                            <div class="card-body">
-                                <h5 class="card-title text-success" id="existingPlayersCount">0</h5>
-                                <p class="card-text">Existing Players</p>
+                        <div class="c-card text-center">
+                            <div class="c-card__body">
+                                <h5 class="c-card__title text-success" id="existingPlayersCount">0</h5>
+                                <p class="c-card__description">Existing Players</p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-2">
-                        <div class="card text-center">
-                            <div class="card-body">
-                                <h5 class="card-title text-warning" id="flaggedOrdersCount">0</h5>
-                                <p class="card-text">Multi-Orders</p>
+                        <div class="c-card text-center">
+                            <div class="c-card__body">
+                                <h5 class="c-card__title text-warning" id="flaggedOrdersCount">0</h5>
+                                <p class="c-card__description">Multi-Orders</p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-2">
-                        <div class="card text-center">
-                            <div class="card-body">
-                                <h5 class="card-title text-danger" id="emailMismatchCount">0</h5>
-                                <p class="card-text">Email Mismatches</p>
+                        <div class="c-card text-center">
+                            <div class="c-card__body">
+                                <h5 class="c-card__title text-danger" id="emailMismatchCount">0</h5>
+                                <p class="c-card__description">Email Mismatches</p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-2">
-                        <div class="card text-center">
-                            <div class="card-body">
-                                <h5 class="card-title text-info" id="potentialInactiveCount">0</h5>
-                                <p class="card-text">Potential Inactive</p>
+                        <div class="c-card text-center">
+                            <div class="c-card__body">
+                                <h5 class="c-card__title text-info" id="potentialInactiveCount">0</h5>
+                                <p class="c-card__description">Potential Inactive</p>
                             </div>
                         </div>
                     </div>
@@ -1526,9 +1516,9 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="confirmSyncBtn">Confirm & Apply Changes</button>
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--primary" id="confirmSyncBtn">Confirm & Apply Changes</button>
             </div>
         </div>
     </div>

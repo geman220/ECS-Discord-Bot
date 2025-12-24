@@ -9,80 +9,52 @@
 
 {% block panel_content %}
 <!-- Substitute Management Header -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="alert alert-info">
-            <div class="d-flex align-items-center">
-                <i class="ti ti-users me-2"></i>
-                <div>
-                    <strong>Substitute Management Dashboard</strong><br>
-                    Manage substitute requests, assign available subs to matches, and track substitute availability for upcoming games.
-                </div>
-            </div>
-        </div>
+<div class="c-sub-header" data-component="sub-header">
+    <div class="c-sub-header__icon">
+        <i class="ti ti-users"></i>
+    </div>
+    <div class="c-sub-header__content">
+        <h2 class="c-sub-header__title">Substitute Management Dashboard</h2>
+        <p class="c-sub-header__description">Manage substitute requests, assign available subs to matches, and track substitute availability for upcoming games.</p>
     </div>
 </div>
 
 <!-- Statistics Cards -->
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h6 class="card-title mb-0">Total Requests</h6>
-                        <h4 class="mb-0">{{ stats.total_requests }}</h4>
-                    </div>
-                    <div class="text-primary">
-                        <i class="ti ti-clipboard-list" style="font-size: 2rem;"></i>
-                    </div>
-                </div>
-            </div>
+<div class="c-sub-stats" data-component="sub-stats">
+    <div class="c-sub-stat c-sub-stat--primary" data-component="sub-stat">
+        <div class="c-sub-stat__icon">
+            <i class="ti ti-clipboard-list"></i>
+        </div>
+        <div class="c-sub-stat__content">
+            <div class="c-sub-stat__label">Total Requests</div>
+            <div class="c-sub-stat__value">{{ stats.total_requests }}</div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h6 class="card-title mb-0">Active Requests</h6>
-                        <h4 class="mb-0 text-warning">{{ stats.active_requests }}</h4>
-                    </div>
-                    <div class="text-warning">
-                        <i class="ti ti-clock" style="font-size: 2rem;"></i>
-                    </div>
-                </div>
-            </div>
+    <div class="c-sub-stat c-sub-stat--warning" data-component="sub-stat">
+        <div class="c-sub-stat__icon">
+            <i class="ti ti-clock"></i>
+        </div>
+        <div class="c-sub-stat__content">
+            <div class="c-sub-stat__label">Active Requests</div>
+            <div class="c-sub-stat__value">{{ stats.active_requests }}</div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h6 class="card-title mb-0">Available Subs</h6>
-                        <h4 class="mb-0 text-success">{{ stats.available_subs }}</h4>
-                    </div>
-                    <div class="text-success">
-                        <i class="ti ti-user-check" style="font-size: 2rem;"></i>
-                    </div>
-                </div>
-            </div>
+    <div class="c-sub-stat c-sub-stat--success" data-component="sub-stat">
+        <div class="c-sub-stat__icon">
+            <i class="ti ti-user-check"></i>
+        </div>
+        <div class="c-sub-stat__content">
+            <div class="c-sub-stat__label">Available Subs</div>
+            <div class="c-sub-stat__value">{{ stats.available_subs }}</div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h6 class="card-title mb-0">Upcoming Matches</h6>
-                        <h4 class="mb-0 text-info">{{ stats.upcoming_matches }}</h4>
-                    </div>
-                    <div class="text-info">
-                        <i class="ti ti-calendar" style="font-size: 2rem;"></i>
-                    </div>
-                </div>
-            </div>
+    <div class="c-sub-stat c-sub-stat--info" data-component="sub-stat">
+        <div class="c-sub-stat__icon">
+            <i class="ti ti-calendar"></i>
+        </div>
+        <div class="c-sub-stat__content">
+            <div class="c-sub-stat__label">Upcoming Matches</div>
+            <div class="c-sub-stat__value">{{ stats.upcoming_matches }}</div>
         </div>
     </div>
 </div>
@@ -90,17 +62,17 @@
 <!-- Filters -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-filter me-2"></i>Filters
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <form method="GET" class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label">Show Matches</label>
-                        <select name="show_requested" class="form-select">
+                        <select name="show_requested" class="form-select" data-form-select>
                             <option value="all" {% if show_requested == 'all' %}selected{% endif %}>All Matches</option>
                             <option value="requested" {% if show_requested == 'requested' %}selected{% endif %}>With Sub Requests</option>
                             <option value="not_requested" {% if show_requested == 'not_requested' %}selected{% endif %}>Without Sub Requests</option>
@@ -108,7 +80,7 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Week</label>
-                        <select name="week" class="form-select">
+                        <select name="week" class="form-select" data-form-select>
                             <option value="">All Weeks</option>
                             {% for week in weeks %}
                             <option value="{{ week }}" {% if current_week == week %}selected{% endif %}>
@@ -120,10 +92,10 @@
                     <div class="col-md-3">
                         <label class="form-label">&nbsp;</label>
                         <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="c-btn c-btn--primary">
                                 <i class="ti ti-search me-1"></i>Filter
                             </button>
-                            <a href="{{ url_for('admin_panel.substitute_management') }}" class="btn btn-outline-secondary">
+                            <a href="{{ url_for('admin_panel.substitute_management') }}" class="c-btn c-btn--outline-secondary">
                                 <i class="ti ti-x me-1"></i>Clear
                             </a>
                         </div>
@@ -137,31 +109,31 @@
 <!-- Substitute Requests -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-alert-circle me-2"></i>Active Substitute Requests
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if sub_requests %}
                 <div class="row">
                     {% for request in sub_requests %}
                     {% if request.status in ['PENDING', 'APPROVED'] %}
                     <div class="col-md-6 col-lg-4 mb-3">
-                        <div class="card border-start border-warning border-4">
-                            <div class="card-body">
+                        <div class="c-card border-start border-warning border-4">
+                            <div class="c-card__body">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h6 class="card-title mb-0">{{ request.match.home_team.name }} vs {{ request.match.away_team.name }}</h6>
-                                    <span class="badge bg-warning">{{ request.status }}</span>
+                                    <h6 class="c-card__title mb-0">{{ request.match.home_team.name }} vs {{ request.match.away_team.name }}</h6>
+                                    <span class="badge bg-warning" data-badge>{{ request.status }}</span>
                                 </div>
-                                <p class="card-text small text-muted mb-2">
+                                <p class="c-card__description small text-muted mb-2">
                                     <i class="ti ti-calendar me-1"></i>{{ request.match.date.strftime('%m/%d/%Y') if request.match.date }}
                                     {% if request.match.time %}
                                     <i class="ti ti-clock ms-2 me-1"></i>{{ request.match.time.strftime('%I:%M %p') }}
                                     {% endif %}
                                 </p>
-                                <p class="card-text small mb-2">
+                                <p class="c-card__description small mb-2">
                                     <strong>Team:</strong> {{ request.team.name }}<br>
                                     <strong>Needed:</strong> {{ request.substitutes_needed }} substitute(s)<br>
                                     {% if request.notes %}
@@ -171,13 +143,13 @@
                                 <div class="d-flex justify-content-between align-items-center mt-2">
                                     <small class="text-muted">{{ request.assignments_count or 0 }}/{{ request.substitutes_needed }} assigned</small>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-info" onclick="showContactSubsModal({{ request.id }}, '{{ request.team.league.name if request.team.league else 'Premier' }}')" title="Contact Subs">
+                                        <button class="c-btn c-btn--outline-info" data-action="show-contact-subs" data-request-id="{{ request.id }}" data-league="{{ request.team.league.name if request.team.league else 'Premier' }}" title="Contact Subs">
                                             <i class="ti ti-send"></i>
                                         </button>
-                                        <button class="btn btn-outline-success" onclick="showAvailabilityModal({{ request.id }})" title="View Availability">
+                                        <button class="c-btn c-btn--outline-success" data-action="show-availability" data-request-id="{{ request.id }}" title="View Availability">
                                             <i class="ti ti-list-check"></i>
                                         </button>
-                                        <button class="btn btn-primary" onclick="showSubAssignmentModal({{ request.id }}, {{ request.match.id }}, {{ request.team.id }})">
+                                        <button class="c-btn c-btn--primary" data-action="show-sub-assignment" data-request-id="{{ request.id }}" data-match-id="{{ request.match.id }}" data-team-id="{{ request.team.id }}">
                                             <i class="ti ti-plus me-1"></i>Assign
                                         </button>
                                     </div>
@@ -190,7 +162,7 @@
                 </div>
                 {% else %}
                 <div class="text-center py-4">
-                    <i class="ti ti-clipboard-list text-muted" style="font-size: 3rem;"></i>
+                    <i class="ti ti-clipboard-list text-muted icon-3xl"></i>
                     <h5 class="text-muted mt-2">No active substitute requests</h5>
                     <p class="text-muted">All substitute requests have been fulfilled or there are no pending requests.</p>
                 </div>
@@ -203,22 +175,22 @@
 <!-- Upcoming Matches -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-calendar me-2"></i>Upcoming Matches
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if upcoming_matches %}
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--striped" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Date</th>
-                                <th>Match</th>
-                                <th>Sub Requests</th>
-                                <th>Actions</th>
+                                <th scope="col">Date</th>
+                                <th scope="col">Match</th>
+                                <th scope="col">Sub Requests</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -237,7 +209,7 @@
                                     {% set match_requests = requested_teams_by_match.get(match.id, {}) %}
                                     {% if match_requests %}
                                     {% for team_id, request in match_requests.items() %}
-                                    <span class="badge bg-warning me-1">
+                                    <span class="badge bg-warning me-1" data-badge>
                                         {{ request.team.name }}: {{ request.assignments_count or 0 }}/{{ request.substitutes_needed }}
                                     </span>
                                     {% endfor %}
@@ -246,7 +218,7 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-primary" onclick="showSubAssignmentModal(null, {{ match.id }}, null)">
+                                    <button class="c-btn c-btn--sm c-btn--outline-primary" data-action="show-sub-assignment" data-match-id="{{ match.id }}">
                                         <i class="ti ti-plus me-1"></i>Quick Assign
                                     </button>
                                 </td>
@@ -257,7 +229,7 @@
                 </div>
                 {% else %}
                 <div class="text-center py-4">
-                    <i class="ti ti-calendar text-muted" style="font-size: 3rem;"></i>
+                    <i class="ti ti-calendar text-muted icon-3xl"></i>
                     <h5 class="text-muted mt-2">No upcoming matches</h5>
                     <p class="text-muted">No matches found for the selected criteria.</p>
                 </div>
@@ -268,22 +240,22 @@
 </div>
 
 <!-- Sub Assignment Modal -->
-<div class="modal fade" id="subAssignmentModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Assign Substitute</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal c-modal fade" data-modal id="subAssignmentModal" tabindex="-1" aria-labelledby="subAssignmentModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="subAssignmentModalLabel">Assign Substitute</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
             <form id="subAssignmentForm" method="POST" action="{{ url_for('admin_panel.assign_substitute') }}">
-                <div class="modal-body">
+                <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                     <input type="hidden" name="match_id" id="assignMatchId">
                     <input type="hidden" name="team_id" id="assignTeamId">
                     <input type="hidden" name="request_id" id="assignRequestId">
 
                     <div class="mb-3">
                         <label class="form-label">Available Substitutes</label>
-                        <select name="player_id" id="assignPlayerId" class="form-select" required>
+                        <select name="player_id" id="assignPlayerId" class="form-select" required data-form-select>
                             <option value="">Select a substitute...</option>
                             {% for sub in available_subs %}
                             <option value="{{ sub.id }}">
@@ -297,17 +269,17 @@
 
                     <div class="mb-3">
                         <label class="form-label">Position Assigned</label>
-                        <input type="text" name="position_assigned" class="form-control" placeholder="e.g., Midfielder">
+                        <input type="text" name="position_assigned" class="form-control" placeholder="e.g., Midfielder" data-form-control>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Notes (optional)</label>
-                        <textarea name="notes" class="form-control" rows="2" placeholder="Any additional notes..."></textarea>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Any additional notes..." data-form-control></textarea>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Team (if not pre-selected)</label>
-                        <select name="team_select" id="assignTeamSelect" class="form-select">
+                        <select name="team_select" id="assignTeamSelect" class="form-select" data-form-select>
                             <option value="">Select team...</option>
                         </select>
                     </div>
@@ -319,9 +291,9 @@
                         </label>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
+                <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                    <button type="submit" class="c-btn c-btn--primary">
                         <i class="ti ti-check me-1"></i>Assign Substitute
                     </button>
                 </div>
@@ -331,26 +303,26 @@
 </div>
 
 <!-- Contact Subs Modal -->
-<div class="modal fade" id="contactSubsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-                <h5 class="modal-title"><i class="ti ti-send me-2"></i>Contact Substitutes</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+<div class="modal c-modal fade" data-modal id="contactSubsModal" tabindex="-1" aria-labelledby="contactSubsModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header bg-info text-white" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="contactSubsModalLabel"><i class="ti ti-send me-2"></i>Contact Substitutes</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <input type="hidden" id="contactRequestId">
                 <input type="hidden" id="contactLeagueType">
 
                 <!-- Match Details -->
-                <div class="alert alert-light mb-3" id="contactMatchDetails">
+                <div class="alert alert-light mb-3" id="contactMatchDetails" data-alert>
                     Loading match details...
                 </div>
 
                 <!-- Message Composition -->
                 <div class="mb-3">
                     <label class="form-label">Message to Subs</label>
-                    <textarea id="contactMessage" class="form-control" rows="6" placeholder="Your message will be auto-filled with match details..."></textarea>
+                    <textarea id="contactMessage" class="form-control" rows="6" placeholder="Your message will be auto-filled with match details..." data-form-control></textarea>
                     <small class="text-muted">This message will be sent along with an RSVP link.</small>
                 </div>
 
@@ -382,14 +354,14 @@
                 <!-- Available Subs Preview -->
                 <div class="mb-3">
                     <label class="form-label">Available Subs (<span id="availableSubsCount">0</span>)</label>
-                    <div id="availableSubsList" class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                    <div id="availableSubsList" class="border rounded p-2 u-overflow-y-auto u-max-h-200">
                         <div class="text-muted text-center py-2">Loading available subs...</div>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-info" onclick="sendToAllSubs()">
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--info" data-action="send-to-all-subs">
                     <i class="ti ti-send me-1"></i>Contact All Subs
                 </button>
             </div>
@@ -398,14 +370,14 @@
 </div>
 
 <!-- Availability Status Modal -->
-<div class="modal fade" id="availabilityModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title"><i class="ti ti-list-check me-2"></i>Sub Availability</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+<div class="modal c-modal fade" data-modal id="availabilityModal" tabindex="-1" aria-labelledby="availabilityModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header bg-success text-white" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="availabilityModalLabel"><i class="ti ti-list-check me-2"></i>Sub Availability</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <input type="hidden" id="availabilityRequestId">
 
                 <!-- Summary -->
@@ -431,16 +403,16 @@
                 </div>
 
                 <!-- Response List -->
-                <div id="availabilityList" style="max-height: 400px; overflow-y: auto;">
+                <div id="availabilityList" class="u-h-400 u-overflow-y-auto">
                     <div class="text-center py-3">
-                        <div class="spinner-border text-primary" role="status"></div>
+                        <div class="spinner-border text-primary" role="status" data-spinner></div>
                         <p class="mt-2 text-muted">Loading availability...</p>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-success" onclick="refreshAvailability()">
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
+                <button type="button" class="c-btn c-btn--success" data-action="refresh-availability">
                     <i class="ti ti-refresh me-1"></i>Refresh
                 </button>
             </div>
@@ -449,8 +421,45 @@
 </div>
 {% endblock %}
 
+{% block custom_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin-panel/substitute-management.css') }}" />
+{% endblock %}
+
 {% block custom_js %}
+{{ super() }}
 <script>
+// Event delegation for substitute management actions
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        switch(action) {
+            case 'show-contact-subs':
+                showContactSubsModal(target.dataset.requestId, target.dataset.league);
+                break;
+            case 'show-availability':
+                showAvailabilityModal(target.dataset.requestId);
+                break;
+            case 'show-sub-assignment':
+                showSubAssignmentModal(
+                    target.dataset.requestId || null,
+                    target.dataset.matchId || null,
+                    target.dataset.teamId || null
+                );
+                break;
+            case 'send-to-all-subs':
+                sendToAllSubs();
+                break;
+            case 'refresh-availability':
+                refreshAvailability();
+                break;
+        }
+    });
+});
+
 // ============================================================================
 // Sub Assignment Modal
 // ============================================================================
@@ -472,8 +481,7 @@ function showSubAssignmentModal(requestId, matchId, teamId) {
         document.getElementById('assignTeamSelect').previousElementSibling.style.display = 'none';
     }
 
-    const modal = new bootstrap.Modal(document.getElementById('subAssignmentModal'));
-    modal.show();
+    ModalManager.show('subAssignmentModal');
 }
 
 // Handle team selection change
@@ -505,11 +513,10 @@ function showContactSubsModal(requestId, leagueType) {
 
     // Reset
     document.getElementById('contactMessage').value = '';
-    document.getElementById('contactMatchDetails').innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm"></div> Loading...</div>';
-    document.getElementById('availableSubsList').innerHTML = '<div class="text-center py-2"><div class="spinner-border spinner-border-sm"></div></div>';
+    document.getElementById('contactMatchDetails').innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm" data-spinner></div> Loading...</div>';
+    document.getElementById('availableSubsList').innerHTML = '<div class="text-center py-2"><div class="spinner-border spinner-border-sm" data-spinner></div></div>';
 
-    const modal = new bootstrap.Modal(document.getElementById('contactSubsModal'));
-    modal.show();
+    ModalManager.show('contactSubsModal');
 
     // Load message template
     fetch(`/admin-panel/substitute-contact/compose-message?request_id=${requestId}`)
@@ -638,13 +645,12 @@ function showAvailabilityModal(requestId) {
     // Reset
     document.getElementById('availabilityList').innerHTML = `
         <div class="text-center py-3">
-            <div class="spinner-border text-primary" role="status"></div>
+            <div class="spinner-border text-primary" role="status" data-spinner></div>
             <p class="mt-2 text-muted">Loading availability...</p>
         </div>
     `;
 
-    const modal = new bootstrap.Modal(document.getElementById('availabilityModal'));
-    modal.show();
+    ModalManager.show('availabilityModal');
 
     loadAvailability(requestId);
 }
@@ -663,7 +669,7 @@ function loadAvailability(requestId) {
                 if (data.responses.length === 0) {
                     document.getElementById('availabilityList').innerHTML = `
                         <div class="text-center py-3 text-muted">
-                            <i class="ti ti-users-minus" style="font-size: 2rem;"></i>
+                            <i class="ti ti-users-minus u-card-icon-stat"></i>
                             <p class="mt-2">No subs have been contacted yet.</p>
                         </div>
                     `;
@@ -687,7 +693,7 @@ function loadAvailability(requestId) {
                                     <br><small class="text-muted">via ${resp.notification_methods || 'N/A'}</small>
                                     ${resp.response_text ? '<br><small class="fst-italic">"' + resp.response_text + '"</small>' : ''}
                                 </div>
-                                <span class="badge ${badgeClass}">
+                                <span class="badge ${badgeClass}" data-badge>
                                     <i class="ti ${icon} me-1"></i>
                                     ${resp.status.replace('_', ' ')}
                                 </span>

@@ -1,0 +1,360 @@
+/**
+ * ============================================================================
+ * C-CARD - Core Card Component
+ * ============================================================================
+ *
+ * Versatile card component for content containers.
+ * Design: Clean, elevated surfaces with clear hierarchy.
+ *
+ * Components:
+ *   .c-card                             - Base card container
+ *   .c-card__header                     - Header with title
+ *   .c-card__title                      - Card title
+ *   .c-card__title-icon                 - Icon before title
+ *   .c-card__description                - Description text
+ *   .c-card__body                       - Main content area
+ *   .c-card__footer                     - Footer area
+ *   .c-card__actions                    - Action buttons
+ *
+ * Sections Container:
+ *   .c-admin-sections                   - Section grid wrapper
+ *   .c-admin-sections__grid             - Grid layout
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   SECTIONS CONTAINER
+   ============================================================================ */
+
+.c-admin-sections {
+  margin-bottom: var(--space-6, 24px);
+}
+
+.c-admin-sections__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-5, 20px);
+}
+
+/* ============================================================================
+   CARD BASE
+   ============================================================================ */
+
+.c-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg-elevated, #1e293b);
+  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+  border-radius: var(--radius-xl, 16px);
+  overflow: hidden;
+  transition: all var(--duration-normal, 200ms) ease;
+}
+
+/* Subtle top highlight */
+.c-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+}
+
+/* ============================================================================
+   CARD HEADER
+   ============================================================================ */
+
+.c-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  padding: var(--space-4, 16px) var(--space-5, 20px);
+  border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+}
+
+.c-card__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  margin: 0;
+  font-family: var(--font-display, 'Barlow', sans-serif);
+  font-size: var(--text-base, 1rem);
+  font-weight: 600;
+  color: var(--color-text-primary, #f8fafc);
+  line-height: 1.3;
+}
+
+.c-card__title span {
+  color: inherit;
+}
+
+/* Title Icon Variants */
+.c-card__title-icon {
+  font-size: 1.25rem;
+  opacity: 0.9;
+}
+
+.c-card__title-icon--primary {
+  color: var(--color-primary-light, #60a5fa);
+}
+
+.c-card__title-icon--success {
+  color: var(--color-success-light, #34d399);
+}
+
+.c-card__title-icon--info {
+  color: var(--color-info-light, #22d3ee);
+}
+
+.c-card__title-icon--warning {
+  color: var(--color-warning-light, #fbbf24);
+}
+
+.c-card__title-icon--danger {
+  color: var(--color-danger-light, #f87171);
+}
+
+.c-card__title-icon--purple {
+  color: var(--color-purple-light, #60A5FA);
+}
+
+/* ============================================================================
+   CARD BODY
+   ============================================================================ */
+
+.c-card__body {
+  flex: 1;
+  padding: var(--space-4, 16px) var(--space-5, 20px);
+}
+
+.c-card__description {
+  margin: 0 0 var(--space-4, 16px);
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--color-text-secondary, #94a3b8);
+  line-height: 1.5;
+}
+
+.c-card__subtitle {
+  margin: var(--space-1, 4px) 0 var(--space-3, 12px);
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--color-text-tertiary, #64748b);
+  font-weight: 500;
+}
+
+.c-card__link {
+  color: var(--color-primary, #2563EB);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.c-card__link:hover {
+  color: var(--color-primary-hover, #1d4ed8);
+  text-decoration: underline;
+}
+
+.c-card__link + .c-card__link {
+  margin-left: var(--space-3, 12px);
+}
+
+/* ============================================================================
+   CARD IMAGE
+   ============================================================================ */
+
+.c-card__img {
+  width: 100%;
+  object-fit: cover;
+}
+
+.c-card__img--top {
+  border-radius: var(--radius-xl, 16px) var(--radius-xl, 16px) 0 0;
+}
+
+.c-card__img--bottom {
+  border-radius: 0 0 var(--radius-xl, 16px) var(--radius-xl, 16px);
+}
+
+.c-card__overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: var(--space-4, 16px);
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+}
+
+/* ============================================================================
+   CARD GROUPS
+   ============================================================================ */
+
+.c-card-group {
+  display: flex;
+  flex-flow: row wrap;
+}
+
+.c-card-group > .c-card {
+  flex: 1 0 0%;
+  margin-bottom: 0;
+}
+
+.c-card-group > .c-card:not(:last-child) {
+  border-right: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.c-card-group > .c-card:not(:first-child) {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+/* ============================================================================
+   CARD FOOTER
+   ============================================================================ */
+
+.c-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  padding: var(--space-4, 16px) var(--space-5, 20px);
+  border-top: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================================================
+   CARD ACTIONS
+   ============================================================================ */
+
+.c-card__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   ACTIVITY SECTION
+   ============================================================================ */
+
+.c-admin-activity {
+  margin-bottom: var(--space-6, 24px);
+}
+
+/* ============================================================================
+   LIGHT MODE
+   ============================================================================ */
+
+[data-style="light"] .c-card {
+  background-color: var(--color-bg-primary, #fff);
+  border-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+[data-style="light"] .c-card::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 0, 0, 0.03),
+    transparent
+  );
+}
+
+[data-style="light"] .c-card__header {
+  border-bottom-color: var(--color-border-light, rgba(0, 0, 0, 0.06));
+}
+
+[data-style="light"] .c-card__title {
+  color: var(--color-text-primary, #1e293b);
+}
+
+[data-style="light"] .c-card__title-icon--primary {
+  color: var(--color-primary, #2563EB);
+}
+
+[data-style="light"] .c-card__title-icon--success {
+  color: var(--color-success, #10b981);
+}
+
+[data-style="light"] .c-card__title-icon--info {
+  color: var(--color-info, #0891b2);
+}
+
+[data-style="light"] .c-card__title-icon--warning {
+  color: var(--color-warning, #d97706);
+}
+
+[data-style="light"] .c-card__title-icon--danger {
+  color: var(--color-danger, #dc2626);
+}
+
+[data-style="light"] .c-card__footer {
+  background-color: var(--color-bg-secondary, #f8fafc);
+  border-top-color: var(--color-border-light, rgba(0, 0, 0, 0.06));
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .c-admin-sections__grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4, 16px);
+  }
+
+  .c-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2, 8px);
+  }
+
+  .c-card__actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* ============================================================================
+   ANIMATIONS
+   ============================================================================ */
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.c-admin-sections__grid .c-card {
+  animation: card-enter var(--duration-normal, 200ms) ease-out both;
+}
+
+.c-admin-sections__grid .c-card:nth-child(1) { animation-delay: 0ms; }
+.c-admin-sections__grid .c-card:nth-child(2) { animation-delay: 50ms; }
+.c-admin-sections__grid .c-card:nth-child(3) { animation-delay: 100ms; }
+.c-admin-sections__grid .c-card:nth-child(4) { animation-delay: 150ms; }
+.c-admin-sections__grid .c-card:nth-child(5) { animation-delay: 200ms; }
+.c-admin-sections__grid .c-card:nth-child(6) { animation-delay: 250ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .c-admin-sections__grid .c-card {
+    animation: none;
+  }
+}

@@ -1,0 +1,550 @@
+/**
+ * ============================================================================
+ * Schedule Wizard Styles - BEM Migration
+ * ============================================================================
+ *
+ * Comprehensive styles for schedule wizard templates using BEM methodology.
+ * Supports:
+ * - schedule_wizard.html
+ * - manage_ecsfc_schedule.html
+ * - manage_publeague_schedule.html
+ * - pub_league_schedule.html
+ * - preview_schedule.html
+ *
+ * Design Tokens:
+ *   Uses ECS design system variables for colors, spacing, and typography
+ *   Full dark mode support with [data-style="dark"] selectors
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   SCHEDULE WIZARD COMPONENT
+   ============================================================================ */
+
+.c-schedule-wizard__header {
+    margin-bottom: var(--space-4);
+}
+
+.c-schedule-wizard__title {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-bold);
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-2);
+}
+
+.c-schedule-wizard__subtitle {
+    font-size: var(--text-base);
+    color: var(--color-text-secondary);
+    margin-bottom: 0;
+}
+
+.c-schedule-wizard__instructions {
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+    margin-top: var(--space-2);
+    margin-bottom: 0;
+}
+
+.c-schedule-wizard__step {
+    animation: fadeIn var(--duration-normal) var(--ease-smooth);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.c-schedule-wizard__week-options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    background-color: var(--color-bg-secondary);
+    border-radius: var(--radius-md);
+    margin-top: var(--space-3);
+}
+
+.c-schedule-wizard__actions {
+    margin-top: var(--space-4);
+    display: flex;
+    gap: var(--space-2);
+}
+
+/* Table Container */
+.c-schedule-wizard__table-container {
+    overflow-x: auto;
+    margin-top: var(--space-3);
+}
+
+/* ============================================================================
+   SCHEDULE TABLE COMPONENT
+   ============================================================================ */
+
+.c-schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.c-schedule-table__row {
+    border-bottom: var(--border-width) solid var(--border-color-primary);
+    transition: background-color var(--duration-fast) var(--ease-smooth);
+}
+
+.c-schedule-table__row:hover {
+    background-color: var(--color-neutral-50);
+}
+
+.c-schedule-table__cell {
+    padding: var(--space-3);
+    vertical-align: middle;
+}
+
+.c-schedule-table__select {
+    width: 100%;
+    padding: var(--space-2);
+    border: var(--border-width) solid var(--border-color-primary);
+    border-radius: var(--radius-md);
+    background-color: var(--color-bg-card);
+    color: var(--color-text-primary);
+    transition: border-color var(--duration-fast) var(--ease-smooth);
+}
+
+.c-schedule-table__select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-focus);
+}
+
+/* ============================================================================
+   SCHEDULE MANAGER COMPONENT
+   ============================================================================ */
+
+.c-schedule-manager {
+    margin-bottom: var(--space-6);
+}
+
+.c-schedule-manager__header {
+    margin-bottom: var(--space-4);
+}
+
+.c-schedule-manager__title {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-bold);
+    color: var(--color-text-primary);
+}
+
+.c-schedule-manager__tabs {
+    margin-top: var(--space-4);
+}
+
+.c-schedule-manager__bulk-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.c-schedule-manager__bulk-title {
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    color: var(--color-text-primary);
+    margin: 0;
+}
+
+.c-schedule-manager__schedule-title {
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    color: var(--color-text-primary);
+    margin: 0;
+}
+
+.c-schedule-manager__empty-state {
+    text-align: center;
+    color: var(--color-text-muted);
+    font-style: italic;
+    padding: var(--space-4);
+}
+
+.c-schedule-manager__detailed-form {
+    margin-top: var(--space-4);
+}
+
+/* ============================================================================
+   WEEK CARD COMPONENT
+   ============================================================================ */
+
+.c-week-card {
+    transition: transform var(--duration-fast) var(--ease-smooth),
+                box-shadow var(--duration-fast) var(--ease-smooth);
+}
+
+.c-week-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.c-week-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.c-week-card__title {
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    color: var(--color-primary);
+    margin: 0;
+}
+
+.c-week-card__delete-form {
+    display: inline-block;
+    margin: 0;
+}
+
+/* ============================================================================
+   WEEK FORM CARD COMPONENT (for detailed bulk forms)
+   ============================================================================ */
+
+.c-week-form-card {
+    height: 100%;
+}
+
+.c-week-form-card__header {
+    background-color: var(--color-primary-subtle);
+    border-bottom: var(--border-width) solid var(--color-primary-300);
+}
+
+.c-week-form-card__title {
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    color: var(--color-primary);
+    margin: 0;
+}
+
+.c-week-form-card__special {
+    text-align: center;
+    color: var(--color-text-muted);
+    font-style: italic;
+    margin: var(--space-4) 0;
+}
+
+/* ============================================================================
+   MATCH ITEM COMPONENT
+   ============================================================================ */
+
+.c-match-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-3);
+    border-bottom: var(--border-width) solid var(--border-color-primary);
+    transition: background-color var(--duration-fast) var(--ease-smooth);
+}
+
+.c-match-item:last-child {
+    border-bottom: none;
+}
+
+.c-match-item:hover {
+    background-color: var(--color-neutral-50);
+}
+
+.c-match-item__info {
+    flex: 1;
+}
+
+.c-match-item__teams {
+    font-size: var(--text-base);
+    font-weight: var(--font-medium);
+    color: var(--color-text-primary);
+    margin-bottom: 0;
+}
+
+.c-match-item__meta {
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+    margin-bottom: 0;
+    margin-right: var(--space-2);
+}
+
+.c-match-item__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.c-match-item__delete-form {
+    display: inline-block;
+    margin: 0;
+}
+
+/* ============================================================================
+   MATCH INPUT COMPONENT (for bulk form generation)
+   ============================================================================ */
+
+.c-match-input {
+    margin-bottom: var(--space-2);
+}
+
+.c-match-input__select,
+.c-match-input__time,
+.c-match-input__location {
+    width: 100%;
+    padding: var(--space-2);
+    border: var(--border-width) solid var(--border-color-primary);
+    border-radius: var(--radius-md);
+    background-color: var(--color-bg-card);
+    color: var(--color-text-primary);
+    font-size: var(--text-sm);
+    transition: border-color var(--duration-fast) var(--ease-smooth);
+}
+
+.c-match-input__select:focus,
+.c-match-input__time:focus,
+.c-match-input__location:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-focus);
+}
+
+/* ============================================================================
+   FORM GROUP COMPONENT
+   ============================================================================ */
+
+.c-form-group {
+    margin-bottom: var(--space-3);
+}
+
+.c-form-group__label {
+    display: block;
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-2);
+}
+
+.c-form-group__input {
+    width: 100%;
+    padding: var(--space-2) var(--space-3);
+    border: var(--border-width) solid var(--border-color-primary);
+    border-radius: var(--radius-md);
+    background-color: var(--color-bg-card);
+    color: var(--color-text-primary);
+    font-size: var(--text-base);
+    transition: border-color var(--duration-fast) var(--ease-smooth),
+                box-shadow var(--duration-fast) var(--ease-smooth);
+}
+
+.c-form-group__input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-focus);
+}
+
+.c-form-group__help {
+    display: block;
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+    margin-top: var(--space-1);
+}
+
+/* ============================================================================
+   CHECKBOX GROUP COMPONENT
+   ============================================================================ */
+
+.c-checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2);
+}
+
+.c-checkbox-group__input {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.c-checkbox-group__label {
+    font-size: var(--text-sm);
+    color: var(--color-text-primary);
+    cursor: pointer;
+    margin-bottom: 0;
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================ */
+
+@media (max-width: 768px) {
+    .c-schedule-wizard__title {
+        font-size: var(--text-xl);
+    }
+
+    .c-schedule-wizard__actions {
+        flex-direction: column;
+    }
+
+    .c-schedule-wizard__actions .btn {
+        width: 100%;
+    }
+
+    .c-schedule-table__cell {
+        padding: var(--space-2);
+        font-size: var(--text-sm);
+    }
+
+    .c-schedule-table__cell::before {
+        content: attr(data-label);
+        display: block;
+        font-weight: var(--font-semibold);
+        color: var(--color-text-secondary);
+        margin-bottom: var(--space-1);
+    }
+
+    .c-match-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-2);
+    }
+
+    .c-match-item__actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .c-schedule-manager__bulk-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-2);
+    }
+
+    .c-week-card__header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-2);
+    }
+}
+
+/* Mobile table responsiveness */
+@media (max-width: 576px) {
+    .c-schedule-table {
+        display: block;
+    }
+
+    .c-schedule-table thead {
+        display: none;
+    }
+
+    .c-schedule-table tbody {
+        display: block;
+    }
+
+    .c-schedule-table__row {
+        display: block;
+        margin-bottom: var(--space-3);
+        border: var(--border-width) solid var(--border-color-primary);
+        border-radius: var(--radius-md);
+        padding: var(--space-3);
+    }
+
+    .c-schedule-table__cell {
+        display: block;
+        text-align: left;
+        padding: var(--space-2) 0;
+        border: none;
+    }
+}
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================ */
+
+[data-style="dark"] {
+    .c-schedule-wizard__title,
+    .c-schedule-manager__title,
+    .c-form-group__label,
+    .c-match-item__teams {
+        color: var(--color-neutral-100);
+    }
+
+    .c-schedule-wizard__subtitle,
+    .c-schedule-wizard__instructions,
+    .c-match-item__meta {
+        color: var(--color-neutral-400);
+    }
+
+    .c-schedule-wizard__week-options {
+        background-color: var(--color-neutral-900);
+    }
+
+    .c-schedule-table__row:hover,
+    .c-match-item:hover {
+        background-color: var(--color-neutral-800);
+    }
+
+    .c-schedule-table__select,
+    .c-match-input__select,
+    .c-match-input__time,
+    .c-match-input__location,
+    .c-form-group__input {
+        background-color: var(--color-neutral-900);
+        border-color: var(--color-neutral-700);
+        color: var(--color-neutral-100);
+    }
+
+    .c-week-form-card__header {
+        background-color: rgba(var(--color-primary-rgb), 0.15);
+        border-bottom-color: var(--color-primary-600);
+    }
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+.c-schedule-wizard__step:focus-visible,
+.c-week-card:focus-visible,
+.c-match-item:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+    .c-schedule-wizard__step,
+    .c-week-card:hover,
+    .c-match-item {
+        animation: none;
+        transition: none;
+    }
+
+    .c-week-card:hover {
+        transform: none;
+    }
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+@media print {
+    .c-schedule-wizard__actions,
+    .c-match-item__actions,
+    .c-week-card__delete-form,
+    .c-match-item__delete-form {
+        display: none !important;
+    }
+
+    .c-week-card {
+        box-shadow: none !important;
+        transform: none !important;
+        page-break-inside: avoid;
+    }
+}

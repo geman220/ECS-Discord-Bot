@@ -11,60 +11,60 @@
 <!-- API Overview Cards -->
 <div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
+        <div class="c-card bg-primary text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.total_endpoints }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Total Endpoints</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.total_endpoints }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Total Endpoints</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-api" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-api u-card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
+        <div class="c-card bg-success text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.active_endpoints }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Active Endpoints</p>
+                        <h5 class="c-card__title text-white mb-1">{{ stats.active_endpoints }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Active Endpoints</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-check-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-check-circle u-card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
+        <div class="c-card bg-info text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ "{:,}".format(stats.total_requests_today) }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Requests Today</p>
+                        <h5 class="c-card__title text-white mb-1">{{ "{:,}".format(stats.total_requests_today) }}</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Requests Today</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-activity" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-activity u-card-icon-stat"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
+        <div class="c-card bg-warning text-white">
+            <div class="c-card__body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title text-white mb-1">{{ "%.1f"|format(stats.error_rate) }}%</h5>
-                        <p class="card-text small opacity-75 mb-0">Error Rate</p>
+                        <h5 class="c-card__title text-white mb-1">{{ "%.1f"|format(stats.error_rate) }}%</h5>
+                        <p class="c-card__description small opacity-75 mb-0">Error Rate</p>
                     </div>
                     <div class="card-icon">
-                        <i class="ti ti-alert-triangle" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="ti ti-alert-triangle u-card-icon-stat"></i>
                     </div>
                 </div>
             </div>
@@ -75,38 +75,38 @@
 <!-- Quick Actions -->
 <div class="row mb-4">
     <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-rocket me-2"></i>Quick Actions
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <div class="d-grid">
-                            <a href="{{ url_for('admin_panel.api_endpoints') }}" class="btn btn-primary">
+                            <a href="{{ url_for('admin_panel.api_endpoints') }}" class="c-btn c-btn--primary">
                                 <i class="ti ti-list me-2"></i>View All Endpoints
                             </a>
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <div class="d-grid">
-                            <a href="{{ url_for('admin_panel.api_analytics') }}" class="btn btn-info">
+                            <a href="{{ url_for('admin_panel.api_analytics') }}" class="c-btn c-btn--info">
                                 <i class="ti ti-chart-line me-2"></i>View Analytics
                             </a>
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <div class="d-grid">
-                            <button type="button" class="btn btn-outline-primary" onclick="testEndpoint()">
+                            <button type="button" class="c-btn c-btn--outline-primary js-test-endpoint" data-action="test-endpoint">
                                 <i class="ti ti-test-pipe me-2"></i>Test Endpoint
                             </button>
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <div class="d-grid">
-                            <button type="button" class="btn btn-outline-warning" onclick="exportAPIData()">
+                            <button type="button" class="c-btn c-btn--outline-warning js-export-api" data-action="export-api">
                                 <i class="ti ti-download me-2"></i>Export Data
                             </button>
                         </div>
@@ -117,20 +117,20 @@
     </div>
     
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-gauge me-2"></i>Performance
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <span class="small">Avg Response Time</span>
                         <span class="small fw-bold">{{ "%.3f"|format(stats.avg_response_time) }}s</span>
                     </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar bg-success" style="width: {{ (1 - stats.avg_response_time) * 100 }}%"></div>
+                    <div class="progress u-progress-sm">
+                        <div class="progress-bar bg-success" role="progressbar" data-width="{{ (1 - stats.avg_response_time) * 100 }}" aria-valuenow="{{ (1 - stats.avg_response_time) * 100 }}" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                 </div>
                 <div class="mb-3">
@@ -138,12 +138,12 @@
                         <span class="small">Success Rate</span>
                         <span class="small fw-bold">{{ "%.1f"|format(100 - stats.error_rate) }}%</span>
                     </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar bg-primary" style="width: {{ 100 - stats.error_rate }}%"></div>
+                    <div class="progress u-progress-sm">
+                        <div class="progress-bar bg-primary" role="progressbar" data-width="{{ 100 - stats.error_rate }}" aria-valuenow="{{ 100 - stats.error_rate }}" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                 </div>
                 <div class="text-center">
-                    <span class="badge bg-{% if stats.error_rate < 2 %}success{% elif stats.error_rate < 5 %}warning{% else %}danger{% endif %}">
+                    <span class="badge bg-{% if stats.error_rate < 2 %}success{% elif stats.error_rate < 5 %}warning{% else %}danger{% endif %}" data-badge>
                         {% if stats.error_rate < 2 %}Excellent{% elif stats.error_rate < 5 %}Good{% else %}Needs Attention{% endif %}
                     </span>
                 </div>
@@ -155,24 +155,24 @@
 <!-- Blueprint Breakdown -->
 <div class="row mb-4">
     <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-components me-2"></i>Endpoint Breakdown by Blueprint
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if stats.endpoint_breakdown %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Blueprint</th>
-                                <th>Total</th>
-                                <th>Active</th>
-                                <th>Requests</th>
-                                <th>Avg Response</th>
-                                <th>Status</th>
+                                <th scope="col">Blueprint</th>
+                                <th scope="col">Total</th>
+                                <th scope="col">Active</th>
+                                <th scope="col">Requests</th>
+                                <th scope="col">Avg Response</th>
+                                <th scope="col">Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -185,7 +185,7 @@
                                 <td>{{ "%.3f"|format(blueprint_stats.avg_response_time) }}s</td>
                                 <td>
                                     {% set health_score = (blueprint_stats.active / blueprint_stats.count) * 100 if blueprint_stats.count > 0 else 0 %}
-                                    <span class="badge bg-{% if health_score > 80 %}success{% elif health_score > 60 %}warning{% else %}danger{% endif %}">
+                                    <span class="badge bg-{% if health_score > 80 %}success{% elif health_score > 60 %}warning{% else %}danger{% endif %}" data-badge>
                                         {{ "%.0f"|format(health_score) }}%
                                     </span>
                                 </td>
@@ -202,13 +202,13 @@
     </div>
     
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-activity me-2"></i>Recent Activity
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if recent_activity %}
                 <div class="timeline">
                     {% for activity in recent_activity %}
@@ -220,7 +220,7 @@
                                     <p class="mb-1 small">{{ activity.description }}</p>
                                     <small class="text-muted">{{ activity.timestamp.strftime('%H:%M') }}</small>
                                 </div>
-                                <span class="badge bg-info ms-2">API</span>
+                                <span class="badge bg-info ms-2" data-badge>API</span>
                             </div>
                         </div>
                     </div>
@@ -237,25 +237,25 @@
 <!-- Top Endpoints -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-trending-up me-2"></i>Top Endpoints
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if endpoints %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Endpoint</th>
-                                <th>Blueprint</th>
-                                <th>Methods</th>
-                                <th>Requests</th>
-                                <th>Avg Response</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th scope="col">Endpoint</th>
+                                <th scope="col">Blueprint</th>
+                                <th scope="col">Methods</th>
+                                <th scope="col">Requests</th>
+                                <th scope="col">Avg Response</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -268,11 +268,11 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <span class="badge bg-secondary">{{ endpoint.blueprint }}</span>
+                                    <span class="badge bg-secondary" data-badge>{{ endpoint.blueprint }}</span>
                                 </td>
                                 <td>
                                     {% for method in endpoint.methods %}
-                                    <span class="badge bg-{% if method == 'GET' %}info{% elif method == 'POST' %}primary{% elif method == 'PUT' %}warning{% elif method == 'DELETE' %}danger{% else %}secondary{% endif %} me-1">
+                                    <span class="badge bg-{% if method == 'GET' %}info{% elif method == 'POST' %}primary{% elif method == 'PUT' %}warning{% elif method == 'DELETE' %}danger{% else %}secondary{% endif %} me-1" data-badge>
                                         {{ method }}
                                     </span>
                                     {% endfor %}
@@ -280,18 +280,18 @@
                                 <td>{{ "{:,}".format(endpoint.request_count) }}</td>
                                 <td>{{ "%.3f"|format(endpoint.avg_response_time) }}s</td>
                                 <td>
-                                    <span class="badge bg-{% if endpoint.status == 'active' %}success{% else %}warning{% endif %}">
+                                    <span class="badge bg-{% if endpoint.status == 'active' %}success{% else %}warning{% endif %}" data-badge>
                                         {{ endpoint.status }}
                                     </span>
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button type="button" class="btn btn-outline-info" 
-                                                onclick="viewEndpointDetails('{{ endpoint.path[1:] }}')" title="View Details">
+                                        <button type="button" class="c-btn c-btn--outline-info js-view-endpoint"
+                                                data-action="view-endpoint" data-endpoint-path="{{ endpoint.path[1:] }}" title="View Details">
                                             <i class="ti ti-eye"></i>
                                         </button>
-                                        <button type="button" class="btn btn-outline-primary" 
-                                                onclick="testSpecificEndpoint('{{ endpoint.path }}', {{ endpoint.methods | tojson }})" title="Test">
+                                        <button type="button" class="c-btn c-btn--outline-primary js-test-specific-endpoint"
+                                                data-action="test-specific" data-endpoint-path="{{ endpoint.path }}" data-methods="{{ endpoint.methods | tojson }}" title="Test">
                                             <i class="ti ti-test-pipe"></i>
                                         </button>
                                     </div>
@@ -302,7 +302,7 @@
                     </table>
                 </div>
                 <div class="text-center mt-3">
-                    <a href="{{ url_for('admin_panel.api_endpoints') }}" class="btn btn-outline-primary">
+                    <a href="{{ url_for('admin_panel.api_endpoints') }}" class="c-btn c-btn--outline-primary">
                         View All Endpoints
                     </a>
                 </div>
@@ -317,6 +317,7 @@
 {% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
 .timeline {
     position: relative;
@@ -363,7 +364,39 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Test endpoint button
+    const testBtn = document.querySelector('.js-test-endpoint');
+    if (testBtn) {
+        testBtn.addEventListener('click', testEndpoint);
+    }
+
+    // Export API button
+    const exportBtn = document.querySelector('.js-export-api');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', exportAPIData);
+    }
+
+    // View endpoint details buttons
+    document.querySelectorAll('.js-view-endpoint').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const endpointPath = this.dataset.endpointPath;
+            viewEndpointDetails(endpointPath);
+        });
+    });
+
+    // Test specific endpoint buttons
+    document.querySelectorAll('.js-test-specific-endpoint').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const endpointPath = this.dataset.endpointPath;
+            const methods = JSON.parse(this.dataset.methods);
+            testSpecificEndpoint(endpointPath, methods);
+        });
+    });
+});
+
 function viewEndpointDetails(endpointPath) {
     fetch(`/admin-panel/api/endpoint/${endpointPath}/details`)
         .then(response => response.json())
@@ -379,7 +412,7 @@ function viewEndpointDetails(endpointPath) {
                             <p><strong>Blueprint:</strong> ${endpoint.blueprint}</p>
                             <p><strong>Methods:</strong> ${endpoint.methods.join(', ')}</p>
                             <p><strong>Authentication:</strong> ${endpoint.authentication}</p>
-                            <p><strong>Status:</strong> <span class="badge bg-${endpoint.status === 'active' ? 'success' : 'warning'}">${endpoint.status}</span></p>
+                            <p><strong>Status:</strong> <span class="badge bg-${endpoint.status === 'active' ? 'success' : 'warning'}" data-badge>${endpoint.status}</span></p>
                         </div>
                         <div class="col-md-6">
                             <h6>Usage Statistics</h6>
@@ -426,11 +459,11 @@ function testEndpoint() {
             <div class="text-start">
                 <div class="mb-3">
                     <label class="form-label">Endpoint Path</label>
-                    <input type="text" id="test-endpoint" class="form-control" placeholder="/api/example">
+                    <input type="text" id="test-endpoint" class="form-control" placeholder="/api/example" data-form-control>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Method</label>
-                    <select id="test-method" class="form-select">
+                    <select id="test-method" class="form-select" data-form-select>
                         <option value="GET">GET</option>
                         <option value="POST">POST</option>
                         <option value="PUT">PUT</option>
@@ -439,7 +472,7 @@ function testEndpoint() {
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Parameters (JSON)</label>
-                    <textarea id="test-params" class="form-control" rows="3" placeholder='{"key": "value"}'></textarea>
+                    <textarea id="test-params" class="form-control" rows="3" placeholder='{"key": "value"}' data-form-control></textarea>
                 </div>
             </div>
         `,
@@ -509,7 +542,7 @@ function testSpecificEndpointWithData(data) {
         if (result.success) {
             let resultHtml = `
                 <div class="text-start">
-                    <p><strong>Status:</strong> <span class="badge bg-success">${result.status_code}</span></p>
+                    <p><strong>Status:</strong> <span class="badge bg-success" data-badge>${result.status_code}</span></p>
                     <p><strong>Response Time:</strong> ${result.response_time}s</p>
                     <p><strong>Response:</strong></p>
                     <pre class="bg-light p-3 rounded"><code>${JSON.stringify(result.response_data, null, 2)}</code></pre>

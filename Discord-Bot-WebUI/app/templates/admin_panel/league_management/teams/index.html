@@ -13,10 +13,10 @@
     <div class="col-12 mb-4">
         <div class="row g-3">
             <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body d-flex align-items-center">
+                <div class="c-card">
+                    <div class="c-card__body d-flex align-items-center">
                         <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3">
-                            <i class="ti ti-users-group text-primary" style="font-size: 1.5rem;"></i>
+                            <i class="ti ti-users-group text-primary card-icon-stat"></i>
                         </div>
                         <div>
                             <h4 class="mb-0">{{ stats.total_teams }}</h4>
@@ -26,10 +26,10 @@
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body d-flex align-items-center">
+                <div class="c-card">
+                    <div class="c-card__body d-flex align-items-center">
                         <div class="rounded-circle bg-success bg-opacity-10 p-3 me-3">
-                            <i class="ti ti-brand-discord text-success" style="font-size: 1.5rem;"></i>
+                            <i class="ti ti-brand-discord text-success card-icon-stat"></i>
                         </div>
                         <div>
                             <h4 class="mb-0">{{ stats.teams_with_discord }}</h4>
@@ -39,10 +39,10 @@
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body d-flex align-items-center">
+                <div class="c-card">
+                    <div class="c-card__body d-flex align-items-center">
                         <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3">
-                            <i class="ti ti-trophy text-warning" style="font-size: 1.5rem;"></i>
+                            <i class="ti ti-trophy text-warning card-icon-stat"></i>
                         </div>
                         <div>
                             <h4 class="mb-0">{{ stats.teams_by_league_type|length }}</h4>
@@ -57,14 +57,14 @@
 
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <h5 class="mb-0">
                     <i class="ti ti-users-group me-2"></i>Teams
                 </h5>
                 <div class="d-flex gap-2 flex-wrap">
                     <!-- Filters -->
-                    <select class="form-select form-select-sm" id="seasonFilter" style="width: auto;">
+                    <select class="form-select form-select-sm" id="seasonFilter" class="u-w-auto" data-form-select>
                         <option value="">All Seasons</option>
                         {% for season in seasons %}
                         <option value="{{ season.id }}" {% if current_season_id == season.id %}selected{% endif %}>
@@ -72,27 +72,27 @@
                         </option>
                         {% endfor %}
                     </select>
-                    <select class="form-select form-select-sm" id="leagueTypeFilter" style="width: auto;">
+                    <select class="form-select form-select-sm" id="leagueTypeFilter" class="u-w-auto" data-form-select>
                         <option value="">All League Types</option>
                         <option value="Pub League" {% if current_league_type == 'Pub League' %}selected{% endif %}>Pub League</option>
                         <option value="ECS FC" {% if current_league_type == 'ECS FC' %}selected{% endif %}>ECS FC</option>
                     </select>
-                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createTeamModal">
+                    <button class="c-btn c-btn--primary c-btn--sm" data-bs-toggle="modal" data-bs-target="#createTeamModal">
                         <i class="ti ti-plus me-1"></i>Add Team
                     </button>
                 </div>
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if teams %}
-                <div class="table-responsive">
-                    <table class="table table-hover" id="teamsTable">
-                        <thead>
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--hoverable" id="teamsTable" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Team Name</th>
-                                <th>League</th>
-                                <th>Season</th>
-                                <th>Discord</th>
-                                <th>Actions</th>
+                                <th scope="col">Team Name</th>
+                                <th scope="col">League</th>
+                                <th scope="col">Season</th>
+                                <th scope="col">Discord</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -106,16 +106,16 @@
                                 </td>
                                 <td>
                                     {% if team.league %}
-                                    <span class="badge bg-label-primary">{{ team.league.name }}</span>
+                                    <span class="badge bg-label-primary" data-badge>{{ team.league.name }}</span>
                                     {% else %}
-                                    <span class="badge bg-label-secondary">N/A</span>
+                                    <span class="badge bg-label-secondary" data-badge>N/A</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if team.league and team.league.season %}
                                     {{ team.league.season.name }}
                                     {% if team.league.season.is_current %}
-                                    <span class="badge bg-success ms-1">Current</span>
+                                    <span class="badge bg-success ms-1" data-badge>Current</span>
                                     {% endif %}
                                     {% else %}
                                     <span class="text-muted">N/A</span>
@@ -123,39 +123,39 @@
                                 </td>
                                 <td>
                                     {% if team.discord_channel_id %}
-                                    <span class="badge bg-success">
+                                    <span class="badge bg-success" data-badge>
                                         <i class="ti ti-check me-1"></i>Connected
                                     </span>
                                     {% else %}
-                                    <span class="badge bg-secondary">
+                                    <span class="badge bg-secondary" data-badge>
                                         <i class="ti ti-x me-1"></i>Not Set
                                     </span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     <div class="dropdown">
-                                        <button class="btn btn-sm btn-icon" type="button" data-bs-toggle="dropdown">
+                                        <button class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary" type="button" data-bs-toggle="dropdown" data-dropdown-toggle>
                                             <i class="ti ti-dots-vertical"></i>
                                         </button>
-                                        <ul class="dropdown-menu">
+                                        <ul class="dropdown-menu" data-dropdown-menu>
                                             <li>
                                                 <a class="dropdown-item" href="{{ url_for('admin_panel.league_management_team_detail', team_id=team.id) }}">
                                                     <i class="ti ti-eye me-2"></i>View Details
                                                 </a>
                                             </li>
                                             <li>
-                                                <a class="dropdown-item" href="#" onclick="editTeam({{ team.id }}, '{{ team.name }}')">
+                                                <a class="dropdown-item js-edit-team" href="#" data-action="edit-team" data-team-id="{{ team.id }}" data-team-name="{{ team.name }}">
                                                     <i class="ti ti-edit me-2"></i>Rename
                                                 </a>
                                             </li>
                                             <li>
-                                                <a class="dropdown-item" href="#" onclick="syncTeamDiscord({{ team.id }})">
+                                                <a class="dropdown-item js-sync-discord" href="#" data-action="sync-discord" data-team-id="{{ team.id }}">
                                                     <i class="ti ti-refresh me-2"></i>Sync Discord
                                                 </a>
                                             </li>
                                             <li><hr class="dropdown-divider"></li>
                                             <li>
-                                                <a class="dropdown-item text-danger" href="#" onclick="deleteTeam({{ team.id }}, '{{ team.name }}')">
+                                                <a class="dropdown-item text-danger js-delete-team" href="#" data-action="delete-team" data-team-id="{{ team.id }}" data-team-name="{{ team.name }}">
                                                     <i class="ti ti-trash me-2"></i>Delete
                                                 </a>
                                             </li>
@@ -169,9 +169,9 @@
                 </div>
                 {% else %}
                 <div class="text-center py-5">
-                    <i class="ti ti-users-group text-muted" style="font-size: 3rem;"></i>
+                    <i class="ti ti-users-group text-muted icon-empty-state"></i>
                     <p class="text-muted mt-2">No teams found</p>
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTeamModal">
+                    <button class="c-btn c-btn--primary" data-bs-toggle="modal" data-bs-target="#createTeamModal">
                         <i class="ti ti-plus me-1"></i>Create First Team
                     </button>
                 </div>
@@ -182,22 +182,22 @@
 </div>
 
 <!-- Create Team Modal -->
-<div class="modal fade" id="createTeamModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="ti ti-plus me-2"></i>Create Team</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal c-modal fade" id="createTeamModal" tabindex="-1" data-modal aria-labelledby="createTeamModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="createTeamModalLabel"><i class="ti ti-plus me-2"></i>Create Team</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body>
                 <form id="createTeamForm">
                     <div class="mb-3">
                         <label class="form-label">Team Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="newTeamName" required>
+                        <input type="text" class="form-control" id="newTeamName" required data-form-control>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">League <span class="text-danger">*</span></label>
-                        <select class="form-select" id="newTeamLeague" required>
+                        <select class="form-select" id="newTeamLeague" required data-form-select>
                             <option value="">Select a league...</option>
                             {% for season in seasons %}
                             {% if season.is_current %}
@@ -213,9 +213,9 @@
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="createTeam()">
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--primary js-create-team" data-action="create-team">
                     <i class="ti ti-plus me-1"></i>Create Team
                 </button>
             </div>
@@ -224,29 +224,29 @@
 </div>
 
 <!-- Edit Team Modal -->
-<div class="modal fade" id="editTeamModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="ti ti-edit me-2"></i>Rename Team</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal c-modal fade" id="editTeamModal" tabindex="-1" data-modal aria-labelledby="editTeamModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="editTeamModalLabel"><i class="ti ti-edit me-2"></i>Rename Team</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body>
                 <form id="editTeamForm">
                     <input type="hidden" id="editTeamId">
                     <div class="mb-3">
                         <label class="form-label">Team Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="editTeamName" required>
+                        <input type="text" class="form-control" id="editTeamName" required data-form-control>
                     </div>
-                    <div class="alert alert-info">
+                    <div class="alert alert-info" data-alert>
                         <i class="ti ti-info-circle me-2"></i>
                         Renaming will also update the Discord channel and role names.
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveTeamEdit()">
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--primary js-save-team-edit" data-action="save-team-edit">
                     <i class="ti ti-check me-1"></i>Save Changes
                 </button>
             </div>
@@ -262,6 +262,47 @@ document.addEventListener('DOMContentLoaded', function() {
     // Filter handlers
     document.getElementById('seasonFilter').addEventListener('change', applyFilters);
     document.getElementById('leagueTypeFilter').addEventListener('change', applyFilters);
+
+    // Event delegation for team actions
+    document.querySelectorAll('.js-create-team').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            createTeam();
+        });
+    });
+
+    document.querySelectorAll('.js-edit-team').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const teamId = this.getAttribute('data-team-id');
+            const teamName = this.getAttribute('data-team-name');
+            editTeam(teamId, teamName);
+        });
+    });
+
+    document.querySelectorAll('.js-sync-discord').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const teamId = this.getAttribute('data-team-id');
+            syncTeamDiscord(teamId);
+        });
+    });
+
+    document.querySelectorAll('.js-delete-team').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const teamId = this.getAttribute('data-team-id');
+            const teamName = this.getAttribute('data-team-name');
+            deleteTeam(teamId, teamName);
+        });
+    });
+
+    document.querySelectorAll('.js-save-team-edit').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            saveTeamEdit();
+        });
+    });
 });
 
 function applyFilters() {
@@ -312,7 +353,7 @@ function createTeam() {
 function editTeam(teamId, teamName) {
     document.getElementById('editTeamId').value = teamId;
     document.getElementById('editTeamName').value = teamName;
-    new bootstrap.Modal(document.getElementById('editTeamModal')).show();
+    ModalManager.show('editTeamModal');
 }
 
 function saveTeamEdit() {

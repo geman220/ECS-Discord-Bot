@@ -96,11 +96,8 @@ if (document.getElementById('layout-menu')) {
     menuInnerShadow = document.getElementsByClassName('menu-inner-shadow')[0];
   if (menuInnerContainer.length > 0 && menuInnerShadow) {
     menuInnerContainer[0].addEventListener('ps-scroll-y', function () {
-      if (this.querySelector('.ps__thumb-y').offsetTop) {
-        menuInnerShadow.style.display = 'block';
-      } else {
-        menuInnerShadow.style.display = 'none';
-      }
+      const shouldShow = this.querySelector('.ps__thumb-y').offsetTop;
+      menuInnerShadow.classList.toggle('d-none', !shouldShow);
     });
   }
 

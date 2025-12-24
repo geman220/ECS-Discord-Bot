@@ -3,129 +3,136 @@
 {% block title %}Join the Waitlist - ECS Soccer League{% endblock %}
 
 {% block main_content %}
-<div class="container-xxl flex-grow-1 container-p-y">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card">
-                <div class="card-body">
-                    <!-- Header -->
-                    <div class="text-center mb-4">
-                        <div class="app-brand justify-content-center mb-4">
-                            <span class="app-brand-logo">
-                                <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="ECS FC Pub League Logo" style="height: 40px;">
-                            </span>
-                            <span class="app-brand-text text-body fw-bolder ms-2">ECS FC Pub League</span>
-                        </div>
-                        <h4 class="mb-2">Join the Waitlist</h4>
-                        <p class="mb-4">Welcome back, {{ user.username }}! The current season is full, but you can join our waitlist.</p>
+<div class="c-waitlist c-waitlist--authenticated" data-component="waitlist-authenticated">
+    <div class="c-waitlist__container">
+        <div class="c-waitlist__card">
+            <div class="c-waitlist__body">
+                <!-- Header -->
+                <div class="c-waitlist__header">
+                    <div class="c-waitlist__brand">
+                        <span class="c-waitlist__brand-logo">
+                            <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="ECS FC Pub League Logo" class="c-waitlist__logo">
+                        </span>
+                        <span class="c-waitlist__brand-text">ECS FC Pub League</span>
                     </div>
+                    <h4 class="c-waitlist__title">Join the Waitlist</h4>
+                    <p class="c-waitlist__description">Welcome back, {{ user.username }}! The current season is full, but you can join our waitlist.</p>
+                </div>
 
                     {% if already_on_waitlist %}
                     <!-- Already on waitlist -->
-                    <div class="alert alert-info text-center">
-                        <h5 class="alert-heading mb-2">
-                            <i class="ti ti-check-circle me-2"></i>
-                            You're Already on the Waitlist!
-                        </h5>
-                        <p class="mb-3">Great news! You're already on our waitlist for the current season. We'll notify you as soon as spots become available.</p>
-                        <a href="{{ url_for('main.index') }}" class="btn btn-primary">
-                            <i class="ti ti-arrow-left me-1"></i>
-                            Back to Dashboard
-                        </a>
-                    </div>
-                    
-                    {% else %}
-                    <!-- Join waitlist form -->
-                    <div class="alert alert-warning text-center mb-4">
-                        <h6 class="alert-heading mb-1">Season Full</h6>
-                        <p class="mb-0">All spots for the current season have been filled. Join our waitlist to be first in line for future openings!</p>
+                    <div class="c-alert c-alert--info" role="alert" data-alert>
+                        <div class="c-alert__icon">
+                            <i class="ti ti-check-circle"></i>
+                        </div>
+                        <div class="c-alert__content">
+                            <h5 class="c-alert__title">You're Already on the Waitlist!</h5>
+                            <p class="c-alert__message">Great news! You're already on our waitlist for the current season. We'll notify you as soon as spots become available.</p>
+                            <a href="{{ url_for('main.index') }}" class="c-btn-modern c-btn-modern--primary" data-action="back-to-dashboard">
+                                <i class="ti ti-arrow-left"></i>
+                                <span>Back to Dashboard</span>
+                            </a>
+                        </div>
                     </div>
 
-                    <form method="POST" action="{{ url_for('auth.waitlist_register') }}">
+                    {% else %}
+                    <!-- Join waitlist form -->
+                    <div class="c-alert c-alert--warning" role="alert" data-alert>
+                        <div class="c-alert__icon">
+                            <i class="ti ti-clock"></i>
+                        </div>
+                        <div class="c-alert__content">
+                            <h6 class="c-alert__title">Season Full</h6>
+                            <p class="c-alert__message">All spots for the current season have been filled. Join our waitlist to be first in line for future openings!</p>
+                        </div>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('auth.waitlist_register') }}" class="c-waitlist__form" data-form>
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        
-                        <div class="mb-4">
-                            <div class="card bg-light">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center">
-                                        {% if player and player.profile_picture_url %}
-                                            <img src="{{ player.profile_picture_url }}" alt="{{ user.username }}" class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;">
-                                        {% else %}
-                                            <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 60px; height: 60px;">
-                                                <span class="text-white fw-bold" style="font-size: 1.5rem;">{{ user.username[0].upper() }}</span>
-                                            </div>
+
+                        <div class="c-waitlist__profile-card">
+                            <div class="c-waitlist__profile-body">
+                                <div class="c-waitlist__profile-info">
+                                    {% if player and player.profile_picture_url %}
+                                        <img src="{{ player.profile_picture_url }}" alt="{{ user.username }}" class="c-waitlist__avatar">
+                                    {% else %}
+                                        <div class="c-waitlist__avatar c-waitlist__avatar--placeholder">
+                                            <span class="c-waitlist__avatar-text">{{ user.username[0].upper() }}</span>
+                                        </div>
+                                    {% endif %}
+                                    <div class="c-waitlist__profile-details">
+                                        <h6 class="c-waitlist__profile-name">{{ user.username }}</h6>
+                                        <p class="c-waitlist__profile-email">{{ user.email }}</p>
+                                        {% if user.preferred_league %}
+                                            <small class="c-waitlist__profile-league">Preferred League:
+                                                {% if user.preferred_league == 'pub_league_classic' %}
+                                                    Pub League Classic
+                                                {% elif user.preferred_league == 'pub_league_premier' %}
+                                                    Pub League Premier
+                                                {% elif user.preferred_league == 'ecs_fc' %}
+                                                    ECS FC
+                                                {% else %}
+                                                    {{ user.preferred_league }}
+                                                {% endif %}
+                                            </small>
                                         {% endif %}
-                                        <div class="flex-grow-1">
-                                            <h6 class="mb-1">{{ user.username }}</h6>
-                                            <p class="text-muted mb-0">{{ user.email }}</p>
-                                            {% if user.preferred_league %}
-                                                <small class="text-primary">Preferred League: 
-                                                    {% if user.preferred_league == 'pub_league_classic' %}
-                                                        Pub League Classic
-                                                    {% elif user.preferred_league == 'pub_league_premier' %}
-                                                        Pub League Premier
-                                                    {% elif user.preferred_league == 'ecs_fc' %}
-                                                        ECS FC
-                                                    {% else %}
-                                                        {{ user.preferred_league }}
-                                                    {% endif %}
-                                                </small>
-                                            {% endif %}
-                                        </div>
-                                        <div class="text-end">
-                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="showProfileModal()">
-                                                <i class="ti ti-edit"></i> Review Profile
-                                            </button>
-                                        </div>
+                                    </div>
+                                    <div class="c-waitlist__profile-actions">
+                                        <button type="button" class="c-btn-modern c-btn-modern--outline c-btn-modern--sm" data-action="show-profile-modal">
+                                            <i class="ti ti-edit"></i>
+                                            <span>Review Profile</span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Profile Verification Encouragement -->
-                        <div class="alert alert-info mb-4">
-                            <h6 class="alert-heading mb-2">
-                                <i class="ti ti-user-check me-2"></i>
-                                Welcome Back!
-                            </h6>
-                            <p class="mb-2">Before joining the waitlist, we encourage you to review and update your profile information to ensure we have your current details.</p>
+                        <div class="c-alert c-alert--info" role="alert" data-alert>
+                            <div class="c-alert__icon">
+                                <i class="ti ti-user-check"></i>
+                            </div>
+                            <div class="c-alert__content">
+                                <h6 class="c-alert__title">Welcome Back!</h6>
+                                <p class="c-alert__message">Before joining the waitlist, we encourage you to review and update your profile information to ensure we have your current details.</p>
+                            </div>
                         </div>
 
-                        <button type="submit" class="btn btn-warning d-grid w-100 mb-3">
-                            <i class="ti ti-clock me-2"></i>
-                            Join the Waitlist
+                        <button type="submit" class="c-btn-modern c-btn-modern--warning c-btn-modern--block" data-action="join-waitlist">
+                            <i class="ti ti-clock"></i>
+                            <span>Join the Waitlist</span>
                         </button>
                     </form>
                     {% endif %}
 
                     {% if not already_on_waitlist %}
                     <!-- Benefits section -->
-                    <div class="text-center mt-4">
-                        <div class="divider my-4">
-                            <div class="divider-text">Benefits of Joining</div>
+                    <div class="c-waitlist__benefits">
+                        <div class="c-divider">
+                            <span class="c-divider__text">Benefits of Joining</span>
                         </div>
-                        <div class="row text-center">
-                            <div class="col-md-4 mb-3">
-                                <i class="ti ti-bell text-primary" style="font-size: 2rem;"></i>
-                                <p class="small mb-0">Priority notifications when spots open</p>
+                        <div class="c-waitlist__benefits-grid">
+                            <div class="c-waitlist__benefit-item">
+                                <i class="ti ti-bell c-waitlist__benefit-icon"></i>
+                                <p class="c-waitlist__benefit-text">Priority notifications when spots open</p>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <i class="ti ti-calendar text-primary" style="font-size: 2rem;"></i>
-                                <p class="small mb-0">Early access to more information</p>
+                            <div class="c-waitlist__benefit-item">
+                                <i class="ti ti-calendar c-waitlist__benefit-icon"></i>
+                                <p class="c-waitlist__benefit-text">Early access to more information</p>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <i class="ti ti-users text-primary" style="font-size: 2rem;"></i>
-                                <p class="small mb-0">Stay connected with the ECS community</p>
+                            <div class="c-waitlist__benefit-item">
+                                <i class="ti ti-users c-waitlist__benefit-icon"></i>
+                                <p class="c-waitlist__benefit-text">Stay connected with the ECS community</p>
                             </div>
                         </div>
                     </div>
                     {% endif %}
 
                     <!-- Footer Links -->
-                    <div class="text-center mt-4">
-                        <a href="{{ url_for('main.index') }}" class="d-flex align-items-center justify-content-center">
-                            <i class="ti ti-chevron-left me-1"></i>
-                            Back to Dashboard
+                    <div class="c-waitlist__footer">
+                        <a href="{{ url_for('main.index') }}" class="c-link" data-action="back-to-dashboard">
+                            <i class="ti ti-chevron-left"></i>
+                            <span>Back to Dashboard</span>
                         </a>
                     </div>
                 </div>
@@ -135,18 +142,18 @@
 </div>
 
 <!-- Profile Verification Modal -->
-<div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="profileModalLabel">
+<div class="modal c-modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true" data-modal>
+    <div class="modal-dialog c-modal__dialog modal-xl c-modal__dialog--xl" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="profileModalLabel">
                     <i class="ti ti-user-check me-2"></i>
                     Review Your Profile
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
             </div>
-            <div class="modal-body">
-                <div class="alert alert-info mb-4">
+            <div class="modal-body c-modal__body" data-modal-body>
+                <div class="alert alert-info mb-4" data-alert>
                     <h6 class="alert-heading fw-bold mb-1">
                         <i class="ti ti-info-circle me-2"></i>Review Your Profile
                     </h6>
@@ -159,30 +166,30 @@
                 </div>
                 
                 <!-- Profile Form -->
-                <form id="profileForm">
+                <form id="profileForm" data-form-group>
                     <div class="row">
                         <!-- Basic Information -->
                         <div class="col-md-6">
                             <h6 class="mb-3">Basic Information</h6>
-                            
-                            <div class="mb-3">
+
+                            <div class="mb-3" data-form-group>
                                 <label class="form-label">Name</label>
-                                <input type="text" class="form-control" id="name" name="name" value="{{ user.username if user else '' }}" readonly>
+                                <input type="text" class="form-control" id="waitlist-auth-name" name="name" value="{{ user.username if user else '' }}" readonly data-form-control>
                             </div>
-                            
-                            <div class="mb-3">
+
+                            <div class="mb-3" data-form-group>
                                 <label class="form-label">Email</label>
-                                <input type="email" class="form-control" id="email" name="email" value="{{ user.email if user else '' }}" readonly>
+                                <input type="email" class="form-control" id="waitlist-auth-email" name="email" value="{{ user.email if user else '' }}" readonly data-form-control>
                             </div>
-                            
-                            <div class="mb-3">
+
+                            <div class="mb-3" data-form-group>
                                 <label class="form-label">Phone</label>
-                                <input type="text" class="form-control" id="phone" name="phone" value="{{ player.phone if player and player.phone else '' }}" readonly>
+                                <input type="text" class="form-control" id="waitlist-auth-phone" name="phone" value="{{ player.phone if player and player.phone else '' }}" readonly data-form-control>
                             </div>
-                            
-                            <div class="mb-3">
+
+                            <div class="mb-3" data-form-group>
                                 <label class="form-label">Pronouns</label>
-                                <select class="form-select" id="pronouns" name="pronouns" disabled>
+                                <select class="form-select" id="waitlist-auth-pronouns" name="pronouns" disabled data-form-select>
                                     <option value="">Select pronouns</option>
                                     <option value="he/him" {{ 'selected' if player and player.pronouns == 'he/him' else '' }}>he/him</option>
                                     <option value="she/her" {{ 'selected' if player and player.pronouns == 'she/her' else '' }}>she/her</option>
@@ -190,10 +197,10 @@
                                     <option value="other" {{ 'selected' if player and player.pronouns == 'other' else '' }}>other</option>
                                 </select>
                             </div>
-                            
-                            <div class="mb-3">
+
+                            <div class="mb-3" data-form-group>
                                 <label class="form-label">Jersey Size</label>
-                                <select class="form-select" id="jersey_size" name="jersey_size" disabled>
+                                <select class="form-select" id="waitlist-auth-jersey_size" name="jersey_size" disabled data-form-select>
                                     <option value="">Select size</option>
                                     <option value="XS" {{ 'selected' if player and player.jersey_size == 'XS' else '' }}>XS</option>
                                     <option value="S" {{ 'selected' if player and player.jersey_size == 'S' else '' }}>S</option>
@@ -209,10 +216,10 @@
                         <!-- Availability & Preferences -->
                         <div class="col-md-6">
                             <h6 class="mb-3">Availability & Preferences</h6>
-                            
-                            <div class="mb-3">
+
+                            <div class="mb-3" data-form-group>
                                 <label class="form-label">Expected Weeks Available</label>
-                                <select class="form-select" id="expected_weeks_available" name="expected_weeks_available" disabled>
+                                <select class="form-select" id="waitlist-auth-expected_weeks_available" name="expected_weeks_available" disabled data-form-select>
                                     <option value="">Select availability</option>
                                     <option value="1-2" {{ 'selected' if player and player.expected_weeks_available == '1-2' else '' }}>1-2 weeks</option>
                                     <option value="3-4" {{ 'selected' if player and player.expected_weeks_available == '3-4' else '' }}>3-4 weeks</option>
@@ -221,25 +228,25 @@
                                     <option value="all" {{ 'selected' if player and player.expected_weeks_available == 'all' else '' }}>All weeks</option>
                                 </select>
                             </div>
-                            
-                            <div class="mb-3">
+
+                            <div class="mb-3" data-form-group>
                                 <label class="form-label">Unavailable Dates</label>
-                                <input type="text" class="form-control" id="unavailable_dates" name="unavailable_dates" value="{{ player.unavailable_dates if player and player.unavailable_dates else '' }}" placeholder="e.g., June 15-20, July 4" readonly>
+                                <input type="text" class="form-control" id="unavailable_dates" name="unavailable_dates" value="{{ player.unavailable_dates if player and player.unavailable_dates else '' }}" placeholder="e.g., June 15-20, July 4" readonly data-form-control>
                             </div>
-                            
-                            <div class="mb-3">
+
+                            <div class="mb-3" data-form-group>
                                 <label class="form-label">Interested in Refereeing?</label>
-                                <select class="form-select" id="willing_to_referee" name="willing_to_referee" disabled>
+                                <select class="form-select" id="willing_to_referee" name="willing_to_referee" disabled data-form-select>
                                     <option value="">Select option</option>
                                     <option value="yes" {{ 'selected' if player and player.willing_to_referee == 'yes' else '' }}>Yes</option>
                                     <option value="no" {{ 'selected' if player and player.willing_to_referee == 'no' else '' }}>No</option>
                                     <option value="maybe" {{ 'selected' if player and player.willing_to_referee == 'maybe' else '' }}>Maybe</option>
                                 </select>
                             </div>
-                            
-                            <div class="mb-3">
+
+                            <div class="mb-3" data-form-group>
                                 <label class="form-label">Willing to Switch Teams for a Day?</label>
-                                <select class="form-select" id="team_swap" name="team_swap" disabled>
+                                <select class="form-select" id="team_swap" name="team_swap" disabled data-form-select>
                                     <option value="">Select option</option>
                                     <option value="yes" {{ 'selected' if player and player.team_swap == 'yes' else '' }}>Yes</option>
                                     <option value="no" {{ 'selected' if player and player.team_swap == 'no' else '' }}>No</option>
@@ -253,10 +260,10 @@
                         <!-- Playing Positions -->
                         <div class="col-md-6">
                             <h6 class="mb-3">Playing Positions</h6>
-                            
-                            <div class="mb-3">
+
+                            <div class="mb-3" data-form-group>
                                 <label class="form-label">Favorite Position</label>
-                                <select class="form-select" id="favorite_position" name="favorite_position" disabled>
+                                <select class="form-select" id="waitlist-auth-favorite_position" name="favorite_position" disabled data-form-select>
                                     <option value="">Select position</option>
                                     <option value="Goalkeeper" {{ 'selected' if player and player.favorite_position == 'Goalkeeper' else '' }}>Goalkeeper</option>
                                     <option value="Defender" {{ 'selected' if player and player.favorite_position == 'Defender' else '' }}>Defender</option>
@@ -265,20 +272,20 @@
                                     <option value="Anywhere" {{ 'selected' if player and player.favorite_position == 'Anywhere' else '' }}>Anywhere</option>
                                 </select>
                             </div>
-                            
-                            <div class="mb-3">
+
+                            <div class="mb-3" data-form-group>
                                 <label class="form-label">Other Positions Enjoyed</label>
-                                <input type="text" class="form-control" id="other_positions" name="other_positions" value="{{ player.other_positions.strip('{}').replace(',', ', ') if player and player.other_positions else '' }}" readonly>
+                                <input type="text" class="form-control" id="other_positions" name="other_positions" value="{{ player.other_positions.strip('{}').replace(',', ', ') if player and player.other_positions else '' }}" readonly data-form-control>
                             </div>
-                            
-                            <div class="mb-3">
+
+                            <div class="mb-3" data-form-group>
                                 <label class="form-label">Positions to Avoid</label>
-                                <input type="text" class="form-control" id="positions_not_to_play" name="positions_not_to_play" value="{{ player.positions_not_to_play.strip('{}').replace(',', ', ') if player and player.positions_not_to_play else '' }}" readonly>
+                                <input type="text" class="form-control" id="positions_not_to_play" name="positions_not_to_play" value="{{ player.positions_not_to_play.strip('{}').replace(',', ', ') if player and player.positions_not_to_play else '' }}" readonly data-form-control>
                             </div>
-                            
-                            <div class="mb-3">
+
+                            <div class="mb-3" data-form-group>
                                 <label class="form-label">How Often Do You Want to Play Goal?</label>
-                                <select class="form-select" id="frequency_play_goal" name="frequency_play_goal" disabled>
+                                <select class="form-select" id="waitlist-auth-frequency_play_goal" name="frequency_play_goal" disabled data-form-select>
                                     <option value="">Select frequency</option>
                                     <option value="never" {{ 'selected' if player and player.frequency_play_goal == 'never' else '' }}>Never</option>
                                     <option value="rarely" {{ 'selected' if player and player.frequency_play_goal == 'rarely' else '' }}>Rarely</option>
@@ -292,22 +299,22 @@
                         <!-- Additional Information -->
                         <div class="col-md-6">
                             <h6 class="mb-3">Additional Information</h6>
-                            
-                            <div class="mb-3">
+
+                            <div class="mb-3" data-form-group>
                                 <label class="form-label">Player Notes</label>
                                 <div class="form-text small mb-2">Notes to share with coaches/admins</div>
-                                <textarea class="form-control" id="player_notes" name="player_notes" rows="3" readonly>{{ player.player_notes if player and player.player_notes else '' }}</textarea>
+                                <textarea class="form-control" id="waitlist-auth-player_notes" name="player_notes" rows="3" readonly data-form-control>{{ player.player_notes if player and player.player_notes else '' }}</textarea>
                             </div>
                             
                             <div class="mb-3">
                                 <h6>Profile Status</h6>
                                 {% if player and player.profile_last_updated %}
-                                    <div class="alert alert-success">
+                                    <div class="alert alert-success" data-alert>
                                         <i class="ti ti-check-circle me-2"></i>
                                         Profile updated {{ player.profile_last_updated.strftime('%Y-%m-%d') }}. Looks current!
                                     </div>
                                 {% else %}
-                                    <div class="alert alert-warning">
+                                    <div class="alert alert-warning" data-alert>
                                         <i class="ti ti-alert-circle me-2"></i>
                                         Profile has never been verified. Please review.
                                     </div>
@@ -317,19 +324,19 @@
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="ti ti-x me-1"></i>
-                    Skip for Now
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <button type="button" class="c-btn-modern c-btn-modern--secondary" data-bs-dismiss="modal" data-dismiss>
+                    <i class="ti ti-x"></i>
+                    <span>Skip for Now</span>
                 </button>
                 {% if player %}
-                    <button type="button" class="btn btn-warning" id="editProfileBtn" onclick="toggleEdit()">
-                        <i class="ti ti-edit me-1"></i>
-                        Edit Profile
+                    <button type="button" class="c-btn-modern c-btn-modern--warning" id="editProfileBtn" data-action="toggle-edit">
+                        <i class="ti ti-edit"></i>
+                        <span>Edit Profile</span>
                     </button>
-                    <button type="button" class="btn btn-success" onclick="verifyProfile()">
-                        <i class="ti ti-check me-1"></i>
-                        Confirm Profile is Accurate
+                    <button type="button" class="c-btn-modern c-btn-modern--success" data-action="verify-profile">
+                        <i class="ti ti-check"></i>
+                        <span>Confirm Profile is Accurate</span>
                     </button>
                 {% endif %}
             </div>
@@ -339,156 +346,15 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Auto-focus on join button if not already on waitlist
-        const joinButton = document.querySelector('button[type="submit"]');
-        if (joinButton) {
-            joinButton.focus();
-        }
-        
-        // Handle SweetAlert messages
-        {% if session.sweet_alert %}
-        Swal.fire({
-            title: '{{ session.sweet_alert.title }}',
-            text: '{{ session.sweet_alert.text }}',
-            icon: '{{ session.sweet_alert.icon }}',
-            confirmButtonText: 'OK'
-        });
-        {% endif %}
-    });
-
-    let isEditing = false;
-    
-    // Show profile verification modal
-    function showProfileModal() {
-        const modal = new bootstrap.Modal(document.getElementById('profileModal'));
-        modal.show();
-    }
-    
-    // Toggle edit mode
-    function toggleEdit() {
-        isEditing = !isEditing;
-        const editBtn = document.getElementById('editProfileBtn');
-        const form = document.getElementById('profileForm');
-        const inputs = form.querySelectorAll('input:not([readonly]), select, textarea');
-        
-        if (isEditing) {
-            // Enable editing
-            inputs.forEach(input => {
-                if (input.id !== 'name' && input.id !== 'email') { // Keep name and email readonly
-                    input.removeAttribute('readonly');
-                    input.removeAttribute('disabled');
-                }
-            });
-            editBtn.innerHTML = '<i class="ti ti-x me-1"></i>Cancel Edit';
-            editBtn.className = 'btn btn-secondary';
-        } else {
-            // Disable editing
-            inputs.forEach(input => {
-                if (input.tagName === 'SELECT') {
-                    input.setAttribute('disabled', 'disabled');
-                } else {
-                    input.setAttribute('readonly', 'readonly');
-                }
-            });
-            editBtn.innerHTML = '<i class="ti ti-edit me-1"></i>Edit Profile';
-            editBtn.className = 'btn btn-warning';
-        }
-    }
-    
-    // Verify profile function (now also saves if edited)
-    function verifyProfile() {
-        {% if player %}
-        let profileData = {};
-        
-        // If in edit mode, collect form data
-        if (isEditing) {
-            const form = document.getElementById('profileForm');
-            const formData = new FormData(form);
-            
-            // Convert FormData to object
-            for (let [key, value] of formData.entries()) {
-                profileData[key] = value;
-            }
-        }
-        
-        Swal.fire({
-            title: isEditing ? 'Save & Verify Profile' : 'Verify Profile Information',
-            html: `<div class="text-start">
-                   <p class="mb-2">Please confirm that your profile information is current and accurate.</p>
-                   <p class="mb-2">This includes:</p>
-                   <ul class="mb-3">
-                       <li>Contact information (email, phone)</li>
-                       <li>Player details (jersey size, positions, availability)</li>
-                       <li>Personal information (pronouns, notes)</li>
-                   </ul>
-                   <p class="fw-bold mb-0">By confirming, you ${isEditing ? 'save your changes and' : ''} verify that all information is up to date.</p>
-                   </div>`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: isEditing ? 'Save & Verify' : 'Yes, my profile is accurate',
-            cancelButtonText: 'Cancel',
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
-            showLoaderOnConfirm: true,
-            preConfirm: () => {
-                const url = isEditing ? "{{ url_for('players.update_profile_modal', player_id=player.id) if player else '#' }}" : "{{ url_for('players.verify_profile', player_id=player.id) if player else '#' }}";
-                const method = 'POST';
-                const headers = {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': "{{ csrf_token() }}"
-                };
-                const body = isEditing ? JSON.stringify(profileData) : JSON.stringify({});
-                
-                return fetch(url, {
-                    method: method,
-                    headers: headers,
-                    body: body
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        return data;
-                    } else {
-                        throw new Error(data.message || 'Operation failed');
-                    }
-                })
-                .catch(error => {
-                    Swal.showValidationMessage('Error: ' + error.message);
-                });
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Hide the profile modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('profileModal'));
-                if (modal) {
-                    modal.hide();
-                }
-                
-                // Show success message
-                Swal.fire({
-                    title: isEditing ? 'Profile Updated & Verified!' : 'Profile Verified!',
-                    text: isEditing ? 'Your profile has been updated and verified successfully.' : 'Thank you for confirming your profile information is current.',
-                    icon: 'success',
-                    confirmButtonText: 'Continue to Waitlist'
-                }).then(() => {
-                    // Refresh the page to update the profile status
-                    window.location.reload();
-                });
-            }
-        });
-        {% else %}
-        Swal.fire({
-            title: 'No Player Profile',
-            text: 'No player profile found. Please contact an administrator.',
-            icon: 'error'
-        });
-        {% endif %}
-    }
+    // Pass player data to JavaScript
+    window.playerData = {
+        id: {{ player.id if player else 'null' }},
+        updateUrl: "{{ url_for('players.update_profile_modal', player_id=player.id) if player else '#' }}",
+        verifyUrl: "{{ url_for('players.verify_profile', player_id=player.id) if player else '#' }}",
+        csrfToken: "{{ csrf_token() }}"
+    };
 </script>
+<script src="{{ url_for('static', filename='custom_js/waitlist-register-authenticated.js') }}"></script>
 {% endblock %}

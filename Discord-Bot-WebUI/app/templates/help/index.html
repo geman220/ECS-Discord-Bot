@@ -3,25 +3,46 @@
 
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="fw-bold mb-0">Help Topics</h4>
+    <div class="c-card-modern__header mb-4">
+        <h4 class="c-card-modern__title">Help Topics</h4>
         {% if can_access_admin %}
-        <a href="{{ url_for('help.admin_help_topics') }}" class="btn btn-secondary">Admin Dashboard</a>
+        <div class="c-card-modern__actions">
+            <a href="{{ url_for('help.admin_help_topics') }}" class="c-btn-modern c-btn-modern--secondary">
+                <i class="ti ti-settings c-btn-modern__icon"></i>
+                Admin Dashboard
+            </a>
+        </div>
         {% endif %}
     </div>
-    <div class="card">
-        <div class="card-body">
+    <div class="c-card-modern">
+        <div class="c-card-modern__body">
             <!-- Search Input -->
-            <div class="mb-3">
-                <input type="text" id="search-topic" class="form-control" placeholder="Search help topics...">
+            <div class="c-form-modern__group mb-3">
+                <div class="c-form-modern__input-wrapper">
+                    <i class="ti ti-search c-form-modern__icon"></i>
+                    <input type="text"
+                           class="c-form-modern__input js-search-topics"
+                           placeholder="Search help topics..."
+                           data-action="search-topics">
+                </div>
             </div>
-            <ul class="list-group" id="help-topics-list">
+            <ul class="c-list-modern js-help-topics-list" data-topics-list>
                 {% for topic in topics %}
-                <li class="list-group-item">
-                    <a href="{{ url_for('help.view_topic', topic_id=topic.id) }}">{{ topic.title }}</a>
+                <li class="c-list-modern__item c-list-modern__item--clickable">
+                    <a href="{{ url_for('help.view_topic', topic_id=topic.id) }}"
+                       class="c-list-modern__link"
+                       data-action="view-topic"
+                       data-topic-id="{{ topic.id }}">
+                        <i class="ti ti-book c-list-modern__icon"></i>
+                        {{ topic.title }}
+                        <i class="ti ti-chevron-right c-list-modern__chevron"></i>
+                    </a>
                 </li>
                 {% else %}
-                <li class="list-group-item">No help topics available.</li>
+                <li class="c-list-modern__item c-list-modern__item--empty">
+                    <i class="ti ti-info-circle c-list-modern__icon"></i>
+                    No help topics available.
+                </li>
                 {% endfor %}
             </ul>
         </div>
@@ -30,61 +51,61 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
-    $(document).ready(function () {
+    document.addEventListener('DOMContentLoaded', function () {
         // Initialize Fancybox (if needed)
-        $("[data-fancybox]").fancybox({
-            loop: true,
-            buttons: ["zoom", "slideShow", "fullScreen", "close"],
-            animationEffect: "zoom",
-        });
+        const fancyboxElements = document.querySelectorAll('[data-fancybox]');
+        if (fancyboxElements.length > 0 && typeof Fancybox !== 'undefined') {
+            Fancybox.bind('[data-fancybox]', {
+                loop: true,
+                buttons: ["zoom", "slideShow", "fullScreen", "close"],
+                animationEffect: "zoom",
+            });
+        }
 
-        // Debounced AJAX search for help topics with debugging logs.
+        // Debounced search for help topics using event delegation
         let debounceTimeout;
-        $('#search-topic').on('keyup', function () {
+        document.addEventListener('input', function(e) {
+            const searchInput = e.target.closest('[data-action="search-topics"]');
+            if (!searchInput) return;
+
             clearTimeout(debounceTimeout);
-            let query = $(this).val();
+            const query = searchInput.value;
 
             debounceTimeout = setTimeout(function () {
-                $.ajax({
-                    url: "{{ url_for('help.search_topics') }}",
-                    data: { query: query },
-                    success: function (data) {
+                fetch("{{ url_for('help.search_topics') }}?" + new URLSearchParams({ query: query }))
+                    .then(response => response.json())
+                    .then(data => {
+                        const list = document.querySelector('[data-topics-list]');
+                        list.innerHTML = '';
 
-                        let list = $("#help-topics-list");
-                        list.empty();
                         if (data.topics && data.topics.length) {
                             data.topics.forEach(function (topic) {
-                                // Build topic URL by concatenating the help base URL and the topic id.
-                                let topicUrl = "{{ url_for('help.index') }}".replace(/\/$/, '') + "/" + topic.id;
-                                list.append('<li class="list-group-item"><a href="' + topicUrl + '">' + topic.title + '</a></li>');
+                                const topicUrl = "{{ url_for('help.index') }}".replace(/\/$/, '') + "/" + topic.id;
+                                const li = document.createElement('li');
+                                li.className = 'c-list-modern__item c-list-modern__item--clickable';
+                                li.innerHTML = `
+                                    <a href="${topicUrl}"
+                                       class="c-list-modern__link"
+                                       data-action="view-topic"
+                                       data-topic-id="${topic.id}">
+                                        <i class="ti ti-book c-list-modern__icon"></i>
+                                        ${topic.title}
+                                        <i class="ti ti-chevron-right c-list-modern__chevron"></i>
+                                    </a>
+                                `;
+                                list.appendChild(li);
                             });
                         } else {
-                            list.append('<li class="list-group-item">No help topics available.</li>');
+                            list.innerHTML = '<li class="c-list-modern__item c-list-modern__item--empty"><i class="ti ti-info-circle c-list-modern__icon"></i>No help topics available.</li>';
                         }
-                    },
-                    error: function () {
-                        console.error("Error while searching topics.");
-                    }
-                });
-            }, 300); // Adjust debounce delay as needed.
+                    })
+                    .catch(error => {
+                        console.error("Error while searching topics:", error);
+                    });
+            }, 300);
         });
     });
-
-    function confirmDelete(topicId) {
-        Swal.fire({
-            title: 'Are you sure?',
-            text: "This will permanently delete the help topic.",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-            confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                document.getElementById('delete-form-' + topicId).submit();
-            }
-        });
-    }
 </script>
 {% endblock %}

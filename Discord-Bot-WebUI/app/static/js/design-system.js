@@ -1,6 +1,6 @@
 /**
  * ECS Soccer League Design System Helper
- * 
+ *
  * This script helps enforce consistent application of the design system
  * across all templates by:
  * 1. Converting Bootstrap classes to design system classes
@@ -10,14 +10,14 @@
 
 (function() {
   'use strict';
-  
+
   // Main design system helper
   const ECSDesignSystem = {
     // Initialize the design system
     init: function() {
       // Add the design system stylesheet to the page
       this.ensureStylesheetLoaded();
-      
+
       // Apply consistent styling to standard components
       this.enhanceButtons();
       this.enhanceCards();
@@ -25,17 +25,17 @@
       this.enhanceModals();
       this.enhanceTables();
       this.enhanceNavs();
-      
+
       // Set up responsive behaviors
       this.setupResponsive();
-      
+
       // Set up dark mode
       this.setupDarkMode();
-      
+
       // Add any custom behaviors
       this.setupCustomBehaviors();
     },
-    
+
     // Ensure the ECS CSS architecture is loaded
     ensureStylesheetLoaded: function() {
       // DISABLED: These CSS files don't exist in the project
@@ -49,7 +49,7 @@
         coreLink.href = '/static/css/ecs-core.css';
         document.head.appendChild(coreLink);
       }
-      
+
       // Load components CSS if not already present
       if (!document.getElementById('ecs-components-stylesheet')) {
         const componentsLink = document.createElement('link');
@@ -58,7 +58,7 @@
         componentsLink.href = '/static/css/ecs-components.css';
         document.head.appendChild(componentsLink);
       }
-      
+
       // Load utilities CSS if not already present
       if (!document.getElementById('ecs-utilities-stylesheet')) {
         const utilitiesLink = document.createElement('link');
@@ -69,7 +69,7 @@
       }
       */
     },
-    
+
     // Add consistent styling to buttons
     enhanceButtons: function() {
       // Map Bootstrap button classes to design system classes
@@ -86,12 +86,41 @@
         'btn-sm': 'ecs-btn-sm',
         'btn-lg': 'ecs-btn-lg'
       };
-      
+
+      // Selectors to exclude from button enhancement (BEM components with their own styling)
+      const excludeSelectors = [
+        '.c-admin-nav',         // Admin navigation component
+        '.c-mobile-nav',        // Mobile navigation component
+        '.c-modal',             // BEM modal components
+        '.c-btn-modern',        // BEM button components
+        '.c-form-modern',       // BEM form components
+        '.c-settings-tabs',     // Settings tabs component
+        '.c-messages-inbox',    // Messages inbox component
+        '.c-tabs',              // BEM tabs component
+        '.c-schedule',          // Team schedule accordion
+        '.c-schedule-controls', // Schedule expand/collapse controls
+        '[data-no-enhance]'     // Explicit opt-out attribute
+      ];
+      const excludeSelector = excludeSelectors.join(', ');
+
       // Apply design system classes to buttons
-      document.querySelectorAll('.btn').forEach(button => {
+      document.querySelectorAll('button, [type="button"], [type="submit"], [role="button"]').forEach(button => {
+        // Skip buttons inside excluded components
+        if (button.closest(excludeSelector)) {
+          return;
+        }
+
+        // Skip BEM component buttons that have their own styling
+        if (button.classList.contains('c-tabs__item') ||
+            button.classList.contains('c-btn') ||
+            button.classList.contains('c-nav__item') ||
+            button.classList.contains('c-schedule-controls__btn')) {
+          return;
+        }
+
         if (!button.classList.contains('ecs-btn')) {
           button.classList.add('ecs-btn');
-          
+
           // Add appropriate design system classes
           for (const [bootstrapClass, ecsClass] of Object.entries(btnClassMap)) {
             if (button.classList.contains(bootstrapClass)) {
@@ -103,15 +132,15 @@
               });
             }
           }
-          
+
           // Add icon wrapper if button has an icon
-          if (button.querySelector('i, .feather, .ti, svg')) {
+          if (button.querySelector('[data-icon], [class*="icon-"], [class*="ti-"], [class*="feather-"]')) {
             button.classList.add('ecs-btn-icon');
           }
         }
       });
     },
-    
+
     // Add consistent styling to cards
     enhanceCards: function() {
       // Map Bootstrap card classes to design system classes
@@ -123,7 +152,7 @@
         'card-title': 'ecs-card-title',
         'card-subtitle': 'ecs-card-subtitle'
       };
-      
+
       // Header color mappings
       const headerColorMap = {
         'bg-primary': 'ecs-card-header-primary',
@@ -134,23 +163,23 @@
         'bg-danger': 'ecs-card-header-danger',
         'bg-dark': 'ecs-card-header-dark'
       };
-      
+
       // Apply design system classes to cards
-      document.querySelectorAll('.card').forEach(card => {
+      document.querySelectorAll('[data-component="card"], [data-role*="card"]').forEach(card => {
         if (!card.classList.contains('ecs-card')) {
           card.classList.add('ecs-card');
-          
+
           // Process card components
           Object.entries(cardClassMap).forEach(([bootstrapClass, ecsClass]) => {
-            card.querySelectorAll(`.${bootstrapClass}`).forEach(element => {
+            card.querySelectorAll(`[data-card-part="${bootstrapClass.replace('card-', '')}"]`).forEach(element => {
               if (!element.classList.contains(ecsClass)) {
                 element.classList.add(ecsClass);
               }
             });
           });
-          
+
           // Process card header colors
-          const cardHeader = card.querySelector('.card-header, .ecs-card-header');
+          const cardHeader = card.querySelector('[data-card-part="header"]');
           if (cardHeader) {
             Object.entries(headerColorMap).forEach(([bootstrapClass, ecsClass]) => {
               if (cardHeader.classList.contains(bootstrapClass) && !cardHeader.classList.contains(ecsClass)) {
@@ -161,7 +190,7 @@
         }
       });
     },
-    
+
     // Add consistent styling to forms
     enhanceForms: function() {
       // Map Bootstrap form classes to design system classes
@@ -174,28 +203,31 @@
         'form-text': 'ecs-form-text',
         'form-floating': 'ecs-form-floating'
       };
-      
+
       // Apply design system classes to form elements
       Object.entries(formClassMap).forEach(([bootstrapClass, ecsClass]) => {
-        document.querySelectorAll(`.${bootstrapClass}`).forEach(element => {
+        document.querySelectorAll(`[data-form-element], [data-input-type]`).forEach(element => {
           if (!element.classList.contains(ecsClass)) {
             element.classList.add(ecsClass);
           }
         });
       });
-      
+
       // Handle validation states
-      document.querySelectorAll('.is-valid, .is-invalid').forEach(field => {
-        if (field.classList.contains('is-valid')) {
+      document.querySelectorAll('[data-validation-state="valid"], [data-validation-state="invalid"]').forEach(field => {
+        if (field.getAttribute('data-validation-state') === 'valid') {
           field.classList.add('ecs-is-valid');
-        } else if (field.classList.contains('is-invalid')) {
+        } else if (field.getAttribute('data-validation-state') === 'invalid') {
           field.classList.add('ecs-is-invalid');
         }
       });
     },
-    
+
     // Add consistent styling to modals
     enhanceModals: function() {
+      // Skip BEM modals - they have their own styling
+      const bemModalSelector = '.c-modal';
+
       // Map Bootstrap modal classes to design system classes
       const modalClassMap = {
         'modal': 'ecs-modal',
@@ -212,33 +244,38 @@
         'modal-lg': 'ecs-modal-lg',
         'modal-xl': 'ecs-modal-xl'
       };
-      
-      // Apply design system classes to modals
+
+      // Apply design system classes to modals (skip BEM modals)
       Object.entries(modalClassMap).forEach(([bootstrapClass, ecsClass]) => {
-        document.querySelectorAll(`.${bootstrapClass}`).forEach(element => {
+        document.querySelectorAll(`[data-component="${bootstrapClass}"], [data-modal-part]`).forEach(element => {
+          // Skip if this is a BEM modal
+          if (element.closest(bemModalSelector)) return;
           if (!element.classList.contains(ecsClass)) {
             element.classList.add(ecsClass);
           }
         });
       });
-      
-      // Apply consistent behavior to all modals
-      document.querySelectorAll('.modal, .ecs-modal').forEach(modal => {
+
+      // Apply consistent behavior to all modals (skip BEM modals)
+      document.querySelectorAll('[data-component="modal"], [role="dialog"]').forEach(modal => {
+        // Skip BEM modals - they use their own system
+        if (modal.classList.contains('c-modal')) return;
+
         const modalId = modal.id;
-        
+
         // Handle modal opening - apply design system styles
         modal.addEventListener('show.bs.modal', function() {
           // Enhance any form elements inside the modal
-          this.querySelectorAll('input, select, textarea').forEach(input => {
+          this.querySelectorAll('[data-form-element], [data-input-type]').forEach(input => {
             if (input.classList.contains('form-control')) {
               input.classList.add('ecs-form-control');
             } else if (input.classList.contains('form-select')) {
               input.classList.add('ecs-form-select');
             }
           });
-          
+
           // Enhance buttons inside the modal
-          this.querySelectorAll('.btn').forEach(button => {
+          this.querySelectorAll('button, [type="button"], [type="submit"], [role="button"]').forEach(button => {
             if (!button.classList.contains('ecs-btn')) {
               button.classList.add('ecs-btn');
             }
@@ -246,7 +283,7 @@
         });
       });
     },
-    
+
     // Add consistent styling to tables
     enhanceTables: function() {
       // Map Bootstrap table classes to design system classes
@@ -256,17 +293,17 @@
         'table-striped': 'ecs-table-striped',
         'table-sm': 'ecs-table-sm'
       };
-      
+
       // Apply design system classes to tables
       Object.entries(tableClassMap).forEach(([bootstrapClass, ecsClass]) => {
-        document.querySelectorAll(`.${bootstrapClass}`).forEach(element => {
+        document.querySelectorAll('[data-component="table"], [role="table"]').forEach(element => {
           if (!element.classList.contains(ecsClass)) {
             element.classList.add(ecsClass);
           }
         });
       });
     },
-    
+
     // Add consistent styling to navs and tabs
     enhanceNavs: function() {
       // Map Bootstrap nav classes to design system classes
@@ -277,65 +314,65 @@
         'nav-pills': 'ecs-nav-pills',
         'active': 'ecs-active'
       };
-      
+
       // Apply design system classes to navs
       Object.entries(navClassMap).forEach(([bootstrapClass, ecsClass]) => {
-        document.querySelectorAll(`.${bootstrapClass}`).forEach(element => {
+        document.querySelectorAll('[data-component="nav"], [role="navigation"] > [role="tablist"]').forEach(element => {
           if (!element.classList.contains(ecsClass)) {
             element.classList.add(ecsClass);
           }
         });
       });
-      
+
       // Ensure tab content has proper design system styling
-      document.querySelectorAll('.tab-content, .tab-pane').forEach(element => {
-        if (element.classList.contains('tab-content')) {
+      document.querySelectorAll('[data-component="tab-content"], [role="tabpanel"]').forEach(element => {
+        if (element.hasAttribute('data-component')) {
           element.classList.add('ecs-tab-content');
-        } else if (element.classList.contains('tab-pane')) {
+        } else if (element.hasAttribute('role')) {
           element.classList.add('ecs-tab-pane');
         }
       });
     },
-    
+
     // Set up responsive behaviors
     setupResponsive: function() {
       // Adjust elements based on screen size
       const adjustForScreenSize = () => {
         const isMobile = window.innerWidth < 768;
-        
+
         // Adjust buttons on mobile
         if (isMobile) {
-          document.querySelectorAll('.ecs-btn, .btn').forEach(button => {
+          document.querySelectorAll('button, [type="button"], [type="submit"], [role="button"]').forEach(button => {
             // Make sure mobile buttons have adequate touch targets
             if (!button.classList.contains('btn-sm') && !button.classList.contains('ecs-btn-sm')) {
-              button.style.minHeight = '44px';
+              button.classList.add('touch-target');
             }
           });
-          
+
           // Make sure form controls have adequate size on mobile
           // Exclude checkboxes and radio buttons (they don't trigger iOS zoom)
-          document.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]), select, textarea').forEach(input => {
-            if (!input.style.fontSize || input.style.fontSize < '16px') {
-              input.style.fontSize = '16px';
+          document.querySelectorAll('[data-form-element]:not([type="checkbox"]):not([type="radio"]), [data-input-type]:not([type="checkbox"]):not([type="radio"])').forEach(input => {
+            if (!input.classList.contains('ios-input')) {
+              input.classList.add('ios-input');
             }
           });
         }
       };
-      
+
       // Adjust on page load and resize
       adjustForScreenSize();
       window.addEventListener('resize', adjustForScreenSize);
     },
-    
+
     // Set up dark mode
     setupDarkMode: function() {
       // Watch for changes to BOTH data-style and data-bs-theme attributes on the html element
       const htmlElement = document.documentElement;
-      
+
       // Create an observer to monitor changes to theme attributes
       const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
-          if (mutation.type === 'attributes' && 
+          if (mutation.type === 'attributes' &&
               (mutation.attributeName === 'data-style' || mutation.attributeName === 'data-bs-theme')) {
             const isDarkStyle = htmlElement.getAttribute('data-style') === 'dark';
             const isDarkBsTheme = htmlElement.getAttribute('data-bs-theme') === 'dark';
@@ -344,22 +381,22 @@
           }
         });
       });
-      
+
       // Start observing the html element for changes to theme attributes
       observer.observe(htmlElement, { attributes: true });
-      
+
       // Initial application based on current state
       const isDarkStyle = htmlElement.getAttribute('data-style') === 'dark';
       const isDarkBsTheme = htmlElement.getAttribute('data-bs-theme') === 'dark';
       const isDark = isDarkStyle || isDarkBsTheme;
       this.applyDarkModeToContent(isDark);
-      
+
       // Add dark mode toggle functionality if it doesn't exist
       if (!document.querySelector('.dark-mode-toggle')) {
         this.addDarkModeToggle();
       }
     },
-    
+
     // Apply dark mode to content areas
     // UPDATED: Minimal intervention - let Bootstrap CSS variables handle dark mode
     // Templates now use var(--bs-*) variables which automatically adapt
@@ -371,73 +408,64 @@
       } else {
         document.body.classList.remove('dark-mode-body');
 
-        // Clean up any legacy inline styles that may have been set previously
-        document.querySelectorAll('[style*="--ecs-neutral"]').forEach(element => {
-          element.style.backgroundColor = '';
-          element.style.color = '';
-          element.style.borderColor = '';
-        });
-
+        // Clean up any legacy dark-mode-applied classes from previous state
         document.querySelectorAll('.dark-mode-applied').forEach(element => {
           element.classList.remove('dark-mode-applied');
-          element.style.backgroundColor = '';
-          element.style.color = '';
-          element.style.borderColor = '';
         });
       }
     },
-    
+
     // Add dark mode toggle if it doesn't exist
     addDarkModeToggle: function() {
       // DISABLED: Don't add the toggle at all since there's already one in the navbar.html
       return;
-      
-      /* 
+
+      /*
       // The following code is kept for reference only but is completely commented out
       // to prevent JavaScript syntax errors
-      
+
       const existingToggle = document.querySelector('.style-switcher-toggle');
       if (existingToggle) {
         return; // Don't duplicate if it already exists
       }
-      
+
       const navbar = document.querySelector('.navbar-nav');
       if (navbar) {
         const toggleItem = document.createElement('li');
         toggleItem.className = 'nav-item dark-mode-toggle';
-        
+
         // Check current theme and adjust icon accordingly
         const currentTheme = document.documentElement.getAttribute('data-style') || 'light';
         const icon = currentTheme === 'dark' ? 'ti ti-sun' : 'ti ti-moon-stars';
-        
+
         toggleItem.innerHTML = `
           <a class="nav-link style-switcher-toggle" href="javascript:void(0);" title="Toggle Dark Mode">
             <i class="${icon}"></i>
           </a>
         `;
         navbar.prepend(toggleItem);
-        
+
         // Add click event to toggle dark mode
         toggleItem.querySelector('a').addEventListener('click', () => {
           const html = document.documentElement;
           const currentStyle = html.getAttribute('data-style') || 'light';
           const newStyle = currentStyle === 'dark' ? 'light' : 'dark';
-          
+
           // Update icon
           const iconElement = toggleItem.querySelector('i');
           if (iconElement) {
             iconElement.className = newStyle === 'dark' ? 'ti ti-sun' : 'ti ti-moon-stars';
           }
-          
+
           // Set theme
           html.setAttribute('data-style', newStyle);
-          
+
           // Persist selection
           localStorage.setItem('template-style', newStyle);
-          
+
           // Apply dark mode immediately to ensure all content areas are updated
           this.applyDarkModeToContent(newStyle === 'dark');
-          
+
           // Make an AJAX request to store theme preference server-side
           fetch('/set-theme', {
             method: 'POST',
@@ -451,46 +479,52 @@
       }
       */
     },
-    
+
     // Set up custom behaviors for the design system
     setupCustomBehaviors: function() {
       // Add ripple effect to buttons for better feedback
       this.addRippleEffect();
-      
+
       // Improve keyboard navigation
       this.improveKeyboardNavigation();
-      
+
       // Add support for custom transitions
       this.setupTransitions();
     },
-    
+
     // Add ripple effect to buttons - Modified to prevent button scaling issues
     addRippleEffect: function() {
       // Only apply ripple effect to non-modal buttons to prevent conflicts
-      document.querySelectorAll('.ecs-btn:not([data-bs-toggle="modal"]), .btn:not([data-bs-toggle="modal"]):not(.edit-match-btn)').forEach(button => {
+      document.querySelectorAll('button:not([data-bs-toggle="modal"]), [type="button"]:not([data-bs-toggle="modal"]), [type="submit"]:not([data-bs-toggle="modal"]), [role="button"]:not([data-bs-toggle="modal"])').forEach(button => {
         button.addEventListener('click', function(e) {
           // Skip if this is a modal button
-          if (this.getAttribute('data-bs-toggle') === 'modal' || 
+          if (this.getAttribute('data-bs-toggle') === 'modal' ||
               this.classList.contains('edit-match-btn') ||
               this.closest('[data-bs-toggle="modal"]')) {
             return;
           }
-          
+
           const ripple = document.createElement('span');
-          ripple.classList.add('ripple-effect');
-          
+          ripple.classList.add('waves-ripple');
+
           const rect = this.getBoundingClientRect();
           const size = Math.max(rect.width, rect.height);
-          
-          ripple.style.width = ripple.style.height = `${size}px`;
-          ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
-          ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
-          
-          // Set transform to none to prevent button scaling
-          ripple.style.transform = 'none';
-          
+
+          // Set custom properties for ripple positioning
+          ripple.style.setProperty('--ripple-size', `${size}px`);
+          ripple.style.setProperty('--ripple-left', `${e.clientX - rect.left - size / 2}px`);
+          ripple.style.setProperty('--ripple-top', `${e.clientY - rect.top - size / 2}px`);
+
+          // Add transform-none class to prevent button scaling
+          ripple.classList.add('transform-none');
+
           this.appendChild(ripple);
-          
+
+          // Trigger animation by adding active class
+          setTimeout(() => {
+            ripple.classList.add('waves-ripple-active');
+          }, 10);
+
           setTimeout(() => {
             if (ripple.parentNode) {
               ripple.parentNode.removeChild(ripple);
@@ -498,10 +532,10 @@
           }, 600);
         });
       });
-      
+
       // console.log('Ripple effect added with scaling fix');
     },
-    
+
     // Improve keyboard navigation for better accessibility
     improveKeyboardNavigation: function() {
       // Add focus styles to interactive elements
@@ -509,35 +543,46 @@
         element.addEventListener('focus', function() {
           this.classList.add('ecs-focus');
         });
-        
+
         element.addEventListener('blur', function() {
           this.classList.remove('ecs-focus');
         });
       });
     },
-    
+
     // Set up custom transitions
     setupTransitions: function() {
       // Add slide-in animation for elements with data-ecs-animate="slide-in"
       document.querySelectorAll('[data-ecs-animate="slide-in"]').forEach(element => {
-        element.style.opacity = '0';
-        element.style.transform = 'translateY(20px)';
-        element.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
-        
+        // Add initial state classes (opacity 0, translate down 20px)
+        element.classList.add('opacity-0', 'translate-y-20px', 'transition-smooth');
+
         // Trigger animation after a short delay
         setTimeout(() => {
-          element.style.opacity = '1';
-          element.style.transform = 'translateY(0)';
+          // Add final state classes (opacity 1, translate to normal position)
+          element.classList.remove('opacity-0', 'translate-y-20px');
+          element.classList.add('opacity-100', 'translate-y-0');
         }, 100);
       });
     }
   };
-  
-  // Initialize on DOM ready
-  document.addEventListener('DOMContentLoaded', function() {
-    ECSDesignSystem.init();
-  });
-  
+
   // Make available globally
   window.ECSDesignSystem = ECSDesignSystem;
+
+  // Register with InitSystem if available
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('design-system', function() {
+      ECSDesignSystem.init();
+    }, {
+      priority: 90,
+      description: 'ECS Design System (theme, colors, focus states)',
+      reinitializable: false
+    });
+  } else {
+    // Fallback: Initialize on DOM ready
+    document.addEventListener('DOMContentLoaded', function() {
+      ECSDesignSystem.init();
+    });
+  }
 })();

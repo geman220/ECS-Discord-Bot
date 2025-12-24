@@ -5,57 +5,7 @@
 {% block head %}
 {{ super() }}
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<style>
-    .event-card {
-        border-left: 4px solid var(--ecs-neutral-30, #ccc);
-        margin-bottom: 10px;
-    }
-    .event-card.goal {
-        border-left-color: var(--ecs-success, #28a745);
-    }
-    .event-card.yellow-card {
-        border-left-color: var(--ecs-warning, #ffc107);
-    }
-    .event-card.red-card {
-        border-left-color: var(--ecs-danger, #dc3545);
-    }
-    .player-shift-active {
-        background-color: var(--ecs-success-subtle, #d4edda);
-        border-color: var(--ecs-success-light, #c3e6cb);
-    }
-    .player-shift-inactive {
-        background-color: var(--ecs-neutral-5, #f8f9fa);
-        border-color: var(--ecs-neutral-20, #ddd);
-    }
-    #notifications {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 9999;
-        width: 300px;
-    }
-    #timerDisplay {
-        font-size: 2rem;
-        font-weight: bold;
-    }
-    .team-score {
-        font-size: 3rem;
-        font-weight: bold;
-    }
-    .match-details {
-        background-color: var(--ecs-neutral-5, #f8f9fa);
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 20px;
-    }
-    #reportCompleteMessage {
-        background-color: var(--ecs-success-subtle, #d4edda);
-        border: 1px solid var(--ecs-success-light, #c3e6cb);
-        border-radius: 5px;
-        padding: 10px;
-        margin-bottom: 20px;
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/features/live-reporting.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -63,30 +13,30 @@
     <div class="row mb-4">
         <div class="col-12">
             <h1 class="mb-3">Live Match Reporting</h1>
-            <div id="notifications"></div>
-            
-            <div id="reportCompleteMessage" class="d-none">
+            <div id="notifications" class="live-reporting-notifications"></div>
+
+            <div id="reportCompleteMessage" class="live-reporting-report-complete d-none">
                 <h4>Match Report Submitted</h4>
                 <p>This match has been reported and the data has been saved. Thank you for your contribution!</p>
             </div>
-            
-            <div class="match-details">
+
+            <div class="live-reporting-match-details">
                 <div class="row align-items-center">
                     <div class="col-md-4 text-center">
-                        <h3 id="homeTeamName">Home Team</h3>
-                        <div class="team-score" id="homeScore">0</div>
+                        <h3 id="homeTeamName" class="live-reporting-team-name">Home Team</h3>
+                        <div class="live-reporting-team-score" id="homeScore">0</div>
                     </div>
                     <div class="col-md-4 text-center">
-                        <div>
-                            <span id="matchStatusBadge" class="badge bg-success">In Progress</span>
+                        <div class="live-reporting-status-container">
+                            <span id="matchStatusBadge" class="badge bg-success" data-badge>In Progress</span>
                         </div>
-                        <div id="timerDisplay" class="mt-2 mb-2">00:00</div>
-                        <div class="btn-group">
-                            <button id="startStopTimer" class="btn btn-success">Start Timer</button>
-                            <button id="resetTimer" class="btn btn-outline-danger">Reset</button>
+                        <div id="timerDisplay" class="live-reporting-timer mt-2 mb-2">00:00</div>
+                        <div class="btn-group live-reporting-timer-controls">
+                            <button id="startStopTimer" class="c-btn c-btn--success">Start Timer</button>
+                            <button id="resetTimer" class="c-btn c-btn--outline-danger">Reset</button>
                         </div>
-                        <div class="mt-2">
-                            <select id="periodSelector" class="form-select">
+                        <div class="live-reporting-period-selector">
+                            <select id="periodSelector" class="form-select" data-form-select>
                                 <option value="first_half">First Half</option>
                                 <option value="second_half">Second Half</option>
                                 <option value="halftime">Halftime</option>
@@ -98,8 +48,8 @@
                         </div>
                     </div>
                     <div class="col-md-4 text-center">
-                        <h3 id="awayTeamName">Away Team</h3>
-                        <div class="team-score" id="awayScore">0</div>
+                        <h3 id="awayTeamName" class="live-reporting-team-name">Away Team</h3>
+                        <div class="live-reporting-team-score" id="awayScore">0</div>
                     </div>
                 </div>
             </div>
@@ -109,39 +59,39 @@
     <div class="row">
         <!-- Score Control Panel -->
         <div class="col-md-3">
-            <div class="card">
-                <div class="card-header">
+            <div class="c-card live-reporting-card">
+                <div class="c-card__header">
                     <h5>Score Controls</h5>
                 </div>
-                <div class="card-body">
-                    <div class="row mb-3">
-                        <div class="col-6">
+                <div class="c-card__body">
+                    <div class="live-reporting-score-controls">
+                        <div>
                             <label for="homeScoreControls">Home Score</label>
-                            <div id="homeScoreControls" class="input-group">
-                                <button id="decreaseHomeScore" class="btn btn-outline-secondary">-</button>
-                                <span class="form-control text-center" id="homeScoreDisplay">0</span>
-                                <button id="increaseHomeScore" class="btn btn-outline-secondary">+</button>
+                            <div id="homeScoreControls" class="input-group live-reporting-input-group" data-input-group>
+                                <button id="decreaseHomeScore" class="c-btn c-btn--outline-secondary">-</button>
+                                <span class="form-control live-reporting-score-display" id="homeScoreDisplay">0</span>
+                                <button id="increaseHomeScore" class="c-btn c-btn--outline-secondary">+</button>
                             </div>
                         </div>
-                        <div class="col-6">
+                        <div>
                             <label for="awayScoreControls">Away Score</label>
-                            <div id="awayScoreControls" class="input-group">
-                                <button id="decreaseAwayScore" class="btn btn-outline-secondary">-</button>
-                                <span class="form-control text-center" id="awayScoreDisplay">0</span>
-                                <button id="increaseAwayScore" class="btn btn-outline-secondary">+</button>
+                            <div id="awayScoreControls" class="input-group live-reporting-input-group" data-input-group>
+                                <button id="decreaseAwayScore" class="c-btn c-btn--outline-secondary">-</button>
+                                <span class="form-control live-reporting-score-display" id="awayScoreDisplay">0</span>
+                                <button id="increaseAwayScore" class="c-btn c-btn--outline-secondary">+</button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            
-            <div class="card mt-3">
-                <div class="card-header">
+
+            <div class="c-card live-reporting-card mt-3">
+                <div class="c-card__header">
                     <h5>Active Reporters</h5>
                 </div>
-                <div class="card-body">
-                    <ul id="reportersList" class="list-group">
-                        <li class="list-group-item">Loading reporters...</li>
+                <div class="c-card__body">
+                    <ul id="reportersList" class="list-group live-reporting-reporters-list">
+                        <li class="list-group-item live-reporting-loading">Loading reporters...</li>
                     </ul>
                 </div>
             </div>
@@ -149,15 +99,15 @@
         
         <!-- Event Entry Panel -->
         <div class="col-md-5">
-            <div class="card">
-                <div class="card-header">
+            <div class="c-card live-reporting-card">
+                <div class="c-card__header">
                     <h5>Add Match Event</h5>
                 </div>
-                <div class="card-body">
-                    <form id="addEventForm">
+                <div class="c-card__body">
+                    <form id="addEventForm" class="live-reporting-event-form">
                         <div class="mb-3">
                             <label for="eventType" class="form-label">Event Type</label>
-                            <select id="eventType" class="form-select" required>
+                            <select id="eventType" class="form-select" required data-form-select>
                                 <option value="">Select Event Type</option>
                                 <option value="GOAL">Goal</option>
                                 <option value="YELLOW_CARD">Yellow Card</option>
@@ -170,7 +120,7 @@
                         
                         <div class="mb-3">
                             <label for="eventTeam" class="form-label">Team</label>
-                            <select id="eventTeam" class="form-select" required>
+                            <select id="eventTeam" class="form-select" required data-form-select>
                                 <option value="">Select Team</option>
                                 {% if match %}
                                 <option value="{{ match.home_team_id }}">{{ match.home_team.name }}</option>
@@ -181,7 +131,7 @@
                         
                         <div id="playerSelectGroup" class="mb-3 d-none">
                             <label for="eventPlayer" class="form-label">Player</label>
-                            <select id="eventPlayer" class="form-select">
+                            <select id="eventPlayer" class="form-select" data-form-select>
                                 <option value="">Select Player</option>
                                 <!-- Will be populated via JavaScript -->
                             </select>
@@ -189,7 +139,7 @@
                         
                         <div id="substitutionFields" class="mb-3 d-none">
                             <label for="playerOut" class="form-label">Player Out</label>
-                            <select id="playerOut" class="form-select">
+                            <select id="playerOut" class="form-select" data-form-select>
                                 <option value="">Select Player Out</option>
                                 <!-- Will be populated via JavaScript -->
                             </select>
@@ -197,48 +147,46 @@
                         
                         <div class="mb-3">
                             <label for="eventMinute" class="form-label">Minute</label>
-                            <input type="number" id="eventMinute" class="form-control" min="0" placeholder="Match minute">
+                            <input type="number" id="eventMinute" class="form-control" min="0" placeholder="Match minute" data-form-control>
                         </div>
                         
-                        <button type="submit" class="btn btn-primary">Add Event</button>
+                        <button type="submit" class="c-btn c-btn--primary">Add Event</button>
                     </form>
                 </div>
             </div>
-            
-            <div class="card mt-3">
-                <div class="card-header">
+
+            <div class="c-card live-reporting-card mt-3">
+                <div class="c-card__header">
                     <h5>Match Events</h5>
                 </div>
-                <div class="card-body">
-                    <ul id="eventsList" class="list-group">
-                        <li class="list-group-item">No events recorded yet</li>
-                    </ul>
+                <div class="c-card__body">
+                    <div id="eventsList" class="live-reporting-events-list"></div>
                 </div>
             </div>
         </div>
         
         <!-- Player Shifts & Notes Panel -->
         <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
+            <div class="c-card live-reporting-card">
+                <div class="c-card__header">
                     <h5>Player Shifts (Your Team Only)</h5>
                 </div>
-                <div class="card-body">
-                    <div id="playerShiftsContainer">
-                        <p>Loading player shifts...</p>
+                <div class="c-card__body">
+                    <div id="playerShiftsContainer" class="live-reporting-shifts-container">
+                        <p class="live-reporting-loading">Loading player shifts...</p>
                     </div>
                 </div>
             </div>
-            
-            <div class="card mt-3">
-                <div class="card-header">
+
+            <div class="c-card live-reporting-card mt-3">
+                <div class="c-card__header">
                     <h5>Match Notes</h5>
                 </div>
-                <div class="card-body">
-                    <textarea id="matchNotes" class="form-control" rows="5" placeholder="Enter any additional notes about the match here..."></textarea>
-                    
-                    <div class="mt-3">
-                        <button id="submitReportBtn" class="btn btn-success btn-lg w-100">Submit Final Report</button>
+                <div class="c-card__body">
+                    <textarea id="matchNotes" class="form-control live-reporting-notes" rows="5" placeholder="Enter any additional notes about the match here..." data-form-control></textarea>
+
+                    <div>
+                        <button id="submitReportBtn" class="c-btn c-btn--success c-btn--lg w-100 live-reporting-submit-btn">Submit Final Report</button>
                     </div>
                 </div>
             </div>
@@ -247,26 +195,43 @@
 </div>
 
 <!-- Hidden data for JavaScript -->
-<div id="homeTeamPlayers" data-players="{{ home_players|tojson }}" style="display: none;"></div>
-<div id="awayTeamPlayers" data-players="{{ away_players|tojson }}" style="display: none;"></div>
+<div id="homeTeamPlayers" data-players="{{ home_players|tojson }}" class="live-reporting-hidden-data"></div>
+<div id="awayTeamPlayers" data-players="{{ away_players|tojson }}" class="live-reporting-hidden-data"></div>
 {% endblock %}
 
 {% block custom_js %}
 {{ super() }}
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <script src="{{ url_for('static', filename='custom_js/live_reporting.js') }}"></script>
-<script>
-    $(document).ready(function() {
-        // Initialize live reporting
-        LiveReporting.init({
-            matchId: {{ match.id }},
-            teamId: {{ team_id }},
-            socketUrl: window.location.origin
-        });
-        
+<script
+    data-match-id="{{ match.id }}"
+    data-team-id="{{ team_id }}"
+    data-socket-url="{{ request.host_url }}">
+// Initialize live reporting using data attributes
+document.addEventListener('DOMContentLoaded', function() {
+    const script = document.currentScript;
+    const config = {
+        matchId: parseInt(script.dataset.matchId),
+        teamId: parseInt(script.dataset.teamId),
+        socketUrl: script.dataset.socketUrl.replace(/\/$/, '') // Remove trailing slash
+    };
+
+    if (typeof LiveReporting !== 'undefined') {
+        LiveReporting.init(config);
+
         // Update score displays to match the score controls
-        $('#homeScoreDisplay').text($('#homeScore').text());
-        $('#awayScoreDisplay').text($('#awayScore').text());
-    });
+        const homeScore = document.getElementById('homeScore');
+        const awayScore = document.getElementById('awayScore');
+        const homeScoreDisplay = document.getElementById('homeScoreDisplay');
+        const awayScoreDisplay = document.getElementById('awayScoreDisplay');
+
+        if (homeScore && homeScoreDisplay) {
+            homeScoreDisplay.textContent = homeScore.textContent;
+        }
+        if (awayScore && awayScoreDisplay) {
+            awayScoreDisplay.textContent = awayScore.textContent;
+        }
+    }
+});
 </script>
 {% endblock %}

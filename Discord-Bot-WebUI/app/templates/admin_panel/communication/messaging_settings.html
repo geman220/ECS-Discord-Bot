@@ -1,0 +1,845 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Messaging Settings - Admin Panel{% endblock %}
+
+{% block panel_description %}Configure in-app messaging system settings{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="c-breadcrumb__item">
+  <a href="{{ url_for('admin_panel.communication_hub') }}" class="c-breadcrumb__link">Communication</a>
+</li>
+<li class="c-breadcrumb__item c-breadcrumb__item--active" aria-current="page">Messaging Settings</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="c-messaging-settings" data-component="messaging-settings">
+
+  {# Page Header #}
+  <div class="c-page-header">
+    <div class="c-page-header__content">
+      <h4 class="c-page-header__title">
+        <i class="ti ti-settings me-2" aria-hidden="true"></i>
+        In-App Messaging Settings
+      </h4>
+      <p class="c-page-header__subtitle">Configure the direct messaging system for players, coaches, and admins</p>
+    </div>
+    <div class="c-page-header__actions">
+      <a href="{{ url_for('messages_pages.messages_inbox') }}" class="c-btn c-btn--outline-primary" target="_blank">
+        <i class="ti ti-external-link me-1" aria-hidden="true"></i>
+        Open Messages
+      </a>
+    </div>
+  </div>
+
+  {# Statistics #}
+  <div class="c-stats-grid">
+    <div class="c-stat-card">
+      <div class="c-stat-card__value">{{ stats.total_messages }}</div>
+      <div class="c-stat-card__label">Total Messages</div>
+    </div>
+    <div class="c-stat-card">
+      <div class="c-stat-card__value">{{ stats.messages_today }}</div>
+      <div class="c-stat-card__label">Messages Today</div>
+    </div>
+    <div class="c-stat-card">
+      <div class="c-stat-card__value">{{ stats.total_conversations }}</div>
+      <div class="c-stat-card__label">Conversations</div>
+    </div>
+    <div class="c-stat-card">
+      <div class="c-stat-card__value">{{ stats.unread_messages }}</div>
+      <div class="c-stat-card__label">Unread</div>
+    </div>
+  </div>
+
+  <div class="c-settings-sections">
+
+    {# Global Settings #}
+    <div class="c-card" data-card>
+      <div class="c-card__header">
+        <div class="c-card__title">
+          <i class="ti ti-adjustments c-card__title-icon" aria-hidden="true"></i>
+          <span>Global Settings</span>
+        </div>
+      </div>
+      <div class="c-card__body">
+        <form action="{{ url_for('admin_panel.update_messaging_settings') }}" method="POST" class="c-settings-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          {# Enable/Disable Toggle #}
+          <div class="c-toggle-row">
+            <div class="c-toggle-row__info">
+              <p class="c-toggle-row__label">Enable Messaging System</p>
+              <p class="c-toggle-row__description">Allow users to send direct messages to each other</p>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="enabled" name="enabled"
+                     {{ 'checked' if settings.enabled else '' }}>
+            </div>
+          </div>
+
+          {# Typing Indicators #}
+          <div class="c-toggle-row">
+            <div class="c-toggle-row__info">
+              <p class="c-toggle-row__label">Typing Indicators</p>
+              <p class="c-toggle-row__description">Show when someone is typing a message</p>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="typing_indicators" name="typing_indicators"
+                     {{ 'checked' if settings.typing_indicators else '' }}>
+            </div>
+          </div>
+
+          {# Read Receipts #}
+          <div class="c-toggle-row">
+            <div class="c-toggle-row__info">
+              <p class="c-toggle-row__label">Read Receipts</p>
+              <p class="c-toggle-row__description">Show when messages have been read</p>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="read_receipts" name="read_receipts"
+                     {{ 'checked' if settings.read_receipts else '' }}>
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="max_message_length" class="form-label">Max Message Length</label>
+                <input type="number" class="form-control" id="max_message_length" name="max_message_length"
+                       value="{{ settings.max_message_length }}" min="100" max="10000">
+                <div class="form-text">Maximum characters per message (100-10,000)</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="message_retention_days" class="form-label">Message Retention</label>
+                <input type="number" class="form-control" id="message_retention_days" name="message_retention_days"
+                       value="{{ settings.message_retention_days }}" min="7" max="365">
+                <div class="form-text">Days to keep messages before cleanup (7-365)</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-end mt-3">
+            <button type="submit" class="c-btn c-btn--primary">
+              <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>
+              Save Settings
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {# Role Permissions - Card-Based UI #}
+    <div class="c-card" data-card>
+      <div class="c-card__header">
+        <div class="c-card__title">
+          <i class="ti ti-shield-check c-card__title-icon" aria-hidden="true"></i>
+          <span>Role Messaging Permissions</span>
+        </div>
+        <span class="c-badge c-badge--info">{{ roles|length }} roles configured</span>
+      </div>
+      <div class="c-card__body">
+        <p class="text-muted mb-4">
+          Configure which roles can send messages to which other roles. Click "Edit" to modify a role's permissions.
+        </p>
+
+        <form action="{{ url_for('admin_panel.bulk_update_messaging_permissions') }}" method="POST" id="permissionsForm">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          {# Role Permission Cards Grid #}
+          <div class="c-permission-cards">
+            {% for sender_role in roles %}
+            {% set allowed_roles = [] %}
+            {% for recipient_role in roles %}
+              {% set perm_key = sender_role.id|string + '_' + recipient_role.id|string %}
+              {% if permissions.get(perm_key, False) %}
+                {% set _ = allowed_roles.append(recipient_role) %}
+              {% endif %}
+            {% endfor %}
+
+            <div class="c-permission-card" data-role-id="{{ sender_role.id }}">
+              <div class="c-permission-card__header">
+                <div class="c-permission-card__role">
+                  <i class="ti ti-shield c-permission-card__icon" aria-hidden="true"></i>
+                  <span class="c-permission-card__name">{{ sender_role.name }}</span>
+                </div>
+                <button type="button" class="c-btn c-btn--sm c-btn--ghost" data-action="edit-permissions" data-role-id="{{ sender_role.id }}" data-role-name="{{ sender_role.name }}">
+                  <i class="ti ti-edit" aria-hidden="true"></i>
+                  <span>Edit</span>
+                </button>
+              </div>
+
+              <div class="c-permission-card__body">
+                <div class="c-permission-card__label">Can message:</div>
+                <div class="c-permission-card__recipients" id="recipients-{{ sender_role.id }}">
+                  {% if allowed_roles %}
+                    {% for recipient in allowed_roles %}
+                    <span class="c-permission-pill" data-recipient-id="{{ recipient.id }}">
+                      {{ recipient.name }}
+                    </span>
+                    {% endfor %}
+                  {% else %}
+                    <span class="c-permission-card__empty">No roles selected</span>
+                  {% endif %}
+                </div>
+              </div>
+
+              {# Hidden checkboxes for form submission #}
+              <div class="c-permission-card__inputs u-hidden">
+                {% for recipient_role in roles %}
+                {% set perm_key = sender_role.id|string + '_' + recipient_role.id|string %}
+                {% set is_allowed = permissions.get(perm_key, False) %}
+                <input type="checkbox" name="perm_{{ sender_role.id }}_{{ recipient_role.id }}"
+                       id="perm_{{ sender_role.id }}_{{ recipient_role.id }}"
+                       {{ 'checked' if is_allowed else '' }}
+                       data-recipient-name="{{ recipient_role.name }}">
+                {% endfor %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+
+          {# Quick Actions #}
+          <div class="c-permission-actions">
+            <div class="c-permission-actions__presets">
+              <span class="c-permission-actions__label">Quick Presets:</span>
+              <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary" id="presetAllToAll">
+                <i class="ti ti-arrows-exchange me-1" aria-hidden="true"></i>
+                Everyone → Everyone
+              </button>
+              <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary" id="presetAdminToAll">
+                <i class="ti ti-crown me-1" aria-hidden="true"></i>
+                Admins → Everyone
+              </button>
+              <button type="button" class="c-btn c-btn--sm c-btn--outline-danger" id="presetClearAll">
+                <i class="ti ti-x me-1" aria-hidden="true"></i>
+                Clear All
+              </button>
+            </div>
+            <button type="submit" class="c-btn c-btn--primary">
+              <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>
+              Save All Permissions
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {# Edit Permissions Modal #}
+    <div class="modal c-modal fade" id="editPermissionsModal" tabindex="-1" aria-labelledby="editPermissionsModalLabel" aria-hidden="true">
+      <div class="modal-dialog c-modal__dialog modal-dialog-centered">
+        <div class="modal-content c-modal__content">
+          <div class="modal-header c-modal__header">
+            <h5 class="modal-title c-modal__title" id="editPermissionsModalLabel">
+              <i class="ti ti-edit me-2" aria-hidden="true"></i>
+              Edit Permissions: <span id="modalRoleName">Role</span>
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body c-modal__body">
+            <p class="text-muted mb-3">Select which roles <strong id="modalRoleNameText">this role</strong> can send messages to:</p>
+
+            <div class="c-permission-checklist" id="permissionChecklist">
+              {# Dynamically populated #}
+            </div>
+
+            <div class="c-permission-modal-actions mt-3">
+              <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary" id="modalSelectAll">
+                <i class="ti ti-checkbox me-1" aria-hidden="true"></i>
+                Select All
+              </button>
+              <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary" id="modalDeselectAll">
+                <i class="ti ti-square me-1" aria-hidden="true"></i>
+                Deselect All
+              </button>
+            </div>
+          </div>
+          <div class="modal-footer c-modal__footer">
+            <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="c-btn c-btn--primary" id="savePermissions">
+              <i class="ti ti-check me-1" aria-hidden="true"></i>
+              Apply Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# Quick Actions #}
+    <div class="c-card" data-card>
+      <div class="c-card__header">
+        <div class="c-card__title">
+          <i class="ti ti-bolt c-card__title-icon" aria-hidden="true"></i>
+          <span>Quick Actions</span>
+        </div>
+      </div>
+      <div class="c-card__body">
+        <div class="d-flex flex-wrap gap-2">
+          <a href="{{ url_for('messages_pages.messages_inbox') }}" class="c-btn c-btn--outline-primary" target="_blank">
+            <i class="ti ti-inbox me-1" aria-hidden="true"></i>
+            View Messages Inbox
+          </a>
+          <button type="button" class="c-btn c-btn--outline-secondary" data-bs-toggle="modal" data-bs-target="#messageStatsModal">
+            <i class="ti ti-chart-bar me-1" aria-hidden="true"></i>
+            View Statistics
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+{# Statistics Modal #}
+<div class="modal c-modal fade" id="messageStatsModal" tabindex="-1" aria-labelledby="messageStatsModalLabel" aria-hidden="true">
+  <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg">
+    <div class="modal-content c-modal__content">
+      <div class="modal-header c-modal__header">
+        <h5 class="modal-title c-modal__title" id="messageStatsModalLabel">
+          <i class="ti ti-chart-bar me-2" aria-hidden="true"></i>
+          Messaging Statistics
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body c-modal__body">
+        <div id="statsContent">
+          <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block custom_css %}
+{{ super() }}
+<style>
+  .c-messaging-settings {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .c-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .c-page-header__title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  .c-page-header__subtitle {
+    margin: 0.25rem 0 0;
+    color: var(--bs-secondary-color);
+    font-size: 0.875rem;
+  }
+
+  /* Stats Grid */
+  .c-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+
+  .c-stat-card {
+    padding: 1rem;
+    background: rgba(var(--bs-primary-rgb), 0.05);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.5rem;
+    text-align: center;
+  }
+
+  .c-stat-card__value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--bs-primary);
+    line-height: 1;
+  }
+
+  .c-stat-card__label {
+    font-size: 0.75rem;
+    color: var(--bs-secondary-color);
+    margin-top: 0.25rem;
+  }
+
+  .c-settings-sections {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  /* Toggle rows */
+  .c-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+  }
+
+  .c-toggle-row:last-child {
+    border-bottom: none;
+  }
+
+  .c-toggle-row__info {
+    flex: 1;
+  }
+
+  .c-toggle-row__label {
+    font-weight: 500;
+    margin: 0;
+  }
+
+  .c-toggle-row__description {
+    font-size: 0.8125rem;
+    color: var(--bs-secondary-color);
+    margin: 0;
+  }
+
+  /* ==========================================
+     Permission Cards - Card-based UI
+     ========================================== */
+
+  .c-permission-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .c-permission-card {
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .c-permission-card:hover {
+    border-color: var(--bs-primary);
+    box-shadow: 0 2px 8px rgba(var(--bs-primary-rgb), 0.1);
+  }
+
+  .c-permission-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: rgba(var(--bs-primary-rgb), 0.05);
+    border-bottom: 1px solid var(--bs-border-color);
+  }
+
+  .c-permission-card__role {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .c-permission-card__icon {
+    color: var(--bs-primary);
+    font-size: 1rem;
+  }
+
+  .c-permission-card__name {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--bs-body-color);
+  }
+
+  .c-permission-card__body {
+    padding: 0.75rem 1rem;
+    min-height: 80px;
+  }
+
+  .c-permission-card__label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--bs-secondary-color);
+    margin-bottom: 0.5rem;
+  }
+
+  .c-permission-card__recipients {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .c-permission-card__empty {
+    font-size: 0.8125rem;
+    color: var(--bs-secondary-color);
+    font-style: italic;
+  }
+
+  /* Permission Pills */
+  .c-permission-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--bs-primary);
+    background: rgba(var(--bs-primary-rgb), 0.1);
+    border-radius: 9999px;
+    white-space: nowrap;
+  }
+
+  /* Permission Actions Footer */
+  .c-permission-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--bs-border-color);
+  }
+
+  .c-permission-actions__presets {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .c-permission-actions__label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--bs-secondary-color);
+  }
+
+  /* Modal Checklist */
+  .c-permission-checklist {
+    display: grid;
+    gap: 0.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 0.5rem;
+    background: rgba(var(--bs-secondary-rgb), 0.03);
+    border-radius: 0.375rem;
+  }
+
+  .c-permission-check-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .c-permission-check-item:hover {
+    border-color: var(--bs-primary);
+    background: rgba(var(--bs-primary-rgb), 0.03);
+  }
+
+  .c-permission-check-item input[type="checkbox"] {
+    width: 1.125rem;
+    height: 1.125rem;
+    cursor: pointer;
+  }
+
+  .c-permission-check-item label {
+    flex: 1;
+    cursor: pointer;
+    font-size: 0.875rem;
+    margin: 0;
+  }
+
+  .c-permission-modal-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  /* Dark Mode Overrides */
+  [data-style="dark"] .c-permission-card {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  [data-style="dark"] .c-permission-card:hover {
+    border-color: var(--bs-primary);
+    box-shadow: 0 2px 8px rgba(96, 165, 250, 0.15);
+  }
+
+  [data-style="dark"] .c-permission-card__header {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  [data-style="dark"] .c-permission-pill {
+    background: rgba(96, 165, 250, 0.2);
+    color: #93c5fd;
+  }
+
+  [data-style="dark"] .c-permission-checklist {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  [data-style="dark"] .c-permission-check-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .c-page-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .c-permission-cards {
+      grid-template-columns: 1fr;
+    }
+
+    .c-permission-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .c-permission-actions__presets {
+      justify-content: center;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+  // ========================================
+  // Permission Card Modal Management
+  // ========================================
+
+  let currentRoleId = null;
+  const editModal = document.getElementById('editPermissionsModal');
+  const modalInstance = editModal ? new bootstrap.Modal(editModal) : null;
+
+  // Handle Edit button clicks (event delegation)
+  document.addEventListener('click', function(e) {
+    const editBtn = e.target.closest('[data-action="edit-permissions"]');
+    if (editBtn) {
+      e.preventDefault();
+      currentRoleId = editBtn.dataset.roleId;
+      const roleName = editBtn.dataset.roleName;
+      openPermissionModal(currentRoleId, roleName);
+    }
+  });
+
+  function openPermissionModal(roleId, roleName) {
+    // Update modal title
+    document.getElementById('modalRoleName').textContent = roleName;
+    document.getElementById('modalRoleNameText').textContent = roleName;
+
+    // Build checklist from hidden inputs
+    const card = document.querySelector(`[data-role-id="${roleId}"]`);
+    const inputs = card.querySelectorAll('.c-permission-card__inputs input[type="checkbox"]');
+    const checklist = document.getElementById('permissionChecklist');
+
+    let html = '';
+    inputs.forEach(input => {
+      const recipientName = input.dataset.recipientName;
+      const isChecked = input.checked;
+      html += `
+        <div class="c-permission-check-item">
+          <input type="checkbox" id="modal_${input.id}" ${isChecked ? 'checked' : ''} data-original-id="${input.id}">
+          <label for="modal_${input.id}">${recipientName}</label>
+        </div>
+      `;
+    });
+    checklist.innerHTML = html;
+
+    modalInstance.show();
+  }
+
+  // Save permissions from modal
+  document.getElementById('savePermissions')?.addEventListener('click', function() {
+    const card = document.querySelector(`[data-role-id="${currentRoleId}"]`);
+    const checklist = document.getElementById('permissionChecklist');
+    const modalInputs = checklist.querySelectorAll('input[type="checkbox"]');
+
+    // Update hidden form checkboxes
+    modalInputs.forEach(modalInput => {
+      const originalId = modalInput.dataset.originalId;
+      const originalInput = document.getElementById(originalId);
+      if (originalInput) {
+        originalInput.checked = modalInput.checked;
+      }
+    });
+
+    // Update visual pills display
+    updateCardDisplay(currentRoleId);
+
+    modalInstance.hide();
+  });
+
+  function updateCardDisplay(roleId) {
+    const card = document.querySelector(`[data-role-id="${roleId}"]`);
+    const inputs = card.querySelectorAll('.c-permission-card__inputs input[type="checkbox"]');
+    const recipientsContainer = card.querySelector('.c-permission-card__recipients');
+
+    let pills = [];
+    inputs.forEach(input => {
+      if (input.checked) {
+        pills.push(`<span class="c-permission-pill" data-recipient-id="${input.id.split('_')[2]}">${input.dataset.recipientName}</span>`);
+      }
+    });
+
+    if (pills.length > 0) {
+      recipientsContainer.innerHTML = pills.join('');
+    } else {
+      recipientsContainer.innerHTML = '<span class="c-permission-card__empty">No roles selected</span>';
+    }
+  }
+
+  // Modal select/deselect all
+  document.getElementById('modalSelectAll')?.addEventListener('click', function() {
+    document.querySelectorAll('#permissionChecklist input[type="checkbox"]').forEach(cb => cb.checked = true);
+  });
+
+  document.getElementById('modalDeselectAll')?.addEventListener('click', function() {
+    document.querySelectorAll('#permissionChecklist input[type="checkbox"]').forEach(cb => cb.checked = false);
+  });
+
+  // ========================================
+  // Quick Presets
+  // ========================================
+
+  document.getElementById('presetAllToAll')?.addEventListener('click', function() {
+    document.querySelectorAll('.c-permission-card__inputs input[type="checkbox"]').forEach(cb => cb.checked = true);
+    updateAllCardDisplays();
+    showToast('All roles can now message all roles', 'success');
+  });
+
+  document.getElementById('presetAdminToAll')?.addEventListener('click', function() {
+    // First clear all
+    document.querySelectorAll('.c-permission-card__inputs input[type="checkbox"]').forEach(cb => cb.checked = false);
+
+    // Then enable for admin roles (look for "admin" in role name)
+    document.querySelectorAll('.c-permission-card').forEach(card => {
+      const roleName = card.querySelector('.c-permission-card__name').textContent.toLowerCase();
+      if (roleName.includes('admin') || roleName.includes('administrator') || roleName.includes('owner')) {
+        card.querySelectorAll('.c-permission-card__inputs input[type="checkbox"]').forEach(cb => cb.checked = true);
+      }
+    });
+    updateAllCardDisplays();
+    showToast('Admin roles can now message all roles', 'success');
+  });
+
+  document.getElementById('presetClearAll')?.addEventListener('click', function() {
+    if (confirm('Are you sure you want to clear all messaging permissions?')) {
+      document.querySelectorAll('.c-permission-card__inputs input[type="checkbox"]').forEach(cb => cb.checked = false);
+      updateAllCardDisplays();
+      showToast('All permissions cleared', 'warning');
+    }
+  });
+
+  function updateAllCardDisplays() {
+    document.querySelectorAll('.c-permission-card').forEach(card => {
+      updateCardDisplay(card.dataset.roleId);
+    });
+  }
+
+  function showToast(message, type = 'info') {
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: type,
+        title: message,
+        showConfirmButton: false,
+        timer: 3000
+      });
+    }
+  }
+
+  // ========================================
+  // Statistics Modal
+  // ========================================
+
+  const statsModal = document.getElementById('messageStatsModal');
+  if (statsModal) {
+    statsModal.addEventListener('show.bs.modal', function() {
+      loadMessageStats();
+    });
+  }
+
+  async function loadMessageStats() {
+    const container = document.getElementById('statsContent');
+    try {
+      const response = await fetch('{{ url_for("admin_panel.messaging_stats_api") }}');
+      const data = await response.json();
+
+      if (data.success) {
+        container.innerHTML = `
+          <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+              <div class="text-center p-3 bg-light rounded">
+                <div class="fs-3 fw-bold text-primary">${data.total}</div>
+                <div class="small text-muted">Total Messages</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="text-center p-3 bg-light rounded">
+                <div class="fs-3 fw-bold text-warning">${data.unread}</div>
+                <div class="small text-muted">Unread</div>
+              </div>
+            </div>
+          </div>
+
+          <h6 class="mb-3">Messages Last 7 Days</h6>
+          <div class="c-table-wrapper mb-4">
+            <table class="c-table c-table--compact">
+              <thead>
+                <tr>
+                  ${data.daily_counts.map(d => `<th class="text-center">${d.date}</th>`).join('')}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  ${data.daily_counts.map(d => `<td class="text-center">${d.count}</td>`).join('')}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h6 class="mb-3">Top Users by Messages Sent</h6>
+          <ul class="list-group">
+            ${data.top_users.map((u, i) => `
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>${i + 1}. ${u.name}</span>
+                <span class="badge bg-primary">${u.count} messages</span>
+              </li>
+            `).join('')}
+          </ul>
+        `;
+      } else {
+        container.innerHTML = '<div class="alert alert-danger">Failed to load statistics</div>';
+      }
+    } catch (error) {
+      console.error('Error loading stats:', error);
+      container.innerHTML = '<div class="alert alert-danger">Failed to load statistics</div>';
+    }
+  }
+});
+</script>
+{% endblock %}

@@ -2,6 +2,7 @@
 {% block title %}Wallet Setup Wizard{% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
     /* Wallet Setup Wizard - Theme-aware styling using Bootstrap CSS variables */
     .wizard-container {
@@ -210,31 +211,31 @@
                 <small class="text-muted d-block">Overall Progress</small>
                 <strong class="text-primary">{{ wallet_config.progress.percent if wallet_config.progress else 0 }}% Complete</strong>
             </div>
-            <a href="{{ url_for('wallet_admin.getting_started') }}" class="btn btn-outline-secondary">
+            <a href="{{ url_for('wallet_admin.getting_started') }}" class="c-btn c-btn--outline-secondary">
                 <i class="ti ti-arrow-left me-1"></i> Back to Overview
             </a>
         </div>
     </div>
 
     <!-- Progress Bar -->
-    <div class="progress mb-4" style="height: 8px;">
-        <div class="progress-bar bg-success" role="progressbar" style="width: {{ wallet_config.progress.percent if wallet_config.progress else 0 }}%"></div>
+    <div class="progress mb-4" class="u-progress-h-8">
+        <div class="progress-bar bg-success" role="progressbar"></div>
     </div>
 
     <!-- Current Step Info Card -->
-    <div class="alert bg-body-tertiary border-start border-primary border-4 mb-4">
+    <div class="alert bg-body-tertiary border-start border-primary border-4 mb-4" data-alert>
         <div class="d-flex align-items-center">
             <div class="me-3">
                 {% if current_step == 'certificates' %}
-                <i class="ti ti-certificate text-primary" style="font-size: 2rem;"></i>
+                <i class="ti ti-certificate text-primary" class="u-icon-xl"></i>
                 {% elif current_step == 'assets' %}
-                <i class="ti ti-photo text-primary" style="font-size: 2rem;"></i>
+                <i class="ti ti-photo text-primary" class="u-icon-xl"></i>
                 {% elif current_step == 'templates' %}
-                <i class="ti ti-file-text text-primary" style="font-size: 2rem;"></i>
+                <i class="ti ti-file-text text-primary" class="u-icon-xl"></i>
                 {% elif current_step == 'testing' %}
-                <i class="ti ti-test-pipe text-primary" style="font-size: 2rem;"></i>
+                <i class="ti ti-test-pipe text-primary" class="u-icon-xl"></i>
                 {% else %}
-                <i class="ti ti-shopping-cart text-primary" style="font-size: 2rem;"></i>
+                <i class="ti ti-shopping-cart text-primary" class="u-icon-xl"></i>
                 {% endif %}
             </div>
             <div class="flex-grow-1">
@@ -267,23 +268,23 @@
             </div>
             <div class="text-end">
                 {% if current_step == 'certificates' %}
-                <span class="badge bg-label-info">~10 min</span>
+                <span class="badge bg-label-info" data-badge>~10 min</span>
                 {% elif current_step == 'assets' %}
-                <span class="badge bg-label-info">~5 min</span>
+                <span class="badge bg-label-info" data-badge>~5 min</span>
                 {% elif current_step == 'templates' %}
-                <span class="badge bg-label-info">~3 min</span>
+                <span class="badge bg-label-info" data-badge>~3 min</span>
                 {% elif current_step == 'testing' %}
-                <span class="badge bg-label-info">~2 min</span>
+                <span class="badge bg-label-info" data-badge>~2 min</span>
                 {% else %}
-                <span class="badge bg-label-info">~5 min</span>
+                <span class="badge bg-label-info" data-badge>~5 min</span>
                 {% endif %}
             </div>
         </div>
     </div>
 
     <!-- Progress Indicator -->
-    <div class="wizard-container mb-4 card">
-        <div class="wizard-steps card-body">
+    <div class="wizard-container mb-4 c-card">
+        <div class="wizard-steps c-card__body">
             {% set steps = [
                 {'id': 'certificates', 'name': 'Certificates', 'icon': 'certificate'},
                 {'id': 'assets', 'name': 'Assets', 'icon': 'photo'},
@@ -315,7 +316,7 @@
         </div>
 
         <!-- Step Content -->
-        <div class="wizard-content card">
+        <div class="wizard-content c-card">
             {% if current_step == 'certificates' %}
                 {% include 'admin/wallet_config/wizard_certificates.html' %}
             {% elif current_step == 'assets' %}
@@ -349,7 +350,7 @@
             
             <div>
                 {% if prev_step[current_step] %}
-                <a href="{{ url_for('wallet_config.setup_wizard', step=prev_step[current_step]) }}" class="btn btn-outline-primary">
+                <a href="{{ url_for('wallet_config.setup_wizard', step=prev_step[current_step]) }}" class="c-btn c-btn--outline-primary">
                     <i class="ti ti-arrow-left me-1"></i> Previous: {{ prev_step[current_step]|capitalize }}
                 </a>
                 {% endif %}
@@ -357,11 +358,11 @@
 
             <div>
                 {% if next_step[current_step] %}
-                <a href="{{ url_for('wallet_config.setup_wizard', step=next_step[current_step]) }}" class="btn btn-primary">
+                <a href="{{ url_for('wallet_config.setup_wizard', step=next_step[current_step]) }}" class="c-btn c-btn--primary">
                     Next: {{ next_step[current_step]|capitalize }} <i class="ti ti-arrow-right ms-1"></i>
                 </a>
                 {% else %}
-                <a href="{{ url_for('wallet_admin.wallet_management') }}" class="btn btn-success">
+                <a href="{{ url_for('wallet_admin.wallet_management') }}" class="c-btn c-btn--success">
                     <i class="ti ti-check me-1"></i> Complete Setup
                 </a>
                 {% endif %}
@@ -393,7 +394,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (previewElement && this.files && this.files[0]) {
                     const reader = new FileReader();
                     reader.onload = function(e) {
-                        previewElement.innerHTML = `<img src="${e.target.result}" class="img-fluid">`;
+                        previewElement.innerHTML = `<img src="${e.target.result}" alt="Preview of selected image" class="img-fluid">`;
                     };
                     reader.readAsDataURL(this.files[0]);
                 }
@@ -410,7 +411,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (this.files && this.files[0] && preview) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    preview.innerHTML = `<img src="${e.target.result}" class="img-fluid">`;
+                    preview.innerHTML = `<img src="${e.target.result}" alt="Preview of selected asset" class="img-fluid">`;
                 };
                 reader.readAsDataURL(this.files[0]);
             }

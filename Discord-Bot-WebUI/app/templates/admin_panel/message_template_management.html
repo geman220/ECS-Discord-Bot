@@ -8,88 +8,59 @@
 
 {% block panel_content %}
 <!-- Template Overview Cards -->
-<div class="row mb-4">
-    <div class="col-xl-4 col-md-6 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.total_templates or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Total Templates</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-template" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
-            </div>
+<div class="c-template-stats" data-component="template-stats">
+    <div class="c-template-stat c-template-stat--primary" data-component="template-stat">
+        <div class="c-template-stat__icon">
+            <i class="ti ti-template"></i>
+        </div>
+        <div class="c-template-stat__content">
+            <div class="c-template-stat__value">{{ stats.total_templates or 0 }}</div>
+            <div class="c-template-stat__label">Total Templates</div>
         </div>
     </div>
-    <div class="col-xl-4 col-md-6 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.active_templates or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Active Templates</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-check-circle" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
-            </div>
+    <div class="c-template-stat c-template-stat--success" data-component="template-stat">
+        <div class="c-template-stat__icon">
+            <i class="ti ti-check-circle"></i>
+        </div>
+        <div class="c-template-stat__content">
+            <div class="c-template-stat__value">{{ stats.active_templates or 0 }}</div>
+            <div class="c-template-stat__label">Active Templates</div>
         </div>
     </div>
-    <div class="col-xl-4 col-md-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title text-white mb-1">{{ stats.total_categories or 0 }}</h5>
-                        <p class="card-text small opacity-75 mb-0">Categories</p>
-                    </div>
-                    <div class="card-icon">
-                        <i class="ti ti-category" style="font-size: 2rem; opacity: 0.5;"></i>
-                    </div>
-                </div>
-            </div>
+    <div class="c-template-stat c-template-stat--info" data-component="template-stat">
+        <div class="c-template-stat__icon">
+            <i class="ti ti-category"></i>
+        </div>
+        <div class="c-template-stat__content">
+            <div class="c-template-stat__value">{{ stats.total_categories or 0 }}</div>
+            <div class="c-template-stat__label">Categories</div>
         </div>
     </div>
 </div>
 
 <!-- Quick Actions -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="ti ti-bolt me-2"></i>Quick Actions
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3 mb-2">
-                        <button class="btn btn-primary w-100" onclick="createTemplate()">
-                            <i class="ti ti-plus me-1"></i>New Template
-                        </button>
-                    </div>
-                    <div class="col-md-3 mb-2">
-                        <button class="btn btn-outline-primary w-100" onclick="createCategory()">
-                            <i class="ti ti-category me-1"></i>New Category
-                        </button>
-                    </div>
-                    <div class="col-md-3 mb-2">
-                        <button class="btn btn-outline-success w-100" onclick="bulkActivate()">
-                            <i class="ti ti-checks me-1"></i>Bulk Activate
-                        </button>
-                    </div>
-                    <div class="col-md-3 mb-2">
-                        <button class="btn btn-outline-info w-100" onclick="exportTemplates()">
-                            <i class="ti ti-download me-1"></i>Export All
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="c-template-actions" data-component="template-actions">
+    <div class="c-template-actions__header">
+        <i class="ti ti-bolt c-template-actions__icon"></i>
+        <h5 class="c-template-actions__title">Quick Actions</h5>
+    </div>
+    <div class="c-template-actions__grid">
+        <button class="c-template-btn c-template-btn--primary" data-action="create-template">
+            <i class="ti ti-plus"></i>
+            <span>New Template</span>
+        </button>
+        <button class="c-template-btn c-template-btn--outline" data-action="create-category">
+            <i class="ti ti-category"></i>
+            <span>New Category</span>
+        </button>
+        <button class="c-template-btn c-template-btn--outline c-template-btn--success" data-action="bulk-activate">
+            <i class="ti ti-checks"></i>
+            <span>Bulk Activate</span>
+        </button>
+        <button class="c-template-btn c-template-btn--outline c-template-btn--info" data-action="export-templates">
+            <i class="ti ti-download"></i>
+            <span>Export All</span>
+        </button>
     </div>
 </div>
 
@@ -98,23 +69,23 @@
 <div class="row">
     {% for category in categories %}
     <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header">
+        <div class="c-card">
+            <div class="c-card__header">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h6 class="card-title mb-0">
+                    <h6 class="c-card__title mb-0">
                         <i class="ti ti-folder me-2"></i>{{ category.name }}
                     </h6>
-                    <span class="badge bg-primary">{{ category.templates|length }} templates</span>
+                    <span class="badge bg-primary" data-badge>{{ category.templates|length }} templates</span>
                 </div>
                 {% if category.description %}
                 <small class="text-muted">{{ category.description }}</small>
                 {% endif %}
             </div>
-            <div class="card-body">
+            <div class="c-card__body">
                 {% if category.templates %}
                 <div class="list-group list-group-flush">
                     {% for template in category.templates[:5] %}
-                    <a href="#" class="list-group-item list-group-item-action" onclick="viewTemplate({{ template.id }})">
+                    <a href="#" class="list-group-item list-group-item-action js-view-template" data-action="view-template" data-template-id="{{ template.id }}">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <div class="fw-medium">{{ template.name }}</div>
@@ -123,7 +94,7 @@
                                 {% endif %}
                             </div>
                             <div class="d-flex align-items-center">
-                                <span class="badge bg-{% if template.is_active %}success{% else %}secondary{% endif %} me-2">
+                                <span class="badge bg-{% if template.is_active %}success{% else %}secondary{% endif %} me-2" data-badge>
                                     {% if template.is_active %}Active{% else %}Inactive{% endif %}
                                 </span>
                                 <i class="ti ti-chevron-right"></i>
@@ -132,17 +103,17 @@
                     </a>
                     {% endfor %}
                     {% if category.templates|length > 5 %}
-                    <a href="#" class="list-group-item list-group-item-action text-center text-muted" onclick="viewCategory({{ category.id }})">
+                    <a href="#" class="list-group-item list-group-item-action text-center text-muted js-view-category" data-action="view-category" data-category-id="{{ category.id }}">
                         View {{ category.templates|length - 5 }} more templates...
                     </a>
                     {% endif %}
                 </div>
                 {% else %}
                 <div class="text-center text-muted">
-                    <i class="ti ti-inbox d-block mb-2" style="font-size: 2rem;"></i>
+                    <i class="ti ti-inbox d-block mb-2 u-card-icon-stat"></i>
                     No templates in this category yet.
                     <div class="mt-2">
-                        <button class="btn btn-sm btn-outline-primary" onclick="createTemplateInCategory({{ category.id }})">
+                        <button class="c-btn c-btn--sm c-btn--outline-primary js-create-template-in-category" data-action="create-template-in-category" data-category-id="{{ category.id }}">
                             <i class="ti ti-plus me-1"></i>Add Template
                         </button>
                     </div>
@@ -156,14 +127,14 @@
 {% else %}
 <div class="row">
     <div class="col-12">
-        <div class="alert alert-info">
+        <div class="alert alert-info" data-alert>
             <div class="d-flex align-items-center">
                 <i class="ti ti-info-circle me-2"></i>
                 <div>
                     <strong>No Categories Found</strong><br>
                     Start by creating categories to organize your message templates.
                     <div class="mt-2">
-                        <button class="btn btn-sm btn-primary" onclick="createCategory()">
+                        <button class="c-btn c-btn--sm c-btn--primary js-create-category" data-action="create-category">
                             <i class="ti ti-plus me-1"></i>Create First Category
                         </button>
                     </div>
@@ -178,22 +149,22 @@
 {% if templates %}
 <div class="row mt-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="c-card__title mb-0">
                     <i class="ti ti-list me-2"></i>All Templates
                 </h5>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
+            <div class="c-card__body">
+                <div class="c-table-wrapper" data-table-responsive>
+                    <table class="c-table c-table--striped" data-table>
+                        <thead scope="col">
                             <tr>
-                                <th>Template Name</th>
-                                <th>Category</th>
-                                <th>Status</th>
-                                <th>Last Updated</th>
-                                <th>Actions</th>
+                                <th scope="col">Template Name</th>
+                                <th scope="col">Category</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Last Updated</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -206,23 +177,23 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <span class="badge bg-light text-dark">{{ template.category.name if template.category else 'Uncategorized' }}</span>
+                                    <span class="badge bg-light text-dark" data-badge>{{ template.category.name if template.category else 'Uncategorized' }}</span>
                                 </td>
                                 <td>
-                                    <span class="badge bg-{% if template.is_active %}success{% else %}secondary{% endif %}">
+                                    <span class="badge bg-{% if template.is_active %}success{% else %}secondary{% endif %}" data-badge>
                                         {% if template.is_active %}Active{% else %}Inactive{% endif %}
                                     </span>
                                 </td>
                                 <td>{{ template.updated_at.strftime('%Y-%m-%d') if template.updated_at else 'Never' }}</td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-primary" onclick="viewTemplate({{ template.id }})">
+                                        <button class="c-btn c-btn--outline-primary js-view-template" data-action="view-template" data-template-id="{{ template.id }}">
                                             <i class="ti ti-eye"></i>
                                         </button>
-                                        <button class="btn btn-outline-secondary" onclick="editTemplate({{ template.id }})">
+                                        <button class="c-btn c-btn--outline-secondary js-edit-template" data-action="edit-template" data-template-id="{{ template.id }}">
                                             <i class="ti ti-edit"></i>
                                         </button>
-                                        <button class="btn btn-outline-{% if template.is_active %}warning{% else %}success{% endif %}" onclick="toggleTemplate({{ template.id }})">
+                                        <button class="c-btn btn-outline-{% if template.is_active %}warning{% else %}success{% endif %} js-toggle-template" data-action="toggle-template" data-template-id="{{ template.id }}">
                                             <i class="ti ti-{% if template.is_active %}power{% else %}check{% endif %}"></i>
                                         </button>
                                     </div>
@@ -234,7 +205,7 @@
                 </div>
                 {% if templates|length > 20 %}
                 <div class="text-center mt-3">
-                    <button class="btn btn-outline-primary" onclick="loadMoreTemplates()">
+                    <button class="c-btn c-btn--outline-primary js-load-more-templates" data-action="load-more-templates">
                         Load More Templates ({{ templates|length - 20 }} remaining)
                     </button>
                 </div>
@@ -246,19 +217,104 @@
 {% endif %}
 {% endblock %}
 
+{% block custom_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin-panel/message-template-management.css') }}" />
+{% endblock %}
+
 {% block custom_js %}
+{{ super() }}
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Create Template
+    document.querySelectorAll('.js-create-template').forEach(btn => {
+        btn.addEventListener('click', function() {
+            createTemplate();
+        });
+    });
+
+    // Create Category
+    document.querySelectorAll('.js-create-category').forEach(btn => {
+        btn.addEventListener('click', function() {
+            createCategory();
+        });
+    });
+
+    // Bulk Activate
+    document.querySelectorAll('.js-bulk-activate').forEach(btn => {
+        btn.addEventListener('click', function() {
+            bulkActivate();
+        });
+    });
+
+    // Export Templates
+    document.querySelectorAll('.js-export-templates').forEach(btn => {
+        btn.addEventListener('click', function() {
+            exportTemplates();
+        });
+    });
+
+    // View Template
+    document.querySelectorAll('.js-view-template').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const templateId = this.dataset.templateId;
+            viewTemplate(templateId);
+        });
+    });
+
+    // View Category
+    document.querySelectorAll('.js-view-category').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const categoryId = this.dataset.categoryId;
+            viewCategory(categoryId);
+        });
+    });
+
+    // Create Template in Category
+    document.querySelectorAll('.js-create-template-in-category').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const categoryId = this.dataset.categoryId;
+            createTemplateInCategory(categoryId);
+        });
+    });
+
+    // Edit Template
+    document.querySelectorAll('.js-edit-template').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const templateId = this.dataset.templateId;
+            editTemplate(templateId);
+        });
+    });
+
+    // Toggle Template
+    document.querySelectorAll('.js-toggle-template').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const templateId = this.dataset.templateId;
+            toggleTemplate(templateId);
+        });
+    });
+
+    // Load More Templates
+    document.querySelectorAll('.js-load-more-templates').forEach(btn => {
+        btn.addEventListener('click', function() {
+            loadMoreTemplates();
+        });
+    });
+});
+
 function createTemplate() {
     Swal.fire({
         title: 'Create New Template',
         html: `
             <div class="mb-3">
                 <label class="form-label">Template Name</label>
-                <input type="text" class="form-control" id="templateName" placeholder="Enter template name">
+                <input type="text" class="form-control" id="templateName" placeholder="Enter template name" data-form-control>
             </div>
             <div class="mb-3">
                 <label class="form-label">Category</label>
-                <select class="form-select" id="templateCategory">
+                <select class="form-select" id="templateCategory" data-form-select>
                     <option value="">Select a category...</option>
                     {% for category in categories %}
                     <option value="{{ category.id }}">{{ category.name }}</option>
@@ -267,7 +323,7 @@ function createTemplate() {
             </div>
             <div class="mb-3">
                 <label class="form-label">Description</label>
-                <textarea class="form-control" id="templateDescription" rows="2" placeholder="Template description (optional)"></textarea>
+                <textarea class="form-control" id="templateDescription" rows="2" placeholder="Template description (optional)" data-form-control></textarea>
             </div>
         `,
         showCancelButton: true,
@@ -298,11 +354,11 @@ function createCategory() {
         html: `
             <div class="mb-3">
                 <label class="form-label">Category Name</label>
-                <input type="text" class="form-control" id="categoryName" placeholder="Enter category name">
+                <input type="text" class="form-control" id="categoryName" placeholder="Enter category name" data-form-control>
             </div>
             <div class="mb-3">
                 <label class="form-label">Description</label>
-                <textarea class="form-control" id="categoryDescription" rows="3" placeholder="Category description (optional)"></textarea>
+                <textarea class="form-control" id="categoryDescription" rows="3" placeholder="Category description (optional)" data-form-control></textarea>
             </div>
         `,
         showCancelButton: true,

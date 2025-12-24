@@ -1,0 +1,317 @@
+/**
+ * DISPLAY UTILITIES
+ * =================
+ * Display, visibility, and opacity utility classes
+ *
+ * Classes:
+ * - Display utilities (.d-*)
+ * - Visibility utilities (.visible, .invisible)
+ * - Opacity utilities (.opacity-*)
+ * - Responsive display utilities
+ *
+ * Usage:
+ * - Use !important to ensure utilities override component styles
+ * - Support dark mode via [data-style="dark"]
+ * - Follow Bootstrap naming conventions
+ */
+
+/* ============================================
+   DISPLAY UTILITIES
+   ============================================ */
+
+.d-none {
+    display: none !important;
+}
+
+.d-block {
+    display: block !important;
+}
+
+.d-inline {
+    display: inline !important;
+}
+
+.d-inline-block {
+    display: inline-block !important;
+}
+
+.d-flex {
+    display: flex !important;
+}
+
+.d-inline-flex {
+    display: inline-flex !important;
+}
+
+.d-grid {
+    display: grid !important;
+}
+
+.d-table {
+    display: table !important;
+}
+
+.d-table-row {
+    display: table-row !important;
+}
+
+.d-table-cell {
+    display: table-cell !important;
+}
+
+/* ============================================
+   VISIBILITY UTILITIES
+   ============================================ */
+
+.visible {
+    visibility: visible !important;
+}
+
+.invisible {
+    visibility: hidden !important;
+}
+
+/* Hidden but accessible for screen readers */
+.sr-only,
+.visually-hidden,
+.u-visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+.sr-only-focusable:focus,
+.visually-hidden-focusable:focus {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    clip: auto !important;
+    white-space: normal !important;
+}
+
+/* Hidden state for JS interactions */
+.is-hidden {
+    display: none !important;
+}
+
+/* ============================================
+   OPACITY UTILITIES
+   ============================================ */
+
+.opacity-0 {
+    opacity: 0 !important;
+}
+
+.opacity-10 {
+    opacity: 0.1 !important;
+}
+
+.opacity-20 {
+    opacity: 0.2 !important;
+}
+
+.opacity-25 {
+    opacity: 0.25 !important;
+}
+
+.opacity-30 {
+    opacity: 0.3 !important;
+}
+
+.opacity-40 {
+    opacity: 0.4 !important;
+}
+
+.opacity-50 {
+    opacity: 0.5 !important;
+}
+
+.opacity-60 {
+    opacity: 0.6 !important;
+}
+
+.opacity-70 {
+    opacity: 0.7 !important;
+}
+
+.opacity-75 {
+    opacity: 0.75 !important;
+}
+
+.opacity-80 {
+    opacity: 0.8 !important;
+}
+
+.opacity-90 {
+    opacity: 0.9 !important;
+}
+
+.opacity-100 {
+    opacity: 1 !important;
+}
+
+/* Hover opacity variations */
+.opacity-hover-50:hover {
+    opacity: 0.5 !important;
+}
+
+.opacity-hover-75:hover {
+    opacity: 0.75 !important;
+}
+
+.opacity-hover-100:hover {
+    opacity: 1 !important;
+}
+
+/* ============================================
+   RESPONSIVE DISPLAY UTILITIES
+   ============================================ */
+
+/* Small devices (landscape phones, 576px and up) */
+@media (min-width: 576px) {
+    .d-sm-none { display: none !important; }
+    .d-sm-block { display: block !important; }
+    .d-sm-inline { display: inline !important; }
+    .d-sm-inline-block { display: inline-block !important; }
+    .d-sm-flex { display: flex !important; }
+    .d-sm-inline-flex { display: inline-flex !important; }
+    .d-sm-grid { display: grid !important; }
+}
+
+/* Medium devices (tablets, 768px and up) */
+@media (min-width: 768px) {
+    .d-md-none { display: none !important; }
+    .d-md-block { display: block !important; }
+    .d-md-inline { display: inline !important; }
+    .d-md-inline-block { display: inline-block !important; }
+    .d-md-flex { display: flex !important; }
+    .d-md-inline-flex { display: inline-flex !important; }
+    .d-md-grid { display: grid !important; }
+}
+
+/* Large devices (desktops, 992px and up) */
+@media (min-width: 992px) {
+    .d-lg-none { display: none !important; }
+    .d-lg-block { display: block !important; }
+    .d-lg-inline { display: inline !important; }
+    .d-lg-inline-block { display: inline-block !important; }
+    .d-lg-flex { display: flex !important; }
+    .d-lg-inline-flex { display: inline-flex !important; }
+    .d-lg-grid { display: grid !important; }
+}
+
+/* Extra large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {
+    .d-xl-none { display: none !important; }
+    .d-xl-block { display: block !important; }
+    .d-xl-inline { display: inline !important; }
+    .d-xl-inline-block { display: inline-block !important; }
+    .d-xl-flex { display: flex !important; }
+    .d-xl-inline-flex { display: inline-flex !important; }
+    .d-xl-grid { display: grid !important; }
+}
+
+/* ============================================
+   PRINT UTILITIES
+   ============================================ */
+
+@media print {
+    .d-print-none { display: none !important; }
+    .d-print-block { display: block !important; }
+    .d-print-inline { display: inline !important; }
+    .d-print-inline-block { display: inline-block !important; }
+}
+
+/* ============================================
+   DARK MODE SPECIFIC
+   ============================================ */
+
+[data-style="dark"] .opacity-hover-50:hover {
+    opacity: 0.6 !important;
+}
+
+[data-style="dark"] .opacity-hover-75:hover {
+    opacity: 0.85 !important;
+}
+
+/* ============================================
+   TRANSITION UTILITIES (for smooth animations)
+   ============================================ */
+
+/**
+ * Smooth opacity transition
+ * Used for fade in/out effects when toggling visibility
+ */
+.transition-opacity {
+    transition: opacity 0.3s ease !important;
+}
+
+.transition-opacity-fast {
+    transition: opacity 0.15s ease !important;
+}
+
+.transition-opacity-slow {
+    transition: opacity 0.5s ease !important;
+}
+
+/**
+ * Smooth display transition with opacity
+ * Combine with display utilities for animated show/hide
+ */
+.transition-all {
+    transition: all 0.3s ease !important;
+}
+
+/**
+ * Width transition
+ */
+.transition-width {
+    transition: width 0.3s ease !important;
+}
+
+/* ============================================
+   SMS TOGGLE UTILITIES (onboarding-specific)
+   ============================================ */
+
+/**
+ * SMS section show state
+ * Used when SMS toggle is enabled
+ */
+.sms-section-show {
+    display: block !important;
+    opacity: 1 !important;
+    transition: opacity 0.3s ease !important;
+}
+
+/**
+ * SMS section hide state
+ * Used when SMS toggle is disabled
+ */
+.sms-section-hide {
+    display: none !important;
+}
+
+/**
+ * SMS section entering (animation state)
+ * Applied during the show transition
+ */
+.sms-section-entering {
+    display: block !important;
+    opacity: 0 !important;
+}
+
+/**
+ * SMS section exiting (animation state)
+ * Applied during the hide transition
+ */
+.sms-section-exiting {
+    opacity: 0 !important;
+    transition: opacity 0.3s ease !important;
+}

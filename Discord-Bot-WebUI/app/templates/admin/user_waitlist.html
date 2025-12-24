@@ -3,341 +3,138 @@
 {% block title %}User Waitlist{% endblock %}
 
 {% block custom_css %}
-<style>
-    /* Card hover effect */
-    .shadow-sm {
-        transition: all 0.2s ease;
-    }
-    
-    .shadow-sm:hover {
-        box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45) !important;
-    }
-    
-    /* Badge styling */
-    .badge {
-        font-weight: normal;
-        font-size: 0.75rem;
-        padding: 0.3rem 0.5rem;
-    }
-    
-    .badge.bg-label-primary {
-        background-color: var(--ecs-primary-subtle, rgba(105, 108, 255, 0.16)) !important;
-        color: var(--ecs-primary, #696cff) !important;
-    }
-
-    .badge.bg-label-success {
-        background-color: var(--ecs-success-subtle, rgba(40, 199, 111, 0.16)) !important;
-        color: var(--ecs-success, #28c76f) !important;
-    }
-
-    .badge.bg-label-warning {
-        background-color: var(--ecs-warning-subtle, rgba(255, 159, 67, 0.16)) !important;
-        color: var(--ecs-warning, #ff9f43) !important;
-    }
-
-    .badge.bg-label-danger {
-        background-color: var(--ecs-danger-subtle, rgba(234, 84, 85, 0.16)) !important;
-        color: var(--ecs-danger, #ea5455) !important;
-    }
-
-    .status-waitlist {
-        background-color: var(--ecs-warning-subtle, rgba(255, 171, 0, 0.16)) !important;
-        color: var(--ecs-warning, #ffab00) !important;
-    }
-
-    .status-pending {
-        background-color: var(--ecs-warning-subtle, rgba(255, 171, 0, 0.16)) !important;
-        color: var(--ecs-warning, #ffab00) !important;
-    }
-
-    .status-approved {
-        background-color: var(--ecs-info-subtle, rgba(3, 195, 236, 0.16)) !important;
-        color: var(--ecs-info, #03c3ec) !important;
-    }
-
-    .status-denied {
-        background-color: var(--ecs-danger-subtle, rgba(234, 84, 85, 0.16)) !important;
-        color: var(--ecs-danger, #ea5455) !important;
-    }
-    
-    /* Table styling */
-    .table th {
-        border-top: none;
-        font-weight: 500;
-    }
-    
-    .table td {
-        vertical-align: middle;
-    }
-    
-    /* Modal styling */
-    .modal-header {
-        background-color: var(--bs-gray-100);
-        border-bottom: 1px solid var(--bs-border-color);
-    }
-    
-    .modal-footer {
-        background-color: var(--bs-gray-100);
-        border-top: 1px solid var(--bs-border-color);
-    }
-    
-    /* Dark mode modal styling */
-    html[data-style="dark"] .modal-header {
-        background-color: var(--bs-gray-800);
-        border-bottom: 1px solid var(--bs-border-color);
-    }
-    
-    html[data-style="dark"] .modal-footer {
-        background-color: var(--bs-gray-800);
-        border-top: 1px solid var(--bs-border-color);
-    }
-    
-    html[data-style="dark"] .modal-content {
-        background-color: var(--bs-gray-900);
-        color: var(--bs-body-color);
-    }
-    
-    /* Action buttons */
-    .btn-remove {
-        background-color: var(--ecs-danger, #ea5455);
-        border-color: var(--ecs-danger, #ea5455);
-        color: white;
-    }
-
-    .btn-remove:hover {
-        background-color: var(--ecs-danger-dark, #d63384);
-        border-color: var(--ecs-danger-dark, #d63384);
-        color: white;
-    }
-
-    .btn-contact {
-        background-color: var(--ecs-info, #03c3ec);
-        border-color: var(--ecs-info, #03c3ec);
-        color: white;
-    }
-
-    .btn-contact:hover {
-        background-color: var(--ecs-info-dark, #0099cc);
-        border-color: var(--ecs-info-dark, #0099cc);
-        color: white;
-    }
-    
-    /* Stats cards */
-    .stats-card {
-        background: linear-gradient(135deg, var(--ecs-primary, #667eea) 0%, var(--ecs-primary-dark, #764ba2) 100%);
-        color: white;
-        border-radius: 10px;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    .stats-card h3 {
-        margin-bottom: 0.5rem;
-        font-size: 2rem;
-        font-weight: 600;
-    }
-
-    .stats-card p {
-        margin-bottom: 0;
-        opacity: 0.9;
-    }
-
-    .stats-card.waitlist {
-        background: linear-gradient(135deg, var(--ecs-warning, #ffab00) 0%, var(--ecs-warning-dark, #ff6b35) 100%);
-    }
-
-    .stats-card.registered {
-        background: linear-gradient(135deg, var(--ecs-success, #28c76f) 0%, var(--ecs-success-dark, #06d6a0) 100%);
-    }
-
-    .stats-card.approved {
-        background: linear-gradient(135deg, var(--ecs-info, #03c3ec) 0%, var(--ecs-info-dark, #0077be) 100%);
-    }
-    
-    /* Player profile styling */
-    .player-profile img {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        object-fit: cover;
-        margin-right: 10px;
-    }
-    
-    .player-profile .player-info {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-    
-    .player-profile .player-name {
-        font-weight: 500;
-        margin-bottom: 0;
-    }
-    
-    .player-profile .player-email {
-        font-size: 0.875rem;
-        color: var(--ecs-neutral-50, #6c757d);
-        margin-bottom: 0;
-    }
-
-    /* Avatar fallback */
-    .avatar-fallback {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background-color: var(--ecs-primary, #696cff);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: 500;
-        margin-right: 10px;
-    }
-    
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-        .stats-card {
-            padding: 1rem;
-        }
-        
-        .stats-card h3 {
-            font-size: 1.5rem;
-        }
-        
-        .table-responsive {
-            font-size: 0.875rem;
-        }
-        
-        .btn-sm {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.8rem;
-        }
-    }
-</style>
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/user-waitlist.css') }}">
 {% endblock %}
 
 {% block main_content %}
-<div class="container-xxl flex-grow-1 container-p-y dark-mode-applied">
+<div class="container-xxl flex-grow-1 container-p-y dark-mode-applied waitlist-page">
     <div class="row">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="ti ti-clock me-2"></i>
+            <div class="c-card waitlist-card shadow-sm">
+                <div class="c-card__header waitlist-card-header">
+                    <h5 class="waitlist-card-title">
+                        <i class="ti ti-clock"></i>
                         User Waitlist Management
                     </h5>
-                    <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">
-                        <i class="ti ti-refresh me-1"></i>
+                    <button class="c-btn c-btn--outline-primary c-btn--sm waitlist-refresh-btn"
+                            data-action="refresh">
+                        <i class="ti ti-refresh"></i>
                         Refresh
                     </button>
                 </div>
-                <div class="card-body">
+                <div class="c-card__body">
                     <!-- Statistics Cards -->
                     <div class="row mb-4">
                         <div class="col-md-4">
-                            <div class="stats-card waitlist">
-                                <h3 id="waitlist-count">{{ stats.waitlist_count }}</h3>
-                                <p>Users on Waitlist</p>
+                            <div class="waitlist-stats-card waitlist-stats-card-waitlist">
+                                <h3 class="waitlist-stats-card-title" id="waitlist-count">{{ stats.waitlist_count }}</h3>
+                                <p class="waitlist-stats-card-label">Users on Waitlist</p>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="stats-card registered">
-                                <h3 id="total-registered">{{ stats.total_registered }}</h3>
-                                <p>Total Registered</p>
+                            <div class="waitlist-stats-card waitlist-stats-card-registered">
+                                <h3 class="waitlist-stats-card-title" id="total-registered">{{ stats.total_registered }}</h3>
+                                <p class="waitlist-stats-card-label">Total Registered</p>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="stats-card approved">
-                                <h3 id="total-approved">{{ stats.total_approved }}</h3>
-                                <p>Total Approved</p>
+                            <div class="waitlist-stats-card waitlist-stats-card-approved">
+                                <h3 class="waitlist-stats-card-title" id="total-approved">{{ stats.total_approved }}</h3>
+                                <p class="waitlist-stats-card-label">Total Approved</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Waitlist Users Table -->
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
+                    <div class="c-table-wrapper waitlist-table-responsive" data-table-responsive>
+                        <table class="c-table c-table--hoverable waitlist-table" data-table>
+                            <thead class="c-table--light" scope="col">
                                 <tr>
-                                    <th>User</th>
-                                    <th>Email</th>
-                                    <th>Preferred League</th>
-                                    <th>Interested in Subbing</th>
-                                    <th>Status</th>
-                                    <th>Joined Waitlist</th>
-                                    <th>Actions</th>
+                                    <th scope="col">User</th>
+                                    <th scope="col">Email</th>
+                                    <th scope="col">Preferred League</th>
+                                    <th scope="col">Interested in Subbing</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col">Joined Waitlist</th>
+                                    <th scope="col">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="waitlist-users-table">
                                 {% for user in waitlist_users %}
                                 <tr>
                                     <td>
-                                        <div class="d-flex align-items-center player-profile">
+                                        <div class="waitlist-player-profile">
                                             {% if user.player and user.player.profile_picture_url %}
-                                                <img src="{{ user.player.profile_picture_url }}" alt="{{ user.username }}" class="rounded-circle">
+                                                <img src="{{ user.player.profile_picture_url }}" alt="{{ user.username }}" class="waitlist-player-avatar">
                                             {% else %}
-                                                <div class="avatar-fallback">
+                                                <div class="waitlist-avatar-fallback">
                                                     {{ user.username[0].upper() }}
                                                 </div>
                                             {% endif %}
-                                            <div class="player-info">
-                                                <p class="player-name">{{ user.username }}</p>
+                                            <div class="waitlist-player-info">
+                                                <p class="waitlist-player-name">{{ user.username }}</p>
                                                 {% if user.player and user.player.name and user.player.name != user.username %}
-                                                    <p class="player-email">{{ user.player.name }}</p>
+                                                    <p class="waitlist-player-email">{{ user.player.name }}</p>
                                                 {% endif %}
                                             </div>
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="text-muted">{{ user.email }}</span>
+                                        <span class="waitlist-text-muted">{{ user.email }}</span>
                                         {% if user.player and user.player.discord_id %}
-                                            <br><small class="text-primary">
+                                            <br><small class="waitlist-discord-badge">
                                                 <i class="ti ti-brand-discord"></i> Discord Linked
                                             </small>
                                         {% endif %}
                                     </td>
                                     <td>
                                         {% if user.preferred_league %}
-                                            <span class="badge bg-label-primary">{{ user.preferred_league }}</span>
+                                            <span class="badge waitlist-badge waitlist-badge-primary" data-badge>{{ user.preferred_league }}</span>
                                         {% else %}
-                                            <span class="text-muted">Not specified</span>
+                                            <span class="waitlist-text-muted">Not specified</span>
                                         {% endif %}
                                     </td>
                                     <td>
                                         {% if user.player and user.player.interested_in_sub %}
-                                            <span class="badge bg-label-success">
+                                            <span class="badge waitlist-badge waitlist-badge-success" data-badge>
                                                 <i class="ti ti-check"></i> Yes
                                             </span>
                                         {% else %}
-                                            <span class="badge bg-label-secondary">
+                                            <span class="badge waitlist-badge waitlist-badge-secondary" data-badge>
                                                 <i class="ti ti-minus"></i> No
                                             </span>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <span class="badge status-{{ user.approval_status }}">
+                                        <span class="badge waitlist-badge waitlist-status-{{ user.approval_status }}" data-badge>
                                             {{ user.approval_status.title() }}
                                         </span>
                                         <br>
-                                        <span class="badge status-waitlist">
+                                        <span class="badge waitlist-badge waitlist-status-waitlist" data-badge>
                                             <i class="ti ti-clock"></i> Waitlist
                                         </span>
                                     </td>
                                     <td>
-                                        <small class="text-muted">
+                                        <small class="waitlist-text-muted">
                                             {{ user.waitlist_joined_at.strftime('%Y-%m-%d') if user.waitlist_joined_at else 'Unknown' }}
                                         </small>
                                     </td>
                                     <td>
-                                        <div class="btn-group" role="group">
-                                            <button class="btn btn-sm btn-outline-primary" onclick="showPlayerDetails({{ user.id }})">
+                                        <div class="waitlist-btn-group" role="group">
+                                            <button class="c-btn c-btn--sm c-btn--outline-primary waitlist-btn-sm"
+                                                    data-action="view-player"
+                                                    data-user-id="{{ user.id }}">
                                                 <i class="ti ti-eye"></i> View
                                             </button>
-                                            <button class="btn btn-sm btn-contact" onclick="showContactModal({{ user.id }})">
+                                            <button class="c-btn c-btn--sm waitlist-btn-contact waitlist-btn-sm"
+                                                    data-action="contact-modal"
+                                                    data-user-id="{{ user.id }}">
                                                 <i class="ti ti-mail"></i> Contact
                                             </button>
-                                            <button class="btn btn-sm btn-remove" onclick="showRemovalModal({{ user.id }})">
+                                            <button class="c-btn c-btn--sm waitlist-btn-remove waitlist-btn-sm"
+                                                    data-action="removal-modal"
+                                                    data-user-id="{{ user.id }}">
                                                 <i class="ti ti-trash"></i> Remove
                                             </button>
                                         </div>
@@ -348,10 +145,10 @@
                         </table>
                         
                         {% if not waitlist_users %}
-                        <div class="text-center py-4">
-                            <i class="ti ti-clock text-muted" style="font-size: 3rem;"></i>
-                            <h5 class="mt-2 text-muted">No users on waitlist</h5>
-                            <p class="text-muted">When users join the waitlist, they will appear here.</p>
+                        <div class="waitlist-empty-state">
+                            <i class="ti ti-clock waitlist-empty-icon"></i>
+                            <h5 class="waitlist-empty-title">No users on waitlist</h5>
+                            <p class="waitlist-empty-text">When users join the waitlist, they will appear here.</p>
                         </div>
                         {% endif %}
                     </div>
@@ -362,70 +159,70 @@
 </div>
 
 <!-- Removal Modal -->
-<div class="modal fade" id="removalModal" tabindex="-1" aria-labelledby="removalModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="removalModalLabel">Remove User from Waitlist</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal c-modal fade" data-modal id="removalModal" tabindex="-1" aria-labelledby="removalModalLabel" aria-hidden="true">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content waitlist-modal-content" data-modal-content>
+            <div class="modal-header c-modal__header waitlist-modal-header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="removalModalLabel">Remove User from Waitlist</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <p>Are you sure you want to remove this user from the waitlist?</p>
                 <div class="mb-3">
                     <label for="removal-reason" class="form-label">Reason for removal <span class="text-danger">*</span></label>
-                    <textarea class="form-control" id="removal-reason" rows="3" placeholder="Please provide a reason for removing this user from the waitlist..." required></textarea>
+                    <textarea class="form-control" id="removal-reason" rows="3" placeholder="Please provide a reason for removing this user from the waitlist..." required data-form-control></textarea>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-remove" onclick="submitRemoval()">Remove from Waitlist</button>
+            <div class="modal-footer c-modal__footer waitlist-modal-footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn waitlist-btn-remove" data-action="submit-removal">Remove from Waitlist</button>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Contact Modal -->
-<div class="modal fade" id="contactModal" tabindex="-1" aria-labelledby="contactModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="contactModalLabel">Contact Waitlist User</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal c-modal fade" data-modal id="contactModal" tabindex="-1" aria-labelledby="contactModalLabel" aria-hidden="true">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content waitlist-modal-content" data-modal-content>
+            <div class="modal-header c-modal__header waitlist-modal-header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="contactModalLabel">Contact Waitlist User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <div class="mb-3">
                     <label for="contact-method" class="form-label">Contact Method</label>
-                    <select class="form-select" id="contact-method">
+                    <select class="form-select" id="contact-method" data-form-select>
                         <option value="email">Email</option>
                         <option value="discord">Discord</option>
                     </select>
                 </div>
                 <div class="mb-3">
                     <label for="contact-message" class="form-label">Message</label>
-                    <textarea class="form-control" id="contact-message" rows="4" placeholder="Enter your message to the user..."></textarea>
+                    <textarea class="form-control" id="contact-message" rows="4" placeholder="Enter your message to the user..." data-form-control></textarea>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-contact" onclick="submitContact()">Log Contact</button>
+            <div class="modal-footer c-modal__footer waitlist-modal-footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn waitlist-btn-contact" data-action="submit-contact">Log Contact</button>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Player Details Modal -->
-<div class="modal fade" id="playerDetailsModal" tabindex="-1" aria-labelledby="playerDetailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="playerDetailsModalLabel">Player Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal c-modal fade" data-modal id="playerDetailsModal" tabindex="-1" aria-labelledby="playerDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content waitlist-modal-content" data-modal-content>
+            <div class="modal-header c-modal__header waitlist-modal-header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="playerDetailsModalLabel">Player Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
             </div>
-            <div class="modal-body" id="playerDetailsContent">
+            <div class="modal-body c-modal__body" data-modal-body id="playerDetailsContent" data-modal-body aria-labelledby="playerDetailsContentLabel">
                 <!-- Player details will be loaded here -->
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <div class="modal-footer c-modal__footer waitlist-modal-footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
             </div>
         </div>
     </div>
@@ -435,26 +232,50 @@
 {% block custom_js %}
 <script>
     let currentUserId = null;
-    
-    function refreshData() {
-        location.reload();
-    }
-    
+
+    // Event delegation for all actions
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        const userId = target.dataset.userId;
+
+        switch(action) {
+            case 'refresh':
+                location.reload();
+                break;
+            case 'view-player':
+                showPlayerDetails(userId);
+                break;
+            case 'contact-modal':
+                showContactModal(userId);
+                break;
+            case 'removal-modal':
+                showRemovalModal(userId);
+                break;
+            case 'submit-removal':
+                submitRemoval();
+                break;
+            case 'submit-contact':
+                submitContact();
+                break;
+        }
+    });
+
     function showRemovalModal(userId) {
         currentUserId = userId;
         document.getElementById('removal-reason').value = '';
-        const modal = new bootstrap.Modal(document.getElementById('removalModal'));
-        modal.show();
+        ModalManager.show('removalModal');
     }
-    
+
     function showContactModal(userId) {
         currentUserId = userId;
         document.getElementById('contact-method').value = 'email';
         document.getElementById('contact-message').value = '';
-        const modal = new bootstrap.Modal(document.getElementById('contactModal'));
-        modal.show();
+        ModalManager.show('contactModal');
     }
-    
+
     function submitRemoval() {
         const reason = document.getElementById('removal-reason').value.trim();
         
@@ -593,14 +414,14 @@
                                 <p><strong>Username:</strong> ${user.username}</p>
                                 <p><strong>Email:</strong> ${user.email}</p>
                                 <p><strong>Joined:</strong> ${user.created_at || 'Unknown'}</p>
-                                <p><strong>Status:</strong> <span class="badge status-${user.approval_status}">${user.approval_status}</span></p>
+                                <p><strong>Status:</strong> <span class="badge status-${user.approval_status}" data-badge>${user.approval_status}</span></p>
                                 <p><strong>Preferred League:</strong> ${
                                     user.preferred_league === 'pub_league_classic' ? 'Pub League Classic' :
                                     user.preferred_league === 'pub_league_premier' ? 'Pub League Premier' :
                                     user.preferred_league === 'ecs_fc' ? 'ECS FC' :
                                     user.preferred_league || 'Not specified'
                                 }</p>
-                                <p><strong>Roles:</strong> ${user.roles.map(role => `<span class="badge bg-label-secondary me-1">${role}</span>`).join('')}</p>
+                                <p><strong>Roles:</strong> ${user.roles.map(role => `<span class="badge bg-label-secondary me-1" data-badge>${role}</span>`).join('')}</p>
                             </div>
                             <div class="col-md-6">
                                 <h6>Player Details</h6>
@@ -625,8 +446,8 @@
                             </div>
                             <div class="col-md-6">
                                 <h6>Substitute Information</h6>
-                                <p><strong>Interested in Subbing:</strong> ${user.player.interested_in_sub ? '<span class="badge bg-label-success">Yes</span>' : '<span class="badge bg-label-secondary">No</span>'}</p>
-                                <p><strong>Available for Subbing:</strong> ${user.player.is_sub ? '<span class="badge bg-label-success">Yes</span>' : '<span class="badge bg-label-secondary">No</span>'}</p>
+                                <p><strong>Interested in Subbing:</strong> ${user.player.interested_in_sub ? '<span class="badge bg-label-success" data-badge>Yes</span>' : '<span class="badge bg-label-secondary" data-badge>No</span>'}</p>
+                                <p><strong>Available for Subbing:</strong> ${user.player.is_sub ? '<span class="badge bg-label-success" data-badge>Yes</span>' : '<span class="badge bg-label-secondary" data-badge>No</span>'}</p>
                                 ${user.player.unavailable_dates ? `<p><strong>Unavailable Dates:</strong> ${user.player.unavailable_dates}</p>` : ''}
                             </div>
                         </div>
@@ -650,8 +471,7 @@
                         ` : ''}
                     `;
                     
-                    const modal = new bootstrap.Modal(document.getElementById('playerDetailsModal'));
-                    modal.show();
+                    ModalManager.show('playerDetailsModal');
                 } else {
                     Swal.fire({
                         title: 'Error',

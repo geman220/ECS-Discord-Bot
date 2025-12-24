@@ -1,0 +1,952 @@
+{% extends "base.html" %}
+
+{% block title %}Onboarding UX Test - Complete Flow Testing{% endblock %}
+
+{% block page_css %}
+<style>
+.c-ux-test {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.c-ux-test__header {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.c-ux-test__title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin: 0 0 8px;
+}
+
+.c-ux-test__subtitle {
+    color: #94a3b8;
+    margin: 0;
+    font-size: 16px;
+}
+
+.c-mode-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+    .c-mode-selector {
+        grid-template-columns: 1fr;
+    }
+}
+
+.c-mode-card {
+    background: #1e293b;
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.c-mode-card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.c-mode-card--active {
+    border-color: #2563eb;
+    background: rgba(37, 99, 235, 0.1);
+}
+
+.c-mode-card__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.c-mode-card__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.c-mode-card__icon--self {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #fff;
+}
+
+.c-mode-card__icon--test {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: #fff;
+}
+
+.c-mode-card__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f1f5f9;
+    margin: 0;
+}
+
+.c-mode-card__badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.c-mode-card__badge--recommended {
+    background: #10b981;
+    color: #fff;
+}
+
+.c-mode-card__description {
+    color: #94a3b8;
+    font-size: 14px;
+    margin: 0;
+    line-height: 1.6;
+}
+
+.c-flow-section {
+    background: #1e293b;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.c-flow-section__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.c-flow-section__number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #fff;
+    font-weight: 700;
+    font-size: 16px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.c-flow-section__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f1f5f9;
+    margin: 0;
+}
+
+.c-flow-section__description {
+    color: #94a3b8;
+    font-size: 14px;
+    margin: 0 0 16px;
+    line-height: 1.6;
+}
+
+.c-step-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.c-step-card {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    text-align: center;
+}
+
+.c-step-card__icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+}
+
+.c-step-card__icon--join { color: #3b82f6; }
+.c-step-card__icon--dm { color: #10b981; }
+.c-step-card__icon--notify { color: #f59e0b; }
+.c-step-card__icon--success { color: #10b981; }
+
+.c-step-card__title {
+    font-weight: 600;
+    color: #f1f5f9;
+    margin: 0 0 8px;
+    font-size: 15px;
+}
+
+.c-step-card__text {
+    color: #64748b;
+    font-size: 12px;
+    margin: 0 0 12px;
+}
+
+.c-page-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    transition: all 0.2s ease;
+}
+
+.c-page-card:hover {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.c-page-card:last-child {
+    margin-bottom: 0;
+}
+
+.c-page-card__info {
+    flex: 1;
+    min-width: 0;
+}
+
+.c-page-card__name {
+    font-weight: 600;
+    color: #f1f5f9;
+    margin: 0 0 4px;
+    font-size: 15px;
+}
+
+.c-page-card__url {
+    font-size: 12px;
+    color: #64748b;
+    font-family: monospace;
+    word-break: break-all;
+}
+
+.c-page-card__actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.c-test-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.c-test-btn--primary {
+    background: #2563eb;
+    color: #fff;
+}
+
+.c-test-btn--primary:hover {
+    background: #1d4ed8;
+    color: #fff;
+}
+
+.c-test-btn--secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+}
+
+.c-test-btn--secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #f1f5f9;
+}
+
+.c-test-btn--success {
+    background: #10b981;
+    color: #fff;
+}
+
+.c-test-btn--success:hover {
+    background: #059669;
+    color: #fff;
+}
+
+.c-test-btn--warning {
+    background: #f59e0b;
+    color: #fff;
+}
+
+.c-test-btn--warning:hover {
+    background: #d97706;
+    color: #fff;
+}
+
+.c-test-btn--danger {
+    background: #ef4444;
+    color: #fff;
+}
+
+.c-test-btn--danger:hover {
+    background: #dc2626;
+    color: #fff;
+}
+
+.c-test-btn--outline {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #94a3b8;
+}
+
+.c-test-btn--outline:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #f1f5f9;
+}
+
+.c-user-state {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.c-user-state__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.c-user-state__title {
+    font-weight: 600;
+    color: #f1f5f9;
+    font-size: 14px;
+    margin: 0;
+}
+
+.c-user-state__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+.c-user-state__item {
+    text-align: center;
+}
+
+.c-user-state__label {
+    font-size: 11px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.c-user-state__value {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.c-user-state__value--yes { color: #10b981; }
+.c-user-state__value--no { color: #ef4444; }
+.c-user-state__value--pending { color: #f59e0b; }
+.c-user-state__value--neutral { color: #94a3b8; }
+
+.c-scenario-flags {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.c-scenario-flag {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.c-scenario-flag:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.c-scenario-flag input {
+    margin: 0;
+}
+
+.c-scenario-flag label {
+    font-size: 13px;
+    color: #94a3b8;
+    cursor: pointer;
+    margin: 0;
+}
+
+.c-results {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 16px;
+}
+
+.c-results__title {
+    font-weight: 600;
+    color: #f1f5f9;
+    font-size: 14px;
+    margin: 0 0 12px;
+}
+
+.c-results__log {
+    font-family: monospace;
+    font-size: 12px;
+    color: #94a3b8;
+    line-height: 1.6;
+}
+
+.c-results__log code {
+    display: block;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.c-results__log code:last-child {
+    border-bottom: none;
+}
+
+.c-note {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+}
+
+.c-note__title {
+    font-weight: 600;
+    color: #fbbf24;
+    margin: 0 0 8px;
+    font-size: 14px;
+}
+
+.c-note__text {
+    color: #fcd34d;
+    font-size: 13px;
+    margin: 0;
+    line-height: 1.6;
+}
+
+.c-quick-test {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.c-quick-test__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #10b981;
+    margin: 0 0 12px;
+}
+
+.c-quick-test__description {
+    color: #94a3b8;
+    font-size: 14px;
+    margin: 0 0 16px;
+}
+
+.c-quick-test__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.c-incognito-tip {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 20px;
+}
+
+.c-incognito-tip__icon {
+    font-size: 24px;
+    color: #818cf8;
+}
+
+.c-incognito-tip__content {
+    flex: 1;
+}
+
+.c-incognito-tip__title {
+    font-weight: 600;
+    color: #a5b4fc;
+    margin: 0 0 4px;
+    font-size: 14px;
+}
+
+.c-incognito-tip__text {
+    color: #c7d2fe;
+    font-size: 13px;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.c-danger-zone {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 24px;
+}
+
+.c-danger-zone__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #ef4444;
+    margin: 0 0 8px;
+}
+
+.c-danger-zone__description {
+    color: #94a3b8;
+    font-size: 14px;
+    margin: 0 0 16px;
+}
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="c-ux-test">
+        <!-- Header -->
+        <div class="c-ux-test__header">
+            <h1 class="c-ux-test__title">
+                <i class="ti ti-test-pipe me-2"></i>Complete Onboarding Test
+            </h1>
+            <p class="c-ux-test__subtitle">
+                Test the entire new user journey: registration → onboarding → profile wizard → Discord bot interactions.
+                Uses your own account with reset capability.
+            </p>
+        </div>
+
+        <form method="post" id="testForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <!-- Current User State -->
+            <div class="c-flow-section">
+                <div class="c-flow-section__header">
+                    <span class="c-flow-section__number"><i class="ti ti-user"></i></span>
+                    <h3 class="c-flow-section__title">Your Test Account State</h3>
+                </div>
+
+                <div class="c-user-state">
+                    <div class="c-user-state__header">
+                        <h4 class="c-user-state__title">
+                            <i class="ti ti-id me-2"></i>{{ current_user.username }}
+                            {% if user_discord_id %}<code class="ms-2">(Discord: {{ user_discord_id }})</code>{% endif %}
+                        </h4>
+                        <button type="submit" name="action" value="show_current_state" class="c-test-btn c-test-btn--outline">
+                            <i class="ti ti-refresh"></i>Refresh
+                        </button>
+                    </div>
+
+                    {% if user_state %}
+                    <div class="c-user-state__grid">
+                        <div class="c-user-state__item">
+                            <div class="c-user-state__label">Onboarding</div>
+                            <div class="c-user-state__value {{ 'c-user-state__value--yes' if user_state.has_completed_onboarding else 'c-user-state__value--no' }}">
+                                {{ 'Complete' if user_state.has_completed_onboarding else 'Incomplete' }}
+                            </div>
+                        </div>
+                        <div class="c-user-state__item">
+                            <div class="c-user-state__label">League</div>
+                            <div class="c-user-state__value {{ 'c-user-state__value--yes' if user_state.preferred_league else 'c-user-state__value--no' }}">
+                                {{ user_state.preferred_league or 'None' }}
+                            </div>
+                        </div>
+                        <div class="c-user-state__item">
+                            <div class="c-user-state__label">Bot Status</div>
+                            <div class="c-user-state__value c-user-state__value--neutral">
+                                {{ user_state.bot_interaction_status or 'not_contacted' }}
+                            </div>
+                        </div>
+                        <div class="c-user-state__item">
+                            <div class="c-user-state__label">Approved</div>
+                            <div class="c-user-state__value {{ 'c-user-state__value--yes' if user_state.is_approved else 'c-user-state__value--pending' }}">
+                                {{ 'Yes' if user_state.is_approved else user_state.approval_status }}
+                            </div>
+                        </div>
+                        <div class="c-user-state__item">
+                            <div class="c-user-state__label">Discord Joined</div>
+                            <div class="c-user-state__value c-user-state__value--neutral">
+                                {{ user_state.discord_join_detected_at.strftime('%m/%d %H:%M') if user_state.discord_join_detected_at else 'Not detected' }}
+                            </div>
+                        </div>
+                        <div class="c-user-state__item">
+                            <div class="c-user-state__label">Last Bot Contact</div>
+                            <div class="c-user-state__value c-user-state__value--neutral">
+                                {{ user_state.last_bot_contact_at.strftime('%m/%d %H:%M') if user_state.last_bot_contact_at else 'Never' }}
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">Click Refresh to load current state</p>
+                    {% endif %}
+                </div>
+
+                <!-- Scenario Flags -->
+                <p class="c-flow-section__description">
+                    <strong>Reset Options:</strong> Select flags to simulate different new user states, then click "Reset & Apply".
+                </p>
+                <div class="c-scenario-flags">
+                    <div class="c-scenario-flag">
+                        <input type="checkbox" name="scenario_flags" value="no_onboarding" id="no_onboarding">
+                        <label for="no_onboarding">No onboarding completed</label>
+                    </div>
+                    <div class="c-scenario-flag">
+                        <input type="checkbox" name="scenario_flags" value="no_league" id="no_league">
+                        <label for="no_league">No league selected</label>
+                    </div>
+                    <div class="c-scenario-flag">
+                        <input type="checkbox" name="scenario_flags" value="unapproved" id="unapproved">
+                        <label for="unapproved">Pending approval</label>
+                    </div>
+                    <div class="c-scenario-flag">
+                        <input type="checkbox" name="scenario_flags" value="clear_bot" id="clear_bot">
+                        <label for="clear_bot">Clear bot contact history</label>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" name="action" value="reset_user_state" class="c-test-btn c-test-btn--warning">
+                        <i class="ti ti-refresh"></i>Reset to Fresh User
+                    </button>
+                    <button type="submit" name="action" value="apply_scenario_flags" class="c-test-btn c-test-btn--primary">
+                        <i class="ti ti-settings"></i>Apply Selected Flags
+                    </button>
+                </div>
+            </div>
+
+            <!-- Discord Bot Testing -->
+            <div class="c-flow-section">
+                <div class="c-flow-section__header">
+                    <span class="c-flow-section__number">1</span>
+                    <h3 class="c-flow-section__title">Discord Bot Interactions</h3>
+                </div>
+                <p class="c-flow-section__description">
+                    Test the Discord bot's onboarding flow. These actions will trigger real Discord DMs to your account.
+                </p>
+
+                {% if not user_discord_id %}
+                <div class="c-note">
+                    <h5 class="c-note__title"><i class="ti ti-alert-triangle me-1"></i>No Discord Linked</h5>
+                    <p class="c-note__text">
+                        You need to link your Discord account to test bot interactions.
+                        <a href="{{ url_for('account.settings') }}" class="text-warning">Link Discord in Settings</a>
+                    </p>
+                </div>
+                {% else %}
+                <div class="c-step-grid">
+                    <div class="c-step-card">
+                        <i class="ti ti-door-enter c-step-card__icon c-step-card__icon--join"></i>
+                        <h4 class="c-step-card__title">Simulate Discord Join</h4>
+                        <p class="c-step-card__text">Triggers "user joined server" event</p>
+                        <button type="submit" name="action" value="test_user_join" class="c-test-btn c-test-btn--primary">
+                            <i class="ti ti-play"></i>Trigger
+                        </button>
+                    </div>
+                    <div class="c-step-card">
+                        <i class="ti ti-message-circle c-step-card__icon c-step-card__icon--dm"></i>
+                        <h4 class="c-step-card__title">Send Welcome DM</h4>
+                        <p class="c-step-card__text">Bot sends contextual welcome message</p>
+                        <button type="submit" name="action" value="test_contextual_welcome" class="c-test-btn c-test-btn--success">
+                            <i class="ti ti-send"></i>Send DM
+                        </button>
+                    </div>
+                    <div class="c-step-card">
+                        <i class="ti ti-speakerphone c-step-card__icon c-step-card__icon--notify"></i>
+                        <h4 class="c-step-card__title">New Player Alert</h4>
+                        <p class="c-step-card__text">Posts to #pl-new-players channel</p>
+                        <button type="submit" name="action" value="test_new_player_notification" class="c-test-btn c-test-btn--warning">
+                            <i class="ti ti-broadcast"></i>Notify
+                        </button>
+                    </div>
+                </div>
+
+                <!-- League Selection Testing -->
+                <div class="mt-4">
+                    <h5 class="text-light mb-3"><i class="ti ti-trophy me-2"></i>Test League Selection Responses</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="input-group">
+                                <input type="text" class="form-control" name="test_message"
+                                       placeholder="e.g., 'I want to play premier'" value="I think premier">
+                                <button type="submit" name="action" value="test_league_selection" class="c-test-btn c-test-btn--primary">
+                                    Process
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="btn-group w-100">
+                                <button type="submit" name="action" value="test_league_classic" class="c-test-btn c-test-btn--outline flex-fill">Classic</button>
+                                <button type="submit" name="action" value="test_league_premier" class="c-test-btn c-test-btn--outline flex-fill">Premier</button>
+                                <button type="submit" name="action" value="test_league_ecs_fc" class="c-test-btn c-test-btn--outline flex-fill">ECS FC</button>
+                                <button type="submit" name="action" value="test_league_unclear" class="c-test-btn c-test-btn--outline flex-fill">Unclear</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </form>
+
+        <!-- UI Pages Testing -->
+        <div class="c-flow-section">
+            <div class="c-flow-section__header">
+                <span class="c-flow-section__number">2</span>
+                <h3 class="c-flow-section__title">Registration & Login Pages</h3>
+            </div>
+            <p class="c-flow-section__description">
+                View these pages as a new user would see them. Open in incognito to see unauthenticated state.
+            </p>
+
+            <div class="c-page-card">
+                <div class="c-page-card__info">
+                    <h4 class="c-page-card__name">Login Page</h4>
+                    <code class="c-page-card__url">/auth/login</code>
+                </div>
+                <div class="c-page-card__actions">
+                    <a href="{{ url_for('auth.login') }}" class="c-test-btn c-test-btn--primary" target="_blank">
+                        <i class="ti ti-external-link"></i>Open
+                    </a>
+                </div>
+            </div>
+
+            <div class="c-page-card">
+                <div class="c-page-card__info">
+                    <h4 class="c-page-card__name">Standard Registration</h4>
+                    <code class="c-page-card__url">/auth/register</code>
+                </div>
+                <div class="c-page-card__actions">
+                    <a href="{{ url_for('auth.register') }}" class="c-test-btn c-test-btn--primary" target="_blank">
+                        <i class="ti ti-external-link"></i>Open
+                    </a>
+                </div>
+            </div>
+
+            <div class="c-page-card">
+                <div class="c-page-card__info">
+                    <h4 class="c-page-card__name">Discord Registration</h4>
+                    <code class="c-page-card__url">/auth/register/discord</code>
+                </div>
+                <div class="c-page-card__actions">
+                    <a href="{{ url_for('auth.discord_register') }}" class="c-test-btn c-test-btn--primary" target="_blank">
+                        <i class="ti ti-external-link"></i>Open
+                    </a>
+                </div>
+            </div>
+
+            <div class="c-incognito-tip">
+                <i class="ti ti-incognito c-incognito-tip__icon"></i>
+                <div class="c-incognito-tip__content">
+                    <h5 class="c-incognito-tip__title">Pro Tip: Use Incognito Mode</h5>
+                    <p class="c-incognito-tip__text">
+                        Open pages in an incognito/private window (Ctrl+Shift+N) to see them as an unauthenticated user.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Waitlist Flow -->
+        <div class="c-flow-section">
+            <div class="c-flow-section__header">
+                <span class="c-flow-section__number">3</span>
+                <h3 class="c-flow-section__title">Waitlist Flow</h3>
+            </div>
+            <p class="c-flow-section__description">
+                When registration is closed, new users see the waitlist flow instead.
+            </p>
+
+            <div class="c-page-card">
+                <div class="c-page-card__info">
+                    <h4 class="c-page-card__name">Waitlist Registration</h4>
+                    <code class="c-page-card__url">/auth/waitlist-register</code>
+                </div>
+                <div class="c-page-card__actions">
+                    <a href="{{ url_for('auth.waitlist_register') }}" class="c-test-btn c-test-btn--primary" target="_blank">
+                        <i class="ti ti-external-link"></i>Open
+                    </a>
+                </div>
+            </div>
+
+            <div class="c-page-card">
+                <div class="c-page-card__info">
+                    <h4 class="c-page-card__name">Waitlist Discord Login</h4>
+                    <code class="c-page-card__url">/auth/waitlist_discord_login</code>
+                </div>
+                <div class="c-page-card__actions">
+                    <a href="{{ url_for('auth.waitlist_discord_login') }}" class="c-test-btn c-test-btn--primary" target="_blank">
+                        <i class="ti ti-external-link"></i>Open
+                    </a>
+                </div>
+            </div>
+
+            <div class="c-page-card">
+                <div class="c-page-card__info">
+                    <h4 class="c-page-card__name">Waitlist Confirmation</h4>
+                    <code class="c-page-card__url">/auth/waitlist-confirmation</code>
+                </div>
+                <div class="c-page-card__actions">
+                    <a href="{{ url_for('auth.waitlist_confirmation') }}" class="c-test-btn c-test-btn--primary" target="_blank">
+                        <i class="ti ti-external-link"></i>Open
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Verification -->
+        <div class="c-flow-section">
+            <div class="c-flow-section__header">
+                <span class="c-flow-section__number">4</span>
+                <h3 class="c-flow-section__title">Profile Wizard & Verification</h3>
+            </div>
+            <p class="c-flow-section__description">
+                Test the profile wizard flow using your own profile.
+            </p>
+
+            <div class="c-quick-test">
+                <h2 class="c-quick-test__title">
+                    <i class="ti ti-player-play me-2"></i>Quick Test Your Profile
+                </h2>
+                <p class="c-quick-test__description">
+                    These use your actual profile - perfect for testing the wizard and success pages.
+                </p>
+                <div class="c-quick-test__actions">
+                    <a href="{{ url_for('players.wizard_profile', player_id=current_player_id) }}"
+                       class="c-test-btn c-test-btn--success" target="_blank">
+                        <i class="ti ti-wand"></i>Profile Wizard
+                    </a>
+                    <a href="{{ url_for('players.mobile_profile_update', player_id=current_player_id) }}"
+                       class="c-test-btn c-test-btn--primary" target="_blank">
+                        <i class="ti ti-device-mobile"></i>Mobile Editor
+                    </a>
+                    <a href="{{ url_for('players.mobile_profile_success', player_id=current_player_id) }}?action=verified"
+                       class="c-test-btn c-test-btn--success" target="_blank">
+                        <i class="ti ti-check"></i>Success Page
+                    </a>
+                    <a href="{{ url_for('players.player_profile', player_id=current_player_id) }}"
+                       class="c-test-btn c-test-btn--secondary" target="_blank">
+                        <i class="ti ti-user"></i>View Profile
+                    </a>
+                </div>
+            </div>
+
+            <div class="c-page-card">
+                <div class="c-page-card__info">
+                    <h4 class="c-page-card__name">Onboarding Form</h4>
+                    <code class="c-page-card__url">/onboarding</code>
+                </div>
+                <div class="c-page-card__actions">
+                    <a href="{{ url_for('main.onboarding') }}" class="c-test-btn c-test-btn--primary" target="_blank">
+                        <i class="ti ti-external-link"></i>Open
+                    </a>
+                </div>
+            </div>
+
+            <div class="c-note">
+                <h5 class="c-note__title"><i class="ti ti-info-circle me-1"></i>Note</h5>
+                <p class="c-note__text">
+                    The onboarding page redirects to home if you've already completed onboarding.
+                    Use "Reset to Fresh User" above to test it.
+                </p>
+            </div>
+        </div>
+
+        <!-- Admin Tools -->
+        <div class="c-flow-section">
+            <div class="c-flow-section__header">
+                <span class="c-flow-section__number">5</span>
+                <h3 class="c-flow-section__title">Admin Monitoring</h3>
+            </div>
+            <p class="c-flow-section__description">
+                Tools to monitor and manage the onboarding process.
+            </p>
+
+            <div class="c-page-card">
+                <div class="c-page-card__info">
+                    <h4 class="c-page-card__name">User Approvals</h4>
+                    <code class="c-page-card__url">/admin/panel/users/approvals</code>
+                </div>
+                <div class="c-page-card__actions">
+                    <a href="{{ url_for('admin_panel.user_approvals') }}" class="c-test-btn c-test-btn--secondary" target="_blank">
+                        <i class="ti ti-external-link"></i>Open
+                    </a>
+                </div>
+            </div>
+
+            <div class="c-page-card">
+                <div class="c-page-card__info">
+                    <h4 class="c-page-card__name">Waitlist Management</h4>
+                    <code class="c-page-card__url">/admin/panel/users/waitlist</code>
+                </div>
+                <div class="c-page-card__actions">
+                    <a href="{{ url_for('admin_panel.user_waitlist') }}" class="c-test-btn c-test-btn--secondary" target="_blank">
+                        <i class="ti ti-external-link"></i>Open
+                    </a>
+                </div>
+            </div>
+
+            <div class="c-page-card">
+                <div class="c-page-card__info">
+                    <h4 class="c-page-card__name">Message Templates</h4>
+                    <code class="c-page-card__url">/admin/message-templates</code>
+                </div>
+                <div class="c-page-card__actions">
+                    <a href="{{ url_for('admin.message_config.list_categories') }}" class="c-test-btn c-test-btn--secondary" target="_blank">
+                        <i class="ti ti-external-link"></i>Open
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        {% if results %}
+        <div class="c-flow-section">
+            <div class="c-flow-section__header">
+                <span class="c-flow-section__number"><i class="ti ti-clipboard-list"></i></span>
+                <h3 class="c-flow-section__title">Test Results</h3>
+            </div>
+            <div class="c-results">
+                <div class="c-results__log">
+                    {% for result in results %}
+                    <code>{{ result }}</code>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
