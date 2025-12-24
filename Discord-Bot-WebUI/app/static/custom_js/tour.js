@@ -1,4 +1,10 @@
 document.addEventListener('DOMContentLoaded', function () {
+    // Guard: Check if Shepherd is loaded before using it
+    if (typeof Shepherd === 'undefined') {
+        console.warn('[Tour] Shepherd library not loaded, skipping tour initialization');
+        return;
+    }
+
     const tourVar = new Shepherd.Tour({
         defaultStepOptions: {
             scrollTo: true,
