@@ -405,7 +405,15 @@ def init_assets(app):
         'css/bootstrap-minimal.css',          # Bootstrap utilities (grid, flex, spacing, display)
         'css/core/component-aliases.css',     # Bootstrap class aliases with BEM/token styling
         'css/core/bootstrap-theming.css',     # Bootstrap class theming
-        # NOTE: css/components.css REMOVED - styles now in modular css/components/*.css files
+
+        # CRITICAL: Vuexy/Sneat Layout System (menu-vertical, layout-*, content-wrapper)
+        # This file contains essential layout styles NOT in modular component files
+        'css/components.css',                 # Layout system, menu, navbar, footer (3141 lines)
+
+        # Vendor CSS (required for layout/UI)
+        'vendor/fonts/fontawesome.css',                       # FontAwesome icons
+        'vendor/libs/node-waves/node-waves.css',              # Wave effects
+        'vendor/libs/perfect-scrollbar/perfect-scrollbar.css', # Scrollbar styling
 
         # Components
         'css/components/buttons.css',

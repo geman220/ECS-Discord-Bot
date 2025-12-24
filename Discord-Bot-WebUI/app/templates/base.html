@@ -481,6 +481,21 @@
 
     <!-- Waves library for ripple effects (logic only, styling via CSS) -->
     <script src="{{ url_for('static', filename='vendor/libs/node-waves/node-waves.js') }}"></script>
+
+    <!-- Perfect Scrollbar - Required by menu.js for sidebar scrolling -->
+    <script src="{{ url_for('static', filename='vendor/libs/perfect-scrollbar/perfect-scrollbar.js') }}"></script>
+
+    <!-- Hammer.js - Touch gestures for mobile menu interactions -->
+    <script src="{{ url_for('static', filename='vendor/libs/hammer/hammer.js') }}"></script>
+
+    <!-- Menu.js - Defines window.Menu class (required by main.js) -->
+    <script src="{{ url_for('static', filename='vendor/js/menu-refactored.js') }}"></script>
+
+    <!-- Helpers - Defines window.Helpers class (required by main.js) -->
+    <script src="{{ url_for('static', filename='js/helpers-minimal.js') }}"></script>
+
+    <!-- Config - Defines templateName global (required by main.js) -->
+    <script src="{{ url_for('static', filename='js/config.js') }}"></script>
     {% endif %}
     {% if not config.get('ASSETS_PRODUCTION_MODE') %}
     <!-- DISABLED: waves-css-override.js - Waves.Effect is not exposed in node-waves API -->
