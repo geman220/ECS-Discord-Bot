@@ -86,10 +86,15 @@ let config = {
   },
 };
 
-// Paths and RTL support
-let assetsPath = document.documentElement.getAttribute('data-assets-path'),
-  templateName = document.documentElement.getAttribute('data-template'),
-  rtlSupport = true; // set to true for RTL support, false otherwise.
+// Paths and RTL support - Use window. to avoid TDZ issues when files are concatenated
+window.assetsPath = document.documentElement.getAttribute('data-assets-path');
+window.templateName = document.documentElement.getAttribute('data-template');
+window.rtlSupport = true; // set to true for RTL support, false otherwise.
+
+// Also expose as local variables for backwards compatibility
+var assetsPath = window.assetsPath;
+var templateName = window.templateName;
+var rtlSupport = window.rtlSupport;
 
 // Set the default content layout to 'wide' and initialize colors from CSS variables
 document.addEventListener('DOMContentLoaded', function() {
