@@ -655,6 +655,10 @@
          JAVASCRIPT LOADING: Production vs Development
          ============================================ -->
 
+    <!-- CSRF Token Auto-Injection for Fetch Requests (loaded in both modes) -->
+    <!-- Patches window.fetch to automatically add X-CSRFToken header to POST/PUT/DELETE/PATCH -->
+    <script src="{{ url_for('static', filename='js/csrf-fetch.js') }}"></script>
+
     {% if config.get('ASSETS_PRODUCTION_MODE') %}
     <!-- PRODUCTION MODE: Single minified bundle -->
     {% assets "production_js" %}
