@@ -544,14 +544,22 @@
   // INITIALIZATION
   // ============================================================================
 
+  // Actions this module handles - only prevent default for these
+  const HANDLED_ACTIONS = new Set([
+    'restart-bot', 'check-bot-health', 'view-bot-logs', 'sync-commands',
+    'view-commands', 'command-permissions', 'command-usage', 'custom-commands',
+    'manage-guild', 'guild-stats', 'add-guild',
+    'save-bot-config', 'reset-bot-config'
+  ]);
+
   function init() {
     // Initialize data
     initializeData();
 
-    // Set up event delegation
+    // Set up event delegation - only handle actions this module knows about
     document.addEventListener('click', function(e) {
       const target = e.target.closest('[data-action]');
-      if (target) {
+      if (target && HANDLED_ACTIONS.has(target.dataset.action)) {
         e.preventDefault();
         handleAction(target);
       }
