@@ -360,16 +360,27 @@ services:
       - ./Discord-Bot-WebUI/instance/firebase-service-account.json:/app/instance/firebase-service-account.json
     labels:
       - "traefik.enable=true"
+      # Main webui router (HTTP -> HTTPS redirect)
       - "traefik.http.routers.webui.rule=Host(`portal.ecsfc.com`)"
       - "traefik.http.routers.webui.entrypoints=web"
+      # Main webui secure router (HTTPS, rate limited)
       - "traefik.http.routers.webui-secure.entrypoints=websecure"
-      - "traefik.http.routers.webui-secure.rule=Host(`portal.ecsfc.com`)"
+      - "traefik.http.routers.webui-secure.rule=Host(`portal.ecsfc.com`) && !PathPrefix(`/socket.io`)"
       - "traefik.http.routers.webui-secure.tls=true"
       - "traefik.http.routers.webui-secure.tls.certresolver=myresolver"
-      # HTTPS redirect
+      - "traefik.http.routers.webui-secure.priority=10"
+      # Socket.IO router (HTTPS, NO rate limit - Socket.IO makes many rapid requests)
+      - "traefik.http.routers.webui-socketio.entrypoints=websecure"
+      - "traefik.http.routers.webui-socketio.rule=Host(`portal.ecsfc.com`) && PathPrefix(`/socket.io`)"
+      - "traefik.http.routers.webui-socketio.tls=true"
+      - "traefik.http.routers.webui-socketio.tls.certresolver=myresolver"
+      - "traefik.http.routers.webui-socketio.priority=20"
+      - "traefik.http.routers.webui-socketio.service=webui"
+      - "traefik.http.routers.webui-socketio.middlewares=secure-headers"
+      # HTTPS redirect middleware
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
-      # Rate limiting middleware
+      # Rate limiting middleware (applied to main site, NOT to socket.io)
       - "traefik.http.middlewares.rate-limit.ratelimit.average=100"
       - "traefik.http.middlewares.rate-limit.ratelimit.period=1m"
       - "traefik.http.middlewares.rate-limit.ratelimit.burst=50"
@@ -385,7 +396,7 @@ services:
       - "traefik.http.services.webui.loadbalancer.sticky.cookie.sameSite=none"
       # Service port (required for WebSocket routing)
       - "traefik.http.services.webui.loadbalancer.server.port=5000"
-      # Apply middlewares
+      # Apply middlewares to main routes (Socket.IO router has its own middleware config above)
       - "traefik.http.routers.webui.middlewares=redirect-to-https,rate-limit"
       - "traefik.http.routers.webui-secure.middlewares=secure-headers,rate-limit"
     depends_on:

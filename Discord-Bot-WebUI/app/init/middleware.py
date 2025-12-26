@@ -184,6 +184,10 @@ def _init_rate_limiting(app):
                 # Health checks
                 '/api/health/',
 
+                # Socket.IO - makes rapid requests during connection/messaging
+                # Rate limiting Socket.IO causes 429 errors and connection failures
+                '/socket.io/',
+
                 # Presence/online status (polls every 30-120s on every page)
                 '/api/notifications/presence/',
 

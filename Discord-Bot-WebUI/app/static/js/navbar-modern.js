@@ -1167,27 +1167,58 @@ class ModernNavbarController {
 
   /**
    * Initialize WebSocket connection for presence tracking
-   * This creates a global socket connection that the server uses to track online status
+   * Uses SocketManager for unified socket management across all components
    */
   initPresenceSocket() {
-    // Use existing global socket if available (even if still connecting)
-    // This prevents race conditions where multiple scripts create sockets
+    // Use SocketManager if available (preferred method)
+    if (typeof window.SocketManager !== 'undefined') {
+      console.log('[Navbar] Using SocketManager for presence');
+
+      // Get socket reference
+      this.presenceSocket = window.SocketManager.getSocket();
+
+      // Register connect callback - fires immediately if already connected
+      window.SocketManager.onConnect('Navbar', (socket) => {
+        this.presenceSocket = socket;
+        this.updateOnlineStatus(true);
+        console.debug('Presence socket connected via SocketManager');
+      });
+
+      // Register disconnect callback
+      window.SocketManager.onDisconnect('Navbar', (reason) => {
+        this.updateOnlineStatus(false);
+        console.debug('Presence socket disconnected:', reason);
+      });
+
+      // Register event listeners via SocketManager
+      window.SocketManager.on('Navbar', 'authentication_success', (data) => {
+        this.updateOnlineStatus(true);
+        console.debug('Presence authenticated:', data.username);
+      });
+
+      window.SocketManager.on('Navbar', 'authentication_failed', () => {
+        // Still connected but not authenticated - show as online anyway
+        this.updateOnlineStatus(true);
+      });
+
+      return;
+    }
+
+    // Fallback: Use existing global socket if available
     if (window.socket) {
       console.log('[Navbar] Reusing existing socket (connected:', window.socket.connected, ')');
       this.presenceSocket = window.socket;
       if (window.socket.connected) {
         this.updateOnlineStatus(true);
       }
-      this.attachSocketListeners(this.presenceSocket);
+      this.attachSocketListenersDirect(this.presenceSocket);
       return;
     }
 
-    // Create new socket connection for presence
+    // Fallback: Create new socket connection for presence
     try {
-      console.log('[Navbar] Creating new socket connection');
+      console.log('[Navbar] Creating new socket connection (fallback)');
       this.presenceSocket = io('/', {
-        // IMPORTANT: Use polling first to establish sticky session cookie,
-        // then upgrade to websocket. This prevents 400 errors with multiple workers.
         transports: ['polling', 'websocket'],
         upgrade: true,
         reconnection: true,
@@ -1196,26 +1227,24 @@ class ModernNavbarController {
         reconnectionDelayMax: 5000,
         timeout: 20000,
         autoConnect: true,
-        // Ensure cookies are sent with cross-origin requests
         withCredentials: true
       });
 
       // Store globally so other components can use it
       window.socket = this.presenceSocket;
 
-      this.attachSocketListeners(this.presenceSocket);
+      this.attachSocketListenersDirect(this.presenceSocket);
 
     } catch (error) {
       console.warn('Failed to initialize presence socket:', error);
-      // Fall back to API-only presence
       this.checkPresence();
     }
   }
 
   /**
-   * Attach event listeners to socket for presence updates
+   * Attach event listeners directly to socket (fallback when SocketManager not available)
    */
-  attachSocketListeners(socket) {
+  attachSocketListenersDirect(socket) {
     socket.on('connect', () => {
       this.updateOnlineStatus(true);
       console.debug('Presence socket connected');
@@ -1232,8 +1261,6 @@ class ModernNavbarController {
     });
 
     socket.on('authentication_failed', () => {
-      // Still connected but not authenticated - show as online anyway
-      // since the socket connection itself triggers presence
       this.updateOnlineStatus(true);
     });
 

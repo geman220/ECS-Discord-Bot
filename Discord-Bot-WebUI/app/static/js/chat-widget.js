@@ -869,7 +869,34 @@
   let socket = null;
 
   function initWebSocket() {
-    // Check if Socket.IO is available
+    // Use SocketManager if available (preferred method)
+    if (typeof window.SocketManager !== 'undefined') {
+      console.log('[ChatWidget] Using SocketManager');
+
+      // Get socket reference
+      socket = window.SocketManager.getSocket();
+
+      // Register connect callback - fires immediately if already connected
+      window.SocketManager.onConnect('ChatWidget', function(connectedSocket) {
+        socket = connectedSocket;
+        console.log('[ChatWidget] Socket connected via SocketManager');
+        // Join messaging room when connected
+        if (state.isOpen) {
+          joinMessagingRoom();
+        }
+      });
+
+      // Register disconnect callback
+      window.SocketManager.onDisconnect('ChatWidget', function(reason) {
+        console.log('[ChatWidget] Socket disconnected:', reason);
+      });
+
+      // Attach event listeners via SocketManager
+      attachSocketListeners();
+      return;
+    }
+
+    // Fallback: Check if Socket.IO is available
     if (typeof io === 'undefined') {
       console.warn('[ChatWidget] Socket.IO not available, using polling');
       if (CONFIG.polling.enabled) {
@@ -878,14 +905,17 @@
       return;
     }
 
-    // Use existing socket or create new one
+    // Fallback: Use existing socket or create new one
     const checkSocket = () => {
       if (window.socket && window.socket.connected) {
         socket = window.socket;
-        attachSocketListeners();
-      } else if (window.socketIO) {
-        socket = window.socketIO;
-        attachSocketListeners();
+        attachSocketListenersDirect();
+      } else if (window.socket) {
+        // Socket exists but not connected - wait for connect event
+        socket = window.socket;
+        socket.once('connect', () => {
+          attachSocketListenersDirect();
+        });
       } else {
         // Try again in a second
         setTimeout(checkSocket, 1000);
@@ -896,6 +926,35 @@
   }
 
   function attachSocketListeners() {
+    // Use SocketManager for event registration (handles reconnects properly)
+    if (typeof window.SocketManager !== 'undefined') {
+      // Message events
+      window.SocketManager.on('ChatWidget', 'new_message', handleNewMessage);
+      window.SocketManager.on('ChatWidget', 'dm_sent', handleMessageSent);
+      window.SocketManager.on('ChatWidget', 'dm_error', handleMessageError);
+      window.SocketManager.on('ChatWidget', 'dm_unread_update', handleUnreadUpdate);
+      window.SocketManager.on('ChatWidget', 'message_deleted', handleMessageDeleted);
+
+      // Typing events
+      window.SocketManager.on('ChatWidget', 'user_typing', handleUserTyping);
+
+      // Read receipts
+      window.SocketManager.on('ChatWidget', 'messages_read', handleMessagesRead);
+
+      // Presence events
+      window.SocketManager.on('ChatWidget', 'user_online', handleUserOnline);
+      window.SocketManager.on('ChatWidget', 'user_offline', handleUserOffline);
+      window.SocketManager.on('ChatWidget', 'online_users', handleOnlineUsers);
+
+      console.log('[ChatWidget] Socket listeners attached via SocketManager');
+      return;
+    }
+
+    // Fallback to direct attachment
+    attachSocketListenersDirect();
+  }
+
+  function attachSocketListenersDirect() {
     if (!socket) return;
 
     // Message events
@@ -916,7 +975,7 @@
     socket.on('user_offline', handleUserOffline);
     socket.on('online_users', handleOnlineUsers);
 
-    console.log('[ChatWidget] Socket listeners attached');
+    console.log('[ChatWidget] Socket listeners attached (direct)');
   }
 
   function handleMessageDeleted(data) {
@@ -938,6 +997,15 @@
   }
 
   function joinMessagingRoom() {
+    // Use SocketManager if available
+    if (typeof window.SocketManager !== 'undefined') {
+      if (window.SocketManager.isConnected()) {
+        window.SocketManager.emit('join_messaging');
+      }
+      return;
+    }
+
+    // Fallback
     if (socket && socket.connected) {
       socket.emit('join_messaging');
     }
@@ -955,7 +1023,9 @@
       scrollToBottom();
 
       // Mark as read
-      if (socket) {
+      if (typeof window.SocketManager !== 'undefined') {
+        window.SocketManager.emit('mark_dm_read', { sender_id: message.sender_id });
+      } else if (socket) {
         socket.emit('mark_dm_read', { sender_id: message.sender_id });
       }
     }
@@ -1058,18 +1128,29 @@
   // ============================================================================
 
   function emitTypingStart() {
-    if (!socket || !state.activeConversation || !state.settings.typingIndicators) return;
+    if (!state.activeConversation || !state.settings.typingIndicators) return;
+
+    // Check if we can emit
+    const canEmit = (typeof window.SocketManager !== 'undefined' && window.SocketManager.isConnected()) ||
+                    (socket && socket.connected);
+    if (!canEmit) return;
 
     if (!state.isTyping) {
       state.isTyping = true;
-      socket.emit('typing_start', { recipient_id: state.activeConversation.id });
+      if (typeof window.SocketManager !== 'undefined') {
+        window.SocketManager.emit('typing_start', { recipient_id: state.activeConversation.id });
+      } else if (socket) {
+        socket.emit('typing_start', { recipient_id: state.activeConversation.id });
+      }
     }
 
     // Reset timeout
     clearTimeout(state.typingTimeout);
     state.typingTimeout = setTimeout(() => {
       state.isTyping = false;
-      if (socket) {
+      if (typeof window.SocketManager !== 'undefined') {
+        window.SocketManager.emit('typing_stop', { recipient_id: state.activeConversation.id });
+      } else if (socket) {
         socket.emit('typing_stop', { recipient_id: state.activeConversation.id });
       }
     }, CONFIG.ui.typingDebounce);

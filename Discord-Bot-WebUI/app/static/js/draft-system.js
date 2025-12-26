@@ -153,8 +153,35 @@ class DraftSystemV2 {
 
     initializeSocket() {
         try {
-            // Reuse existing global socket if available (created by navbar for presence)
-            // Check if socket EXISTS (not just connected) - it may still be connecting
+            // Use SocketManager if available (preferred method)
+            if (typeof window.SocketManager !== 'undefined') {
+                console.log('🔌 [Draft] Using SocketManager');
+
+                // Get socket reference
+                this.socket = window.SocketManager.getSocket();
+
+                // Register connect callback - fires immediately if already connected
+                window.SocketManager.onConnect('DraftSystem', (socket) => {
+                    console.log('🔌 [Draft] Socket connected via SocketManager');
+                    this.socket = socket;
+                    this.isConnected = true;
+                    this.updateConnectionStatus(true);
+                    this.socket.emit('join_draft_room', { league_name: this.leagueName });
+                });
+
+                // Register disconnect callback
+                window.SocketManager.onDisconnect('DraftSystem', (reason) => {
+                    console.log('🔌 [Draft] Socket disconnected:', reason);
+                    this.isConnected = false;
+                    this.updateConnectionStatus(false);
+                });
+
+                // Register event listeners via SocketManager
+                this.setupSocketListenersViaManager();
+                return;
+            }
+
+            // Fallback: Reuse existing global socket if available
             if (window.socket) {
                 console.log('🔌 [Draft] Reusing existing socket (connected:', window.socket.connected, ')');
                 this.socket = window.socket;
@@ -170,9 +197,8 @@ class DraftSystemV2 {
                 return;
             }
 
-            console.log('🔌 [Draft] Creating new socket connection');
+            console.log('🔌 [Draft] Creating new socket connection (fallback)');
             this.socket = io('/', {
-                // Use polling first to establish sticky session cookie with multiple workers
                 transports: ['polling', 'websocket'],
                 upgrade: true,
                 timeout: 10000,
@@ -186,66 +212,53 @@ class DraftSystemV2 {
             window.socket = this.socket;
 
             this.socket.on('connect', () => {
-                // console.log('✅ Connected to draft system');
                 this.isConnected = true;
                 this.updateConnectionStatus(true);
                 this.socket.emit('join_draft_room', { league_name: this.leagueName });
             });
 
             this.socket.on('disconnect', () => {
-                // console.log('❌ Disconnected from draft system');
                 this.isConnected = false;
                 this.updateConnectionStatus(false);
             });
 
             this.socket.on('connect_error', (error) => {
-                // console.error('🔌 Connection error:', error);
-                // console.error('Error details:', error.message, error.type, error.description);
                 this.updateConnectionStatus(false, 'Connection Error');
-
-                // Try to reconnect with different settings after a delay
                 setTimeout(() => {
                     if (!this.isConnected) {
-                        // console.log('🔄 Attempting reconnection with different settings...');
                         this.tryFallbackConnection();
                     }
                 }, 3000);
             });
 
             this.socket.on('joined_room', (data) => {
-                // console.log('🏠 Joined room:', data.room);
+                console.log('🏠 [Draft] Joined room:', data.room);
             });
 
             this.socket.on('player_drafted_enhanced', (data) => {
-                // console.log('🎯 Received player_drafted_enhanced event:', data);
-                this.hideDraftingIndicator(); // Phase 5: Hide status indicator
+                this.hideDraftingIndicator();
                 this.handlePlayerDrafted(data);
             });
 
             this.socket.on('player_removed_enhanced', (data) => {
-                // console.log('🔥 Received player_removed_enhanced event:', data);
                 this.handlePlayerRemoved(data);
             });
 
-            // Phase 5: Multi-user awareness
             this.socket.on('user_drafting', (data) => {
-                // Only show if it's not us drafting
                 if (data.username && data.player_name) {
                     this.showUserActivity(data.username, data.player_name, data.team_name);
                 }
             });
 
             this.socket.on('error', (data) => {
-                // console.error('❌ Received error event:', data);
-                this.hideDraftingIndicator(); // Phase 5: Hide on error
-                this.hideLoading(); // Hide loading overlay on error
+                this.hideDraftingIndicator();
+                this.hideLoading();
                 this.showToast('Error: ' + data.message, 'error');
             });
 
             this.socket.on('draft_error', (data) => {
-                // console.error('❌ Received draft_error event:', data);
-                this.hideDraftingIndicator(); // Phase 5: Hide on error
-                this.hideLoading(); // Hide loading overlay on error
+                this.hideDraftingIndicator();
+                this.hideLoading();
                 this.showToast('Draft Error: ' + data.message, 'error');
             });
 
@@ -318,6 +331,49 @@ class DraftSystemV2 {
         this.socket.on('player_details', (data) => {
             this.handlePlayerDetails(data);
         });
+    }
+
+    setupSocketListenersViaManager() {
+        // Use SocketManager for event registration (handles reconnects properly)
+        const SM = window.SocketManager;
+
+        SM.on('DraftSystem', 'joined_room', (data) => {
+            console.log('🏠 [Draft] Joined room:', data.room);
+            this.hideLoading();
+        });
+
+        SM.on('DraftSystem', 'player_drafted_enhanced', (data) => {
+            this.hideDraftingIndicator();
+            this.handlePlayerDrafted(data);
+        });
+
+        SM.on('DraftSystem', 'player_removed_enhanced', (data) => {
+            this.handlePlayerRemoved(data);
+        });
+
+        SM.on('DraftSystem', 'user_drafting', (data) => {
+            if (data.username && data.player_name) {
+                this.showUserActivity(data.username, data.player_name, data.team_name);
+            }
+        });
+
+        SM.on('DraftSystem', 'error', (data) => {
+            this.hideDraftingIndicator();
+            this.hideLoading();
+            this.showToast('Error: ' + data.message, 'error');
+        });
+
+        SM.on('DraftSystem', 'draft_error', (data) => {
+            this.hideDraftingIndicator();
+            this.hideLoading();
+            this.showToast('Draft Error: ' + data.message, 'error');
+        });
+
+        SM.on('DraftSystem', 'player_details', (data) => {
+            this.handlePlayerDetails(data);
+        });
+
+        console.log('🔌 [Draft] Socket listeners attached via SocketManager');
     }
 
     tryFallbackConnection() {

@@ -385,10 +385,26 @@ body[data-style="dark"] .c-navbar-modern__search-input:focus {
   }
 }
 
-/* Mobile - hide search in navbar, users can access via More menu or dedicated search page */
+/* Mobile - show search in navbar, compact and centered */
 @media (max-width: 767.98px) {
   .c-navbar-modern__search {
-    display: none;
+    display: flex !important;
+    flex: 1;
+    max-width: none;
+    min-width: 0;
+    margin: 0 var(--space-2, 0.5rem);
+  }
+
+  .c-navbar-modern__search-input {
+    height: 36px;
+    font-size: 16px; /* Prevent iOS zoom on focus */
+    padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+    padding-left: var(--space-8, 2rem);
+  }
+
+  .c-navbar-modern__search::before {
+    left: var(--space-2, 0.5rem);
+    font-size: 0.875rem;
   }
 }
 

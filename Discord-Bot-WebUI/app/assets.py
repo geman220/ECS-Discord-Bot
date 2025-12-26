@@ -738,6 +738,7 @@ def init_assets(app):
         'custom_js/waitlist-register.js',
 
         # Modern UI Components (CRITICAL - required for interactive features)
+        'js/socket-manager.js',         # Unified WebSocket management (MUST load before socket-dependent scripts)
         'js/navbar-modern.js',          # Navbar dropdowns, submenus, profile menu
         'js/online-status.js',          # Online/offline status indicators
         'js/chat-widget.js',            # Floating chat widget

@@ -1403,11 +1403,13 @@
 
   /*
    * Keep search bar visible on mobile - it's the global player search
+   * JUSTIFIED !important: Override component-level display:none
    */
   .c-navbar-modern__search {
+    display: flex !important;
     flex: 1;
     max-width: none;
-    margin-right: var(--space-2, 8px);
+    margin: 0 var(--space-2, 8px);
   }
 
   .c-navbar-modern__search-input {
