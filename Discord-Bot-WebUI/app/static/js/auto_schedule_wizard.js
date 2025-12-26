@@ -2300,18 +2300,23 @@ function getEnabledSpecialWeeksCount() {
  */
 
 // Initialize on page load if needed
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize field remove button states
-        updateWizardFieldRemoveButtons();
+function initAutoScheduleWizard() {
+    // Page guard - only run on auto schedule wizard page
+    if (!document.getElementById('totalSeasonWeeks')) {
+        return; // Not on auto schedule wizard page
+    }
 
-        // Initialize season structure calculations
-        updateSeasonStructure();
-        updateWizardPracticeWeekOptions();
-    });
-} else {
-    // DOM already loaded
+    // Initialize field remove button states
     updateWizardFieldRemoveButtons();
+
+    // Initialize season structure calculations
     updateSeasonStructure();
     updateWizardPracticeWeekOptions();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAutoScheduleWizard);
+} else {
+    // DOM already loaded
+    initAutoScheduleWizard();
 }

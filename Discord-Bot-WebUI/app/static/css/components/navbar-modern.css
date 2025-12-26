@@ -222,7 +222,9 @@ main#main-content,
    ============================================================================ */
 
 .c-navbar-modern__container {
-  display: flex;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
   align-items: center;
   gap: var(--space-4, 1rem);
   width: 100%;
@@ -410,12 +412,14 @@ body[data-style="dark"] .c-navbar-modern__search-input:focus {
    ============================================================================ */
 
 .c-navbar-modern__actions {
-  display: flex;
-  align-items: center;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
   gap: var(--space-2, 0.5rem);
   flex-shrink: 0;
 
-  /* Reset list styles */
+  /* Reset list styles - prevent Bootstrap navbar overrides */
   list-style: none;
   padding: 0;
   margin: 0;
@@ -425,7 +429,8 @@ body[data-style="dark"] .c-navbar-modern__search-input:focus {
 /* Each action item needs relative positioning for dropdown alignment */
 .c-navbar-modern__actions > li {
   position: relative;
-  display: flex;
+  display: flex !important;
+  flex-shrink: 0 !important;
   align-items: center;
 }
 

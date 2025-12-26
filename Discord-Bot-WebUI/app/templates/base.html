@@ -99,6 +99,25 @@
     {% assets "production_css" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
+
+    <!-- Critical navbar layout fix (prevents Bootstrap flex-wrap override) -->
+    <style id="navbar-layout-fix">
+    .c-navbar-modern__container {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+    }
+    .c-navbar-modern__actions {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+    }
+    .c-navbar-modern__actions > li {
+        display: flex !important;
+        flex-shrink: 0 !important;
+    }
+    </style>
     {% else %}
     <!-- DEVELOPMENT MODE: Modular Bundles -->
 

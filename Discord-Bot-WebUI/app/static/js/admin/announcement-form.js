@@ -1,7 +1,12 @@
 // Announcement Form - Live Preview and Character Counter
 document.addEventListener('DOMContentLoaded', function() {
+    // Page guard - only run on announcement form page
     const titleInput = document.getElementById('title');
     const contentInput = document.getElementById('content');
+    if (!titleInput || !contentInput) {
+        return; // Not on announcement form page
+    }
+
     const prioritySelect = document.getElementById('priority');
     const typeSelect = document.getElementById('announcement_type');
 
@@ -9,6 +14,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const previewBody = document.getElementById('preview-body');
     const previewPriority = document.getElementById('preview-priority');
     const previewType = document.getElementById('preview-type');
+
+    // Additional guard for preview elements
+    if (!previewTitle || !previewBody) {
+        return; // Preview elements not present
+    }
 
     function updatePreview() {
         previewTitle.textContent = titleInput.value || 'Announcement Title';

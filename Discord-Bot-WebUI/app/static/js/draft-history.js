@@ -435,10 +435,15 @@ function clearSeasonLeague(seasonId, leagueId, seasonName, leagueName) {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
+    // Page guard - only run on draft history page
+    if (!document.querySelector('.sortable-draft-picks') && !document.getElementById('editDraftPickForm')) {
+        return; // Not on draft history page
+    }
+
     draftHistoryManager = new DraftHistoryManager();
-    
+
     // Initialize tooltips
     draftHistoryManager.initTooltips();
-    
+
     console.log('Draft History interface loaded successfully');
 });

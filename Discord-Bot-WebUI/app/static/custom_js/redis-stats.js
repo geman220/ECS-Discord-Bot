@@ -10,8 +10,14 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeRedisStats() {
+    // Page guard - only run on Redis stats page
+    const refreshBtn = document.getElementById('refresh-btn');
+    if (!refreshBtn) {
+        return; // Not on Redis stats page
+    }
+
     // Event listeners
-    document.getElementById('refresh-btn').addEventListener('click', updateStats);
+    refreshBtn.addEventListener('click', updateStats);
     document.getElementById('test-btn').addEventListener('click', testConnection);
     document.getElementById('cleanup-btn').addEventListener('click', cleanupConnections);
 
