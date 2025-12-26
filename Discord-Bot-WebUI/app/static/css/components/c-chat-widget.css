@@ -1005,10 +1005,30 @@
     max-height: none;
     border-radius: 0;
     transform: translateY(100%);
+    /* Prevent scroll chaining to background */
+    overscroll-behavior: contain;
+    /* Ensure touches are captured */
+    touch-action: pan-y pinch-zoom;
   }
 
   .c-chat-widget[data-state="open"] .c-chat-widget__panel {
     transform: translateY(0);
+  }
+
+  /* Prevent background scrolling when chat is open */
+  .c-chat-widget[data-state="open"] {
+    /* Create a backdrop that captures all touches */
+    &::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: -1;
+      touch-action: none;
+    }
   }
 
   .c-chat-widget__header {
@@ -1016,8 +1036,33 @@
     padding-top: max(16px, env(safe-area-inset-top));
   }
 
+  /* Messages area - scrollable */
+  .c-chat-widget__messages {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Composer - fixed at bottom with proper sizing */
   .c-chat-widget__composer {
+    padding: 12px 16px;
     padding-bottom: max(12px, env(safe-area-inset-bottom));
+    background: var(--cw-bg);
+    flex-shrink: 0;
+  }
+
+  /* Input - properly sized for mobile */
+  .c-chat-widget__composer-input {
+    min-height: 44px;
+    max-height: 100px;
+    font-size: 16px; /* Prevents iOS zoom on focus */
+    padding: 12px 16px;
+    border-radius: 22px;
+    /* Ensure input is tappable */
+    -webkit-user-select: text;
+    user-select: text;
+    touch-action: manipulation;
   }
 
   /* Hide trigger when panel is open on mobile */

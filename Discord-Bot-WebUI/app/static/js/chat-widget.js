@@ -603,6 +603,15 @@
     state.isOpen = true;
     elements.widget.dataset.state = 'open';
 
+    // Lock body scroll on mobile to prevent background scrolling
+    if (window.innerWidth <= 575) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.top = `-${window.scrollY}px`;
+      document.body.dataset.chatScrollY = window.scrollY;
+    }
+
     // Load initial data
     loadConversations();
     loadUnreadCount();
@@ -625,6 +634,17 @@
     state.messages = [];
     elements.widget.dataset.state = 'closed';
     elements.widget.dataset.view = 'list';
+
+    // Unlock body scroll on mobile
+    if (document.body.dataset.chatScrollY !== undefined) {
+      const scrollY = document.body.dataset.chatScrollY;
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.top = '';
+      window.scrollTo(0, parseInt(scrollY || '0'));
+      delete document.body.dataset.chatScrollY;
+    }
 
     // Clear search state
     clearSearch();
