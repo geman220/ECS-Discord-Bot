@@ -172,12 +172,14 @@ class DraftSystemV2 {
 
             console.log('🔌 [Draft] Creating new socket connection');
             this.socket = io('/', {
-                transports: ['websocket', 'polling'],
+                // Use polling first to establish sticky session cookie with multiple workers
+                transports: ['polling', 'websocket'],
                 upgrade: true,
                 timeout: 10000,
                 reconnection: true,
                 reconnectionDelay: 1000,
-                reconnectionAttempts: 3
+                reconnectionAttempts: 3,
+                withCredentials: true
             });
 
             // Store globally so other components can reuse

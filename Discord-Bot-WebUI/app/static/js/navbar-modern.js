@@ -1186,13 +1186,18 @@ class ModernNavbarController {
     try {
       console.log('[Navbar] Creating new socket connection');
       this.presenceSocket = io('/', {
-        transports: ['websocket', 'polling'],
+        // IMPORTANT: Use polling first to establish sticky session cookie,
+        // then upgrade to websocket. This prevents 400 errors with multiple workers.
+        transports: ['polling', 'websocket'],
+        upgrade: true,
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
         timeout: 20000,
-        autoConnect: true
+        autoConnect: true,
+        // Ensure cookies are sent with cross-origin requests
+        withCredentials: true
       });
 
       // Store globally so other components can use it

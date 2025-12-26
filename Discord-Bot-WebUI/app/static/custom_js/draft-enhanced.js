@@ -73,7 +73,12 @@ function setupDraftEnhancedSocket() {
     } else {
         // Create new socket if none exists
         console.log('[DraftEnhanced] Creating new socket connection');
-        socket = io('/');
+        socket = io('/', {
+            // Use polling first to establish sticky session cookie with multiple workers
+            transports: ['polling', 'websocket'],
+            upgrade: true,
+            withCredentials: true
+        });
         window.socket = socket;
     }
 

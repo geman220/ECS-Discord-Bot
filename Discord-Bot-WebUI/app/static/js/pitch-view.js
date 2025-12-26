@@ -48,9 +48,11 @@ class PitchViewSystem {
             // Create new socket if none exists
             console.log('🏟️ [PitchView] Creating new socket connection');
             this.socket = io('/', {
-                transports: ['websocket', 'polling'],
+                // Use polling first to establish sticky session cookie with multiple workers
+                transports: ['polling', 'websocket'],
                 upgrade: true,
-                timeout: 10000
+                timeout: 10000,
+                withCredentials: true
             });
 
             // Store globally for other components to reuse

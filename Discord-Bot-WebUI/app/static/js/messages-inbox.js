@@ -163,7 +163,10 @@
     // Create new socket if none exists
     console.log('[MessagesInbox] Creating new socket connection');
     socket = io({
-      transports: ['websocket', 'polling']
+      // Use polling first to establish sticky session cookie with multiple workers
+      transports: ['polling', 'websocket'],
+      upgrade: true,
+      withCredentials: true
     });
 
     // Store globally for other components to reuse
