@@ -1,6 +1,12 @@
 // static/custom_js/cropper.js
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Page guard - only run on pages with image cropper
+    const imageInput = document.getElementById('image');
+    if (!imageInput) {
+        return; // Not on a page with image cropper
+    }
+
     let cropper;
 
     // Function to initialize cropper
@@ -64,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Initialize Cropper when an image is selected
-    document.getElementById('image').addEventListener('change', function (e) {
+    imageInput.addEventListener('change', function (e) {
         const ratio = 1; // 1:1 aspect ratio for square images
         croppingimg(e, ratio);
     });
