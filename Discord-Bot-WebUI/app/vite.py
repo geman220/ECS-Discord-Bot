@@ -24,7 +24,8 @@ Configuration:
 import json
 import os
 from functools import lru_cache
-from flask import current_app, url_for, Markup
+from flask import current_app, url_for
+from markupsafe import Markup
 
 
 def init_app(app):
