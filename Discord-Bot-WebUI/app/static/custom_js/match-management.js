@@ -24,6 +24,12 @@ function initializeCSRFToken() {
 
 // Auto-refresh functionality
 function refreshStatuses() {
+    // Page guard - only run on match management page
+    const lastUpdatedEl = document.getElementById('lastUpdated');
+    if (!lastUpdatedEl) {
+        return; // Not on match management page
+    }
+
     fetch('/admin/match_management/statuses')
         .then(response => response.json())
         .then(data => {
@@ -32,7 +38,7 @@ function refreshStatuses() {
                     updateMatchRow(match);
                 });
             }
-            document.getElementById('lastUpdated').textContent = 
+            lastUpdatedEl.textContent =
                 `Last updated: ${new Date().toLocaleTimeString()}`;
         })
         .catch(error => console.error('Error refreshing statuses:', error));

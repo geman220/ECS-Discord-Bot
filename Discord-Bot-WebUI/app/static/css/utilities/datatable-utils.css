@@ -44,10 +44,25 @@ div.dataTables_wrapper,
 /**
  * Ensures dropdown menus render above table elements
  * Prevents z-index stacking issues with DataTables
+ *
+ * IMPORTANT: Only apply position:absolute to actual dropdown MENUS,
+ * not to buttons/triggers. The .dt-dropdown class gets added to all
+ * [data-dropdown] elements including navbar buttons.
  */
 .dt-dropdown {
     z-index: 9999 !important;
+    /* Removed position:absolute - was breaking navbar flex layout */
+}
+
+/* Only apply position:absolute to dropdown menus, not triggers */
+.dt-dropdown.dropdown-menu,
+.dt-dropdown[role="menu"] {
     position: absolute !important;
+}
+
+/* Prevent position:absolute on navbar action buttons */
+.c-navbar-modern__actions .dt-dropdown {
+    position: relative !important;
 }
 
 /* Target Bootstrap dropdown menus within DataTables */

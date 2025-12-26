@@ -226,8 +226,8 @@ document.addEventListener('DOMContentLoaded', function() {
  */
 function fixDropdownsAndOverflow() {
   try {
-    // Add utility classes to dropdown menus
-    var dropdowns = document.querySelectorAll('[data-dropdown]');
+    // Add utility classes to dropdown menus (exclude navbar dropdowns)
+    var dropdowns = document.querySelectorAll('[data-dropdown]:not(.c-navbar-modern__actions [data-dropdown])');
     for (var i = 0; i < dropdowns.length; i++) {
       dropdowns[i].classList.add('dt-dropdown');
     }
