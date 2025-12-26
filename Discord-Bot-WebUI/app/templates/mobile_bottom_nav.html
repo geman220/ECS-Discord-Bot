@@ -57,29 +57,16 @@
     <div class="offcanvas-body">
         <div class="list-group list-group-flush">
             <!-- Profile -->
-            {% if current_user.is_authenticated and current_user.player %}
-            <a href="{{ url_for('players.player_profile', player_id=current_user.player.id) }}"
-               class="list-group-item list-group-item-action">
-                <i class="ti ti-user me-3"></i>
-                My Profile
-            </a>
-            {% elif current_user.is_authenticated %}
-            <a href="{{ url_for('main.my_profile') }}"
+            {% if safe_safe_current_user.is_authenticated and safe_current_user.player %}
+            <a href="{{ url_for('players.player_profile', player_id=safe_current_user.player.id) }}"
                class="list-group-item list-group-item-action">
                 <i class="ti ti-user me-3"></i>
                 My Profile
             </a>
             {% endif %}
 
-            <!-- Search Players -->
-            <a href="{{ url_for('players.view_players') }}"
-               class="list-group-item list-group-item-action">
-                <i class="ti ti-search me-3"></i>
-                Search Players
-            </a>
-
             <!-- Messages -->
-            {% if current_user.is_authenticated %}
+            {% if safe_current_user.is_authenticated %}
             <a href="{{ url_for('messages_pages.messages_inbox') }}"
                class="list-group-item list-group-item-action">
                 <i class="ti ti-mail me-3"></i>
@@ -95,7 +82,7 @@
             </a>
 
             <!-- Settings -->
-            {% if current_user.is_authenticated %}
+            {% if safe_current_user.is_authenticated %}
             <a href="{{ url_for('account.settings') }}"
                class="list-group-item list-group-item-action">
                 <i class="ti ti-settings me-3"></i>
@@ -104,7 +91,7 @@
             {% endif %}
 
             <!-- Draft Leagues (if user has access) -->
-            {% if current_user.is_authenticated and ('Admin' in user_roles or 'Global Admin' in user_roles or 'Coach' in user_roles or 'Pub League Admin' in user_roles or 'Pub League Coach' in user_roles) %}
+            {% if safe_current_user.is_authenticated and ('Admin' in user_roles or 'Global Admin' in user_roles or 'Coach' in user_roles or 'Pub League Admin' in user_roles or 'Pub League Coach' in user_roles) %}
             <div class="list-group-item mobile-menu-section-header">
                 <small class="text-muted fw-bold">DRAFT</small>
             </div>
@@ -121,7 +108,7 @@
             {% endif %}
 
             <!-- Coach Dashboard (if coach) -->
-            {% if current_user.is_authenticated and ('Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles or 'Admin' in user_roles or 'Global Admin' in user_roles) %}
+            {% if safe_current_user.is_authenticated and ('Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles or 'Admin' in user_roles or 'Global Admin' in user_roles) %}
             <a href="{{ url_for('teams.coach_dashboard') }}"
                class="list-group-item list-group-item-action">
                 <i class="ti ti-clipboard me-3"></i>
@@ -130,7 +117,7 @@
             {% endif %}
 
             <!-- Admin Panel (if admin) -->
-            {% if current_user.is_authenticated and ('Admin' in user_roles or 'Global Admin' in user_roles) %}
+            {% if safe_current_user.is_authenticated and ('Admin' in user_roles or 'Global Admin' in user_roles) %}
             <a href="{{ url_for('admin_panel.dashboard') }}"
                class="list-group-item list-group-item-action">
                 <i class="ti ti-shield me-3"></i>
@@ -139,7 +126,7 @@
             {% endif %}
 
             <!-- Wallet (if admin) -->
-            {% if current_user.is_authenticated and ('Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Admin' in user_roles) %}
+            {% if safe_current_user.is_authenticated and ('Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Admin' in user_roles) %}
             <a href="{{ url_for('wallet_admin.wallet_management') }}"
                class="list-group-item list-group-item-action">
                 <i class="ti ti-wallet me-3"></i>
@@ -148,7 +135,7 @@
             {% endif %}
 
             <!-- Feedback -->
-            {% if current_user.is_authenticated %}
+            {% if safe_current_user.is_authenticated %}
             <a href="{{ url_for('feedback.submit_feedback') }}"
                class="list-group-item list-group-item-action">
                 <i class="ti ti-message-circle me-3"></i>
@@ -157,7 +144,7 @@
             {% endif %}
 
             <!-- Help -->
-            {% if current_user.is_authenticated %}
+            {% if safe_current_user.is_authenticated %}
             <a href="{{ url_for('help.index') }}"
                class="list-group-item list-group-item-action">
                 <i class="ti ti-help-circle me-3"></i>
@@ -175,7 +162,7 @@
                 <span id="mobileThemeText">Dark Mode</span>
             </button>
 
-            {% if current_user.is_authenticated %}
+            {% if safe_current_user.is_authenticated %}
             <div class="dropdown-divider"></div>
 
             <!-- Logout -->

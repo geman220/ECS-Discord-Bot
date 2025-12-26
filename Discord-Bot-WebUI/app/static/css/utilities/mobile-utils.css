@@ -599,11 +599,18 @@ select.ios-select,
  * Momentum scrolling for dropdowns and offcanvas
  * Provides smooth, native-feeling scroll on iOS
  */
-.dropdown-menu,
+.dropdown-menu {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
 .offcanvas,
 .offcanvas-body {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    /* Ensure offcanvas content can scroll */
+    overflow-y: auto;
+    touch-action: pan-y;
 }
 
 /**

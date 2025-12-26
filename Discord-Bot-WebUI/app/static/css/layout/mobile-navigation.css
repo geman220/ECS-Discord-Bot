@@ -738,18 +738,29 @@
   -webkit-backdrop-filter: none !important;
 }
 
-/* Ensure offcanvas body also has solid background */
+/* Ensure offcanvas body also has solid background and CAN SCROLL */
 .mobile-more-menu .offcanvas-body {
   background-color: #ffffff !important;
   background: #ffffff !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+  touch-action: pan-y !important;
+  max-height: calc(60vh - 60px) !important; /* Account for header */
 }
 
 /* Dark mode solid background */
 [data-style="dark"] .c-mobile-more-menu,
-[data-style="dark"] .mobile-more-menu.offcanvas,
+[data-style="dark"] .mobile-more-menu.offcanvas {
+  background-color: #1a1d21 !important;
+  background: #1a1d21 !important;
+}
+
 [data-style="dark"] .mobile-more-menu .offcanvas-body {
   background-color: #1a1d21 !important;
   background: #1a1d21 !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 /* BEM: More menu header */
@@ -1391,27 +1402,32 @@
   }
 
   /*
-   * JUSTIFIED !important: Hide search bar on mobile navbar
-   * Reduces clutter - search is available in More menu
+   * Keep search bar visible on mobile - it's the global player search
    */
   .c-navbar-modern__search {
-    display: none !important;
+    flex: 1;
+    max-width: none;
+    margin-right: var(--space-2, 8px);
+  }
+
+  .c-navbar-modern__search-input {
+    font-size: 16px !important; /* Prevent iOS zoom */
+    padding: var(--space-2, 8px) var(--space-3, 12px);
   }
 
   /*
-   * Adjust navbar content to fill space properly
+   * Adjust navbar content layout
    */
   .c-navbar-modern__content,
   .c-navbar-modern__container {
-    justify-content: flex-end;
+    justify-content: space-between;
   }
 
   /*
-   * Give action buttons more room
+   * Compact action buttons on mobile
    */
   .c-navbar-modern__actions {
-    flex: 1;
-    justify-content: flex-end;
+    flex: 0 0 auto;
     gap: var(--space-1, 4px);
   }
 }
