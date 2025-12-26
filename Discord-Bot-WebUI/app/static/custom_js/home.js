@@ -205,6 +205,7 @@
    * ============================================================================
    * DISCORD MEMBERSHIP CHECK
    * Prompts user to join Discord server if not already a member
+   * Uses cached membership status from database (stored in data attributes)
    * ============================================================================
    */
   function initializeDiscordMembershipCheck() {
@@ -213,6 +214,8 @@
     if (!rsvpData) return;
 
     const playerDiscordId = rsvpData.dataset.discordId;
+    const discordInServer = rsvpData.dataset.discordInServer; // 'true', 'false', or 'unknown'
+    const discordLastChecked = rsvpData.dataset.discordLastChecked;
 
     // Check if player has Discord linked
     if (!playerDiscordId || playerDiscordId === 'None' || playerDiscordId === '') {
@@ -221,11 +224,47 @@
       return;
     }
 
-    // Discord linked - check membership
-    showDiscordMembershipPrompt();
+    // Discord linked - check cached membership status from database
+    showDiscordMembershipPrompt(discordInServer, discordLastChecked);
   }
 
-  function showDiscordMembershipPrompt() {
+  function showDiscordMembershipPrompt(inServerStatus, lastChecked) {
+    // Use cached membership status from database (passed via data attributes)
+    // Possible values: 'true' (in server), 'false' (not in server), 'unknown' (never checked)
+
+    if (inServerStatus === 'true') {
+      // User is confirmed IN the Discord server - no prompt needed
+      console.log('[Home] User is in Discord server (cached), skipping prompt');
+      return;
+    }
+
+    if (inServerStatus === 'unknown') {
+      // Never been checked - we could check via API, but for now skip to avoid false positives
+      // This is safer than assuming they're not in the server
+      console.log('[Home] Discord membership status unknown, skipping prompt');
+
+      // Optionally trigger a background check for next time
+      triggerMembershipCheck();
+      return;
+    }
+
+    // inServerStatus === 'false' - User is confirmed NOT in the server
+
+    // Check if the cached data is stale (older than 30 days)
+    if (lastChecked) {
+      const lastCheckDate = new Date(lastChecked);
+      const daysSinceCheck = (Date.now() - lastCheckDate.getTime()) / (1000 * 60 * 60 * 24);
+
+      if (daysSinceCheck > 30) {
+        // Data is stale, trigger a fresh check and skip prompt for now
+        console.log('[Home] Discord membership data is stale, triggering refresh');
+        triggerMembershipCheck();
+        return;
+      }
+    }
+
+    console.log('[Home] User confirmed NOT in Discord server, showing prompt');
+
     // Check cooldown
     const lastPromptShown = localStorage.getItem('discord_prompt_shown');
     const now = Date.now();
@@ -251,6 +290,34 @@
         localStorage.setItem('discord_prompt_shown', now.toString());
       }
     }, CONFIG.DISCORD_PROMPT_DELAY);
+  }
+
+  /**
+   * Trigger a background check of Discord membership status
+   * This updates the database for next page load
+   */
+  function triggerMembershipCheck() {
+    const rsvpData = document.getElementById('rsvp-data');
+    if (!rsvpData) return;
+
+    const csrfToken = rsvpData.dataset.csrfToken;
+
+    // Fire and forget - don't wait for response
+    fetch('/api/discord/check-membership', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+      },
+      credentials: 'same-origin'
+    }).then(response => {
+      if (response.ok) {
+        console.log('[Home] Discord membership check triggered successfully');
+      }
+    }).catch(err => {
+      // Silently fail - this is a background optimization
+      console.debug('[Home] Discord membership check failed:', err);
+    });
   }
 
   function showDiscordLinkPrompt() {

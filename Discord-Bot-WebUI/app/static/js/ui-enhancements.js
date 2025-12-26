@@ -99,11 +99,13 @@
 
     /**
      * Handle dropdown toggle action
+     * @param {Element} element - The element that was clicked (from EventDelegation)
+     * @param {Event} e - The click event
      */
-    function handleToggleDropdown(e, target) {
+    function handleToggleDropdown(element, e) {
         e.stopPropagation();
 
-        const dropdownId = target.getAttribute('data-dropdown');
+        const dropdownId = element.getAttribute('data-dropdown');
         const dropdown = document.querySelector(`[data-dropdown-id="${dropdownId}"]`);
 
         if (dropdown) {
@@ -118,7 +120,7 @@
             // Toggle this dropdown
             const isOpen = dropdown.classList.toggle('is-open');
             dropdown.setAttribute('aria-hidden', !isOpen);
-            target.setAttribute('aria-expanded', isOpen);
+            element.setAttribute('aria-expanded', isOpen);
         }
     }
 

@@ -61,6 +61,48 @@ def api_health():
     })
 
 
+@main.route('/api/discord/check-membership', methods=['POST'])
+@login_required
+def api_check_discord_membership():
+    """
+    Check if the current user is in the Discord server and update their status.
+    This is a lightweight background check - returns quickly with cached status.
+
+    Used by the home page to update stale membership data.
+    """
+    try:
+        db_session = g.db_session
+        player = getattr(safe_current_user, 'player', None)
+
+        if not player:
+            return jsonify({'success': False, 'error': 'No player profile'}), 400
+
+        if not player.discord_id:
+            return jsonify({'success': False, 'error': 'No Discord ID linked'}), 400
+
+        # Use fast_fail=True to avoid blocking web requests
+        check_result = player.check_discord_status(fast_fail=True)
+
+        if check_result:
+            db_session.commit()
+            return jsonify({
+                'success': True,
+                'in_server': player.discord_in_server,
+                'last_checked': player.discord_last_checked.isoformat() if player.discord_last_checked else None
+            })
+        else:
+            # Check failed (Discord bot unavailable, circuit breaker, etc.)
+            return jsonify({
+                'success': False,
+                'error': 'Discord check unavailable',
+                'cached_status': player.discord_in_server
+            })
+
+    except Exception as e:
+        logger.error(f"Error checking Discord membership: {e}")
+        return jsonify({'success': False, 'error': 'Internal error'}), 500
+
+
 def fetch_announcements():
     """
     Fetch the latest 5 announcements.

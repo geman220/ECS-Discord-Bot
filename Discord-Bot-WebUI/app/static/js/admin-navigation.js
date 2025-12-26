@@ -60,16 +60,20 @@
 
     /**
      * Handle toggle dropdown action
+     * @param {Element} element - The element that was clicked (from EventDelegation)
+     * @param {Event} e - The click event
      */
-    handleToggleDropdown(e, target) {
-      this.toggleDropdown(target);
+    handleToggleDropdown(element, e) {
+      this.toggleDropdown(element);
     }
 
     /**
      * Handle close dropdown action
+     * @param {Element} element - The element that was clicked (from EventDelegation)
+     * @param {Event} e - The click event
      */
-    handleCloseDropdown(e, target) {
-      this.closeDropdown(target);
+    handleCloseDropdown(element, e) {
+      this.closeDropdown(element);
     }
 
     /**

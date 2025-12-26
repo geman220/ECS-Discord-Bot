@@ -30,6 +30,8 @@
     <div id="rsvp-data"
          data-player-id="{{ player.id }}"
          data-discord-id="{{ player.discord_id }}"
+         data-discord-in-server="{{ 'true' if player.discord_in_server else 'false' if player.discord_in_server is not none else 'unknown' }}"
+         data-discord-last-checked="{{ player.discord_last_checked.isoformat() if player.discord_last_checked else '' }}"
          data-csrf-token="{{ csrf_token() }}"
          data-discord-auth-url="{{ url_for('auth.discord_login') }}">
     </div>

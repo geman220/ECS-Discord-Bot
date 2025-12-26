@@ -314,12 +314,12 @@
   // GUILD MANAGEMENT
   // ============================================================================
 
-  function manageGuild(e, target) {
-    const guildId = target.dataset.guild;
+  function manageGuild(element, e) {
+    const guildId = element.dataset.guild;
     Swal.fire('Guild Management', `Guild management interface for ${guildId} would appear here.`, 'info');
   }
 
-  function guildStats(e, target) {
+  function guildStats(element, e) {
     const guild = CONFIG.guildInfo;
 
     Swal.fire({
