@@ -18,6 +18,7 @@
  * Dependencies:
  * - Bootstrap 5.x (modals)
  * - SweetAlert2 (confirmations)
+ * - EventDelegation (centralized event handling)
  *
  * ============================================================================
  */
@@ -249,6 +250,69 @@
     }
 
     // ========================================================================
+    // ACTION HANDLERS
+    // ========================================================================
+
+    /**
+     * Handle go back action
+     * @param {Event} e - The event object
+     */
+    function handleGoBack(e) {
+        window.history.back();
+    }
+
+    /**
+     * Handle view template action
+     * @param {Event} e - The event object
+     */
+    function handleViewTemplate(e) {
+        const viewId = e.target.dataset.templateId;
+        const viewName = e.target.dataset.templateName;
+        const viewContent = e.target.dataset.templateContent;
+        viewTemplate(viewId, viewName, viewContent);
+    }
+
+    /**
+     * Handle edit template action
+     * @param {Event} e - The event object
+     */
+    function handleEditTemplate(e) {
+        const editId = e.target.dataset.templateId;
+        const editName = e.target.dataset.templateName;
+        const editDesc = e.target.dataset.templateDescription;
+        const editContent = e.target.dataset.templateContent;
+        const editChannel = e.target.dataset.templateChannel;
+        const editContext = e.target.dataset.templateContext;
+        const editActive = e.target.dataset.templateActive === 'true';
+        editTemplate(editId, editName, editDesc, editContent, editChannel, editContext, editActive);
+    }
+
+    /**
+     * Handle toggle template action
+     * @param {Event} e - The event object
+     */
+    function handleToggleTemplate(e) {
+        const toggleId = e.target.dataset.templateId;
+        const toggleName = e.target.dataset.templateName;
+        const toggleActive = e.target.dataset.templateActive === 'true';
+        const toggleUrl = e.target.dataset.toggleUrl;
+        const toggleCsrf = e.target.dataset.csrfToken;
+        toggleTemplate(toggleId, toggleName, toggleActive, toggleUrl, toggleCsrf);
+    }
+
+    /**
+     * Handle delete template action
+     * @param {Event} e - The event object
+     */
+    function handleDeleteTemplate(e) {
+        const deleteId = e.target.dataset.templateId;
+        const deleteName = e.target.dataset.templateName;
+        const deleteUrl = e.target.dataset.deleteUrl;
+        const deleteCsrf = e.target.dataset.csrfToken;
+        deleteTemplate(deleteId, deleteName, deleteUrl, deleteCsrf);
+    }
+
+    // ========================================================================
     // EVENT DELEGATION
     // ========================================================================
 
@@ -256,58 +320,16 @@
      * Initialize event delegation for template actions
      */
     function initEventDelegation() {
-        document.addEventListener('click', function(e) {
-            const actionElement = e.target.closest('[data-action]');
-            if (!actionElement) return;
+        if (typeof EventDelegation === 'undefined') {
+            console.error('[Template Detail] EventDelegation not available');
+            return;
+        }
 
-            const action = actionElement.dataset.action;
-
-            switch(action) {
-                case 'go-back':
-                    e.preventDefault();
-                    window.history.back();
-                    break;
-
-                case 'view-template':
-                    e.preventDefault();
-                    const viewId = actionElement.dataset.templateId;
-                    const viewName = actionElement.dataset.templateName;
-                    const viewContent = actionElement.dataset.templateContent;
-                    viewTemplate(viewId, viewName, viewContent);
-                    break;
-
-                case 'edit-template':
-                    e.preventDefault();
-                    const editId = actionElement.dataset.templateId;
-                    const editName = actionElement.dataset.templateName;
-                    const editDesc = actionElement.dataset.templateDescription;
-                    const editContent = actionElement.dataset.templateContent;
-                    const editChannel = actionElement.dataset.templateChannel;
-                    const editContext = actionElement.dataset.templateContext;
-                    const editActive = actionElement.dataset.templateActive === 'true';
-                    editTemplate(editId, editName, editDesc, editContent, editChannel, editContext, editActive);
-                    break;
-
-                case 'toggle-template':
-                    e.preventDefault();
-                    const toggleId = actionElement.dataset.templateId;
-                    const toggleName = actionElement.dataset.templateName;
-                    const toggleActive = actionElement.dataset.templateActive === 'true';
-                    const toggleUrl = actionElement.dataset.toggleUrl;
-                    const toggleCsrf = actionElement.dataset.csrfToken;
-                    toggleTemplate(toggleId, toggleName, toggleActive, toggleUrl, toggleCsrf);
-                    break;
-
-                case 'delete-template':
-                    e.preventDefault();
-                    const deleteId = actionElement.dataset.templateId;
-                    const deleteName = actionElement.dataset.templateName;
-                    const deleteUrl = actionElement.dataset.deleteUrl;
-                    const deleteCsrf = actionElement.dataset.csrfToken;
-                    deleteTemplate(deleteId, deleteName, deleteUrl, deleteCsrf);
-                    break;
-            }
-        });
+        EventDelegation.register('go-back', handleGoBack, { preventDefault: true });
+        EventDelegation.register('view-template', handleViewTemplate, { preventDefault: true });
+        EventDelegation.register('edit-template', handleEditTemplate, { preventDefault: true });
+        EventDelegation.register('toggle-template', handleToggleTemplate, { preventDefault: true });
+        EventDelegation.register('delete-template', handleDeleteTemplate, { preventDefault: true });
     }
 
     // ========================================================================
@@ -318,6 +340,11 @@
      * Initialize all template detail functionality
      */
     function init() {
+        // Page guard: only run on template detail page
+        if (!document.getElementById('viewTemplateModal') && !document.getElementById('editTemplateModal')) {
+            return;
+        }
+
         console.log('[Template Detail] Initializing...');
         initEventDelegation();
         initVariableButtons();

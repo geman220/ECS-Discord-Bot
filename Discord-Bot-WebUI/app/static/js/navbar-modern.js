@@ -4,7 +4,7 @@
  * ============================================================================
  *
  * Handles all navbar interactions with smooth animations and proper state management.
- * Uses event delegation for optimal performance and maintainability.
+ * Uses EventDelegation for optimal performance and maintainability.
  *
  * Features:
  * - Dropdown management (theme, notifications, profile, impersonation)
@@ -17,7 +17,7 @@
  * - Role impersonation management
  *
  * Architecture:
- * - Event delegation on document
+ * - Event delegation via EventDelegation system
  * - State management via classList and ARIA attributes
  * - No inline styles (all via CSS classes)
  * - BEM naming conventions
@@ -71,6 +71,7 @@ class ModernNavbarController {
   }
 
   init() {
+    this.registerEventHandlers();
     this.attachEventListeners();
     this.initScrollTracking();
     this.initSearch();
@@ -81,106 +82,89 @@ class ModernNavbarController {
   }
 
   /**
-   * Attach all event listeners using delegation
+   * Register all data-action handlers via EventDelegation
+   */
+  registerEventHandlers() {
+    if (typeof EventDelegation === 'undefined') {
+      console.warn('[Navbar] EventDelegation not available, using fallback');
+      return;
+    }
+
+    // Mobile menu toggle
+    EventDelegation.register('toggle-menu', (element, e) => {
+      this.toggleMobileMenu();
+    }, { preventDefault: true });
+
+    // Dropdown toggles
+    EventDelegation.register('toggle-dropdown', (element, e) => {
+      const dropdownId = element.dataset.dropdown;
+      if (dropdownId) {
+        this.toggleDropdown(dropdownId);
+      }
+    }, { preventDefault: true });
+
+    // Theme switcher
+    EventDelegation.register('switch-theme', (element, e) => {
+      const theme = element.dataset.theme;
+      if (theme) {
+        this.switchTheme(theme);
+      }
+    }, { preventDefault: true });
+
+    // Role impersonation
+    EventDelegation.register('start-impersonation', (element, e) => {
+      this.startRoleImpersonation();
+    }, { preventDefault: true });
+
+    EventDelegation.register('stop-impersonation', (element, e) => {
+      this.stopRoleImpersonation();
+    }, { preventDefault: true });
+
+    // Notification actions
+    EventDelegation.register('mark-read', (element, e) => {
+      const notificationId = element.dataset.notificationId;
+      if (notificationId) {
+        this.markNotificationRead(notificationId);
+      }
+    }, { preventDefault: true });
+
+    EventDelegation.register('mark-all-read', (element, e) => {
+      this.markAllNotificationsRead();
+    }, { preventDefault: true });
+
+    EventDelegation.register('clear-all-notifications', (element, e) => {
+      this.clearAllNotifications();
+    }, { preventDefault: true });
+
+    EventDelegation.register('dismiss-notification', (element, e) => {
+      const notificationId = element.dataset.notificationId;
+      if (notificationId) {
+        this.dismissNotification(notificationId);
+      }
+    }, { preventDefault: true, stopPropagation: true });
+
+    EventDelegation.register('expand-notification', (element, e) => {
+      const notificationId = element.dataset.notificationId;
+      if (notificationId) {
+        this.toggleNotificationExpand(notificationId);
+      }
+    }, { preventDefault: true });
+
+    // Logout
+    EventDelegation.register('logout', (element, e) => {
+      this.handleLogout();
+    }, { preventDefault: true });
+  }
+
+  /**
+   * Attach event listeners (non data-action events)
    */
   attachEventListeners() {
-    // Click delegation for all navbar interactions
-    document.addEventListener('click', this.handleClick.bind(this));
-
     // Keyboard navigation
     document.addEventListener('keydown', this.handleKeyboard.bind(this));
 
     // Close dropdowns on outside click
     document.addEventListener('click', this.handleOutsideClick.bind(this));
-  }
-
-  /**
-   * Handle all click events via delegation
-   */
-  handleClick(e) {
-    const target = e.target;
-
-    // Mobile menu toggle
-    if (target.closest('[data-action="toggle-menu"]')) {
-      e.preventDefault();
-      this.toggleMobileMenu();
-      return;
-    }
-
-    // Dropdown toggles
-    if (target.closest('[data-action="toggle-dropdown"]')) {
-      e.preventDefault();
-      const button = target.closest('[data-action="toggle-dropdown"]');
-      const dropdownId = button.dataset.dropdown;
-      this.toggleDropdown(dropdownId);
-      return;
-    }
-
-    // Theme switcher
-    if (target.closest('[data-action="switch-theme"]')) {
-      e.preventDefault();
-      const theme = target.closest('[data-action="switch-theme"]').dataset.theme;
-      this.switchTheme(theme);
-      return;
-    }
-
-    // Role impersonation
-    if (target.closest('[data-action="start-impersonation"]')) {
-      e.preventDefault();
-      this.startRoleImpersonation();
-      return;
-    }
-
-    if (target.closest('[data-action="stop-impersonation"]')) {
-      e.preventDefault();
-      this.stopRoleImpersonation();
-      return;
-    }
-
-    // Notification actions
-    if (target.closest('[data-action="mark-read"]')) {
-      e.preventDefault();
-      const notificationId = target.closest('[data-action="mark-read"]').dataset.notificationId;
-      this.markNotificationRead(notificationId);
-      return;
-    }
-
-    if (target.closest('[data-action="mark-all-read"]')) {
-      e.preventDefault();
-      this.markAllNotificationsRead();
-      return;
-    }
-
-    // Clear all notifications
-    if (target.closest('[data-action="clear-all-notifications"]')) {
-      e.preventDefault();
-      this.clearAllNotifications();
-      return;
-    }
-
-    // Dismiss individual notification
-    if (target.closest('[data-action="dismiss-notification"]')) {
-      e.preventDefault();
-      e.stopPropagation();
-      const notificationId = target.closest('[data-action="dismiss-notification"]').dataset.notificationId;
-      this.dismissNotification(notificationId);
-      return;
-    }
-
-    // Expand notification for details
-    if (target.closest('[data-action="expand-notification"]')) {
-      e.preventDefault();
-      const notificationId = target.closest('[data-action="expand-notification"]').dataset.notificationId;
-      this.toggleNotificationExpand(notificationId);
-      return;
-    }
-
-    // Logout
-    if (target.closest('[data-action="logout"]')) {
-      e.preventDefault();
-      this.handleLogout();
-      return;
-    }
   }
 
   /**
@@ -210,7 +194,7 @@ class ModernNavbarController {
     const dropdown = document.querySelector(`[data-dropdown-id="${this.activeDropdown}"]`);
     const toggle = document.querySelector(`[data-dropdown="${this.activeDropdown}"]`);
 
-    if (dropdown && !dropdown.contains(e.target) && !toggle.contains(e.target)) {
+    if (dropdown && !dropdown.contains(e.target) && toggle && !toggle.contains(e.target)) {
       this.closeDropdown(this.activeDropdown);
     }
   }
@@ -700,7 +684,8 @@ class ModernNavbarController {
       if (loadingEl) loadingEl.classList.add('u-hidden');
       if (emptyEl) {
         emptyEl.classList.remove('u-hidden');
-        emptyEl.querySelector('p').textContent = 'Failed to load notifications';
+        const emptyText = emptyEl.querySelector('p');
+        if (emptyText) emptyText.textContent = 'Failed to load notifications';
       }
     }
   }
@@ -751,15 +736,6 @@ class ModernNavbarController {
       </button>
     `;
 
-    // Click on main area to mark as read
-    const mainArea = div.querySelector('.c-navbar-modern__notification-main');
-    mainArea.addEventListener('click', (e) => {
-      if (!notification.is_read) {
-        this.markNotificationRead(notification.id);
-        div.classList.remove('is-unread');
-      }
-    });
-
     return div;
   }
 
@@ -781,6 +757,12 @@ class ModernNavbarController {
     } else {
       notification.classList.add('is-expanded');
       expandedContent.classList.remove('u-hidden');
+
+      // Mark as read when expanded
+      const notifElement = notification;
+      if (notifElement.classList.contains('is-unread')) {
+        this.markNotificationRead(notificationId);
+      }
     }
   }
 
@@ -1313,7 +1295,10 @@ class ModernNavbarController {
 
 // Initialize function
 function initNavbar() {
-  window.navbarController = new ModernNavbarController();
+  // Only initialize if navbar exists on page
+  if (document.querySelector('.c-navbar-modern')) {
+    window.navbarController = new ModernNavbarController();
+  }
 }
 
 // Register with InitSystem if available

@@ -130,52 +130,108 @@ class ModalManager {
     /**
      * Set up event delegation for data-action triggers
      * Supports: show-modal, hide-modal, toggle-modal, close-modal
+     * Uses EventDelegation system if available
      * @private
      */
     static setupEventDelegation() {
-        // Single delegated click handler for all modal actions
-        document.addEventListener('click', (e) => {
-            const actionElement = e.target.closest('[data-action]');
-            if (!actionElement) return;
+        // Use EventDelegation if available
+        if (typeof EventDelegation !== 'undefined') {
+            // Show modal
+            EventDelegation.register('show-modal', (element, e) => {
+                const modalId = element.dataset.modalId;
+                if (modalId) {
+                    const options = this.parseOptionsFromElement(element);
+                    this.show(modalId, options);
+                } else {
+                    console.error('[ModalManager] data-action="show-modal" requires data-modal-id attribute');
+                }
+            }, { preventDefault: true });
 
-            const action = actionElement.dataset.action;
-            const modalId = actionElement.dataset.modalId;
-
-            switch (action) {
-                case 'show-modal':
-                    if (modalId) {
-                        e.preventDefault();
-                        const options = this.parseOptionsFromElement(actionElement);
-                        this.show(modalId, options);
-                    } else {
-                        console.error('[ModalManager] data-action="show-modal" requires data-modal-id attribute');
+            // Hide modal
+            EventDelegation.register('hide-modal', (element, e) => {
+                const modalId = element.dataset.modalId;
+                if (modalId) {
+                    this.hide(modalId);
+                } else {
+                    // Try to find the closest modal and close it
+                    const closestModal = element.closest('[data-modal], .modal');
+                    if (closestModal && closestModal.id) {
+                        this.hide(closestModal.id);
                     }
-                    break;
+                }
+            }, { preventDefault: true });
 
-                case 'hide-modal':
-                case 'close-modal':
-                    e.preventDefault();
-                    if (modalId) {
-                        this.hide(modalId);
-                    } else {
-                        // Try to find the closest modal and close it
-                        const closestModal = actionElement.closest('[data-modal], .modal');
-                        if (closestModal && closestModal.id) {
-                            this.hide(closestModal.id);
+            // Close modal (alias for hide)
+            EventDelegation.register('close-modal', (element, e) => {
+                const modalId = element.dataset.modalId;
+                if (modalId) {
+                    this.hide(modalId);
+                } else {
+                    const closestModal = element.closest('[data-modal], .modal');
+                    if (closestModal && closestModal.id) {
+                        this.hide(closestModal.id);
+                    }
+                }
+            }, { preventDefault: true });
+
+            // Toggle modal
+            EventDelegation.register('toggle-modal', (element, e) => {
+                const modalId = element.dataset.modalId;
+                if (modalId) {
+                    this.toggle(modalId);
+                } else {
+                    console.error('[ModalManager] data-action="toggle-modal" requires data-modal-id attribute');
+                }
+            }, { preventDefault: true });
+
+            this.log('Event delegation registered via EventDelegation system');
+        } else {
+            // Fallback: Use standard event delegation
+            document.addEventListener('click', (e) => {
+                const actionElement = e.target.closest('[data-action]');
+                if (!actionElement) return;
+
+                const action = actionElement.dataset.action;
+                const modalId = actionElement.dataset.modalId;
+
+                switch (action) {
+                    case 'show-modal':
+                        if (modalId) {
+                            e.preventDefault();
+                            const options = this.parseOptionsFromElement(actionElement);
+                            this.show(modalId, options);
+                        } else {
+                            console.error('[ModalManager] data-action="show-modal" requires data-modal-id attribute');
                         }
-                    }
-                    break;
+                        break;
 
-                case 'toggle-modal':
-                    if (modalId) {
+                    case 'hide-modal':
+                    case 'close-modal':
                         e.preventDefault();
-                        this.toggle(modalId);
-                    } else {
-                        console.error('[ModalManager] data-action="toggle-modal" requires data-modal-id attribute');
-                    }
-                    break;
-            }
-        });
+                        if (modalId) {
+                            this.hide(modalId);
+                        } else {
+                            // Try to find the closest modal and close it
+                            const closestModal = actionElement.closest('[data-modal], .modal');
+                            if (closestModal && closestModal.id) {
+                                this.hide(closestModal.id);
+                            }
+                        }
+                        break;
+
+                    case 'toggle-modal':
+                        if (modalId) {
+                            e.preventDefault();
+                            this.toggle(modalId);
+                        } else {
+                            console.error('[ModalManager] data-action="toggle-modal" requires data-modal-id attribute');
+                        }
+                        break;
+                }
+            });
+
+            this.log('Event delegation registered via fallback click handler');
+        }
     }
 
     /**

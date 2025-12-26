@@ -6,6 +6,9 @@
  *
  * REFACTORED: All inline style manipulations replaced with CSS class-based approach
  * for better maintainability, performance, and separation of concerns.
+ *
+ * @version 1.0.2
+ * @updated 2025-12-26 - Code review for EventDelegation (no changes needed)
  */
 (function () {
   'use strict';
@@ -655,7 +658,7 @@
         }, 250);
       });
 
-      // Fix modal backdrop issues
+      // Fix modal backdrop issues (keep this - non-action click listener)
       document.addEventListener('click', () => {
         setTimeout(this.cleanupModalBackdrops.bind(this), 300);
       });

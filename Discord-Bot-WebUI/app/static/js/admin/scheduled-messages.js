@@ -20,6 +20,7 @@
  * Dependencies:
  * - Bootstrap 5.x (modals)
  * - SweetAlert2 (confirmations)
+ * - EventDelegation (centralized event handling)
  *
  * ============================================================================
  */
@@ -394,6 +395,69 @@
     }
 
     // ========================================================================
+    // ACTION HANDLERS
+    // ========================================================================
+
+    /**
+     * Handle go back action
+     * @param {Event} e - The event object
+     */
+    function handleGoBack(e) {
+        window.history.back();
+    }
+
+    /**
+     * Handle preview message action
+     * @param {Event} e - The event object
+     */
+    function handlePreviewMessage(e) {
+        previewMessage();
+    }
+
+    /**
+     * Handle view scheduled message action
+     * @param {Event} e - The event object
+     */
+    function handleViewScheduledMessage(e) {
+        const viewId = e.target.dataset.messageId;
+        const viewTitle = e.target.dataset.title;
+        viewScheduledMessage(viewId, viewTitle);
+    }
+
+    /**
+     * Handle edit scheduled message action
+     * @param {Event} e - The event object
+     */
+    function handleEditScheduledMessage(e) {
+        const editId = e.target.dataset.messageId;
+        editScheduledMessage(editId);
+    }
+
+    /**
+     * Handle cancel scheduled message action
+     * @param {Event} e - The event object
+     */
+    function handleCancelScheduledMessage(e) {
+        const cancelId = e.target.dataset.messageId;
+        const cancelTitle = e.target.dataset.title;
+        const cancelUrl = e.target.dataset.cancelUrl;
+        const cancelCsrf = e.target.dataset.csrfToken;
+        cancelScheduledMessage(cancelId, cancelTitle, cancelUrl, cancelCsrf);
+    }
+
+    /**
+     * Handle retry scheduled message action
+     * @param {Event} e - The event object
+     */
+    function handleRetryScheduledMessage(e) {
+        const retryId = e.target.dataset.messageId;
+        const retryTitle = e.target.dataset.title;
+        const retryUrl = e.target.dataset.retryUrl;
+        const retryCsrf = e.target.dataset.csrfToken;
+        retryScheduledMessage(retryId, retryTitle, retryUrl, retryCsrf);
+    }
+
+    // ========================================================================
     // EVENT DELEGATION
     // ========================================================================
 
@@ -401,55 +465,17 @@
      * Initialize event delegation for scheduled message actions
      */
     function initEventDelegation() {
-        document.addEventListener('click', function(e) {
-            const actionElement = e.target.closest('[data-action]');
-            if (!actionElement) return;
+        if (typeof EventDelegation === 'undefined') {
+            console.error('[Scheduled Messages] EventDelegation not available');
+            return;
+        }
 
-            const action = actionElement.dataset.action;
-
-            switch(action) {
-                case 'go-back':
-                    e.preventDefault();
-                    window.history.back();
-                    break;
-
-                case 'preview-message':
-                    e.preventDefault();
-                    previewMessage();
-                    break;
-
-                case 'view-scheduled-message':
-                    e.preventDefault();
-                    const viewId = actionElement.dataset.messageId;
-                    const viewTitle = actionElement.dataset.title;
-                    viewScheduledMessage(viewId, viewTitle);
-                    break;
-
-                case 'edit-scheduled-message':
-                    e.preventDefault();
-                    const editId = actionElement.dataset.messageId;
-                    editScheduledMessage(editId);
-                    break;
-
-                case 'cancel-scheduled-message':
-                    e.preventDefault();
-                    const cancelId = actionElement.dataset.messageId;
-                    const cancelTitle = actionElement.dataset.title;
-                    const cancelUrl = actionElement.dataset.cancelUrl;
-                    const cancelCsrf = actionElement.dataset.csrfToken;
-                    cancelScheduledMessage(cancelId, cancelTitle, cancelUrl, cancelCsrf);
-                    break;
-
-                case 'retry-scheduled-message':
-                    e.preventDefault();
-                    const retryId = actionElement.dataset.messageId;
-                    const retryTitle = actionElement.dataset.title;
-                    const retryUrl = actionElement.dataset.retryUrl;
-                    const retryCsrf = actionElement.dataset.csrfToken;
-                    retryScheduledMessage(retryId, retryTitle, retryUrl, retryCsrf);
-                    break;
-            }
-        });
+        EventDelegation.register('go-back', handleGoBack, { preventDefault: true });
+        EventDelegation.register('preview-message', handlePreviewMessage, { preventDefault: true });
+        EventDelegation.register('view-scheduled-message', handleViewScheduledMessage, { preventDefault: true });
+        EventDelegation.register('edit-scheduled-message', handleEditScheduledMessage, { preventDefault: true });
+        EventDelegation.register('cancel-scheduled-message', handleCancelScheduledMessage, { preventDefault: true });
+        EventDelegation.register('retry-scheduled-message', handleRetryScheduledMessage, { preventDefault: true });
     }
 
     // ========================================================================
@@ -460,6 +486,11 @@
      * Initialize all scheduled message functionality
      */
     function init() {
+        // Page guard: only run on scheduled messages page
+        if (!document.getElementById('messagePreviewModal') && !document.getElementById('messageDetailsModal')) {
+            return;
+        }
+
         console.log('[Scheduled Messages] Initializing...');
 
         initRecurringToggle();

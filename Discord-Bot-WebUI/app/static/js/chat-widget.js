@@ -21,6 +21,15 @@
   'use strict';
 
   // ============================================================================
+  // PAGE GUARD
+  // ============================================================================
+
+  // Only initialize if chat widget exists on page
+  if (!document.querySelector('.c-chat-widget')) {
+    return;
+  }
+
+  // ============================================================================
   // CONFIGURATION
   // ============================================================================
 
@@ -358,24 +367,12 @@
     }).join('');
 
     elements.messagesContainer.innerHTML = html;
-
-    // Bind delete action handlers
-    bindMessageActions();
   }
 
-  function bindMessageActions() {
-    if (!elements.messagesContainer) return;
-
-    elements.messagesContainer.querySelectorAll('[data-action="delete-menu"]').forEach(btn => {
-      btn.addEventListener('click', handleDeleteMenuClick);
-    });
-  }
-
-  function handleDeleteMenuClick(e) {
-    e.preventDefault();
+  function handleDeleteMenuClick(element, e) {
     e.stopPropagation();
 
-    const messageEl = e.target.closest('.c-chat-widget__message');
+    const messageEl = element.closest('.c-chat-widget__message');
     if (!messageEl) return;
 
     const messageId = parseInt(messageEl.dataset.messageId);
@@ -1176,6 +1173,19 @@
   }
 
   // ============================================================================
+  // EVENT DELEGATION REGISTRATION
+  // ============================================================================
+
+  function registerEventHandlers() {
+    // Register delete-menu action via EventDelegation
+    if (typeof EventDelegation !== 'undefined') {
+      EventDelegation.register('delete-menu', handleDeleteMenuClick, {
+        preventDefault: true
+      });
+    }
+  }
+
+  // ============================================================================
   // INITIALIZATION
   // ============================================================================
 
@@ -1257,13 +1267,8 @@
   }
 
   function init() {
-    // Check if widget exists in DOM
-    if (!document.querySelector('.c-chat-widget')) {
-      console.log('[ChatWidget] Widget not found in DOM, skipping initialization');
-      return;
-    }
-
     cacheElements();
+    registerEventHandlers();
     bindEvents();
     initWebSocket();
     updatePosition();

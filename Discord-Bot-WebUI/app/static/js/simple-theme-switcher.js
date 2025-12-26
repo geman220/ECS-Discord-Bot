@@ -1,9 +1,12 @@
 /**
  * Simple Theme Switcher - Replaces TemplateCustomizer
  * Handles light/dark/system theme switching without vendor dependencies
- * 
+ *
  * This replaces the bloated TemplateCustomizer with a lightweight solution
  * that only handles what we actually need: theme switching.
+ *
+ * @version 1.1.0
+ * @updated 2025-12-26 - Refactored to use EventDelegation
  */
 
 class SimpleThemeSwitcher {
@@ -29,7 +32,7 @@ class SimpleThemeSwitcher {
     const savedVariant = localStorage.getItem('theme-variant') || 'modern';
     this.currentVariant = this.variants.includes(savedVariant) ? savedVariant : 'modern';
   }
-  
+
   /**
    * Load theme from localStorage or default to light
    */
@@ -38,7 +41,7 @@ class SimpleThemeSwitcher {
     const savedTheme = localStorage.getItem('template-style') || 'light';
     this.setTheme(savedTheme, false); // Don't save again on load
   }
-  
+
   /**
    * Set the active theme
    * @param {string} theme - 'light', 'dark', or 'system'
@@ -49,42 +52,42 @@ class SimpleThemeSwitcher {
       console.warn(`Invalid theme: ${theme}. Using light instead.`);
       theme = 'light';
     }
-    
+
     console.log('Setting theme to:', theme); // Debug log
     this.currentTheme = theme;
-    
+
     // Determine actual theme to apply (resolve 'system' to light/dark)
     const effectiveTheme = this.resolveSystemTheme(theme);
     console.log('Effective theme:', effectiveTheme); // Debug log
-    
+
     // Apply theme to document - update both attributes for compatibility
     document.documentElement.setAttribute('data-style', effectiveTheme);
     document.documentElement.setAttribute('data-theme', effectiveTheme);
-    
+
     // Also update the class for CSS targeting
     document.documentElement.className = document.documentElement.className.replace(/\b(light|dark)-style\b/g, '');
     document.documentElement.classList.add(`${effectiveTheme}-style`);
-    
+
     // Update theme switcher UI
     this.updateThemeIcon(theme);
     this.updateActiveMenuItem(theme);
-    
+
     if (save) {
       // Save to localStorage with consistent key
       localStorage.setItem('template-style', theme);
-      
+
       // Save to server
       this.saveThemeToServer(theme);
     }
-    
+
     // Dispatch custom event for other components
     document.dispatchEvent(new CustomEvent('themeChanged', {
       detail: { theme: theme, effectiveTheme: effectiveTheme }
     }));
-    
+
     console.log('Theme applied successfully'); // Debug log
   }
-  
+
   /**
    * Resolve 'system' theme to actual light/dark based on user's OS preference
    */
@@ -94,18 +97,16 @@ class SimpleThemeSwitcher {
     }
     return theme;
   }
-  
+
   /**
    * Setup event listeners for theme switching
    */
   setupEventListeners() {
-    // Handle dropdown clicks - only listen to actual theme elements
-    document.addEventListener('click', (e) => {
-      // Check for data-action="set-theme" (settings page buttons)
-      const actionElement = e.target.closest('[data-action="set-theme"]');
-      if (actionElement) {
-        e.preventDefault();
-        const theme = actionElement.getAttribute('data-theme');
+    // Register EventDelegation handlers for theme switching
+    if (typeof EventDelegation !== 'undefined') {
+      // Handle settings page theme buttons (data-action="set-theme")
+      EventDelegation.register('set-theme', (element, e) => {
+        const theme = element.getAttribute('data-theme');
         if (theme) {
           console.log('Theme switching to (action):', theme);
           this.setTheme(theme);
@@ -115,26 +116,20 @@ class SimpleThemeSwitcher {
             btn.classList.remove('btn-primary');
             btn.classList.add('btn-outline-secondary');
           });
-          actionElement.classList.remove('btn-outline-secondary');
-          actionElement.classList.add('btn-primary');
+          element.classList.remove('btn-outline-secondary');
+          element.classList.add('btn-primary');
         }
-        return;
-      }
+      }, { preventDefault: true });
 
-      // Handle data-role="theme-option" (navbar dropdown)
-      if (e.target.hasAttribute('data-theme') || e.target.closest('[data-theme]')) {
-        const themeElement = e.target.hasAttribute('data-theme') ? e.target : e.target.closest('[data-theme]');
-
-        // Make sure this is actually a theme dropdown item, not just any element with data-theme
-        if (themeElement && themeElement.hasAttribute('data-role') && themeElement.getAttribute('data-role') === 'theme-option') {
-          e.preventDefault();
-          e.stopPropagation();
-          const theme = themeElement.getAttribute('data-theme');
-          console.log('Theme switching to:', theme); // Debug log
+      // Handle navbar dropdown theme options (data-action="select-theme")
+      EventDelegation.register('select-theme', (element, e) => {
+        const theme = element.getAttribute('data-theme');
+        if (theme) {
+          console.log('Theme switching to:', theme);
           this.setTheme(theme);
 
           // Close dropdown manually if needed
-          const dropdown = themeElement.closest('[data-role="theme-dropdown-menu"]');
+          const dropdown = element.closest('[data-role="theme-dropdown-menu"]');
           if (dropdown) {
             const toggle = document.querySelector('[data-role="theme-dropdown-toggle"]');
             if (toggle && window.bootstrap) {
@@ -145,9 +140,9 @@ class SimpleThemeSwitcher {
             }
           }
         }
-      }
-    });
-    
+      }, { preventDefault: true });
+    }
+
     // Handle keyboard shortcuts (optional)
     document.addEventListener('keydown', (e) => {
       // Ctrl/Cmd + Shift + T for theme switching
@@ -157,7 +152,7 @@ class SimpleThemeSwitcher {
       }
     });
   }
-  
+
   /**
    * Setup system theme detection
    */
@@ -171,7 +166,7 @@ class SimpleThemeSwitcher {
       }
     });
   }
-  
+
   /**
    * Cycle through themes (for keyboard shortcut)
    */
@@ -180,7 +175,7 @@ class SimpleThemeSwitcher {
     const nextIndex = (currentIndex + 1) % this.themes.length;
     this.setTheme(this.themes[nextIndex]);
   }
-  
+
   /**
    * Update the theme switcher icon
    */
@@ -202,7 +197,7 @@ class SimpleThemeSwitcher {
       icon.setAttribute('data-role', 'theme-icon');
     }
   }
-  
+
   /**
    * Update active state in dropdown menu
    */
@@ -211,14 +206,14 @@ class SimpleThemeSwitcher {
     document.querySelectorAll('[data-theme]').forEach(item => {
       item.classList.remove('active');
     });
-    
+
     // Add active class to current theme
     const activeItem = document.querySelector(`[data-theme="${theme}"]`);
     if (activeItem) {
       activeItem.classList.add('active');
     }
   }
-  
+
   /**
    * Save theme preference to server
    */
@@ -228,7 +223,7 @@ class SimpleThemeSwitcher {
       console.warn('CSRF token not found, theme not saved to server');
       return;
     }
-    
+
     fetch('/set-theme', {
       method: 'POST',
       headers: {
@@ -249,14 +244,14 @@ class SimpleThemeSwitcher {
       console.error('Failed to save theme to server:', error);
     });
   }
-  
+
   /**
    * Get current theme
    */
   getCurrentTheme() {
     return this.currentTheme;
   }
-  
+
   /**
    * Get effective theme (resolves system theme)
    */

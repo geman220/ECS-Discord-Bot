@@ -314,11 +314,12 @@
   // GUILD MANAGEMENT
   // ============================================================================
 
-  function manageGuild(guildId) {
+  function manageGuild(e, target) {
+    const guildId = target.dataset.guild;
     Swal.fire('Guild Management', `Guild management interface for ${guildId} would appear here.`, 'info');
   }
 
-  function guildStats(guildId) {
+  function guildStats(e, target) {
     const guild = CONFIG.guildInfo;
 
     Swal.fire({
@@ -481,89 +482,45 @@
   }
 
   // ============================================================================
-  // EVENT DELEGATION
-  // ============================================================================
-
-  function handleAction(target) {
-    const action = target.dataset.action;
-
-    switch(action) {
-      // Bot Control
-      case 'restart-bot':
-        restartBot();
-        break;
-      case 'check-bot-health':
-        checkBotHealth();
-        break;
-      case 'view-bot-logs':
-        viewBotLogs();
-        break;
-      case 'sync-commands':
-        syncCommands();
-        break;
-
-      // Command Management
-      case 'view-commands':
-        viewCommands();
-        break;
-      case 'command-permissions':
-        commandPermissions();
-        break;
-      case 'command-usage':
-        commandUsage();
-        break;
-      case 'custom-commands':
-        customCommands();
-        break;
-
-      // Guild Management
-      case 'manage-guild':
-        manageGuild(target.dataset.guild);
-        break;
-      case 'guild-stats':
-        guildStats(target.dataset.guild);
-        break;
-      case 'add-guild':
-        addGuild();
-        break;
-
-      // Configuration
-      case 'save-bot-config':
-        saveBotConfig();
-        break;
-      case 'reset-bot-config':
-        resetBotConfig();
-        break;
-
-      default:
-        console.warn('Unknown action:', action);
-    }
-  }
-
-  // ============================================================================
   // INITIALIZATION
   // ============================================================================
 
-  // Actions this module handles - only prevent default for these
-  const HANDLED_ACTIONS = new Set([
-    'restart-bot', 'check-bot-health', 'view-bot-logs', 'sync-commands',
-    'view-commands', 'command-permissions', 'command-usage', 'custom-commands',
-    'manage-guild', 'guild-stats', 'add-guild',
-    'save-bot-config', 'reset-bot-config'
-  ]);
-
   function init() {
+    // Page guard: only run on Discord Bot admin pages
+    const isBotPage = document.querySelector('[data-page="admin-discord-bot"]') ||
+                      document.querySelector('.admin-discord-bot') ||
+                      window.location.pathname.includes('discord-bot');
+
+    if (!isBotPage) {
+      return;
+    }
+
     // Initialize data
     initializeData();
 
-    // Set up event delegation - only handle actions this module knows about
-    document.addEventListener('click', function(e) {
-      const target = e.target.closest('[data-action]');
-      if (target && HANDLED_ACTIONS.has(target.dataset.action)) {
-        e.preventDefault();
-        handleAction(target);
-      }
-    });
+    // Register all event handlers with EventDelegation
+    if (typeof EventDelegation !== 'undefined') {
+      // Bot Control
+      EventDelegation.register('restart-bot', restartBot, { preventDefault: true });
+      EventDelegation.register('check-bot-health', checkBotHealth, { preventDefault: true });
+      EventDelegation.register('view-bot-logs', viewBotLogs, { preventDefault: true });
+      EventDelegation.register('sync-commands', syncCommands, { preventDefault: true });
+
+      // Command Management
+      EventDelegation.register('view-commands', viewCommands, { preventDefault: true });
+      EventDelegation.register('command-permissions', commandPermissions, { preventDefault: true });
+      EventDelegation.register('command-usage', commandUsage, { preventDefault: true });
+      EventDelegation.register('custom-commands', customCommands, { preventDefault: true });
+
+      // Guild Management
+      EventDelegation.register('manage-guild', manageGuild, { preventDefault: true });
+      EventDelegation.register('guild-stats', guildStats, { preventDefault: true });
+      EventDelegation.register('add-guild', addGuild, { preventDefault: true });
+
+      // Configuration
+      EventDelegation.register('save-bot-config', saveBotConfig, { preventDefault: true });
+      EventDelegation.register('reset-bot-config', resetBotConfig, { preventDefault: true });
+    }
 
     // Load bot configuration
     loadBotConfig();

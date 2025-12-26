@@ -36,25 +36,20 @@
       // Helper to safely get element from event target
       const getElement = (target) => target instanceof Element ? target : null;
 
-      // Event delegation for modal triggers
-      document.addEventListener('click', (e) => {
-        const el = getElement(e.target);
-        if (!el) return;
+      // Register modal triggers via EventDelegation
+      if (typeof EventDelegation !== 'undefined') {
+        EventDelegation.register('modal-trigger', (element, e) => {
+          const modalId = element.dataset.modalTrigger;
+          if (modalId) {
+            this.open(modalId);
+          }
+        }, { preventDefault: true });
 
-        const trigger = el.closest('[data-modal-trigger]');
-        if (trigger) {
-          e.preventDefault();
-          const modalId = trigger.dataset.modalTrigger;
-          this.open(modalId);
-        }
-
-        const closeBtn = el.closest('[data-action="close-modal"]');
-        if (closeBtn) {
-          e.preventDefault();
-          const modal = closeBtn.closest('.c-modal-modern');
+        EventDelegation.register('close-modal', (element, e) => {
+          const modal = element.closest('.c-modal-modern');
           if (modal) this.close(modal.id);
-        }
-      });
+        }, { preventDefault: true });
+      }
 
       // Close on backdrop click
       document.addEventListener('click', (e) => {
@@ -170,6 +165,16 @@
         this.container.className = 'c-toast-modern__container';
         document.body.appendChild(this.container);
       }
+
+      // Register dismiss action via EventDelegation
+      if (typeof EventDelegation !== 'undefined') {
+        EventDelegation.register('dismiss-toast', (element, e) => {
+          const toastId = element.dataset.toastId;
+          if (toastId) {
+            this.dismiss(toastId);
+          }
+        });
+      }
     },
 
     show(options = {}) {
@@ -254,16 +259,6 @@
       }, 300);
     }
   };
-
-  // Event delegation for toast actions
-  document.addEventListener('click', (e) => {
-    if (!(e.target instanceof Element)) return;
-    const dismissBtn = e.target.closest('[data-action="dismiss-toast"]');
-    if (dismissBtn) {
-      const toastId = dismissBtn.dataset.toastId;
-      ToastController.dismiss(toastId);
-    }
-  });
 
   /**
    * ============================================================================
@@ -364,18 +359,30 @@
     activeDropdown: null,
 
     init() {
-      // Toggle dropdown
+      // Register dropdown trigger via EventDelegation
+      if (typeof EventDelegation !== 'undefined') {
+        EventDelegation.register('dropdown-trigger', (element, e) => {
+          const dropdownId = element.dataset.dropdownTrigger;
+          if (dropdownId) {
+            this.toggle(dropdownId);
+          }
+        }, { preventDefault: true });
+      } else {
+        // Fallback
+        document.addEventListener('click', (e) => {
+          if (!(e.target instanceof Element)) return;
+
+          const trigger = e.target.closest('[data-dropdown-trigger]');
+          if (trigger) {
+            e.preventDefault();
+            const dropdownId = trigger.dataset.dropdownTrigger;
+            this.toggle(dropdownId);
+          }
+        });
+      }
+
+      // Close if clicking outside
       document.addEventListener('click', (e) => {
-        if (!(e.target instanceof Element)) return;
-
-        const trigger = e.target.closest('[data-dropdown-trigger]');
-        if (trigger) {
-          e.preventDefault();
-          const dropdownId = trigger.dataset.dropdownTrigger;
-          this.toggle(dropdownId);
-        }
-
-        // Close if clicking outside
         if (!e.target.closest('.c-dropdown-modern') && this.activeDropdown) {
           this.close(this.activeDropdown);
         }
@@ -602,7 +609,7 @@
     TableController.init();
     FormController.init();
 
-    console.log('✅ Modern components initialized');
+    console.log('Modern components initialized');
   }
 
   // Expose API for external use

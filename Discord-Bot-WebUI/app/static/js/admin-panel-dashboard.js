@@ -3,8 +3,8 @@
  * ADMIN PANEL DASHBOARD - JAVASCRIPT CONTROLLER
  * ============================================================================
  *
- * Handles all interactions for the admin panel dashboard
- * Uses event delegation and data-action attributes
+ * Handles all interactions for the admin panel dashboard.
+ * Uses the centralized EventDelegation system for all click handling.
  *
  * Features:
  * - Navigation handling
@@ -12,13 +12,11 @@
  * - Task monitoring
  * - Database monitoring
  * - Match reports
- * - Settings initialization
  *
  * Architecture:
- * - Event delegation for all interactions
+ * - Registers handlers with EventDelegation (no duplicate listeners)
  * - Data-action attribute driven
  * - No inline event handlers
- * - Modular function organization
  *
  * ============================================================================
  */
@@ -30,67 +28,45 @@
   // INITIALIZATION
   // ============================================================================
 
-  document.addEventListener('DOMContentLoaded', function() {
-    initializeEventDelegation();
+  function init() {
+    // Only initialize if we're on the admin dashboard page
+    if (!document.querySelector('.admin-panel-dashboard, [data-page="admin-dashboard"]')) {
+      return;
+    }
+
+    registerEventHandlers();
     highlightActiveNav();
-  });
+    setupNavigationCards();
+
+    console.log('[AdminDashboard] Initialized');
+  }
 
   // ============================================================================
-  // EVENT DELEGATION
+  // EVENT REGISTRATION - Uses central EventDelegation system
   // ============================================================================
 
-  function initializeEventDelegation() {
-    // Delegate all clicks to document
-    document.addEventListener('click', handleDocumentClick);
+  function registerEventHandlers() {
+    // Check if EventDelegation is available
+    if (typeof EventDelegation === 'undefined') {
+      console.warn('[AdminDashboard] EventDelegation not available, skipping handler registration');
+      return;
+    }
 
-    // Delegate navigation cards
+    // Register only the actions this module handles
+    EventDelegation.register('navigate', handleNavigate);
+    EventDelegation.register('open-navigation-settings', openNavigationSettings, { preventDefault: true });
+    EventDelegation.register('open-registration-settings', openRegistrationSettings, { preventDefault: true });
+    EventDelegation.register('open-task-monitor', openTaskMonitor, { preventDefault: true });
+    EventDelegation.register('open-database-monitor', openDatabaseMonitor, { preventDefault: true });
+    EventDelegation.register('open-match-reports', openMatchReports, { preventDefault: true });
+    EventDelegation.register('generate-report', generateReport, { preventDefault: true });
+  }
+
+  function setupNavigationCards() {
+    // Add pointer cursor to navigation cards
     document.querySelectorAll('[data-action="navigate"]').forEach(card => {
       card.style.cursor = 'pointer';
     });
-  }
-
-  function handleDocumentClick(e) {
-    const target = e.target.closest('[data-action]');
-    if (!target) return;
-
-    const action = target.dataset.action;
-
-    // Route to appropriate handler
-    switch(action) {
-      case 'navigate':
-        handleNavigate(target);
-        break;
-      case 'open-navigation-settings':
-        openNavigationSettings();
-        break;
-      case 'open-registration-settings':
-        openRegistrationSettings();
-        break;
-      case 'open-task-monitor':
-        openTaskMonitor();
-        break;
-      case 'open-database-monitor':
-        openDatabaseMonitor();
-        break;
-      case 'open-match-reports':
-        openMatchReports();
-        break;
-      case 'generate-report':
-        generateReport();
-        break;
-      case 'initialize-settings':
-        // Form submission - no handler needed
-        break;
-      case 'navigate-link':
-      case 'view-all-logs':
-        // Regular links - no handler needed
-        break;
-      case 'toggle-submenu':
-        // Handled by sidebar-interactions.js - no action needed here
-        break;
-      default:
-        console.warn('Unhandled action:', action);
-    }
   }
 
   // ============================================================================
@@ -120,13 +96,11 @@
   // ============================================================================
 
   function openNavigationSettings() {
-    // Check if Swal is available
     if (typeof Swal === 'undefined') {
       alert('SweetAlert2 is required for this feature');
       return;
     }
 
-    // Show loading modal first
     Swal.fire({
       title: 'Navigation Settings',
       html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading navigation settings...</p></div>',
@@ -134,7 +108,6 @@
       allowOutsideClick: false
     });
 
-    // Fetch current navigation settings
     fetch('/admin-panel/api/navigation-settings')
       .then(response => response.json())
       .then(data => {
@@ -325,7 +298,7 @@
       registration_enabled: document.getElementById('registrationEnabled').checked,
       waitlist_registration_enabled: document.getElementById('waitlistEnabled').checked,
       admin_approval_required: document.getElementById('adminApproval').checked,
-      discord_only_login: true, // Always true
+      discord_only_login: true,
       default_user_role: document.getElementById('defaultRole').value,
       require_real_name: document.getElementById('requireRealName').checked,
       require_email: document.getElementById('requireEmail').checked,
@@ -585,13 +558,11 @@
   }
 
   function getCSRFToken() {
-    // Try to get from meta tag first
     const metaToken = document.querySelector('meta[name="csrf-token"]');
     if (metaToken) {
       return metaToken.getAttribute('content');
     }
 
-    // Fallback: try to get from form
     const formToken = document.querySelector('input[name="csrf_token"]');
     if (formToken) {
       return formToken.value;
@@ -599,6 +570,16 @@
 
     console.error('CSRF token not found');
     return '';
+  }
+
+  // ============================================================================
+  // AUTO-INITIALIZE
+  // ============================================================================
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
   }
 
 })();

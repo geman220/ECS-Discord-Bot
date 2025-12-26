@@ -28,6 +28,7 @@ from flask import Flask
 
 from app.assets import init_assets
 from app.core import db
+from app import vite
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,10 @@ def create_app(config_object='web_config.Config'):
     # Initialize asset management
     app.config['FLASK_ASSETS_USE_CDN'] = False
     app.assets = init_assets(app)
+
+    # Initialize Vite integration (modern asset pipeline)
+    # Set VITE_DEV_MODE=True in .env to use Vite dev server
+    vite.init_app(app)
 
     # Import initialization modules
     from app.init import (

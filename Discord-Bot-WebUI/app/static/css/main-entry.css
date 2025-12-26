@@ -1,0 +1,259 @@
+/**
+ * ============================================================================
+ * MAIN CSS ENTRY POINT - Vite Build System
+ * ============================================================================
+ *
+ * Imports all CSS in the correct cascade order.
+ * Vite will bundle and minify this into a single optimized file.
+ *
+ * Order matters for CSS specificity:
+ * 1. Design tokens (CSS custom properties)
+ * 2. Core/foundation styles
+ * 3. Components
+ * 4. Layout
+ * 5. Features/pages
+ * 6. Themes
+ * 7. Utilities (highest specificity)
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. DESIGN TOKENS - CSS Custom Properties
+   ============================================================================ */
+@import './tokens/colors.css';
+@import './tokens/typography.css';
+@import './tokens/spacing.css';
+@import './tokens/shadows.css';
+@import './tokens/borders.css';
+@import './tokens/animations.css';
+
+/* ============================================================================
+   2. CORE / FOUNDATION
+   ============================================================================ */
+@import './core/variables.css';
+@import './core/z-index.css';
+@import './bootstrap-minimal.css';
+@import './core/component-aliases.css';
+@import './core/bootstrap-theming.css';
+
+/* Main components file (layout system, menu, navbar, footer) */
+@import './components.css';
+
+/* ============================================================================
+   3. COMPONENTS
+   ============================================================================ */
+@import './components/buttons.css';
+@import './components/forms.css';
+@import './components/cards.css';
+@import './components/modals.css';
+@import './components/c-modal.css';
+@import './components/c-dropdown.css';
+@import './components/dropdowns.css';
+@import './components/tables.css';
+@import './components/badges.css';
+@import './components/alerts.css';
+@import './components/navigation.css';
+@import './components/toasts.css';
+@import './components/macros.css';
+
+/* Modern BEM Components */
+@import './components/tabs-modern.css';
+@import './components/settings-components.css';
+@import './components/headers-modern.css';
+@import './components/navigation-modern.css';
+@import './components/admin-components.css';
+@import './components/buttons-modern.css';
+@import './components/forms-modern.css';
+@import './components/cards-modern.css';
+@import './components/tables-modern.css';
+@import './components/toasts-modern.css';
+@import './components/tooltips-modern.css';
+@import './components/loaders-modern.css';
+@import './components/empty-states-modern.css';
+@import './components/macros-modern.css';
+@import './components/navbar-modern.css';
+@import './components/sweetalert-modern.css';
+@import './components/admin-navigation.css';
+@import './components/online-users-widget.css';
+@import './components/c-chat-widget.css';
+@import './components/c-messenger-widget.css';
+@import './components/online-status.css';
+@import './components/snippets.css';
+@import './components/user-modal.css';
+@import './components/stat-cards.css';
+@import './components/c-card.css';
+@import './components/link-list.css';
+@import './components/c-table.css';
+@import './components/c-tabs.css';
+@import './components/c-btn.css';
+@import './components/profile-components.css';
+@import './components/dropdown-fixes.css';
+@import './components/player-table.css';
+@import './components/wizard-components.css';
+@import './components/calendar-components.css';
+@import './components/auth-components.css';
+@import './components/list-components.css';
+@import './components/card-modern-additions.css';
+@import './components/form-modern-additions.css';
+@import './components/notification-components.css';
+@import './components/c-toggle.css';
+@import './components/player-header.css';
+@import './components/misc-components.css';
+@import './components/remaining-components.css';
+@import './components/ui-fixes.css';
+@import './components/c-schedule.css';
+@import './components/chat-widget.css';
+
+/* ============================================================================
+   4. LAYOUT
+   ============================================================================ */
+@import './layout/base-layout.css';
+@import './layout/sidebar-modern.css';
+@import './layout/navbar.css';
+@import './layout/navbar-modern.css';
+@import './layout/auth-layout.css';
+@import './layout/mobile.css';
+@import './layout/mobile-navigation.css';
+@import './layout/mobile-forms.css';
+@import './layout/mobile-tables.css';
+
+/* ============================================================================
+   5. FEATURES
+   ============================================================================ */
+@import './features/draft.css';
+@import './features/pitch-view.css';
+@import './features/player-profile.css';
+@import './features/playoff-bracket.css';
+@import './features/schedule-manager.css';
+@import './features/settings.css';
+@import './features/live-reporting.css';
+@import './features/store.css';
+@import './features/wallet.css';
+@import './features/profile-success-animations.css';
+@import './features/coach-dashboard.css';
+
+/* ============================================================================
+   6. PAGES
+   ============================================================================ */
+@import './pages/match-view.css';
+@import './pages/profile-wizard.css';
+@import './pages/authentication.css';
+@import './pages/waitlist-registration.css';
+@import './pages/waitlist-confirmation.css';
+@import './pages/admin.css';
+@import './pages/calendar.css';
+@import './pages/home.css';
+@import './pages/home-modern.css';
+@import './pages/teams-overview.css';
+@import './pages/seasons.css';
+@import './pages/standings.css';
+@import './pages/seasonal-schedule.css';
+@import './pages/verify-2fa.css';
+@import './pages/settings.css';
+@import './pages/user-management.css';
+@import './pages/players.css';
+@import './pages/players-list.css';
+@import './pages/team-details.css';
+@import './pages/team-detail.css';
+@import './pages/teams.css';
+@import './pages/error-pages.css';
+@import './pages/feedback.css';
+@import './pages/matches-list.css';
+@import './pages/messages-inbox.css';
+@import './pages/mobile-wizard.css';
+@import './pages/notifications.css';
+@import './pages/onboarding.css';
+@import './pages/privacy-policy.css';
+@import './pages/profile-verify.css';
+@import './pages/roles.css';
+@import './pages/rsvp-pages.css';
+@import './pages/schedule-wizard.css';
+@import './pages/scheduled-messages.css';
+@import './pages/store.css';
+@import './pages/utilities.css';
+
+/* Admin pages */
+@import './pages/admin/admin-dashboard.css';
+@import './pages/admin/discord-management.css';
+@import './pages/admin/draft-history.css';
+@import './pages/admin/league-management.css';
+@import './pages/admin/league-substitute-pool.css';
+@import './pages/admin/live-reporting-dashboard.css';
+@import './pages/admin/manage-polls.css';
+@import './pages/admin/manage-subs.css';
+@import './pages/admin/match-detail.css';
+@import './pages/admin/match-management.css';
+@import './pages/admin/match-verification.css';
+@import './pages/admin/mobile-analytics.css';
+@import './pages/admin/pass-studio.css';
+@import './pages/admin/playoff-generator.css';
+@import './pages/admin/redis-stats.css';
+@import './pages/admin/rsvp-status.css';
+@import './pages/admin/season-wizard.css';
+@import './pages/admin/security-dashboard.css';
+@import './pages/admin/substitute-pool.css';
+@import './pages/admin/sync-review.css';
+@import './pages/admin/user-approvals.css';
+@import './pages/admin/user-waitlist.css';
+
+/* Admin panel pages */
+@import './pages/admin-panel/appearance.css';
+@import './pages/admin-panel/base.css';
+@import './pages/admin-panel/communication.css';
+@import './pages/admin-panel/dashboard.css';
+@import './pages/admin-panel/discord-bot-management.css';
+@import './pages/admin-panel/feature-toggles.css';
+@import './pages/admin-panel/match-operations.css';
+@import './pages/admin-panel/message-template-management.css';
+@import './pages/admin-panel/mobile-features.css';
+@import './pages/admin-panel/performance.css';
+@import './pages/admin-panel/quick-actions.css';
+@import './pages/admin-panel/store-management.css';
+@import './pages/admin-panel/substitute-management.css';
+
+/* Match operations pages */
+@import './pages/match-operations/edit-match.css';
+@import './pages/match-operations/live-matches.css';
+@import './pages/match-operations/manage-teams.css';
+@import './pages/match-operations/match-reports.css';
+@import './pages/match-operations/seasons.css';
+
+/* ============================================================================
+   7. THEMES
+   ============================================================================ */
+@import './themes/modern/modern-light.css';
+@import './themes/modern/modern-dark.css';
+@import './themes/modern/modern-components.css';
+
+/* ============================================================================
+   8. UTILITIES (Highest Specificity)
+   ============================================================================ */
+@import './core/admin-utilities.css';
+@import './utilities/bootstrap-color-overrides.css';
+@import './utilities/display-utils.css';
+@import './utilities/transform-utils.css';
+@import './utilities/layout-utils.css';
+@import './utilities/mobile-utils.css';
+@import './utilities/state-utils.css';
+@import './utilities/interaction-utils.css';
+@import './utilities/component-states.css';
+@import './utilities/sizing-utils.css';
+@import './utilities/event-indicator-utils.css';
+@import './utilities/match-report-utils.css';
+@import './utilities/drag-drop-utils.css';
+@import './utilities/datatable-utils.css';
+@import './utilities/canvas-utils.css';
+@import './utilities/draft-system-utils.css';
+@import './utilities/responsive-utilities.css';
+@import './utilities/waves-effects.css';
+@import './utilities/menu-animation-utils.css';
+@import './utilities/wizard-utils.css';
+@import './utilities/card-utils.css';
+
+/* Template styles */
+@import './template-styles.css';
+
+/* Custom CSS overrides */
+@import '../custom_css/paginate-dark-fix.css';
+@import '../custom_css/modal-helpers.css';

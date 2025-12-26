@@ -16,6 +16,7 @@
  * Dependencies:
  * - Bootstrap 5.x (modals)
  * - SweetAlert2 (confirmations)
+ * - EventDelegation (centralized event handling)
  *
  * ============================================================================
  */
@@ -97,6 +98,33 @@
     }
 
     // ========================================================================
+    // ACTION HANDLERS
+    // ========================================================================
+
+    /**
+     * Handle edit category action
+     * @param {Event} e - The event object
+     */
+    function handleEditCategory(e) {
+        const editId = e.target.dataset.categoryId;
+        const editName = e.target.dataset.categoryName;
+        const editDesc = e.target.dataset.categoryDescription;
+        editCategory(editId, editName, editDesc);
+    }
+
+    /**
+     * Handle delete category action
+     * @param {Event} e - The event object
+     */
+    function handleDeleteCategory(e) {
+        const deleteId = e.target.dataset.categoryId;
+        const deleteName = e.target.dataset.categoryName;
+        const deleteUrl = e.target.dataset.deleteUrl;
+        const csrfToken = e.target.dataset.csrfToken;
+        deleteCategory(deleteId, deleteName, deleteUrl, csrfToken);
+    }
+
+    // ========================================================================
     // EVENT DELEGATION
     // ========================================================================
 
@@ -104,31 +132,13 @@
      * Initialize event delegation for category actions
      */
     function initEventDelegation() {
-        document.addEventListener('click', function(e) {
-            const actionElement = e.target.closest('[data-action]');
-            if (!actionElement) return;
+        if (typeof EventDelegation === 'undefined') {
+            console.error('[Message Categories] EventDelegation not available');
+            return;
+        }
 
-            const action = actionElement.dataset.action;
-
-            switch(action) {
-                case 'edit-category':
-                    e.preventDefault();
-                    const editId = actionElement.dataset.categoryId;
-                    const editName = actionElement.dataset.categoryName;
-                    const editDesc = actionElement.dataset.categoryDescription;
-                    editCategory(editId, editName, editDesc);
-                    break;
-
-                case 'delete-category':
-                    e.preventDefault();
-                    const deleteId = actionElement.dataset.categoryId;
-                    const deleteName = actionElement.dataset.categoryName;
-                    const deleteUrl = actionElement.dataset.deleteUrl;
-                    const csrfToken = actionElement.dataset.csrfToken;
-                    deleteCategory(deleteId, deleteName, deleteUrl, csrfToken);
-                    break;
-            }
-        });
+        EventDelegation.register('edit-category', handleEditCategory, { preventDefault: true });
+        EventDelegation.register('delete-category', handleDeleteCategory, { preventDefault: true });
     }
 
     // ========================================================================
@@ -139,6 +149,11 @@
      * Initialize all message category functionality
      */
     function init() {
+        // Page guard: only run on message categories page
+        if (!document.getElementById('editCategoryModal')) {
+            return;
+        }
+
         console.log('[Message Categories] Initializing...');
         initEventDelegation();
         console.log('[Message Categories] Initialization complete');

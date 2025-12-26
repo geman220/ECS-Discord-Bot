@@ -6,6 +6,9 @@
  *
  * Dependencies: Hammer.js (already loaded in helpers.js)
  * Usage: Automatically initializes on DOMContentLoaded
+ *
+ * @version 1.0.1
+ * @updated 2025-12-26 - Code review for EventDelegation (no changes needed - uses Hammer.js)
  */
 
 (function (window) {
@@ -362,7 +365,8 @@
           }
         });
 
-        // Close on tap outside - REFACTORED: Using utility classes
+        // Close on tap outside (keep this - non-action click listener)
+        // REFACTORED: Using utility classes
         document.addEventListener('click', (e) => {
           if (actionsRevealed && !row.contains(e.target)) {
             actionsContainer.classList.remove('translate-x-0');

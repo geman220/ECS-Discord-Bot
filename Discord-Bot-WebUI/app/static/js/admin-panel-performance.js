@@ -26,11 +26,20 @@
   /**
    * Initialize on DOM load
    */
-  document.addEventListener('DOMContentLoaded', function() {
+  function init() {
+    // Page guard: only run on performance monitoring pages
+    const isPerfPage = document.querySelector('[data-page="admin-performance"]') ||
+                       document.querySelector('.admin-performance') ||
+                       window.location.pathname.includes('performance');
+
+    if (!isPerfPage) {
+      return;
+    }
+
     initializeCharts();
-    initializeEventHandlers();
+    registerEventHandlers();
     startAutoRefresh();
-  });
+  }
 
   /**
    * Initialize Chart.js visualizations
@@ -118,24 +127,13 @@
   }
 
   /**
-   * Initialize event handlers using delegation
+   * Register event handlers using EventDelegation
    */
-  function initializeEventHandlers() {
-    // Toggle auto-refresh
-    document.addEventListener('click', function(e) {
-      const toggleBtn = e.target.closest('[data-action="toggle-auto-refresh"]');
-      if (toggleBtn) {
-        handleToggleAutoRefresh();
-        return;
-      }
-
-      // Clear cache confirmation
-      const clearCacheBtn = e.target.closest('[data-action="clear-cache"]');
-      if (clearCacheBtn) {
-        handleClearCache(e);
-        return;
-      }
-    });
+  function registerEventHandlers() {
+    if (typeof EventDelegation !== 'undefined') {
+      EventDelegation.register('toggle-auto-refresh', handleToggleAutoRefresh, { preventDefault: true });
+      EventDelegation.register('clear-cache', handleClearCache, { preventDefault: true });
+    }
   }
 
   /**
@@ -161,6 +159,7 @@
     const confirmed = confirm('Are you sure you want to clear all cache?');
     if (!confirmed) {
       e.preventDefault();
+      return false;
     }
   }
 
@@ -285,6 +284,13 @@
   function getCSSVariable(varName) {
     const value = getComputedStyle(document.documentElement).getPropertyValue(varName);
     return value ? value.trim() : null;
+  }
+
+  // Run initialization when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
   }
 
 })();

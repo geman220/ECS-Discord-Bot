@@ -18,6 +18,7 @@
  * Dependencies:
  * - Bootstrap 5.x (modals)
  * - SweetAlert2 (confirmations)
+ * - EventDelegation (centralized event handling)
  *
  * ============================================================================
  */
@@ -298,66 +299,106 @@
     }
 
     // ========================================================================
+    // ACTION HANDLERS
+    // ========================================================================
+
+    /**
+     * Handle go back action
+     * @param {Event} e - The event object
+     */
+    function handleGoBack(e) {
+        window.history.back();
+    }
+
+    /**
+     * Handle view campaign action
+     * @param {Event} e - The event object
+     */
+    function handleViewCampaign(e) {
+        viewCampaign(e.target.dataset.campaignId);
+    }
+
+    /**
+     * Handle edit campaign action
+     * @param {Event} e - The event object
+     */
+    function handleEditCampaign(e) {
+        editCampaign(e.target.dataset.campaignId);
+    }
+
+    /**
+     * Handle send campaign action
+     * @param {Event} e - The event object
+     */
+    function handleSendCampaign(e) {
+        sendCampaign(
+            e.target.dataset.campaignId,
+            e.target.dataset.campaignName
+        );
+    }
+
+    /**
+     * Handle schedule campaign action
+     * @param {Event} e - The event object
+     */
+    function handleScheduleCampaign(e) {
+        scheduleCampaign(
+            e.target.dataset.campaignId,
+            e.target.dataset.campaignName
+        );
+    }
+
+    /**
+     * Handle delete campaign action
+     * @param {Event} e - The event object
+     */
+    function handleDeleteCampaign(e) {
+        deleteCampaign(
+            e.target.dataset.campaignId,
+            e.target.dataset.campaignName
+        );
+    }
+
+    /**
+     * Handle cancel campaign action
+     * @param {Event} e - The event object
+     */
+    function handleCancelCampaign(e) {
+        cancelCampaign(
+            e.target.dataset.campaignId,
+            e.target.dataset.campaignName
+        );
+    }
+
+    /**
+     * Handle duplicate campaign action
+     * @param {Event} e - The event object
+     */
+    function handleDuplicateCampaign(e) {
+        duplicateCampaign(
+            e.target.dataset.campaignId,
+            e.target.dataset.campaignName
+        );
+    }
+
+    // ========================================================================
     // EVENT DELEGATION
     // ========================================================================
 
     function initEventDelegation() {
-        document.addEventListener('click', function(e) {
-            const actionElement = e.target.closest('[data-action]');
-            if (!actionElement) return;
+        if (typeof EventDelegation === 'undefined') {
+            console.error('[Push Campaigns] EventDelegation not available');
+            return;
+        }
 
-            const action = actionElement.dataset.action;
-            e.preventDefault();
-
-            switch(action) {
-                case 'go-back':
-                    window.history.back();
-                    break;
-
-                case 'view-campaign':
-                    viewCampaign(actionElement.dataset.campaignId);
-                    break;
-
-                case 'edit-campaign':
-                    editCampaign(actionElement.dataset.campaignId);
-                    break;
-
-                case 'send-campaign':
-                    sendCampaign(
-                        actionElement.dataset.campaignId,
-                        actionElement.dataset.campaignName
-                    );
-                    break;
-
-                case 'schedule-campaign':
-                    scheduleCampaign(
-                        actionElement.dataset.campaignId,
-                        actionElement.dataset.campaignName
-                    );
-                    break;
-
-                case 'delete-campaign':
-                    deleteCampaign(
-                        actionElement.dataset.campaignId,
-                        actionElement.dataset.campaignName
-                    );
-                    break;
-
-                case 'cancel-campaign':
-                    cancelCampaign(
-                        actionElement.dataset.campaignId,
-                        actionElement.dataset.campaignName
-                    );
-                    break;
-
-                case 'duplicate-campaign':
-                    duplicateCampaign(
-                        actionElement.dataset.campaignId,
-                        actionElement.dataset.campaignName
-                    );
-                    break;
-            }
-        });
+        EventDelegation.register('go-back', handleGoBack, { preventDefault: true });
+        EventDelegation.register('view-campaign', handleViewCampaign, { preventDefault: true });
+        EventDelegation.register('edit-campaign', handleEditCampaign, { preventDefault: true });
+        EventDelegation.register('send-campaign', handleSendCampaign, { preventDefault: true });
+        EventDelegation.register('schedule-campaign', handleScheduleCampaign, { preventDefault: true });
+        EventDelegation.register('delete-campaign', handleDeleteCampaign, { preventDefault: true });
+        EventDelegation.register('cancel-campaign', handleCancelCampaign, { preventDefault: true });
+        EventDelegation.register('duplicate-campaign', handleDuplicateCampaign, { preventDefault: true });
     }
 
     // ========================================================================
@@ -365,6 +406,11 @@
     // ========================================================================
 
     function init() {
+        // Page guard: only run on campaigns page
+        if (!document.querySelector('[data-action*="campaign"]')) {
+            return;
+        }
+
         console.log('[Push Campaigns] Initializing...');
 
         initEventDelegation();

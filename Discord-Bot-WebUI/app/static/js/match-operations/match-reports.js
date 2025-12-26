@@ -3,187 +3,233 @@
  * Handles all report generation and export actions
  */
 
-// Initialize charts and event handlers when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    initializeCharts();
-    initializeEventHandlers();
-});
+(function() {
+    'use strict';
 
-/**
- * Initialize Chart.js charts
- */
-function initializeCharts() {
-    const matchStatusCtx = document.getElementById('matchStatusChart');
-    const matchesPerWeekCtx = document.getElementById('matchesPerWeekChart');
+    // Page guard - only run on match reports page
+    const isMatchReportsPage = document.getElementById('matchStatusChart') ||
+                                document.getElementById('matchesPerWeekChart') ||
+                                document.querySelector('[data-action^="generate-"][data-action*="report"]') ||
+                                document.querySelector('[data-action^="export-"]');
 
-    if (matchStatusCtx) {
-        new Chart(matchStatusCtx.getContext('2d'), {
-            type: 'doughnut',
-            data: {
-                labels: ['Completed', 'Upcoming', 'Live', 'Cancelled'],
-                datasets: [{
-                    data: [
-                        parseInt(matchStatusCtx.dataset.completed || 0),
-                        parseInt(matchStatusCtx.dataset.pending || 0),
-                        parseInt(matchStatusCtx.dataset.live || 0),
-                        parseInt(matchStatusCtx.dataset.cancelled || 0)
-                    ],
-                    backgroundColor: [
-                        getComputedStyle(document.documentElement).getPropertyValue('--color-success') || '#28a745',
-                        getComputedStyle(document.documentElement).getPropertyValue('--color-warning') || '#ffc107',
-                        getComputedStyle(document.documentElement).getPropertyValue('--color-primary') || '#007bff',
-                        getComputedStyle(document.documentElement).getPropertyValue('--color-danger') || '#dc3545'
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    }
-                }
-            }
-        });
-    }
+    if (!isMatchReportsPage) return;
 
-    if (matchesPerWeekCtx) {
-        new Chart(matchesPerWeekCtx.getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
-                datasets: [{
-                    label: 'Matches Played',
-                    data: [12, 19, 3, 5, 2, 15],
-                    borderColor: getComputedStyle(document.documentElement).getPropertyValue('--color-primary') || '#007bff',
-                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    }
-}
-
-/**
- * Initialize all event handlers using event delegation
- */
-function initializeEventHandlers() {
-    document.addEventListener('click', function(e) {
-        const target = e.target.closest('[data-action]');
-        if (!target) return;
-
-        const action = target.dataset.action;
-        const matchId = target.dataset.matchId;
-        const teamId = target.dataset.teamId;
-
-        // Route to appropriate handler
-        const handlers = {
-            'generate-match-report': () => generateMatchReport(matchId),
-            'generate-league-report': generateLeagueReport,
-            'generate-team-report': () => generateTeamReport(teamId),
-            'generate-custom-report': generateCustomReport,
-            'view-recent-matches': viewRecentMatches,
-            'view-upcoming-matches': viewUpcomingMatches,
-            'view-top-scorers': viewTopScorers,
-            'view-league-standings': viewLeagueStandings,
-            'export-pdf': exportPDF,
-            'export-excel': exportExcel,
-            'export-csv': exportCSV,
-            'schedule-report': scheduleReport,
-            'view-match-report': () => viewMatchReport(matchId),
-            'view-team-report': () => viewTeamReport(teamId),
-            'view-all-matches': viewAllMatches
-        };
-
-        const handler = handlers[action];
-        if (handler) {
-            handler();
-        }
+    // Initialize charts and event handlers when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeCharts();
     });
-}
 
-/**
- * Report generation functions
- */
-function generateMatchReport(matchId = null) {
-    console.log('Generate match report:', matchId);
-    // Implementation from original file
-}
+    /**
+     * Initialize Chart.js charts
+     */
+    function initializeCharts() {
+        const matchStatusCtx = document.getElementById('matchStatusChart');
+        const matchesPerWeekCtx = document.getElementById('matchesPerWeekChart');
 
-function generateLeagueReport() {
-    console.log('Generate league report');
-    // Implementation from original file
-}
+        if (matchStatusCtx) {
+            new Chart(matchStatusCtx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completed', 'Upcoming', 'Live', 'Cancelled'],
+                    datasets: [{
+                        data: [
+                            parseInt(matchStatusCtx.dataset.completed || 0),
+                            parseInt(matchStatusCtx.dataset.pending || 0),
+                            parseInt(matchStatusCtx.dataset.live || 0),
+                            parseInt(matchStatusCtx.dataset.cancelled || 0)
+                        ],
+                        backgroundColor: [
+                            getComputedStyle(document.documentElement).getPropertyValue('--color-success') || '#28a745',
+                            getComputedStyle(document.documentElement).getPropertyValue('--color-warning') || '#ffc107',
+                            getComputedStyle(document.documentElement).getPropertyValue('--color-primary') || '#007bff',
+                            getComputedStyle(document.documentElement).getPropertyValue('--color-danger') || '#dc3545'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
 
-function generateTeamReport(teamId = null) {
-    console.log('Generate team report:', teamId);
-    // Implementation from original file
-}
+        if (matchesPerWeekCtx) {
+            new Chart(matchesPerWeekCtx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
+                    datasets: [{
+                        label: 'Matches Played',
+                        data: [12, 19, 3, 5, 2, 15],
+                        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--color-primary') || '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    }
 
-function generateCustomReport() {
-    console.log('Generate custom report');
-    // Implementation from original file
-}
+    /**
+     * Report generation functions
+     */
+    function generateMatchReport(matchId = null) {
+        console.log('Generate match report:', matchId);
+        // Implementation from original file
+    }
 
-/**
- * Quick report views
- */
-function viewRecentMatches() {
-    window.location.href = '/admin-panel/matches/recent';
-}
+    function generateLeagueReport() {
+        console.log('Generate league report');
+        // Implementation from original file
+    }
 
-function viewUpcomingMatches() {
-    window.location.href = '/admin-panel/matches/upcoming';
-}
+    function generateTeamReport(teamId = null) {
+        console.log('Generate team report:', teamId);
+        // Implementation from original file
+    }
 
-function viewTopScorers() {
-    console.log('View top scorers');
-}
+    function generateCustomReport() {
+        console.log('Generate custom report');
+        // Implementation from original file
+    }
 
-function viewLeagueStandings() {
-    window.location.href = '/admin-panel/match-operations/league-standings';
-}
+    /**
+     * Quick report views
+     */
+    function viewRecentMatches() {
+        window.location.href = '/admin-panel/matches/recent';
+    }
 
-/**
- * Export functions
- */
-function exportPDF() {
-    window.open('/admin/match-operations/reports/export?format=pdf', '_blank');
-}
+    function viewUpcomingMatches() {
+        window.location.href = '/admin-panel/matches/upcoming';
+    }
 
-function exportExcel() {
-    window.open('/admin/match-operations/reports/export?format=excel', '_blank');
-}
+    function viewTopScorers() {
+        console.log('View top scorers');
+    }
 
-function exportCSV() {
-    window.open('/admin/match-operations/reports/export?format=csv', '_blank');
-}
+    function viewLeagueStandings() {
+        window.location.href = '/admin-panel/match-operations/league-standings';
+    }
 
-function scheduleReport() {
-    console.log('Schedule report');
-}
+    /**
+     * Export functions
+     */
+    function exportPDF() {
+        window.open('/admin/match-operations/reports/export?format=pdf', '_blank');
+    }
 
-/**
- * Individual item views
- */
-function viewMatchReport(matchId) {
-    window.location.href = `/admin/match-operations/match/${matchId}/report`;
-}
+    function exportExcel() {
+        window.open('/admin/match-operations/reports/export?format=excel', '_blank');
+    }
 
-function viewTeamReport(teamId) {
-    window.location.href = `/admin/match-operations/team/${teamId}/report`;
-}
+    function exportCSV() {
+        window.open('/admin/match-operations/reports/export?format=csv', '_blank');
+    }
 
-function viewAllMatches() {
-    window.location.href = '/admin-panel/matches';
-}
+    function scheduleReport() {
+        console.log('Schedule report');
+    }
+
+    /**
+     * Individual item views
+     */
+    function viewMatchReport(matchId) {
+        window.location.href = `/admin/match-operations/match/${matchId}/report`;
+    }
+
+    function viewTeamReport(teamId) {
+        window.location.href = `/admin/match-operations/team/${teamId}/report`;
+    }
+
+    function viewAllMatches() {
+        window.location.href = '/admin-panel/matches';
+    }
+
+    // ========================================================================
+    // EVENT DELEGATION REGISTRATIONS
+    // ========================================================================
+
+    // Report Generation Actions
+    EventDelegation.register('generate-match-report', function(element, e) {
+        const matchId = element.dataset.matchId;
+        generateMatchReport(matchId);
+    }, { preventDefault: true });
+
+    EventDelegation.register('generate-league-report', function(element, e) {
+        generateLeagueReport();
+    }, { preventDefault: true });
+
+    EventDelegation.register('generate-team-report', function(element, e) {
+        const teamId = element.dataset.teamId;
+        generateTeamReport(teamId);
+    }, { preventDefault: true });
+
+    EventDelegation.register('generate-custom-report', function(element, e) {
+        generateCustomReport();
+    }, { preventDefault: true });
+
+    // Quick View Actions
+    EventDelegation.register('view-recent-matches', function(element, e) {
+        viewRecentMatches();
+    }, { preventDefault: true });
+
+    EventDelegation.register('view-upcoming-matches', function(element, e) {
+        viewUpcomingMatches();
+    }, { preventDefault: true });
+
+    EventDelegation.register('view-top-scorers', function(element, e) {
+        viewTopScorers();
+    }, { preventDefault: true });
+
+    EventDelegation.register('view-league-standings', function(element, e) {
+        viewLeagueStandings();
+    }, { preventDefault: true });
+
+    // Export Actions
+    EventDelegation.register('export-pdf', function(element, e) {
+        exportPDF();
+    }, { preventDefault: true });
+
+    EventDelegation.register('export-excel', function(element, e) {
+        exportExcel();
+    }, { preventDefault: true });
+
+    EventDelegation.register('export-csv', function(element, e) {
+        exportCSV();
+    }, { preventDefault: true });
+
+    EventDelegation.register('schedule-report', function(element, e) {
+        scheduleReport();
+    }, { preventDefault: true });
+
+    // Individual Report View Actions
+    EventDelegation.register('view-match-report', function(element, e) {
+        const matchId = element.dataset.matchId;
+        viewMatchReport(matchId);
+    }, { preventDefault: true });
+
+    EventDelegation.register('view-team-report', function(element, e) {
+        const teamId = element.dataset.teamId;
+        viewTeamReport(teamId);
+    }, { preventDefault: true });
+
+    EventDelegation.register('view-all-matches', function(element, e) {
+        viewAllMatches();
+    }, { preventDefault: true });
+
+})();

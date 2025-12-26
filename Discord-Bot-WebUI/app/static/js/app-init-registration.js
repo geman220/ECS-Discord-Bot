@@ -17,9 +17,9 @@
  * Phase 2.4 - Centralized Init System Completion
  * Batch 1: 7 components registered (waves-css-override removed - Waves.Effect not exposed)
  *
- * @version 1.0.1
+ * @version 1.0.2
  * @created 2025-12-16
- * @updated 2025-12-23 - Removed waves-css-override (Waves.Effect is internal API)
+ * @updated 2025-12-26 - Refactored to use EventDelegation for menu toggle
  *
  * Migration Summary:
  * -----------------
@@ -221,7 +221,6 @@
     InitSystem.register('mobile-menu-fix', function() {
         // References to key elements
         const layoutMenu = document.getElementById('layout-menu');
-        const menuToggleIcon = document.getElementById('menu-toggle-icon');
         const closeIcon = document.getElementById('close-icon');
         let layoutOverlay = document.querySelector('.layout-overlay');
 
@@ -266,24 +265,23 @@
             }
         }
 
-        // Event listeners for menu toggle
-        const menuToggles = document.querySelectorAll('.layout-menu-toggle');
-        menuToggles.forEach(toggle => {
-            toggle.addEventListener('click', function(e) {
+        // Register event delegation handler for menu toggle
+        if (typeof EventDelegation !== 'undefined') {
+            EventDelegation.register('toggle-mobile-menu', function(element, e) {
                 e.preventDefault();
                 toggleMenu();
-            });
-        });
-
-        // Close when clicking the X icon
-        if (closeIcon) {
-            closeIcon.addEventListener('click', function(e) {
-                e.preventDefault();
-                closeMenu();
-            });
+            }, { preventDefault: true });
         }
 
-        // Close when clicking the overlay
+        // Register event delegation handler for close icon
+        if (typeof EventDelegation !== 'undefined') {
+            EventDelegation.register('close-mobile-menu', function(element, e) {
+                e.preventDefault();
+                closeMenu();
+            }, { preventDefault: true });
+        }
+
+        // Close when clicking the overlay (keep this as non-action click)
         document.addEventListener('click', function(e) {
             if (e.target.classList.contains('layout-overlay') &&
                 document.documentElement.classList.contains('layout-menu-expanded')) {

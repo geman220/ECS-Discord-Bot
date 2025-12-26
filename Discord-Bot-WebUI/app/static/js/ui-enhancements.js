@@ -11,7 +11,7 @@
     function init() {
         initFeatherIcons();
         initMatchHistoryCollapse();
-        initDropdownFixes();
+        registerDropdownActions();
     }
 
     /**
@@ -83,10 +83,49 @@
     }
 
     /**
-     * Fix dropdown toggle behavior
+     * Register dropdown actions with EventDelegation
      */
-    function initDropdownFixes() {
-        // Handle navbar modern dropdowns
+    function registerDropdownActions() {
+        if (typeof EventDelegation !== 'undefined') {
+            EventDelegation.register('toggle-dropdown', handleToggleDropdown, { preventDefault: true });
+        } else {
+            // Fallback: direct event listeners if EventDelegation not available
+            initDropdownFallback();
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', handleOutsideClick);
+    }
+
+    /**
+     * Handle dropdown toggle action
+     */
+    function handleToggleDropdown(e, target) {
+        e.stopPropagation();
+
+        const dropdownId = target.getAttribute('data-dropdown');
+        const dropdown = document.querySelector(`[data-dropdown-id="${dropdownId}"]`);
+
+        if (dropdown) {
+            // Close all other dropdowns
+            document.querySelectorAll('.c-navbar-modern__dropdown.is-open').forEach(function(d) {
+                if (d !== dropdown) {
+                    d.classList.remove('is-open');
+                    d.setAttribute('aria-hidden', 'true');
+                }
+            });
+
+            // Toggle this dropdown
+            const isOpen = dropdown.classList.toggle('is-open');
+            dropdown.setAttribute('aria-hidden', !isOpen);
+            target.setAttribute('aria-expanded', isOpen);
+        }
+    }
+
+    /**
+     * Fallback dropdown initialization (if EventDelegation not available)
+     */
+    function initDropdownFallback() {
         document.querySelectorAll('[data-action="toggle-dropdown"]').forEach(function(btn) {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -111,20 +150,22 @@
                 }
             });
         });
+    }
 
-        // Close dropdowns when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!e.target.closest('.c-navbar-modern__dropdown') &&
-                !e.target.closest('[data-action="toggle-dropdown"]')) {
-                document.querySelectorAll('.c-navbar-modern__dropdown.is-open').forEach(function(d) {
-                    d.classList.remove('is-open');
-                    d.setAttribute('aria-hidden', 'true');
-                });
-                document.querySelectorAll('[data-action="toggle-dropdown"]').forEach(function(btn) {
-                    btn.setAttribute('aria-expanded', 'false');
-                });
-            }
-        });
+    /**
+     * Handle clicks outside dropdowns
+     */
+    function handleOutsideClick(e) {
+        if (!e.target.closest('.c-navbar-modern__dropdown') &&
+            !e.target.closest('[data-action="toggle-dropdown"]')) {
+            document.querySelectorAll('.c-navbar-modern__dropdown.is-open').forEach(function(d) {
+                d.classList.remove('is-open');
+                d.setAttribute('aria-hidden', 'true');
+            });
+            document.querySelectorAll('[data-action="toggle-dropdown"]').forEach(function(btn) {
+                btn.setAttribute('aria-expanded', 'false');
+            });
+        }
     }
 
     // Initialize on DOM ready

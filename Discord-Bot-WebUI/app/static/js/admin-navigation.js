@@ -34,9 +34,6 @@
      * Initialize the controller
      */
     init() {
-      // Event delegation: single click listener on nav container
-      this.nav.addEventListener('click', this.handleClick.bind(this));
-
       // Keyboard navigation
       this.nav.addEventListener('keydown', this.handleKeyboard.bind(this));
 
@@ -46,54 +43,33 @@
       // Close dropdowns on escape key
       document.addEventListener('keydown', this.handleEscapeKey.bind(this));
 
-      // FALLBACK: Direct click handlers on dropdown toggles
-      // This ensures clicks work even if event delegation is blocked
-      this.attachDirectClickHandlers();
+      // Register actions with EventDelegation
+      this.registerActions();
     }
 
     /**
-     * Attach direct click handlers to dropdown toggles as fallback
-     * This bypasses any potential event delegation issues
+     * Register actions with EventDelegation
      */
-    attachDirectClickHandlers() {
-      const toggles = this.nav.querySelectorAll('[data-action="toggle-dropdown"]');
-      toggles.forEach(toggle => {
-        toggle.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          this.toggleDropdown(toggle);
-        });
-      });
-    }
-
-    /**
-     * Handle all clicks via event delegation
-     * @param {Event} e - Click event
-     */
-    handleClick(e) {
-      // Find the closest element with data-action
-      const action = e.target.closest('[data-action]');
-      if (!action) return;
-
-      const actionType = action.dataset.action;
-
-      // Route to appropriate handler
-      switch(actionType) {
-        case 'toggle-dropdown':
-          e.preventDefault();
-          this.toggleDropdown(action);
-          break;
-
-        case 'navigate':
-          // Let default link behavior happen
-          this.handleNavigation(action);
-          break;
-
-        case 'close-dropdown':
-          e.preventDefault();
-          this.closeDropdown(action);
-          break;
+    registerActions() {
+      if (typeof EventDelegation !== 'undefined') {
+        EventDelegation.register('toggle-dropdown', this.handleToggleDropdown.bind(this), { preventDefault: true });
+        EventDelegation.register('navigate', this.handleNavigation.bind(this), { preventDefault: false });
+        EventDelegation.register('close-dropdown', this.handleCloseDropdown.bind(this), { preventDefault: true });
       }
+    }
+
+    /**
+     * Handle toggle dropdown action
+     */
+    handleToggleDropdown(e, target) {
+      this.toggleDropdown(target);
+    }
+
+    /**
+     * Handle close dropdown action
+     */
+    handleCloseDropdown(e, target) {
+      this.closeDropdown(target);
     }
 
     /**
@@ -232,9 +208,10 @@
 
     /**
      * Handle navigation (could add analytics here)
+     * @param {Event} e - Click event
      * @param {HTMLElement} link - The clicked link
      */
-    handleNavigation(link) {
+    handleNavigation(e, link) {
       // Remove active state from all links
       const allLinks = this.nav.querySelectorAll('.c-admin-nav__link');
       allLinks.forEach(l => l.classList.remove('is-active'));
@@ -247,7 +224,6 @@
      * Destroy the controller
      */
     destroy() {
-      this.nav.removeEventListener('click', this.handleClick);
       this.nav.removeEventListener('keydown', this.handleKeyboard);
       document.removeEventListener('click', this.handleOutsideClick);
       document.removeEventListener('keydown', this.handleEscapeKey);
@@ -258,6 +234,15 @@
    * Auto-initialize all admin navigation components
    */
   function initAdminNavigation() {
+    // Page guard: only run on admin pages
+    const isAdminPage = document.querySelector('[data-controller="admin-nav"]') ||
+                        document.querySelector('.c-admin-nav') ||
+                        window.location.pathname.includes('/admin');
+
+    if (!isAdminPage) {
+      return;
+    }
+
     const navElements = document.querySelectorAll('[data-controller="admin-nav"]');
 
     if (navElements.length === 0) {
