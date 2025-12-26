@@ -96,10 +96,17 @@
   font-size: var(--text-2xl);
 }
 
-/* Show on mobile */
-@media (max-width: 1199px) {
+/* Show on tablet (768px - 1199px) but hide on mobile where bottom nav exists */
+@media (min-width: 768px) and (max-width: 1199px) {
   .c-navbar-modern__menu-toggle {
     display: block;
+  }
+}
+
+/* Hide hamburger on mobile - bottom nav provides "More" menu instead */
+@media (max-width: 767.98px) {
+  .c-navbar-modern__menu-toggle {
+    display: none !important;
   }
 }
 

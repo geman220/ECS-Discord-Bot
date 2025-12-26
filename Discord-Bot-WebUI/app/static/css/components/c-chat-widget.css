@@ -79,7 +79,8 @@
 @media (max-width: 767.98px) {
   .c-chat-widget {
     --cw-spacing: 16px;
-    bottom: calc(var(--cw-spacing) + var(--mobile-nav-height, 60px));
+    /* Position above mobile bottom nav (typically 64-70px) with extra padding */
+    bottom: calc(var(--cw-spacing) + 70px);
   }
 }
 

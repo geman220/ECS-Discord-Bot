@@ -731,6 +731,10 @@
 .mobile-more-menu.offcanvas {
   height: 60vh;
   border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+  background-color: var(--color-bg-primary);
+  /* Ensure solid background - no transparency */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* BEM: More menu header */
@@ -747,6 +751,18 @@
   font-size: var(--text-base);
   border: none;
   border-bottom: var(--border-width) solid var(--border-color-primary);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}
+
+/* Hover/active state for menu items */
+.mobile-more-menu .list-group-item:hover,
+.mobile-more-menu .list-group-item:focus {
+  background-color: var(--color-bg-secondary);
+}
+
+.mobile-more-menu .list-group-item:active {
+  background-color: var(--color-bg-elevated);
 }
 
 /* BEM: More menu icons */

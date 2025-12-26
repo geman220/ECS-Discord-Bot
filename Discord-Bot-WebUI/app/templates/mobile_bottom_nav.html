@@ -71,6 +71,13 @@
             </a>
             {% endif %}
 
+            <!-- Search Players -->
+            <a href="{{ url_for('players.all_players') }}"
+               class="list-group-item list-group-item-action">
+                <i class="ti ti-search me-3"></i>
+                Search Players
+            </a>
+
             <!-- Draft Leagues (if user has access) -->
             {% if current_user.is_authenticated and ('Admin' in user_roles or 'Global Admin' in user_roles or 'Coach' in user_roles or 'Pub League Admin' in user_roles or 'Pub League Coach' in user_roles) %}
             <div class="list-group-item mobile-menu-section-header">
