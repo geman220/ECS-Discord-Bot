@@ -111,7 +111,7 @@
 @import './layout/base-layout.css';
 @import './layout/sidebar-modern.css';
 @import './layout/navbar.css';
-@import './layout/navbar-modern.css';
+/* Note: layout/navbar-modern.css removed - conflicts with components/navbar-modern.css */
 @import './layout/auth-layout.css';
 @import './layout/mobile.css';
 @import './layout/mobile-navigation.css';

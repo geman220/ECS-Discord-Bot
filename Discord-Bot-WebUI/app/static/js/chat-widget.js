@@ -21,15 +21,6 @@
   'use strict';
 
   // ============================================================================
-  // PAGE GUARD
-  // ============================================================================
-
-  // Only initialize if chat widget exists on page
-  if (!document.querySelector('.c-chat-widget')) {
-    return;
-  }
-
-  // ============================================================================
   // CONFIGURATION
   // ============================================================================
 
@@ -1267,6 +1258,13 @@
   }
 
   function init() {
+    // Page guard - only initialize if chat widget exists on page
+    // This must be checked after DOMContentLoaded when the element exists
+    if (!document.querySelector('.c-chat-widget')) {
+      console.log('[ChatWidget] No widget element found, skipping initialization');
+      return;
+    }
+
     cacheElements();
     registerEventHandlers();
     bindEvents();

@@ -510,7 +510,9 @@ def init_assets(app):
         'css/layout/base-layout.css',
         'css/layout/sidebar-modern.css',       # Modern BEM sidebar (.c-sidebar__*)
         'css/layout/navbar.css',
-        'css/layout/navbar-modern.css',        # Modern navbar overrides
+        # Note: css/layout/navbar-modern.css removed - conflicts with css/components/navbar-modern.css
+        # The components version has the correct BEM classes (__container, __actions, __action-btn)
+        # while the layout version uses different class names (__content, __nav, __nav-btn)
         'css/layout/auth-layout.css',          # Auth page layout
         'css/layout/mobile.css',
         'css/layout/mobile-navigation.css',
