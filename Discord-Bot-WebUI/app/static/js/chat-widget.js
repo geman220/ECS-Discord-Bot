@@ -603,13 +603,18 @@
     state.isOpen = true;
     elements.widget.dataset.state = 'open';
 
-    // Lock body scroll on mobile to prevent background scrolling
-    if (window.innerWidth <= 575) {
-      document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
-      document.body.style.top = `-${window.scrollY}px`;
-      document.body.dataset.chatScrollY = window.scrollY;
+    // Lock body scroll on mobile - cross-browser compatible approach
+    if (window.innerWidth <= 767) {
+      // Save scroll position
+      const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+      document.body.dataset.chatScrollY = scrollY;
+
+      // Add class for CSS-based scroll lock
+      document.documentElement.classList.add('chat-widget-open');
+      document.body.classList.add('chat-widget-open');
+
+      // iOS Safari fix: set body top to preserve visual scroll position
+      document.body.style.top = `-${scrollY}px`;
     }
 
     // Load initial data
@@ -635,15 +640,16 @@
     elements.widget.dataset.state = 'closed';
     elements.widget.dataset.view = 'list';
 
-    // Unlock body scroll on mobile
+    // Unlock body scroll on mobile - cross-browser compatible
+    document.documentElement.classList.remove('chat-widget-open');
+    document.body.classList.remove('chat-widget-open');
+    document.body.style.top = '';
+
     if (document.body.dataset.chatScrollY !== undefined) {
-      const scrollY = document.body.dataset.chatScrollY;
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
-      document.body.style.top = '';
-      window.scrollTo(0, parseInt(scrollY || '0'));
+      const scrollY = parseInt(document.body.dataset.chatScrollY || '0', 10);
       delete document.body.dataset.chatScrollY;
+      // Restore scroll position after removing fixed positioning
+      window.scrollTo(0, scrollY);
     }
 
     // Clear search state
@@ -1238,6 +1244,19 @@
     if (elements.composerInput) {
       elements.composerInput.addEventListener('keydown', handleComposerKeydown);
       elements.composerInput.addEventListener('input', handleComposerInput);
+
+      // iOS Safari fix: ensure textarea is focusable on tap
+      elements.composerInput.addEventListener('touchstart', function(e) {
+        // Don't prevent default - allow normal touch behavior
+        // Just ensure element can receive focus
+        this.style.pointerEvents = 'auto';
+      }, { passive: true });
+
+      // Ensure focus works on click (fallback for all browsers)
+      elements.composerInput.addEventListener('click', function(e) {
+        e.stopPropagation();
+        this.focus();
+      });
     }
 
     // Search
