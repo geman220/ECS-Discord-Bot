@@ -731,10 +731,25 @@
 .mobile-more-menu.offcanvas {
   height: 60vh;
   border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
-  background-color: var(--color-bg-primary);
-  /* Ensure solid background - no transparency */
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  /* Explicit solid background with fallback - NO transparency */
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Ensure offcanvas body also has solid background */
+.mobile-more-menu .offcanvas-body {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+}
+
+/* Dark mode solid background */
+[data-style="dark"] .c-mobile-more-menu,
+[data-style="dark"] .mobile-more-menu.offcanvas,
+[data-style="dark"] .mobile-more-menu .offcanvas-body {
+  background-color: #1a1d21 !important;
+  background: #1a1d21 !important;
 }
 
 /* BEM: More menu header */
@@ -1356,5 +1371,47 @@
   .mobile-bottom-nav,
   .mobile-more-menu {
     display: none !important;
+  }
+}
+
+
+/* ============================================================================
+   MOBILE NAVBAR CLEANUP
+   Hide redundant elements when bottom nav provides navigation
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /*
+   * JUSTIFIED !important: Hide hamburger menu on mobile
+   * Bottom navigation "More" menu replaces hamburger functionality
+   */
+  .c-navbar-modern__menu-toggle,
+  .layout-menu-toggle:not(.layout-overlay) {
+    display: none !important;
+  }
+
+  /*
+   * JUSTIFIED !important: Hide search bar on mobile navbar
+   * Reduces clutter - search is available in More menu
+   */
+  .c-navbar-modern__search {
+    display: none !important;
+  }
+
+  /*
+   * Adjust navbar content to fill space properly
+   */
+  .c-navbar-modern__content,
+  .c-navbar-modern__container {
+    justify-content: flex-end;
+  }
+
+  /*
+   * Give action buttons more room
+   */
+  .c-navbar-modern__actions {
+    flex: 1;
+    justify-content: flex-end;
+    gap: var(--space-1, 4px);
   }
 }
