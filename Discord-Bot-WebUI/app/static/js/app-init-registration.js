@@ -335,15 +335,26 @@
     // ============================================================================
     // Auto-focus on Discord registration button and show membership prompts
     InitSystem.register('waitlist-register-focus', function() {
-        // Auto-focus on Discord registration button
+        // Page guard - only run on waitlist registration page
         const discordBtn = document.querySelector('a[href*="waitlist_discord_register"]');
-        if (discordBtn) {
-            discordBtn.focus();
+        if (!discordBtn) {
+            return; // Not on waitlist registration page
         }
+
+        // Auto-focus on Discord registration button
+        discordBtn.focus();
 
         // Initialize Discord membership checker for registration page
         // Show a more gentle prompt since they're already on the waitlist registration page
+        // Only show if user is not already in Discord (check via DiscordMembershipChecker)
         if (typeof DiscordMembershipChecker !== 'undefined') {
+            // Check if user is already in Discord before showing prompt
+            const membershipStatus = window.discordMembershipStatus;
+            if (membershipStatus === true || membershipStatus === 'true') {
+                console.log('[waitlist-register-focus] User already in Discord, skipping prompt');
+                return;
+            }
+
             setTimeout(() => {
                 DiscordMembershipChecker.showJoinPrompt({
                     title: '💡 Pro Tip: Join Discord First!',
