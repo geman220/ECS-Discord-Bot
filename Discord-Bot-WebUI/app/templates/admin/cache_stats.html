@@ -180,7 +180,8 @@
 
 {% endblock %}
 
-{% block extra_js %}
+{% block custom_js %}
+{{ super() }}
 {% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='custom_js/cache-stats.js') }}"></script>
 {% endif %}

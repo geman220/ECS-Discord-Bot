@@ -4,8 +4,11 @@
 
 {% block panel_description %}Real-time ESPN data integration and live reporting control center{% endblock %}
 
-{% block extra_css %}
+{% block custom_css %}
+{{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/live-reporting-dashboard.css') }}">
+{% endif %}
 {% endblock %}
 
 {% block breadcrumb_items %}

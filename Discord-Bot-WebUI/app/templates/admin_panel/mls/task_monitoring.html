@@ -240,7 +240,8 @@
 
 {% endblock %}
 
-{% block extra_js %}
+{% block custom_js %}
+{{ super() }}
 <script>
 // Auto-refresh functionality
 let autoRefreshEnabled = true;

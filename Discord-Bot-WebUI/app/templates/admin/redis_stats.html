@@ -1,12 +1,15 @@
-{% extends "admin/admin_base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Redis Connection Statistics{% endblock %}
 
-{% block extra_css %}
+{% block custom_css %}
+{{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/redis-stats.css') }}">
+{% endif %}
 {% endblock %}
 
-{% block admin_content %}
+{% block main_content %}
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
@@ -150,7 +153,8 @@
 </div>
 {% endblock %}
 
-{% block extra_js %}
+{% block custom_js %}
+{{ super() }}
 {% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='custom_js/redis-stats.js') }}"></script>
 {% endif %}

@@ -2,13 +2,11 @@
 
 {% block title %}League Poll Management{% endblock %}
 
-{% block extra_css %}
+{% block custom_css %}
+{{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/manage-polls.css') }}">
-{% endblock %}
-
-{% block extra_scripts %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
-<script src="https://cdn.datatables.net/plug-ins/1.10.25/sorting/datetime-moment.js"></script>
+{% endif %}
 {% endblock %}
 
 {% block main_content %}

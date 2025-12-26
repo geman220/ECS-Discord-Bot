@@ -279,7 +279,8 @@
 
 {% endblock %}
 
-{% block extra_js %}
+{% block custom_js %}
+{{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Apply dynamic widths from data attributes

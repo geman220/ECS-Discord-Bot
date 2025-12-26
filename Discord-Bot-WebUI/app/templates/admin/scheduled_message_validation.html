@@ -2,8 +2,11 @@
 
 {% block title %}System Validation - Scheduled Messages{% endblock %}
 
-{% block extra_scripts %}
+{% block custom_js %}
+{{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='custom_js/scheduled-message-validation.js') }}"></script>
+{% endif %}
 {% endblock %}
 
 {% block main_content %}

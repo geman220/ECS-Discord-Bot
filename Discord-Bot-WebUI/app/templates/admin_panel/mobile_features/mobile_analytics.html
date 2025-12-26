@@ -2,6 +2,13 @@
 
 {% block title %}Mobile Analytics - Admin Panel{% endblock %}
 
+{% block custom_css %}
+{{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/mobile-analytics.css') }}">
+{% endif %}
+{% endblock %}
+
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{{ url_for('admin_panel.mobile_features') }}">Mobile Features</a></li>
 <li class="breadcrumb-item active">Mobile Analytics</li>
@@ -406,8 +413,6 @@
         </div>
     </div>
 </div>
-
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/mobile-analytics.css') }}">
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>

@@ -1,8 +1,9 @@
-{% extends "admin/admin_base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Draft Cache Statistics{% endblock %}
 
-{% block extra_css %}
+{% block custom_css %}
+{{ super() }}
 <style>
     .stat-card {
         background: var(--ecs-neutral-5, #f8f9fa);
@@ -53,7 +54,7 @@
 </style>
 {% endblock %}
 
-{% block admin_content %}
+{% block main_content %}
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
@@ -242,7 +243,8 @@
 </div>
 {% endblock %}
 
-{% block extra_js %}
+{% block custom_js %}
+{{ super() }}
 <script>
 let autoRefreshInterval;
 
