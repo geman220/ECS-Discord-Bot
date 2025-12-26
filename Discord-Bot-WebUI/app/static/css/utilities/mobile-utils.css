@@ -545,3 +545,109 @@ select.ios-select,
 .ios-no-zoom {
     font-size: 16px !important;
 }
+
+/* ============================================
+   MOBILE TOUCH OPTIMIZATIONS (P0 Quick Wins)
+   ============================================ */
+
+/**
+ * Eliminate 300ms tap delay on interactive elements
+ * touch-action: manipulation disables double-tap-to-zoom
+ * which removes the 300ms delay browsers add waiting for double-tap
+ */
+@media (max-width: 991.98px) {
+    /* Buttons and links */
+    .btn,
+    .nav-link,
+    .dropdown-item,
+    .list-group-item,
+    .page-link,
+    .close,
+    .btn-close,
+    [role="button"],
+    [type="button"],
+    [type="submit"],
+    [type="reset"],
+    a[href] {
+        touch-action: manipulation;
+    }
+
+    /* Form controls */
+    input,
+    select,
+    textarea,
+    .form-control,
+    .form-select,
+    .form-check-input {
+        touch-action: manipulation;
+    }
+
+    /* Interactive cards and list items */
+    .card-header[data-bs-toggle],
+    .accordion-button,
+    [data-bs-toggle="collapse"],
+    [data-bs-toggle="modal"],
+    [data-bs-toggle="dropdown"],
+    [data-bs-toggle="tab"],
+    [data-bs-toggle="pill"],
+    [data-bs-toggle="offcanvas"] {
+        touch-action: manipulation;
+    }
+}
+
+/**
+ * Momentum scrolling for dropdowns and offcanvas
+ * Provides smooth, native-feeling scroll on iOS
+ */
+.dropdown-menu,
+.offcanvas,
+.offcanvas-body {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
+/**
+ * Prevent accidental text selection on interactive elements
+ * Users shouldn't be able to select button text
+ */
+@media (max-width: 991.98px) {
+    .btn,
+    .nav-link,
+    .dropdown-item,
+    .list-group-item-action,
+    .page-link,
+    .accordion-button,
+    [role="button"] {
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    /* But allow text selection in form controls */
+    input,
+    textarea,
+    .form-control,
+    [contenteditable="true"] {
+        -webkit-user-select: text;
+        user-select: text;
+    }
+}
+
+/**
+ * Improved tap feedback
+ * Subtle highlight on tap for better UX
+ */
+@media (max-width: 991.98px) {
+    .btn,
+    .nav-link,
+    .dropdown-item,
+    .list-group-item-action {
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    }
+
+    [data-style="dark"] .btn,
+    [data-style="dark"] .nav-link,
+    [data-style="dark"] .dropdown-item,
+    [data-style="dark"] .list-group-item-action {
+        -webkit-tap-highlight-color: rgba(255, 255, 255, 0.1);
+    }
+}
