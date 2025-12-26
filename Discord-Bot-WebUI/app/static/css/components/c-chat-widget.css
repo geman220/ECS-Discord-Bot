@@ -693,6 +693,7 @@
   display: flex;
   flex-direction: column;
   max-width: 80%;
+  width: fit-content;
   position: relative;
 }
 
@@ -1036,26 +1037,47 @@
     padding-top: max(16px, env(safe-area-inset-top));
   }
 
-  /* Messages area - scrollable */
+  /* Chat view - explicit flex layout to prevent textarea expansion */
+  .c-chat-widget__chat {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0; /* Allow flex children to shrink */
+  }
+
+  /* Chat header - fixed height */
+  .c-chat-widget__chat-header {
+    flex: 0 0 auto;
+  }
+
+  /* Messages area - scrollable, takes remaining space */
   .c-chat-widget__messages {
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 100px;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
 
-  /* Composer - fixed at bottom with proper sizing */
+  /* Message bubbles - proper width constraints */
+  .c-chat-widget__message-bubble {
+    width: fit-content;
+    max-width: 100%;
+  }
+
+  /* Composer - fixed at bottom, cannot grow beyond limits */
   .c-chat-widget__composer {
+    flex: 0 0 auto;
     padding: 12px 16px;
     padding-bottom: max(12px, env(safe-area-inset-bottom));
     background: var(--cw-bg);
-    flex-shrink: 0;
   }
 
-  /* Input - properly sized for mobile */
+  /* Input - strictly constrained size on mobile */
   .c-chat-widget__composer-input {
     min-height: 44px;
-    max-height: 100px;
+    max-height: 100px !important; /* Override any JS inline styles */
+    height: auto !important;
     font-size: 16px; /* Prevents iOS zoom on focus */
     padding: 12px 16px;
     border-radius: 22px;
@@ -1063,6 +1085,20 @@
     -webkit-user-select: text;
     user-select: text;
     touch-action: manipulation;
+    /* Prevent mobile-forms.js from expanding */
+    flex: 0 1 auto;
+  }
+
+  /* Prevent mobile-forms.js expanded class from breaking layout */
+  .c-chat-widget__composer-input.mobile-textarea,
+  .c-chat-widget__composer-input.mobile-textarea-expanded {
+    max-height: 100px !important;
+    height: auto !important;
+  }
+
+  /* Hide character counter added by mobile-forms.js */
+  .c-chat-widget__composer .char-counter {
+    display: none !important;
   }
 
   /* Hide trigger when panel is open on mobile */
