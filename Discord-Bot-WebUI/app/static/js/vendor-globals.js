@@ -67,7 +67,12 @@ import 'select2/dist/css/select2.min.css';
 import 'select2'; // Attaches $.fn.select2 to jQuery
 
 // ============================================================================
-// 10. MENU - Custom sidebar navigation (must stay local)
+// 10. HELPERS - Must load before Menu (Menu uses window.Helpers)
+// ============================================================================
+import './helpers-minimal.js';
+
+// ============================================================================
+// 11. MENU - Custom sidebar navigation (must stay local)
 // ============================================================================
 import '../vendor/js/menu-refactored.js';
 
