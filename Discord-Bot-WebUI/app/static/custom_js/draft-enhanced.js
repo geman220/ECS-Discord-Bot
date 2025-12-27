@@ -86,18 +86,60 @@ function setupDraftEnhancedSocket() {
     window.draftEnhancedSocket = socket;
 
     socket.on('player_drafted_enhanced', function(data) {
-        console.log('Player drafted:', data);
-        // Update the specific team count
-        if (data.team_id) {
-            setTimeout(() => updateTeamCount(data.team_id), 100);
+        console.log('[DraftEnhanced] Player drafted event received:', data);
+
+        // Delegate to DraftSystemV2 if available (handles full UI update)
+        if (window.draftSystemInstance && typeof window.draftSystemInstance.handlePlayerDrafted === 'function') {
+            window.draftSystemInstance.handlePlayerDrafted(data);
+        } else {
+            // Fallback: Basic UI update if DraftSystemV2 not available
+            if (data.player && data.player.id) {
+                // Remove player from available pool
+                const playerCard = document.querySelector(`#available-players [data-player-id="${data.player.id}"]`);
+                if (playerCard) {
+                    const column = playerCard.closest('[data-component="player-column"]');
+                    if (column) {
+                        column.remove();
+                        updateAvailablePlayerCount(document.querySelectorAll('#available-players .player-card').length);
+                    }
+                }
+            }
+            // Update team count
+            if (data.team_id) {
+                setTimeout(() => updateTeamCount(data.team_id), 100);
+            }
         }
     });
 
     socket.on('player_removed_enhanced', function(data) {
-        console.log('Player removed:', data);
-        // Update the specific team count
-        if (data.team_id) {
-            setTimeout(() => updateTeamCount(data.team_id), 100);
+        console.log('[DraftEnhanced] Player removed event received:', data);
+
+        // Delegate to DraftSystemV2 if available
+        if (window.draftSystemInstance && typeof window.draftSystemInstance.handlePlayerRemoved === 'function') {
+            window.draftSystemInstance.handlePlayerRemoved(data);
+        } else {
+            // Fallback: Update team count
+            if (data.team_id) {
+                setTimeout(() => updateTeamCount(data.team_id), 100);
+            }
+        }
+    });
+
+    socket.on('draft_error', function(data) {
+        console.log('[DraftEnhanced] Draft error:', data.message);
+        // Show error via DraftSystemV2 toast or fallback alert
+        if (window.draftSystemInstance && typeof window.draftSystemInstance.showToast === 'function') {
+            window.draftSystemInstance.showToast(data.message, 'error');
+        } else if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Draft Error',
+                text: data.message,
+                timer: 3000,
+                showConfirmButton: false
+            });
+        } else {
+            alert('Draft Error: ' + data.message);
         }
     });
 }
@@ -151,6 +193,9 @@ function setupDragAndDrop() {
             e.dataTransfer.effectAllowed = 'move';
             playerCard.classList.add('opacity-50', 'dragging');
 
+            // Add body class for global drag state (triggers CSS animations)
+            document.body.classList.add('is-dragging');
+
             // Store for fallback
             window._draggedPlayerId = playerId;
         }
@@ -163,6 +208,8 @@ function setupDragAndDrop() {
             playerCard.classList.remove('opacity-50', 'dragging');
             window._draggedPlayerId = null;
         }
+        // Remove body drag state class
+        document.body.classList.remove('is-dragging');
     });
 
     // Drag over on drop zones
@@ -225,7 +272,10 @@ function handleDropOnTeam(playerId, teamId, dropZone) {
     // Check if player is already on this team
     const teamSection = document.getElementById(`teamPlayers${teamId}`);
     if (teamSection && teamSection.querySelector(`[data-player-id="${playerId}"]`)) {
-        console.log('Player already on this team');
+        console.log('[DraftEnhanced] Player already on this team in UI');
+        if (window.draftSystemInstance) {
+            window.draftSystemInstance.showToast('Player is already on this team', 'warning');
+        }
         return;
     }
 
@@ -247,7 +297,32 @@ function handleDropOnTeam(playerId, teamId, dropZone) {
     const leagueName = leagueNameScript ? leagueNameScript.getAttribute('data-league-name') :
                        (window.draftSystemInstance ? window.draftSystemInstance.leagueName : '');
 
-    // Emit draft event via socket
+    // Try SocketManager first (most reliable)
+    if (typeof window.SocketManager !== 'undefined' && window.SocketManager.isConnected()) {
+        const socket = window.SocketManager.getSocket();
+        socket.emit('draft_player_enhanced', {
+            player_id: parseInt(playerId),
+            team_id: parseInt(teamId),
+            league_name: leagueName,
+            player_name: playerName
+        });
+        console.log(`[DraftEnhanced] Drafting player ${playerId} to team ${teamId} via SocketManager`);
+        return;
+    }
+
+    // Fallback to DraftSystemV2 socket
+    if (window.draftSystemInstance && window.draftSystemInstance.socket && window.draftSystemInstance.isConnected) {
+        window.draftSystemInstance.socket.emit('draft_player_enhanced', {
+            player_id: parseInt(playerId),
+            team_id: parseInt(teamId),
+            league_name: leagueName,
+            player_name: playerName
+        });
+        console.log(`[DraftEnhanced] Drafting player ${playerId} to team ${teamId} via DraftSystemV2`);
+        return;
+    }
+
+    // Fallback to global socket
     const socket = window.draftEnhancedSocket || window.socket;
     if (socket && socket.connected) {
         socket.emit('draft_player_enhanced', {
@@ -256,10 +331,25 @@ function handleDropOnTeam(playerId, teamId, dropZone) {
             league_name: leagueName,
             player_name: playerName
         });
-        console.log(`Drafting player ${playerId} to team ${teamId} via drag and drop`);
+        console.log(`[DraftEnhanced] Drafting player ${playerId} to team ${teamId} via global socket`);
     } else {
-        console.error('Socket not connected - cannot draft via drag and drop');
-        alert('Connection error. Please refresh the page.');
+        console.error('[DraftEnhanced] No connected socket available - cannot draft');
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Connection Issue',
+                text: 'Not connected to server. Please wait a moment and try again.',
+                timer: 3000,
+                showConfirmButton: true,
+                confirmButtonText: 'Refresh Page',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.reload();
+                }
+            });
+        } else {
+            alert('Connection error. Please refresh the page.');
+        }
     }
 }
 
@@ -270,14 +360,14 @@ function handleDropToAvailable(playerId) {
     // Find which team the player is currently on
     const playerCard = document.querySelector(`[data-player-id="${playerId}"]`);
     if (!playerCard) {
-        console.error('Player card not found');
+        console.error('[DraftEnhanced] Player card not found');
         return;
     }
 
     // Check if player is in a team section (not already in available pool)
     const teamSection = playerCard.closest('[id^="teamPlayers"]');
     if (!teamSection) {
-        console.log('Player is already in available pool');
+        console.log('[DraftEnhanced] Player is already in available pool');
         return;
     }
 
@@ -299,18 +389,49 @@ function handleDropToAvailable(playerId) {
     const leagueName = leagueNameScript ? leagueNameScript.getAttribute('data-league-name') :
                        (window.draftSystemInstance ? window.draftSystemInstance.leagueName : '');
 
-    // Emit remove event via socket
+    const emitData = {
+        player_id: parseInt(playerId),
+        team_id: parseInt(teamId),
+        league_name: leagueName
+    };
+
+    // Try SocketManager first (most reliable)
+    if (typeof window.SocketManager !== 'undefined' && window.SocketManager.isConnected()) {
+        window.SocketManager.getSocket().emit('remove_player_enhanced', emitData);
+        console.log(`[DraftEnhanced] Undrafting player ${playerId} from team ${teamId} via SocketManager`);
+        return;
+    }
+
+    // Fallback to DraftSystemV2 socket
+    if (window.draftSystemInstance && window.draftSystemInstance.socket && window.draftSystemInstance.isConnected) {
+        window.draftSystemInstance.socket.emit('remove_player_enhanced', emitData);
+        console.log(`[DraftEnhanced] Undrafting player ${playerId} from team ${teamId} via DraftSystemV2`);
+        return;
+    }
+
+    // Fallback to global socket
     const socket = window.draftEnhancedSocket || window.socket;
     if (socket && socket.connected) {
-        socket.emit('remove_player_enhanced', {
-            player_id: parseInt(playerId),
-            team_id: parseInt(teamId),
-            league_name: leagueName
-        });
-        console.log(`Undrafting player ${playerId} from team ${teamId} via drag and drop`);
+        socket.emit('remove_player_enhanced', emitData);
+        console.log(`[DraftEnhanced] Undrafting player ${playerId} from team ${teamId} via global socket`);
     } else {
-        console.error('Socket not connected - cannot undraft via drag and drop');
-        alert('Connection error. Please refresh the page.');
+        console.error('[DraftEnhanced] No connected socket available - cannot undraft');
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Connection Issue',
+                text: 'Not connected to server. Please wait a moment and try again.',
+                timer: 3000,
+                showConfirmButton: true,
+                confirmButtonText: 'Refresh Page',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.reload();
+                }
+            });
+        } else {
+            alert('Connection error. Please refresh the page.');
+        }
     }
 }
 

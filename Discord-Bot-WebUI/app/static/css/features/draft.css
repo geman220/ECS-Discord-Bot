@@ -663,6 +663,101 @@
     cursor: grabbing;
 }
 
+/* ============================================================================
+   DRAG HANDLE INDICATOR
+   Visual cue that player cards are draggable
+   ============================================================================ */
+
+/* Drag handle icon - appears on hover */
+.js-draggable-player::before {
+    content: '⋮⋮';
+    position: absolute;
+    top: 50%;
+    left: 4px;
+    transform: translateY(-50%);
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: var(--draft-gray-400);
+    opacity: 0;
+    transition: opacity var(--draft-transition-fast);
+    z-index: 10;
+    pointer-events: none;
+}
+
+.js-draggable-player:hover::before {
+    opacity: 0.7;
+}
+
+/* Drag hint tooltip on first hover */
+.js-draggable-player[data-drag-hint]::after {
+    content: attr(data-drag-hint);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    padding: 6px 12px;
+    background: rgba(15, 23, 42, 0.95);
+    color: white;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    border-radius: 6px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.js-draggable-player[data-drag-hint]:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Pulsing animation for drop zones when dragging is active */
+@keyframes draft-pulse {
+    0%, 100% {
+        box-shadow: inset 0 0 0 2px rgba(0, 102, 255, 0.3);
+    }
+    50% {
+        box-shadow: inset 0 0 0 4px rgba(0, 102, 255, 0.5);
+    }
+}
+
+body.is-dragging .js-draft-drop-zone {
+    animation: draft-pulse 1.5s ease-in-out infinite;
+    border-style: solid;
+}
+
+body.is-dragging .js-draft-drop-zone[data-drop-target="available"] {
+    border-color: var(--draft-success, #28a745);
+}
+
+body.is-dragging .js-draft-drop-zone[data-drop-target="team"] {
+    border-color: var(--draft-primary, #0066ff);
+}
+
+/* Enhanced drop zone text during drag */
+.js-draft-drop-zone .drop-hint {
+    display: none;
+    text-align: center;
+    padding: 20px;
+    color: var(--draft-gray-500);
+    font-weight: 500;
+}
+
+body.is-dragging .js-draft-drop-zone .drop-hint {
+    display: block;
+}
+
+body.is-dragging .js-draft-drop-zone[data-drop-target="team"] .drop-hint::before {
+    content: '📥 Drop player here to draft to this team';
+}
+
+body.is-dragging .js-draft-drop-zone[data-drop-target="available"] .drop-hint::before {
+    content: '📤 Drop here to return player to pool';
+}
+
 .c-draft-team__empty {
     text-align: center;
     padding: var(--draft-space-xl);
