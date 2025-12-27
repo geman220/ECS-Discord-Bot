@@ -33,26 +33,60 @@ def _build_avatar_url(profile_picture_url):
 
 
 def _user_to_dict(user, session_db):
-    """Serialize user for API responses with full avatar URLs."""
+    """Serialize user for API responses with full avatar URLs and role badges."""
     player = session_db.query(Player).filter_by(user_id=user.id).first()
     avatar_url = _build_avatar_url(player.profile_picture_url if player else None)
+
+    # Check roles for badges
+    is_global_admin = user.has_role('Global Admin') if hasattr(user, 'has_role') else False
+    is_admin = user.has_role('Pub League Admin') if hasattr(user, 'has_role') else False
+    is_coach = (
+        user.has_role('Pub League Coach') or
+        user.has_role('ECS FC Coach') or
+        (player and player.is_coach)
+    ) if hasattr(user, 'has_role') else (player and player.is_coach if player else False)
+    is_ref = user.has_role('Pub League Ref') if hasattr(user, 'has_role') else False
 
     return {
         'id': user.id,
         'username': user.username,
         'name': player.name if player else user.username,
         'avatar_url': avatar_url,
+        'is_coach': is_coach,
+        'is_admin': is_admin,
+        'is_global_admin': is_global_admin,
+        'is_ref': is_ref,
     }
 
 
 def _message_to_dict(msg):
-    """Serialize a DirectMessage with full avatar URLs for mobile API."""
+    """Serialize a DirectMessage with full avatar URLs and sender badges for mobile API."""
     msg_dict = msg.to_dict()
+
     # Fix sender_avatar to be a full URL
     if msg.sender and msg.sender.player:
         msg_dict['sender_avatar'] = _build_avatar_url(msg.sender.player.profile_picture_url)
     else:
         msg_dict['sender_avatar'] = _build_avatar_url(None)
+
+    # Add sender role badges
+    if msg.sender:
+        sender = msg.sender
+        player = sender.player if hasattr(sender, 'player') else None
+        msg_dict['sender_is_global_admin'] = sender.has_role('Global Admin') if hasattr(sender, 'has_role') else False
+        msg_dict['sender_is_admin'] = sender.has_role('Pub League Admin') if hasattr(sender, 'has_role') else False
+        msg_dict['sender_is_coach'] = (
+            sender.has_role('Pub League Coach') or
+            sender.has_role('ECS FC Coach') or
+            (player and player.is_coach)
+        ) if hasattr(sender, 'has_role') else (player and player.is_coach if player else False)
+        msg_dict['sender_is_ref'] = sender.has_role('Pub League Ref') if hasattr(sender, 'has_role') else False
+    else:
+        msg_dict['sender_is_global_admin'] = False
+        msg_dict['sender_is_admin'] = False
+        msg_dict['sender_is_coach'] = False
+        msg_dict['sender_is_ref'] = False
+
     return msg_dict
 
 
