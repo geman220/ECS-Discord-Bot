@@ -287,6 +287,22 @@ def handle_draft_player_enhanced(data):
             print(f"✅ Successfully drafted {player_name} to {team_name} - broadcasted to room draft_{league_name}")
             logger.info(f"✅ Successfully drafted {player_name} to {team_name}")
 
+            # CRITICAL: Invalidate draft cache so page refresh shows correct data
+            try:
+                from app.draft_cache_service import DraftCacheService
+                # Normalize league name for cache key
+                db_league_name = {
+                    'classic': 'Classic',
+                    'premier': 'Premier',
+                    'ecs_fc': 'ECS FC'
+                }.get(league_name.lower(), league_name)
+                deleted = DraftCacheService.invalidate_player_cache_ultra_safe(player_id, db_league_name)
+                print(f"🗑️ Invalidated {deleted} cache keys for player {player_id} in {db_league_name}")
+                logger.info(f"🗑️ Invalidated {deleted} cache keys after draft")
+            except Exception as cache_error:
+                print(f"⚠️ Cache invalidation failed (non-critical): {cache_error}")
+                logger.warning(f"Cache invalidation failed: {cache_error}")
+
         except Exception as e:
             print(f"💥 Draft error: {str(e)}")
             logger.error(f"💥 Draft error: {str(e)}", exc_info=True)
@@ -599,6 +615,16 @@ def handle_remove_player_enhanced(data):
                 emit('player_removed_enhanced', response_data, room=f'draft_{league_name}')
                 print(f"✅ Successfully removed {player.name} from {team.name} - broadcasted to room draft_{league_name}")
                 logger.info(f"✅ Successfully removed {player.name} from {team.name}")
+
+                # CRITICAL: Invalidate draft cache so page refresh shows correct data
+                try:
+                    from app.draft_cache_service import DraftCacheService
+                    deleted = DraftCacheService.invalidate_player_cache_ultra_safe(player_id, db_league_name)
+                    print(f"🗑️ Invalidated {deleted} cache keys for player {player_id} in {db_league_name}")
+                    logger.info(f"🗑️ Invalidated {deleted} cache keys after player removal")
+                except Exception as cache_error:
+                    print(f"⚠️ Cache invalidation failed (non-critical): {cache_error}")
+                    logger.warning(f"Cache invalidation failed: {cache_error}")
 
                 # Clean up Flask context
                 if hasattr(g, 'db_session'):
