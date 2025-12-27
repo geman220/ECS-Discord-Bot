@@ -258,8 +258,9 @@
 {% block custom_js %}
 {{ super() }}
 <script>
-// CSRF token for all fetch requests
-const csrfToken = '{{ csrf_token() }}';
+// Use global CSRF token (defined in base template/bundle) or get from meta tag
+// Don't redeclare to avoid "redeclaration of let csrfToken" error in production
+const _csrfToken = window.csrfToken || document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('[Teams] DOMContentLoaded - initializing handlers');
@@ -383,7 +384,7 @@ function createTeam() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
+            'X-CSRFToken': _csrfToken
         },
         body: JSON.stringify({ name: name, league_id: parseInt(leagueId) })
     })
@@ -420,7 +421,7 @@ function saveTeamEdit() {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
+            'X-CSRFToken': _csrfToken
         },
         body: JSON.stringify({ name: newName })
     })
@@ -443,7 +444,7 @@ function syncTeamDiscord(teamId) {
         fetch(`/admin-panel/league-management/teams/api/${teamId}/sync-discord`, {
             method: 'POST',
             headers: {
-                'X-CSRFToken': csrfToken
+                'X-CSRFToken': _csrfToken
             }
         })
         .then(response => response.json())
@@ -461,7 +462,7 @@ function deleteTeam(teamId, teamName) {
         fetch(`/admin-panel/league-management/teams/api/${teamId}/delete`, {
             method: 'DELETE',
             headers: {
-                'X-CSRFToken': csrfToken
+                'X-CSRFToken': _csrfToken
             }
         })
         .then(response => response.json())
