@@ -206,16 +206,17 @@
 
 /* ============================================================================
    STATS GRID (Overall Stats)
+   NOTE: Uses page-specific class to avoid overriding global .c-stats-grid
    ============================================================================ */
 
-.c-stats-grid {
+.c-league-stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--space-4, 16px);
 }
 
 @media (max-width: 767px) {
-  .c-stats-grid {
+  .c-league-stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }

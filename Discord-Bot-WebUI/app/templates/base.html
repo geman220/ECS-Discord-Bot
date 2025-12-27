@@ -94,8 +94,30 @@
          - Multiple JS files with source maps
          ============================================ -->
 
-    {% if config.get('ASSETS_PRODUCTION_MODE') %}
-    <!-- PRODUCTION MODE: Single Bundle -->
+    {% if vite_production_mode() %}
+    <!-- VITE PRODUCTION MODE: Modern bundled assets -->
+    {{ vite_asset('css/main-entry.css') }}
+
+    <!-- Critical navbar layout fix (prevents Bootstrap flex-wrap override) -->
+    <style id="navbar-layout-fix">
+    .c-navbar-modern__container {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+    }
+    .c-navbar-modern__actions {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+    }
+    .c-navbar-modern__actions > li {
+        display: flex !important;
+        flex-shrink: 0 !important;
+    }
+    </style>
+    {% elif config.get('ASSETS_PRODUCTION_MODE') %}
+    <!-- FLASK-ASSETS PRODUCTION MODE: Single Bundle -->
     {% assets "production_css" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
@@ -129,7 +151,7 @@
     {% endassets %}
     {% endif %}
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
+    {% if not config.get('ASSETS_PRODUCTION_MODE') and not vite_production_mode() %}
     <!-- 3. FOUNDATION (Bootstrap + ECS Core)
          Base framework styles: Bootstrap 5.3.3 + vendor overrides
          Establishes grid, typography, form controls, and base components -->
@@ -152,7 +174,7 @@
     {% endassets %}
     {% endif %}
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
+    {% if not config.get('ASSETS_PRODUCTION_MODE') and not vite_production_mode() %}
     <!-- 6. LAYOUT & MOBILE (Responsive Structure) -->
     {% assets "layout_css" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
@@ -188,7 +210,7 @@
     <!-- jQuery UI - Legacy UI components -->
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
+    {% if not config.get('ASSETS_PRODUCTION_MODE') and not vite_production_mode() %}
     <!-- Shepherd.js - Guided tours (bundled in production) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='assets/vendor/libs/shepherd/shepherd.css') }}">
 
@@ -378,7 +400,7 @@
         });
     </script>
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
+    {% if not config.get('ASSETS_PRODUCTION_MODE') and not vite_production_mode() %}
     <!-- Minimal Helpers (replaces Sneat helpers.js - NO layout manipulation) -->
     <script src="{{ url_for('static', filename='js/helpers-minimal.js') }}"></script>
     <!-- Simple theme switcher (replaces TemplateCustomizer) -->
@@ -476,11 +498,14 @@
     <!-- / Layout wrapper -->
 
     <!-- ============================================
-         JAVASCRIPT LOADING: Production vs Development
+         JAVASCRIPT LOADING: Vite vs Flask-Assets vs Development
          ============================================ -->
 
-    {% if config.get('ASSETS_PRODUCTION_MODE') %}
-    <!-- PRODUCTION MODE: Single minified bundle -->
+    {% if vite_production_mode() %}
+    <!-- VITE PRODUCTION MODE: Modern bundled JS -->
+    {{ vite_asset('js/main-entry.js') }}
+    {% elif config.get('ASSETS_PRODUCTION_MODE') %}
+    <!-- FLASK-ASSETS PRODUCTION MODE: Single minified bundle -->
     {% assets "production_js" %}
         <script src="{{ ASSET_URL }}"></script>
     {% endassets %}
@@ -516,7 +541,7 @@
     <!-- Config - Defines templateName global (required by main.js) -->
     <script src="{{ url_for('static', filename='js/config.js') }}"></script>
     {% endif %}
-    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
+    {% if not config.get('ASSETS_PRODUCTION_MODE') and not vite_production_mode() %}
     <!-- DISABLED: waves-css-override.js - Waves.Effect is not exposed in node-waves API -->
     {# <script src="{{ url_for('static', filename='custom_js/waves-css-override.js') }}"></script> #}
 
@@ -537,7 +562,7 @@
     <!-- SweetAlert2 for nice notifications (CDN - loaded in both modes) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
+    {% if not config.get('ASSETS_PRODUCTION_MODE') and not vite_production_mode() %}
     <!-- SweetAlert Contextual Helper - Smart button text based on action type -->
     <script src="{{ url_for('static', filename='js/swal-contextual.js') }}"></script>
     {% endif %}
@@ -580,7 +605,7 @@
         });
     </script>
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
+    {% if not config.get('ASSETS_PRODUCTION_MODE') and not vite_production_mode() %}
     <!-- Unified Responsive System JS - replacing all previous mobile helpers -->
     <script src="{{ url_for('static', filename='js/responsive-system.js') }}"></script>
 
@@ -695,7 +720,7 @@
 
     <!-- No JavaScript needed for z-index - CSS handles it! -->
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
+    {% if not config.get('ASSETS_PRODUCTION_MODE') and not vite_production_mode() %}
     <!-- Other JS files (only in development - bundled in production) -->
     <script src="{{ url_for('static', filename='assets/js/main.js') }}"></script>
     {% endif %}
@@ -716,7 +741,7 @@
     <!-- FullCalendar JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.15/index.global.min.js"></script>
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
+    {% if not config.get('ASSETS_PRODUCTION_MODE') and not vite_production_mode() %}
     <!-- Shepherd.js for guided tours (bundled in production) -->
     <script src="{{ url_for('static', filename='assets/vendor/libs/shepherd/shepherd.js') }}"></script>
     {% endif %}
@@ -897,7 +922,7 @@
     {% block custom_js %}
     {% endblock %}
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
+    {% if not config.get('ASSETS_PRODUCTION_MODE') and not vite_production_mode() %}
     <!-- Mobile menu fix for iOS and other mobile devices (bundled in production) -->
     <script src="{{ url_for('static', filename='custom_js/mobile-menu-fix.js') }}"></script>
 

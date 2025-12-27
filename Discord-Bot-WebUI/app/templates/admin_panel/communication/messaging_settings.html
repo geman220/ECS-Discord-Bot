@@ -32,22 +32,22 @@
   </div>
 
   {# Statistics #}
-  <div class="c-stats-grid">
-    <div class="c-stat-card">
-      <div class="c-stat-card__value">{{ stats.total_messages }}</div>
-      <div class="c-stat-card__label">Total Messages</div>
+  <div class="c-messaging-stats-grid">
+    <div class="c-messaging-stat-card">
+      <div class="c-messaging-stat-card__value">{{ stats.total_messages }}</div>
+      <div class="c-messaging-stat-card__label">Total Messages</div>
     </div>
-    <div class="c-stat-card">
-      <div class="c-stat-card__value">{{ stats.messages_today }}</div>
-      <div class="c-stat-card__label">Messages Today</div>
+    <div class="c-messaging-stat-card">
+      <div class="c-messaging-stat-card__value">{{ stats.messages_today }}</div>
+      <div class="c-messaging-stat-card__label">Messages Today</div>
     </div>
-    <div class="c-stat-card">
-      <div class="c-stat-card__value">{{ stats.total_conversations }}</div>
-      <div class="c-stat-card__label">Conversations</div>
+    <div class="c-messaging-stat-card">
+      <div class="c-messaging-stat-card__value">{{ stats.total_conversations }}</div>
+      <div class="c-messaging-stat-card__label">Conversations</div>
     </div>
-    <div class="c-stat-card">
-      <div class="c-stat-card__value">{{ stats.unread_messages }}</div>
-      <div class="c-stat-card__label">Unread</div>
+    <div class="c-messaging-stat-card">
+      <div class="c-messaging-stat-card__value">{{ stats.unread_messages }}</div>
+      <div class="c-messaging-stat-card__label">Unread</div>
     </div>
   </div>
 
@@ -348,14 +348,14 @@
     font-size: 0.875rem;
   }
 
-  /* Stats Grid */
-  .c-stats-grid {
+  /* Stats Grid - Page-specific to avoid global conflicts */
+  .c-messaging-stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 1rem;
   }
 
-  .c-stat-card {
+  .c-messaging-stat-card {
     padding: 1rem;
     background: rgba(var(--bs-primary-rgb), 0.05);
     border: 1px solid var(--bs-border-color);
@@ -363,14 +363,14 @@
     text-align: center;
   }
 
-  .c-stat-card__value {
+  .c-messaging-stat-card__value {
     font-size: 1.75rem;
     font-weight: 700;
     color: var(--bs-primary);
     line-height: 1;
   }
 
-  .c-stat-card__label {
+  .c-messaging-stat-card__label {
     font-size: 0.75rem;
     color: var(--bs-secondary-color);
     margin-top: 0.25rem;

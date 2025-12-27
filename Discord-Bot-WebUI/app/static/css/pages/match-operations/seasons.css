@@ -16,7 +16,7 @@
  * - WCAG AA accessibility compliant
  *
  * Components:
- *   1. Stats Grid (.c-stats-grid)
+ *   1. Stats Grid (.c-seasons-stats-grid) - Page-specific to avoid global conflict
  *   2. Stat Cards (.c-stat-card)
  *   3. Panel Sections (.c-panel-section)
  *   4. Cards (.c-card)
@@ -30,11 +30,12 @@
  */
 
 /* ============================================================================
-   1. STATS GRID COMPONENT
-   Responsive grid for statistics cards
+   1. SEASONS STATS GRID COMPONENT
+   Page-specific responsive grid for seasons statistics cards
+   NOTE: Uses page-specific class to avoid overriding global .c-stats-grid
    ============================================================================ */
 
-.c-stats-grid {
+.c-seasons-stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: var(--space-4);
@@ -42,7 +43,7 @@
 }
 
 @media (max-width: 767.98px) {
-  .c-stats-grid {
+  .c-seasons-stats-grid {
     grid-template-columns: 1fr;
     gap: var(--space-3);
     margin-bottom: var(--space-4);

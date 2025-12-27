@@ -5,14 +5,23 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including Node.js for Vite build
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     python3-dev \
     libffi-dev \
+    curl \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install dependencies first
+# Copy package.json first for better caching
+COPY package.json package-lock.json* ./
+
+# Install Node.js dependencies (including devDependencies for Vite build)
+RUN npm ci || npm install
+
+# Copy requirements and install dependencies
 COPY requirements.txt .
 
 # Install Python dependencies
@@ -27,10 +36,13 @@ ENV EVENTLET_NO_GREENDNS=yes
 # Create directories for logs and temp files
 RUN mkdir -p /var/log/gunicorn /tmp/celery /tmp/celerybeat
 
-RUN mkdir -p /app/static/dist && chmod 777 /app/static/dist
+RUN mkdir -p /app/static/vite-dist && chmod 777 /app/static/vite-dist
 
 # Copy application code
 COPY . .
+
+# Build Vite assets for production
+RUN npm run build
 
 # Add healthcheck
 COPY healthcheck.py .

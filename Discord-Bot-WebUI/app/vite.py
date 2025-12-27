@@ -34,7 +34,25 @@ def init_app(app):
     # Default configuration
     app.config.setdefault('VITE_DEV_MODE', app.debug)
     app.config.setdefault('VITE_DEV_SERVER_URL', 'http://localhost:5173')
-    app.config.setdefault('VITE_MANIFEST_PATH', 'dist/.vite/manifest.json')
+    app.config.setdefault('VITE_MANIFEST_PATH', 'vite-dist/.vite/manifest.json')
+
+    # Check if Vite production assets exist
+    vite_manifest_path = os.path.join(app.static_folder, 'vite-dist/.vite/manifest.json')
+    vite_assets_exist = os.path.exists(vite_manifest_path)
+
+    # Use Vite production mode if:
+    # 1. Not in dev mode
+    # 2. Vite assets exist
+    # 3. USE_VITE_ASSETS env var is set (optional explicit override)
+    use_vite = os.getenv('USE_VITE_ASSETS', '').lower() in ('true', '1', 'yes')
+    vite_production_mode = (not app.debug and vite_assets_exist) or use_vite
+
+    app.config['VITE_PRODUCTION_MODE'] = vite_production_mode
+
+    app.logger.info(f"[VITE] Vite integration initialized:")
+    app.logger.info(f"  VITE_DEV_MODE={app.config.get('VITE_DEV_MODE')}")
+    app.logger.info(f"  Vite manifest exists: {vite_assets_exist}")
+    app.logger.info(f"  >>> VITE_PRODUCTION_MODE = {vite_production_mode}")
 
     # Register template context processor
     @app.context_processor
@@ -42,6 +60,7 @@ def init_app(app):
         return {
             'vite_asset': vite_asset,
             'vite_dev_mode': lambda: current_app.config.get('VITE_DEV_MODE', False),
+            'vite_production_mode': lambda: current_app.config.get('VITE_PRODUCTION_MODE', False),
         }
 
     # Clear manifest cache on each request in debug mode
@@ -61,7 +80,7 @@ def get_manifest():
 
     if not os.path.exists(manifest_path):
         # Try alternative manifest location
-        alt_path = os.path.join(current_app.static_folder, 'dist', 'manifest.json')
+        alt_path = os.path.join(current_app.static_folder, 'vite-dist', 'manifest.json')
         if os.path.exists(alt_path):
             manifest_path = alt_path
         else:
@@ -141,13 +160,13 @@ def _vite_prod_asset(entry_point: str) -> Markup:
     file_path = entry.get('file', '')
     if file_path:
         if entry_point.endswith('.js'):
-            tags.append(f'<script type="module" src="{url_for("static", filename=f"dist/{file_path}")}"></script>')
+            tags.append(f'<script type="module" src="{url_for("static", filename=f"vite-dist/{file_path}")}"></script>')
         elif entry_point.endswith('.css'):
-            tags.append(f'<link rel="stylesheet" href="{url_for("static", filename=f"dist/{file_path}")}">')
+            tags.append(f'<link rel="stylesheet" href="{url_for("static", filename=f"vite-dist/{file_path}")}">')
 
     # Add CSS files imported by JS
     for css_file in entry.get('css', []):
-        tags.append(f'<link rel="stylesheet" href="{url_for("static", filename=f"dist/{css_file}")}">')
+        tags.append(f'<link rel="stylesheet" href="{url_for("static", filename=f"vite-dist/{css_file}")}">')
 
     # Add preload hints for imports
     for import_file in entry.get('imports', []):
@@ -155,7 +174,7 @@ def _vite_prod_asset(entry_point: str) -> Markup:
             import_entry = manifest[import_file]
             import_path = import_entry.get('file', '')
             if import_path:
-                tags.append(f'<link rel="modulepreload" href="{url_for("static", filename=f"dist/{import_path}")}">')
+                tags.append(f'<link rel="modulepreload" href="{url_for("static", filename=f"vite-dist/{import_path}")}">')
 
     return Markup('\n'.join(tags))
 

@@ -336,12 +336,12 @@
                                         <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td class="user-actions-cell">
                                         <div class="dropdown" data-dropdown>
-                                            <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary dropdown-toggle" data-bs-toggle="dropdown" data-dropdown-trigger>
+                                            <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary dropdown-toggle" data-bs-toggle="dropdown" data-bs-boundary="viewport" data-dropdown-trigger>
                                                 <i class="ti ti-dots-vertical"></i>
                                             </button>
-                                            <ul class="dropdown-menu c-dropdown__menu" data-dropdown-menu>
+                                            <ul class="dropdown-menu c-dropdown__menu dropdown-menu-end" data-dropdown-menu>
                                                 <li>
                                                     <a class="dropdown-item c-dropdown__item js-edit-user" href="#" data-action="edit-user" data-user-id="{{ user.id }}">
                                                         <i class="ti ti-edit c-dropdown__item-icon"></i>Edit User
@@ -514,12 +514,26 @@
                                 <h6 class="mb-0"><i class="ti ti-shield me-2"></i>Roles & Permissions</h6>
                             </div>
                             <div class="c-card__body">
-                                <select multiple class="form-select" id="editRoles" name="roles" size="4" data-form-select>
+                                <div class="c-role-selector" id="editRolesContainer">
                                     {% for role in roles %}
-                                    <option value="{{ role.id }}">{{ role.name }}</option>
+                                    <label class="c-role-selector__item" data-role-item>
+                                        <input type="checkbox"
+                                               class="c-role-selector__checkbox"
+                                               name="roles"
+                                               value="{{ role.id }}"
+                                               data-role-checkbox
+                                               data-role-id="{{ role.id }}">
+                                        <span class="c-role-selector__label">
+                                            <i class="ti ti-{% if 'admin' in role.name.lower() %}shield-lock{% elif 'coach' in role.name.lower() %}whistle{% elif 'ref' in role.name.lower() %}shirt{% else %}user{% endif %} c-role-selector__icon"></i>
+                                            <span class="c-role-selector__name">{{ role.name }}</span>
+                                        </span>
+                                        <span class="c-role-selector__check">
+                                            <i class="ti ti-check"></i>
+                                        </span>
+                                    </label>
                                     {% endfor %}
-                                </select>
-                                <small class="text-muted">Hold Ctrl/Cmd to select multiple roles</small>
+                                </div>
+                                <small class="text-muted mt-2 d-block">Tap/click to toggle roles</small>
                             </div>
                         </div>
 
@@ -806,11 +820,11 @@ function populateEditForm(user) {
     document.getElementById('editIsApproved').checked = user.is_approved;
     document.getElementById('editIsActive').checked = user.is_active;
 
-    // Set selected roles - pre-select user's current roles
-    const rolesSelect = document.getElementById('editRoles');
+    // Set selected roles - pre-select user's current roles using checkboxes
+    const rolesContainer = document.getElementById('editRolesContainer');
     const userRoleIds = user.roles || [];
-    Array.from(rolesSelect.options).forEach(option => {
-        option.selected = userRoleIds.includes(parseInt(option.value));
+    rolesContainer.querySelectorAll('[data-role-checkbox]').forEach(checkbox => {
+        checkbox.checked = userRoleIds.includes(parseInt(checkbox.value));
     });
 
     // Player profile section

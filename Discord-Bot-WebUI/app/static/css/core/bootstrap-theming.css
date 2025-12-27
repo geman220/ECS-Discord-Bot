@@ -1066,32 +1066,9 @@ html[data-style="dark"] .modal .form-label {
 
 /* ============================================
    25. DROPDOWN MENUS IN DARK MODE
-   Using semantic tokens that resolve correctly in [data-style="dark"]
+   NOTE: Dark mode dropdown styling is now in components/dropdowns.css
+   This section removed to prevent cascade conflicts with !important
    ============================================ */
-
-html[data-style="dark"] .dropdown-menu {
-  /* Use semantic tokens: --color-bg-elevated = #334155 in dark mode (Slate-800) */
-  background-color: var(--color-bg-elevated, #334155) !important;
-  background: var(--color-bg-elevated, #334155) !important;
-  border-color: var(--color-border-primary, #475569) !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 10px 15px -3px rgba(0, 0, 0, 0.4) !important;
-}
-
-html[data-style="dark"] .dropdown-item {
-  /* Use semantic token for text */
-  color: var(--color-text-primary, #F8FAFC) !important;
-}
-
-html[data-style="dark"] .dropdown-item:hover,
-html[data-style="dark"] .dropdown-item:focus {
-  /* Use semantic token for hover state */
-  background-color: var(--color-hover-bg, rgba(255, 255, 255, 0.06)) !important;
-  color: var(--color-text-primary, #F8FAFC) !important;
-}
-
-html[data-style="dark"] .dropdown-divider {
-  border-color: var(--color-border-secondary, #475569) !important;
-}
 
 /* ============================================
    26. LIST GROUPS IN DARK MODE

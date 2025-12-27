@@ -9,8 +9,8 @@ export default defineConfig({
   base: '/static/',
 
   build: {
-    // Output directory (relative to root)
-    outDir: resolve(__dirname, 'app/static/dist'),
+    // Output directory (relative to root) - using 'vite-dist' to avoid conflicts with old dist/
+    outDir: resolve(__dirname, 'app/static/vite-dist'),
 
     // Don't empty outDir on build (we'll handle cleanup)
     emptyOutDir: true,

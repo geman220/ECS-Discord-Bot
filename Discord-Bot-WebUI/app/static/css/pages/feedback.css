@@ -157,7 +157,7 @@
 .c-feedback-item__header {
     display: flex;
     justify-content: space-between;
-    align-items-start;
+    align-items: flex-start;
     margin-bottom: 0.75rem;
     gap: 1rem;
 }

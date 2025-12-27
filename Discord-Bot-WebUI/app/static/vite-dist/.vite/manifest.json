@@ -1,0 +1,13 @@
+{
+  "css/main-entry.css": {
+    "file": "css/styles-Ccjrk_uZ.css",
+    "src": "css/main-entry.css",
+    "isEntry": true
+  },
+  "js/main-entry.js": {
+    "file": "js/main-Bkx4snpk.js",
+    "name": "main",
+    "src": "js/main-entry.js",
+    "isEntry": true
+  }
+}

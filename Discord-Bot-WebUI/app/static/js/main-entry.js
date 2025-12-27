@@ -60,8 +60,8 @@ import './chat-widget.js';
 import './messenger-widget.js';
 
 // Player features
-import './player-profile.js';
-import './profile-form.js';
+// import './player-profile.js';  // TODO: Create this file
+// import './profile-form.js';    // TODO: Create this file
 import './profile-wizard.js';
 import './profile-verification.js';
 
@@ -71,7 +71,7 @@ import './draft-history.js';
 import './pitch-view.js';
 
 // Home page
-import './home.js';
+// import './home.js';  // TODO: Create this file
 
 // ============================================================================
 // 5. ADMIN MODULES
@@ -81,7 +81,7 @@ import './admin-panel-base.js';
 import './admin-panel-dashboard.js';
 import './admin-panel-discord-bot.js';
 import './admin-panel-performance.js';
-import './admin-discord-management.js';
+// import './admin-discord-management.js';  // TODO: Create this file
 import './admin-utilities-init.js';
 
 // Admin submodules

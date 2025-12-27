@@ -396,57 +396,12 @@
 
 /* ============================================================================
    10. DROPDOWN MENUS
+   NOTE: Base dropdown styles are in components/dropdowns.css
+   This section only contains navbar-specific dropdown overrides
    ============================================================================ */
 
-.dropdown-menu {
-  background-color: var(--color-bg-card);
-  border: var(--border-width) solid var(--border-color-primary);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  padding: var(--space-2) 0;
-  z-index: var(--z-dropdown);
-}
-
-/* Dark mode dropdown - using CSS variables with slate fallbacks */
-[data-style="dark"] .dropdown-menu {
-  background-color: var(--color-bg-elevated, #334155);       /* Slate-800 */
-  border-color: var(--color-border-primary, #475569);        /* Slate-700 */
-}
-
-.dropdown-item {
-  padding: var(--space-2) var(--space-4);
-  color: var(--color-text-primary);
-  text-decoration: none;
-  display: block;
-  transition: background-color var(--duration-fast) var(--ease-smooth);
-}
-
-[data-style="dark"] .dropdown-item {
-  color: var(--color-text-primary, #fafafa);
-}
-
-.dropdown-item:hover {
-  background-color: var(--color-neutral-100);
-  color: var(--color-text-primary);
-}
-
-[data-style="dark"] .dropdown-item:hover {
-  background-color: var(--color-bg-tertiary, #475569);       /* Slate-700 */
-  color: var(--color-text-primary, #f8fafc);                 /* Slate-50 */
-}
-
-.dropdown-divider {
-  height: 0;
-  margin: var(--space-1) var(--space-2);
-  overflow: hidden;
-  border-top: var(--border-width) solid var(--border-color-primary);
-}
-
-[data-style="dark"] .dropdown-divider {
-  border-top-color: var(--color-border-primary, #475569);    /* Slate-700 */
-}
-
-.dropdown-header {
+/* Navbar-specific dropdown header styling */
+.navbar .dropdown-header {
   display: flex;
   align-items: center;
   padding: var(--space-3);
