@@ -87,22 +87,39 @@ class SecurityMiddleware:
         """Perform security checks before processing request."""
         try:
             # Skip checks for static files, health checks, API monitoring, and security endpoints
-            if (request.path.startswith('/static/') or 
+            if (request.path.startswith('/static/') or
                 request.path.startswith('/test/status/') or
                 request.path.startswith('/security/') or
                 request.path in ['/health', '/healthcheck']):
                 return
-            
+
+            # Skip rate limiting for high-frequency polling endpoints
+            # These are authenticated endpoints polled by admin dashboard
+            polling_endpoints = [
+                '/api/notifications/presence/',
+                '/api/notifications/count',
+                '/api/messages/unread-count',
+                '/bot/admin/',
+                '/socket.io/',
+            ]
+            if any(request.path.startswith(path) for path in polling_endpoints):
+                # Still check for attack patterns, but skip rate limiting
+                client_ip = self._get_client_ip()
+                if self._detect_attack_patterns():
+                    self._handle_security_violation(client_ip)
+                return
+
             # Get client IP (handle proxy headers from Traefik)
             client_ip = self._get_client_ip()
-            
+
             # Rate limiting check (more lenient for legitimate traffic and private IPs)
             if is_private_ip(client_ip):
                 # Much higher limits for private/local IPs
                 limit, window = 1000, 3600
             else:
-                # Standard limits for external IPs
-                limit, window = 200, 3600
+                # Standard limits for external IPs (increased from 200 to 500/hour)
+                # Admin users with dashboard open can generate 200+ requests/hour from polling
+                limit, window = 500, 3600
                 
             if not self.rate_limiter.allow_request(client_ip, limit=limit, window=window):
                 # Don't rate limit private IPs as aggressively

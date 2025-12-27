@@ -177,7 +177,6 @@ def _init_rate_limiting(app):
 
         # Exempt background polling endpoints from rate limiting
         # These are legitimate automated requests that run on every page, not abuse
-        # Admin-specific polling endpoints are NOT exempt (fewer users, opt-in)
         @limiter.request_filter
         def skip_polling_endpoints():
             exempt_paths = [
@@ -196,6 +195,13 @@ def _init_rate_limiting(app):
 
                 # Message unread counts (polls every 60s on every page)
                 '/api/messages/unread-count',
+
+                # Admin dashboard polling endpoints (polls every 30-60s for admin users)
+                # These are authenticated admin-only endpoints, not abuse vectors
+                '/security/status',
+                '/security/events',
+                '/security/logs',
+                '/bot/admin/get_all_match_statuses',
             ]
             return any(request.path.startswith(path) for path in exempt_paths)
 
