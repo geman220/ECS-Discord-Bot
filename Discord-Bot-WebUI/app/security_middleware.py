@@ -112,15 +112,24 @@ class SecurityMiddleware:
             # Get client IP (handle proxy headers from Traefik)
             client_ip = self._get_client_ip()
 
-            # Rate limiting check (more lenient for legitimate traffic and private IPs)
+            # Rate limiting check - tiered limits based on trust level
             if is_private_ip(client_ip):
-                # Much higher limits for private/local IPs
+                # Highest limits for private/local IPs (internal services, Docker containers)
                 limit, window = 1000, 3600
             else:
-                # Standard limits for external IPs (increased from 200 to 500/hour)
-                # Admin users with dashboard open can generate 200+ requests/hour from polling
-                limit, window = 500, 3600
-                
+                # Check if user is authenticated for higher limits
+                try:
+                    from flask_login import current_user
+                    if current_user and getattr(current_user, 'is_authenticated', False):
+                        # Authenticated users get more headroom (legitimate users)
+                        limit, window = 800, 3600
+                    else:
+                        # Anonymous/unauthenticated - stricter limit (potential bots/scrapers)
+                        limit, window = 300, 3600
+                except Exception:
+                    # If auth check fails, use conservative limit
+                    limit, window = 300, 3600
+
             if not self.rate_limiter.allow_request(client_ip, limit=limit, window=window):
                 # Don't rate limit private IPs as aggressively
                 if not is_private_ip(client_ip):

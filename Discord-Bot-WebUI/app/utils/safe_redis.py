@@ -173,7 +173,21 @@ class SafeRedisClient:
             if should_proceed:
                 return bool(client.expire(key, seconds))
             return False
-    
+
+    def incr(self, key: str, amount: int = 1) -> int:
+        """Safely increment a key's value."""
+        with self.safe_operation("incr", 0) as (client, should_proceed):
+            if should_proceed:
+                return client.incr(key, amount)
+            return 0
+
+    def decr(self, key: str, amount: int = 1) -> int:
+        """Safely decrement a key's value."""
+        with self.safe_operation("decr", 0) as (client, should_proceed):
+            if should_proceed:
+                return client.decr(key, amount)
+            return 0
+
     def scan(self, cursor: int = 0, match: str = None, count: int = None):
         """Safely scan Redis keys."""
         with self.safe_operation("scan", (0, [])) as (client, should_proceed):

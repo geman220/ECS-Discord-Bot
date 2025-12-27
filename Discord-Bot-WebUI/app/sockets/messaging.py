@@ -62,10 +62,13 @@ def emit_to_user(user_id, event, data):
 # ============================================================================
 
 @socketio.on('join_messaging', namespace='/')
-def handle_join_messaging():
+def handle_join_messaging(data=None):
     """
     Join the messaging system.
     Called when user opens chat widget or messages page.
+
+    Args:
+        data: Optional data from client (ignored, but accepted for compatibility)
     """
     user_id = session.get('user_id')
     if not user_id:
@@ -85,7 +88,7 @@ def handle_join_messaging():
 
 
 @socketio.on('leave_messaging', namespace='/')
-def handle_leave_messaging():
+def handle_leave_messaging(data=None):
     """Leave the messaging system."""
     user_id = session.get('user_id')
     if user_id:
