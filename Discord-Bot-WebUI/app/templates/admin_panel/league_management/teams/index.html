@@ -262,11 +262,40 @@
 const csrfToken = '{{ csrf_token() }}';
 
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('[Teams] DOMContentLoaded - initializing handlers');
+
     // Filter handlers - with null checks
     const seasonFilter = document.getElementById('seasonFilter');
     const leagueTypeFilter = document.getElementById('leagueTypeFilter');
     if (seasonFilter) seasonFilter.addEventListener('change', applyFilters);
     if (leagueTypeFilter) leagueTypeFilter.addEventListener('change', applyFilters);
+
+    // DIRECT button binding - works even with mobile touch interception
+    // This is more reliable than document-level delegation in production bundle
+    const createTeamBtn = document.querySelector('.js-create-team');
+    console.log('[Teams] Create team button found:', !!createTeamBtn, createTeamBtn);
+    if (createTeamBtn) {
+        createTeamBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('[Teams] Create team button clicked (direct binding)');
+            createTeam();
+        });
+        console.log('[Teams] Create team click handler attached');
+    }
+
+    const saveEditBtn = document.querySelector('.js-save-team-edit');
+    console.log('[Teams] Save edit button found:', !!saveEditBtn);
+    if (saveEditBtn) {
+        saveEditBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('[Teams] Save edit button clicked (direct binding)');
+            saveTeamEdit();
+        });
+    }
+
+    console.log('[Teams] Initialization complete');
 });
 
 // Use document-level event delegation for all team actions
@@ -277,7 +306,7 @@ document.addEventListener('click', function(e) {
     if (createBtn) {
         e.preventDefault();
         e.stopPropagation();
-        console.log('[Teams] Create team button clicked');
+        console.log('[Teams BUBBLE] Create team button clicked - calling createTeam()');
         createTeam();
         return;
     }
