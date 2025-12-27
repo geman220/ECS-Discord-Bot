@@ -215,13 +215,16 @@
      * @param {Event} e - Click event
      * @param {HTMLElement} link - The clicked link
      */
-    handleNavigation(e, link) {
+    handleNavigation(element, e) {
+      // EventDelegation passes (element, event) - element is the clicked link
+      if (!element || !element.classList) return;
+
       // Remove active state from all links
       const allLinks = this.nav.querySelectorAll('.c-admin-nav__link');
       allLinks.forEach(l => l.classList.remove('is-active'));
 
       // Add active state to clicked link
-      link.classList.add('is-active');
+      element.classList.add('is-active');
     }
 
     /**

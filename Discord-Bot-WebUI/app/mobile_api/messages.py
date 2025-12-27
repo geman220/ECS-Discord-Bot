@@ -20,15 +20,40 @@ from app.models.messages import DirectMessage, MessagingPermission, MessagingSet
 logger = logging.getLogger(__name__)
 
 
+def _build_avatar_url(profile_picture_url):
+    """Build full avatar URL from profile picture path."""
+    base_url = request.host_url.rstrip('/')
+    if profile_picture_url:
+        if profile_picture_url.startswith('http'):
+            return profile_picture_url
+        else:
+            return f"{base_url}{profile_picture_url}"
+    else:
+        return f"{base_url}/static/img/default_player.png"
+
+
 def _user_to_dict(user, session_db):
-    """Serialize user for API responses."""
+    """Serialize user for API responses with full avatar URLs."""
     player = session_db.query(Player).filter_by(user_id=user.id).first()
+    avatar_url = _build_avatar_url(player.profile_picture_url if player else None)
+
     return {
         'id': user.id,
         'username': user.username,
         'name': player.name if player else user.username,
-        'avatar_url': player.profile_picture_url if player else None,
+        'avatar_url': avatar_url,
     }
+
+
+def _message_to_dict(msg):
+    """Serialize a DirectMessage with full avatar URLs for mobile API."""
+    msg_dict = msg.to_dict()
+    # Fix sender_avatar to be a full URL
+    if msg.sender and msg.sender.player:
+        msg_dict['sender_avatar'] = _build_avatar_url(msg.sender.player.profile_picture_url)
+    else:
+        msg_dict['sender_avatar'] = _build_avatar_url(None)
+    return msg_dict
 
 
 def _get_role_ids(user, session_db):
@@ -198,7 +223,7 @@ def get_conversation(user_id):
 
         return jsonify({
             'user': _user_to_dict(other_user, session_db),
-            'messages': [msg.to_dict() for msg in reversed(messages)],
+            'messages': [_message_to_dict(msg) for msg in reversed(messages)],
             'has_more': len(messages) == limit,
             'settings': {
                 'typing_indicators': settings.typing_indicators if settings else True,
@@ -286,12 +311,12 @@ def send_message(user_id):
 
             socketio = current_app.extensions.get('socketio')
             if socketio and PresenceManager.is_user_online(user_id):
-                socketio.emit('new_message', message.to_dict(), room=f'user_{user_id}')
+                socketio.emit('new_message', _message_to_dict(message), room=f'user_{user_id}')
         except Exception as e:
             logger.warning(f"Failed to emit WebSocket: {e}")
 
         return jsonify({
-            'message': message.to_dict()
+            'message': _message_to_dict(message)
         }), 201
 
 

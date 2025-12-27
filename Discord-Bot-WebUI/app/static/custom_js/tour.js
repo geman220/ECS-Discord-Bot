@@ -307,8 +307,8 @@ document.addEventListener('DOMContentLoaded', function () {
         ]
     });
 
-    // Start the tour immediately for testing
-    if (showTour) {
+    // Start the tour if showTour is defined and truthy (set by template)
+    if (typeof showTour !== 'undefined' && showTour) {
         tourVar.start();
     }
 });
