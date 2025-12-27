@@ -618,8 +618,9 @@ function updateTeamCount(teamId) {
     const teamCountBadge = document.getElementById(`teamCount${teamId}`);
 
     if (teamSection && teamCountBadge) {
-        // Count the number of player cards in the team section
-        const playerCount = teamSection.querySelectorAll('[data-player-id]').length;
+        // Count ONLY the player card elements, not buttons inside them
+        // .draft-team-player-card is only on the outer card, not the remove button
+        const playerCount = teamSection.querySelectorAll('.draft-team-player-card').length;
         teamCountBadge.textContent = `${playerCount} players`;
 
         console.log(`Updated team ${teamId} count to ${playerCount} players`);

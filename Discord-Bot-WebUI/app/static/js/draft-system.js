@@ -922,7 +922,8 @@ class DraftSystemV2 {
         const teamCountBadge = document.getElementById(`teamCount${teamId}`);
 
         if (teamSection && teamCountBadge) {
-            const playerCount = teamSection.querySelectorAll('[data-player-id]').length;
+            // Count ONLY the player card elements, not buttons inside them
+            const playerCount = teamSection.querySelectorAll('.draft-team-player-card').length;
             teamCountBadge.textContent = `${playerCount} players`;
             // console.log(`Updated team ${teamId} count to ${playerCount} players`);
         }
@@ -1304,10 +1305,10 @@ class DraftSystemV2 {
             countElement.textContent = availableCount;
         }
 
-        // Update team counts
+        // Update team counts - use .draft-team-player-card to avoid counting buttons
         document.querySelectorAll('[id^="teamCount"]').forEach(counter => {
             const teamId = counter.id.replace('teamCount', '');
-            const playerCount = document.querySelectorAll(`#teamPlayers${teamId} [data-player-id]`).length;
+            const playerCount = document.querySelectorAll(`#teamPlayers${teamId} .draft-team-player-card`).length;
             counter.textContent = `${playerCount} players`;
         });
     }
