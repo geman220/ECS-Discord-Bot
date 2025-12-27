@@ -214,17 +214,8 @@ import './pass-studio-cropper.js';
 import './security-dashboard.js';
 
 // ============================================================================
-// 9. VENDOR - Shepherd.js (guided tours)
-// ============================================================================
-
-import '../assets/vendor/libs/shepherd/shepherd.js';
-
-// ============================================================================
-// 10. MAIN APP INITIALIZATION
+// 9. MAIN APP INITIALIZATION
 // ============================================================================
 
 // Main.js - initializes Menu, Helpers, and other core functionality
 import '../assets/js/main.js';
-
-// Log successful initialization
-console.log('[Main Entry] All modules loaded successfully');

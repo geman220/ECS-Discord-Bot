@@ -2,13 +2,9 @@
  * Vendor Globals Setup
  *
  * This file exposes vendor libraries to the global window object.
- * The @rollup/plugin-inject handles making $ and jQuery available in modules,
- * but we still need window.$ for:
- * - Bootstrap (checks window.jQuery)
- * - Legacy inline scripts
- * - Third-party libraries
+ * All major libraries use npm packages for proper ES module support.
  *
- * Industry standard approach: import then assign to window
+ * Industry standard approach: import from npm, assign to window
  * Reference: https://dev.to/chmich/setup-jquery-on-vite-598k
  */
 
@@ -16,39 +12,50 @@
 // 1. JQUERY - Must be first (Bootstrap and other libs check window.jQuery)
 // ============================================================================
 import jQuery from 'jquery';
-
-// Expose jQuery globally - this is the key line that makes everything work
 Object.assign(window, { $: jQuery, jQuery });
 
 // ============================================================================
-// 2. BOOTSTRAP - Using npm package for proper ES module support
+// 2. BOOTSTRAP - Full Bootstrap with all components
 // ============================================================================
 import * as bootstrap from 'bootstrap';
-
-// Expose Bootstrap globally for legacy code and inline scripts
 window.bootstrap = bootstrap;
 
 // ============================================================================
-// 3. NODE WAVES - Ripple effects (local UMD - less critical)
+// 3. HAMMER.JS - Touch gestures
 // ============================================================================
-import '../vendor/libs/node-waves/node-waves.js';
+import Hammer from 'hammerjs';
+window.Hammer = Hammer;
 
 // ============================================================================
-// 4. PERFECT SCROLLBAR - Sidebar scrolling (local UMD - less critical)
+// 4. NODE WAVES - Ripple effects
 // ============================================================================
-import '../vendor/libs/perfect-scrollbar/perfect-scrollbar.js';
+import Waves from 'node-waves';
+window.Waves = Waves;
 
 // ============================================================================
-// 5. HAMMER.JS - Touch gestures (local UMD - less critical)
+// 5. PERFECT SCROLLBAR - Custom scrollbars
 // ============================================================================
-import '../vendor/libs/hammer/hammer.js';
+import PerfectScrollbar from 'perfect-scrollbar';
+window.PerfectScrollbar = PerfectScrollbar;
 
 // ============================================================================
-// 6. MENU - Sidebar navigation system (custom local file)
+// 6. SORTABLE.JS - Drag and drop sorting
+// ============================================================================
+import Sortable from 'sortablejs';
+window.Sortable = Sortable;
+
+// ============================================================================
+// 7. SHEPHERD.JS - Guided tours
+// ============================================================================
+import Shepherd from 'shepherd.js';
+window.Shepherd = Shepherd;
+
+// ============================================================================
+// 8. MENU - Custom sidebar navigation (must stay local)
 // ============================================================================
 import '../vendor/js/menu-refactored.js';
 
 // ============================================================================
 // VERIFICATION - Confirm globals are set up correctly
 // ============================================================================
-console.log('[Vendor Globals] jQuery:', typeof window.$, 'Bootstrap:', typeof window.bootstrap, 'Waves:', typeof window.Waves, 'Menu:', typeof window.Menu);
+console.log('[Vendor Globals] jQuery:', typeof window.$, 'Bootstrap:', typeof window.bootstrap, 'Hammer:', typeof window.Hammer, 'Waves:', typeof window.Waves);
