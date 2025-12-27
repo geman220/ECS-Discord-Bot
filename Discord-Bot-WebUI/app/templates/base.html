@@ -502,8 +502,9 @@
          ============================================ -->
 
     {% if vite_production_mode is defined and vite_production_mode() %}
-    <!-- VITE PRODUCTION MODE: Load jQuery first for inline scripts, then Vite bundle -->
+    <!-- VITE PRODUCTION MODE: Load jQuery/UI/Select2 first for inline scripts -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     {{ vite_asset('js/main-entry.js') }}
     {% elif config.get('ASSETS_PRODUCTION_MODE') %}
@@ -727,8 +728,10 @@
     <script src="{{ url_for('static', filename='assets/js/main.js') }}"></script>
     {% endif %}
 
-    <!-- Select2 JS -->
+    <!-- Select2 JS (development only - Vite bundle includes it in production) -->
+    {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    {% endif %}
 
     <!-- Cropper.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>

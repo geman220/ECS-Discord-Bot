@@ -10,9 +10,12 @@
 
 // ============================================================================
 // 1. JQUERY - Must be first (Bootstrap and other libs check window.jQuery)
+// If jQuery already loaded via CDN (for inline scripts), don't overwrite it
 // ============================================================================
 import jQuery from 'jquery';
-Object.assign(window, { $: jQuery, jQuery });
+if (!window.jQuery) {
+  Object.assign(window, { $: jQuery, jQuery });
+}
 
 // ============================================================================
 // 2. BOOTSTRAP - Full Bootstrap with all components
@@ -58,10 +61,10 @@ import 'datatables.net-responsive-bs5';
 
 // ============================================================================
 // 9. SELECT2 - Enhanced select dropdowns
-// Note: Select2 from npm requires special handling - it needs jQuery on window
-// before it loads. We import the CSS here, JS is loaded via CDN in base.html
+// jQuery must be on window BEFORE this import (done above)
 // ============================================================================
 import 'select2/dist/css/select2.min.css';
+import 'select2'; // Attaches $.fn.select2 to jQuery
 
 // ============================================================================
 // 10. MENU - Custom sidebar navigation (must stay local)
