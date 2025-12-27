@@ -143,8 +143,12 @@ def emit_rsvp_update(match_id, player_id, availability, source='system', player_
         # PERFORMANCE OPTIMIZATION: Emit to both rooms in parallel and skip summary for speed
         # Summary updates are expensive and not critical for real-time RSVP changes
         # Clients can update their local state based on the individual rsvp_update event
+        # Emit to default namespace (web browser clients)
         socketio.emit('rsvp_update', event_data, room=room_with_underscore, namespace='/')
         socketio.emit('rsvp_update', event_data, room=room_without_underscore, namespace='/')
+        # Emit to /live namespace (Flutter mobile clients)
+        socketio.emit('rsvp_update', event_data, room=room_with_underscore, namespace='/live')
+        socketio.emit('rsvp_update', event_data, room=room_without_underscore, namespace='/live')
         
         logger.debug(f"📤 Emitted RSVP update to rooms {room_with_underscore} & {room_without_underscore}: {player_name} -> {availability} (source: {source})")
         
@@ -201,9 +205,13 @@ def emit_rsvp_summary(match_id):
                 # Emit to both room formats for compatibility
                 room_with_underscore = f'match_{match_id}'
                 room_without_underscore = f'match{match_id}'
+                # Emit to default namespace (web browser clients)
                 socketio.emit('rsvp_summary', summary_data, room=room_with_underscore, namespace='/')
                 socketio.emit('rsvp_summary', summary_data, room=room_without_underscore, namespace='/')
-                
+                # Emit to /live namespace (Flutter mobile clients)
+                socketio.emit('rsvp_summary', summary_data, room=room_with_underscore, namespace='/live')
+                socketio.emit('rsvp_summary', summary_data, room=room_without_underscore, namespace='/live')
+
                 logger.debug(f"📊 Emitted RSVP summary for match {match_id}: {counts}")
                 
     except Exception as e:
@@ -613,5 +621,34 @@ def get_match_rsvps_data(match_id, team_id=None, session=None, include_details=T
         return {'yes': [], 'no': [], 'maybe': [], 'no_response': [], 'error': str(e)}
 
 
+# ============================================================================
+# /LIVE NAMESPACE HANDLERS (for Flutter mobile clients)
+# ============================================================================
+
+@socketio.on('join_match_rsvp', namespace='/live')
+def handle_join_match_rsvp_live(data):
+    """Join match RSVP room (/live namespace for mobile clients)."""
+    # Reuse the same implementation - it already handles JWT auth via data.get('auth')
+    handle_join_match_rsvp(data)
+
+
+@socketio.on('leave_match_rsvp', namespace='/live')
+def handle_leave_match_rsvp_live(data):
+    """Leave match RSVP room (/live namespace for mobile clients)."""
+    handle_leave_match_rsvp(data)
+
+
+@socketio.on('get_match_rsvps_live', namespace='/live')
+def handle_get_match_rsvps_live_live(data):
+    """Get match RSVPs (/live namespace for mobile clients)."""
+    handle_get_match_rsvps_live(data)
+
+
+@socketio.on('update_rsvp_live', namespace='/live')
+def handle_update_rsvp_live_live(data):
+    """Update RSVP (/live namespace for mobile clients)."""
+    handle_update_rsvp_live(data)
+
+
 # Register this module's handlers with the main socketio instance
-logger.info("🎯 RSVP Socket handlers registered")
+logger.info("🎯 RSVP Socket handlers registered for / and /live namespaces")
