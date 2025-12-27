@@ -142,6 +142,11 @@
   width: auto;
   margin: var(--space-3);
 
+  /* Center modal vertically by default */
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - (var(--space-3) * 2));
+
   /* Prevent click propagation */
   pointer-events: none;
 

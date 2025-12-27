@@ -1862,7 +1862,7 @@ html[data-style="dark"] .nav-tabs .nav-link.active {
 }
 
 /* Legacy modal selectors */
-.modal,
+/* NOTE: .modal must NOT have background - only .modal-content should */
 .modal-content {
   background-color: var(--ecs-bg-secondary);
   border-color: var(--ecs-border-primary);
