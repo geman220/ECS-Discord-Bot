@@ -138,6 +138,12 @@ Thumbs.db
 instance/config.py
 config.py
 
+# Firebase / Push Notification Credentials (NEVER commit these!)
+firebase-service-account.json
+*-firebase-adminsdk-*.json
+*.p8
+*.pem
+
 # Webassets generated files
 /app/static/.webassets-cache/
 /app/static/gen/

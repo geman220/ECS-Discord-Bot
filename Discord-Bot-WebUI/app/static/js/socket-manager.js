@@ -57,6 +57,8 @@
       autoConnect: true,
       withCredentials: true
     },
+    // Optimistic UI - delay showing "offline" to handle page navigation gracefully
+    optimisticDisconnectDelay: 3000, // 3 seconds
     // Debug mode
     debug: false
   };
@@ -68,6 +70,10 @@
   let socket = null;
   let isConnected = false;
   let connectionAttempts = 0;
+  let disconnectTimeout = null; // For optimistic UI delay
+
+  // Optimistic UI state key
+  const OPTIMISTIC_KEY = 'socket_last_connected';
 
   // Registered callbacks by component name
   const connectCallbacks = new Map();  // component -> callback
@@ -171,19 +177,63 @@
     isConnected = true;
     connectionAttempts = 0;
 
+    // Save connection timestamp for optimistic UI across page loads
+    try {
+      sessionStorage.setItem(OPTIMISTIC_KEY, Date.now().toString());
+    } catch (e) {
+      // sessionStorage might be unavailable in private mode
+    }
+
+    // Clear any pending disconnect timeout (optimistic UI)
+    if (disconnectTimeout) {
+      clearTimeout(disconnectTimeout);
+      disconnectTimeout = null;
+      log('Cleared disconnect timeout - reconnected quickly');
+    }
+
     // Fire all registered connect callbacks
     fireConnectCallbacks();
   }
 
   /**
+   * Check if we were recently connected (for optimistic UI across page loads)
+   * Returns true if connected within the optimistic delay period
+   */
+  function wasRecentlyConnected() {
+    try {
+      const lastConnected = sessionStorage.getItem(OPTIMISTIC_KEY);
+      if (!lastConnected) return false;
+
+      const elapsed = Date.now() - parseInt(lastConnected, 10);
+      return elapsed < CONFIG.optimisticDisconnectDelay;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
    * Handle disconnection
+   * Uses optimistic UI - delays firing disconnect callbacks to handle page navigation gracefully
    */
   function handleDisconnect(reason) {
     log('Socket disconnected, reason:', reason);
-    isConnected = false;
 
-    // Fire all registered disconnect callbacks
-    fireDisconnectCallbacks(reason);
+    // Clear any existing timeout
+    if (disconnectTimeout) {
+      clearTimeout(disconnectTimeout);
+    }
+
+    // Optimistic UI: delay showing "disconnected" state
+    // This handles page navigation where socket reconnects quickly on new page
+    // If it's a real disconnect, callbacks fire after the delay
+    disconnectTimeout = setTimeout(() => {
+      log('Disconnect timeout elapsed, firing disconnect callbacks');
+      isConnected = false;
+      disconnectTimeout = null;
+      fireDisconnectCallbacks(reason);
+    }, CONFIG.optimisticDisconnectDelay);
+
+    log(`Disconnect delayed by ${CONFIG.optimisticDisconnectDelay}ms (optimistic UI)`);
   }
 
   /**
@@ -243,6 +293,20 @@
      */
     isConnected: function() {
       return isConnected && socket && socket.connected;
+    },
+
+    /**
+     * Check if socket is connected OR was recently connected (optimistic UI)
+     * Use this for UI status indicators to avoid flicker during page navigation
+     * @returns {boolean}
+     */
+    isOptimisticallyConnected: function() {
+      // Actually connected
+      if (isConnected && socket && socket.connected) {
+        return true;
+      }
+      // Recently connected (within last 3 seconds)
+      return wasRecentlyConnected();
     },
 
     /**

@@ -1174,6 +1174,13 @@ class ModernNavbarController {
     if (typeof window.SocketManager !== 'undefined') {
       console.log('[Navbar] Using SocketManager for presence');
 
+      // Optimistic UI: Show "online" immediately if we were recently connected
+      // This prevents status flicker during page navigation
+      if (window.SocketManager.isOptimisticallyConnected()) {
+        this.updateOnlineStatus(true);
+        console.debug('[Navbar] Optimistic online status (recently connected)');
+      }
+
       // Get socket reference
       this.presenceSocket = window.SocketManager.getSocket();
 
@@ -1184,7 +1191,7 @@ class ModernNavbarController {
         console.debug('Presence socket connected via SocketManager');
       });
 
-      // Register disconnect callback
+      // Register disconnect callback (delayed by SocketManager for optimistic UI)
       window.SocketManager.onDisconnect('Navbar', (reason) => {
         this.updateOnlineStatus(false);
         console.debug('Presence socket disconnected:', reason);
