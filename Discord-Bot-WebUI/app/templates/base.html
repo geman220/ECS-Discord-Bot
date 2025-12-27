@@ -502,7 +502,9 @@
          ============================================ -->
 
     {% if vite_production_mode is defined and vite_production_mode() %}
-    <!-- VITE PRODUCTION MODE: Modern bundled JS -->
+    <!-- VITE PRODUCTION MODE: Load jQuery first for inline scripts, then Vite bundle -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     {{ vite_asset('js/main-entry.js') }}
     {% elif config.get('ASSETS_PRODUCTION_MODE') %}
     <!-- FLASK-ASSETS PRODUCTION MODE: Single minified bundle -->

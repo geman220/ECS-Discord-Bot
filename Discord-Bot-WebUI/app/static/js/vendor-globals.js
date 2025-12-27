@@ -57,9 +57,10 @@ import DataTable from 'datatables.net-bs5';
 import 'datatables.net-responsive-bs5';
 
 // ============================================================================
-// 9. SELECT2 - Enhanced select dropdowns (must init after jQuery)
+// 9. SELECT2 - Enhanced select dropdowns
+// Note: Select2 from npm requires special handling - it needs jQuery on window
+// before it loads. We import the CSS here, JS is loaded via CDN in base.html
 // ============================================================================
-import 'select2';
 import 'select2/dist/css/select2.min.css';
 
 // ============================================================================
