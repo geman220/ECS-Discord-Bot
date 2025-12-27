@@ -3,7 +3,9 @@
 {% block title %}{{ league_config.name }} Substitute Pool{% endblock %}
 
 {% block head %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/league-substitute-pool.css') }}">
+{% endif %}
 <style>
     /* Dynamic league color theming - cannot be extracted to CSS as it's server-side generated */
     :root {

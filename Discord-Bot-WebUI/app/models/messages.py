@@ -108,8 +108,9 @@ class DirectMessage(db.Model):
                 'content': None,
                 'is_deleted': True,
                 'is_read': self.is_read,
-                'created_at': self.created_at.isoformat() if self.created_at else None,
-                'read_at': self.read_at.isoformat() if self.read_at else None,
+                # Add 'Z' suffix to indicate UTC - JavaScript will convert to local timezone
+                'created_at': (self.created_at.isoformat() + 'Z') if self.created_at else None,
+                'read_at': (self.read_at.isoformat() + 'Z') if self.read_at else None,
                 'sender_name': self.sender.player.name if self.sender and self.sender.player else (
                     self.sender.username if self.sender else None
                 ),
@@ -124,8 +125,9 @@ class DirectMessage(db.Model):
             'content': self.content,
             'is_deleted': False,
             'is_read': self.is_read,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'read_at': self.read_at.isoformat() if self.read_at else None,
+            # Add 'Z' suffix to indicate UTC - JavaScript will convert to local timezone
+            'created_at': (self.created_at.isoformat() + 'Z') if self.created_at else None,
+            'read_at': (self.read_at.isoformat() + 'Z') if self.read_at else None,
             'sender_name': self.sender.player.name if self.sender and self.sender.player else (
                 self.sender.username if self.sender else None
             ),

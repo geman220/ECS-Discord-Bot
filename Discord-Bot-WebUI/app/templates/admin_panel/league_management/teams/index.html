@@ -257,7 +257,6 @@
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 // CSRF token for all fetch requests
 const csrfToken = '{{ csrf_token() }}';
@@ -435,5 +434,4 @@ function deleteTeam(teamId, teamName) {
     });
 }
 </script>
-{% endif %}
 {% endblock %}

@@ -428,8 +428,10 @@
     </div>
 </nav>
 
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <!-- Link to Modern Navbar Styles -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/layout/navbar-modern.css') }}">
 
 <!-- Link to Modern Navbar JavaScript -->
 <script src="{{ url_for('static', filename='js/navbar-modern.js') }}" defer></script>
+{% endif %}

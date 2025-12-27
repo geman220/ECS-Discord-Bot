@@ -168,11 +168,13 @@
     </div>
 </div>
 
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 {# Include the bracket CSS #}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/features/playoff-bracket.css') }}">
 
 {# Include the bracket JavaScript #}
 <script src="{{ url_for('static', filename='custom_js/playoff_bracket.js') }}"></script>
+{% endif %}
 
 <!--
 MIGRATION NOTE: Playoff bracket system refactored for cleaner event handling

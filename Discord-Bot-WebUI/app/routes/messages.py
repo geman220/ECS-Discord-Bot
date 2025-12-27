@@ -170,7 +170,7 @@ def get_conversations():
                     'content': msg.content[:100] + '...' if len(msg.content) > 100 else msg.content,
                     'sent_by_me': msg.sender_id == current_user.id,
                     'time_ago': _time_ago(msg.created_at),
-                    'created_at': msg.created_at.isoformat() if msg.created_at else None
+                    'created_at': (msg.created_at.isoformat() + 'Z') if msg.created_at else None
                 },
                 'unread_count': unread_count
             })
