@@ -2,14 +2,14 @@
  * Substitute Pool Management
  * JavaScript for managing substitute pools across leagues
  *
- * Dependencies: jQuery, Bootstrap 5, showAlert function
+ * Dependencies: jQuery, Bootstrap 5, subPoolShowAlert function
  */
 
 // Global pagination state
 let paginationState = {};
 
 // Notification function
-function showAlert(type, message) {
+function subPoolShowAlert(type, message) {
     // Try toastr first, fallback to SweetAlert2, then basic alert
     if (typeof toastr !== 'undefined') {
         toastr[type](message);
@@ -67,7 +67,7 @@ window.handleDrop = function(event) {
 
     // Only allow drops within the same league
     if (data.league !== targetLeague) {
-        showAlert('error', 'Cannot move players between different leagues');
+        subPoolShowAlert('error', 'Cannot move players between different leagues');
         return;
     }
 
@@ -132,11 +132,11 @@ function performSearch(query) {
             if (response.success) {
                 displaySearchResults(response.players);
             } else {
-                showAlert('error', response.message);
+                subPoolShowAlert('error', response.message);
             }
         },
         error: function() {
-            showAlert('error', 'Search failed. Please try again.');
+            subPoolShowAlert('error', 'Search failed. Please try again.');
         }
     });
 }
@@ -185,7 +185,7 @@ function displaySearchResults(players) {
 // Actions registered: approve-pool-player, remove-pool-player, edit-pool-preferences,
 // view-pool-player-details, add-player-to-league, toggle-pool-view, filter-pool,
 // manage-league-pool, save-pool-preferences, pool-pagination
-function initializeEventHandlers() {
+function subPoolInitializeEventHandlers() {
     // All jQuery delegation has been replaced with EventDelegation.register()
     // See event-delegation.js for the centralized handlers
 
@@ -295,14 +295,14 @@ function approvePlayer(playerId, league) {
         }),
         success: function(response) {
             if (response.success) {
-                showAlert('success', response.message);
+                subPoolShowAlert('success', response.message);
                 setTimeout(() => location.reload(), 1500);
             } else {
-                showAlert('error', response.message);
+                subPoolShowAlert('error', response.message);
             }
         },
         error: function() {
-            showAlert('error', 'Failed to add player to pool');
+            subPoolShowAlert('error', 'Failed to add player to pool');
         }
     });
 }
@@ -323,14 +323,14 @@ function removePlayer(playerId, league) {
         }),
         success: function(response) {
             if (response.success) {
-                showAlert('success', response.message);
+                subPoolShowAlert('success', response.message);
                 setTimeout(() => location.reload(), 1500);
             } else {
-                showAlert('error', response.message);
+                subPoolShowAlert('error', response.message);
             }
         },
         error: function() {
-            showAlert('error', 'Failed to remove player from pool');
+            subPoolShowAlert('error', 'Failed to remove player from pool');
         }
     });
 }
@@ -556,5 +556,5 @@ $(document).on('click', '.pagination .page-link', function(e) {
 // Initialize everything when document is ready
 $(document).ready(function() {
     initializeSearch();
-    initializeEventHandlers();
+    subPoolInitializeEventHandlers();
 });

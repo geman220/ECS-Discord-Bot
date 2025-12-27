@@ -17,13 +17,13 @@ function initializeRedisStats() {
     }
 
     // Event listeners
-    refreshBtn.addEventListener('click', updateStats);
+    refreshBtn.addEventListener('click', redisUpdateStats);
     document.getElementById('test-btn').addEventListener('click', testConnection);
     document.getElementById('cleanup-btn').addEventListener('click', cleanupConnections);
 
     document.getElementById('auto-refresh').addEventListener('change', function() {
         if (this.checked) {
-            autoRefreshInterval = setInterval(updateStats, 5000);
+            autoRefreshInterval = setInterval(redisUpdateStats, 5000);
         } else {
             clearInterval(autoRefreshInterval);
         }
@@ -31,14 +31,14 @@ function initializeRedisStats() {
 
     // Initialize auto-refresh
     if (document.getElementById('auto-refresh').checked) {
-        autoRefreshInterval = setInterval(updateStats, 5000);
+        autoRefreshInterval = setInterval(redisUpdateStats, 5000);
     }
 
     // Initial load
-    updateStats();
+    redisUpdateStats();
 }
 
-function updateStats() {
+function redisUpdateStats() {
     fetch('/admin/redis/api/stats')
         .then(response => response.json())
         .then(data => {
@@ -137,7 +137,7 @@ function cleanupConnections() {
                 alert('Error during cleanup: ' + data.error);
             } else {
                 alert('Connection cleanup completed successfully');
-                updateStats();
+                redisUpdateStats();
             }
         })
         .catch(error => {

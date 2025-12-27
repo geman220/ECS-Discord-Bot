@@ -102,7 +102,7 @@ function setupRefreshButton() {
 /**
  * Show queue status popup
  */
-function showQueueStatus() {
+function scheduledMsgShowQueueStatus() {
     fetch('/admin/scheduled_messages/queue_status')
         .then(response => response.json())
         .then(data => {

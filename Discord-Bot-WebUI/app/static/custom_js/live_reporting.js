@@ -49,7 +49,7 @@ function setupSocketListeners() {
     // Connection events
     socket.on('disconnect', () => {
         // Disconnected from live reporting server
-        showNotification('Connection lost. Attempting to reconnect...', 'warning');
+        liveReportingShowNotification('Connection lost. Attempting to reconnect...', 'warning');
         
         // Stop the timer if it's running
         if (timerInterval) {
@@ -60,7 +60,7 @@ function setupSocketListeners() {
     
     socket.on('error', (error) => {
         // Socket error
-        showNotification('Error: ' + error.message, 'danger');
+        liveReportingShowNotification('Error: ' + error.message, 'danger');
     });
     
     // Match state events
@@ -85,7 +85,7 @@ function setupSocketListeners() {
     // Live updates
     socket.on('reporter_joined', (data) => {
         // Reporter joined
-        showNotification(`${data.username} joined as a reporter for ${data.team_name}`, 'info');
+        liveReportingShowNotification(`${data.username} joined as a reporter for ${data.team_name}`, 'info');
         
         // Add to active reporters if not already present
         if (!activeReporters.find(r => r.user_id === data.user_id)) {
@@ -96,7 +96,7 @@ function setupSocketListeners() {
     
     socket.on('reporter_left', (data) => {
         // Reporter left
-        showNotification(`${data.username} is no longer reporting`, 'info');
+        liveReportingShowNotification(`${data.username} is no longer reporting`, 'info');
         
         // Remove from active reporters
         activeReporters = activeReporters.filter(r => r.user_id !== data.user_id);
@@ -113,12 +113,12 @@ function setupSocketListeners() {
             updateScoreUI(data.home_score, data.away_score);
         }
         
-        showNotification(`Score updated to ${data.home_score}-${data.away_score} by ${data.updated_by_name}`, 'success');
+        liveReportingShowNotification(`Score updated to ${data.home_score}-${data.away_score} by ${data.updated_by_name}`, 'success');
     });
-    
+
     socket.on('timer_updated', (data) => {
         // Timer updated
-        
+
         // Update match state
         if (matchState) {
             matchState.elapsed_seconds = data.elapsed_seconds;
@@ -126,11 +126,11 @@ function setupSocketListeners() {
             if (data.period) {
                 matchState.period = data.period;
             }
-            
+
             updateTimerUI(data.elapsed_seconds, data.is_running, data.period);
         }
-        
-        showNotification(`Timer updated by ${data.updated_by_name}`, 'info');
+
+        liveReportingShowNotification(`Timer updated by ${data.updated_by_name}`, 'info');
     });
     
     socket.on('event_added', (data) => {
@@ -154,17 +154,17 @@ function setupSocketListeners() {
             eventMessage += ` at ${event.minute}'`;
         }
         
-        showNotification(`New event: ${eventMessage}`, 'success');
+        liveReportingShowNotification(`New event: ${eventMessage}`, 'success');
     });
-    
+
     socket.on('player_shift_updated', (data) => {
         // Player shift updated
-        
+
         // Only process shift updates for our team
         if (data.team_id === teamId) {
             // Update the shift if it exists, or add a new one
             const existingShiftIndex = playerShifts.findIndex(s => s.player_id === data.player_id);
-            
+
             if (existingShiftIndex >= 0) {
                 playerShifts[existingShiftIndex].is_active = data.is_active;
                 playerShifts[existingShiftIndex].last_updated = new Date().toISOString();
@@ -176,9 +176,9 @@ function setupSocketListeners() {
                     last_updated: new Date().toISOString()
                 });
             }
-            
+
             updateShiftsUI(playerShifts);
-            showNotification(`Player ${data.player_name} shift ${data.is_active ? 'started' : 'ended'}`, 'info');
+            liveReportingShowNotification(`Player ${data.player_name} shift ${data.is_active ? 'started' : 'ended'}`, 'info');
         }
     });
     
@@ -192,7 +192,7 @@ function setupSocketListeners() {
             updateMatchStatusUI('completed');
         }
         
-        showNotification(`Final report submitted by ${data.submitted_by_name}`, 'success');
+        liveReportingShowNotification(`Final report submitted by ${data.submitted_by_name}`, 'success');
 
         // Disable reporting controls
         disableReportingControls();
@@ -200,10 +200,10 @@ function setupSocketListeners() {
         // Show completion message
         $('#reportCompleteMessage').removeClass('u-hidden');
     });
-    
+
     socket.on('report_submission_error', (data) => {
         // Report submission error
-        showNotification(`Error submitting report: ${data.message}`, 'danger');
+        liveReportingShowNotification(`Error submitting report: ${data.message}`, 'danger');
     });
 }
 
@@ -777,7 +777,7 @@ function disableReportingControls() {
 /**
  * Show a notification message
  */
-function showNotification(message, type = 'info') {
+function liveReportingShowNotification(message, type = 'info') {
     const $notifications = $('#notifications');
     
     // Create notification element

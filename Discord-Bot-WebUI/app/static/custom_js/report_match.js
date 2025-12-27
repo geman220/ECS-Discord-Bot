@@ -1097,7 +1097,7 @@ function eventExists(event, eventsArray) {
 }
 
 // Function to send the AJAX request to update stats
-function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsToRemove,
+function reportMatchUpdateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsToRemove,
     yellowCardsToAdd, yellowCardsToRemove, redCardsToAdd, redCardsToRemove, ownGoalsToAdd, ownGoalsToRemove) {
     const homeTeamScore = $('#home_team_score-' + matchId).val();
     const awayTeamScore = $('#away_team_score-' + matchId).val();
@@ -1421,7 +1421,7 @@ $(document).on('submit', '.report-match-form', function (e) {
         confirmButtonText: 'Yes, submit it!'
     }).then((result) => {
         if (result.isConfirmed) {
-            updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsToRemove, yellowCardsToAdd, yellowCardsToRemove, redCardsToAdd, redCardsToRemove, ownGoalsToAdd, ownGoalsToRemove);
+            reportMatchUpdateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsToRemove, yellowCardsToAdd, yellowCardsToRemove, redCardsToAdd, redCardsToRemove, ownGoalsToAdd, ownGoalsToRemove);
         }
     });
 });

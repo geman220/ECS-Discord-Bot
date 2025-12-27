@@ -28,7 +28,7 @@ function initializeEcsFcSchedule() {
     // Initialize components
     if (currentTeamId) {
         initializeCalendar();
-        initializeEventHandlers();
+        ecsFcInitializeEventHandlers();
         loadTeamMatches();
     }
 }
@@ -36,7 +36,7 @@ function initializeEcsFcSchedule() {
 /**
  * Initialize event handlers for ECS FC schedule management
  */
-function initializeEventHandlers() {
+function ecsFcInitializeEventHandlers() {
     // Create match button
     const createMatchBtn = document.getElementById('create-match-btn');
     if (createMatchBtn) {
@@ -67,10 +67,10 @@ function initializeEventHandlers() {
             handleRsvpResponse(e.target);
         }
         if (e.target.classList.contains('js-edit-match-btn')) {
-            editMatch(e.target.dataset.matchId);
+            ecsFcEditMatch(e.target.dataset.matchId);
         }
         if (e.target.classList.contains('js-delete-match-btn')) {
-            deleteMatch(e.target.dataset.matchId);
+            ecsFcDeleteMatch(e.target.dataset.matchId);
         }
         if (e.target.classList.contains('js-send-reminder-btn')) {
             sendRsvpReminder(e.target.dataset.matchId);
@@ -153,12 +153,12 @@ function loadTeamMatches(upcomingOnly = true) {
                 currentMatches = data.data.matches;
                 renderMatchesList(currentMatches);
             } else {
-                showAlert('error', 'Failed to load matches: ' + data.message);
+                ecsFcShowAlert('error', 'Failed to load matches: ' + data.message);
             }
         })
         .catch(error => {
             console.error('Error loading matches:', error);
-            showAlert('error', 'Error loading matches');
+            ecsFcShowAlert('error', 'Error loading matches');
         });
 }
 
@@ -214,7 +214,7 @@ function createMatchCard(match) {
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <p class="mb-1"><strong>Date:</strong> ${formatDate(match.match_date)}</p>
+                        <p class="mb-1"><strong>Date:</strong> ${ecsFcFormatDate(match.match_date)}</p>
                         <p class="mb-1"><strong>Time:</strong> ${formatTime(match.match_time)}</p>
                         <p class="mb-1"><strong>Location:</strong> ${match.location}</p>
                         ${match.field_name ? `<p class="mb-1"><strong>Field:</strong> ${match.field_name}</p>` : ''}
@@ -371,29 +371,29 @@ function handleMatchFormSubmit(e) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showAlert('success', data.message);
-            
+            ecsFcShowAlert('success', data.message);
+
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('createMatchModal'));
             if (modal) modal.hide();
-            
+
             // Refresh displays
             loadTeamMatches();
             if (calendar) calendar.refetchEvents();
         } else {
-            showAlert('error', 'Failed to save match: ' + data.message);
+            ecsFcShowAlert('error', 'Failed to save match: ' + data.message);
         }
     })
     .catch(error => {
         console.error('Error saving match:', error);
-        showAlert('error', 'Error saving match');
+        ecsFcShowAlert('error', 'Error saving match');
     });
 }
 
 /**
  * Edit a match
  */
-function editMatch(matchId) {
+function ecsFcEditMatch(matchId) {
     // Find match data
     const match = currentMatches.find(m => m.id == matchId);
     if (!match) return;
@@ -424,7 +424,7 @@ function editMatch(matchId) {
 /**
  * Delete a match
  */
-function deleteMatch(matchId) {
+function ecsFcDeleteMatch(matchId) {
     if (!confirm('Are you sure you want to delete this match? This action cannot be undone.')) {
         return;
     }
@@ -435,16 +435,16 @@ function deleteMatch(matchId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showAlert('success', data.message);
+            ecsFcShowAlert('success', data.message);
             loadTeamMatches();
             if (calendar) calendar.refetchEvents();
         } else {
-            showAlert('error', 'Failed to delete match: ' + data.message);
+            ecsFcShowAlert('error', 'Failed to delete match: ' + data.message);
         }
     })
     .catch(error => {
         console.error('Error deleting match:', error);
-        showAlert('error', 'Error deleting match');
+        ecsFcShowAlert('error', 'Error deleting match');
     });
 }
 
@@ -465,15 +465,15 @@ function handleRsvpResponse(button) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showAlert('success', 'RSVP updated successfully');
+            ecsFcShowAlert('success', 'RSVP updated successfully');
             loadRsvpSummary(matchId);
         } else {
-            showAlert('error', 'Failed to update RSVP: ' + data.message);
+            ecsFcShowAlert('error', 'Failed to update RSVP: ' + data.message);
         }
     })
     .catch(error => {
         console.error('Error updating RSVP:', error);
-        showAlert('error', 'Error updating RSVP');
+        ecsFcShowAlert('error', 'Error updating RSVP');
     });
 }
 
@@ -487,14 +487,14 @@ function sendRsvpReminder(matchId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showAlert('success', data.message);
+            ecsFcShowAlert('success', data.message);
         } else {
-            showAlert('error', 'Failed to send reminders: ' + data.message);
+            ecsFcShowAlert('error', 'Failed to send reminders: ' + data.message);
         }
     })
     .catch(error => {
         console.error('Error sending reminders:', error);
-        showAlert('error', 'Error sending reminders');
+        ecsFcShowAlert('error', 'Error sending reminders');
     });
 }
 
@@ -516,16 +516,16 @@ function handleImportFormSubmit(e) {
     
     const csvInput = document.getElementById('csv-matches');
     const csvText = csvInput.value.trim();
-    
+
     if (!csvText) {
-        showAlert('error', 'Please enter CSV data');
+        ecsFcShowAlert('error', 'Please enter CSV data');
         return;
     }
 
     // Parse CSV
     const matches = parseMatchesCsv(csvText);
     if (matches.length === 0) {
-        showAlert('error', 'No valid matches found in CSV data');
+        ecsFcShowAlert('error', 'No valid matches found in CSV data');
         return;
     }
 
@@ -543,22 +543,22 @@ function handleImportFormSubmit(e) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showAlert('success', data.message);
-            
+            ecsFcShowAlert('success', data.message);
+
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('importMatchesModal'));
             if (modal) modal.hide();
-            
+
             // Refresh displays
             loadTeamMatches();
             if (calendar) calendar.refetchEvents();
         } else {
-            showAlert('error', 'Import failed: ' + data.message);
+            ecsFcShowAlert('error', 'Import failed: ' + data.message);
         }
     })
     .catch(error => {
         console.error('Error importing matches:', error);
-        showAlert('error', 'Error importing matches');
+        ecsFcShowAlert('error', 'Error importing matches');
     });
 }
 
@@ -621,7 +621,7 @@ function handleMatchUpdate(data) {
 /**
  * Utility functions
  */
-function formatDate(dateString) {
+function ecsFcFormatDate(dateString) {
     return new Date(dateString).toLocaleDateString('en-US', {
         weekday: 'short',
         year: 'numeric',
@@ -641,7 +641,7 @@ function formatTime(timeString) {
     });
 }
 
-function showAlert(type, message) {
+function ecsFcShowAlert(type, message) {
     // Create alert element
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
@@ -675,7 +675,7 @@ function showAlert(type, message) {
 window.EcsFcSchedule = {
     loadTeamMatches,
     showCreateMatchModal,
-    editMatch,
-    deleteMatch,
+    editMatch: ecsFcEditMatch,
+    deleteMatch: ecsFcDeleteMatch,
     sendRsvpReminder
 };

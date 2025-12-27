@@ -329,7 +329,7 @@ function rescheduleTask(matchId, taskType) {
     }).then((result) => {
         if (result.isConfirmed) {
             // Use existing schedule match functionality
-            scheduleMatch(matchId);
+            matchMgmtScheduleMatch(matchId);
         }
     });
 }
@@ -470,10 +470,10 @@ function formatScheduledTimes() {
     });
 }
 
-function getStatusColor(status) {
+function getScheduleStatusColor(status) {
     const colors = {
         'not_started': 'secondary',
-        'scheduled': 'warning', 
+        'scheduled': 'warning',
         'running': 'success',
         'completed': 'info',
         'stopped': 'danger',
@@ -482,7 +482,7 @@ function getStatusColor(status) {
     return colors[status] || 'secondary';
 }
 
-function getStatusIcon(status) {
+function getScheduleStatusIcon(status) {
     const icons = {
         'not_started': 'fa-circle',
         'scheduled': 'fa-clock',
@@ -507,7 +507,7 @@ function getStatusDisplay(status) {
 }
 
 // Match action functions
-function scheduleMatch(matchId) {
+function matchMgmtScheduleMatch(matchId) {
     fetch(`/admin/match_management/schedule/${matchId}`, {
         method: 'POST',
         headers: {
@@ -782,7 +782,7 @@ function clearAllMatches() {
     });
 }
 
-function editMatch(matchId) {
+function matchMgmtEditMatch(matchId) {
     // Implementation for editing a match
     Swal.fire('Info', 'Edit match functionality to be implemented.', 'info');
 }
@@ -822,7 +822,7 @@ function removeMatch(matchId) {
 }
 
 // Queue management functions
-function showQueueStatus() {
+function matchMgmtShowQueueStatus() {
     $('#queueStatusModal').modal('show');
     refreshQueueStatus();
 }

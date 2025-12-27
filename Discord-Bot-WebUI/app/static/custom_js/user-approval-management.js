@@ -153,7 +153,7 @@ function submitApproval() {
             removeUserFromTable(userId);
 
             // Update stats
-            updateStats();
+            userApprovalUpdateStats();
 
             // Hide modal
             approvalModal.hide();
@@ -215,7 +215,7 @@ function submitDenial() {
             removeUserFromTable(userId);
 
             // Update stats
-            updateStats();
+            userApprovalUpdateStats();
 
             // Hide modal
             denialModal.hide();
@@ -282,7 +282,7 @@ function showEmptyTableMessage() {
 /**
  * Update statistics display
  */
-function updateStats() {
+function userApprovalUpdateStats() {
     fetch('/admin/user-approvals/stats')
         .then(response => response.json())
         .then(data => {
@@ -335,7 +335,7 @@ function refreshStats() {
         refreshButton.disabled = true;
 
         setTimeout(() => {
-            updateStats();
+            userApprovalUpdateStats();
             refreshButton.innerHTML = originalText;
             refreshButton.disabled = false;
         }, 1000);

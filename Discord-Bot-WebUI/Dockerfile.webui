@@ -41,6 +41,9 @@ RUN mkdir -p /app/static/vite-dist && chmod 777 /app/static/vite-dist
 # Copy application code
 COPY . .
 
+# Rebuild native modules for Linux (fixes platform mismatch from Windows/Mac dev)
+RUN npm rebuild
+
 # Build Vite assets for production
 RUN npm run build
 

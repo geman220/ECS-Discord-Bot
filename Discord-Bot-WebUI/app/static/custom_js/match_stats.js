@@ -11,7 +11,7 @@ $(document).ready(function () {
     // Event delegation for Edit buttons
     $(document).on('click', '.edit-match-stat-btn', function () {
         var statId = $(this).data('stat-id');
-        editMatchStat(statId);
+        matchStatsEditMatch(statId);
     });
 
     // Event delegation for Remove buttons
@@ -43,7 +43,7 @@ function filterMatchStats() {
 }
 
 // Function to open Edit Match Stat Modal with data populated
-function editMatchStat(statId) {
+function matchStatsEditMatch(statId) {
     // Fetch the existing stat data via AJAX
     var csrfToken = $('input[name="csrf_token"]').val();  // Get CSRF token
 

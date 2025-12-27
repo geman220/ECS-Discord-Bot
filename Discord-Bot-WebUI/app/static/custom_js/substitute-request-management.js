@@ -31,7 +31,7 @@ function formatDateTime(dateString) {
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 }
 
-function showNotification(type, message) {
+function subRequestShowNotification(type, message) {
     // Try toastr first, fallback to showAlert
     if (typeof toastr !== 'undefined') {
         toastr[type](message);
@@ -395,10 +395,10 @@ function performResendRequest(requestId, league) {
         method: 'POST',
         success: function(response) {
             if (response.success) {
-                showNotification('success', response.message);
+                subRequestShowNotification('success', response.message);
                 loadSubstituteRequests(league); // Refresh the table
             } else {
-                showNotification('error', response.message);
+                subRequestShowNotification('error', response.message);
             }
         },
         error: function(xhr) {
@@ -424,7 +424,7 @@ function performResendRequest(requestId, league) {
                     resendSubstituteRequestForce(requestId, league);
                 }
             } else {
-                showNotification('error', 'Failed to resend substitute request');
+                subRequestShowNotification('error', 'Failed to resend substitute request');
             }
         },
         complete: function() {
@@ -450,14 +450,14 @@ function cancelSubstituteRequest(requestId, league, teamName) {
         method: 'POST',
         success: function(response) {
             if (response.success) {
-                showNotification('success', response.message);
+                subRequestShowNotification('success', response.message);
                 loadSubstituteRequests(league); // Refresh the table
             } else {
-                showNotification('error', response.message);
+                subRequestShowNotification('error', response.message);
             }
         },
         error: function() {
-            showNotification('error', 'Failed to cancel substitute request');
+            subRequestShowNotification('error', 'Failed to cancel substitute request');
         },
         complete: function() {
             btn.prop('disabled', false);
@@ -737,12 +737,12 @@ function performMatchResendRequest(requestId, league) {
         method: 'POST',
         success: function(response) {
             if (response.success) {
-                showNotification('success', response.message);
+                subRequestShowNotification('success', response.message);
                 if (typeof matchId !== 'undefined') {
                     loadMatchSubstituteRequests(matchId);
                 }
             } else {
-                showNotification('error', response.message);
+                subRequestShowNotification('error', response.message);
             }
         },
         error: function(xhr) {
@@ -760,14 +760,14 @@ function performMatchResendRequest(requestId, league) {
                         confirmButtonText: 'Yes, send anyway!'
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            showNotification('info', 'Force resend not yet implemented');
+                            subRequestShowNotification('info', 'Force resend not yet implemented');
                         }
                     });
                 } else if (confirm(confirmMessage)) {
-                    showNotification('info', 'Force resend not yet implemented');
+                    subRequestShowNotification('info', 'Force resend not yet implemented');
                 }
             } else {
-                showNotification('error', 'Failed to resend substitute request');
+                subRequestShowNotification('error', 'Failed to resend substitute request');
             }
         },
         complete: function() {
@@ -793,16 +793,16 @@ function cancelMatchSubstituteRequest(requestId, league, teamName) {
         method: 'POST',
         success: function(response) {
             if (response.success) {
-                showNotification('success', response.message);
+                subRequestShowNotification('success', response.message);
                 if (typeof matchId !== 'undefined') {
                     loadMatchSubstituteRequests(matchId);
                 }
             } else {
-                showNotification('error', response.message);
+                subRequestShowNotification('error', response.message);
             }
         },
         error: function() {
-            showNotification('error', 'Failed to cancel substitute request');
+            subRequestShowNotification('error', 'Failed to cancel substitute request');
         },
         complete: function() {
             btn.prop('disabled', false);
@@ -839,12 +839,12 @@ function performDeleteRequest(requestId, league) {
         method: 'DELETE',
         success: function(response) {
             if (response.success) {
-                showNotification('success', 'Request deleted successfully');
-                
+                subRequestShowNotification('success', 'Request deleted successfully');
+
                 // Immediately remove the row from the UI
                 $(`[data-action="delete-request"][data-request-id="${requestId}"]`).closest('tr').fadeOut(300, function() {
                     $(this).remove();
-                    
+
                     // Check if table is empty after removal
                     const tbody = $('#matchSubstituteRequestsTable, #substituteRequestsTable');
                     if (tbody.find('tr').length === 0) {
@@ -858,7 +858,7 @@ function performDeleteRequest(requestId, league) {
                         `);
                     }
                 });
-                
+
                 // Also reload the data for consistency
                 if (typeof loadRecentActivity === 'function') {
                     loadRecentActivity(league);
@@ -871,12 +871,12 @@ function performDeleteRequest(requestId, league) {
                     loadMatchSubstituteRequests(matchId);
                 }
             } else {
-                showNotification('error', response.error || 'Failed to delete request');
+                subRequestShowNotification('error', response.error || 'Failed to delete request');
             }
         },
         error: function(xhr) {
             const errorMsg = xhr.responseJSON?.error || 'Failed to delete substitute request';
-            showNotification('error', errorMsg);
+            subRequestShowNotification('error', errorMsg);
         }
     });
 }
@@ -885,9 +885,9 @@ function performDeleteRequest(requestId, league) {
 $(document).on('click', '#bulkApproveBtn', function() {
     const league = $('#leagueManagementModal').data('current-league');
     const pendingCount = parseInt($(`#pending-count-${league}`).text()) || 0;
-    
+
     if (pendingCount === 0) {
-        showNotification('info', 'No pending players to approve');
+        subRequestShowNotification('info', 'No pending players to approve');
         return;
     }
     
@@ -908,7 +908,7 @@ $(document).on('click', '#exportPoolBtn', function() {
     setTimeout(function() {
         btn.prop('disabled', false);
         btn.html('<i class="ti ti-download me-2"></i>Export Pool Data');
-        showNotification('success', 'Pool data export started. Check your downloads.');
+        subRequestShowNotification('success', 'Pool data export started. Check your downloads.');
         // In real implementation: window.location.href = `/admin/substitute-pools/${league}/export`;
     }, 1500);
 });
@@ -916,13 +916,13 @@ $(document).on('click', '#exportPoolBtn', function() {
 $(document).on('click', '#sendNotificationBtn', function() {
     const league = $('#leagueManagementModal').data('current-league');
     const activeCount = parseInt($(`#active-count-${league}`).text()) || 0;
-    
+
     if (activeCount === 0) {
-        showNotification('warning', 'No active substitutes to notify');
+        subRequestShowNotification('warning', 'No active substitutes to notify');
         return;
     }
-    
-    showNotification('info', `Notification feature coming soon! Would notify ${activeCount} active substitutes.`);
+
+    subRequestShowNotification('info', `Notification feature coming soon! Would notify ${activeCount} active substitutes.`);
 });
 
 // Save pool settings
@@ -940,7 +940,7 @@ $(document).on('click', '#savePoolSettings', function() {
     setTimeout(function() {
         btn.prop('disabled', false);
         btn.text('Save Settings');
-        showNotification('success', 'Pool settings saved successfully');
+        subRequestShowNotification('success', 'Pool settings saved successfully');
         
         // Log the activity
         console.log('Saving settings for', league, {
@@ -964,19 +964,19 @@ function bulkApproveAllPending(league) {
     });
     
     if (playerIds.length === 0) {
-        showNotification('info', 'No pending players to approve');
+        subRequestShowNotification('info', 'No pending players to approve');
         return;
     }
-    
+
     // Approve each player
     let completed = 0;
     playerIds.forEach(playerId => {
         if (typeof approvePlayer === 'function') {
             approvePlayer(playerId, league);
             completed++;
-            
+
             if (completed === playerIds.length) {
-                showNotification('success', `Approved ${completed} players`);
+                subRequestShowNotification('success', `Approved ${completed} players`);
                 setTimeout(() => location.reload(), 1500);
             }
         }
@@ -998,11 +998,11 @@ function viewRequestDetails(requestId, league) {
             if (response.success) {
                 displayRequestDetailsModal(response.request);
             } else {
-                showNotification('error', response.message);
+                subRequestShowNotification('error', response.message);
             }
         },
         error: function() {
-            showNotification('error', 'Failed to load request details');
+            subRequestShowNotification('error', 'Failed to load request details');
         }
     });
 }
@@ -1237,7 +1237,7 @@ function assignSubstitute(requestId, playerId, league, position) {
         }),
         success: function(response) {
             if (response.success) {
-                showNotification('success', response.message);
+                subRequestShowNotification('success', response.message);
                 $('#requestDetailsModal').modal('hide');
                 // Refresh the requests table if visible
                 if ($('#substituteRequestsTable').length) {
@@ -1251,11 +1251,11 @@ function assignSubstitute(requestId, playerId, league, position) {
                     loadMatchSubstituteRequests(matchId);
                 }
             } else {
-                showNotification('error', response.message);
+                subRequestShowNotification('error', response.message);
             }
         },
         error: function() {
-            showNotification('error', 'Failed to assign substitute');
+            subRequestShowNotification('error', 'Failed to assign substitute');
         }
     });
 }

@@ -19,13 +19,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 viewMatchDetails(matchId);
                 break;
             case 'delete-match':
-                deleteMatch(matchId, matchName);
+                adminPanelDeleteMatch(matchId, matchName);
                 break;
             case 'duplicate-match':
                 duplicateMatch(matchId);
                 break;
             case 'schedule-match':
-                scheduleMatch(matchId);
+                adminPanelScheduleMatch(matchId);
                 break;
             case 'postpone-match':
                 postponeMatch(matchId);
@@ -140,7 +140,7 @@ function viewMatchDetails(matchId) {
         });
 }
 
-function deleteMatch(matchId, matchName) {
+function adminPanelDeleteMatch(matchId, matchName) {
     Swal.fire({
         title: 'Delete Match?',
         text: `Are you sure you want to delete "${matchName}"? This action cannot be undone.`,
@@ -303,7 +303,7 @@ function duplicateMatch(matchId) {
     });
 }
 
-function scheduleMatch(matchId) {
+function adminPanelScheduleMatch(matchId) {
     Swal.fire('Schedule Match', 'Match scheduling functionality would be implemented here.', 'info');
 }
 
