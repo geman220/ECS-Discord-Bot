@@ -324,7 +324,7 @@
 {% block custom_js %}
 {{ super() }}
 <script>
-const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+const _csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
 // Event delegation for live reporting buttons
 document.addEventListener('DOMContentLoaded', function() {
@@ -385,7 +385,7 @@ async function startReporting(matchId) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
+                'X-CSRFToken': _csrfToken
             }
         });
 
@@ -409,7 +409,7 @@ async function stopReporting(matchId) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
+                'X-CSRFToken': _csrfToken
             }
         });
 
@@ -433,7 +433,7 @@ async function stopSession(sessionId) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
+                'X-CSRFToken': _csrfToken
             }
         });
 

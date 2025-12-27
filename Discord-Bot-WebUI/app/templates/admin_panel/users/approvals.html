@@ -457,7 +457,7 @@ function submitUserAction(action, userId) {
     form.method = 'POST';
     form.action = `{{ url_for('admin_panel.process_user_approval') }}`;
     
-    const csrfToken = document.createElement('input');
+    const _csrfToken = document.createElement('input');
     csrfToken.type = 'hidden';
     csrfToken.name = 'csrf_token';
     csrfToken.value = '{{ csrf_token() }}';

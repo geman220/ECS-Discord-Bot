@@ -820,17 +820,17 @@ function resendNotification(notificationId, notificationTitle) {
             form.method = 'POST';
             form.action = '{{ url_for("admin_panel.resend_notification") }}';
 
-            const csrfToken = document.createElement('input');
-            csrfToken.type = 'hidden';
-            csrfToken.name = 'csrf_token';
-            csrfToken.value = PushNotificationConfig.csrfToken;
+            const _csrfToken = document.createElement('input');
+            _csrfToken.type = 'hidden';
+            _csrfToken.name = 'csrf_token';
+            _csrfToken.value = PushNotificationConfig.csrfToken;
 
             const notificationIdInput = document.createElement('input');
             notificationIdInput.type = 'hidden';
             notificationIdInput.name = 'notification_id';
             notificationIdInput.value = notificationId;
 
-            form.appendChild(csrfToken);
+            form.appendChild(_csrfToken);
             form.appendChild(notificationIdInput);
             document.body.appendChild(form);
             form.submit();
@@ -845,11 +845,11 @@ function duplicateNotification(notificationId) {
     form.action = `{{ url_for('admin_panel.duplicate_notification', notification_id=0) }}`.replace('0', notificationId);
 
     // Add CSRF token
-    const csrfToken = document.createElement('input');
-    csrfToken.type = 'hidden';
-    csrfToken.name = 'csrf_token';
-    csrfToken.value = PushNotificationConfig.csrfToken;
-    form.appendChild(csrfToken);
+    const _csrfToken = document.createElement('input');
+    _csrfToken.type = 'hidden';
+    _csrfToken.name = 'csrf_token';
+    _csrfToken.value = PushNotificationConfig.csrfToken;
+    form.appendChild(_csrfToken);
 
     document.body.appendChild(form);
     form.submit();

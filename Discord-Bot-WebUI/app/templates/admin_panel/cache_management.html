@@ -272,7 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+const _csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
 async function clearCacheByType(cacheType, title) {
     const result = await Swal.fire({
@@ -294,7 +294,7 @@ async function clearCacheByType(cacheType, title) {
         const response = await fetch('{{ url_for("admin_panel.clear_cache") }}', {
             method: 'POST',
             headers: {
-                'X-CSRFToken': csrfToken
+                'X-CSRFToken': _csrfToken
             },
             body: formData
         });

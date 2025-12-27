@@ -300,13 +300,13 @@
         }
         
         // Get CSRF token
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const _csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         
         fetch(`/admin/user-waitlist/remove/${currentUserId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
+                'X-CSRFToken': _csrfToken
             },
             body: JSON.stringify({
                 reason: reason
@@ -358,13 +358,13 @@
         }
         
         // Get CSRF token
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const _csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         
         fetch(`/admin/user-waitlist/contact/${currentUserId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
+                'X-CSRFToken': _csrfToken
             },
             body: JSON.stringify({
                 contact_method: method,

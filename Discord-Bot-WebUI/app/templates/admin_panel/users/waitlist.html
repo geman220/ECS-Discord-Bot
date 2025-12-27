@@ -394,7 +394,7 @@ function processFromWaitlist(userId, userName) {
             form.method = 'POST';
             form.action = '{{ url_for("admin_panel.process_waitlist_user") }}';
             
-            const csrfToken = document.createElement('input');
+            const _csrfToken = document.createElement('input');
             csrfToken.type = 'hidden';
             csrfToken.name = 'csrf_token';
             csrfToken.value = '{{ csrf_token() }}';
@@ -434,7 +434,7 @@ function removeFromWaitlist(userId, userName) {
             form.method = 'POST';
             form.action = '{{ url_for("admin_panel.process_waitlist_user") }}';
             
-            const csrfToken = document.createElement('input');
+            const _csrfToken = document.createElement('input');
             csrfToken.type = 'hidden';
             csrfToken.name = 'csrf_token';
             csrfToken.value = '{{ csrf_token() }}';
@@ -478,7 +478,7 @@ function processAllFromWaitlist() {
                 form.method = 'POST';
                 form.action = '{{ url_for("admin_panel.process_waitlist_user") }}';
                 
-                const csrfToken = document.createElement('input');
+                const _csrfToken = document.createElement('input');
                 csrfToken.type = 'hidden';
                 csrfToken.name = 'csrf_token';
                 csrfToken.value = '{{ csrf_token() }}';
@@ -510,7 +510,7 @@ function processAllFromWaitlist() {
                 form.method = 'POST';
                 form.action = '{{ url_for("admin_panel.process_waitlist_user") }}';
                 
-                const csrfToken = document.createElement('input');
+                const _csrfToken = document.createElement('input');
                 csrfToken.type = 'hidden';
                 csrfToken.name = 'csrf_token';
                 csrfToken.value = '{{ csrf_token() }}';

@@ -329,13 +329,13 @@ function quickSchedule() {
             });
 
             // Call auto-schedule endpoint
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            const _csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
             fetch('{{ url_for("admin_panel.auto_schedule_matches") }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
+                    'X-CSRFToken': _csrfToken
                 },
                 body: JSON.stringify({
                     league_id: result.value.league_id,
@@ -423,13 +423,13 @@ function createNewMatch() {
     }).then((result) => {
         if (result.isConfirmed) {
             // Call create match endpoint
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            const _csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
             fetch('{{ url_for("admin_panel.create_match") }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
+                    'X-CSRFToken': _csrfToken
                 },
                 body: JSON.stringify({
                     home_team_id: parseInt(result.value.homeTeam),

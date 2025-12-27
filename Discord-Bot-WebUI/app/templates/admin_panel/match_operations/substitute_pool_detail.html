@@ -309,7 +309,7 @@
 {{ super() }}
 <script>
 const leagueType = '{{ league_type }}';
-const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+const _csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
 // Initialize dynamic progress bar widths from data-width attributes
 // NOTE: Event delegation is now handled by the centralized EventDelegation system
@@ -450,7 +450,7 @@ async function addToPool(playerId) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
+                'X-CSRFToken': _csrfToken
             },
             body: JSON.stringify({ player_id: playerId })
         });
@@ -490,7 +490,7 @@ async function removeFromPool(playerId, playerName) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
+                'X-CSRFToken': _csrfToken
             },
             body: JSON.stringify({ player_id: playerId })
         });
@@ -533,7 +533,7 @@ async function rejectPlayer(playerId, playerName) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
+                'X-CSRFToken': _csrfToken
             },
             body: JSON.stringify({
                 player_id: playerId,

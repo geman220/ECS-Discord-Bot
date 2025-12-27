@@ -232,12 +232,12 @@ async function executeCleanup() {
     });
 
     try {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const _csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         const response = await fetch('{{ url_for("admin_panel.mobile_error_cleanup") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
+                'X-CSRFToken': _csrfToken
             },
             body: JSON.stringify({ confirmed: true })
         });

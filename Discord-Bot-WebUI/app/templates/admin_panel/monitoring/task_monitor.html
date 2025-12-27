@@ -494,17 +494,17 @@ function cancelTask(taskId, taskName) {
             form.method = 'POST';
             form.action = '{{ url_for("admin_panel.cancel_task") }}';
             
-            const csrfToken = document.createElement('input');
-            csrfToken.type = 'hidden';
-            csrfToken.name = 'csrf_token';
-            csrfToken.value = '{{ csrf_token() }}';
+            const _csrfToken = document.createElement('input');
+            _csrfToken.type = 'hidden';
+            _csrfToken.name = 'csrf_token';
+            _csrfToken.value = '{{ csrf_token() }}';
             
             const taskIdInput = document.createElement('input');
             taskIdInput.type = 'hidden';
             taskIdInput.name = 'task_id';
             taskIdInput.value = taskId;
             
-            form.appendChild(csrfToken);
+            form.appendChild(_csrfToken);
             form.appendChild(taskIdInput);
             document.body.appendChild(form);
             form.submit();

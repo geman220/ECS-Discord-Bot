@@ -330,12 +330,12 @@ function updateOrderStatus(orderId, newStatus) {
             form.appendChild(statusInput);
             
             // Add CSRF token if available
-            const csrfToken = document.querySelector('meta[name=csrf-token]');
-            if (csrfToken) {
+            const _csrfToken = document.querySelector('meta[name=csrf-token]');
+            if (_csrfToken) {
                 const input = document.createElement('input');
                 input.type = 'hidden';
                 input.name = 'csrf_token';
-                input.value = csrfToken.getAttribute('content');
+                input.value = _csrfToken.getAttribute('content');
                 form.appendChild(input);
             }
             

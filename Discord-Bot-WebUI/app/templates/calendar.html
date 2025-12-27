@@ -633,7 +633,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const canAssignReferee = {{ 'true' if can_assign_referee else 'false' }};
     const isReferee = {{ 'true' if is_referee else 'false' }};
     const canEditRefereeMatches = {{ 'true' if can_edit_referee_matches else 'false' }};
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const _csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     let refereeAssignedMatches = [];
     
     // Initialize tooltips
@@ -1858,7 +1858,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken,
+                    'X-CSRFToken': _csrfToken,
                     'Accept': 'application/json'
                 },
                 body: JSON.stringify({ match_id: matchId, ref_id: refId })
@@ -1905,7 +1905,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken,
+                    'X-CSRFToken': _csrfToken,
                     'Accept': 'application/json'
                 },
                 body: JSON.stringify({ match_id: matchId })
@@ -2127,7 +2127,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
+                        'X-CSRFToken': _csrfToken
                     }
                 });
                 
@@ -2285,7 +2285,7 @@ document.addEventListener('DOMContentLoaded', () => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
+                'X-CSRFToken': _csrfToken
             },
             body: JSON.stringify({
                 match_id: parseInt(matchId),

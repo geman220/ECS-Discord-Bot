@@ -336,12 +336,12 @@ function verifyMatch(matchId, team) {
             form.appendChild(teamInput);
             
             // Add CSRF token if available
-            const csrfToken = document.querySelector('meta[name=csrf-token]');
-            if (csrfToken) {
+            const _csrfToken = document.querySelector('meta[name=csrf-token]');
+            if (_csrfToken) {
                 const csrfInput = document.createElement('input');
                 csrfInput.type = 'hidden';
                 csrfInput.name = 'csrf_token';
-                csrfInput.value = csrfToken.getAttribute('content');
+                csrfInput.value = _csrfToken.getAttribute('content');
                 form.appendChild(csrfInput);
             }
             

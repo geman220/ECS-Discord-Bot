@@ -1010,13 +1010,13 @@ function gatherColors() {
 
 function saveColors() {
     const colors = gatherColors();
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    const _csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
     fetch('{{ url_for("admin_panel.save_colors") }}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-Csrftoken': csrfToken
+            'X-Csrftoken': _csrfToken
         },
         body: JSON.stringify(colors)
     })
@@ -1051,11 +1051,11 @@ function resetColors() {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+            const _csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
             fetch('{{ url_for("admin_panel.reset_colors") }}', {
                 method: 'POST',
-                headers: { 'X-Csrftoken': csrfToken }
+                headers: { 'X-Csrftoken': _csrfToken }
             })
             .then(response => response.json())
             .then(data => {
@@ -1101,13 +1101,13 @@ function importColors() {
             throw new Error('Invalid color structure');
         }
 
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        const _csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
         fetch('{{ url_for("admin_panel.import_colors") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Csrftoken': csrfToken
+                'X-Csrftoken': _csrfToken
             },
             body: JSON.stringify({ colors: colors })
         })

@@ -182,12 +182,12 @@ TODO: Remove this template after new system is verified in production
         });
     }
 
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const _csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
     // Configure jQuery to send CSRF token on every AJAX request.
     $.ajaxSetup({
         headers: {
-            'X-CSRFToken': csrfToken
+            'X-CSRFToken': _csrfToken
         }
     });
 
@@ -197,7 +197,7 @@ TODO: Remove this template after new system is verified in production
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
+                    'X-CSRFToken': _csrfToken
                 }
             });
             const data = await response.json();
@@ -218,7 +218,7 @@ TODO: Remove this template after new system is verified in production
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
+                    'X-CSRFToken': _csrfToken
                 }
             });
             const data = await response.json();
@@ -240,7 +240,7 @@ TODO: Remove this template after new system is verified in production
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
+                    'X-CSRFToken': _csrfToken
                 }
             });
             const data = await response.json();
@@ -261,7 +261,7 @@ TODO: Remove this template after new system is verified in production
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
+                    'X-CSRFToken': _csrfToken
                 }
             });
             const data = await response.json();
@@ -282,7 +282,7 @@ TODO: Remove this template after new system is verified in production
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
+                    'X-CSRFToken': _csrfToken
                 }
             });
             const data = await response.json();

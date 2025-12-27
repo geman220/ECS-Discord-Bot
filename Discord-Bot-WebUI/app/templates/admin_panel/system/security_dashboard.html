@@ -376,7 +376,7 @@
  * All event listeners removed, now using centralized event-delegation.js
  */
 
-const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+const _csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
 // Helper function for refreshStats - used by event delegation
 async function refreshStats() {
@@ -416,7 +416,7 @@ async function banIp() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
+                'X-CSRFToken': _csrfToken
             },
             body: JSON.stringify({
                 ip_address: ipAddress,
@@ -454,7 +454,7 @@ async function unbanIp(ipAddress) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
+                'X-CSRFToken': _csrfToken
             },
             body: JSON.stringify({ ip_address: ipAddress })
         });
@@ -488,7 +488,7 @@ async function clearAllBans() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
+                'X-CSRFToken': _csrfToken
             }
         });
 

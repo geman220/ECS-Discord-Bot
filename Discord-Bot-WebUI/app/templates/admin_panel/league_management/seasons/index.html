@@ -151,7 +151,7 @@
 {{ super() }}
 <script>
 // CSRF token for all fetch requests
-const csrfToken = '{{ csrf_token() }}';
+const _csrfToken = '{{ csrf_token() }}';
 
 document.addEventListener('DOMContentLoaded', function() {
     // Filter handlers
@@ -249,7 +249,7 @@ function confirmSetCurrent() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
+            'X-CSRFToken': _csrfToken
         },
         body: JSON.stringify({ perform_rollover: performRollover })
     })
@@ -274,7 +274,7 @@ function deleteSeason(seasonId, seasonName) {
             fetch(`/admin-panel/league-management/seasons/api/${seasonId}/delete`, {
                 method: 'DELETE',
                 headers: {
-                    'X-CSRFToken': csrfToken
+                    'X-CSRFToken': _csrfToken
                 }
             })
             .then(response => response.json())

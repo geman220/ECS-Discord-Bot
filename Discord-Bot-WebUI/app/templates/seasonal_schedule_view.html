@@ -860,13 +860,13 @@ function deleteMatch(matchId) {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            const _csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
             fetch('/auto-schedule/delete-match', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
+                    'X-CSRFToken': _csrfToken
                 },
                 body: JSON.stringify({ match_id: matchId })
             })
@@ -914,13 +914,13 @@ function deleteWeek(weekNum) {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            const _csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
             fetch(`/auto-schedule/league/${getCurrentLeagueId()}/delete-week`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
+                    'X-CSRFToken': _csrfToken
                 },
                 body: JSON.stringify({ week_number: weekNum })
             })
