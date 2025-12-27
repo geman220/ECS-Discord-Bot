@@ -67,16 +67,49 @@ import 'select2/dist/css/select2.min.css';
 import 'select2'; // Attaches $.fn.select2 to jQuery
 
 // ============================================================================
-// 10. HELPERS - Must load before Menu (Menu uses window.Helpers)
+// 10. SWEETALERT2 - Beautiful alerts and dialogs
+// ============================================================================
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
+window.Swal = Swal;
+
+// ============================================================================
+// 11. SOCKET.IO CLIENT - Real-time communication
+// ============================================================================
+import { io } from 'socket.io-client';
+window.io = io;
+
+// ============================================================================
+// 12. FLATPICKR - Date/time picker
+// ============================================================================
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.min.css';
+window.flatpickr = flatpickr;
+
+// ============================================================================
+// 13. CROPPER.JS - Image cropping
+// ============================================================================
+import Cropper from 'cropperjs';
+import 'cropperjs/dist/cropper.min.css';
+window.Cropper = Cropper;
+
+// ============================================================================
+// 14. FEATHER ICONS - Icon library
+// ============================================================================
+import feather from 'feather-icons';
+window.feather = feather;
+
+// ============================================================================
+// 15. HELPERS - Must load before Menu (Menu uses window.Helpers)
 // ============================================================================
 import './helpers-minimal.js';
 
 // ============================================================================
-// 11. MENU - Custom sidebar navigation (must stay local)
+// 16. MENU - Custom sidebar navigation (must stay local)
 // ============================================================================
 import '../vendor/js/menu-refactored.js';
 
 // ============================================================================
 // VERIFICATION - Confirm globals are set up correctly
 // ============================================================================
-console.log('[Vendor Globals] jQuery:', typeof window.$, 'Bootstrap:', typeof window.bootstrap, 'Hammer:', typeof window.Hammer, 'Waves:', typeof window.Waves);
+console.log('[Vendor Globals] jQuery:', typeof window.$, 'Bootstrap:', typeof window.bootstrap, 'Swal:', typeof window.Swal, 'io:', typeof window.io);

@@ -188,6 +188,8 @@
          External library styles loaded via CDN
          Placed here so our theme CSS can override their defaults -->
 
+    {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+    <!-- DEV ONLY: These CSS files are bundled in Vite production -->
     <!-- Select2 - Enhanced select dropdowns -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
@@ -200,6 +202,7 @@
 
     <!-- DataTables - Advanced table functionality -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+    {% endif %}
 
     <!-- EasyMDE - Markdown editor -->
     <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
@@ -413,8 +416,10 @@
     <!-- CSRF Token for Forms -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <!-- Flatpickr JavaScript -->
+    {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+    <!-- Flatpickr JavaScript (DEV only - bundled in Vite production) -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    {% endif %}
 </head>
 
 <body class="c-base-layout" data-component="base-layout">
@@ -562,8 +567,10 @@
     <script src="{{ url_for('static', filename='js/profile-verification.js') }}"></script>
     {% endif %}
 
-    <!-- SweetAlert2 for nice notifications (CDN - loaded in both modes) -->
+    {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+    <!-- SweetAlert2 for nice notifications (DEV only - bundled in Vite production) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    {% endif %}
 
     {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
     <!-- SweetAlert Contextual Helper - Smart button text based on action type -->
@@ -733,17 +740,19 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     {% endif %}
 
+    {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+    <!-- DEV ONLY: These are bundled in Vite production -->
     <!-- Cropper.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
 
     <!-- Include Socket.IO for real-time updates -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js"></script>
 
-    <!-- Moment.js removed - using native Date APIs instead -->
-    <!-- Feather.js - temporarily restored for data-feather attributes -->
+    <!-- Feather Icons -->
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    {% endif %}
 
-    <!-- FullCalendar JS -->
+    <!-- FullCalendar JS (NOT bundled - large calendar library) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.15/index.global.min.js"></script>
 
     {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
@@ -751,14 +760,15 @@
     <script src="{{ url_for('static', filename='assets/vendor/libs/shepherd/shepherd.js') }}"></script>
     {% endif %}
 
-    <!-- Include Fancybox JS -->
+    <!-- Include Fancybox JS (NOT bundled - jQuery plugin) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.5.7/jquery.fancybox.min.js"></script>
 
-    <!-- DataTables JS -->
+    {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+    <!-- DataTables JS (DEV only - bundled in Vite production) -->
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.js"></script>
+    {% endif %}
 
-    <!-- jQuery UI (must be loaded after jQuery) -->
-    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <!-- NOTE: jQuery UI 1.12.1 REMOVED - Using 1.13.2 loaded in Vite production mode section -->
 
     <!-- Global Scripts -->
     <!-- Theme initialization moved to top of head to prevent FOUC -->
