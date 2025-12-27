@@ -216,6 +216,66 @@
 }
 
 /* ============================================================================
+   DARK MODE - Explicit Overrides
+   Ensures text is visible even if CSS variables fail to resolve
+   ============================================================================ */
+
+[data-style="dark"] .c-stat-card {
+  background: var(--color-bg-elevated, #1e293b);
+  border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+}
+
+[data-style="dark"] .c-stat-card__label {
+  color: var(--color-text-secondary, #94a3b8);
+}
+
+[data-style="dark"] .c-stat-card__value {
+  color: var(--color-text-primary, #f8fafc);
+}
+
+/* Dark mode icon colors */
+[data-style="dark"] .c-stat-card--primary .c-stat-card__icon {
+  color: var(--color-primary-light, #60a5fa);
+}
+
+[data-style="dark"] .c-stat-card--success .c-stat-card__icon {
+  color: var(--color-success-light, #34d399);
+}
+
+[data-style="dark"] .c-stat-card--warning .c-stat-card__icon {
+  color: var(--color-warning-light, #fbbf24);
+}
+
+[data-style="dark"] .c-stat-card--info .c-stat-card__icon {
+  color: var(--color-info-light, #22d3ee);
+}
+
+[data-style="dark"] .c-stat-card--danger .c-stat-card__icon {
+  color: var(--color-danger-light, #f87171);
+}
+
+/* Dark mode value colors for color variants */
+[data-style="dark"] .c-stat-card--primary .c-stat-card__value {
+  color: var(--color-primary-light, #60a5fa);
+}
+
+[data-style="dark"] .c-stat-card--success .c-stat-card__value {
+  color: var(--color-success-light, #34d399);
+}
+
+[data-style="dark"] .c-stat-card--warning .c-stat-card__value {
+  color: var(--color-warning-light, #fbbf24);
+}
+
+[data-style="dark"] .c-stat-card--info .c-stat-card__value {
+  color: var(--color-info-light, #22d3ee);
+}
+
+[data-style="dark"] .c-stat-card--danger .c-stat-card__value {
+  color: var(--color-danger-light, #f87171);
+}
+
+/* ============================================================================
    LIGHT MODE
    ============================================================================ */
 
