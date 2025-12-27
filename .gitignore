@@ -50,6 +50,7 @@ yarn.lock
 *.key
 *.mobileprovision
 Discord-Bot-WebUI/app/static/.webassets-cache/
+Discord-Bot-WebUI/app/static/vite-dist/
 /Discord-Bot-WebUI/CLAUDE.md
 /CLAUDE.md
 /Discord-Bot-WebUI/MOBILE_API.md
