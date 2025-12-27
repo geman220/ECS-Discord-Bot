@@ -522,6 +522,65 @@
 
 
 /* --------------------------------------------------------------------------
+   Role Badges (Coach, Admin, Ref)
+   -------------------------------------------------------------------------- */
+
+.c-chat-widget__role-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.c-chat-widget__role-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+}
+
+.c-chat-widget__role-badge i {
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+/* Admin badge - purple/gold for authority */
+.c-chat-widget__role-badge--admin {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  color: #fbbf24;
+}
+
+/* Coach badge - green for leadership */
+.c-chat-widget__role-badge--coach {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff;
+}
+
+/* Referee badge - yellow/black for authority */
+.c-chat-widget__role-badge--ref {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #1e293b;
+}
+
+/* Light mode adjustments */
+[data-style="light"] .c-chat-widget__role-badge--admin {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+[data-style="light"] .c-chat-widget__role-badge--coach {
+  background: linear-gradient(135deg, #34d399, #10b981);
+}
+
+[data-style="light"] .c-chat-widget__role-badge--ref {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+}
+
+
+/* --------------------------------------------------------------------------
    Empty State
    -------------------------------------------------------------------------- */
 

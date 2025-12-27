@@ -263,6 +263,7 @@
     const avatarUrl = conv.user.avatar_url || '/static/img/default-avatar.png';
     const statusClass = conv.user.is_online ? 'is-online' : 'is-offline';
     const previewClass = conv.last_message.sent_by_me ? 'is-sent' : '';
+    const roleBadges = renderRoleBadges(conv.user);
 
     div.innerHTML = `
       <div class="c-messages-conversation__avatar-wrapper">
@@ -270,7 +271,7 @@
         <span class="c-online-status c-online-status--sm ${statusClass}"></span>
       </div>
       <div class="c-messages-conversation__info">
-        <p class="c-messages-conversation__name">${escapeHtml(conv.user.name)}</p>
+        <p class="c-messages-conversation__name">${escapeHtml(conv.user.name)}${roleBadges}</p>
         <p class="c-messages-conversation__preview ${previewClass}">${escapeHtml(conv.last_message.content)}</p>
       </div>
       <div class="c-messages-conversation__meta">
@@ -326,6 +327,7 @@
    */
   function updateChatHeader(user) {
     const avatarUrl = user.avatar_url || '/static/img/default-avatar.png';
+    const roleBadges = renderRoleBadges(user);
 
     if (elements.chatAvatar) {
       elements.chatAvatar.src = avatarUrl;
@@ -337,7 +339,7 @@
     }
 
     if (elements.chatName) {
-      elements.chatName.textContent = user.name;
+      elements.chatName.innerHTML = escapeHtml(user.name) + roleBadges;
       elements.chatName.href = user.profile_url || '#';
     }
 
@@ -830,9 +832,10 @@
           data.users.forEach(user => {
             const div = document.createElement('div');
             div.className = 'c-user-search-results__item';
+            const roleBadges = renderRoleBadges(user);
             div.innerHTML = `
               <img src="${user.avatar_url || '/static/img/default-avatar.png'}" alt="${user.name}" class="c-user-search-results__avatar">
-              <span class="c-user-search-results__name">${escapeHtml(user.name)}</span>
+              <span class="c-user-search-results__name">${escapeHtml(user.name)}${roleBadges}</span>
             `;
             div.addEventListener('click', () => openConversation(user));
             userResultsList.appendChild(div);
@@ -884,6 +887,38 @@
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  /**
+   * Generate role badge HTML for a user
+   * @param {Object} user - User object with role flags
+   * @returns {string} HTML string with badge icons
+   */
+  function renderRoleBadges(user) {
+    if (!user) return '';
+
+    const badges = [];
+
+    // Global Admin - Crown icon (highest priority)
+    if (user.is_global_admin) {
+      badges.push('<span class="c-role-badge c-role-badge--admin" title="Global Admin"><i class="ti ti-crown"></i></span>');
+    }
+    // Pub League Admin - Shield icon
+    else if (user.is_admin) {
+      badges.push('<span class="c-role-badge c-role-badge--admin" title="Admin"><i class="ti ti-shield-check"></i></span>');
+    }
+
+    // Coach - Whistle icon
+    if (user.is_coach) {
+      badges.push('<span class="c-role-badge c-role-badge--coach" title="Coach"><i class="ti ti-speakerphone"></i></span>');
+    }
+
+    // Referee - Cards icon
+    if (user.is_ref) {
+      badges.push('<span class="c-role-badge c-role-badge--ref" title="Referee"><i class="ti ti-cards"></i></span>');
+    }
+
+    return badges.length > 0 ? `<span class="c-role-badges">${badges.join('')}</span>` : '';
   }
 
   /**

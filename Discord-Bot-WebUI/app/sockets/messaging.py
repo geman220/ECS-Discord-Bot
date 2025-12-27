@@ -41,6 +41,7 @@ def leave_user_room(user_id):
 def emit_to_user(user_id, event, data):
     """
     Emit an event to a specific user if they're online.
+    Emits to both default namespace (web clients) and /live namespace (mobile clients).
 
     Args:
         user_id: Target user ID
@@ -52,7 +53,10 @@ def emit_to_user(user_id, event, data):
     """
     if PresenceManager.is_user_online(user_id):
         room = get_user_room(user_id)
+        # Emit to default namespace (web browser clients)
         socketio.emit(event, data, room=room, namespace='/')
+        # Emit to /live namespace (Flutter mobile clients)
+        socketio.emit(event, data, room=room, namespace='/live')
         return True
     return False
 
@@ -61,14 +65,10 @@ def emit_to_user(user_id, event, data):
 # SOCKET EVENT HANDLERS
 # ============================================================================
 
-@socketio.on('join_messaging', namespace='/')
-def handle_join_messaging(data=None):
+def _handle_join_messaging_impl(namespace_name):
     """
-    Join the messaging system.
+    Implementation for join_messaging handler.
     Called when user opens chat widget or messages page.
-
-    Args:
-        data: Optional data from client (ignored, but accepted for compatibility)
     """
     user_id = session.get('user_id')
     if not user_id:
@@ -84,16 +84,39 @@ def handle_join_messaging(data=None):
         'timestamp': datetime.utcnow().isoformat()
     })
 
-    logger.info(f"User {user_id} joined messaging system")
+    logger.info(f"User {user_id} joined messaging system via {namespace_name} namespace")
 
 
-@socketio.on('leave_messaging', namespace='/')
-def handle_leave_messaging(data=None):
-    """Leave the messaging system."""
+@socketio.on('join_messaging', namespace='/')
+def handle_join_messaging(data=None):
+    """Join the messaging system (default namespace for web clients)."""
+    _handle_join_messaging_impl('/')
+
+
+@socketio.on('join_messaging', namespace='/live')
+def handle_join_messaging_live(data=None):
+    """Join the messaging system (/live namespace for mobile clients)."""
+    _handle_join_messaging_impl('/live')
+
+
+def _handle_leave_messaging_impl():
+    """Implementation for leave_messaging handler."""
     user_id = session.get('user_id')
     if user_id:
         leave_user_room(user_id)
         logger.info(f"User {user_id} left messaging system")
+
+
+@socketio.on('leave_messaging', namespace='/')
+def handle_leave_messaging(data=None):
+    """Leave the messaging system (default namespace)."""
+    _handle_leave_messaging_impl()
+
+
+@socketio.on('leave_messaging', namespace='/live')
+def handle_leave_messaging_live(data=None):
+    """Leave the messaging system (/live namespace)."""
+    _handle_leave_messaging_impl()
 
 
 @socketio.on('send_dm', namespace='/')
@@ -211,21 +234,15 @@ def handle_send_dm(data):
         emit('dm_error', {'error': 'Failed to send message'})
 
 
-@socketio.on('typing_start', namespace='/')
-def handle_typing_start(data):
-    """
-    Handle typing indicator start.
-
-    Data:
-        recipient_id: User being typed to
-    """
+def _handle_typing_start_impl(data):
+    """Implementation for typing_start handler."""
     from app.models import MessagingSettings
 
     user_id = session.get('user_id')
     if not user_id:
         return
 
-    recipient_id = data.get('recipient_id')
+    recipient_id = data.get('recipient_id') if data else None
     if not recipient_id:
         return
 
@@ -241,16 +258,27 @@ def handle_typing_start(data):
     })
 
 
-@socketio.on('typing_stop', namespace='/')
-def handle_typing_stop(data):
-    """Handle typing indicator stop."""
+@socketio.on('typing_start', namespace='/')
+def handle_typing_start(data=None):
+    """Handle typing indicator start (default namespace for web clients)."""
+    _handle_typing_start_impl(data)
+
+
+@socketio.on('typing_start', namespace='/live')
+def handle_typing_start_live(data=None):
+    """Handle typing indicator start (/live namespace for mobile clients)."""
+    _handle_typing_start_impl(data)
+
+
+def _handle_typing_stop_impl(data):
+    """Implementation for typing_stop handler."""
     from app.models import MessagingSettings
 
     user_id = session.get('user_id')
     if not user_id:
         return
 
-    recipient_id = data.get('recipient_id')
+    recipient_id = data.get('recipient_id') if data else None
     if not recipient_id:
         return
 
@@ -265,10 +293,21 @@ def handle_typing_stop(data):
     })
 
 
-@socketio.on('mark_dm_read', namespace='/')
-def handle_mark_dm_read(data):
+@socketio.on('typing_stop', namespace='/')
+def handle_typing_stop(data=None):
+    """Handle typing indicator stop (default namespace for web clients)."""
+    _handle_typing_stop_impl(data)
+
+
+@socketio.on('typing_stop', namespace='/live')
+def handle_typing_stop_live(data=None):
+    """Handle typing indicator stop (/live namespace for mobile clients)."""
+    _handle_typing_stop_impl(data)
+
+
+def _handle_mark_dm_read_impl(data):
     """
-    Mark message(s) as read via WebSocket.
+    Implementation for mark_dm_read handler.
 
     Data:
         message_id: Single message ID (optional)
@@ -278,6 +317,9 @@ def handle_mark_dm_read(data):
 
     user_id = session.get('user_id')
     if not user_id:
+        return
+
+    if not data:
         return
 
     message_id = data.get('message_id')
@@ -322,6 +364,18 @@ def handle_mark_dm_read(data):
     except Exception as e:
         logger.error(f"Error marking DM read: {e}")
         db.session.rollback()
+
+
+@socketio.on('mark_dm_read', namespace='/')
+def handle_mark_dm_read(data=None):
+    """Mark message(s) as read (default namespace for web clients)."""
+    _handle_mark_dm_read_impl(data)
+
+
+@socketio.on('mark_dm_read', namespace='/live')
+def handle_mark_dm_read_live(data=None):
+    """Mark message(s) as read (/live namespace for mobile clients)."""
+    _handle_mark_dm_read_impl(data)
 
 
 # ============================================================================

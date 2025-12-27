@@ -59,9 +59,18 @@ def _user_to_dict(user, session_db):
     }
 
 
-def _message_to_dict(msg):
-    """Serialize a DirectMessage with full avatar URLs and sender badges for mobile API."""
+def _message_to_dict(msg, for_user_id=None):
+    """Serialize a DirectMessage with full avatar URLs and sender badges for mobile API.
+
+    Args:
+        msg: DirectMessage object
+        for_user_id: If provided, adds is_from_me field based on this user's perspective
+    """
     msg_dict = msg.to_dict()
+
+    # Add is_from_me if we know who's viewing
+    if for_user_id is not None:
+        msg_dict['is_from_me'] = (msg.sender_id == for_user_id)
 
     # Fix sender_avatar to be a full URL
     if msg.sender and msg.sender.player:
@@ -257,7 +266,7 @@ def get_conversation(user_id):
 
         return jsonify({
             'user': _user_to_dict(other_user, session_db),
-            'messages': [_message_to_dict(msg) for msg in reversed(messages)],
+            'messages': [_message_to_dict(msg, for_user_id=current_user_id) for msg in reversed(messages)],
             'has_more': len(messages) == limit,
             'settings': {
                 'typing_indicators': settings.typing_indicators if settings else True,
@@ -338,19 +347,24 @@ def send_message(user_id):
         except Exception as e:
             logger.warning(f"Failed to send push notification: {e}")
 
-        # Emit WebSocket event
+        # Emit WebSocket event to recipient (from their perspective, is_from_me=False)
         try:
             from flask import current_app
             from app.sockets.presence import PresenceManager
 
             socketio = current_app.extensions.get('socketio')
             if socketio and PresenceManager.is_user_online(user_id):
-                socketio.emit('new_message', _message_to_dict(message), room=f'user_{user_id}')
+                msg_data = _message_to_dict(message, for_user_id=user_id)  # Recipient's perspective
+                # Emit to default namespace (web browser clients)
+                socketio.emit('new_message', msg_data, room=f'user_{user_id}')
+                # Emit to /live namespace (Flutter mobile clients)
+                socketio.emit('new_message', msg_data, room=f'user_{user_id}', namespace='/live')
         except Exception as e:
             logger.warning(f"Failed to emit WebSocket: {e}")
 
+        # Return to sender with is_from_me=True
         return jsonify({
-            'message': _message_to_dict(message)
+            'message': _message_to_dict(message, for_user_id=current_user_id)
         }), 201
 
 

@@ -105,14 +105,31 @@ def _can_user_message(sender_user, recipient_user):
 
 
 def _user_to_dict(user, include_online=True):
-    """Serialize user for API responses."""
+    """Serialize user for API responses with role badges."""
+    player = user.player if hasattr(user, 'player') else None
+
+    # Check roles for badges
+    has_role = hasattr(user, 'has_role')
+    is_global_admin = user.has_role('Global Admin') if has_role else False
+    is_admin = user.has_role('Pub League Admin') if has_role else False
+    is_coach = (
+        user.has_role('Pub League Coach') or
+        user.has_role('ECS FC Coach') or
+        (player and getattr(player, 'is_coach', False))
+    ) if has_role else (player and getattr(player, 'is_coach', False) if player else False)
+    is_ref = user.has_role('Pub League Ref') if has_role else False
+
     return {
         'id': user.id,
         'username': user.username,
-        'name': user.player.name if user.player else user.username,
-        'avatar_url': user.player.profile_picture_url if user.player else None,
-        'profile_url': f'/players/profile/{user.player.id}' if user.player else None,
-        'is_online': PresenceManager.is_user_online(user.id) if include_online else None
+        'name': player.name if player else user.username,
+        'avatar_url': player.profile_picture_url if player else None,
+        'profile_url': f'/players/profile/{player.id}' if player else None,
+        'is_online': PresenceManager.is_user_online(user.id) if include_online else None,
+        'is_coach': is_coach,
+        'is_admin': is_admin,
+        'is_global_admin': is_global_admin,
+        'is_ref': is_ref,
     }
 
 
@@ -307,7 +324,11 @@ def send_message(user_id):
             from flask import current_app
             socketio = current_app.extensions.get('socketio')
             if socketio and recipient_online:
-                socketio.emit('new_message', message.to_dict(), room=f'user_{user_id}')
+                msg_data = message.to_dict()
+                # Emit to default namespace (for web browser clients)
+                socketio.emit('new_message', msg_data, room=f'user_{user_id}')
+                # Emit to /live namespace (for Flutter mobile clients)
+                socketio.emit('new_message', msg_data, room=f'user_{user_id}', namespace='/live')
         except Exception as e:
             logger.warning(f"Failed to emit WebSocket message: {e}")
 
@@ -440,10 +461,14 @@ def delete_message(message_id):
             from flask import current_app
             socketio = current_app.extensions.get('socketio')
             if socketio:
-                socketio.emit('message_deleted', {
+                deleted_data = {
                     'message_id': message_id,
                     'deleted_for': 'everyone'
-                }, room=f'user_{recipient_id}')
+                }
+                # Emit to default namespace (web browser clients)
+                socketio.emit('message_deleted', deleted_data, room=f'user_{recipient_id}')
+                # Emit to /live namespace (Flutter mobile clients)
+                socketio.emit('message_deleted', deleted_data, room=f'user_{recipient_id}', namespace='/live')
         except Exception as e:
             logger.warning(f"Failed to emit message_deleted event: {e}")
 

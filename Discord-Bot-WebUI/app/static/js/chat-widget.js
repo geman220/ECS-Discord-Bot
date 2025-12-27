@@ -248,6 +248,38 @@
   // RENDER FUNCTIONS
   // ============================================================================
 
+  /**
+   * Generate role badge HTML for a user
+   * @param {Object} user - User object with role flags
+   * @returns {string} HTML string with badge icons
+   */
+  function renderRoleBadges(user) {
+    if (!user) return '';
+
+    const badges = [];
+
+    // Global Admin - Crown icon (highest priority)
+    if (user.is_global_admin) {
+      badges.push('<span class="c-chat-widget__role-badge c-chat-widget__role-badge--admin" title="Global Admin"><i class="ti ti-crown"></i></span>');
+    }
+    // Pub League Admin - Shield icon
+    else if (user.is_admin) {
+      badges.push('<span class="c-chat-widget__role-badge c-chat-widget__role-badge--admin" title="Admin"><i class="ti ti-shield-check"></i></span>');
+    }
+
+    // Coach - Whistle icon
+    if (user.is_coach) {
+      badges.push('<span class="c-chat-widget__role-badge c-chat-widget__role-badge--coach" title="Coach"><i class="ti ti-speakerphone"></i></span>');
+    }
+
+    // Referee - Cards icon
+    if (user.is_ref) {
+      badges.push('<span class="c-chat-widget__role-badge c-chat-widget__role-badge--ref" title="Referee"><i class="ti ti-cards"></i></span>');
+    }
+
+    return badges.length > 0 ? `<span class="c-chat-widget__role-badges">${badges.join('')}</span>` : '';
+  }
+
   function renderConversations() {
     if (!elements.conversationList) return;
 
@@ -270,6 +302,7 @@
       const isUnread = conv.unread_count > 0;
       const isOnline = conv.user.is_online;
       const avatarUrl = conv.user.avatar_url || defaultAvatar;
+      const roleBadges = renderRoleBadges(conv.user);
 
       return `
         <div class="c-chat-widget__conversation ${isActive ? 'c-chat-widget__conversation--active' : ''} ${isUnread ? 'c-chat-widget__conversation--unread' : ''}"
@@ -277,6 +310,10 @@
              data-user-name="${escapeHtml(conv.user.name)}"
              data-avatar="${avatarUrl}"
              data-online="${isOnline}"
+             data-is-coach="${conv.user.is_coach || false}"
+             data-is-admin="${conv.user.is_admin || false}"
+             data-is-global-admin="${conv.user.is_global_admin || false}"
+             data-is-ref="${conv.user.is_ref || false}"
              role="button"
              tabindex="0">
           <div class="c-chat-widget__conv-avatar ${isOnline ? 'c-chat-widget__conv-avatar--online' : ''}">
@@ -284,7 +321,7 @@
           </div>
           <div class="c-chat-widget__conv-content">
             <div class="c-chat-widget__conv-header">
-              <span class="c-chat-widget__conv-name">${escapeHtml(conv.user.name)}</span>
+              <span class="c-chat-widget__conv-name">${escapeHtml(conv.user.name)}${roleBadges}</span>
               <span class="c-chat-widget__conv-time">${conv.last_message.time_ago}</span>
             </div>
             <div class="c-chat-widget__conv-preview">
@@ -510,18 +547,23 @@
 
     const html = state.searchResults.map(user => {
       const avatarUrl = user.avatar_url || defaultAvatar;
+      const roleBadges = renderRoleBadges(user);
       return `
         <div class="c-chat-widget__search-result"
              data-user-id="${user.id}"
              data-user-name="${escapeHtml(user.name)}"
              data-avatar="${avatarUrl}"
              data-online="${user.is_online || false}"
+             data-is-coach="${user.is_coach || false}"
+             data-is-admin="${user.is_admin || false}"
+             data-is-global-admin="${user.is_global_admin || false}"
+             data-is-ref="${user.is_ref || false}"
              role="button"
              tabindex="0">
           <div class="c-chat-widget__search-result-avatar">
             <img src="${avatarUrl}" alt="${escapeHtml(user.name)}" onerror="this.src='${defaultAvatar}'">
           </div>
-          <span class="c-chat-widget__search-result-name">${escapeHtml(user.name)}</span>
+          <span class="c-chat-widget__search-result-name">${escapeHtml(user.name)}${roleBadges}</span>
         </div>
       `;
     }).join('');
@@ -664,13 +706,14 @@
     }
   }
 
-  function openConversation(userId, userName, avatarUrl, isOnline) {
+  function openConversation(userId, userName, avatarUrl, isOnline, roleInfo) {
     state.currentView = 'chat';
     state.activeConversation = {
       id: parseInt(userId),
       name: userName,
       avatar: avatarUrl,
-      isOnline: isOnline === 'true' || isOnline === true
+      isOnline: isOnline === 'true' || isOnline === true,
+      roles: roleInfo || {}
     };
 
     if (elements.widget) {
@@ -685,7 +728,9 @@
       elements.chatAvatar.onerror = function() { this.src = defaultAvatar; };
     }
     if (elements.chatName) {
-      elements.chatName.textContent = userName;
+      // Display name with role badges
+      const roleBadges = renderRoleBadges(roleInfo);
+      elements.chatName.innerHTML = escapeHtml(userName) + roleBadges;
     }
     if (elements.chatStatus) {
       elements.chatStatus.textContent = state.activeConversation.isOnline ? 'Online' : 'Offline';
@@ -762,7 +807,15 @@
     const avatarUrl = conversation.dataset.avatar;
     const isOnline = conversation.dataset.online;
 
-    openConversation(userId, userName, avatarUrl, isOnline);
+    // Get role info from data attributes (or from state for conversations)
+    const roleInfo = {
+      is_coach: conversation.dataset.isCoach === 'true',
+      is_admin: conversation.dataset.isAdmin === 'true',
+      is_global_admin: conversation.dataset.isGlobalAdmin === 'true',
+      is_ref: conversation.dataset.isRef === 'true'
+    };
+
+    openConversation(userId, userName, avatarUrl, isOnline, roleInfo);
 
     // Clear search state completely
     clearSearch();

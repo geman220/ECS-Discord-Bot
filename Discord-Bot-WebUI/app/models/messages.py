@@ -58,6 +58,37 @@ class DirectMessage(db.Model):
         db.Index('ix_dm_unread', 'recipient_id', 'is_read'),
     )
 
+    def _get_sender_badges(self):
+        """Get role badges for the sender."""
+        if not self.sender:
+            return {
+                'sender_is_coach': False,
+                'sender_is_admin': False,
+                'sender_is_global_admin': False,
+                'sender_is_ref': False,
+            }
+
+        sender = self.sender
+        player = sender.player if hasattr(sender, 'player') else None
+
+        # Check roles using has_role method
+        has_role = hasattr(sender, 'has_role')
+        is_global_admin = sender.has_role('Global Admin') if has_role else False
+        is_admin = sender.has_role('Pub League Admin') if has_role else False
+        is_coach = (
+            sender.has_role('Pub League Coach') or
+            sender.has_role('ECS FC Coach') or
+            (player and getattr(player, 'is_coach', False))
+        ) if has_role else (player and getattr(player, 'is_coach', False) if player else False)
+        is_ref = sender.has_role('Pub League Ref') if has_role else False
+
+        return {
+            'sender_is_coach': is_coach,
+            'sender_is_admin': is_admin,
+            'sender_is_global_admin': is_global_admin,
+            'sender_is_ref': is_ref,
+        }
+
     def to_dict(self, for_user_id=None):
         """
         Serialize message for API/WebSocket responses.
@@ -65,6 +96,9 @@ class DirectMessage(db.Model):
         Args:
             for_user_id: If provided, checks visibility for this user
         """
+        # Get sender badges
+        badges = self._get_sender_badges()
+
         # If message was deleted for everyone, show placeholder
         if self.is_deleted:
             return {
@@ -79,7 +113,8 @@ class DirectMessage(db.Model):
                 'sender_name': self.sender.player.name if self.sender and self.sender.player else (
                     self.sender.username if self.sender else None
                 ),
-                'sender_avatar': self.sender.player.profile_picture_url if self.sender and self.sender.player else None
+                'sender_avatar': self.sender.player.profile_picture_url if self.sender and self.sender.player else None,
+                **badges
             }
 
         return {
@@ -94,7 +129,8 @@ class DirectMessage(db.Model):
             'sender_name': self.sender.player.name if self.sender and self.sender.player else (
                 self.sender.username if self.sender else None
             ),
-            'sender_avatar': self.sender.player.profile_picture_url if self.sender and self.sender.player else None
+            'sender_avatar': self.sender.player.profile_picture_url if self.sender and self.sender.player else None,
+            **badges
         }
 
     def mark_as_read(self):
