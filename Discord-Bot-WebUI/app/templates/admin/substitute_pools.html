@@ -710,7 +710,7 @@
 {{ super() }}
 
 <!-- Substitute Pool Management Scripts -->
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <script src="{{ url_for('static', filename='custom_js/substitute-pool-management.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/substitute-request-management.js') }}"></script>
 {% endif %}

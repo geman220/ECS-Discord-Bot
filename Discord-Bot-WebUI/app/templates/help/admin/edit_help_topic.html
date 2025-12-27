@@ -29,7 +29,7 @@
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
 <script>
     var easyMDE = new EasyMDE({

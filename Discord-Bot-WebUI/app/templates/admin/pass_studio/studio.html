@@ -3,7 +3,7 @@
 
 {% block custom_css %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/pass-studio.css') }}">
 {% endif %}
 {% endblock %}
@@ -126,7 +126,7 @@
 {% endblock %}
 
 {% block scripts %}
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 {# Asset Cropper Library #}
 <script src="{{ url_for('static', filename='js/pass-studio-cropper.js') }}"></script>
 

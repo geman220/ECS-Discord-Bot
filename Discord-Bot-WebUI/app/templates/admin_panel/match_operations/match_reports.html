@@ -11,7 +11,7 @@
 
 {% block custom_css %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/match-operations/seasons.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/match-operations/match-reports.css') }}">
 {% endif %}
@@ -396,7 +396,7 @@
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{{ url_for('static', filename='js/match-operations/match-reports.js') }}"></script>
 {% endif %}

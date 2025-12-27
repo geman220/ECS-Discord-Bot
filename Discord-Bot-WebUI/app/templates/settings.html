@@ -3,7 +3,7 @@
 
 {% block page_css %}
 
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/settings.css') }}" />
 {% endif %}
 {% endblock %}
@@ -300,7 +300,7 @@
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <script src="{{ url_for('static', filename='custom_js/settings-tabs.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/settings.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/handle_2fa.js') }}"></script>

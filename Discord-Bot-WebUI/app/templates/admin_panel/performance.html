@@ -238,14 +238,14 @@
 
 {% block custom_css %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin-panel/performance.css') }}">
 {% endif %}
 {% endblock %}
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{{ url_for('static', filename='js/admin-panel-performance.js') }}"></script>
 {% endif %}

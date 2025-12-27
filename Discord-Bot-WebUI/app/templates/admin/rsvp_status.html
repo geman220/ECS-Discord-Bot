@@ -7,7 +7,7 @@
 <!-- RSVP Status Page Styles -->
 <!-- Toastr CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/rsvp-status.css') }}" />
 {% endif %}
 {% endblock %}
@@ -1472,7 +1472,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
 <!-- Custom scripts (development mode only - bundled in production) -->
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <script src="{{ url_for('static', filename='custom_js/design-system-override.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/rsvp-unified.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/substitute-request-management.js') }}"></script>

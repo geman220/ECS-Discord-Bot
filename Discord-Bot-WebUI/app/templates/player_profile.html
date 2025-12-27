@@ -1473,7 +1473,7 @@
      data-delay="3000"></div>
 {% endif %}
 
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <script src="{{ url_for('static', filename='custom_js/player-profile.js') }}"></script>
 {% endif %}
 {% endblock %}
@@ -1483,7 +1483,7 @@
 <!-- Cropper.css -->
 <!-- Player profile styles -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" />
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/features/player-profile.css') }}" />
 {% endif %}
 {% endblock %}

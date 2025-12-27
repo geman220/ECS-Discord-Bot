@@ -168,7 +168,7 @@
     </div>
 </div>
 
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 {# Include the bracket CSS #}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/features/playoff-bracket.css') }}">
 

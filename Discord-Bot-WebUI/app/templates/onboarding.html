@@ -5,7 +5,7 @@
 
 {% block page_css %}
 
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/onboarding.css') }}" />
 {% endif %}
 {% endblock %}
@@ -439,7 +439,7 @@
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <script src="{{ url_for('static', filename='vendor/libs/select2/select2.full.min.js') }}"></script>
 <!-- Simple Cropper (Custom implementation) -->
 <script src="{{ url_for('static', filename='custom_js/simple-cropper.js') }}"></script>

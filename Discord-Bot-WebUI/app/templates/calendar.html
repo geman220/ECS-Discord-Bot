@@ -618,7 +618,7 @@
 {{ super() }}
 
 <!-- Calendar Module JS -->
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <script src="{{ url_for('static', filename='assets/js/calendar/calendar-league-events.js') }}"></script>
 <script src="{{ url_for('static', filename='assets/js/calendar/calendar-filters.js') }}"></script>
 <script>
@@ -2715,7 +2715,7 @@ document.addEventListener('DOMContentLoaded', () => {
 {% block custom_css %}
 {{ super() }}
 <!-- Calendar Page Specific Styles -->
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/calendar.css') }}">
 {% endif %}
 <style>

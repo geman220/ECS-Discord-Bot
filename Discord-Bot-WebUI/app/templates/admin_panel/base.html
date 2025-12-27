@@ -97,7 +97,7 @@
 {{ super() }}
 <!-- Admin Panel Base Layout - BEM Classes -->
 <!-- Dropdowns: Handled by components/dropdowns.css (loaded globally) -->
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin-panel/base.css') }}?v={{ config.get('STATIC_VERSION', '3') }}" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/admin-navigation.css') }}?v={{ config.get('STATIC_VERSION', '3') }}" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin-panel/dashboard.css') }}?v={{ config.get('STATIC_VERSION', '3') }}" />
@@ -106,7 +106,7 @@
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <!-- Admin Utilities - Apply data attributes dynamically -->
 <script src="{{ url_for('static', filename='js/admin-utilities-init.js') }}?v=3"></script>
 <!-- Admin Navigation Controller - Event delegation for navigation -->
