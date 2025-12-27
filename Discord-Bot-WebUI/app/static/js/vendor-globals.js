@@ -51,7 +51,19 @@ import Shepherd from 'shepherd.js';
 window.Shepherd = Shepherd;
 
 // ============================================================================
-// 8. MENU - Custom sidebar navigation (must stay local)
+// 8. DATATABLES - Table functionality (must init after jQuery)
+// ============================================================================
+import DataTable from 'datatables.net-bs5';
+import 'datatables.net-responsive-bs5';
+
+// ============================================================================
+// 9. SELECT2 - Enhanced select dropdowns (must init after jQuery)
+// ============================================================================
+import 'select2';
+import 'select2/dist/css/select2.min.css';
+
+// ============================================================================
+// 10. MENU - Custom sidebar navigation (must stay local)
 // ============================================================================
 import '../vendor/js/menu-refactored.js';
 
