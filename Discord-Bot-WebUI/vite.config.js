@@ -66,8 +66,8 @@ export default defineConfig({
       },
     },
 
-    // Generate source maps for debugging
-    sourcemap: true,
+    // Disable source maps in production to reduce memory usage during build
+    sourcemap: false,
   },
 
   // Development server config
