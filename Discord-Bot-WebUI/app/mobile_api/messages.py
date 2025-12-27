@@ -487,3 +487,42 @@ def check_can_message(user_id):
             'can_message': can_message,
             'reason': reason
         }), 200
+
+
+@mobile_api_v2.route('/messages/conversation/<int:user_id>', methods=['DELETE'])
+@jwt_required()
+def delete_conversation(user_id):
+    """
+    Delete (hide) a conversation for the current user only.
+
+    This is a soft delete - messages are hidden for the current user
+    but remain visible to the other participant.
+
+    Args:
+        user_id: The other user's ID in the conversation
+
+    Returns:
+        JSON with success message and count of hidden messages
+    """
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session_db:
+        current_user = session_db.query(User).get(current_user_id)
+        other_user = session_db.query(User).get(user_id)
+
+        if not current_user:
+            return jsonify({"msg": "User not found"}), 404
+
+        if not other_user:
+            return jsonify({"msg": "Conversation partner not found"}), 404
+
+        # Hide all messages in this conversation for the current user
+        hidden_count = DirectMessage.hide_conversation_for_user(current_user_id, user_id)
+        session_db.commit()
+
+        logger.info(f"User {current_user_id} hid conversation with user {user_id} ({hidden_count} messages)")
+
+        return jsonify({
+            'msg': 'Conversation deleted',
+            'hidden_count': hidden_count
+        }), 200

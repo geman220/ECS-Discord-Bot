@@ -331,7 +331,7 @@ services:
       sh -c "python build_assets.py &&
       gunicorn
       --worker-class eventlet
-      --workers 5
+      --workers 1
       --bind 0.0.0.0:5000
       --log-level info
       --access-logfile -
@@ -339,9 +339,9 @@ services:
       --timeout 120
       --graceful-timeout 120
       --keep-alive 65
-      --worker-connections 2000
-      --max-requests 1000
-      --max-requests-jitter 50
+      --worker-connections 10000
+      --max-requests 5000
+      --max-requests-jitter 100
       --name webui
       wsgi:application"
     environment:

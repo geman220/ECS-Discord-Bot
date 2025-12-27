@@ -8,13 +8,14 @@ REST API endpoints and pages for the lightweight messaging system.
 Handles conversations, sending messages, and permission checks.
 
 API Endpoints (prefix: /api/messages):
-    GET  /api/messages                    - List conversations
-    GET  /api/messages/unread-count       - Get unread message count
-    GET  /api/messages/<user_id>          - Get conversation with user
-    POST /api/messages/<user_id>          - Send message to user
-    POST /api/messages/<msg_id>/read      - Mark message as read
-    POST /api/messages/mark-all-read      - Mark all messages as read
-    GET  /api/messages/can-message/<user_id> - Check if can message user
+    GET    /api/messages                       - List conversations
+    GET    /api/messages/unread-count          - Get unread message count
+    GET    /api/messages/<user_id>             - Get conversation with user
+    POST   /api/messages/<user_id>             - Send message to user
+    POST   /api/messages/<msg_id>/read         - Mark message as read
+    POST   /api/messages/mark-all-read         - Mark all messages as read
+    DELETE /api/messages/conversation/<user_id> - Delete conversation for current user
+    GET    /api/messages/can-message/<user_id> - Check if can message user
 
 Pages:
     GET  /messages                        - Messages inbox page
@@ -526,6 +527,49 @@ def hide_message(message_id):
         return jsonify({
             'success': False,
             'error': 'Failed to hide message'
+        }), 500
+
+
+@messages_bp.route('/conversation/<int:user_id>', methods=['DELETE'])
+@login_required
+def delete_conversation(user_id):
+    """
+    Delete (hide) a conversation for the current user only.
+
+    This is a soft delete - messages are hidden for the current user
+    but remain visible to the other participant.
+
+    Args:
+        user_id: The other user's ID in the conversation
+
+    Returns:
+        JSON with success status and count of hidden messages
+    """
+    try:
+        other_user = User.query.get(user_id)
+        if not other_user:
+            return jsonify({
+                'success': False,
+                'error': 'Conversation partner not found'
+            }), 404
+
+        # Hide all messages in this conversation for the current user
+        hidden_count = DirectMessage.hide_conversation_for_user(current_user.id, user_id)
+        db.session.commit()
+
+        logger.info(f"User {current_user.id} hid conversation with user {user_id} ({hidden_count} messages)")
+
+        return jsonify({
+            'success': True,
+            'hidden_count': hidden_count
+        })
+
+    except Exception as e:
+        logger.error(f"Error deleting conversation: {e}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Failed to delete conversation'
         }), 500
 
 

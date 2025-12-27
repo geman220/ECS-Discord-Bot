@@ -210,15 +210,47 @@ class DirectMessage(db.Model):
         ).count()
 
     @classmethod
+    def hide_conversation_for_user(cls, user_id, other_user_id):
+        """
+        Hide all messages in a conversation for a specific user.
+
+        This is a "delete for me only" operation - the other user
+        can still see the messages.
+
+        Args:
+            user_id: The user hiding the conversation
+            other_user_id: The other participant in the conversation
+
+        Returns:
+            int: Number of messages hidden
+        """
+        # Hide messages where user is the sender
+        sent_count = cls.query.filter(
+            cls.sender_id == user_id,
+            cls.recipient_id == other_user_id,
+            cls.hidden_for_sender == False
+        ).update({'hidden_for_sender': True})
+
+        # Hide messages where user is the recipient
+        received_count = cls.query.filter(
+            cls.sender_id == other_user_id,
+            cls.recipient_id == user_id,
+            cls.hidden_for_recipient == False
+        ).update({'hidden_for_recipient': True})
+
+        return sent_count + received_count
+
+    @classmethod
     def get_conversations_for_user(cls, user_id, limit=20):
         """
         Get list of conversations with most recent message.
         Returns a list of conversation summaries.
+        Excludes conversations where all messages are hidden for the user.
         """
         # Subquery to get max message ID per conversation partner
         from sqlalchemy import func, case
 
-        # Get all users this user has messaged with
+        # Get all users this user has messaged with, excluding hidden messages
         subq = db.session.query(
             case(
                 (cls.sender_id == user_id, cls.recipient_id),
@@ -227,7 +259,12 @@ class DirectMessage(db.Model):
             func.max(cls.id).label('max_id'),
             func.count(case((cls.is_read == False, cls.recipient_id == user_id))).label('unread_count')
         ).filter(
-            db.or_(cls.sender_id == user_id, cls.recipient_id == user_id)
+            db.or_(cls.sender_id == user_id, cls.recipient_id == user_id),
+            # Exclude messages hidden for this user
+            db.or_(
+                db.and_(cls.sender_id == user_id, cls.hidden_for_sender == False),
+                db.and_(cls.recipient_id == user_id, cls.hidden_for_recipient == False)
+            )
         ).group_by('partner_id').subquery()
 
         # Join to get full message details
