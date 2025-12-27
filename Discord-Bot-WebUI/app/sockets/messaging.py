@@ -5,18 +5,81 @@ Socket.IO Messaging Handlers
 
 Real-time message delivery and typing indicators for direct messaging.
 Uses user-specific rooms for targeted message delivery.
+
+Supports both:
+- Web clients (default '/' namespace) using Flask session
+- Mobile clients ('/live' namespace) using JWT authentication
 """
 
 import logging
 from datetime import datetime
 
-from flask import session, request
+from flask import session, request, g
 from flask_socketio import emit, join_room, leave_room
 
 from app.core import socketio, db
 from app.sockets.presence import PresenceManager
+from app.sockets import SocketSessionManager
 
 logger = logging.getLogger(__name__)
+
+
+def get_current_user_id():
+    """
+    Get the current user's ID from multiple sources.
+
+    Works for both web clients (Flask session) and mobile clients (JWT/Socket.IO session).
+
+    Returns:
+        int or None: User ID if authenticated, None otherwise
+    """
+    user_id = None
+
+    # 1. Try Flask session first (web clients)
+    user_id = session.get('user_id')
+    if user_id:
+        return user_id
+
+    # 2. Try Socket.IO session data (mobile clients via /live namespace)
+    try:
+        # Try request.sid_data first (memory storage)
+        if hasattr(request, 'sid_data') and request.sid_data and 'user_id' in request.sid_data:
+            user_id = request.sid_data.get('user_id')
+            if user_id:
+                logger.debug(f"Using user_id {user_id} from request.sid_data")
+                return user_id
+
+        # Try SocketSessionManager's Redis storage
+        if hasattr(request, 'sid'):
+            session_data = SocketSessionManager.get_session_data(request.sid)
+            if session_data and 'user_id' in session_data:
+                user_id = session_data.get('user_id')
+                if user_id:
+                    logger.debug(f"Using user_id {user_id} from SocketSessionManager")
+                    return user_id
+
+        # Try socketio.server session storage
+        if hasattr(request, 'sid'):
+            try:
+                server_session = socketio.server.get_session(request.sid)
+                if server_session and 'user_id' in server_session:
+                    user_id = server_session.get('user_id')
+                    if user_id:
+                        logger.debug(f"Using user_id {user_id} from socketio.server session")
+                        return user_id
+            except Exception:
+                pass
+
+    except Exception as e:
+        logger.debug(f"Error accessing Socket.IO session data: {e}")
+
+    # 3. Fall back to Flask g
+    user_id = getattr(g, 'socket_user_id', None)
+    if user_id:
+        logger.debug(f"Using user_id {user_id} from Flask g")
+        return user_id
+
+    return None
 
 
 def get_user_room(user_id):
@@ -70,7 +133,7 @@ def _handle_join_messaging_impl(namespace_name):
     Implementation for join_messaging handler.
     Called when user opens chat widget or messages page.
     """
-    user_id = session.get('user_id')
+    user_id = get_current_user_id()
     if not user_id:
         emit('messaging_error', {'error': 'Not authenticated'})
         return
@@ -101,7 +164,7 @@ def handle_join_messaging_live(data=None):
 
 def _handle_leave_messaging_impl():
     """Implementation for leave_messaging handler."""
-    user_id = session.get('user_id')
+    user_id = get_current_user_id()
     if user_id:
         leave_user_room(user_id)
         logger.info(f"User {user_id} left messaging system")
@@ -119,10 +182,9 @@ def handle_leave_messaging_live(data=None):
     _handle_leave_messaging_impl()
 
 
-@socketio.on('send_dm', namespace='/')
-def handle_send_dm(data):
+def _handle_send_dm_impl(data):
     """
-    Handle sending a direct message via WebSocket.
+    Implementation for send_dm handler.
 
     Data:
         recipient_id: Target user ID
@@ -130,7 +192,7 @@ def handle_send_dm(data):
     """
     from app.models import DirectMessage, MessagingPermission, MessagingSettings, User
 
-    user_id = session.get('user_id')
+    user_id = get_current_user_id()
     if not user_id:
         emit('dm_error', {'error': 'Not authenticated'})
         return
@@ -234,11 +296,23 @@ def handle_send_dm(data):
         emit('dm_error', {'error': 'Failed to send message'})
 
 
+@socketio.on('send_dm', namespace='/')
+def handle_send_dm(data):
+    """Send a direct message (default namespace for web clients)."""
+    _handle_send_dm_impl(data)
+
+
+@socketio.on('send_dm', namespace='/live')
+def handle_send_dm_live(data):
+    """Send a direct message (/live namespace for mobile clients)."""
+    _handle_send_dm_impl(data)
+
+
 def _handle_typing_start_impl(data):
     """Implementation for typing_start handler."""
     from app.models import MessagingSettings
 
-    user_id = session.get('user_id')
+    user_id = get_current_user_id()
     if not user_id:
         return
 
@@ -274,7 +348,7 @@ def _handle_typing_stop_impl(data):
     """Implementation for typing_stop handler."""
     from app.models import MessagingSettings
 
-    user_id = session.get('user_id')
+    user_id = get_current_user_id()
     if not user_id:
         return
 
@@ -315,7 +389,7 @@ def _handle_mark_dm_read_impl(data):
     """
     from app.models import DirectMessage
 
-    user_id = session.get('user_id')
+    user_id = get_current_user_id()
     if not user_id:
         return
 
