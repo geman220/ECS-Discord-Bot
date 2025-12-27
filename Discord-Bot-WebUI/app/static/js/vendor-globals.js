@@ -1,78 +1,54 @@
 /**
- * Vendor Globals Shim
+ * Vendor Globals Setup
  *
- * This file ensures that vendor libraries like jQuery and Bootstrap
- * are properly exposed as globals when bundled by Vite.
+ * This file exposes vendor libraries to the global window object.
+ * The @rollup/plugin-inject handles making $ and jQuery available in modules,
+ * but we still need window.$ for:
+ * - Bootstrap (checks window.jQuery)
+ * - Legacy inline scripts
+ * - Third-party libraries
  *
- * UMD libraries detect CommonJS/AMD environments and export instead of
- * attaching to window. This shim re-exports them to window after import.
+ * Industry standard approach: import then assign to window
+ * Reference: https://dev.to/chmich/setup-jquery-on-vite-598k
  */
 
 // ============================================================================
-// 1. JQUERY - Must be first (many libs depend on it)
+// 1. JQUERY - Must be first (Bootstrap and other libs check window.jQuery)
 // ============================================================================
-import * as jQueryExports from '../vendor/libs/jquery/jquery.js';
-const jQuery = jQueryExports.default || jQueryExports.jQuery || jQueryExports;
-if (typeof window !== 'undefined') {
-  window.jQuery = jQuery;
-  window.$ = jQuery;
-}
+import jQuery from 'jquery';
+
+// Expose jQuery globally - this is the key line that makes everything work
+Object.assign(window, { $: jQuery, jQuery });
 
 // ============================================================================
-// 2. POPPER - Required by Bootstrap tooltips/dropdowns
+// 2. BOOTSTRAP - Using npm package for proper ES module support
 // ============================================================================
-import * as Popper from '../vendor/libs/popper/popper.js';
-if (typeof window !== 'undefined') {
-  window.Popper = Popper.default || Popper.createPopper || Popper;
-}
+import * as bootstrap from 'bootstrap';
+
+// Expose Bootstrap globally for legacy code and inline scripts
+window.bootstrap = bootstrap;
 
 // ============================================================================
-// 3. BOOTSTRAP - Needs jQuery and Popper first
+// 3. NODE WAVES - Ripple effects (local UMD - less critical)
 // ============================================================================
-import * as Bootstrap from '../vendor/js/bootstrap.bundle.js';
-if (typeof window !== 'undefined') {
-  window.bootstrap = Bootstrap.default || Bootstrap;
-}
+import '../vendor/libs/node-waves/node-waves.js';
 
 // ============================================================================
-// 4. NODE WAVES - Ripple effects (checks typeof Waves)
+// 4. PERFECT SCROLLBAR - Sidebar scrolling (local UMD - less critical)
 // ============================================================================
-import * as WavesExports from '../vendor/libs/node-waves/node-waves.js';
-const Waves = WavesExports.default || WavesExports.Waves || WavesExports;
-if (typeof window !== 'undefined') {
-  window.Waves = Waves;
-}
+import '../vendor/libs/perfect-scrollbar/perfect-scrollbar.js';
 
 // ============================================================================
-// 5. PERFECT SCROLLBAR - Sidebar scrolling
+// 5. HAMMER.JS - Touch gestures (local UMD - less critical)
 // ============================================================================
-import * as PerfectScrollbarExports from '../vendor/libs/perfect-scrollbar/perfect-scrollbar.js';
-const PerfectScrollbar = PerfectScrollbarExports.default || PerfectScrollbarExports.PerfectScrollbar || PerfectScrollbarExports;
-if (typeof window !== 'undefined') {
-  window.PerfectScrollbar = PerfectScrollbar;
-}
+import '../vendor/libs/hammer/hammer.js';
 
 // ============================================================================
-// 6. HAMMER.JS - Touch gestures (used by Helpers via window.Hammer)
+// 6. MENU - Sidebar navigation system (custom local file)
 // ============================================================================
-import * as HammerExports from '../vendor/libs/hammer/hammer.js';
-const Hammer = HammerExports.default || HammerExports.Hammer || HammerExports;
-if (typeof window !== 'undefined') {
-  window.Hammer = Hammer;
-}
+import '../vendor/js/menu-refactored.js';
 
 // ============================================================================
-// 7. MENU - Sidebar navigation system
+// VERIFICATION - Confirm globals are set up correctly
 // ============================================================================
-import * as MenuExports from '../vendor/js/menu-refactored.js';
-const Menu = MenuExports.default || MenuExports.Menu || MenuExports;
-if (typeof window !== 'undefined') {
-  window.Menu = Menu;
-}
-
-// ============================================================================
-// LOG - Confirm globals are set up
-// ============================================================================
-if (typeof window !== 'undefined') {
-  console.log('[Vendor Globals] jQuery:', typeof window.$, 'Bootstrap:', typeof window.bootstrap, 'Waves:', typeof window.Waves, 'Hammer:', typeof window.Hammer, 'Menu:', typeof window.Menu);
-}
+console.log('[Vendor Globals] jQuery:', typeof window.$, 'Bootstrap:', typeof window.bootstrap, 'Waves:', typeof window.Waves, 'Menu:', typeof window.Menu);

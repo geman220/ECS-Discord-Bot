@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import inject from '@rollup/plugin-inject';
 
 export default defineConfig({
   // Root directory for source files
@@ -7,6 +8,23 @@ export default defineConfig({
 
   // Base public path - Flask will serve from /static/
   base: '/static/',
+
+  // Plugins - inject makes jQuery available in all modules without explicit imports
+  // This is the industry standard approach (equivalent to Webpack's ProvidePlugin)
+  plugins: [
+    inject({
+      $: 'jquery',
+      jQuery: 'jquery',
+      // Only process JS files, not CSS
+      include: ['**/*.js'],
+      exclude: ['**/*.css'],
+    }),
+  ],
+
+  // Pre-bundle jQuery for faster dev server startup
+  optimizeDeps: {
+    include: ['jquery'],
+  },
 
   build: {
     // Output directory (relative to root) - using 'vite-dist' to avoid conflicts with old dist/

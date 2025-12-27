@@ -8,7 +8,12 @@
     "build": "vite build",
     "preview": "vite preview"
   },
+  "dependencies": {
+    "bootstrap": "^5.3.0",
+    "jquery": "^3.7.1"
+  },
   "devDependencies": {
+    "@rollup/plugin-inject": "^5.0.5",
     "vite": "^6.0.0",
     "terser": "^5.37.0"
   }
