@@ -19,26 +19,9 @@
 // 0. VENDOR LIBRARIES - Must load first (order matters!)
 // ============================================================================
 
-// jQuery (required by many components)
-import '../vendor/libs/jquery/jquery.js';
-
-// Popper.js (required by Bootstrap dropdowns/tooltips)
-import '../vendor/libs/popper/popper.js';
-
-// Bootstrap bundle (includes Popper)
-import '../vendor/js/bootstrap.bundle.js';
-
-// Node Waves (ripple effects)
-import '../vendor/libs/node-waves/node-waves.js';
-
-// Perfect Scrollbar (sidebar scrolling)
-import '../vendor/libs/perfect-scrollbar/perfect-scrollbar.js';
-
-// Hammer.js (touch gestures)
-import '../vendor/libs/hammer/hammer.js';
-
-// Menu system (sidebar navigation)
-import '../vendor/js/menu-refactored.js';
+// Vendor globals shim - exposes all vendor libraries to window:
+// jQuery, Bootstrap, Popper, Waves, PerfectScrollbar, Hammer, Menu
+import './vendor-globals.js';
 
 // ============================================================================
 // 1. CORE SYSTEMS - Must load after vendors
