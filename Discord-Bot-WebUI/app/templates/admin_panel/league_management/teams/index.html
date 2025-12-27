@@ -262,50 +262,66 @@
 const csrfToken = '{{ csrf_token() }}';
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Filter handlers
-    document.getElementById('seasonFilter').addEventListener('change', applyFilters);
-    document.getElementById('leagueTypeFilter').addEventListener('change', applyFilters);
+    // Filter handlers - with null checks
+    const seasonFilter = document.getElementById('seasonFilter');
+    const leagueTypeFilter = document.getElementById('leagueTypeFilter');
+    if (seasonFilter) seasonFilter.addEventListener('change', applyFilters);
+    if (leagueTypeFilter) leagueTypeFilter.addEventListener('change', applyFilters);
+});
 
-    // Event delegation for team actions
-    document.querySelectorAll('.js-create-team').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            createTeam();
-        });
-    });
+// Use document-level event delegation for all team actions
+// This ensures handlers work even if modal content is re-initialized
+document.addEventListener('click', function(e) {
+    // Create team button
+    const createBtn = e.target.closest('.js-create-team');
+    if (createBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('[Teams] Create team button clicked');
+        createTeam();
+        return;
+    }
 
-    document.querySelectorAll('.js-edit-team').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const teamId = this.getAttribute('data-team-id');
-            const teamName = this.getAttribute('data-team-name');
-            editTeam(teamId, teamName);
-        });
-    });
+    // Edit team link
+    const editLink = e.target.closest('.js-edit-team');
+    if (editLink) {
+        e.preventDefault();
+        e.stopPropagation();
+        const teamId = editLink.getAttribute('data-team-id');
+        const teamName = editLink.getAttribute('data-team-name');
+        editTeam(teamId, teamName);
+        return;
+    }
 
-    document.querySelectorAll('.js-sync-discord').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const teamId = this.getAttribute('data-team-id');
-            syncTeamDiscord(teamId);
-        });
-    });
+    // Sync Discord link
+    const syncLink = e.target.closest('.js-sync-discord');
+    if (syncLink) {
+        e.preventDefault();
+        e.stopPropagation();
+        const teamId = syncLink.getAttribute('data-team-id');
+        syncTeamDiscord(teamId);
+        return;
+    }
 
-    document.querySelectorAll('.js-delete-team').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const teamId = this.getAttribute('data-team-id');
-            const teamName = this.getAttribute('data-team-name');
-            deleteTeam(teamId, teamName);
-        });
-    });
+    // Delete team link
+    const deleteLink = e.target.closest('.js-delete-team');
+    if (deleteLink) {
+        e.preventDefault();
+        e.stopPropagation();
+        const teamId = deleteLink.getAttribute('data-team-id');
+        const teamName = deleteLink.getAttribute('data-team-name');
+        deleteTeam(teamId, teamName);
+        return;
+    }
 
-    document.querySelectorAll('.js-save-team-edit').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            saveTeamEdit();
-        });
-    });
+    // Save team edit button
+    const saveBtn = e.target.closest('.js-save-team-edit');
+    if (saveBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        saveTeamEdit();
+        return;
+    }
 });
 
 function applyFilters() {
