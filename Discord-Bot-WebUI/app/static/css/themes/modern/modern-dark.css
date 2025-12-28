@@ -90,6 +90,9 @@ html[data-theme-variant="modern"][data-style="dark"] {
   --bs-card-bg: var(--color-bg-card, #1E293B);
   --bs-card-border-color: var(--color-border-primary, #475569);
   --bs-modal-bg: var(--color-bg-card, #1E293B);
+  --bs-modal-border-color: var(--color-border-primary, #475569);
+  --bs-modal-header-border-color: var(--color-border-primary, #475569);
+  --bs-modal-footer-border-color: var(--color-border-primary, #475569);
   --bs-dropdown-bg: var(--color-bg-elevated, #334155);
   --bs-dropdown-border-color: var(--color-border-primary, #475569);
 
