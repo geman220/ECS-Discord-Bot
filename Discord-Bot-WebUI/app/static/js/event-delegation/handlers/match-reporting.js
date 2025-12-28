@@ -2,7 +2,7 @@
  * Match Reporting Action Handlers
  * Handles goals, assists, cards, and match events
  */
-import { EventDelegation } from '../core.js';
+// Uses global window.EventDelegation from core.js
 
 // MATCH REPORTING ACTIONS
 // ============================================================================

@@ -2,7 +2,7 @@
  * Security Dashboard Action Handlers
  * Handles IP banning and security monitoring
  */
-import { EventDelegation } from '../core.js';
+// Uses global window.EventDelegation from core.js
 
 // SECURITY DASHBOARD ACTIONS
 // ============================================================================

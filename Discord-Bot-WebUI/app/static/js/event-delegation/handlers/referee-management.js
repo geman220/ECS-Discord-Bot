@@ -2,7 +2,7 @@
  * Referee Management Action Handlers
  * Handles referee assignments and scheduling
  */
-import { EventDelegation } from '../core.js';
+// Uses global window.EventDelegation from core.js
 
 // REFEREE MANAGEMENT ACTIONS
 // ============================================================================

@@ -2,7 +2,7 @@
  * Calendar Subscription Action Handlers
  * Handles calendar subscriptions and preferences
  */
-import { EventDelegation } from '../core.js';
+// Uses global window.EventDelegation from core.js
 
 // CALENDAR SUBSCRIPTION ACTIONS
 // ============================================================================

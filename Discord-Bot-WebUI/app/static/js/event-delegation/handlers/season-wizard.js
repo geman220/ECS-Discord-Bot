@@ -2,7 +2,7 @@
  * Season/Schedule Wizard Action Handlers
  * Handles season creation and auto-scheduling
  */
-import { EventDelegation } from '../core.js';
+// Uses global window.EventDelegation from core.js
 
 // AUTO SCHEDULE WIZARD ACTIONS
 // ============================================================================

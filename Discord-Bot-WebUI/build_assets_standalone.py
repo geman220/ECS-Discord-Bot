@@ -387,7 +387,22 @@ def create_production_js_bundle():
         'js/chat-widget.js',
         'js/messenger-widget.js',
         'js/components-modern.js',
-        'js/event-delegation.js',
+        # Event Delegation System (modular)
+        'js/event-delegation/core.js',
+        'js/event-delegation/handlers/match-management.js',
+        'js/event-delegation/handlers/match-reporting.js',
+        'js/event-delegation/handlers/draft-system.js',
+        'js/event-delegation/handlers/rsvp-actions.js',
+        'js/event-delegation/handlers/profile-verification.js',
+        'js/event-delegation/handlers/discord-management.js',
+        'js/event-delegation/handlers/user-approval.js',
+        'js/event-delegation/handlers/substitute-pool.js',
+        'js/event-delegation/handlers/referee-management.js',
+        'js/event-delegation/handlers/season-wizard.js',
+        'js/event-delegation/handlers/pass-studio.js',
+        'js/event-delegation/handlers/security-actions.js',
+        'js/event-delegation/handlers/calendar-actions.js',
+        'js/event-delegation/handlers/onboarding-wizard.js',
         'js/ui-enhancements.js',
 
         # Admin Panel JS

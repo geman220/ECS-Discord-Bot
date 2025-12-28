@@ -2,7 +2,7 @@
  * User Approval Action Handlers
  * Handles user approval/denial workflow
  */
-import { EventDelegation } from '../core.js';
+// Uses global window.EventDelegation from core.js
 
 // USER APPROVAL MANAGEMENT ACTIONS
 // ============================================================================

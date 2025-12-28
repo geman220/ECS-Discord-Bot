@@ -2,7 +2,7 @@
  * Pass Studio Action Handlers
  * Handles wallet pass design and configuration
  */
-import { EventDelegation } from '../core.js';
+// Uses global window.EventDelegation from core.js
 
 // PASS STUDIO ACTIONS
 // ============================================================================

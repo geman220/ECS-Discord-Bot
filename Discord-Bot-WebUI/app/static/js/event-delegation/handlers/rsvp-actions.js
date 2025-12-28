@@ -2,7 +2,7 @@
  * RSVP Action Handlers
  * Handles match RSVP responses and notifications
  */
-import { EventDelegation } from '../core.js';
+// Uses global window.EventDelegation from core.js
 
 // RSVP ACTIONS
 // ============================================================================

@@ -2,7 +2,7 @@
  * Onboarding Wizard Action Handlers
  * Handles new user onboarding flow
  */
-import { EventDelegation } from '../core.js';
+// Uses global window.EventDelegation from core.js
 
 // ONBOARDING WIZARD ACTIONS
 // ============================================================================

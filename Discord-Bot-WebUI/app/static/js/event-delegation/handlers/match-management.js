@@ -2,7 +2,7 @@
  * Match Management Action Handlers
  * Handles task scheduling, match verification, and match editing
  */
-import { EventDelegation } from '../core.js';
+// Uses global window.EventDelegation from core.js
 
 // MATCH MANAGEMENT ACTIONS
 // ============================================================================

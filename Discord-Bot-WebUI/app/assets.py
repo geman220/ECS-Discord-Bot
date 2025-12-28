@@ -744,7 +744,22 @@ def init_assets(app):
         'js/chat-widget.js',            # Floating chat widget
         'js/messenger-widget.js',       # Sidebar messenger widget
         'js/components-modern.js',      # Modern component interactions (modals, tooltips, etc.)
-        'js/event-delegation.js',       # Centralized event handling (data-action attributes)
+        # Event Delegation System (modular - core first, then handlers)
+        'js/event-delegation/core.js',
+        'js/event-delegation/handlers/match-management.js',
+        'js/event-delegation/handlers/match-reporting.js',
+        'js/event-delegation/handlers/draft-system.js',
+        'js/event-delegation/handlers/rsvp-actions.js',
+        'js/event-delegation/handlers/profile-verification.js',
+        'js/event-delegation/handlers/discord-management.js',
+        'js/event-delegation/handlers/user-approval.js',
+        'js/event-delegation/handlers/substitute-pool.js',
+        'js/event-delegation/handlers/referee-management.js',
+        'js/event-delegation/handlers/season-wizard.js',
+        'js/event-delegation/handlers/pass-studio.js',
+        'js/event-delegation/handlers/security-actions.js',
+        'js/event-delegation/handlers/calendar-actions.js',
+        'js/event-delegation/handlers/onboarding-wizard.js',
         'js/ui-enhancements.js',        # Feather icons, collapsible sections, dropdowns
 
         # Admin Panel JS

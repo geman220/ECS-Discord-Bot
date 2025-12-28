@@ -2,7 +2,7 @@
  * Profile Verification Action Handlers
  * Handles profile verification workflow
  */
-import { EventDelegation } from '../core.js';
+// Uses global window.EventDelegation from core.js
 
 // PROFILE VERIFICATION ACTIONS
 // ============================================================================

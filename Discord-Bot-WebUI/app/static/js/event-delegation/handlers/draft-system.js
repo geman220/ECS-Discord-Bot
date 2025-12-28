@@ -2,7 +2,7 @@
  * Draft System Action Handlers
  * Handles player drafting, team assignment, and draft UI
  */
-import { EventDelegation } from '../core.js';
+// Uses global window.EventDelegation from core.js
 
 // DRAFT SYSTEM ACTIONS
 // ============================================================================

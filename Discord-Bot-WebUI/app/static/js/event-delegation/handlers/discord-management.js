@@ -2,7 +2,7 @@
  * Discord Management Action Handlers
  * Handles Discord integration and player management
  */
-import { EventDelegation } from '../core.js';
+// Uses global window.EventDelegation from core.js
 
 // DISCORD MANAGEMENT ACTIONS
 // ============================================================================

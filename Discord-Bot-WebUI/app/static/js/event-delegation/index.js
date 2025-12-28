@@ -17,8 +17,8 @@
  * ============================================================================
  */
 
-// Import core system (exports to window.EventDelegation)
-import { EventDelegation } from './core.js';
+// Import core system (sets up window.EventDelegation)
+import './core.js';
 
 // ============================================================================
 // DOMAIN-SPECIFIC HANDLERS
@@ -48,7 +48,6 @@ import './handlers/calendar-actions.js';     // Calendar subscriptions
 // Onboarding
 import './handlers/onboarding-wizard.js';    // New user onboarding
 
-// Re-export for ES module users
-export { EventDelegation };
+// EventDelegation is available globally via window.EventDelegation
 
 console.log('[EventDelegation] Modular system fully loaded');

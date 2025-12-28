@@ -2,7 +2,7 @@
  * Substitute Pool Action Handlers
  * Handles substitute pool management and player assignments
  */
-import { EventDelegation } from '../core.js';
+// Uses global window.EventDelegation from core.js
 
 // SUBSTITUTE POOL MANAGEMENT ACTIONS
 // ============================================================================
