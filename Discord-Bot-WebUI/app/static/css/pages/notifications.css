@@ -291,21 +291,11 @@
 }
 
 /* ============================================================================
-   EMPTY STATE COMPONENT (page-specific enhancements)
-   Uses global .c-empty-state from foundation.css
+   EMPTY STATE - Uses base c-empty-state from components/
    ============================================================================ */
 
-.c-empty-state {
-  background: var(--color-bg-card);
-  border: 2px dashed var(--color-border-primary);
-  border-radius: var(--radius-xl);
-  padding: var(--space-16) var(--space-8);
-  text-align: center;
-  margin-top: var(--space-8);
-  animation: fadeInScale 0.5s ease-out;
-}
-
-@keyframes fadeInScale {
+/* Notifications page specific animation */
+@keyframes c-notifications-fadeInScale {
   from {
     opacity: 0;
     transform: scale(0.95);
@@ -316,56 +306,11 @@
   }
 }
 
-.c-empty-state__content {
-  max-width: 400px;
-  margin: 0 auto;
+.c-notifications-empty-state {
+  animation: c-notifications-fadeInScale 0.5s ease-out;
+  margin-top: var(--space-8);
 }
 
-.c-empty-state__image {
-  height: 180px;
-  width: auto;
-  max-width: 250px;
-  object-fit: contain;
-  margin: 0 auto var(--space-6);
-  opacity: 0.8;
-  display: block;
-  filter: grayscale(20%);
-}
-
-.c-empty-state__title {
-  color: var(--color-text-primary);
-  font-size: var(--text-2xl);
-  font-weight: var(--font-bold);
-  margin: 0 0 var(--space-3) 0;
-  line-height: var(--leading-tight);
-}
-
-.c-empty-state__text {
-  color: var(--color-text-muted);
-  font-size: var(--text-base);
-  line-height: var(--leading-relaxed);
-  margin: 0;
-}
-
-/* Mobile adjustments */
-@media (max-width: 767.98px) {
-  .c-empty-state {
-    padding: var(--space-12) var(--space-6);
-  }
-
-  .c-empty-state__image {
-    height: 140px;
-    max-width: 200px;
-  }
-
-  .c-empty-state__title {
-    font-size: var(--text-xl);
-  }
-
-  .c-empty-state__text {
-    font-size: var(--text-sm);
-  }
-}
 
 /* ============================================================================
    DARK MODE SUPPORT

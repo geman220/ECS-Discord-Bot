@@ -1,3 +1,4 @@
+@charset "UTF-8";
 /* ===================================================================
    COMPONENTS.CSS - REFACTORED WITH BEM METHODOLOGY
    ===================================================================
@@ -16,8 +17,6 @@
 
    Last Updated: 2025-12-17
    =================================================================== */
-
-@charset "UTF-8";
 
 /* ===================================================================
    TABLE OF CONTENTS
@@ -1099,123 +1098,9 @@ span.selection {
 
 /* ===================================================================
    4. BUTTON COMPONENTS
+   Modern .c-btn classes are in components/c-btn.css
+   Legacy .btn-* Bootstrap selectors below for backward compatibility
    =================================================================== */
-
-.c-btn {
-  display: inline-block;
-  font-weight: 400;
-  line-height: 1.5;
-  text-align: center;
-  text-decoration: none;
-  vertical-align: middle;
-  cursor: pointer;
-  user-select: none;
-  padding: 0.375rem 0.75rem;
-  font-size: 0.9375rem;
-  border-radius: 0.375rem;
-  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
-  border: 1px solid transparent;
-  transform: none;
-}
-
-.c-btn--primary {
-  color: #fff;
-  background-color: var(--ecs-primary);
-  border-color: var(--ecs-primary);
-  box-shadow: 0 0.125rem 0.375rem 0 rgba(var(--ecs-primary-rgb), 0.3);
-}
-
-.c-btn--primary:hover {
-  background-color: var(--ecs-primary-dark);
-  border-color: var(--ecs-primary-dark);
-  color: #fff;
-}
-
-.c-btn--primary:focus {
-  background-color: var(--ecs-primary-dark);
-  border-color: var(--ecs-primary-dark);
-  color: #fff;
-}
-
-.c-btn--primary:active {
-  background-color: var(--ecs-primary-dark);
-  border-color: var(--ecs-primary-dark);
-  color: #fff;
-}
-
-.c-btn--primary:disabled {
-  background-color: var(--ecs-primary);
-  border-color: var(--ecs-primary);
-  color: #fff;
-  opacity: 0.65;
-}
-
-.c-btn--secondary {
-  color: var(--ecs-bg-primary);
-  background-color: var(--ecs-text-secondary);
-  border-color: var(--ecs-text-secondary);
-}
-
-.c-btn--success {
-  color: #fff;
-  background-color: var(--ecs-success);
-  border-color: var(--ecs-success);
-}
-
-.c-btn--danger {
-  color: #fff;
-  background-color: var(--ecs-danger);
-  border-color: var(--ecs-danger);
-}
-
-.c-btn--warning {
-  color: #000;
-  background-color: var(--ecs-warning);
-  border-color: var(--ecs-warning);
-}
-
-.c-btn--info {
-  color: #fff;
-  background-color: var(--ecs-info);
-  border-color: var(--ecs-info);
-}
-
-/* Button label variants */
-.c-btn--label-primary {
-  color: var(--ecs-primary);
-  border-color: transparent;
-  background: var(--ecs-primary-subtle);
-}
-
-.c-btn--label-primary:hover {
-  background: var(--ecs-primary-subtle);
-  color: var(--ecs-primary);
-}
-
-/* Button text variants */
-.c-btn--text-primary {
-  color: var(--ecs-primary);
-  background: transparent;
-  border-color: transparent;
-}
-
-.c-btn--text-primary:hover {
-  background: var(--ecs-primary-subtle);
-  color: var(--ecs-primary);
-}
-
-/* Button outline variants */
-.c-btn--outline-primary {
-  color: var(--ecs-primary);
-  border-color: var(--ecs-primary);
-  background: transparent;
-}
-
-.c-btn--outline-primary:hover {
-  color: var(--ecs-primary);
-  background-color: var(--ecs-primary-subtle);
-  border-color: var(--ecs-primary);
-}
 
 /* Legacy button selectors */
 .btn-primary {
@@ -1582,65 +1467,9 @@ html[data-style="dark"] .nav-tabs .nav-link.active {
 
 /* ===================================================================
    6. CARD COMPONENTS
+   Modern .c-card classes are in components/c-card.css
+   Legacy .card Bootstrap selectors below for backward compatibility
    =================================================================== */
-
-.c-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  word-wrap: break-word;
-  background-color: var(--ecs-bg-secondary);
-  background-clip: border-box;
-  border: 1px solid var(--ecs-border-primary);
-  border-radius: 0.5rem;
-  box-shadow: var(--ecs-shadow-sm);
-}
-
-.c-card__header {
-  padding: 1rem 1.5rem;
-  margin-bottom: 0;
-  border-bottom: 1px solid var(--ecs-border-primary);
-  background-color: transparent;
-  color: var(--ecs-text-primary);
-}
-
-.c-card__body {
-  flex: 1 1 auto;
-  padding: 1.5rem;
-  color: var(--ecs-text-primary);
-}
-
-.c-card__footer {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid var(--ecs-border-primary);
-  background-color: transparent;
-  color: var(--ecs-text-primary);
-}
-
-.c-card__title {
-  color: var(--ecs-text-primary);
-  margin-bottom: 0.5rem;
-}
-
-.c-card__text {
-  color: var(--ecs-text-primary);
-}
-
-/* Card hover variants */
-.c-card--hover:hover {
-  box-shadow: var(--ecs-shadow-md);
-  transform: translateY(-2px);
-  transition: all 0.2s ease-in-out;
-}
-
-.c-card--border-primary {
-  border-color: var(--ecs-primary-light);
-}
-
-.c-card--border-primary:hover {
-  border-color: var(--ecs-primary);
-}
 
 /* Legacy card selectors */
 .match-item {
@@ -2777,37 +2606,9 @@ button.btn-close-white {
 
 /* ===================================================================
    14. TABLE COMPONENTS
+   Modern .c-table classes are in components/c-table.css
+   Legacy .table-* Bootstrap selectors below for backward compatibility
    =================================================================== */
-
-.c-table {
-  width: 100%;
-  margin-bottom: 1rem;
-  color: var(--ecs-text-primary);
-  vertical-align: top;
-  border-color: var(--ecs-border-primary);
-}
-
-.c-table__head {
-  border-bottom: 2px solid var(--ecs-border-primary);
-}
-
-.c-table__cell {
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--ecs-border-primary);
-}
-
-/* Table primary variant */
-.c-table--primary {
-  --bs-table-bg: var(--ecs-primary-subtle);
-  --bs-table-striped-bg: var(--ecs-primary-subtle);
-  --bs-table-striped-color: var(--ecs-neutral-90);
-  --bs-table-active-bg: var(--ecs-primary-subtle);
-  --bs-table-active-color: var(--ecs-neutral-90);
-  --bs-table-hover-bg: var(--ecs-primary-subtle);
-  --bs-table-hover-color: var(--ecs-neutral-90);
-  color: var(--ecs-neutral-90);
-  border-color: var(--ecs-primary-subtle);
-}
 
 /* Legacy table selectors */
 .table-primary {

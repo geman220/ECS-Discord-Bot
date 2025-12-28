@@ -471,44 +471,17 @@ i.ti.c-sidebar__toggle-icon--mobile {
 /* ============================================================================
    6. BADGES & LABELS
    Status indicators and feature labels
+   Scoped to sidebar - uses base c-badge from components.css with sidebar-specific sizing
    ============================================================================ */
 
-.c-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.c-sidebar .c-badge {
   padding: 0.125rem 0.5rem;
   font-size: 0.65rem;
-  font-weight: var(--font-semibold);
-  line-height: 1;
-  border-radius: var(--radius-full);
-  vertical-align: middle;
-  white-space: nowrap;
 }
 
-.c-badge--sm {
+.c-sidebar .c-badge--sm {
   font-size: 0.6rem;
   padding: 0.125rem 0.375rem;
-}
-
-.c-badge--success {
-  color: var(--color-neutral-0);
-  background-color: var(--color-success);
-}
-
-.c-badge--warning {
-  color: var(--color-neutral-900);
-  background-color: var(--color-warning);
-}
-
-.c-badge--primary {
-  color: var(--color-neutral-0);
-  background-color: var(--color-primary);
-}
-
-.c-badge--info {
-  color: var(--color-neutral-0);
-  background-color: var(--color-info);
 }
 
 /* ============================================================================

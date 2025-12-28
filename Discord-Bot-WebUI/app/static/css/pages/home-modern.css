@@ -435,67 +435,14 @@
 }
 
 /* ============================================================================
-   5. TAB NAVIGATION COMPONENT
-   Pills-style navigation for switching between teams
+   5. TAB NAVIGATION - Home Page Variant
+   Uses base c-tabs component from components/
    ============================================================================ */
 
-.c-tabs {
-  display: flex;
-  gap: var(--space-2);
+/* Home page specific tab styling - uses pills variant */
+.c-home-tabs {
   margin-bottom: var(--space-4);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
   padding-bottom: var(--space-1);
-}
-
-.c-tabs::-webkit-scrollbar {
-  height: 4px;
-}
-
-.c-tabs::-webkit-scrollbar-thumb {
-  background: var(--color-neutral-400);
-  border-radius: var(--radius-full);
-}
-
-.c-tabs__item {
-  flex-shrink: 0;
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-lg);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--color-text-secondary);
-  background: transparent;
-  border: 2px solid var(--color-border-primary);
-  cursor: pointer;
-  transition: var(--transition-all);
-  white-space: nowrap;
-}
-
-.c-tabs__item:hover {
-  background: var(--color-hover-bg);
-  color: var(--color-text-primary);
-  border-color: var(--color-border-secondary);
-}
-
-.c-tabs__item.is-active {
-  background: var(--color-primary);
-  color: var(--color-neutral-0);
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-sm);
-}
-
-.c-tabs__item:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
-}
-
-/* Mobile adjustments */
-@media (max-width: 767.98px) {
-  .c-tabs__item {
-    padding: var(--space-3);
-    font-size: var(--text-sm);
-  }
 }
 
 /* ============================================================================
@@ -553,67 +500,18 @@
 }
 
 /* ============================================================================
-   7. EMPTY STATE COMPONENT
-   No data states with illustrations
+   7. EMPTY STATE - Uses base component from components/
    ============================================================================ */
 
-.c-empty-state {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-primary);
-  border-radius: var(--radius-lg);
-  padding: var(--space-12);
-  text-align: center;
-  margin-bottom: var(--space-4);
-}
-
-.c-empty-state__image {
-  height: 150px;
-  width: auto;
-  max-width: 200px;
-  object-fit: contain;
-  margin: 0 auto var(--space-4);
-  opacity: 0.7;
-  display: block;
-}
-
-.c-empty-state__title {
-  color: var(--color-text-primary);
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  margin: 0 0 var(--space-2) 0;
-}
-
-.c-empty-state__text {
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-  line-height: var(--leading-relaxed);
-  margin: 0;
-  max-width: 400px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* Mobile adjustments */
-@media (max-width: 767.98px) {
-  .c-empty-state {
-    padding: var(--space-8) var(--space-4);
-  }
-
-  .c-empty-state__image {
-    height: 120px;
-    max-width: 150px;
-  }
-}
-
 /* ============================================================================
-   DARK MODE SUPPORT
+   DARK MODE SUPPORT - Page-specific components only
+   Base components (c-tabs, c-empty-state, c-btn) handle their own dark mode.
    ============================================================================ */
 
 [data-style="dark"] .c-welcome,
 [data-style="dark"] .c-announcements,
 [data-style="dark"] .c-match-card,
-[data-style="dark"] .c-create-profile,
-[data-style="dark"] .c-empty-state {
+[data-style="dark"] .c-create-profile {
   background: var(--color-bg-card);
   border-color: var(--color-border-primary);
 }
@@ -627,22 +525,14 @@
   background: var(--color-hover-bg);
 }
 
-[data-style="dark"] .c-tabs__item:hover {
-  background: var(--color-hover-bg);
-}
-
-[data-style="dark"] .c-empty-state__image {
-  opacity: 0.6;
-}
-
 /* ============================================================================
-   ACCESSIBILITY
+   ACCESSIBILITY - Page-specific components only
+   Base components handle their own accessibility.
    ============================================================================ */
 
 @media (prefers-reduced-motion: reduce) {
   .c-match-card,
   .c-rsvp__option,
-  .c-tabs__item,
   .c-welcome {
     transition: none;
   }
@@ -655,7 +545,6 @@
 
 @media (prefers-contrast: more) {
   .c-match-badge,
-  .c-tabs__item.is-active,
   .c-rsvp__option.is-active {
     border: 3px solid currentColor;
   }
@@ -711,114 +600,8 @@
 }
 
 /* ============================================================================
-   9. BUTTON COMPONENT
-   BEM-styled buttons for consistent appearance
+   9. BUTTONS - Uses base c-btn component from components/
    ============================================================================ */
-
-.c-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  line-height: var(--leading-tight);
-  border-radius: var(--radius-md);
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: var(--transition-all);
-  text-decoration: none;
-  white-space: nowrap;
-  min-height: 38px;
-}
-
-.c-btn:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
-}
-
-/* Primary button */
-.c-btn--primary {
-  background: var(--color-primary);
-  color: var(--color-text-on-primary, #fff);
-  border-color: var(--color-primary);
-}
-
-.c-btn--primary:hover {
-  background: var(--color-primary-600);
-  border-color: var(--color-primary-600);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-}
-
-.c-btn--primary:active {
-  transform: translateY(0);
-}
-
-/* Outline secondary button */
-.c-btn--outline {
-  background: transparent;
-  color: var(--color-text-secondary);
-  border-color: var(--color-border-primary);
-}
-
-.c-btn--outline:hover {
-  background: var(--color-hover-bg);
-  color: var(--color-text-primary);
-  border-color: var(--color-border-secondary);
-}
-
-/* Icon-only button (circular) */
-.c-btn--icon {
-  padding: var(--space-2);
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-full);
-}
-
-.c-btn--icon-sm {
-  padding: var(--space-1);
-  width: 28px;
-  height: 28px;
-  font-size: var(--text-xs);
-}
-
-/* Size variants */
-.c-btn--sm {
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--text-xs);
-  min-height: 32px;
-}
-
-.c-btn--lg {
-  padding: var(--space-3) var(--space-6);
-  font-size: var(--text-base);
-  min-height: 44px;
-}
-
-/* Button icon element */
-.c-btn__icon {
-  font-size: 1.125em;
-  flex-shrink: 0;
-}
-
-/* Button spacing helper */
-.c-btn + .c-btn {
-  margin-left: var(--space-2);
-}
-
-/* Mobile touch targets */
-@media (max-width: 767.98px) {
-  .c-btn {
-    min-height: 44px;
-    padding: var(--space-3) var(--space-4);
-  }
-
-  .c-btn--sm {
-    min-height: 38px;
-  }
-}
 
 /* ============================================================================
    10. TEXT MODIFIERS FOR MATCH CARDS

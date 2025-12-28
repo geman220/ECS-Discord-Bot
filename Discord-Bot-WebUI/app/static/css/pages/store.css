@@ -278,30 +278,8 @@
 }
 
 /* ==========================================================================
-   EMPTY STATE
+   EMPTY STATE - Uses base c-empty-state from components/
    ========================================================================== */
-
-.c-empty-state {
-    text-align: center;
-    padding: 3rem 1rem;
-}
-
-.c-empty-state__icon {
-    font-size: 4rem;
-    color: var(--ecs-text-muted, #697a8d);
-    margin-bottom: 1rem;
-}
-
-.c-empty-state__title {
-    font-size: 1.25rem;
-    color: var(--ecs-text-muted, #697a8d);
-    margin-bottom: 0.5rem;
-}
-
-.c-empty-state__description {
-    color: var(--ecs-text-muted, #697a8d);
-    margin-bottom: 1.5rem;
-}
 
 /* ==========================================================================
    RESPONSIVE ADJUSTMENTS

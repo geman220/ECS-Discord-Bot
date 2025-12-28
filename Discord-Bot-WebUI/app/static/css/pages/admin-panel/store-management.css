@@ -500,36 +500,8 @@
 }
 
 /* ============================================================================
-   5. EMPTY STATE
-   No data display
+   5. EMPTY STATE - Uses base c-empty-state from components/
    ============================================================================ */
-
-.c-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  background: var(--store-bg-card);
-  border: 1px dashed var(--store-border);
-  border-radius: var(--store-radius-lg);
-  text-align: center;
-}
-
-.c-empty-state__icon {
-  font-size: 56px;
-  color: var(--store-primary);
-  margin-bottom: 16px;
-  opacity: 0.6;
-}
-
-.c-empty-state__message {
-  font-size: 15px;
-  color: var(--store-text-muted);
-  margin: 0;
-  max-width: 400px;
-  line-height: 1.6;
-}
 
 /* ============================================================================
    ACCESSIBILITY & MOTION

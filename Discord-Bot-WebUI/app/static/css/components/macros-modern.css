@@ -1603,24 +1603,8 @@ body[data-style="dark"] .c-profile-avatar__badge {
 
 
 /* ============================================================================
-   EMPTY STATE - NO DATA PLACEHOLDER
+   EMPTY STATE - Defined in profile-components.css
    ============================================================================ */
-
-.c-empty-state {
-  padding: var(--macro-space-xl);
-}
-
-.c-empty-state__icon {
-  font-size: 3rem;
-  color: var(--bs-secondary);
-  opacity: 0.5;
-}
-
-.c-empty-state__message {
-  font-size: 1rem;
-  color: var(--bs-secondary);
-  font-style: italic;
-}
 
 
 /* ============================================================================

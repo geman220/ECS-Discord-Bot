@@ -221,31 +221,16 @@
   }
 }
 
-.c-stat-card {
+/* League-specific stat card modifications - use BEM modifier */
+.c-stat-card--league-compact {
   text-align: center;
   padding: var(--space-4, 16px);
 }
 
-.c-stat-card__icon {
+.c-stat-card--league-compact .c-stat-card__icon {
   font-size: 2rem;
   margin-bottom: var(--space-2, 8px);
   line-height: 1;
-}
-
-.c-stat-card__value {
-  font-size: var(--text-2xl, 1.5rem);
-  font-weight: 700;
-  margin: 0;
-  color: var(--color-text-primary, #1e293b);
-}
-
-[data-style="dark"] .c-stat-card__value {
-  color: var(--color-text-primary, #f8fafc);
-}
-
-.c-stat-card__label {
-  font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-muted, #64748b);
 }
 
 /* ============================================================================

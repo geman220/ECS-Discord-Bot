@@ -13,11 +13,7 @@
     box-shadow: 0 0.25rem 1rem rgba(var(--ecs-shadow-rgb, 161, 172, 184), 0.45);
 }
 
-/* Badge styling */
-.c-badge {
-    padding: 0.4rem 0.65rem;
-    font-weight: 500;
-}
+/* Badge - Uses base c-badge component from components/ */
 
 /* Avatar styling */
 .c-avatar {

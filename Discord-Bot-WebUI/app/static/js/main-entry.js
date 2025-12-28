@@ -110,9 +110,10 @@ import './match-operations/match-reports.js';
 import './match-operations/seasons.js';
 
 // ============================================================================
-// 6. INITIALIZATION
+// 6. INITIALIZATION SYSTEM - Must load before app-init-registration
 // ============================================================================
 
+import './init-system.js';
 import './app-init-registration.js';
 
 // ============================================================================
@@ -121,7 +122,6 @@ import './app-init-registration.js';
 
 import './utils/visibility.js';
 import './components/tabs-controller.js';
-import './init-system.js';
 
 // ============================================================================
 // 8. CUSTOM JS - Core

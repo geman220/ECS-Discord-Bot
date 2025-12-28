@@ -191,6 +191,8 @@
 
 /* ============================================================================
    ALERT EXTENSIONS
+   Base .c-alert and variants (--primary, --success, etc.) are in components.css
+   These are additional elements for notification/dismissible alerts
    ============================================================================ */
 
 .c-alerts {
@@ -200,39 +202,19 @@
   margin-bottom: var(--space-4, 16px);
 }
 
-.c-alert {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3, 12px);
-  padding: var(--space-4, 16px);
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  border-radius: var(--radius-lg, 12px);
-}
-
+/* Light variant for dark backgrounds */
 .c-alert--light {
   background: rgba(255, 255, 255, 0.04);
   border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.08));
 }
 
-.c-alert__title {
-  margin: 0 0 var(--space-1, 4px);
-  font-size: var(--text-sm, 0.875rem);
-  font-weight: 600;
-  color: var(--color-text-primary, #f8fafc);
-}
-
-.c-alert__message {
-  margin: 0;
-  font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-secondary, #94a3b8);
-}
-
+/* Additional meta element for timestamps */
 .c-alert__meta {
   font-size: var(--text-xs, 0.75rem);
   color: var(--color-text-muted, #64748b);
 }
 
+/* Dismissible close button */
 .c-alert__close {
   display: flex;
   align-items: center;

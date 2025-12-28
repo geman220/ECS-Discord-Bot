@@ -353,45 +353,22 @@
 }
 
 /* ============================================================================
-   8. CARD ENHANCEMENTS FOR ADMIN PANEL
-   Additional card styles specific to admin dashboard
+   8. CARD ENHANCEMENTS - Uses base c-card from components/
+   Only dashboard-specific modifiers here.
    ============================================================================ */
 
-.c-card__description {
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-  margin-bottom: var(--space-4);
-  line-height: var(--leading-relaxed);
-}
-
-.c-card__title-icon {
+/* Dashboard-specific card title icon styling */
+.c-dashboard-card__title-icon {
   font-size: var(--text-lg);
   margin-right: var(--space-2);
 }
 
-.c-card__title-icon--primary {
-  color: var(--color-primary);
-}
-
-.c-card__title-icon--success {
-  color: var(--color-success);
-}
-
-.c-card__title-icon--warning {
-  color: var(--color-warning);
-}
-
-.c-card__title-icon--danger {
-  color: var(--color-danger);
-}
-
-.c-card__title-icon--info {
-  color: var(--color-info);
-}
-
-.c-card__title-icon--purple {
-  color: var(--color-purple, #6f42c1);
-}
+.c-dashboard-card__title-icon--primary { color: var(--color-primary); }
+.c-dashboard-card__title-icon--success { color: var(--color-success); }
+.c-dashboard-card__title-icon--warning { color: var(--color-warning); }
+.c-dashboard-card__title-icon--danger { color: var(--color-danger); }
+.c-dashboard-card__title-icon--info { color: var(--color-info); }
+.c-dashboard-card__title-icon--purple { color: var(--color-purple, #6f42c1); }
 
 /* ============================================================================
    DARK MODE SUPPORT

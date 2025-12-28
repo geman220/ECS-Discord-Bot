@@ -475,42 +475,8 @@
 }
 
 /* =============================================================================
-   Badge
+   Badge - Uses base c-badge component from components/
    ============================================================================ */
-
-.c-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.625rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 9999px;
-}
-
-.c-badge--primary {
-  background: var(--settings-primary-subtle);
-  color: var(--settings-primary);
-}
-
-.c-badge--success {
-  background: var(--settings-success-subtle);
-  color: var(--settings-success);
-}
-
-.c-badge--warning {
-  background: var(--settings-warning-subtle);
-  color: var(--settings-warning);
-}
-
-.c-badge--danger {
-  background: var(--settings-danger-subtle);
-  color: var(--settings-danger);
-}
-
-.c-badge--secondary {
-  background: rgba(100, 116, 139, 0.1);
-  color: var(--settings-text-muted);
-}
 
 /* =============================================================================
    Sidebar
