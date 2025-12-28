@@ -615,9 +615,14 @@ class SecurityDashboard {
     }
 }
 
-// Initialize dashboard when DOM is ready
+// Initialize dashboard when DOM is ready - ONLY on security dashboard page
 document.addEventListener('DOMContentLoaded', () => {
-    window.securityDashboard = new SecurityDashboard();
+    // Page guard: only initialize if we're on the security dashboard
+    const securityDashboardContainer = document.getElementById('securityDashboard') ||
+                                        document.querySelector('[data-component="security-dashboard"]');
+    if (securityDashboardContainer) {
+        window.securityDashboard = new SecurityDashboard();
+    }
 });
 
 // Clean up on page unload
