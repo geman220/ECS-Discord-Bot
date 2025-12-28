@@ -53,9 +53,9 @@
     registerActions() {
       // Use window.EventDelegation for ES module compatibility (Vite bundles each module separately)
       if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
-        window.EventDelegation.register('toggle-dropdown', this.handleToggleDropdown.bind(this), { preventDefault: true });
-        window.EventDelegation.register('navigate', this.handleNavigation.bind(this), { preventDefault: false });
-        window.EventDelegation.register('close-dropdown', this.handleCloseDropdown.bind(this), { preventDefault: true });
+        window.EventDelegation.register('toggle-admin-dropdown', this.handleToggleDropdown.bind(this), { preventDefault: true });
+        window.EventDelegation.register('admin-navigate', this.handleNavigation.bind(this), { preventDefault: false });
+        window.EventDelegation.register('close-admin-dropdown', this.handleCloseDropdown.bind(this), { preventDefault: true });
         console.log('[AdminNavigation] Registered handlers with EventDelegation');
       } else {
         // Fallback: Add direct click handler on nav container when EventDelegation isn't available
@@ -75,15 +75,15 @@
       const action = target.dataset.action;
 
       switch (action) {
-        case 'toggle-dropdown':
+        case 'toggle-admin-dropdown':
           e.preventDefault();
           this.toggleDropdown(target);
           break;
-        case 'close-dropdown':
+        case 'close-admin-dropdown':
           e.preventDefault();
           this.closeDropdown(target);
           break;
-        case 'navigate':
+        case 'admin-navigate':
           this.handleNavigation(target, e);
           break;
       }
@@ -116,7 +116,7 @@
 
       // Enter or Space on dropdown toggle
       if ((e.key === 'Enter' || e.key === ' ') &&
-          target.dataset.action === 'toggle-dropdown') {
+          target.dataset.action === 'toggle-admin-dropdown') {
         e.preventDefault();
         this.toggleDropdown(target);
       }
@@ -193,7 +193,7 @@
       const dropdownItem = element.closest('[data-dropdown]');
       if (!dropdownItem) return;
 
-      const toggle = dropdownItem.querySelector('[data-action="toggle-dropdown"]');
+      const toggle = dropdownItem.querySelector('[data-action="toggle-admin-dropdown"]');
       const dropdown = dropdownItem.querySelector('.c-admin-nav__dropdown');
 
       dropdownItem.classList.remove('is-open');
@@ -351,7 +351,7 @@
  *   <ul class="c-admin-nav__list">
  *     <li class="c-admin-nav__item" data-dropdown>
  *       <button class="c-admin-nav__link c-admin-nav__dropdown-toggle"
- *               data-action="toggle-dropdown">
+ *               data-action="toggle-admin-dropdown">
  *         Menu
  *       </button>
  *       <ul class="c-admin-nav__dropdown">...</ul>
@@ -361,8 +361,8 @@
  *
  * DATA ATTRIBUTES:
  * - data-controller="admin-nav" - Marks nav container (required)
- * - data-action="toggle-dropdown" - Toggle dropdown
- * - data-action="navigate" - Track navigation
+ * - data-action="toggle-admin-dropdown" - Toggle dropdown (scoped to avoid collision)
+ * - data-action="admin-navigate" - Track navigation (scoped to avoid collision)
  * - data-dropdown - Marks dropdown parent
  *
  * STATE CLASSES (CSS DRIVEN):

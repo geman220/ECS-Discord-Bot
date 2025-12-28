@@ -45,10 +45,8 @@
           }
         }, { preventDefault: true });
 
-        window.EventDelegation.register('close-modal', (element, e) => {
-          const modal = element.closest('.c-modal-modern');
-          if (modal) this.close(modal.id);
-        }, { preventDefault: true });
+        // Note: close-modal action is handled by ModalManager for all modal types
+        // (Bootstrap .modal, [data-modal], and .c-modal-modern)
       }
 
       // Close on backdrop click

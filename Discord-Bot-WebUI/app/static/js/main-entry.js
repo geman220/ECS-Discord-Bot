@@ -27,8 +27,9 @@ import './vendor-globals.js';
 // 1. CORE SYSTEMS - Must load after vendors
 // ============================================================================
 
-// Event delegation system - the ONLY global click handler
-import './event-delegation.js';
+// Event delegation system - modular architecture
+// Core + handlers loaded from event-delegation/index.js
+import './event-delegation/index.js';
 
 // Core utilities
 import './csrf-fetch.js';

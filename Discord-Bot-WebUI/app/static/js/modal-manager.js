@@ -161,13 +161,14 @@ class ModalManager {
                 }
             }, { preventDefault: true });
 
-            // Close modal (alias for hide)
+            // Close modal (alias for hide) - handles all modal types
             window.EventDelegation.register('close-modal', (element, e) => {
                 const modalId = element.dataset.modalId;
                 if (modalId) {
                     this.hide(modalId);
                 } else {
-                    const closestModal = element.closest('[data-modal], .modal');
+                    // Support Bootstrap .modal, custom [data-modal], and .c-modal-modern
+                    const closestModal = element.closest('[data-modal], .modal, .c-modal-modern');
                     if (closestModal && closestModal.id) {
                         this.hide(closestModal.id);
                     }

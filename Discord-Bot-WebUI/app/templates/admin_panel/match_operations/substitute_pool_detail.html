@@ -153,7 +153,7 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="c-btn c-btn--outline-danger js-remove-player" data-action="remove-player" data-player-id="{{ pool.player_id }}" data-player-name="{{ pool.player.name if pool.player else 'Unknown' }}" title="Remove from pool">
+                                        <button class="c-btn c-btn--outline-danger js-remove-player" data-action="remove-pool-player" data-player-id="{{ pool.player_id }}" data-player-name="{{ pool.player.name if pool.player else 'Unknown' }}" title="Remove from pool">
                                             <i class="ti ti-trash"></i>
                                         </button>
                                     </div>
@@ -320,7 +320,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // The following inline event listeners have been removed as they're redundant:
     // - .js-add-player → data-action="add-player"
     // - .js-load-stats → data-action="load-stats"
-    // - .js-remove-player → data-action="remove-player"
+    // - .js-remove-player → data-action="remove-pool-player"
     // - .js-add-to-pool → data-action="add-to-pool"
     // - .js-reject-player → data-action="reject-player"
 

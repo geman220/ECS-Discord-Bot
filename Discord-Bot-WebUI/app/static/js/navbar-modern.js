@@ -95,8 +95,8 @@ class ModernNavbarController {
       this.toggleMobileMenu();
     }, { preventDefault: true });
 
-    // Dropdown toggles
-    window.EventDelegation.register('toggle-dropdown', (element, e) => {
+    // Dropdown toggles (scoped name to avoid collision with admin nav)
+    window.EventDelegation.register('toggle-navbar-dropdown', (element, e) => {
       const dropdownId = element.dataset.dropdown;
       if (dropdownId) {
         this.toggleDropdown(dropdownId);

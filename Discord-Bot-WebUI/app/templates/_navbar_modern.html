@@ -53,7 +53,7 @@
             {# Theme Switcher #}
             <li role="listitem">
                 <button class="c-navbar-modern__action-btn"
-                        data-action="toggle-dropdown"
+                        data-action="toggle-navbar-dropdown"
                         data-dropdown="theme"
                         aria-label="Theme settings"
                         aria-expanded="false"
@@ -101,7 +101,7 @@
             {% if safe_current_user.has_role('Global Admin') %}
             <li role="listitem" class="c-navbar-modern__action-btn--hide-mobile">
                 <button class="c-navbar-modern__action-btn"
-                        data-action="toggle-dropdown"
+                        data-action="toggle-navbar-dropdown"
                         data-dropdown="impersonation"
                         aria-label="Role impersonation"
                         aria-expanded="false"
@@ -249,7 +249,7 @@
             {# Notifications #}
             <li role="listitem">
                 <button class="c-navbar-modern__action-btn"
-                        data-action="toggle-dropdown"
+                        data-action="toggle-navbar-dropdown"
                         data-dropdown="notifications"
                         aria-label="Notifications"
                         aria-expanded="false"
@@ -315,7 +315,7 @@
                 {% set initials = (name_parts[0][0] + (name_parts[-1][0] if name_parts|length > 1 else '')) | upper if name_parts else 'U' %}
 
                 <button class="c-navbar-modern__action-btn c-navbar-modern__action-btn--avatar"
-                        data-action="toggle-dropdown"
+                        data-action="toggle-navbar-dropdown"
                         data-dropdown="profile"
                         aria-label="User profile"
                         aria-expanded="false"

@@ -325,7 +325,7 @@
             return;
         }
 
-        window.EventDelegation.register('go-back', handleGoBack, { preventDefault: true });
+        window.EventDelegation.register('go-back-templates', handleGoBack, { preventDefault: true });
         window.EventDelegation.register('view-template', handleViewTemplate, { preventDefault: true });
         window.EventDelegation.register('edit-template', handleEditTemplate, { preventDefault: true });
         window.EventDelegation.register('toggle-template', handleToggleTemplate, { preventDefault: true });

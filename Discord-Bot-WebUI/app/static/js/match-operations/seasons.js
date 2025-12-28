@@ -344,9 +344,7 @@
     // ========================================================================
 
     if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
-        window.EventDelegation.register('create-season', function(element, e) {
-            createSeason();
-        }, { preventDefault: true });
+        // Note: create-season is handled by event-delegation/handlers/season-wizard.js
 
         window.EventDelegation.register('view-season', function(element, e) {
             const seasonId = element.dataset.seasonId;

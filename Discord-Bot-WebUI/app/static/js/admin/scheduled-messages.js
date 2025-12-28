@@ -470,7 +470,7 @@
             return;
         }
 
-        window.EventDelegation.register('go-back', handleGoBack, { preventDefault: true });
+        window.EventDelegation.register('go-back-scheduled', handleGoBack, { preventDefault: true });
         window.EventDelegation.register('preview-message', handlePreviewMessage, { preventDefault: true });
         window.EventDelegation.register('view-scheduled-message', handleViewScheduledMessage, { preventDefault: true });
         window.EventDelegation.register('edit-scheduled-message', handleEditScheduledMessage, { preventDefault: true });

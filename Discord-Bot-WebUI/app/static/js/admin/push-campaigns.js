@@ -391,7 +391,7 @@
             return;
         }
 
-        window.EventDelegation.register('go-back', handleGoBack, { preventDefault: true });
+        window.EventDelegation.register('go-back-campaigns', handleGoBack, { preventDefault: true });
         window.EventDelegation.register('view-campaign', handleViewCampaign, { preventDefault: true });
         window.EventDelegation.register('edit-campaign', handleEditCampaign, { preventDefault: true });
         window.EventDelegation.register('send-campaign', handleSendCampaign, { preventDefault: true });
