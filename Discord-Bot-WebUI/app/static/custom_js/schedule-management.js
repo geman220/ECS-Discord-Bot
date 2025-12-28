@@ -145,7 +145,7 @@ class ScheduleManager {
     // 2) EDIT/ADD MATCH LOGIC
     // ROOT CAUSE FIX: Uses single event delegation handler for all button types
     // ----------------------------------------------------------------
-    _buttonDelegationRegistered: false,
+    _buttonDelegationRegistered = false;
 
     setupAddMatchButtons() {
         // Uses delegated handler from setupButtonDelegation
