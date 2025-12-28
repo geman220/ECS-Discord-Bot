@@ -856,11 +856,10 @@
        ======================================================================== */
 
     if (typeof window.InitSystem !== 'undefined') {
-        window.InitSystem.register('AdminDashboard', {
-            priority: 50,
-            init: function(context) {
-                AdminDashboard.init(context);
-            }
+        window.InitSystem.register('AdminDashboard', function(context) {
+            AdminDashboard.init(context);
+        }, {
+            priority: 50
         });
     } else {
         document.addEventListener('DOMContentLoaded', function() {

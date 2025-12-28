@@ -219,12 +219,19 @@
   // Create global instance
   window.OnlineStatusManager = new OnlineStatusManager();
 
-  // Auto-initialize when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      window.OnlineStatusManager.init();
-    });
-  } else {
+  // Auto-initialize when DOM is ready - ONLY if there are status indicators on the page
+  function initIfNeeded() {
+    // Page guard - only initialize if there are online status elements to update
+    const hasStatusIndicators = document.querySelector('[data-online-status], .c-online-status, [data-component="online-status"]');
+    if (!hasStatusIndicators) {
+      return; // No status indicators on this page, skip initialization
+    }
     window.OnlineStatusManager.init();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initIfNeeded);
+  } else {
+    initIfNeeded();
   }
 })();

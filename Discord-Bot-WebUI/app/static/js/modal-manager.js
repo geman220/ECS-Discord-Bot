@@ -490,11 +490,10 @@ class ModalManager {
 
 // Register with InitSystem if available
 if (typeof window.InitSystem !== 'undefined') {
-    window.InitSystem.register('ModalManager', {
-        priority: 20, // After responsive (10) and admin-base (15), before page-specific components
-        init: function(context) {
-            ModalManager.init(context);
-        }
+    window.InitSystem.register('ModalManager', function(context) {
+        ModalManager.init(context);
+    }, {
+        priority: 20 // After responsive (10) and admin-base (15), before page-specific components
     });
 } else {
     // Fallback to DOMContentLoaded

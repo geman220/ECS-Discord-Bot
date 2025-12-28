@@ -697,12 +697,11 @@
 
     // Register with InitSystem if available
     if (typeof window.InitSystem !== 'undefined') {
-        window.InitSystem.register('AdminPanelBase', {
-            priority: 15, // Early priority - after responsive-global (10) but before most components
-            init: function(context) {
-                AdminPanelBase.init(context);
-                registerServiceWorker();
-            }
+        window.InitSystem.register('AdminPanelBase', function(context) {
+            AdminPanelBase.init(context);
+            registerServiceWorker();
+        }, {
+            priority: 15 // Early priority - after responsive-global (10) but before most components
         });
     } else {
         // Fallback to DOMContentLoaded

@@ -413,11 +413,10 @@
 
     // Register with InitSystem if available
     if (typeof window.InitSystem !== 'undefined') {
-        window.InitSystem.register('ModalHelpers', {
-            priority: 25, // After ModalManager (20)
-            init: function(context) {
-                ModalHelpers.init(context);
-            }
+        window.InitSystem.register('ModalHelpers', function(context) {
+            ModalHelpers.init(context);
+        }, {
+            priority: 25 // After ModalManager (20)
         });
     } else {
         // Fallback to DOMContentLoaded
