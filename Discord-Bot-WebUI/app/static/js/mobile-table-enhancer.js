@@ -110,13 +110,27 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Monitor dropdowns opening
+  let isAdjusting = false; // Prevent infinite loop
   const observer = new MutationObserver(function(mutations) {
+    if (isAdjusting) return; // Skip if we're currently adjusting
+
     mutations.forEach(function(mutation) {
       if (mutation.type === 'attributes' &&
           mutation.attributeName === 'class' &&
           mutation.target.hasAttribute('data-dropdown-menu') &&
-          mutation.target.classList.contains('show')) {
+          mutation.target.classList.contains('show') &&
+          !mutation.target.classList.contains('dropdown-adjusted')) {
+        isAdjusting = true;
+        mutation.target.classList.add('dropdown-adjusted'); // Mark as processed
         adjustDropdownPosition();
+        isAdjusting = false;
+      }
+      // Clean up marker when dropdown closes
+      if (mutation.type === 'attributes' &&
+          mutation.attributeName === 'class' &&
+          mutation.target.hasAttribute('data-dropdown-menu') &&
+          !mutation.target.classList.contains('show')) {
+        mutation.target.classList.remove('dropdown-adjusted', 'dropdown-position-above', 'dropdown-position-below', 'dropdown-align-right', 'dropdown-align-left');
       }
     });
   });
