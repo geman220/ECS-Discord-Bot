@@ -274,42 +274,60 @@
 
     /**
      * Improve textarea handling on mobile
+     * ROOT CAUSE FIX: Uses event delegation for focus/input events
      */
+    _textareaListenersRegistered: false,
     optimizeTextareas: function () {
-      document.querySelectorAll('textarea').forEach(textarea => {
-        if (this.isMobile()) {
-          // Add CSS class for minimum height
-          textarea.classList.add('mobile-textarea');
+      if (!this.isMobile()) return;
 
-          // Auto-expand on focus
-          textarea.addEventListener('focus', () => {
-            textarea.classList.add('mobile-textarea-expanded');
-          });
+      // Set up document-level delegation ONCE
+      if (!this._textareaListenersRegistered) {
+        this._textareaListenersRegistered = true;
 
-          // Character count if needed
+        // Single delegated focusin listener for ALL textareas
+        document.addEventListener('focusin', function(e) {
+          if (e.target.tagName === 'TEXTAREA') {
+            e.target.classList.add('mobile-textarea-expanded');
+          }
+        }, true);
+
+        // Single delegated input listener for ALL textareas with maxlength
+        document.addEventListener('input', function(e) {
+          if (e.target.tagName !== 'TEXTAREA') return;
+          const textarea = e.target;
           const maxLength = textarea.getAttribute('maxlength');
-          if (maxLength) {
-            let counter = textarea.parentElement.querySelector('.char-counter');
-            if (!counter) {
-              counter = document.createElement('div');
-              counter.className = 'char-counter text-muted small';
-              textarea.parentElement.appendChild(counter);
-            }
+          if (!maxLength) return;
 
-            const updateCounter = () => {
-              const remaining = maxLength - textarea.value.length;
-              counter.textContent = `${remaining} characters remaining`;
+          // Find or create counter
+          let counter = textarea.parentElement?.querySelector('.char-counter');
+          if (!counter) return; // Counter will be created in the CSS class setup below
 
-              // Toggle warning class based on remaining characters
-              if (remaining < 20) {
-                counter.classList.add('char-counter-warning');
-              } else {
-                counter.classList.remove('char-counter-warning');
-              }
-            };
+          const remaining = parseInt(maxLength) - textarea.value.length;
+          counter.textContent = `${remaining} characters remaining`;
 
-            textarea.addEventListener('input', updateCounter);
-            updateCounter();
+          if (remaining < 20) {
+            counter.classList.add('char-counter-warning');
+          } else {
+            counter.classList.remove('char-counter-warning');
+          }
+        }, true);
+      }
+
+      // Apply CSS classes and create counters for textareas (one-time, idempotent)
+      document.querySelectorAll('textarea').forEach(textarea => {
+        // Add CSS class for minimum height (idempotent)
+        textarea.classList.add('mobile-textarea');
+
+        // Create character counter if needed
+        const maxLength = textarea.getAttribute('maxlength');
+        if (maxLength && textarea.parentElement) {
+          let counter = textarea.parentElement.querySelector('.char-counter');
+          if (!counter) {
+            counter = document.createElement('div');
+            counter.className = 'char-counter text-muted small';
+            const remaining = parseInt(maxLength) - textarea.value.length;
+            counter.textContent = `${remaining} characters remaining`;
+            textarea.parentElement.appendChild(counter);
           }
         }
       });
@@ -335,55 +353,69 @@
 
     /**
      * Setup form validation with mobile feedback
+     * ROOT CAUSE FIX: Uses event delegation instead of per-element listeners
      */
+    _validationListenersRegistered: false,
     setupMobileValidation: function () {
-      document.querySelectorAll('form').forEach(form => {
-        form.addEventListener('submit', (e) => {
-          const invalidFields = form.querySelectorAll(':invalid');
+      // Only register once - event delegation handles all forms
+      if (this._validationListenersRegistered) return;
+      this._validationListenersRegistered = true;
 
-          if (invalidFields.length > 0) {
-            e.preventDefault();
+      // Single delegated submit listener for ALL forms
+      document.addEventListener('submit', function(e) {
+        const form = e.target;
+        if (form.tagName !== 'FORM') return;
 
-            // Show first error
-            const firstInvalid = invalidFields[0];
-            firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            firstInvalid.focus();
+        const invalidFields = form.querySelectorAll(':invalid');
 
-            // Visual feedback with CSS class
-            firstInvalid.classList.add('shake-invalid');
-            setTimeout(() => firstInvalid.classList.remove('shake-invalid'), 500);
+        if (invalidFields.length > 0) {
+          e.preventDefault();
 
-            // Haptic feedback
-            if (window.Haptics) window.Haptics.validationError();
+          // Show first error
+          const firstInvalid = invalidFields[0];
+          firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          firstInvalid.focus();
 
-            // Show toast
-            if (window.Swal) {
-              Swal.fire({
-                toast: true,
-                position: 'top',
-                icon: 'error',
-                title: 'Please fill out all required fields',
-                showConfirmButton: false,
-                timer: 3000
-              });
-            }
+          // Visual feedback with CSS class
+          firstInvalid.classList.add('shake-invalid');
+          setTimeout(() => firstInvalid.classList.remove('shake-invalid'), 500);
+
+          // Haptic feedback
+          if (window.Haptics) window.Haptics.validationError();
+
+          // Show toast
+          if (window.Swal) {
+            Swal.fire({
+              toast: true,
+              position: 'top',
+              icon: 'error',
+              title: 'Please fill out all required fields',
+              showConfirmButton: false,
+              timer: 3000
+            });
           }
-        });
+        }
+      }, true); // Use capture phase to catch before native validation
 
-        // Real-time validation feedback
-        form.querySelectorAll('input, select, textarea').forEach(field => {
-          field.addEventListener('blur', () => {
-            if (field.validity.valid) {
-              field.classList.remove('is-invalid');
-              field.classList.add('is-valid');
-            } else if (field.value) {
-              field.classList.remove('is-valid');
-              field.classList.add('is-invalid');
-              if (window.Haptics) window.Haptics.light();
-            }
-          });
-        });
-      });
+      // Single delegated focusout listener for ALL form fields (real-time validation)
+      document.addEventListener('focusout', function(e) {
+        const field = e.target;
+        // Only handle form fields
+        if (field.tagName !== 'INPUT' && field.tagName !== 'SELECT' && field.tagName !== 'TEXTAREA') return;
+
+        // Check if field is inside a form
+        const form = field.closest('form');
+        if (!form) return;
+
+        if (field.validity.valid) {
+          field.classList.remove('is-invalid');
+          field.classList.add('is-valid');
+        } else if (field.value) {
+          field.classList.remove('is-valid');
+          field.classList.add('is-invalid');
+          if (window.Haptics) window.Haptics.light();
+        }
+      }, true);
     },
 
     /**
@@ -497,8 +529,17 @@
 
     /**
      * Initialize all mobile form enhancements
+     * ROOT CAUSE FIX: Added module-level init guard
      */
+    _initialized: false,
     init: function () {
+      // Only initialize once
+      if (this._initialized) {
+        console.log('[MobileForms] Already initialized, skipping');
+        return;
+      }
+      this._initialized = true;
+
       // Add styles first
       this.addMobileFormStyles();
 

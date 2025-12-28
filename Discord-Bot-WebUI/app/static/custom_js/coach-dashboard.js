@@ -177,8 +177,14 @@
 
     /**
      * Initialize event listeners using delegation
+     * ROOT CAUSE FIX: All listeners use document-level delegation
      */
+    let _initialized = false;
     function init() {
+        // Only initialize once
+        if (_initialized) return;
+        _initialized = true;
+
         // Request Sub button delegation
         document.addEventListener('click', function(e) {
             const btn = e.target.closest('[data-action="request-sub"]');
@@ -191,12 +197,13 @@
             }
         });
 
-        // Match report form submission
-        document.querySelectorAll('.report-match-form').forEach(form => {
-            form.addEventListener('submit', function(e) {
+        // Match report form submission - using document-level delegation
+        document.addEventListener('submit', function(e) {
+            const form = e.target.closest('.report-match-form');
+            if (form) {
                 e.preventDefault();
-                handleMatchReportSubmit(this);
-            });
+                handleMatchReportSubmit(form);
+            }
         });
 
         console.log('Coach Dashboard initialized');

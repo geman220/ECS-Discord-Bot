@@ -34,6 +34,7 @@ import './handlers/rsvp-actions.js';         // Match RSVP responses
 import './handlers/profile-verification.js'; // Profile verification workflow
 import './handlers/discord-management.js';   // Discord integration, player sync
 import './handlers/user-approval.js';        // User approval/denial workflow
+import './handlers/user-management.js';      // User edit/delete/approve/remove actions
 
 // Pool & Assignment Management
 import './handlers/substitute-pool.js';      // Substitute pool management

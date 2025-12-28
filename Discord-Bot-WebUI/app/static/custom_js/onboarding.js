@@ -64,59 +64,62 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch (error) {
             // console.error("Error showing modal:", error);
         }
-
-        // FIXED: Added guard to prevent duplicate modal event listener registration
-        if (!modalElement.hasAttribute('data-onboarding-select2-enhanced')) {
-            modalElement.setAttribute('data-onboarding-select2-enhanced', 'true');
-
-            modalElement.addEventListener('shown.bs.modal', function () {
-                // Initialize Select2 dropdowns
-                $(modalElement).find('.select2-single').select2({
-                    theme: 'bootstrap-5',
-                    width: '100%',
-                    placeholder: 'Select an option',
-                    allowClear: true,
-                    dropdownParent: $(modalElement)
-                });
-
-                $(modalElement).find('.select2-multiple').select2({
-                    theme: 'bootstrap-5',
-                    width: '100%',
-                    placeholder: 'Select options',
-                    allowClear: true,
-                    dropdownParent: $(modalElement)
-                });
-
-                // Update the progress bar
-                updateProgress();
-            });
-
-            modalElement.addEventListener('hidden.bs.modal', function () {
-                $(modalElement).find('.select2-single, .select2-multiple').select2('destroy');
-            });
-        }
     }
 
     // ======================
-    //   Image / Simple Cropper
+    //   Event delegation setup - ONCE for all modal events
     // ======================
+    // ROOT CAUSE FIX: Use document-level event delegation instead of per-element listeners
 
-    // Initialize the simple cropper when modal is shown
-    // FIXED: Added guard to prevent duplicate modal event listener registration
-    if (modalElement && !modalElement.hasAttribute('data-onboarding-modal-enhanced')) {
-        modalElement.setAttribute('data-onboarding-modal-enhanced', 'true');
-        modalElement.addEventListener('shown.bs.modal', function () {
+    // Track if delegation is set up (module-level singleton)
+    if (!window._onboardingDelegationSetup) {
+        window._onboardingDelegationSetup = true;
+
+        // Single delegated shown.bs.modal listener for onboarding modal
+        document.addEventListener('shown.bs.modal', function(e) {
+            const modal = e.target;
+            if (modal.id !== 'onboardingSlideModal') return;
+
+            // Initialize Select2 dropdowns
+            $(modal).find('.select2-single').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: 'Select an option',
+                allowClear: true,
+                dropdownParent: $(modal)
+            });
+
+            $(modal).find('.select2-multiple').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: 'Select options',
+                allowClear: true,
+                dropdownParent: $(modal)
+            });
+
+            // Initialize simple cropper
             if (!window.SimpleCropperInstance) {
                 window.SimpleCropperInstance = initializeSimpleCropper('cropCanvas');
             }
 
-            // Also ensure the file input has the change listener
-            const imageInput = document.getElementById('image');
-            if (imageInput && !imageInput.hasAttribute('data-listener-added')) {
-                imageInput.setAttribute('data-listener-added', 'true');
-                imageInput.addEventListener('change', function (e) {
-                    window.loadImageIntoCropper(this);
-                });
+            // Update the progress bar
+            if (typeof updateProgress === 'function') {
+                updateProgress();
+            }
+        });
+
+        // Single delegated hidden.bs.modal listener for onboarding modal
+        document.addEventListener('hidden.bs.modal', function(e) {
+            const modal = e.target;
+            if (modal.id !== 'onboardingSlideModal') return;
+
+            $(modal).find('.select2-single, .select2-multiple').select2('destroy');
+        });
+
+        // Single delegated change listener for image input
+        document.addEventListener('change', function(e) {
+            if (e.target.id === 'image' && e.target.closest('#onboardingSlideModal')) {
+                window.loadImageIntoCropper(e.target);
             }
         });
     }
@@ -309,12 +312,20 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Form validation
-    if (form) {
-        form.addEventListener('submit', function (event) {
+    // Form validation - using event delegation
+    // ROOT CAUSE FIX: Single delegated submit listener (set up above)
+    if (!window._onboardingFormDelegationSetup) {
+        window._onboardingFormDelegationSetup = true;
+
+        // Single delegated submit listener for onboarding form
+        document.addEventListener('submit', function(e) {
+            const form = e.target;
+            if (!form.closest || !form.closest('#onboardingSlideModal')) return;
+            if (form.tagName !== 'FORM') return;
+
             if (!form.checkValidity()) {
-                event.preventDefault();
-                event.stopPropagation();
+                e.preventDefault();
+                e.stopPropagation();
 
                 // Find first invalid input and focus it
                 const firstInvalid = form.querySelector(':invalid');
@@ -329,23 +340,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
             form.classList.add('was-validated');
-        }, false);
+        }, true);
+
+        // Single delegated input listener for real-time validation feedback removal
+        document.addEventListener('input', function(e) {
+            if (!e.target.closest || !e.target.closest('#onboardingSlideModal')) return;
+            if (e.target.matches('input[required], select[required], textarea[required]')) {
+                if (e.target.checkValidity()) {
+                    e.target.classList.remove('is-invalid');
+                    const feedback = e.target.nextElementSibling;
+                    if (feedback && feedback.classList.contains('invalid-feedback')) {
+                        feedback.remove();
+                    }
+                }
+            }
+        });
     }
 
     // Initialize everything
     updateNavButtons();
     updateProgress();
-
-    // Add real-time validation feedback removal
-    modalElement?.addEventListener('input', function(e) {
-        if (e.target.matches('input[required], select[required], textarea[required]')) {
-            if (e.target.checkValidity()) {
-                e.target.classList.remove('is-invalid');
-                const feedback = e.target.nextElementSibling;
-                if (feedback && feedback.classList.contains('invalid-feedback')) {
-                    feedback.remove();
-                }
-            }
-        }
-    });
 });

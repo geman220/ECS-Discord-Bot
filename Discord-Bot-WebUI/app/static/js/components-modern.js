@@ -27,12 +27,18 @@
   /**
    * ============================================================================
    * MODAL CONTROLLER
+   * ROOT CAUSE FIX: Added initialization guard
    * ============================================================================
    */
   const ModalController = {
     activeModals: new Set(),
+    _initialized: false,
 
     init() {
+      // Only register listeners once
+      if (this._initialized) return;
+      this._initialized = true;
+
       // Helper to safely get element from event target
       const getElement = (target) => target instanceof Element ? target : null;
 
@@ -149,14 +155,20 @@
   /**
    * ============================================================================
    * TOAST CONTROLLER
+   * ROOT CAUSE FIX: Added initialization guard
    * ============================================================================
    */
   const ToastController = {
     container: null,
     toasts: new Map(),
     idCounter: 0,
+    _initialized: false,
 
     init() {
+      // Only initialize once
+      if (this._initialized) return;
+      this._initialized = true;
+
       // Create toast container if doesn't exist
       if (!this.container) {
         this.container = document.createElement('div');
@@ -451,27 +463,33 @@
   /**
    * ============================================================================
    * TABLE CONTROLLER
+   * ROOT CAUSE FIX: Added initialization guard
    * ============================================================================
    */
   const TableController = {
+    _initialized: false,
+
     init() {
+      // Only register listeners once
+      if (this._initialized) return;
+      this._initialized = true;
+
       // Helper to safely get element from event target
       const getElement = (target) => target instanceof Element ? target : null;
 
-      // Sortable columns
+      // Single delegated click listener for sorting and pagination
       document.addEventListener('click', (e) => {
         const el = getElement(e.target);
         if (!el) return;
+
+        // Sortable columns
         const header = el.closest('.c-table-modern__header--sortable');
         if (header) {
           this.sort(header);
+          return;
         }
-      });
 
-      // Pagination
-      document.addEventListener('click', (e) => {
-        const el = getElement(e.target);
-        if (!el) return;
+        // Pagination
         const paginationBtn = el.closest('.c-table-modern__pagination-button');
         if (paginationBtn && !paginationBtn.disabled) {
           const page = parseInt(paginationBtn.dataset.page);
@@ -525,15 +543,22 @@
   /**
    * ============================================================================
    * FORM VALIDATION CONTROLLER
+   * ROOT CAUSE FIX: Added initialization guard
    * ============================================================================
    */
   const FormController = {
+    _initialized: false,
+
     init() {
+      // Only register listeners once
+      if (this._initialized) return;
+      this._initialized = true;
+
       // Helper to safely get element from event target
       const getElement = (target) => target instanceof Element ? target : null;
 
-      // Real-time validation
-      document.addEventListener('blur', (e) => {
+      // Real-time validation via focusout delegation
+      document.addEventListener('focusout', (e) => {
         const el = getElement(e.target);
         if (!el) return;
         const input = el.closest('.c-form-modern__input');

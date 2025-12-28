@@ -139,45 +139,45 @@
 
   /**
    * ============================================================================
-   * MODAL iOS FIX
+   * MODAL iOS FIX - ROOT CAUSE FIX using EVENT DELEGATION
    * Prevents scroll issues in modals on iOS devices
+   * Uses document-level listeners instead of per-modal listeners
    * ============================================================================
    */
+  let _modalIosListenerAttached = false;
   function initializeModalIosFix() {
-    const allModals = document.querySelectorAll('[data-modal]');
+    // Only attach listeners once
+    if (_modalIosListenerAttached) return;
+    _modalIosListenerAttached = true;
 
-    allModals.forEach(modal => {
-      // Use Bootstrap events if available, otherwise use custom events
-      const showEvent = typeof bootstrap !== 'undefined' ? 'shown.bs.modal' : 'modal:opened';
-      const hideEvent = typeof bootstrap !== 'undefined' ? 'hidden.bs.modal' : 'modal:closed';
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (!isIOS) return; // Skip if not iOS
 
-      modal.addEventListener(showEvent, function() {
-        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-          document.body.classList.add('modal-open-ios');
-        }
-      });
+    // Use Bootstrap events with delegation
+    document.addEventListener('shown.bs.modal', function() {
+      document.body.classList.add('modal-open-ios');
+    });
 
-      modal.addEventListener(hideEvent, function() {
-        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-          document.body.classList.remove('modal-open-ios');
-        }
-      });
+    document.addEventListener('hidden.bs.modal', function() {
+      document.body.classList.remove('modal-open-ios');
     });
   }
 
   /**
    * ============================================================================
-   * FAST CLICK ENABLEMENT
+   * FAST CLICK ENABLEMENT - ROOT CAUSE FIX using EVENT DELEGATION
    * Reduces tap delay on mobile devices
+   * Uses single document-level listener instead of per-element listeners
    * ============================================================================
    */
+  let _fastClickListenerAttached = false;
   function enableFastClick() {
     if (!('ontouchstart' in window)) return;
+    if (_fastClickListenerAttached) return;
+    _fastClickListenerAttached = true;
 
-    const buttons = document.querySelectorAll('button, .btn, a, [data-action]');
-    buttons.forEach(button => {
-      button.addEventListener('touchstart', function() {}, { passive: true });
-    });
+    // Single delegated touchstart listener - works for all current and future elements
+    document.addEventListener('touchstart', function() {}, { passive: true });
   }
 
   /**

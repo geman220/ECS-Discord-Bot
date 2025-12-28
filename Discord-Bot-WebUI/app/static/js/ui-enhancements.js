@@ -64,39 +64,54 @@
 
     /**
      * Initialize Match History Collapsible Weeks
-     * FIXED: Added guard to prevent duplicate event listener registration
+     * ROOT CAUSE FIX: Uses event delegation for click/keydown events
      */
+    let matchHistoryListenersRegistered = false;
     function initMatchHistoryCollapse() {
-        const dateGroups = document.querySelectorAll('.c-match-history__date-group');
+        // Set up event delegation ONCE
+        if (!matchHistoryListenersRegistered) {
+            matchHistoryListenersRegistered = true;
 
+            // Single delegated click listener for ALL date headers
+            document.addEventListener('click', function(e) {
+                const header = e.target.closest('.c-match-history__date-header');
+                if (header) {
+                    const group = header.closest('.c-match-history__date-group');
+                    if (group) {
+                        group.classList.toggle('is-collapsed');
+                    }
+                }
+            });
+
+            // Single delegated keydown listener for ALL date headers
+            document.addEventListener('keydown', function(e) {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+
+                const header = e.target.closest('.c-match-history__date-header');
+                if (header) {
+                    e.preventDefault();
+                    const group = header.closest('.c-match-history__date-group');
+                    if (group) {
+                        group.classList.toggle('is-collapsed');
+                    }
+                }
+            });
+        }
+
+        // Apply initial state and accessibility attributes (idempotent)
+        const dateGroups = document.querySelectorAll('.c-match-history__date-group');
         dateGroups.forEach(function(group, index) {
             const header = group.querySelector('.c-match-history__date-header');
 
             if (header) {
-                // Skip if already enhanced to prevent duplicate event listeners
-                if (header.hasAttribute('data-collapse-enhanced')) {
-                    return;
-                }
-                header.setAttribute('data-collapse-enhanced', 'true');
-
                 // Collapse all groups except the first one by default
-                if (index > 0) {
+                if (index > 0 && !group.classList.contains('is-collapsed')) {
                     group.classList.add('is-collapsed');
                 }
 
-                header.addEventListener('click', function() {
-                    group.classList.toggle('is-collapsed');
-                });
-
-                // Make header keyboard accessible
+                // Make header keyboard accessible (idempotent)
                 header.setAttribute('role', 'button');
                 header.setAttribute('tabindex', '0');
-                header.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        group.classList.toggle('is-collapsed');
-                    }
-                });
             }
         });
     }

@@ -16,16 +16,23 @@ function formatPosition(position) {
     return position.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
 
+// Track if already initialized to prevent duplicate listeners
+let _draftEnhancedInitialized = false;
+
 // Initialize the draft system when the page loads
 document.addEventListener('DOMContentLoaded', function() {
-    // Add performance optimizations
+    // Only initialize once
+    if (_draftEnhancedInitialized) return;
+    _draftEnhancedInitialized = true;
+
+    // Add performance optimizations - using event delegation for lazy-load images
+    // Note: Image load events don't bubble, so we use capture phase
     if ('loading' in HTMLImageElement.prototype) {
-        const images = document.querySelectorAll('img[loading="lazy"]');
-        images.forEach(img => {
-            img.addEventListener('load', function() {
-                this.classList.add('loaded');
-            });
-        });
+        document.addEventListener('load', function(e) {
+            if (e.target.tagName === 'IMG' && e.target.loading === 'lazy') {
+                e.target.classList.add('loaded');
+            }
+        }, true); // Use capture phase
     }
 
     // Add keyboard navigation
@@ -51,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup event delegation for buttons
     setupEventDelegation();
 
-    // Setup image error handlers
+    // Setup image error handlers using delegation
     setupImageErrorHandlers();
 
     // Listen for socket events to update team counts
@@ -437,23 +444,35 @@ function handleDropToAvailable(playerId) {
 
 /**
  * Setup image error handlers for fallback images
+ * ROOT CAUSE FIX: Uses event delegation with capture phase (image events don't bubble)
  */
+let _imageHandlersSetup = false;
 function setupImageErrorHandlers() {
-    document.querySelectorAll('.js-player-image').forEach(img => {
-        img.addEventListener('error', function() {
-            const fallback = this.dataset.fallback || '/static/img/default_player.png';
-            console.log('Image failed to load:', this.src, '- Using fallback:', fallback);
-            this.src = fallback;
-        });
+    // Only set up listeners once - they handle all current and future images
+    if (_imageHandlersSetup) return;
+    _imageHandlersSetup = true;
 
-        img.addEventListener('load', function() {
-            console.log('Image loaded successfully:', this.src);
-            // Apply smart cropping if function exists
-            if (typeof smartCropImage === 'function') {
-                smartCropImage(this);
-            }
-        });
-    });
+    // Single delegated error listener for ALL player images (capture phase required)
+    document.addEventListener('error', function(e) {
+        if (e.target.tagName !== 'IMG') return;
+        if (!e.target.classList.contains('js-player-image')) return;
+
+        const fallback = e.target.dataset.fallback || '/static/img/default_player.png';
+        console.log('Image failed to load:', e.target.src, '- Using fallback:', fallback);
+        e.target.src = fallback;
+    }, true); // Use capture phase - error events don't bubble
+
+    // Single delegated load listener for ALL player images (capture phase required)
+    document.addEventListener('load', function(e) {
+        if (e.target.tagName !== 'IMG') return;
+        if (!e.target.classList.contains('js-player-image')) return;
+
+        console.log('Image loaded successfully:', e.target.src);
+        // Apply smart cropping if function exists
+        if (typeof smartCropImage === 'function') {
+            smartCropImage(e.target);
+        }
+    }, true); // Use capture phase - load events don't bubble
 }
 
 /**

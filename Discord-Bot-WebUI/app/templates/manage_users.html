@@ -202,13 +202,13 @@
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userActions{{ user.id }}" data-dropdown-menu>
                                             <li>
-                                                <a class="dropdown-item edit-user-btn" href="#" data-user-id="{{ user.id }}">
+                                                <a class="dropdown-item" href="#" data-action="edit-user" data-user-id="{{ user.id }}">
                                                     <i class="ti ti-edit me-2"></i>Edit User
                                                 </a>
                                             </li>
                                             {% if not user.is_approved %}
                                             <li>
-                                                <a class="dropdown-item approve-user-btn" href="#" data-user-id="{{ user.id }}">
+                                                <a class="dropdown-item" href="#" data-action="approve-user-status" data-user-id="{{ user.id }}">
                                                     <i class="ti ti-check-circle me-2"></i>Approve User
                                                 </a>
                                             </li>
@@ -217,12 +217,12 @@
                                                 <hr class="dropdown-divider">
                                             </li>
                                             <li>
-                                                <a class="dropdown-item text-warning remove-user-btn" href="#" data-user-id="{{ user.id }}">
+                                                <a class="dropdown-item text-warning" href="#" data-action="remove-user" data-user-id="{{ user.id }}">
                                                     <i class="ti ti-user-off me-2"></i>Remove User
                                                 </a>
                                             </li>
                                             <li>
-                                                <a class="dropdown-item text-danger delete-user-btn" href="#" data-user-id="{{ user.id }}" data-username="{{ user.username }}">
+                                                <a class="dropdown-item text-danger" href="#" data-action="delete-user" data-user-id="{{ user.id }}" data-username="{{ user.username }}">
                                                     <i class="ti ti-trash me-2"></i>Delete User Completely
                                                 </a>
                                             </li>
@@ -230,15 +230,15 @@
                                     </div>
                                     <!-- Mobile Action Buttons (only shown on mobile via CSS) -->
                                     <div class="d-lg-none">
-                                        <button class="c-btn c-btn--primary c-btn--sm edit-user-btn me-1 mb-1" data-user-id="{{ user.id }}">
+                                        <button class="c-btn c-btn--primary c-btn--sm me-1 mb-1" data-action="edit-user" data-user-id="{{ user.id }}">
                                             <i class="ti ti-edit me-1"></i>Edit
                                         </button>
                                         {% if not user.is_approved %}
-                                        <button class="c-btn c-btn--success c-btn--sm approve-user-btn me-1 mb-1" data-user-id="{{ user.id }}">
+                                        <button class="c-btn c-btn--success c-btn--sm me-1 mb-1" data-action="approve-user-status" data-user-id="{{ user.id }}">
                                             <i class="ti ti-check me-1"></i>Approve
                                         </button>
                                         {% endif %}
-                                        <button class="c-btn c-btn--outline-danger c-btn--sm remove-user-btn mb-1" data-user-id="{{ user.id }}">
+                                        <button class="c-btn c-btn--outline-danger c-btn--sm mb-1" data-action="remove-user" data-user-id="{{ user.id }}">
                                             <i class="ti ti-user-off me-1"></i>Remove
                                         </button>
                                     </div>
@@ -709,6 +709,12 @@
         });
     }
 
+    // Expose handler functions globally for EventDelegation system
+    window.handleEditUserClick = handleEditUserClick;
+    window.handleApproveUserClick = handleApproveUserClick;
+    window.handleRemoveUserClick = handleRemoveUserClick;
+    window.handleDeleteUserClick = handleDeleteUserClick;
+
     // Initialize on DOMContentLoaded
     document.addEventListener('DOMContentLoaded', function () {
         // Initialize global variables
@@ -749,10 +755,9 @@
         getUserDataUrl = "{{ url_for('user_management.get_user_data') }}";
         csrfToken = "{{ csrf_token() }}";
 
-        const editUserButtons = document.querySelectorAll('.edit-user-btn');
-        const approveUserButtons = document.querySelectorAll('.approve-user-btn');
-        const removeUserButtons = document.querySelectorAll('.remove-user-btn');
-        const deleteUserButtons = document.querySelectorAll('.delete-user-btn');
+        // NOTE: Button click handlers are now managed by EventDelegation system
+        // See: /app/static/js/event-delegation/handlers/user-management.js
+        // Buttons use data-action attributes instead of class-based listeners
 
         // Filter teams by selected league
         document.getElementById('editLeague').addEventListener('change', function() {
@@ -770,43 +775,6 @@
 
             // Reset team selection if league changes
             teamSelect.value = '0';
-        });
-
-        // Handle edit user button clicks
-        editUserButtons.forEach(button => {
-            button.addEventListener('click', function (e) {
-                e.preventDefault();
-                const userId = this.getAttribute('data-user-id');
-                handleEditUserClick(userId);
-            });
-        });
-
-        // Handle approve user button clicks
-        approveUserButtons.forEach(button => {
-            button.addEventListener('click', function (e) {
-                e.preventDefault();
-                const userId = this.getAttribute('data-user-id');
-                handleApproveUserClick(userId);
-            });
-        });
-
-        // Handle remove user button clicks
-        removeUserButtons.forEach(button => {
-            button.addEventListener('click', function (e) {
-                e.preventDefault();
-                const userId = this.getAttribute('data-user-id');
-                handleRemoveUserClick(userId);
-            });
-        });
-
-        // Handle delete user button clicks
-        deleteUserButtons.forEach(button => {
-            button.addEventListener('click', function (e) {
-                e.preventDefault();
-                const userId = this.getAttribute('data-user-id');
-                const username = this.getAttribute('data-username');
-                handleDeleteUserClick(userId, username);
-            });
         });
 
         // Reset Profile Compliance functionality
@@ -952,10 +920,9 @@
                     if (paginationContainer) {
                         paginationContainer.classList.add('d-none');
                     }
-                    
-                    // Re-initialize event listeners for new elements
-                    initializeDropdownHandlers();
-                    initializeActionButtons();
+
+                    // NOTE: No need to reinitialize event listeners - EventDelegation handles this automatically
+                    // Buttons with data-action attributes are handled by document-level delegation
                 } else {
                     const errorMsg = data.error || 'Error loading data';
                     tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">${errorMsg}</td></tr>`;
@@ -976,81 +943,12 @@
         approvedFilter.addEventListener('change', debouncedFilter);
         leagueFilter.addEventListener('change', debouncedFilter);
         activeFilter.addEventListener('change', debouncedFilter);
-        
-        // Function to reinitialize dropdown handlers after table update
-        function initializeDropdownHandlers() {
-            document.querySelectorAll('.dropdown-toggle').forEach(toggleBtn => {
-                toggleBtn.addEventListener('click', function() {
-                    // Close any other open dropdowns
-                    document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
-                        if (menu !== this.nextElementSibling) {
-                            menu.classList.remove('show');
-                        }
-                    });
-                    
-                    // Ensure the dropdown menu is positioned correctly
-                    setTimeout(() => {
-                        const dropdown = this.closest('.dropdown');
-                        const menu = dropdown.querySelector('.dropdown-menu');
-                        
-                        if (menu && menu.classList.contains('show')) {
-                            // Z-index handled by centralized CSS system
-                        }
-                    }, 10);
-                });
-            });
-        }
-        
-        // Function to reinitialize action buttons after table update
-        function initializeActionButtons() {
-            // Reinitialize edit user buttons
-            document.querySelectorAll('.edit-user-btn').forEach(button => {
-                button.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const userId = this.getAttribute('data-user-id');
-                    handleEditUserClick(userId);
-                });
-            });
 
-            // Reinitialize reset password buttons
-            document.querySelectorAll('.js-reset-password-btn').forEach(button => {
-                button.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const userId = this.getAttribute('data-user-id');
-                    const username = this.getAttribute('data-username');
-                    setUserForResetPassword(userId, username);
-                });
-            });
-            
-            // Reinitialize approve user buttons
-            document.querySelectorAll('.approve-user-btn').forEach(button => {
-                button.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const userId = this.getAttribute('data-user-id');
-                    handleApproveUserClick(userId);
-                });
-            });
-            
-            // Reinitialize remove user buttons
-            document.querySelectorAll('.remove-user-btn').forEach(button => {
-                button.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const userId = this.getAttribute('data-user-id');
-                    handleRemoveUserClick(userId);
-                });
-            });
-            
-            // Reinitialize delete user buttons
-            document.querySelectorAll('.delete-user-btn').forEach(button => {
-                button.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const userId = this.getAttribute('data-user-id');
-                    const username = this.getAttribute('data-username');
-                    handleDeleteUserClick(userId, username);
-                });
-            });
-        }
-        
+        // NOTE: initializeDropdownHandlers() and initializeActionButtons() have been REMOVED
+        // All button click handling is now done via EventDelegation using data-action attributes
+        // See: /app/static/js/event-delegation/handlers/user-management.js
+        // This eliminates the need for reinitialization after AJAX updates
+
         // Enhanced WooCommerce sync functionality
         const syncForm = document.querySelector('form[action*="update_players"]');
         if (syncForm) {

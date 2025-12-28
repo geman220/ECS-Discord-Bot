@@ -13,8 +13,18 @@
 
   // Main design system helper
   const ECSDesignSystem = {
+    // Module-level initialization guard - prevents multiple init calls
+    _initialized: false,
+
     // Initialize the design system
     init: function() {
+      // Prevent multiple initialization - ROOT CAUSE FIX
+      if (this._initialized) {
+        console.log('[ECSDesignSystem] Already initialized, skipping');
+        return;
+      }
+      this._initialized = true;
+
       // Add the design system stylesheet to the page
       this.ensureStylesheetLoaded();
 
@@ -497,68 +507,94 @@
       this.setupTransitions();
     },
 
-    // Add ripple effect to buttons - Modified to prevent button scaling issues
+    // Add ripple effect to buttons using EVENT DELEGATION - ROOT CAUSE FIX
+    // Uses ONE document-level listener instead of per-button listeners
+    // This automatically works for dynamically added buttons
+    _rippleListenerAttached: false,
     addRippleEffect: function() {
-      // Only apply ripple effect to non-modal buttons to prevent conflicts
-      document.querySelectorAll('button:not([data-bs-toggle="modal"]), [type="button"]:not([data-bs-toggle="modal"]), [type="submit"]:not([data-bs-toggle="modal"]), [role="button"]:not([data-bs-toggle="modal"])').forEach(button => {
-        button.addEventListener('click', function(e) {
-          // Skip if this is a modal button
-          if (this.getAttribute('data-bs-toggle') === 'modal' ||
-              this.classList.contains('edit-match-btn') ||
-              this.closest('[data-bs-toggle="modal"]')) {
-            return;
+      // Only attach the delegated listener once
+      if (this._rippleListenerAttached) return;
+      this._rippleListenerAttached = true;
+
+      // Single delegated click handler for ALL buttons
+      document.addEventListener('click', function(e) {
+        // Find the button that was clicked (could be the target or an ancestor)
+        const button = e.target.closest('button, [type="button"], [type="submit"], [role="button"]');
+        if (!button) return;
+
+        // Skip modal buttons and other exclusions
+        if (button.getAttribute('data-bs-toggle') === 'modal' ||
+            button.classList.contains('edit-match-btn') ||
+            button.closest('[data-bs-toggle="modal"]') ||
+            button.hasAttribute('data-no-ripple')) {
+          return;
+        }
+
+        // Create and position the ripple
+        const ripple = document.createElement('span');
+        ripple.classList.add('waves-ripple');
+
+        const rect = button.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+
+        // Set custom properties for ripple positioning
+        ripple.style.setProperty('--ripple-size', `${size}px`);
+        ripple.style.setProperty('--ripple-left', `${e.clientX - rect.left - size / 2}px`);
+        ripple.style.setProperty('--ripple-top', `${e.clientY - rect.top - size / 2}px`);
+
+        // Add transform-none class to prevent button scaling
+        ripple.classList.add('transform-none');
+
+        button.appendChild(ripple);
+
+        // Trigger animation by adding active class
+        setTimeout(() => {
+          ripple.classList.add('waves-ripple-active');
+        }, 10);
+
+        // Remove ripple after animation
+        setTimeout(() => {
+          if (ripple.parentNode) {
+            ripple.parentNode.removeChild(ripple);
           }
-
-          const ripple = document.createElement('span');
-          ripple.classList.add('waves-ripple');
-
-          const rect = this.getBoundingClientRect();
-          const size = Math.max(rect.width, rect.height);
-
-          // Set custom properties for ripple positioning
-          ripple.style.setProperty('--ripple-size', `${size}px`);
-          ripple.style.setProperty('--ripple-left', `${e.clientX - rect.left - size / 2}px`);
-          ripple.style.setProperty('--ripple-top', `${e.clientY - rect.top - size / 2}px`);
-
-          // Add transform-none class to prevent button scaling
-          ripple.classList.add('transform-none');
-
-          this.appendChild(ripple);
-
-          // Trigger animation by adding active class
-          setTimeout(() => {
-            ripple.classList.add('waves-ripple-active');
-          }, 10);
-
-          setTimeout(() => {
-            if (ripple.parentNode) {
-              ripple.parentNode.removeChild(ripple);
-            }
-          }, 600);
-        });
-      });
-
-      // console.log('Ripple effect added with scaling fix');
+        }, 600);
+      }, false);
     },
 
-    // Improve keyboard navigation for better accessibility
+    // Improve keyboard navigation using EVENT DELEGATION - ROOT CAUSE FIX
+    // Uses document-level listeners instead of per-element listeners
+    _keyboardNavListenerAttached: false,
     improveKeyboardNavigation: function() {
-      // Add focus styles to interactive elements
-      document.querySelectorAll('a, button, input, select, textarea, [tabindex]').forEach(element => {
-        element.addEventListener('focus', function() {
-          this.classList.add('ecs-focus');
-        });
+      // Only attach delegated listeners once
+      if (this._keyboardNavListenerAttached) return;
+      this._keyboardNavListenerAttached = true;
 
-        element.addEventListener('blur', function() {
-          this.classList.remove('ecs-focus');
-        });
-      });
+      // Single delegated focus handler
+      document.addEventListener('focusin', function(e) {
+        const element = e.target.closest('a, button, input, select, textarea, [tabindex]');
+        if (element) {
+          element.classList.add('ecs-focus');
+        }
+      }, true);
+
+      // Single delegated blur handler
+      document.addEventListener('focusout', function(e) {
+        const element = e.target.closest('a, button, input, select, textarea, [tabindex]');
+        if (element) {
+          element.classList.remove('ecs-focus');
+        }
+      }, true);
     },
 
     // Set up custom transitions
+    // FIXED: Added guard to prevent duplicate transition setup
     setupTransitions: function() {
       // Add slide-in animation for elements with data-ecs-animate="slide-in"
       document.querySelectorAll('[data-ecs-animate="slide-in"]').forEach(element => {
+        // Skip if already processed
+        if (element.hasAttribute('data-transition-enhanced')) return;
+        element.setAttribute('data-transition-enhanced', 'true');
+
         // Add initial state classes (opacity 0, translate down 20px)
         element.classList.add('opacity-0', 'translate-y-20px', 'transition-smooth');
 

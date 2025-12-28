@@ -324,83 +324,78 @@
   };
 
   /**
-   * Initialize haptics with event listeners
+   * Initialize haptics with event delegation
+   * ROOT CAUSE FIX: Uses document-level event delegation instead of per-element listeners
    */
+  Haptics._initialized = false;
   Haptics.init = function () {
+    // Only initialize once - event delegation handles all elements
+    if (this._initialized) return;
+    this._initialized = true;
+
     if (!this.isSupported()) {
       console.log('Haptics: Vibration API not supported');
       return;
     }
 
-    // Auto-add haptic feedback to common elements
-    // Note: Module-level DOMContentLoaded ensures this runs after DOM is ready
-    // FIXED: Added guards to prevent duplicate event listener registration
+    const self = this;
 
-    // Buttons
-    document.querySelectorAll('.btn:not([data-haptics="false"])').forEach(btn => {
-      if (btn.hasAttribute('data-haptics-enhanced')) return;
-      btn.setAttribute('data-haptics-enhanced', 'true');
-      btn.addEventListener('click', (e) => {
-        // Check button type for appropriate feedback
+    // Single delegated click listener for ALL buttons and nav links
+    document.addEventListener('click', function(e) {
+      // Handle buttons
+      const btn = e.target.closest('.btn:not([data-haptics="false"])');
+      if (btn) {
         if (btn.classList.contains('btn-success')) {
-          Haptics.success();
+          self.success();
         } else if (btn.classList.contains('btn-danger')) {
-          Haptics.warning();
+          self.warning();
         } else {
-          Haptics.medium();
+          self.medium();
         }
-      }, { passive: true });
-    });
+        return;
+      }
 
-    // Form inputs
-    document.querySelectorAll('.form-control, .form-select').forEach(input => {
-      if (input.hasAttribute('data-haptics-enhanced')) return;
-      input.setAttribute('data-haptics-enhanced', 'true');
-      input.addEventListener('focus', () => {
-        Haptics.inputFocus();
-      }, { passive: true });
+      // Handle nav links
+      const navLink = e.target.closest('.nav-link:not([data-haptics="false"])');
+      if (navLink) {
+        self.light();
+        return;
+      }
+    }, { passive: true });
 
-      input.addEventListener('invalid', () => {
-        Haptics.validationError();
-      });
-    });
+    // Single delegated focusin listener for ALL form inputs
+    document.addEventListener('focusin', function(e) {
+      const input = e.target;
+      if (input.classList.contains('form-control') || input.classList.contains('form-select')) {
+        self.inputFocus();
+      }
+    }, { passive: true });
 
-    // Checkboxes and radios
-    document.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(input => {
-      if (input.hasAttribute('data-haptics-check-enhanced')) return;
-      input.setAttribute('data-haptics-check-enhanced', 'true');
-      input.addEventListener('change', () => {
+    // Single delegated invalid listener for ALL form inputs
+    document.addEventListener('invalid', function(e) {
+      const input = e.target;
+      if (input.classList.contains('form-control') || input.classList.contains('form-select')) {
+        self.validationError();
+      }
+    }, true); // Use capture phase for invalid events
+
+    // Single delegated change listener for ALL checkboxes and radios
+    document.addEventListener('change', function(e) {
+      const input = e.target;
+      if (input.type === 'checkbox' || input.type === 'radio') {
         if (input.checked) {
-          Haptics.selection();
+          self.selection();
         } else {
-          Haptics.deselection();
+          self.deselection();
         }
-      }, { passive: true });
-    });
+      }
+    }, { passive: true });
 
-    // Nav links
-    document.querySelectorAll('.nav-link:not([data-haptics="false"])').forEach(link => {
-      if (link.hasAttribute('data-haptics-enhanced')) return;
-      link.setAttribute('data-haptics-enhanced', 'true');
-      link.addEventListener('click', () => {
-        Haptics.light();
-      }, { passive: true });
-    });
+    // Note: Modal haptics are handled by responsive-system.js via delegation
+    // No need to duplicate here - keeping for backwards compatibility with older code
+    // that may call Haptics.modalOpen() / Haptics.modalClose() directly
 
-    // Modal events
-    document.querySelectorAll('.modal').forEach(modal => {
-      if (modal.hasAttribute('data-haptics-modal-enhanced')) return;
-      modal.setAttribute('data-haptics-modal-enhanced', 'true');
-      modal.addEventListener('shown.bs.modal', () => {
-        Haptics.modalOpen();
-      });
-
-      modal.addEventListener('hidden.bs.modal', () => {
-        Haptics.modalClose();
-      });
-    });
-
-    console.log('Haptics: Initialized successfully');
+    console.log('Haptics: Initialized with event delegation');
   };
 
   // Auto-initialize

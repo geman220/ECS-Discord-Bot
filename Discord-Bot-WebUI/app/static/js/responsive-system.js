@@ -99,19 +99,16 @@
 
     /**
      * Fix iOS 100vh issue with CSS custom property
-     * REFACTORED: Using CSS custom property instead of inline styles
-     * FIXED: Added guard to prevent duplicate window event listener registration
+     * ROOT CAUSE FIX: Uses event delegation for iOS keyboard handling
      */
+    _viewportListenersRegistered: false,
     fixIOSViewportHeight: function () {
-      // Guard to prevent duplicate window listeners on re-init
-      if (this._viewportListenersRegistered) {
-        return;
-      }
+      // Only register listeners once
+      if (this._viewportListenersRegistered) return;
       this._viewportListenersRegistered = true;
 
       const setVh = () => {
         const vh = window.innerHeight * 0.01;
-        // CSS custom property - this is acceptable as it's dynamic viewport calculation
         document.documentElement.style.setProperty('--vh', `${vh}px`);
       };
 
@@ -119,181 +116,176 @@
       setVh();
       window.addEventListener('resize', setVh);
       window.addEventListener('orientationchange', () => {
-        // Wait for orientation change to complete before setting new height
         setTimeout(setVh, 100);
       });
 
-      // Special handling for iOS keyboard
+      // iOS keyboard handling using EVENT DELEGATION
       if (this.device.isIOS) {
-        const inputs = document.querySelectorAll('input, textarea, select');
-        inputs.forEach(input => {
-          // Skip checkboxes and radio buttons - they don't need keyboard
-          if (input.type === 'checkbox' || input.type === 'radio') {
-            return;
+        // Single focusin listener for all inputs
+        document.addEventListener('focusin', (e) => {
+          const input = e.target;
+          if (input.tagName === 'INPUT' || input.tagName === 'TEXTAREA' || input.tagName === 'SELECT') {
+            if (input.type !== 'checkbox' && input.type !== 'radio') {
+              document.documentElement.classList.add('keyboard-visible');
+            }
           }
+        }, true);
 
-          // Skip if already enhanced
-          if (input.hasAttribute('data-ios-keyboard-enhanced')) {
-            return;
+        // Single focusout listener for all inputs
+        document.addEventListener('focusout', (e) => {
+          const input = e.target;
+          if (input.tagName === 'INPUT' || input.tagName === 'TEXTAREA' || input.tagName === 'SELECT') {
+            if (input.type !== 'checkbox' && input.type !== 'radio') {
+              document.documentElement.classList.remove('keyboard-visible');
+            }
           }
-          input.setAttribute('data-ios-keyboard-enhanced', 'true');
-
-          // Add class when keyboard is visible
-          input.addEventListener('focus', () => {
-            document.documentElement.classList.add('keyboard-visible');
-          });
-
-          // Remove class when keyboard is hidden
-          input.addEventListener('blur', () => {
-            document.documentElement.classList.remove('keyboard-visible');
-          });
-        });
+        }, true);
       }
     },
 
     /**
      * Set up touch feedback for interactive elements
-     * FIXED: Added guard to prevent duplicate event listener registration
+     * ROOT CAUSE FIX: Uses event delegation - ONE document-level listener for ALL touch elements
      */
+    _touchFeedbackListenersRegistered: false,
     setupTouchFeedback: function () {
-      if (this.device.hasTouch) {
-        const touchElements = document.querySelectorAll('button, .btn, a.nav-link, .card-header');
+      // Only register listeners once - event delegation handles all elements
+      if (this._touchFeedbackListenersRegistered) return;
+      if (!this.device.hasTouch) return;
 
-        touchElements.forEach(el => {
-          // Skip if already enhanced to prevent duplicate event listeners
-          if (el.hasAttribute('data-touch-enhanced')) {
-            return;
-          }
-          el.setAttribute('data-touch-enhanced', 'true');
+      this._touchFeedbackListenersRegistered = true;
 
-          // Use opacity change instead of transform for feedback
-          el.addEventListener('touchstart', function () {
-            this.classList.add('touch-active');
+      // Single delegated touchstart listener for ALL interactive elements
+      document.addEventListener('touchstart', function(e) {
+        const el = e.target.closest('button, .btn, a.nav-link, .card-header');
+        if (el) {
+          el.classList.add('touch-active');
+        }
+      }, { passive: true });
 
-            // Add haptic feedback for buttons (handled by mobile-haptics.js auto-init)
-            // Individual haptic calls are in mobile-haptics.js, so no need to duplicate here
-          }, { passive: true });
-
-          el.addEventListener('touchend', function () {
-            this.classList.remove('touch-active');
-          }, { passive: true });
-        });
-      }
+      // Single delegated touchend listener for ALL interactive elements
+      document.addEventListener('touchend', function(e) {
+        const el = e.target.closest('button, .btn, a.nav-link, .card-header');
+        if (el) {
+          el.classList.remove('touch-active');
+        }
+      }, { passive: true });
     },
 
     /**
      * Enhance modal behavior on mobile devices
-     * REFACTORED: Replaced inline styles with CSS classes
-     * FIXED: Added guard to prevent duplicate event listener registration
+     * ROOT CAUSE FIX: Uses event delegation - document-level listeners for modal events
      */
+    _modalListenersRegistered: false,
     enhanceModals: function () {
-      const modals = document.querySelectorAll('[data-modal]');
+      // Set up document-level modal event delegation ONCE
+      if (!this._modalListenersRegistered) {
+        this._modalListenersRegistered = true;
+        this._setupModalEventDelegation();
+      }
 
+      // One-time setup for modals that need swipe-to-dismiss
+      // This only sets up the swipe handlers, not the show/hide listeners
+      const modals = document.querySelectorAll('[data-modal][data-dismiss-on-swipe="true"]');
       modals.forEach(modal => {
-        // Skip if already enhanced to prevent duplicate event listeners
-        if (modal.hasAttribute('data-modal-enhanced')) {
-          return;
-        }
-        modal.setAttribute('data-modal-enhanced', 'true');
-
-        const modalDialog = modal.querySelector('[data-modal-dialog]');
-
-        // Auto-convert modals to bottom sheets on mobile (unless explicitly disabled)
-        if (this.device.isMobile && !modal.hasAttribute('data-no-bottom-sheet') && modalDialog) {
-          // Don't convert if modal-keep-centered class is present
-          if (!modalDialog.classList.contains('modal-keep-centered')) {
-            // Remove any size classes that would interfere
-            modalDialog.classList.remove('modal-lg', 'modal-xl', 'modal-sm');
-          }
-        }
-
-        // Setup swipe-to-dismiss on mobile bottom sheets
-        if (this.device.isMobile && modal.getAttribute('data-dismiss-on-swipe') === 'true') {
+        if (modal.hasAttribute('data-swipe-setup')) return;
+        modal.setAttribute('data-swipe-setup', 'true');
+        if (this.device.isMobile) {
           this.setupModalSwipeDismiss(modal);
         }
-
-        // Focus management and scrolling improvements
-        modal.addEventListener('shown.bs.modal', () => {
-          // Haptic feedback when modal opens
-          if (window.Haptics) {
-            window.Haptics.modalOpen();
-          }
-
-          // Prevent body scroll on iOS
-          // REFACTORED: Using CSS class instead of inline styles
-          if (this.device.isIOS) {
-            document.body.classList.add('scroll-locked');
-          }
-
-          // Focus first interactive element
-          const focusable = modal.querySelector('input:not([type="hidden"]), button.btn-close, button:not(.close), [tabindex]:not([tabindex="-1"])');
-          if (focusable) {
-            setTimeout(() => focusable.focus(), 100);
-          }
-
-          // iOS-specific modal fixes
-          // REFACTORED: Using CSS class instead of inline styles
-          if (this.device.isIOS) {
-            const modalBody = modal.querySelector('[data-modal-body]');
-            if (modalBody) {
-              modalBody.classList.add('modal-body-scrollable');
-            }
-          }
-
-          // Mobile optimization for bottom sheets
-          // REFACTORED: Using CSS class instead of inline styles
-          if (this.device.isMobile) {
-            const modalContent = modal.querySelector('[data-modal-content]');
-            if (modalContent && !modalDialog.classList.contains('modal-keep-centered')) {
-              modalContent.classList.add('modal-content-mobile');
-            }
-          }
-
-          // Handle keyboard open state
-          this.handleModalKeyboard(modal);
-        });
-
-        // Cleanup when modal is closed
-        modal.addEventListener('hidden.bs.modal', () => {
-          // Haptic feedback when modal closes
-          if (window.Haptics) {
-            window.Haptics.modalClose();
-          }
-
-          // Restore body scroll on iOS
-          // REFACTORED: Using CSS class removal instead of inline style removal
-          if (this.device.isIOS) {
-            document.body.classList.remove('scroll-locked');
-          }
-
-          // Remove keyboard open class
-          document.body.classList.remove('keyboard-open');
-
-          // Cleanup modal body scrollable class
-          const modalBody = modal.querySelector('[data-modal-body]');
-          if (modalBody) {
-            modalBody.classList.remove('modal-body-scrollable');
-          }
-
-          // Cleanup modal content mobile class
-          const modalContent = modal.querySelector('[data-modal-content]');
-          if (modalContent) {
-            modalContent.classList.remove('modal-content-mobile');
-          }
-
-          this.cleanupModalBackdrops();
-        });
-
-        // Add haptic feedback to close buttons
-        const closeButtons = modal.querySelectorAll('.btn-close, [data-bs-dismiss="modal"]');
-        closeButtons.forEach(btn => {
-          btn.addEventListener('click', () => {
-            if (window.Haptics) {
-              window.Haptics.light();
-            }
-          }, { passive: true });
-        });
       });
+    },
+
+    /**
+     * Set up document-level event delegation for all modal events
+     * Called only ONCE - handles ALL modals present and future
+     */
+    _setupModalEventDelegation: function() {
+      const self = this;
+
+      // Single delegated listener for ALL modal shown events
+      document.addEventListener('shown.bs.modal', function(e) {
+        const modal = e.target;
+        if (!modal.hasAttribute('data-modal') && !modal.classList.contains('modal')) return;
+
+        const modalDialog = modal.querySelector('[data-modal-dialog], .modal-dialog');
+
+        // Haptic feedback when modal opens
+        if (window.Haptics) {
+          window.Haptics.modalOpen();
+        }
+
+        // Prevent body scroll on iOS
+        if (self.device.isIOS) {
+          document.body.classList.add('scroll-locked');
+        }
+
+        // Focus first interactive element
+        const focusable = modal.querySelector('input:not([type="hidden"]), button.btn-close, button:not(.close), [tabindex]:not([tabindex="-1"])');
+        if (focusable) {
+          setTimeout(() => focusable.focus(), 100);
+        }
+
+        // iOS-specific modal fixes
+        if (self.device.isIOS) {
+          const modalBody = modal.querySelector('[data-modal-body], .modal-body');
+          if (modalBody) {
+            modalBody.classList.add('modal-body-scrollable');
+          }
+        }
+
+        // Mobile optimization for bottom sheets
+        if (self.device.isMobile) {
+          const modalContent = modal.querySelector('[data-modal-content], .modal-content');
+          if (modalContent && modalDialog && !modalDialog.classList.contains('modal-keep-centered')) {
+            modalContent.classList.add('modal-content-mobile');
+          }
+        }
+      });
+
+      // Single delegated listener for ALL modal hidden events
+      document.addEventListener('hidden.bs.modal', function(e) {
+        const modal = e.target;
+        if (!modal.hasAttribute('data-modal') && !modal.classList.contains('modal')) return;
+
+        // Haptic feedback when modal closes
+        if (window.Haptics) {
+          window.Haptics.modalClose();
+        }
+
+        // Restore body scroll on iOS
+        if (self.device.isIOS) {
+          document.body.classList.remove('scroll-locked');
+        }
+
+        // Remove keyboard open class
+        document.body.classList.remove('keyboard-open');
+
+        // Cleanup modal body scrollable class
+        const modalBody = modal.querySelector('[data-modal-body], .modal-body');
+        if (modalBody) {
+          modalBody.classList.remove('modal-body-scrollable');
+        }
+
+        // Cleanup modal content mobile class
+        const modalContent = modal.querySelector('[data-modal-content], .modal-content');
+        if (modalContent) {
+          modalContent.classList.remove('modal-content-mobile');
+        }
+
+        self.cleanupModalBackdrops();
+      });
+
+      // Single delegated click listener for ALL modal close buttons (haptic feedback)
+      document.addEventListener('click', function(e) {
+        const closeBtn = e.target.closest('.btn-close, [data-bs-dismiss="modal"]');
+        if (closeBtn && window.Haptics) {
+          window.Haptics.light();
+        }
+      }, { passive: true });
+
+      // Set up keyboard handling delegation
+      this._setupModalKeyboardDelegation();
     },
 
     /**
@@ -387,45 +379,57 @@
     },
 
     /**
-     * Handle keyboard open/close for modals
-     * FIXED: Added guard to prevent duplicate event listener registration
+     * Set up keyboard handling for modal inputs
+     * ROOT CAUSE FIX: Uses event delegation - document-level focusin/focusout
+     * Called once from _setupModalEventDelegation
      */
-    handleModalKeyboard: function (modal) {
+    _modalKeyboardListenersRegistered: false,
+    _setupModalKeyboardDelegation: function() {
+      if (this._modalKeyboardListenersRegistered) return;
       if (!this.device.isMobile) return;
 
-      // Skip if already handled to prevent duplicate event listeners
-      if (modal.hasAttribute('data-keyboard-enhanced')) {
-        return;
-      }
-      modal.setAttribute('data-keyboard-enhanced', 'true');
+      this._modalKeyboardListenersRegistered = true;
 
-      const inputs = modal.querySelectorAll('input, textarea, select');
+      // Single delegated focusin listener for ALL modal inputs
+      document.addEventListener('focusin', (e) => {
+        const input = e.target;
+        const modal = input.closest('.modal, [data-modal]');
 
-      inputs.forEach(input => {
-        input.addEventListener('focus', () => {
-          document.body.classList.add('keyboard-open');
+        // Only handle inputs inside modals
+        if (!modal) return;
+        if (input.tagName !== 'INPUT' && input.tagName !== 'TEXTAREA' && input.tagName !== 'SELECT') return;
+        if (input.type === 'checkbox' || input.type === 'radio' || input.type === 'hidden') return;
 
-          // Scroll input into view
-          setTimeout(() => {
-            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }, 300);
-        });
+        document.body.classList.add('keyboard-open');
 
-        input.addEventListener('blur', () => {
-          // Check if another input in the same modal has focus
-          setTimeout(() => {
-            const activeElement = document.activeElement;
-            const isInputFocused = modal.contains(activeElement) &&
-                                   (activeElement.tagName === 'INPUT' ||
-                                    activeElement.tagName === 'TEXTAREA' ||
-                                    activeElement.tagName === 'SELECT');
+        // Scroll input into view
+        setTimeout(() => {
+          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+      }, true);
 
-            if (!isInputFocused) {
-              document.body.classList.remove('keyboard-open');
-            }
-          }, 100);
-        });
-      });
+      // Single delegated focusout listener for ALL modal inputs
+      document.addEventListener('focusout', (e) => {
+        const input = e.target;
+        const modal = input.closest('.modal, [data-modal]');
+
+        // Only handle inputs inside modals
+        if (!modal) return;
+        if (input.tagName !== 'INPUT' && input.tagName !== 'TEXTAREA' && input.tagName !== 'SELECT') return;
+
+        // Check if another input in the same modal has focus
+        setTimeout(() => {
+          const activeElement = document.activeElement;
+          const isInputFocused = modal.contains(activeElement) &&
+                                 (activeElement.tagName === 'INPUT' ||
+                                  activeElement.tagName === 'TEXTAREA' ||
+                                  activeElement.tagName === 'SELECT');
+
+          if (!isInputFocused) {
+            document.body.classList.remove('keyboard-open');
+          }
+        }, 100);
+      }, true);
     },
 
     /**
@@ -484,25 +488,24 @@
 
     /**
      * Enhance tables for better mobile experience
-     * REFACTORED: Replaced inline styles with CSS classes
-     * FIXED: Added guard to prevent duplicate event listener registration
+     * ROOT CAUSE FIX: Uses event delegation for scroll events
      */
+    _tableScrollListenerRegistered: false,
     enhanceTables: function () {
+      // Set up document-level scroll delegation ONCE
+      if (!this._tableScrollListenerRegistered) {
+        this._tableScrollListenerRegistered = true;
+        this._setupTableScrollDelegation();
+      }
+
+      // Apply CSS classes to tables (one-time, idempotent)
       const tables = document.querySelectorAll('[data-table-responsive]');
-
       tables.forEach(table => {
-        // Skip if already enhanced to prevent duplicate event listeners
-        if (table.hasAttribute('data-table-enhanced')) {
-          return;
-        }
-        table.setAttribute('data-table-enhanced', 'true');
-
-        // Ensure touch scrolling works well
-        // REFACTORED: Using CSS class instead of inline style
+        // Add touch scrolling class (idempotent - classList.add won't duplicate)
         table.classList.add('table-responsive-touch');
 
         // Add faded edge indicators for scrollable tables on mobile
-        if (this.device.isMobile && !table.querySelector('.table-scroll-hint')) {
+        if (this.device.isMobile && !table.nextElementSibling?.classList.contains('table-scroll-hint')) {
           const tableWidth = table.scrollWidth;
           const containerWidth = table.clientWidth;
 
@@ -511,19 +514,30 @@
             const scrollHint = document.createElement('div');
             scrollHint.className = 'table-scroll-hint';
             scrollHint.innerHTML = '<small class="text-muted"><i class="ti ti-arrows-horizontal me-1"></i>swipe to see more</small>';
-
             table.parentNode.insertBefore(scrollHint, table.nextSibling);
-
-            // Hide hint when user has scrolled
-            // REFACTORED: Using CSS classes instead of inline styles
-            table.addEventListener('scroll', function() {
-              if (this.scrollLeft > 20) {
-                scrollHint.classList.add('hidden');
-              }
-            });
           }
         }
       });
+    },
+
+    /**
+     * Set up document-level scroll delegation for tables
+     * Called once - handles ALL responsive tables
+     */
+    _setupTableScrollDelegation: function() {
+      // Single delegated scroll listener for ALL responsive tables
+      document.addEventListener('scroll', function(e) {
+        const table = e.target;
+        if (!table.hasAttribute || !table.hasAttribute('data-table-responsive')) return;
+
+        // Find the scroll hint for this table
+        const scrollHint = table.nextElementSibling;
+        if (scrollHint && scrollHint.classList.contains('table-scroll-hint')) {
+          if (table.scrollLeft > 20) {
+            scrollHint.classList.add('hidden');
+          }
+        }
+      }, true); // Use capture phase to catch scroll on elements
     },
 
     /**
@@ -591,25 +605,30 @@
 
     /**
      * Improve scrolling behavior site-wide
+     * ROOT CAUSE FIX: Uses event delegation - ONE click listener for ALL anchor links
      */
+    _smoothScrollListenerRegistered: false,
     improveScrolling: function () {
-      // Enable smooth scrolling for anchor links
-      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        if (anchor.getAttribute('href').length > 1) {
-          anchor.addEventListener('click', function(e) {
-            const targetId = this.getAttribute('href');
-            if (targetId === '#' || !targetId) return;
+      // Only register once - handles ALL current and future anchor links
+      if (this._smoothScrollListenerRegistered) return;
+      this._smoothScrollListenerRegistered = true;
 
-            const targetElement = document.querySelector(targetId);
-            if (targetElement) {
-              e.preventDefault();
+      // Single delegated click listener for ALL anchor links
+      document.addEventListener('click', function(e) {
+        const anchor = e.target.closest('a[href^="#"]');
+        if (!anchor) return;
 
-              // Scroll smoothly to target
-              targetElement.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-              });
-            }
+        const targetId = anchor.getAttribute('href');
+        if (!targetId || targetId === '#' || targetId.length <= 1) return;
+
+        const targetElement = document.querySelector(targetId);
+        if (targetElement) {
+          e.preventDefault();
+
+          // Scroll smoothly to target
+          targetElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
           });
         }
       });
