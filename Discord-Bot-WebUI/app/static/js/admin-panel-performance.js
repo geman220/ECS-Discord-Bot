@@ -130,9 +130,9 @@
    * Register event handlers using EventDelegation
    */
   function registerEventHandlers() {
-    if (typeof EventDelegation !== 'undefined') {
-      EventDelegation.register('toggle-auto-refresh', handleToggleAutoRefresh, { preventDefault: true });
-      EventDelegation.register('clear-cache', handleClearCache, { preventDefault: true });
+    if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
+      window.EventDelegation.register('toggle-auto-refresh', handleToggleAutoRefresh, { preventDefault: true });
+      window.EventDelegation.register('clear-cache', handleClearCache, { preventDefault: true });
     }
   }
 

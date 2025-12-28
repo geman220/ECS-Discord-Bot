@@ -1329,8 +1329,8 @@
 
   function registerEventHandlers() {
     // Register delete-menu action via EventDelegation
-    if (typeof EventDelegation !== 'undefined') {
-      EventDelegation.register('delete-menu', handleDeleteMenuClick, {
+    if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
+      window.EventDelegation.register('delete-menu', handleDeleteMenuClick, {
         preventDefault: true
       });
     }

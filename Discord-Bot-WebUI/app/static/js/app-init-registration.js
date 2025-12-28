@@ -266,16 +266,16 @@
         }
 
         // Register event delegation handler for menu toggle
-        if (typeof EventDelegation !== 'undefined') {
-            EventDelegation.register('toggle-mobile-menu', function(element, e) {
+        if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
+            window.EventDelegation.register('toggle-mobile-menu', function(element, e) {
                 e.preventDefault();
                 toggleMenu();
             }, { preventDefault: true });
         }
 
         // Register event delegation handler for close icon
-        if (typeof EventDelegation !== 'undefined') {
-            EventDelegation.register('close-mobile-menu', function(element, e) {
+        if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
+            window.EventDelegation.register('close-mobile-menu', function(element, e) {
                 e.preventDefault();
                 closeMenu();
             }, { preventDefault: true });

@@ -37,15 +37,15 @@
       const getElement = (target) => target instanceof Element ? target : null;
 
       // Register modal triggers via EventDelegation
-      if (typeof EventDelegation !== 'undefined') {
-        EventDelegation.register('modal-trigger', (element, e) => {
+      if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
+        window.EventDelegation.register('modal-trigger', (element, e) => {
           const modalId = element.dataset.modalTrigger;
           if (modalId) {
             this.open(modalId);
           }
         }, { preventDefault: true });
 
-        EventDelegation.register('close-modal', (element, e) => {
+        window.EventDelegation.register('close-modal', (element, e) => {
           const modal = element.closest('.c-modal-modern');
           if (modal) this.close(modal.id);
         }, { preventDefault: true });
@@ -167,8 +167,8 @@
       }
 
       // Register dismiss action via EventDelegation
-      if (typeof EventDelegation !== 'undefined') {
-        EventDelegation.register('dismiss-toast', (element, e) => {
+      if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
+        window.EventDelegation.register('dismiss-toast', (element, e) => {
           const toastId = element.dataset.toastId;
           if (toastId) {
             this.dismiss(toastId);
@@ -360,8 +360,8 @@
 
     init() {
       // Register dropdown trigger via EventDelegation
-      if (typeof EventDelegation !== 'undefined') {
-        EventDelegation.register('dropdown-trigger', (element, e) => {
+      if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
+        window.EventDelegation.register('dropdown-trigger', (element, e) => {
           const dropdownId = element.dataset.dropdownTrigger;
           if (dropdownId) {
             this.toggle(dropdownId);

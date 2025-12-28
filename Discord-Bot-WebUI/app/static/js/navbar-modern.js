@@ -85,18 +85,18 @@ class ModernNavbarController {
    * Register all data-action handlers via EventDelegation
    */
   registerEventHandlers() {
-    if (typeof EventDelegation === 'undefined') {
+    if (!window.EventDelegation || typeof window.EventDelegation.register !== 'function') {
       console.warn('[Navbar] EventDelegation not available, using fallback');
       return;
     }
 
     // Mobile menu toggle
-    EventDelegation.register('toggle-menu', (element, e) => {
+    window.EventDelegation.register('toggle-menu', (element, e) => {
       this.toggleMobileMenu();
     }, { preventDefault: true });
 
     // Dropdown toggles
-    EventDelegation.register('toggle-dropdown', (element, e) => {
+    window.EventDelegation.register('toggle-dropdown', (element, e) => {
       const dropdownId = element.dataset.dropdown;
       if (dropdownId) {
         this.toggleDropdown(dropdownId);
@@ -104,7 +104,7 @@ class ModernNavbarController {
     }, { preventDefault: true });
 
     // Theme switcher
-    EventDelegation.register('switch-theme', (element, e) => {
+    window.EventDelegation.register('switch-theme', (element, e) => {
       const theme = element.dataset.theme;
       if (theme) {
         this.switchTheme(theme);
@@ -112,38 +112,38 @@ class ModernNavbarController {
     }, { preventDefault: true });
 
     // Role impersonation
-    EventDelegation.register('start-impersonation', (element, e) => {
+    window.EventDelegation.register('start-impersonation', (element, e) => {
       this.startRoleImpersonation();
     }, { preventDefault: true });
 
-    EventDelegation.register('stop-impersonation', (element, e) => {
+    window.EventDelegation.register('stop-impersonation', (element, e) => {
       this.stopRoleImpersonation();
     }, { preventDefault: true });
 
     // Notification actions
-    EventDelegation.register('mark-read', (element, e) => {
+    window.EventDelegation.register('mark-read', (element, e) => {
       const notificationId = element.dataset.notificationId;
       if (notificationId) {
         this.markNotificationRead(notificationId);
       }
     }, { preventDefault: true });
 
-    EventDelegation.register('mark-all-read', (element, e) => {
+    window.EventDelegation.register('mark-all-read', (element, e) => {
       this.markAllNotificationsRead();
     }, { preventDefault: true });
 
-    EventDelegation.register('clear-all-notifications', (element, e) => {
+    window.EventDelegation.register('clear-all-notifications', (element, e) => {
       this.clearAllNotifications();
     }, { preventDefault: true });
 
-    EventDelegation.register('dismiss-notification', (element, e) => {
+    window.EventDelegation.register('dismiss-notification', (element, e) => {
       const notificationId = element.dataset.notificationId;
       if (notificationId) {
         this.dismissNotification(notificationId);
       }
     }, { preventDefault: true, stopPropagation: true });
 
-    EventDelegation.register('expand-notification', (element, e) => {
+    window.EventDelegation.register('expand-notification', (element, e) => {
       const notificationId = element.dataset.notificationId;
       if (notificationId) {
         this.toggleNotificationExpand(notificationId);
@@ -151,7 +151,7 @@ class ModernNavbarController {
     }, { preventDefault: true });
 
     // Logout
-    EventDelegation.register('logout', (element, e) => {
+    window.EventDelegation.register('logout', (element, e) => {
       this.handleLogout();
     }, { preventDefault: true });
   }

@@ -763,6 +763,9 @@ const PassStudio = {
     }
 };
 
+// Export to window for ES module compatibility
+window.PassStudio = PassStudio;
+
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
     // Get pass type code from script tag data attribute

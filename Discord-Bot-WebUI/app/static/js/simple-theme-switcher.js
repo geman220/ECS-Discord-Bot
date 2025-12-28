@@ -103,9 +103,9 @@ class SimpleThemeSwitcher {
    */
   setupEventListeners() {
     // Register EventDelegation handlers for theme switching
-    if (typeof EventDelegation !== 'undefined') {
+    if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
       // Handle settings page theme buttons (data-action="set-theme")
-      EventDelegation.register('set-theme', (element, e) => {
+      window.EventDelegation.register('set-theme', (element, e) => {
         const theme = element.getAttribute('data-theme');
         if (theme) {
           console.log('Theme switching to (action):', theme);
@@ -122,7 +122,7 @@ class SimpleThemeSwitcher {
       }, { preventDefault: true });
 
       // Handle navbar dropdown theme options (data-action="select-theme")
-      EventDelegation.register('select-theme', (element, e) => {
+      window.EventDelegation.register('select-theme', (element, e) => {
         const theme = element.getAttribute('data-theme');
         if (theme) {
           console.log('Theme switching to:', theme);

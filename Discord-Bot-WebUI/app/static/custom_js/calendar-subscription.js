@@ -352,3 +352,6 @@ document.addEventListener('DOMContentLoaded', function() {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = CalendarSubscription;
 }
+
+// Export to window for ES module compatibility
+window.CalendarSubscription = CalendarSubscription;

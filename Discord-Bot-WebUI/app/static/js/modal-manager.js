@@ -135,9 +135,9 @@ class ModalManager {
      */
     static setupEventDelegation() {
         // Use EventDelegation if available
-        if (typeof EventDelegation !== 'undefined') {
+        if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
             // Show modal
-            EventDelegation.register('show-modal', (element, e) => {
+            window.EventDelegation.register('show-modal', (element, e) => {
                 const modalId = element.dataset.modalId;
                 if (modalId) {
                     const options = this.parseOptionsFromElement(element);
@@ -148,7 +148,7 @@ class ModalManager {
             }, { preventDefault: true });
 
             // Hide modal
-            EventDelegation.register('hide-modal', (element, e) => {
+            window.EventDelegation.register('hide-modal', (element, e) => {
                 const modalId = element.dataset.modalId;
                 if (modalId) {
                     this.hide(modalId);
@@ -162,7 +162,7 @@ class ModalManager {
             }, { preventDefault: true });
 
             // Close modal (alias for hide)
-            EventDelegation.register('close-modal', (element, e) => {
+            window.EventDelegation.register('close-modal', (element, e) => {
                 const modalId = element.dataset.modalId;
                 if (modalId) {
                     this.hide(modalId);
@@ -175,7 +175,7 @@ class ModalManager {
             }, { preventDefault: true });
 
             // Toggle modal
-            EventDelegation.register('toggle-modal', (element, e) => {
+            window.EventDelegation.register('toggle-modal', (element, e) => {
                 const modalId = element.dataset.modalId;
                 if (modalId) {
                     this.toggle(modalId);

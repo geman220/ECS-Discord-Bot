@@ -132,13 +132,13 @@
      * Initialize event delegation for category actions
      */
     function initEventDelegation() {
-        if (typeof EventDelegation === 'undefined') {
+        if (!window.EventDelegation || typeof window.EventDelegation.register !== 'function') {
             console.error('[Message Categories] EventDelegation not available');
             return;
         }
 
-        EventDelegation.register('edit-category', handleEditCategory, { preventDefault: true });
-        EventDelegation.register('delete-category', handleDeleteCategory, { preventDefault: true });
+        window.EventDelegation.register('edit-category', handleEditCategory, { preventDefault: true });
+        window.EventDelegation.register('delete-category', handleDeleteCategory, { preventDefault: true });
     }
 
     // ========================================================================

@@ -86,8 +86,8 @@
      * Register dropdown actions with EventDelegation
      */
     function registerDropdownActions() {
-        if (typeof EventDelegation !== 'undefined') {
-            EventDelegation.register('toggle-dropdown', handleToggleDropdown, { preventDefault: true });
+        if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
+            window.EventDelegation.register('toggle-dropdown', handleToggleDropdown, { preventDefault: true });
         } else {
             // Fallback: direct event listeners if EventDelegation not available
             initDropdownFallback();

@@ -51,10 +51,12 @@
      * Register actions with EventDelegation or fallback to direct handlers
      */
     registerActions() {
-      if (typeof EventDelegation !== 'undefined') {
-        EventDelegation.register('toggle-dropdown', this.handleToggleDropdown.bind(this), { preventDefault: true });
-        EventDelegation.register('navigate', this.handleNavigation.bind(this), { preventDefault: false });
-        EventDelegation.register('close-dropdown', this.handleCloseDropdown.bind(this), { preventDefault: true });
+      // Use window.EventDelegation for ES module compatibility (Vite bundles each module separately)
+      if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
+        window.EventDelegation.register('toggle-dropdown', this.handleToggleDropdown.bind(this), { preventDefault: true });
+        window.EventDelegation.register('navigate', this.handleNavigation.bind(this), { preventDefault: false });
+        window.EventDelegation.register('close-dropdown', this.handleCloseDropdown.bind(this), { preventDefault: true });
+        console.log('[AdminNavigation] Registered handlers with EventDelegation');
       } else {
         // Fallback: Add direct click handler on nav container when EventDelegation isn't available
         console.log('[AdminNavigation] EventDelegation not found, using fallback click handler');

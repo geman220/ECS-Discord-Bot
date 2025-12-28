@@ -386,19 +386,19 @@
     // ========================================================================
 
     function initEventDelegation() {
-        if (typeof EventDelegation === 'undefined') {
+        if (!window.EventDelegation || typeof window.EventDelegation.register !== 'function') {
             console.error('[Push Campaigns] EventDelegation not available');
             return;
         }
 
-        EventDelegation.register('go-back', handleGoBack, { preventDefault: true });
-        EventDelegation.register('view-campaign', handleViewCampaign, { preventDefault: true });
-        EventDelegation.register('edit-campaign', handleEditCampaign, { preventDefault: true });
-        EventDelegation.register('send-campaign', handleSendCampaign, { preventDefault: true });
-        EventDelegation.register('schedule-campaign', handleScheduleCampaign, { preventDefault: true });
-        EventDelegation.register('delete-campaign', handleDeleteCampaign, { preventDefault: true });
-        EventDelegation.register('cancel-campaign', handleCancelCampaign, { preventDefault: true });
-        EventDelegation.register('duplicate-campaign', handleDuplicateCampaign, { preventDefault: true });
+        window.EventDelegation.register('go-back', handleGoBack, { preventDefault: true });
+        window.EventDelegation.register('view-campaign', handleViewCampaign, { preventDefault: true });
+        window.EventDelegation.register('edit-campaign', handleEditCampaign, { preventDefault: true });
+        window.EventDelegation.register('send-campaign', handleSendCampaign, { preventDefault: true });
+        window.EventDelegation.register('schedule-campaign', handleScheduleCampaign, { preventDefault: true });
+        window.EventDelegation.register('delete-campaign', handleDeleteCampaign, { preventDefault: true });
+        window.EventDelegation.register('cancel-campaign', handleCancelCampaign, { preventDefault: true });
+        window.EventDelegation.register('duplicate-campaign', handleDuplicateCampaign, { preventDefault: true });
     }
 
     // ========================================================================

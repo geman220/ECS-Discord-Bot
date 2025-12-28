@@ -320,16 +320,16 @@
      * Initialize event delegation for template actions
      */
     function initEventDelegation() {
-        if (typeof EventDelegation === 'undefined') {
+        if (!window.EventDelegation || typeof window.EventDelegation.register !== 'function') {
             console.error('[Template Detail] EventDelegation not available');
             return;
         }
 
-        EventDelegation.register('go-back', handleGoBack, { preventDefault: true });
-        EventDelegation.register('view-template', handleViewTemplate, { preventDefault: true });
-        EventDelegation.register('edit-template', handleEditTemplate, { preventDefault: true });
-        EventDelegation.register('toggle-template', handleToggleTemplate, { preventDefault: true });
-        EventDelegation.register('delete-template', handleDeleteTemplate, { preventDefault: true });
+        window.EventDelegation.register('go-back', handleGoBack, { preventDefault: true });
+        window.EventDelegation.register('view-template', handleViewTemplate, { preventDefault: true });
+        window.EventDelegation.register('edit-template', handleEditTemplate, { preventDefault: true });
+        window.EventDelegation.register('toggle-template', handleToggleTemplate, { preventDefault: true });
+        window.EventDelegation.register('delete-template', handleDeleteTemplate, { preventDefault: true });
     }
 
     // ========================================================================
