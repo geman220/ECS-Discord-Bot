@@ -1776,3 +1776,14 @@ function smartCropImage(img) {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = DraftSystemV2;
 }
+
+// Export to window for template compatibility
+window.initializeDraftSystem = initializeDraftSystem;
+window.showDraftModal = showDraftModal;
+window.confirmDraftPlayer = confirmDraftPlayer;
+window.handleDragStart = handleDragStart;
+window.handleDragOver = handleDragOver;
+window.handleDragLeave = handleDragLeave;
+window.handleDrop = handleDrop;
+window.handleDropToAvailable = handleDropToAvailable;
+window.smartCropImage = smartCropImage;

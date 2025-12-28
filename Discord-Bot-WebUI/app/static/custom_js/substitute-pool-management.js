@@ -558,3 +558,7 @@ $(document).ready(function() {
     initializeSearch();
     subPoolInitializeEventHandlers();
 });
+
+// Export to window for template compatibility
+window.initializePaginationState = initializePaginationState;
+window.updatePagination = updatePagination;

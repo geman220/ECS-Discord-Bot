@@ -877,3 +877,8 @@ function switchTeamView(teamId) {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = PitchViewSystem;
 }
+
+// Export to window for template compatibility
+window.initializePitchView = initializePitchView;
+window.handlePositionDrop = handlePositionDrop;
+window.switchTeamView = switchTeamView;
