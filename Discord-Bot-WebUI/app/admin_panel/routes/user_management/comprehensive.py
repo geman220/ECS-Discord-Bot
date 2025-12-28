@@ -483,6 +483,80 @@ def deactivate_user_comprehensive(user_id):
         return jsonify({'success': False, 'message': 'Error deactivating user'}), 500
 
 
+@admin_panel_bp.route('/users/<int:user_id>/activate', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def activate_user_comprehensive(user_id):
+    """Quick activate user via AJAX from comprehensive management."""
+    try:
+        user = User.query.options(joinedload(User.player)).get_or_404(user_id)
+        old_status = user.is_active
+
+        user.is_active = True
+        db.session.commit()
+
+        # Sync Discord roles for activated user
+        if user.player and user.player.discord_id:
+            assign_roles_to_player_task.delay(player_id=user.player.id)
+            logger.info(f"Triggered Discord role sync for activated user {user.id}")
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='activate_user_quick',
+            resource_type='user_management',
+            resource_id=str(user_id),
+            old_value=str(old_status),
+            new_value='True',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({'success': True, 'message': f'User {user.username} activated successfully'})
+
+    except Exception as e:
+        logger.error(f"Error activating user {user_id}: {e}")
+        return jsonify({'success': False, 'message': 'Error activating user'}), 500
+
+
+@admin_panel_bp.route('/users/<int:user_id>/delete', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def delete_user_comprehensive(user_id):
+    """Delete user completely via AJAX from comprehensive management."""
+    try:
+        user = User.query.options(joinedload(User.player)).get_or_404(user_id)
+        username = user.username
+
+        # Remove Discord roles first if player exists
+        if user.player and user.player.discord_id:
+            remove_player_roles_task.delay(player_id=user.player.id)
+            logger.info(f"Triggered Discord role removal for deleted user {user.id}")
+
+        # Log before deletion
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='delete_user',
+            resource_type='user_management',
+            resource_id=str(user_id),
+            old_value=username,
+            new_value='deleted',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        # Delete the user (cascades to player if configured)
+        db.session.delete(user)
+        db.session.commit()
+
+        return jsonify({'success': True, 'message': f'User {username} deleted successfully'})
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting user {user_id}: {e}")
+        return jsonify({'success': False, 'message': 'Error deleting user'}), 500
+
+
 @admin_panel_bp.route('/users/bulk-actions', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])

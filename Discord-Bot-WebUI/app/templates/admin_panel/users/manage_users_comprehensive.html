@@ -343,7 +343,7 @@
                                             </button>
                                             <ul class="dropdown-menu c-dropdown__menu dropdown-menu-end" data-dropdown-menu>
                                                 <li>
-                                                    <a class="dropdown-item c-dropdown__item js-edit-user" href="#" data-action="edit-user" data-user-id="{{ user.id }}">
+                                                    <a class="dropdown-item c-dropdown__item js-edit-user" href="#" data-user-id="{{ user.id }}">
                                                         <i class="ti ti-edit c-dropdown__item-icon"></i>Edit User
                                                     </a>
                                                 </li>
@@ -356,27 +356,27 @@
                                                 {% endif %}
                                                 {% if not user.is_approved %}
                                                 <li>
-                                                    <a class="dropdown-item c-dropdown__item c-dropdown__item--success js-approve-user" href="#" data-action="approve-user" data-user-id="{{ user.id }}">
+                                                    <a class="dropdown-item c-dropdown__item c-dropdown__item--success js-approve-user" href="#" data-user-id="{{ user.id }}">
                                                         <i class="ti ti-user-check c-dropdown__item-icon"></i>Approve
                                                     </a>
                                                 </li>
                                                 {% endif %}
                                                 {% if user.is_active %}
                                                 <li>
-                                                    <a class="dropdown-item c-dropdown__item c-dropdown__item--warning js-deactivate-user" href="#" data-action="deactivate-user" data-user-id="{{ user.id }}">
+                                                    <a class="dropdown-item c-dropdown__item c-dropdown__item--warning js-deactivate-user" href="#" data-user-id="{{ user.id }}">
                                                         <i class="ti ti-user-off c-dropdown__item-icon"></i>Deactivate
                                                     </a>
                                                 </li>
                                                 {% else %}
                                                 <li>
-                                                    <a class="dropdown-item c-dropdown__item c-dropdown__item--success js-activate-user" href="#" data-action="activate-user" data-user-id="{{ user.id }}">
+                                                    <a class="dropdown-item c-dropdown__item c-dropdown__item--success js-activate-user" href="#" data-user-id="{{ user.id }}">
                                                         <i class="ti ti-user-bolt c-dropdown__item-icon"></i>Activate
                                                     </a>
                                                 </li>
                                                 {% endif %}
                                                 <li><hr class="dropdown-divider c-dropdown__divider"></li>
                                                 <li>
-                                                    <a class="dropdown-item c-dropdown__item c-dropdown__item--danger js-delete-user" href="#" data-action="delete-user" data-user-id="{{ user.id }}">
+                                                    <a class="dropdown-item c-dropdown__item c-dropdown__item--danger js-delete-user" href="#" data-user-id="{{ user.id }}">
                                                         <i class="ti ti-trash c-dropdown__item-icon"></i>Delete User
                                                     </a>
                                                 </li>
@@ -981,6 +981,69 @@ function deactivateUser(userId) {
             .then(data => {
                 if (data.success) {
                     Swal.fire('Deactivated!', data.message, 'success').then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            });
+        }
+    });
+}
+
+function activateUser(userId) {
+    Swal.fire({
+        title: 'Activate User?',
+        text: 'This will allow the user to access the system.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Activate',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`{{ url_for('admin_panel.activate_user_comprehensive', user_id=0) }}`.replace('0', userId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Activated!', data.message, 'success').then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            });
+        }
+    });
+}
+
+function deleteUser(userId) {
+    Swal.fire({
+        title: 'Delete User?',
+        text: 'This will permanently delete the user. This action cannot be undone!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Delete',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#dc3545'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`{{ url_for('admin_panel.delete_user_comprehensive', user_id=0) }}`.replace('0', userId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Deleted!', data.message, 'success').then(() => {
                         location.reload();
                     });
                 } else {
