@@ -220,3 +220,16 @@ import './security-dashboard.js';
 
 // Main.js - initializes Menu, Helpers, and other core functionality
 import '../assets/js/main.js';
+
+// ============================================================================
+// 10. TRIGGER INIT SYSTEM
+// ============================================================================
+// All components have been registered via imports above.
+// Now trigger the InitSystem to run all registered initializers in priority order.
+if (typeof InitSystem !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => InitSystem.init());
+    } else {
+        InitSystem.init();
+    }
+}

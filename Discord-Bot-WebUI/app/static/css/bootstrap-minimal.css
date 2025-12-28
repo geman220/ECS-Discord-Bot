@@ -1235,6 +1235,10 @@ progress {
   transform: translate(0, -50px);
 }
 
+.modal.show {
+  display: block;
+}
+
 .modal.show .modal-dialog {
   transform: none;
 }

@@ -61,7 +61,7 @@
             throwOnError: false,           // Stop on first error
             initTimeout: 30000,            // Max time for all components (30s)
             componentTimeout: 5000,        // Max time per component (5s)
-            autoInit: true                 // Auto-initialize on DOMContentLoaded
+            autoInit: false                // Disabled - main-entry.js calls init() after all imports
         },
 
         /**
