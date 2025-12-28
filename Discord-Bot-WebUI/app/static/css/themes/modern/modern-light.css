@@ -27,7 +27,7 @@
 
 [data-theme-variant="modern"]:not([data-style="dark"]),
 html[data-theme-variant="modern"]:not([data-style="dark"]) {
-  /* Override Sneat's purple (#7367f0) with ECS Deep Blue (#2563EB) */
+  /* Override Sneat's purple (#7367f0) with ECS Deep Blue (var(--color-primary-600, #2563EB)) */
   --bs-primary: var(--ecs-primary);
   --bs-primary-rgb: var(--ecs-primary-rgb);
   --bs-primary-text-emphasis: var(--ecs-primary-dark);

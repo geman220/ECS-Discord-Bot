@@ -356,6 +356,7 @@ def init_assets(app):
         'vendor/libs/jquery/jquery.js',
         'vendor/libs/popper/popper.js',
         'vendor/js/bootstrap.bundle.js',  # UMD Bootstrap (fixes "_element is not defined" error)
+        'js/unified-mutation-observer.js',  # MUST load before any MutationObserver consumers
         'js/modal-manager.js',  # Centralized modal management (Best Practice 2025)
         filters='jsmin',
         output='dist/vendor-essential.js'
@@ -642,6 +643,7 @@ def init_assets(app):
         'vendor/libs/jquery/jquery.js',
         'vendor/libs/popper/popper.js',
         'vendor/js/bootstrap.bundle.js',  # UMD Bootstrap (fixes "_element is not defined" error)
+        'js/unified-mutation-observer.js',  # MUST load before any MutationObserver consumers
         'js/modal-manager.js',  # Centralized modal management (Best Practice 2025)
 
         # Additional vendor libraries (using CDN production builds, NOT webpack dev builds)

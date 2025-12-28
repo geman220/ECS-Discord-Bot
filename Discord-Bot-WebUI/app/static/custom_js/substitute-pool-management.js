@@ -26,8 +26,9 @@ function subPoolShowAlert(type, message) {
     }
 }
 
-// Global drag and drop functions - available immediately
-window.handleDragStart = function(event) {
+// Global drag and drop functions for substitute pool management
+// Use unique names to avoid conflicts with draft-system.js drag handlers
+window.subPoolHandleDragStart = function(event) {
     const card = event.target.closest('.player-card, .player-list-item');
     if (card) {
         card.classList.add('dragging');
@@ -40,23 +41,23 @@ window.handleDragStart = function(event) {
     }
 };
 
-window.handleDragEnd = function(event) {
+window.subPoolHandleDragEnd = function(event) {
     const card = event.target.closest('.player-card, .player-list-item');
     if (card) {
         card.classList.remove('dragging');
     }
 };
 
-window.handleDragOver = function(event) {
+window.subPoolHandleDragOver = function(event) {
     event.preventDefault();
     event.currentTarget.classList.add('drag-over');
 };
 
-window.handleDragLeave = function(event) {
+window.subPoolHandleDragLeave = function(event) {
     event.currentTarget.classList.remove('drag-over');
 };
 
-window.handleDrop = function(event) {
+window.subPoolHandleDrop = function(event) {
     event.preventDefault();
     const dropZone = event.currentTarget;
     dropZone.classList.remove('drag-over');

@@ -27,25 +27,25 @@
 
 .c-settings-page,
 .c-settings-tab {
-  --settings-bg-page: var(--color-bg-primary, #f8fafc);
+  --settings-bg-page: var(--color-bg-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
   --settings-bg-card: var(--color-bg-card, #ffffff);
-  --settings-bg-elevated: var(--color-bg-elevated, #f1f5f9);
+  --settings-bg-elevated: var(--color-bg-elevated, var(--color-secondary-100, var(--color-secondary-100, #f1f5f9)));
   --settings-bg-input: var(--color-bg-primary, #ffffff);
 
   --settings-border: var(--color-border-primary, rgba(0, 0, 0, 0.08));
-  --settings-border-focus: var(--color-primary, #2563EB);
+  --settings-border-focus: var(--color-primary, var(--color-primary-600, #2563EB));
 
-  --settings-text-primary: var(--color-text-primary, #1e293b);
-  --settings-text-secondary: var(--color-text-secondary, #475569);
-  --settings-text-muted: var(--color-text-muted, #94a3b8);
+  --settings-text-primary: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  --settings-text-secondary: var(--color-text-secondary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
+  --settings-text-muted: var(--color-text-muted, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
 
-  --settings-primary: var(--color-primary, #2563EB);
+  --settings-primary: var(--color-primary, var(--color-primary-600, #2563EB));
   --settings-primary-subtle: rgba(37, 99, 235, 0.08);
   --settings-success: var(--color-success, #22c55e);
   --settings-success-subtle: rgba(34, 197, 94, 0.08);
-  --settings-warning: var(--color-warning, #f59e0b);
+  --settings-warning: var(--color-warning, var(--color-warning-500, #f59e0b));
   --settings-warning-subtle: rgba(245, 158, 11, 0.08);
-  --settings-danger: var(--color-danger, #ef4444);
+  --settings-danger: var(--color-danger, var(--color-danger-500, #ef4444));
   --settings-danger-subtle: rgba(239, 68, 68, 0.08);
   --settings-info: var(--color-info, #3b82f6);
   --settings-info-subtle: rgba(59, 130, 246, 0.08);
@@ -70,16 +70,16 @@
 /* Dark mode token overrides */
 [data-style="dark"] .c-settings-page,
 [data-style="dark"] .c-settings-tab {
-  --settings-bg-page: #0f172a;
-  --settings-bg-card: #1e293b;
-  --settings-bg-elevated: #334155;
-  --settings-bg-input: #1e293b;
+  --settings-bg-page: var(--color-secondary-950, var(--color-secondary-950, #0f172a));
+  --settings-bg-card: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
+  --settings-bg-elevated: var(--color-secondary-800, var(--color-secondary-800, #334155));
+  --settings-bg-input: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
 
   --settings-border: rgba(148, 163, 184, 0.12);
 
-  --settings-text-primary: #f1f5f9;
+  --settings-text-primary: var(--color-secondary-100, var(--color-secondary-100, #f1f5f9));
   --settings-text-secondary: #cbd5e1;
-  --settings-text-muted: #94a3b8;
+  --settings-text-muted: var(--color-secondary-400, var(--color-secondary-400, #94a3b8));
 
   --settings-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
   --settings-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
@@ -348,6 +348,25 @@
   font-size: 0.75rem;
   color: var(--settings-text-muted);
   margin-top: var(--settings-space-xs);
+}
+
+.c-settings-field__help--inline {
+  margin: 0;
+}
+
+.c-settings-card__icon--sm {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  font-size: 1rem;
+}
+
+.c-settings-card__title--sm {
+  font-size: 0.9375rem;
+}
+
+.c-settings-card__subtitle--no-margin {
+  margin: 0;
 }
 
 /* =============================================================================
@@ -985,7 +1004,7 @@
   appearance: none !important;
   -webkit-appearance: none !important;
   -moz-appearance: none !important;
-  background: #64748b; /* slate-500 - toggle track off state */
+  background: var(--color-secondary-600, var(--color-secondary-600, #64748b)); /* slate-500 - toggle track off state */
   background-image: none !important;
   border: none !important;
   border-radius: 12px;
@@ -1014,7 +1033,7 @@
 
 .c-notification-switch__input:checked,
 .c-notification-switch__input.is-valid:checked {
-  background: #10b981; /* emerald-500 - success green */
+  background: var(--color-success-500, #10b981); /* emerald-500 - success green */
 }
 
 .c-notification-switch__input:checked::before,

@@ -24,12 +24,12 @@
 
 .c-badge--no-team {
   background: rgba(100, 116, 139, 0.15);
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
 }
 
 .c-badge--label-secondary {
   background: rgba(255, 255, 255, 0.06);
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
 }
 
 .c-badge__icon {
@@ -48,9 +48,9 @@
 }
 
 .c-button--primary {
-  color: #fff;
-  background: var(--color-primary, #2563EB);
-  border-color: var(--color-primary, #2563EB);
+  color: var(--color-white, #fff);
+  background: var(--color-primary, var(--color-primary-600, #2563EB));
+  border-color: var(--color-primary, var(--color-primary-600, #2563EB));
 }
 
 .c-button--sm,
@@ -60,13 +60,13 @@
 }
 
 .c-button--outline-primary {
-  color: var(--color-primary-light, #60a5fa);
+  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
   background: transparent;
-  border: 1px solid var(--color-primary, #2563EB);
+  border: 1px solid var(--color-primary, var(--color-primary-600, #2563EB));
 }
 
 .c-button--outline-secondary {
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
@@ -74,7 +74,7 @@
 .c-button--outline-danger {
   color: var(--color-danger-light, #f87171);
   background: transparent;
-  border: 1px solid var(--color-danger, #ef4444);
+  border: 1px solid var(--color-danger, var(--color-danger-500, #ef4444));
 }
 
 .c-button__icon {
@@ -84,28 +84,28 @@
 .c-btn--outline-success {
   color: var(--color-success-light, #34d399);
   background: transparent;
-  border-color: var(--color-success, #10b981);
+  border-color: var(--color-success, var(--color-success-500, #10b981));
 }
 
 .c-btn--outline-success:hover {
-  color: #fff;
-  background: var(--color-success, #10b981);
+  color: var(--color-white, #fff);
+  background: var(--color-success, var(--color-success-500, #10b981));
 }
 
 .c-btn-modern--discord {
-  background: #5865f2;
-  border-color: #5865f2;
-  color: #fff;
+  background: var(--discord-primary, #5865f2);
+  border-color: var(--discord-primary, #5865f2);
+  color: var(--color-white, #fff);
 }
 
 .c-btn-modern--discord:hover {
-  background: #4752c4;
+  background: var(--discord-primary-dark, #4752c4);
 }
 
 .c-btn-modern--info {
   background: var(--color-info, #0891b2);
   border-color: var(--color-info, #0891b2);
-  color: #fff;
+  color: var(--color-white, #fff);
 }
 
 .c-btn-modern--icon {
@@ -126,22 +126,22 @@
 .c-stat__value {
   font-size: var(--text-2xl, 1.5rem);
   font-weight: 700;
-  color: var(--color-text-primary, #f8fafc);
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
 }
 
 .c-stat__label {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .c-stat__icon {
-  color: var(--color-primary-light, #60a5fa);
+  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
 }
 
 .c-stats-card {
-  background: var(--color-bg-elevated, #1e293b);
+  background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
   border-radius: var(--radius-lg, 12px);
   overflow: hidden;
@@ -157,7 +157,7 @@
   margin: 0;
   font-size: var(--text-sm, 0.875rem);
   font-weight: 600;
-  color: var(--color-text-primary, #f8fafc);
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
 }
 
 .c-stats-card__body {
@@ -175,7 +175,7 @@
 .c-stats-card__section-title {
   font-size: var(--text-xs, 0.75rem);
   font-weight: 600;
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
   text-transform: uppercase;
   margin-bottom: var(--space-2, 8px);
 }
@@ -187,7 +187,7 @@
 }
 
 .c-stat-box__value--muted {
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
 }
 
 /* ============================================================================
@@ -209,14 +209,14 @@
   height: 28px;
   background: rgba(255, 255, 255, 0.06);
   border-radius: var(--radius-md, 8px);
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
   font-size: 0.875rem;
   flex-shrink: 0;
 }
 
 .c-info-item__icon--primary {
   background: rgba(59, 130, 246, 0.15);
-  color: var(--color-primary-light, #60a5fa);
+  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
 }
 
 .c-info-item__icon--success {
@@ -241,7 +241,7 @@
 
 .c-info-item__value {
   font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-primary, #f8fafc);
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
 }
 
 .c-info-item__value--success {
@@ -257,11 +257,11 @@
    ============================================================================ */
 
 .c-info-card--admin {
-  border-left: 3px solid var(--color-warning, #f59e0b);
+  border-left: 3px solid var(--color-warning, var(--color-warning-500, #f59e0b));
 }
 
 .c-info-card--verification {
-  border-left: 3px solid var(--color-success, #10b981);
+  border-left: 3px solid var(--color-success, var(--color-success-500, #10b981));
 }
 
 .c-info-card__body--no-padding {
@@ -270,7 +270,7 @@
 
 .c-info-card__help-text {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
   margin-top: var(--space-2, 8px);
 }
 
@@ -294,12 +294,12 @@
   margin: 0 0 var(--space-1, 4px);
   font-size: var(--text-xl, 1.25rem);
   font-weight: 700;
-  color: var(--color-text-primary, #f8fafc);
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
 }
 
 .c-standings-header__subtitle {
   font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
 }
 
 .c-standings-header__actions {
@@ -317,7 +317,7 @@
 .c-standings-legend__title {
   font-size: var(--text-xs, 0.75rem);
   font-weight: 600;
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
   text-transform: uppercase;
   margin-bottom: var(--space-2, 8px);
 }
@@ -336,12 +336,12 @@
 
 .c-standings-legend__abbr {
   font-weight: 700;
-  color: var(--color-text-primary, #f8fafc);
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
 }
 
 .c-standings-legend__label {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
 }
 
 /* ============================================================================
@@ -353,7 +353,7 @@
   align-items: center;
   gap: var(--space-4, 16px);
   padding: var(--space-4, 16px);
-  background: var(--color-bg-elevated, #1e293b);
+  background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
   border-radius: var(--radius-lg, 12px);
   margin-bottom: var(--space-3, 12px);
@@ -367,7 +367,7 @@
 .c-duplicate-profile__name {
   font-size: var(--text-base, 1rem);
   font-weight: 600;
-  color: var(--color-text-primary, #f8fafc);
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
 }
 
 .c-duplicate-profile__meta {
@@ -379,7 +379,7 @@
 
 .c-duplicate-profile__meta-item {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
 }
 
 .c-duplicate-profile__action {
@@ -405,7 +405,7 @@
 .c-container-card__name {
   font-size: var(--text-sm, 0.875rem);
   font-weight: 500;
-  color: var(--color-text-primary, #f8fafc);
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
 }
 
 .c-container-card__stat {
@@ -417,12 +417,12 @@
 .c-container-card__stat-value {
   font-size: var(--text-lg, 1.125rem);
   font-weight: 700;
-  color: var(--color-text-primary, #f8fafc);
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
 }
 
 .c-container-card__stat-label {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
 }
 
 /* ============================================================================
@@ -441,26 +441,26 @@
 
 .c-table-modern__cell-title {
   font-weight: 500;
-  color: var(--color-text-primary, #f8fafc);
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
 }
 
 .c-table-modern__cell-subtitle {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
 }
 
 .c-table-modern__cell-muted {
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
 }
 
 .c-table-modern__cell-date {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
 }
 
 .c-table-modern__cell-meta {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
 }
 
 .c-table-modern__cell-value {
@@ -479,7 +479,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
 }
 
 /* ============================================================================
@@ -487,7 +487,7 @@
    ============================================================================ */
 
 .c-card--warning {
-  border-left: 3px solid var(--color-warning, #f59e0b);
+  border-left: 3px solid var(--color-warning, var(--color-warning-500, #f59e0b));
 }
 
 .c-card__body--flush {
@@ -508,12 +508,12 @@
   height: 40px;
   background: rgba(255, 255, 255, 0.06);
   border-radius: var(--radius-md, 8px);
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
   flex-shrink: 0;
 }
 
 .c-card__title-icon--secondary {
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
 }
 
 /* ============================================================================
@@ -526,11 +526,11 @@
   padding: var(--space-1, 4px) var(--space-2, 8px);
   background: rgba(0, 0, 0, 0.2);
   border-radius: var(--radius-sm, 6px);
-  color: var(--color-primary-light, #60a5fa);
+  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
 }
 
 .c-text-primary {
-  color: var(--color-primary-light, #60a5fa) !important;
+  color: var(--color-primary-light, var(--color-primary-400, #60a5fa)) !important;
 }
 
 .c-text-success {
@@ -555,7 +555,7 @@
   width: 32px;
   height: 32px;
   border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top-color: var(--color-primary, #2563EB);
+  border-top-color: var(--color-primary, var(--color-primary-600, #2563EB));
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -563,7 +563,7 @@
 .c-loading-state__text,
 .c-loading-text {
   font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
 }
 
 @keyframes spin {
@@ -580,7 +580,7 @@
 [data-style="light"] .c-duplicate-profile__name,
 [data-style="light"] .c-container-card__name,
 [data-style="light"] .c-table-modern__cell-title {
-  color: var(--color-text-primary, #1e293b);
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
 }
 
 [data-style="light"] .c-stats-card {
@@ -589,11 +589,11 @@
 }
 
 [data-style="light"] .c-stats-card__header {
-  background: var(--color-bg-secondary, #f8fafc);
+  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
 }
 
 [data-style="light"] .c-standings-legend {
-  background: var(--color-bg-secondary, #f8fafc);
+  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
 }
 
 [data-style="light"] .c-duplicate-profile {
@@ -606,27 +606,27 @@
 }
 
 [data-style="light"] .c-info-item__value {
-  color: var(--color-text-primary, #1e293b);
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
 }
 
 [data-style="light"] .c-code {
   background: rgba(0, 0, 0, 0.04);
-  color: var(--color-primary, #2563EB);
+  color: var(--color-primary, var(--color-primary-600, #2563EB));
 }
 
 [data-style="light"] .c-text-primary {
-  color: var(--color-primary, #2563EB) !important;
+  color: var(--color-primary, var(--color-primary-600, #2563EB)) !important;
 }
 
 [data-style="light"] .c-text-success {
-  color: var(--color-success, #10b981) !important;
+  color: var(--color-success, var(--color-success-500, #10b981)) !important;
 }
 
 [data-style="light"] .c-text-danger {
-  color: var(--color-danger, #ef4444) !important;
+  color: var(--color-danger, var(--color-danger-500, #ef4444)) !important;
 }
 
 [data-style="light"] .c-loading-state__spinner {
   border-color: rgba(0, 0, 0, 0.1);
-  border-top-color: var(--color-primary, #2563EB);
+  border-top-color: var(--color-primary, var(--color-primary-600, #2563EB));
 }

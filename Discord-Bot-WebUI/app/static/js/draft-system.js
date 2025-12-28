@@ -208,8 +208,8 @@ class DraftSystemV2 {
                 withCredentials: true
             });
 
-            // Store globally so other components can reuse
-            window.socket = this.socket;
+            // Store globally so other components can reuse (only if not already set)
+            if (!window.socket) window.socket = this.socket;
 
             this.socket.on('connect', () => {
                 this.isConnected = true;

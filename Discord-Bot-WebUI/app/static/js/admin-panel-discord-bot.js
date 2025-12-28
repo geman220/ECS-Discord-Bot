@@ -28,6 +28,9 @@
     guildInfo: null // Will be populated from template
   };
 
+  // Initialization guard
+  let _initialized = false;
+
   // Initialize data from template
   function initializeData() {
     // These would be populated from script tags in the template if needed
@@ -486,6 +489,10 @@
   // ============================================================================
 
   function init() {
+    // Guard against duplicate initialization
+    if (_initialized) return;
+    _initialized = true;
+
     // Page guard: only run on Discord Bot admin pages
     const isBotPage = document.querySelector('[data-page="admin-discord-bot"]') ||
                       document.querySelector('.admin-discord-bot') ||

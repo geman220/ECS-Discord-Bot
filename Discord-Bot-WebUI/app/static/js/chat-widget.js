@@ -49,6 +49,8 @@
   // STATE
   // ============================================================================
 
+  let _initialized = false;
+
   const state = {
     isOpen: false,
     currentView: 'list', // 'list' | 'chat'
@@ -1431,12 +1433,17 @@
   }
 
   function init() {
+    // Guard against duplicate initialization
+    if (_initialized) return;
+
     // Page guard - only initialize if chat widget exists on page
     // This must be checked after DOMContentLoaded when the element exists
     if (!document.querySelector('.c-chat-widget')) {
       console.log('[ChatWidget] No widget element found, skipping initialization');
       return;
     }
+
+    _initialized = true;
 
     cacheElements();
     registerEventHandlers();

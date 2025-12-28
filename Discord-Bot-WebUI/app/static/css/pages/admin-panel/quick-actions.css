@@ -24,23 +24,23 @@
    ============================================================================ */
 
 :root {
-  --qa-primary: #2563eb;
-  --qa-success: #10b981;
-  --qa-warning: #f59e0b;
-  --qa-danger: #ef4444;
+  --qa-primary: var(--color-primary-600, #2563eb);
+  --qa-success: var(--color-success-500, #10b981);
+  --qa-warning: var(--color-warning-500, #f59e0b);
+  --qa-danger: var(--color-danger-500, #ef4444);
   --qa-info: #06b6d4;
   --qa-purple: #8b5cf6;
-  --qa-secondary: #64748b;
+  --qa-secondary: var(--color-secondary-500, #64748b);
 
   --qa-bg-base: #fafafa;
-  --qa-bg-card: #ffffff;
-  --qa-bg-elevated: #ffffff;
-  --qa-border: #e5e7eb;
-  --qa-border-hover: #cbd5e1;
+  --qa-bg-card: var(--color-white, #ffffff);
+  --qa-bg-elevated: var(--color-white, #ffffff);
+  --qa-border: var(--color-secondary-200, #e5e7eb);
+  --qa-border-hover: var(--color-secondary-300, #cbd5e1);
 
   --qa-text-primary: #0f172a;
-  --qa-text-secondary: #475569;
-  --qa-text-muted: #94a3b8;
+  --qa-text-secondary: var(--color-secondary-600, #475569);
+  --qa-text-muted: var(--color-secondary-400, #94a3b8);
 
   --qa-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --qa-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -57,14 +57,14 @@
 
 [data-style="dark"] {
   --qa-bg-base: #0f172a;
-  --qa-bg-card: #1e293b;
-  --qa-bg-elevated: #334155;
-  --qa-border: #334155;
-  --qa-border-hover: #475569;
+  --qa-bg-card: var(--color-secondary-900, var(--color-secondary-900, #1e293b));
+  --qa-bg-elevated: var(--color-secondary-700, #334155);
+  --qa-border: var(--color-secondary-700, #334155);
+  --qa-border-hover: var(--color-secondary-600, #475569);
 
-  --qa-text-primary: #f1f5f9;
-  --qa-text-secondary: #cbd5e1;
-  --qa-text-muted: #64748b;
+  --qa-text-primary: var(--color-secondary-100, #f1f5f9);
+  --qa-text-secondary: var(--color-secondary-300, #cbd5e1);
+  --qa-text-muted: var(--color-secondary-500, #64748b);
 
   --qa-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
   --qa-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
@@ -542,7 +542,7 @@
 }
 
 .c-custom-actions__button--primary:hover {
-  background: #1d4ed8;
+  background: var(--color-primary-700, #1d4ed8);
   box-shadow: var(--qa-shadow-lg);
   transform: translateY(-2px);
 }
@@ -682,7 +682,7 @@
 
   .c-action-card {
     box-shadow: none;
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-secondary-300, #ddd);
   }
 
   .c-action-card__button {

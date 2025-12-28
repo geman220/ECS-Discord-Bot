@@ -237,30 +237,50 @@
         // * Form Helpers
         // *******************************************************************************
 
+        // ROOT CAUSE FIX: Event delegation for password toggle
+        _passwordToggleRegistered: false,
         initPasswordToggle: function() {
-            document.querySelectorAll('.form-password-toggle i').forEach(el => {
-                el.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const toggle = el.closest('.form-password-toggle');
-                    const input = toggle?.querySelector('input');
-                    const icon = toggle?.querySelector('i');
-                    if (input && icon) {
-                        if (input.type === 'text') {
-                            input.type = 'password';
-                            icon.classList.replace('ti-eye', 'ti-eye-off');
-                        } else {
-                            input.type = 'text';
-                            icon.classList.replace('ti-eye-off', 'ti-eye');
-                        }
+            if (this._passwordToggleRegistered) return;
+            this._passwordToggleRegistered = true;
+
+            document.addEventListener('click', function(e) {
+                const icon = e.target.closest('.form-password-toggle i');
+                if (!icon) return;
+
+                e.preventDefault();
+                const toggle = icon.closest('.form-password-toggle');
+                const input = toggle?.querySelector('input');
+                if (input && icon) {
+                    if (input.type === 'text') {
+                        input.type = 'password';
+                        icon.classList.replace('ti-eye', 'ti-eye-off');
+                    } else {
+                        input.type = 'text';
+                        icon.classList.replace('ti-eye-off', 'ti-eye');
                     }
-                });
+                }
             });
         },
 
+        // ROOT CAUSE FIX: Event delegation for custom option check
+        _customOptionCheckRegistered: false,
         initCustomOptionCheck: function() {
+            if (this._customOptionCheckRegistered) return;
+            this._customOptionCheckRegistered = true;
+
+            const self = this;
+
+            // Initial state for existing elements
             document.querySelectorAll('.custom-option .form-check-input').forEach(el => {
-                this.updateCustomOptionCheck(el);
-                el.addEventListener('click', () => this.updateCustomOptionCheck(el));
+                self.updateCustomOptionCheck(el);
+            });
+
+            // Delegated click handler
+            document.addEventListener('click', function(e) {
+                const el = e.target.closest('.custom-option .form-check-input');
+                if (el) {
+                    self.updateCustomOptionCheck(el);
+                }
             });
         },
 
@@ -277,25 +297,33 @@
             }
         },
 
+        // ROOT CAUSE FIX: Event delegation for speech-to-text
+        _speechToTextRegistered: false,
+        _speechListening: false,
         initSpeechToText: function() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) return;
 
-            document.querySelectorAll('.speech-to-text i').forEach(el => {
-                let listening = false;
-                el.addEventListener('click', function() {
-                    const input = el.closest('.input-group')?.querySelector('.form-control');
-                    if (!input) return;
-                    input.focus();
+            if (this._speechToTextRegistered) return;
+            this._speechToTextRegistered = true;
 
-                    const recognition = new SpeechRecognition();
-                    recognition.onspeechstart = () => { listening = true; };
-                    recognition.onerror = () => { listening = false; };
-                    recognition.onresult = (e) => { input.value = e.results[0][0].transcript; };
-                    recognition.onspeechend = () => { listening = false; recognition.stop(); };
+            const self = this;
 
-                    if (!listening) recognition.start();
-                });
+            document.addEventListener('click', function(e) {
+                const icon = e.target.closest('.speech-to-text i');
+                if (!icon) return;
+
+                const input = icon.closest('.input-group')?.querySelector('.form-control');
+                if (!input) return;
+                input.focus();
+
+                const recognition = new SpeechRecognition();
+                recognition.onspeechstart = () => { self._speechListening = true; };
+                recognition.onerror = () => { self._speechListening = false; };
+                recognition.onresult = (e) => { input.value = e.results[0][0].transcript; };
+                recognition.onspeechend = () => { self._speechListening = false; recognition.stop(); };
+
+                if (!self._speechListening) recognition.start();
             });
         },
 
@@ -313,29 +341,50 @@
 
         // *******************************************************************************
         // * Sidebar Toggle (for apps)
+        // * ROOT CAUSE FIX: Event delegation for sidebar toggle
         // *******************************************************************************
 
+        _sidebarToggleRegistered: false,
         initSidebarToggle: function() {
-            document.querySelectorAll('[data-bs-toggle="sidebar"]').forEach(el => {
-                el.addEventListener('click', function() {
-                    const target = el.getAttribute('data-target');
-                    const overlay = el.getAttribute('data-overlay');
-                    const appOverlay = document.querySelector('.app-overlay');
+            if (this._sidebarToggleRegistered) return;
+            this._sidebarToggleRegistered = true;
 
-                    document.querySelectorAll(target).forEach(tel => {
-                        tel.classList.toggle('show');
-                        if (overlay && appOverlay) {
-                            if (tel.classList.contains('show')) {
-                                appOverlay.classList.add('show');
-                            } else {
-                                appOverlay.classList.remove('show');
-                            }
-                            appOverlay.addEventListener('click', (e) => {
-                                e.currentTarget.classList.remove('show');
-                                tel.classList.remove('show');
-                            });
+            // Delegated click handler for sidebar toggles
+            document.addEventListener('click', function(e) {
+                const el = e.target.closest('[data-bs-toggle="sidebar"]');
+                if (!el) return;
+
+                const target = el.getAttribute('data-target');
+                const overlay = el.getAttribute('data-overlay');
+                const appOverlay = document.querySelector('.app-overlay');
+
+                document.querySelectorAll(target).forEach(tel => {
+                    tel.classList.toggle('show');
+                    if (overlay && appOverlay) {
+                        if (tel.classList.contains('show')) {
+                            appOverlay.classList.add('show');
+                        } else {
+                            appOverlay.classList.remove('show');
                         }
-                    });
+                    }
+                });
+            });
+
+            // Delegated click handler for app overlay (closes sidebars)
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.app-overlay')) return;
+
+                const appOverlay = e.target.closest('.app-overlay');
+                appOverlay.classList.remove('show');
+
+                // Close all shown sidebars
+                document.querySelectorAll('[data-bs-toggle="sidebar"]').forEach(toggle => {
+                    const target = toggle.getAttribute('data-target');
+                    if (target) {
+                        document.querySelectorAll(target).forEach(tel => {
+                            tel.classList.remove('show');
+                        });
+                    }
                 });
             });
         },

@@ -75,7 +75,7 @@
 /* Dark mode adjustments */
 [data-style="dark"] .drop-indicator-top,
 [data-style="dark"] .drop-indicator-bottom {
-    --drop-indicator-color: #0d6efd;
+    --drop-indicator-color: var(--color-primary, #0d6efd);
 }
 
 /* ============================================
@@ -107,7 +107,7 @@
 }
 
 .drag-handle:focus-visible {
-    outline: 2px solid #0d6efd !important;
+    outline: 2px solid var(--color-primary, #0d6efd) !important;
 }
 
 /**

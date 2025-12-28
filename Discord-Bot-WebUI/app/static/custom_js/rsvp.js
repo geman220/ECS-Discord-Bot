@@ -143,22 +143,24 @@ document.addEventListener('DOMContentLoaded', function () {
     const lastSelected = {};
 
     // Attach event listeners for RSVP radio buttons
-    document.querySelectorAll('.btn-check.rsvp-input').forEach(function (element) {
-        element.addEventListener('click', function (event) {
-            const matchId = event.target.name.split('-')[1];  // Extract match ID from name attribute
-            const response = event.target.value;
+    // ROOT CAUSE FIX: Uses event delegation instead of per-element listeners
+    document.addEventListener('click', function(event) {
+        const element = event.target.closest('.btn-check.rsvp-input');
+        if (!element) return;
 
-            if (lastSelected[matchId] === response) {
-                // If the same option is clicked twice, uncheck it and reset to "no response"
-                event.target.checked = false;
-                submitRSVP(matchId, 'no_response');
-                lastSelected[matchId] = null;
-            } else {
-                // Otherwise, submit the selected response
-                submitRSVP(matchId, response);
-                lastSelected[matchId] = response;
-            }
-        });
+        const matchId = element.name.split('-')[1];  // Extract match ID from name attribute
+        const response = element.value;
+
+        if (lastSelected[matchId] === response) {
+            // If the same option is clicked twice, uncheck it and reset to "no response"
+            element.checked = false;
+            submitRSVP(matchId, 'no_response');
+            lastSelected[matchId] = null;
+        } else {
+            // Otherwise, submit the selected response
+            submitRSVP(matchId, response);
+            lastSelected[matchId] = response;
+        }
     });
 
     // Load and set the existing RSVP values when the page loads

@@ -32,7 +32,7 @@
 .c-dropdown,
 [data-dropdown] {
   /* Light mode defaults */
-  --dropdown-bg: #ffffff;
+  --dropdown-bg: var(--color-white, #ffffff);
   --dropdown-border: #e4e4e7;
   --dropdown-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
                      0 10px 15px -3px rgba(0, 0, 0, 0.1);
@@ -66,12 +66,12 @@
 .c-dropdown[data-theme="dark"],
 [data-dropdown][data-theme="dark"] {
   /* Use semantic tokens that resolve correctly in dark mode */
-  --dropdown-bg: var(--color-bg-elevated, #334155);           /* Slate-800 */
-  --dropdown-border: var(--color-border-primary, #475569);    /* Slate-700 */
+  --dropdown-bg: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));           /* Slate-800 */
+  --dropdown-border: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));    /* Slate-700 */
   --dropdown-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3),
                      0 10px 15px -3px rgba(0, 0, 0, 0.4);
 
-  --dropdown-item-color: var(--color-text-primary, #f8fafc);  /* Slate-50 */
+  --dropdown-item-color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));  /* Slate-50 */
   --dropdown-item-hover-bg: var(--color-hover-bg, rgba(255, 255, 255, 0.06));
   --dropdown-item-active-bg: var(--color-active-bg, rgba(255, 255, 255, 0.1));
 
@@ -82,8 +82,8 @@
   --dropdown-item-success: var(--color-success-600, #4ade80);
   --dropdown-item-success-hover-bg: var(--color-success-subtle, rgba(74, 222, 128, 0.12));
 
-  --dropdown-divider: var(--color-border-secondary, #475569); /* Slate-700 */
-  --dropdown-icon-color: var(--color-text-muted, #94a3b8);    /* Slate-400 */
+  --dropdown-divider: var(--color-border-secondary, var(--color-secondary-700, var(--color-secondary-700, #475569))); /* Slate-700 */
+  --dropdown-icon-color: var(--color-text-muted, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));    /* Slate-400 */
 }
 
 /* ----------------------------------------------------------------------------

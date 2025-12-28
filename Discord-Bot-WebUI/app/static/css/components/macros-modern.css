@@ -394,12 +394,12 @@ body[data-style="dark"] {
 
 .c-event-entry__indicator--yellow {
   background: var(--macro-match-warning);
-  color: #000;
+  color: var(--color-black, #000);
 }
 
 .c-event-entry__indicator--red {
   background: var(--macro-match-danger);
-  color: #fff;
+  color: var(--color-white, #fff);
 }
 
 .c-event-entry__select {

@@ -56,7 +56,7 @@
      Soft colored shadows for brand emphasis
      ======================================================================== */
 
-  /* Primary shadows - Blue (#2563EB = 37, 99, 235) */
+  /* Primary shadows - Blue (var(--color-primary-600, #2563EB) = 37, 99, 235) */
   --shadow-primary-sm: 0 1px 3px 0 rgba(37, 99, 235, 0.12),
                        0 1px 2px -1px rgba(37, 99, 235, 0.12);
   --shadow-primary-md: 0 4px 6px -1px rgba(37, 99, 235, 0.15),
@@ -93,7 +93,7 @@
      Ring-style focus indicators for accessibility
      ======================================================================== */
 
-  /* Focus rings - Blue (#2563EB = 37, 99, 235) */
+  /* Focus rings - Blue (var(--color-primary-600, #2563EB) = 37, 99, 235) */
   --shadow-focus: 0 0 0 3px rgba(37, 99, 235, 0.5);
   --shadow-focus-primary: 0 0 0 3px rgba(37, 99, 235, 0.5);
   --shadow-focus-secondary: 0 0 0 3px rgba(100, 116, 139, 0.5);
@@ -163,7 +163,7 @@
   /* Inner shadow */
   --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
 
-  /* Colored shadows - Adjusted for dark mode - Blue light (#60A5FA = 96, 165, 250) */
+  /* Colored shadows - Adjusted for dark mode - Blue light (var(--color-primary-400, #60A5FA) = 96, 165, 250) */
   --shadow-primary-sm: 0 1px 3px 0 rgba(96, 165, 250, 0.15),
                        0 1px 2px -1px rgba(96, 165, 250, 0.15);
   --shadow-primary-md: 0 4px 6px -1px rgba(96, 165, 250, 0.2),

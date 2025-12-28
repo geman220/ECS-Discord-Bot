@@ -200,7 +200,7 @@
   pointer-events: auto;
 
   /* Visual - Light Mode Defaults with explicit fallbacks */
-  background-color: #ffffff;
+  background-color: var(--color-white, #ffffff);
   background: var(--color-bg-card, #ffffff);
   background-clip: padding-box;
   border: 1px solid var(--border-color-primary, #e4e4e7);
@@ -242,7 +242,7 @@
   border-top-right-radius: calc(var(--radius-lg, 0.5rem) - 1px);
 
   /* Color - explicit solid background */
-  background-color: #ffffff;
+  background-color: var(--color-white, #ffffff);
   background: var(--color-bg-card, #ffffff);
   color: var(--color-text-primary, #18181b);
 }
@@ -290,7 +290,7 @@
   padding: var(--space-modal-padding, 1.25rem);
 
   /* Color - explicit solid background */
-  background-color: #ffffff;
+  background-color: var(--color-white, #ffffff);
   background: var(--color-bg-card, #ffffff);
   color: var(--color-text-primary, #18181b);
 }
@@ -349,7 +349,7 @@
   border-bottom-right-radius: calc(var(--radius-lg, 0.5rem) - 1px);
 
   /* Color - explicit solid background */
-  background-color: #fafafa;
+  background-color: var(--color-secondary-50, #fafafa);
   background: var(--color-bg-secondary, #fafafa);
 
   /* Stacking - ensure footer is above scrollable modal body content */
@@ -773,10 +773,10 @@
 
 /* Dark mode modal styles - slate palette with !important */
 [data-style="dark"] .modal-content {
-  background-color: #334155 !important; /* Slate-800 */
-  background: #334155 !important;
-  border-color: #475569 !important; /* Slate-700 */
-  color: #fafafa !important;
+  background-color: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important; /* Slate-800 */
+  background: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
+  border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)) !important; /* Slate-700 */
+  color: var(--color-secondary-50, #fafafa) !important;
   box-shadow:
     0 4px 6px rgba(0, 0, 0, 0.3),
     0 20px 25px rgba(0, 0, 0, 0.4) !important;
@@ -786,32 +786,32 @@
 html[data-style="dark"] .modal-content,
 [data-style="dark"] .modal .modal-content,
 [data-style="dark"] .modal-dialog .modal-content {
-  background-color: #334155 !important; /* Slate-800 */
-  background: #334155 !important;
+  background-color: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important; /* Slate-800 */
+  background: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
 }
 
 [data-style="dark"] .modal-header {
-  background-color: #334155 !important; /* Slate-800 */
-  background: #334155 !important;
-  border-color: #475569 !important; /* Slate-700 */
-  color: #fafafa !important;
+  background-color: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important; /* Slate-800 */
+  background: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
+  border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)) !important; /* Slate-700 */
+  color: var(--color-secondary-50, #fafafa) !important;
 }
 
 [data-style="dark"] .modal-title {
-  color: #fafafa !important;
+  color: var(--color-secondary-50, #fafafa) !important;
 }
 
 [data-style="dark"] .modal-body {
-  background-color: #334155 !important; /* Slate-800 */
-  background: #334155 !important;
-  color: #E2E8F0 !important; /* Slate-200 */
+  background-color: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important; /* Slate-800 */
+  background: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
+  color: var(--color-secondary-200, #E2E8F0) !important; /* Slate-200 */
 }
 
 [data-style="dark"] .modal-footer {
   /* Slightly darker than body for visual hierarchy */
-  background-color: #1E293B !important; /* Slate-900 */
-  background: #1E293B !important;
-  border-color: #475569 !important; /* Slate-700 */
+  background-color: var(--color-secondary-900, #1E293B) !important; /* Slate-900 */
+  background: var(--color-secondary-900, #1E293B) !important;
+  border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)) !important; /* Slate-700 */
   /* Ensure footer stays above scrollable content */
   position: relative !important;
   z-index: 10 !important;
@@ -821,39 +821,39 @@ html[data-style="dark"] .modal-content,
 html[data-style="dark"] .modal .modal-footer,
 html[data-style="dark"] .modal-dialog .modal-footer,
 [data-style="dark"] .modal-content > .modal-footer {
-  background-color: #1E293B !important; /* Slate-900 */
-  background: #1E293B !important;
+  background-color: var(--color-secondary-900, #1E293B) !important; /* Slate-900 */
+  background: var(--color-secondary-900, #1E293B) !important;
   position: relative !important;
   z-index: 10 !important;
 }
 
 /* Override Bootstrap utility classes in dark mode (slate palette) */
 [data-style="dark"] .modal-footer.bg-light {
-  background-color: #1E293B !important; /* Slate-900 */
-  background: #1E293B !important;
+  background-color: var(--color-secondary-900, #1E293B) !important; /* Slate-900 */
+  background: var(--color-secondary-900, #1E293B) !important;
 }
 
 [data-style="dark"] .modal-header.bg-light {
-  background-color: #334155 !important; /* Slate-800 */
-  background: #334155 !important;
+  background-color: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important; /* Slate-800 */
+  background: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
 }
 
 /* Card headers inside modals in dark mode (slate palette) */
 [data-style="dark"] .modal .card-header.bg-light {
-  background-color: #1E293B !important; /* Slate-900 */
-  background: #1E293B !important;
-  border-color: #475569 !important; /* Slate-700 */
+  background-color: var(--color-secondary-900, #1E293B) !important; /* Slate-900 */
+  background: var(--color-secondary-900, #1E293B) !important;
+  border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)) !important; /* Slate-700 */
 }
 
 [data-style="dark"] .modal .card {
-  background-color: #334155 !important; /* Slate-800 */
-  background: #334155 !important;
-  border-color: #475569 !important; /* Slate-700 */
+  background-color: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important; /* Slate-800 */
+  background: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
+  border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)) !important; /* Slate-700 */
 }
 
 [data-style="dark"] .modal .card-body {
-  background-color: #334155 !important; /* Slate-800 */
-  background: #334155 !important;
+  background-color: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important; /* Slate-800 */
+  background: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
 }
 
 /* ============================================================================
@@ -877,75 +877,75 @@ html[data-style="dark"] .modal-dialog .modal-footer,
 /* Form elements inside modals in dark mode (slate palette) */
 [data-style="dark"] .modal .form-control,
 [data-style="dark"] .modal .form-select {
-  background-color: #1E293B !important; /* Slate-900 */
-  border-color: #475569 !important; /* Slate-700 */
-  color: #fafafa !important;
+  background-color: var(--color-secondary-900, #1E293B) !important; /* Slate-900 */
+  border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)) !important; /* Slate-700 */
+  color: var(--color-secondary-50, #fafafa) !important;
 }
 
 /* Dark mode dropdown arrow - white chevron */
 [data-style="dark"] .modal .form-select,
 [data-style="dark"] .c-modal .form-select {
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
-  background-color: #1E293B !important; /* Slate-900 */
+  background-color: var(--color-secondary-900, #1E293B) !important; /* Slate-900 */
 }
 
 [data-style="dark"] .modal .form-control:focus,
 [data-style="dark"] .modal .form-select:focus {
-  background-color: #1E293B !important; /* Slate-900 */
-  background: #1E293B !important;
-  border-color: #60A5FA !important;
+  background-color: var(--color-secondary-900, #1E293B) !important; /* Slate-900 */
+  background: var(--color-secondary-900, #1E293B) !important;
+  border-color: var(--color-primary-400, #60A5FA) !important;
   box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2) !important;
 }
 
 [data-style="dark"] .modal .form-control::placeholder {
-  color: #94A3B8 !important; /* Slate-400 */
+  color: var(--color-secondary-400, #94A3B8) !important; /* Slate-400 */
 }
 
 [data-style="dark"] .modal .input-group-text {
-  background-color: #1E293B; /* Slate-900 */
-  border-color: #475569; /* Slate-700 */
-  color: #CBD5E1; /* Slate-300 */
+  background-color: var(--color-secondary-900, #1E293B); /* Slate-900 */
+  border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)); /* Slate-700 */
+  color: var(--color-secondary-300, #CBD5E1); /* Slate-300 */
 }
 
 [data-style="dark"] .modal .form-label {
-  color: #E2E8F0; /* Slate-200 */
+  color: var(--color-secondary-200, #E2E8F0); /* Slate-200 */
 }
 
 [data-style="dark"] .modal .form-check-label {
-  color: #E2E8F0; /* Slate-200 */
+  color: var(--color-secondary-200, #E2E8F0); /* Slate-200 */
 }
 
 /* Dark mode text adjustments (slate palette) */
 [data-style="dark"] .modal-body .text-muted {
-  color: #94A3B8; /* Slate-400 */
+  color: var(--color-secondary-400, #94A3B8); /* Slate-400 */
 }
 
 [data-style="dark"] .modal-title i,
 [data-style="dark"] .modal-title .ti {
-  color: #60A5FA; /* Primary light for icons */
+  color: var(--color-primary-400, #60A5FA); /* Primary light for icons */
 }
 
 /* Dark mode close button */
 [data-style="dark"] .btn-close {
-  color: #E2E8F0; /* Slate-200 */
+  color: var(--color-secondary-200, #E2E8F0); /* Slate-200 */
   filter: invert(1) brightness(0.8);
 }
 
 /* Dark mode scrollbar (slate palette) */
 [data-style="dark"] .modal-body::-webkit-scrollbar-track {
-  background-color: #475569; /* Slate-700 */
+  background-color: var(--color-secondary-700, var(--color-secondary-700, #475569)); /* Slate-700 */
 }
 
 [data-style="dark"] .modal-body::-webkit-scrollbar-thumb {
-  background-color: #64748B; /* Slate-500 */
+  background-color: var(--color-secondary-500, #64748B); /* Slate-500 */
 }
 
 [data-style="dark"] .modal-body::-webkit-scrollbar-thumb:hover {
-  background-color: #94A3B8; /* Slate-400 */
+  background-color: var(--color-secondary-400, #94A3B8); /* Slate-400 */
 }
 
 [data-style="dark"] .modal-body {
-  scrollbar-color: #64748B #475569; /* Slate-500 / Slate-700 */
+  scrollbar-color: #64748B var(--color-secondary-700, var(--color-secondary-700, #475569)); /* Slate-500 / Slate-700 */
 }
 
 /* Colored headers remain the same in dark mode */

@@ -67,23 +67,26 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Delete announcement handler
-    document.querySelectorAll('[data-action="delete-announcement"]').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const announcementId = this.dataset.id;
-            if (confirm('Are you sure you want to delete this announcement? This action cannot be undone.')) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = btn.getAttribute('data-url') || `/admin-panel/communication/announcements/${announcementId}/delete`;
+    // ROOT CAUSE FIX: Uses event delegation instead of per-element listeners
+    // Note: This delegation is scoped to this page-specific init, but only registers once
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('[data-action="delete-announcement"]');
+        if (!btn) return;
 
-                const csrfToken = document.createElement('input');
-                csrfToken.type = 'hidden';
-                csrfToken.name = 'csrf_token';
-                csrfToken.value = document.querySelector('input[name="csrf_token"]').value;
-                form.appendChild(csrfToken);
+        const announcementId = btn.dataset.id;
+        if (confirm('Are you sure you want to delete this announcement? This action cannot be undone.')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = btn.getAttribute('data-url') || `/admin-panel/communication/announcements/${announcementId}/delete`;
 
-                document.body.appendChild(form);
-                form.submit();
-            }
-        });
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = 'csrf_token';
+            csrfToken.value = document.querySelector('input[name="csrf_token"]').value;
+            form.appendChild(csrfToken);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
     });
 });

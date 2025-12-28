@@ -38,7 +38,7 @@
           aria-expanded="false"
           aria-haspopup="dialog">
     <i class="c-chat-widget__trigger-icon ti ti-message-circle" aria-hidden="true"></i>
-    <span class="c-chat-widget__badge" data-count="0" style="display: none;">0</span>
+    <span class="c-chat-widget__badge d-none" data-count="0">0</span>
   </button>
 
   {# ========================================================================
@@ -107,7 +107,7 @@
       </div>
 
       {# Empty State #}
-      <div class="c-chat-widget__empty" style="display: none;">
+      <div class="c-chat-widget__empty d-none">
         <i class="c-chat-widget__empty-icon ti ti-message-off" aria-hidden="true"></i>
         <div class="c-chat-widget__empty-title">No conversations yet</div>
         <div class="c-chat-widget__empty-text">Search for a user above to start chatting</div>
@@ -155,7 +155,7 @@
       </div>
 
       {# Typing Indicator #}
-      <div class="c-chat-widget__typing" style="display: none;" aria-live="polite">
+      <div class="c-chat-widget__typing d-none" aria-live="polite">
         <div class="c-chat-widget__typing-dots">
           <span class="c-chat-widget__typing-dot"></span>
           <span class="c-chat-widget__typing-dot"></span>

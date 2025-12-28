@@ -23,7 +23,7 @@
                         </div>
                         <div class="d-flex gap-2 align-items-center">
                             <label class="text-muted me-2">Season:</label>
-                            <select class="form-select" id="seasonSelector" style="width: 250px;" data-form-select>
+                            <select class="form-select dp-season-select" id="seasonSelector" data-form-select>
                                 {% for season in seasons %}
                                     <option value="{{ season.id }}"
                                             {% if selected_season and season.id == selected_season.id %}selected{% endif %}>
@@ -211,7 +211,7 @@
             <div class="c-card">
                 <div class="c-card__body text-center py-5">
                     <div class="mb-4">
-                        <i class="ti ti-calendar-off text-muted" style="font-size: 4rem;"></i>
+                        <i class="ti ti-calendar-off text-muted dp-icon-empty-lg"></i>
                     </div>
                     <h4 class="mb-3">{{ message if message else 'No Season Selected' }}</h4>
                     <p class="text-muted mb-0">

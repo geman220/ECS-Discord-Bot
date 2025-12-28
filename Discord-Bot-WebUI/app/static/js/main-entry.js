@@ -27,6 +27,10 @@ import './vendor-globals.js';
 // 1. CORE SYSTEMS - Must load after vendors
 // ============================================================================
 
+// Unified MutationObserver - MUST load before any modules that use MutationObservers
+// Consolidates all body-level observers to prevent cascade effects (89% CPU fix)
+import './unified-mutation-observer.js';
+
 // Event delegation system - modular architecture
 // Core + handlers loaded from event-delegation/index.js
 import './event-delegation/index.js';

@@ -262,7 +262,7 @@
 
 /* Black/White with opacity support */
 .text-black {
-  color: #000000 !important;
+  color: var(--color-black, #000000) !important;
 }
 
 .text-black-50 {

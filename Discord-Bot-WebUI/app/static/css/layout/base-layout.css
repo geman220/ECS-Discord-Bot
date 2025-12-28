@@ -232,7 +232,7 @@ main,
   flex-shrink: 0; /* Don't shrink footer */
   padding: 1rem 1.5rem;
   background: var(--color-bg-card, #ffffff);
-  border-top: 1px solid var(--color-border-primary, #e2e8f0);
+  border-top: 1px solid var(--color-border-primary, var(--color-secondary-200, var(--color-secondary-200, #e2e8f0)));
   position: relative;
   z-index: 10; /* Above content but below modals and widgets */
   min-height: 60px; /* Ensure footer has minimum height */
@@ -266,8 +266,8 @@ main,
 
 [data-style="dark"] .content-footer,
 [data-style="dark"] .c-base-layout__footer {
-  background: #1e293b;
-  border-top-color: #475569;
+  background: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
+  border-top-color: var(--color-secondary-700, var(--color-secondary-700, #475569));
 }
 
 .footer-container,
@@ -289,7 +289,7 @@ main,
 
 .footer-container .text-body,
 .c-base-layout__footer-copyright {
-  color: var(--color-text-secondary, #64748b) !important;
+  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, #64748b))) !important;
   font-size: 0.875rem !important;
   visibility: visible !important;
   opacity: 1 !important;
@@ -297,19 +297,19 @@ main,
 
 [data-style="dark"] .footer-container .text-body,
 [data-style="dark"] .c-base-layout__footer-copyright {
-  color: #94a3b8;
+  color: var(--color-secondary-400, var(--color-secondary-400, #94a3b8));
 }
 
 .footer-container a,
 .c-base-layout__footer-link {
-  color: var(--color-primary, #2563eb);
+  color: var(--color-primary, var(--color-primary-600, #2563eb));
   text-decoration: none;
   transition: color 0.15s ease;
 }
 
 [data-style="dark"] .footer-container a,
 [data-style="dark"] .c-base-layout__footer-link {
-  color: #60a5fa;
+  color: var(--color-primary-400, #60a5fa);
 }
 
 .footer-container a:hover,
@@ -735,8 +735,8 @@ textarea:focus-visible {
 [data-style="dark"] .skip-to-content,
 [data-style="dark"] .skip-link,
 [data-style="dark"] .c-base-layout__skip-link {
-  background-color: var(--color-primary-600, #2563EB);
-  color: #FFFFFF;
+  background-color: var(--color-primary-600, var(--color-primary-600, #2563EB));
+  color: var(--color-white, #FFFFFF);
 }
 
 /* ============================================================================

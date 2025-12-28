@@ -44,7 +44,7 @@
  *   [data-bs-popper], etc... {
  *     position: absolute !important;
  *     z-index: 9999 !important;
- *     background: #ffffff !important;
+ *     background: var(--color-white, #ffffff) !important;
  *   }
  *
  * AFTER (✅ GOOD):
@@ -148,12 +148,12 @@
 
 .dropdown-menu {
   /* Background - explicit fallback prevents transparency */
-  background-color: #ffffff;
+  background-color: var(--color-white, #ffffff);
   background: var(--color-bg-elevated, #ffffff);
   background-clip: padding-box;
 
   /* Border */
-  border: 1px solid var(--color-border-primary, #e2e8f0);
+  border: 1px solid var(--color-border-primary, var(--color-secondary-200, var(--color-secondary-200, #e2e8f0)));
   border-radius: var(--radius-md, 0.375rem);
 
   /* Shadow - explicit fallback */
@@ -467,13 +467,13 @@
 
 /* Ensure navbar dropdowns don't inherit navbar background */
 .navbar .dropdown-menu {
-  background-color: #ffffff;
+  background-color: var(--color-white, #ffffff);
   background: var(--color-bg-elevated, #ffffff);
 }
 
 [data-style="dark"] .navbar .dropdown-menu {
-  background-color: #334155; /* Slate-800 */
-  background: #334155;
+  background-color: var(--color-secondary-800, var(--color-secondary-800, #334155)); /* Slate-800 */
+  background: var(--color-secondary-800, var(--color-secondary-800, #334155));
 }
 
 /* ============================================================================
@@ -492,11 +492,11 @@
 
 [data-style="dark"] .dropdown-menu {
   /* Background - explicit dark solid color (slate palette) */
-  background-color: #334155; /* Slate-800 */
-  background: #334155;
+  background-color: var(--color-secondary-800, var(--color-secondary-800, #334155)); /* Slate-800 */
+  background: var(--color-secondary-800, var(--color-secondary-800, #334155));
 
   /* Border - dark border for contrast */
-  border-color: #475569; /* Slate-700 */
+  border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)); /* Slate-700 */
 
   /* Enhanced shadow for visibility on dark backgrounds */
   box-shadow:
@@ -507,37 +507,37 @@
 
 [data-style="dark"] .dropdown-item {
   /* Text color for dark theme - light text on dark */
-  color: #fafafa;
+  color: var(--color-secondary-50, #fafafa);
 }
 
 [data-style="dark"] .dropdown-item:hover,
 [data-style="dark"] .dropdown-item:focus {
   /* Hover background for dark theme */
   background-color: rgba(255, 255, 255, 0.06);
-  color: #fafafa;
+  color: var(--color-secondary-50, #fafafa);
 }
 
 [data-style="dark"] .dropdown-item.active,
 [data-style="dark"] .dropdown-item:active {
   /* Active state uses primary color (works in both themes) */
-  background-color: var(--color-primary-600, #2563EB);
+  background-color: var(--color-primary-600, var(--color-primary-600, #2563EB));
   color: white;
 }
 
 [data-style="dark"] .dropdown-item:disabled,
 [data-style="dark"] .dropdown-item.disabled {
   /* Muted text for disabled items */
-  color: #a1a1aa;
+  color: var(--color-secondary-400, #a1a1aa);
 }
 
 [data-style="dark"] .dropdown-divider {
   /* Divider for dark theme */
-  border-top-color: #3f3f46;
+  border-top-color: var(--color-secondary-700, #3f3f46);
 }
 
 [data-style="dark"] .dropdown-header {
   /* Header text for dark theme */
-  color: #a1a1aa;
+  color: var(--color-secondary-400, #a1a1aa);
 }
 
 [data-style="dark"] .dropdown-item-text {

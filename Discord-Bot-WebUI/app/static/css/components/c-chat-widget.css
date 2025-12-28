@@ -34,24 +34,24 @@
   --cw-z-index: 1040;
 
   /* Colors - uses design system tokens with fallbacks */
-  --cw-bg: var(--color-bg-elevated, #1e293b);
+  --cw-bg: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
   --cw-bg-hover: var(--color-bg-hover, rgba(255, 255, 255, 0.05));
-  --cw-text: var(--color-text-primary, #e2e8f0);
-  --cw-text-secondary: var(--color-text-secondary, #94a3b8);
+  --cw-text: var(--color-text-primary, var(--color-secondary-200, var(--color-secondary-200, #e2e8f0)));
+  --cw-text-secondary: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
   --cw-accent: var(--color-primary, #7c3aed);
   --cw-accent-hover: var(--color-primary-hover, #6d28d9);
   --cw-border: var(--color-border, rgba(255, 255, 255, 0.1));
   --cw-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
-  --cw-success: var(--color-success, #10b981);
-  --cw-danger: var(--color-danger, #ef4444);
+  --cw-success: var(--color-success, var(--color-success-500, #10b981));
+  --cw-danger: var(--color-danger, var(--color-danger-500, #ef4444));
 }
 
 /* Light mode overrides */
 [data-style="light"] .c-chat-widget {
   --cw-bg: var(--color-bg-elevated, #ffffff);
   --cw-bg-hover: var(--color-bg-hover, rgba(0, 0, 0, 0.04));
-  --cw-text: var(--color-text-primary, #1e293b);
-  --cw-text-secondary: var(--color-text-secondary, #64748b);
+  --cw-text: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  --cw-text-secondary: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
   --cw-border: var(--color-border, rgba(0, 0, 0, 0.1));
   --cw-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
 }
@@ -97,7 +97,7 @@
   border: none;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--cw-accent), var(--cw-accent-hover));
-  color: #ffffff;
+  color: var(--color-white, #ffffff);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -142,7 +142,7 @@
   font-weight: 600;
   line-height: 20px;
   text-align: center;
-  color: #ffffff;
+  color: var(--color-white, #ffffff);
   background: var(--cw-danger);
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
@@ -515,7 +515,7 @@
   font-weight: 600;
   line-height: 20px;
   text-align: center;
-  color: #ffffff;
+  color: var(--color-white, #ffffff);
   background: var(--cw-accent);
   border-radius: 10px;
 }
@@ -550,33 +550,33 @@
 
 /* Admin badge - purple/gold for authority */
 .c-chat-widget__role-badge--admin {
-  background: linear-gradient(135deg, #7c3aed, #6d28d9);
-  color: #fbbf24;
+  background: linear-gradient(135deg, var(--color-accent, #7c3aed), var(--color-accent-dark, #6d28d9));
+  color: var(--color-warning, #fbbf24);
 }
 
 /* Coach badge - green for leadership */
 .c-chat-widget__role-badge--coach {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: #ffffff;
+  background: linear-gradient(135deg, var(--color-success-500, #10b981), #059669);
+  color: var(--color-white, #ffffff);
 }
 
 /* Referee badge - yellow/black for authority */
 .c-chat-widget__role-badge--ref {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: #1e293b;
+  background: linear-gradient(135deg, var(--color-warning-500, #f59e0b), #d97706);
+  color: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
 }
 
 /* Light mode adjustments */
 [data-style="light"] .c-chat-widget__role-badge--admin {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  background: linear-gradient(135deg, var(--color-accent, #8b5cf6), var(--color-accent-dark, #7c3aed));
 }
 
 [data-style="light"] .c-chat-widget__role-badge--coach {
-  background: linear-gradient(135deg, #34d399, #10b981);
+  background: linear-gradient(135deg, #34d399, var(--color-success-500, #10b981));
 }
 
 [data-style="light"] .c-chat-widget__role-badge--ref {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  background: linear-gradient(135deg, #fbbf24, var(--color-warning-500, #f59e0b));
 }
 
 
@@ -617,7 +617,7 @@
   padding: 10px 20px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--color-white, #ffffff);
   background: var(--cw-accent);
   border: none;
   border-radius: 8px;
@@ -866,7 +866,7 @@
 
 .c-chat-widget__message--sent .c-chat-widget__message-bubble {
   background: var(--cw-accent);
-  color: #ffffff;
+  color: var(--color-white, #ffffff);
   border-bottom-right-radius: 4px;
 }
 
@@ -969,7 +969,7 @@
   border: none;
   border-radius: 50%;
   background: var(--cw-accent);
-  color: #ffffff;
+  color: var(--color-white, #ffffff);
   cursor: pointer;
   display: flex;
   align-items: center;

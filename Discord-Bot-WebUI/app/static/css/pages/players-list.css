@@ -546,7 +546,7 @@
 
   .c-players-table {
     box-shadow: none;
-    border: 1px solid #000;
+    border: 1px solid var(--color-black, #000);
   }
 
   .c-player-row {

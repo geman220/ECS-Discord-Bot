@@ -89,7 +89,7 @@ body,
   .table-responsive td[data-label]:before {
     content: attr(data-label) ": ";
     font-weight: 600;
-    color: var(--color-text-muted, var(--color-neutral-500, #64748b));
+    color: var(--color-text-muted, var(--color-neutral-500, var(--color-secondary-600, var(--color-secondary-600, #64748b))));
     display: inline-block;
     margin-right: var(--mobile-space-xs, 8px);
     font-size: var(--mobile-text-xs, var(--text-xs, 0.75rem));
@@ -226,7 +226,7 @@ body,
     content: attr(data-label) ": " !important;  /* Ensure content always appears */
     font-weight: 600 !important;                 /* Ensure labels are always bold for readability */
     display: inline !important;                  /* Override any parent display settings */
-    color: var(--bs-secondary, var(--color-secondary, var(--color-neutral-500, #64748b)));
+    color: var(--bs-secondary, var(--color-secondary, var(--color-neutral-500, var(--color-secondary-600, var(--color-secondary-600, #64748b)))));
     margin-right: 8px;
     font-size: 12px;
     text-transform: uppercase;
@@ -494,20 +494,20 @@ body,
   .table-responsive tr td[data-label="Points"] {
     font-weight: 700;
     font-size: 16px;
-    color: var(--bs-primary, var(--color-primary, #2563EB));
+    color: var(--bs-primary, var(--color-primary, var(--color-primary-600, #2563EB)));
   }
 
   /* Position badges for top/bottom teams */
   .table-responsive tr.table-success td:first-child::after {
     content: '↑';
     margin-left: 8px;
-    color: var(--color-success, #10b981);
+    color: var(--color-success, var(--color-success-500, #10b981));
   }
 
   .table-responsive tr.table-danger td:first-child::after {
     content: '↓';
     margin-left: 8px;
-    color: var(--color-danger, #ef4444);
+    color: var(--color-danger, var(--color-danger-500, #ef4444));
   }
 }
 
@@ -546,7 +546,7 @@ body,
   .table-responsive tr td[data-label="Date"],
   .table-responsive tr td[data-label="Time"] {
     font-weight: 600;
-    color: var(--bs-primary, var(--color-primary, #2563EB));
+    color: var(--bs-primary, var(--color-primary, var(--color-primary-600, #2563EB)));
   }
 
   /* Match table scores */
@@ -609,7 +609,7 @@ body,
    Must ensure visible focus states regardless of component-specific styling. */
 .table-responsive a:focus,
 .table-responsive button:focus {
-  outline: 2px solid var(--bs-primary, var(--color-primary, #2563EB));
+  outline: 2px solid var(--bs-primary, var(--color-primary, var(--color-primary-600, #2563EB)));
   outline-offset: 2px;
 }
 
@@ -619,7 +619,7 @@ body,
    minimum contrast ratio of 4.5:1 for normal text. */
 @media (max-width: 991.98px) {
   .table-responsive .text-muted {
-    color: var(--color-text-muted, var(--color-neutral-500, #64748b)) !important;
+    color: var(--color-text-muted, var(--color-neutral-500, var(--color-secondary-600, var(--color-secondary-600, #64748b)))) !important;
   }
 
   [data-style="dark"] .table-responsive .text-muted {
@@ -690,7 +690,7 @@ body,
     display: block;
     text-align: center;
     padding: 24px;
-    color: var(--bs-secondary, var(--color-secondary, var(--color-neutral-500, #64748b)));
+    color: var(--bs-secondary, var(--color-secondary, var(--color-neutral-500, var(--color-secondary-600, var(--color-secondary-600, #64748b)))));
     font-style: italic;
   }
 }
@@ -831,7 +831,7 @@ body,
   .table-responsive td[data-label]:before {
     content: attr(data-label) ": ";
     font-weight: 600;
-    color: var(--color-text-muted, var(--color-neutral-500, #64748b));
+    color: var(--color-text-muted, var(--color-neutral-500, var(--color-secondary-600, var(--color-secondary-600, #64748b))));
     display: inline-block;
     margin-right: 5px;
     font-size: 12px;
@@ -953,7 +953,7 @@ body,
   .table-responsive-cards tbody td::before {
     content: attr(data-label);
     font-weight: 600;
-    color: var(--bs-secondary-color, var(--color-text-muted, var(--color-neutral-500, #64748b)));
+    color: var(--bs-secondary-color, var(--color-text-muted, var(--color-neutral-500, var(--color-secondary-600, var(--color-secondary-600, #64748b)))));
     font-size: 0.875rem;
     flex-shrink: 0;
     margin-right: 12px;
@@ -1031,7 +1031,7 @@ body,
     }
 
     .table thead th {
-        border-bottom: 2px solid var(--admin-primary, var(--color-primary, #2563EB));
+        border-bottom: 2px solid var(--admin-primary, var(--color-primary, var(--color-primary-600, #2563EB)));
         background: var(--admin-light, var(--color-neutral-50, #f9fafb));
         font-size: 0.8rem;
         font-weight: 600;
@@ -1082,7 +1082,7 @@ body,
         .table-mobile-stack td::before {
             content: attr(data-label) ": ";
             font-weight: bold;
-            color: var(--admin-primary, var(--color-primary, #2563EB));
+            color: var(--admin-primary, var(--color-primary, var(--color-primary-600, #2563EB)));
         }
     }
 }

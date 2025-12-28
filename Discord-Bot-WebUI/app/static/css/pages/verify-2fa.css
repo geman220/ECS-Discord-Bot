@@ -23,7 +23,7 @@
     --auth-surface: #FFFFFF;
     --auth-surface-alt: #F8FAFC;
     --auth-border: #E2E8F0;
-    --auth-text: #1E293B;
+    --auth-text: var(--color-secondary-900, #1E293B);
     --auth-text-muted: #64748B;
 
     /* Effects - Confident Motion */
@@ -49,7 +49,7 @@
     align-items: center;
     justify-content: center;
     padding: 2rem;
-    background: linear-gradient(135deg, #f5f7fa 0%, #e8f0fe 100%);
+    background: linear-gradient(135deg, var(--color-secondary-50, #f5f7fa) 0%, var(--color-primary-50, #e8f0fe) 100%);
     position: relative;
     overflow: hidden;
 }
@@ -248,7 +248,7 @@
 
 /* Invalid state animation */
 .c-form-modern__input.is-invalid {
-    border-color: #DC2626;
+    border-color: var(--color-danger, #DC2626);
     animation: shake-input 0.4s var(--auth-ease-bounce);
 }
 
@@ -266,7 +266,7 @@
 }
 
 .c-form-modern__feedback--invalid {
-    color: #DC2626;
+    color: var(--color-danger, #DC2626);
 }
 
 .c-form-modern__input.is-invalid ~ .c-form-modern__feedback--invalid {

@@ -27,8 +27,8 @@
             </div>
             <div class="c-card__body">
                 <div class="text-center mb-4">
-                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 mb-3" style="width: 80px; height: 80px;">
-                        <i class="ti ti-tournament text-primary" style="font-size: 2rem;"></i>
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 mb-3 c-league-initial-circle">
+                        <i class="ti ti-tournament text-primary c-league-icon--lg"></i>
                     </div>
                     <h4 class="mb-1">{{ season.name }}</h4>
                     {% if season.is_current %}
@@ -195,7 +195,7 @@
                 </div>
                 {% else %}
                 <div class="text-center py-5">
-                    <i class="ti ti-trophy-off text-muted" style="font-size: 3rem;"></i>
+                    <i class="ti ti-trophy-off text-muted c-league-icon--xl"></i>
                     <p class="text-muted mt-2">No leagues in this season yet</p>
                 </div>
                 {% endif %}

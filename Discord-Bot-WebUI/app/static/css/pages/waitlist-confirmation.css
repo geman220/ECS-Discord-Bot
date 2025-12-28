@@ -24,7 +24,7 @@
     --confirm-surface: #FFFFFF;
     --confirm-surface-alt: #F8FAFC;
     --confirm-border: #E2E8F0;
-    --confirm-text: #1E293B;
+    --confirm-text: var(--color-secondary-900, #1E293B);
     --confirm-text-muted: #64748B;
 
     /* Effects - Joyful Motion */
@@ -465,8 +465,8 @@
 }
 
 .c-confirmation__btn--primary:hover {
-    background: #003A70;
-    border-color: #003A70;
+    background: var(--color-primary-dark, #003A70);
+    border-color: var(--color-primary-dark, #003A70);
     transform: translateY(-2px);
     box-shadow: var(--confirm-shadow-md);
     color: white;

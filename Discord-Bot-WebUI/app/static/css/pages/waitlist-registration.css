@@ -452,7 +452,7 @@
    ============================================ */
 
 .c-waitlist--authenticated {
-    background: #f8f9fa;
+    background: var(--color-secondary-50, #f8f9fa);
     padding: 0;
     min-height: 100vh;
 }
@@ -543,7 +543,7 @@
    ============================================ */
 
 .c-waitlist--discord {
-    background: #f8f9fa;
+    background: var(--color-secondary-50, #f8f9fa);
     padding: var(--waitlist-space-lg);
     min-height: 100vh;
 }
@@ -844,12 +844,12 @@
 
 [data-style="dark"] .c-waitlist,
 [data-theme="dark"] .c-waitlist {
-    background: linear-gradient(135deg, #1a252f 0%, #264653 100%);
+    background: linear-gradient(135deg, var(--waitlist-bg-dark, #1a252f) 0%, var(--waitlist-bg-light, #264653) 100%);
 }
 
 [data-style="dark"] .c-waitlist__card,
 [data-theme="dark"] .c-waitlist__card {
-    background: #2d3748;
+    background: var(--color-secondary-800, #2d3748);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
 }
 

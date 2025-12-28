@@ -36,12 +36,19 @@ const PassStudio = {
         this.initColorPickers();
     },
 
+    _eventsRegistered: false,
     bindEvents() {
+        // Only register once - ROOT CAUSE FIX: event delegation
+        if (this._eventsRegistered) return;
+        this._eventsRegistered = true;
+
         // Platform toggle handled by event delegation in event-delegation.js
 
-        // Track changes
-        document.querySelectorAll('input, select, textarea').forEach(el => {
-            el.addEventListener('change', () => this.markUnsaved());
+        // Track changes - single delegated listener for all form elements
+        document.addEventListener('change', (e) => {
+            if (e.target.matches('input, select, textarea')) {
+                this.markUnsaved();
+            }
         });
 
         // Warn on page leave
@@ -662,13 +669,18 @@ const PassStudio = {
         }
     },
 
+    _colorPickersRegistered: false,
     initColorPickers() {
-        // Initialize color picker inputs
-        document.querySelectorAll('.color-input').forEach(input => {
-            input.addEventListener('input', () => {
+        // Only register once - ROOT CAUSE FIX: event delegation
+        if (this._colorPickersRegistered) return;
+        this._colorPickersRegistered = true;
+
+        // Single delegated listener for all color inputs
+        document.addEventListener('input', (e) => {
+            if (e.target.matches('.color-input')) {
                 this.updatePreviewFromForm();
                 this.markUnsaved();
-            });
+            }
         });
     },
 

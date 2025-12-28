@@ -261,24 +261,36 @@ class ModalManager {
 
     /**
      * Set up MutationObserver to clean up modal instances when removed from DOM
+     * REFACTORED: Uses UnifiedMutationObserver to prevent cascade effects
      * @private
      */
+    static _unifiedObserverRegistered = false;
     static setupMutationObserver() {
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                mutation.removedNodes.forEach((node) => {
-                    if (node.nodeType === 1) {
+        // Only register once
+        if (this._unifiedObserverRegistered) return;
+        this._unifiedObserverRegistered = true;
+
+        const self = this;
+
+        // Use unified observer if available
+        if (window.UnifiedMutationObserver) {
+            window.UnifiedMutationObserver.register('modal-manager', {
+                onRemovedNodes: function(nodes) {
+                    nodes.forEach(node => {
                         // Check if removed node is a modal
                         const isModal = (node.classList?.contains('modal') || node.hasAttribute?.('data-modal'));
                         if (isModal && node.id) {
-                            this.cleanup(node.id);
+                            self.cleanup(node.id);
                         }
-                    }
-                });
+                    });
+                },
+                filter: function(node) {
+                    // Only process modal elements
+                    return node.classList?.contains('modal') || node.hasAttribute?.('data-modal');
+                },
+                priority: 200 // Run late - cleanup happens after other processing
             });
-        });
-
-        observer.observe(document.body, { childList: true, subtree: true });
+        }
     }
 
     /**

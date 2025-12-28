@@ -50,11 +50,11 @@
 }
 
 .c-match-card__icon--warning {
-    color: var(--ecs-warning, #ffc107);
+    color: var(--ecs-warning, var(--color-warning, #ffc107));
 }
 
 .c-match-card__icon--danger {
-    color: var(--ecs-danger, #dc3545);
+    color: var(--ecs-danger, var(--color-danger, #dc3545));
 }
 
 .c-match-card__icon--info {
@@ -118,7 +118,7 @@
 }
 
 .c-match-card--fun {
-    border-left: 4px solid var(--ecs-warning, #ffc107);
+    border-left: 4px solid var(--ecs-warning, var(--color-warning, #ffc107));
 }
 
 .c-match-card--tst {

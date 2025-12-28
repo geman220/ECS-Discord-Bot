@@ -1237,8 +1237,8 @@ class ModernNavbarController {
         withCredentials: true
       });
 
-      // Store globally so other components can use it
-      window.socket = this.presenceSocket;
+      // Store globally so other components can use it (only if not already set)
+      if (!window.socket) window.socket = this.presenceSocket;
 
       this.attachSocketListenersDirect(this.presenceSocket);
 

@@ -1,0 +1,121 @@
+/**
+ * Draft Predictions Page Styles
+ * ==============================
+ * Styles for the draft predictions feature
+ * Extracted from inline styles in templates
+ */
+
+/* ==========================================================================
+   Table Column Widths
+   ========================================================================== */
+
+.dp-col-rank {
+  width: 50px;
+}
+
+.dp-col-rank-lg {
+  width: 60px;
+}
+
+.dp-col-player {
+  width: 280px;
+}
+
+.dp-col-coach {
+  width: 280px;
+}
+
+.dp-col-position {
+  width: 120px;
+}
+
+.dp-col-round {
+  width: 140px;
+}
+
+.dp-col-confidence {
+  width: 120px;
+}
+
+.dp-col-avg {
+  width: 140px;
+}
+
+.dp-col-range {
+  width: 120px;
+}
+
+.dp-col-votes {
+  width: 100px;
+}
+
+.dp-col-actions {
+  width: 100px;
+}
+
+.dp-col-submitted {
+  width: 180px;
+}
+
+/* ==========================================================================
+   Input Controls
+   ========================================================================== */
+
+.dp-search-group {
+  width: 250px;
+}
+
+.dp-filter-select {
+  width: 150px;
+}
+
+.dp-season-select {
+  width: 250px;
+}
+
+/* ==========================================================================
+   Icons & Images
+   ========================================================================== */
+
+.dp-icon-empty {
+  font-size: 3rem;
+}
+
+.dp-icon-empty-lg {
+  font-size: 4rem;
+}
+
+.dp-avatar-initial {
+  font-size: 1.5rem;
+}
+
+.dp-player-image-modal {
+  max-height: 70vh;
+}
+
+/* ==========================================================================
+   Step Badges (numbered badges for help section)
+   ========================================================================== */
+
+.dp-step-badge {
+  width: 24px;
+  height: 24px;
+}
+
+/* ==========================================================================
+   Responsive Adjustments
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .dp-search-group,
+  .dp-filter-select,
+  .dp-season-select {
+    width: 100%;
+  }
+
+  .dp-col-player,
+  .dp-col-coach {
+    width: auto;
+    min-width: 150px;
+  }
+}

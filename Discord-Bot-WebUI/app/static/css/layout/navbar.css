@@ -36,7 +36,7 @@
 
 [data-style="dark"] .layout-navbar {
   background-color: var(--color-bg-primary, #0F172A);        /* Slate-950 */
-  border-bottom-color: var(--color-border-primary, #475569); /* Slate-700 */
+  border-bottom-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569))); /* Slate-700 */
 }
 
 /* Modern navbar exception - no border or shadow */
@@ -119,9 +119,9 @@
 }
 
 [data-style="dark"] .ui-autocomplete {
-  background-color: var(--color-bg-elevated, #334155);       /* Slate-800 */
-  color: var(--color-text-primary, #f8fafc);                 /* Slate-50 */
-  border-color: var(--color-border-primary, #475569);        /* Slate-700 */
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));       /* Slate-800 */
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));                 /* Slate-50 */
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));        /* Slate-700 */
 }
 
 .ui-menu-item-wrapper {
@@ -142,7 +142,7 @@
 
 [data-style="dark"] .ui-menu-item-wrapper:hover,
 [data-style="dark"] .ui-state-active {
-  background: var(--color-bg-tertiary, #475569);             /* Slate-700 */
+  background: var(--color-bg-tertiary, var(--color-secondary-700, var(--color-secondary-700, #475569)));             /* Slate-700 */
 }
 
 .ui-menu-item-wrapper img {
@@ -244,7 +244,7 @@
 }
 
 [data-style="dark"] .c-navbar__current-role-status {
-  background-color: var(--color-bg-elevated, #334155);       /* Slate-800 */
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));       /* Slate-800 */
 }
 
 /* ============================================================================
@@ -319,7 +319,7 @@
 }
 
 [data-style="dark"] .layout-menu-toggle .nav-link:hover {
-  background-color: var(--color-bg-elevated, #334155);
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
 }
 
 .layout-menu-toggle .c-navbar__menu-toggle-icon {
@@ -383,7 +383,7 @@
 }
 
 [data-style="dark"] .navbar-nav .nav-link:hover {
-  background-color: var(--color-bg-elevated, #334155);
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
   color: var(--color-text-primary, #F8FAFC);
 }
 
@@ -457,8 +457,8 @@
 }
 
 [data-style="dark"] .dropdown-menu-header {
-  background-color: var(--color-bg-elevated, #334155);       /* Slate-800 */
-  border-bottom-color: var(--color-border-primary, #475569); /* Slate-700 */
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));       /* Slate-800 */
+  border-bottom-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569))); /* Slate-700 */
 }
 
 .dropdown-notifications-list {
@@ -473,7 +473,7 @@
 }
 
 [data-style="dark"] .dropdown-notifications-item {
-  border-bottom-color: var(--color-border-primary, #475569); /* Slate-700 */
+  border-bottom-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569))); /* Slate-700 */
 }
 
 .dropdown-notifications-item:hover {
@@ -481,7 +481,7 @@
 }
 
 [data-style="dark"] .dropdown-notifications-item:hover {
-  background-color: var(--color-bg-tertiary, #475569);       /* Slate-700 */
+  background-color: var(--color-bg-tertiary, var(--color-secondary-700, var(--color-secondary-700, #475569)));       /* Slate-700 */
 }
 
 .dropdown-notifications-item.bg-light {
@@ -516,8 +516,8 @@
 }
 
 [data-style="dark"] .toast {
-  background-color: var(--color-bg-elevated, #334155);       /* Slate-800 */
-  border-color: var(--color-border-primary, #475569);        /* Slate-700 */
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));       /* Slate-800 */
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));        /* Slate-700 */
 }
 
 .toast-body {

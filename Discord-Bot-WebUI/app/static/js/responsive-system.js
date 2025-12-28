@@ -759,63 +759,53 @@
 
     /**
      * Set up observer to watch for dynamically added elements
+     * REFACTORED: Uses UnifiedMutationObserver to prevent cascade effects
      */
+    _mutationObserverRegistered: false,
     setupMutationObserver: function () {
-      // Create MutationObserver instance
-      const observer = new MutationObserver((mutations) => {
-        let shouldEnhance = false;
+      // Only register once
+      if (this._mutationObserverRegistered) return;
+      this._mutationObserverRegistered = true;
 
-        // Check if we need to enhance elements
-        mutations.forEach(mutation => {
-          if (mutation.addedNodes.length) {
-            // Look for meaningful DOM changes that would require enhancement
-            for (let i = 0; i < mutation.addedNodes.length; i++) {
-              const node = mutation.addedNodes[i];
-              if (node.nodeType === 1) { // Only element nodes
-                if (
-                  node.hasAttribute && (
-                    node.hasAttribute('data-modal') ||
-                    node.hasAttribute('data-form-control') ||
-                    node.hasAttribute('data-form-select') ||
-                    node.hasAttribute('data-tabs') ||
-                    node.hasAttribute('data-table-responsive')
-                  )
-                ) {
-                  shouldEnhance = true;
-                  break;
-                }
+      const self = this;
 
-                // Check if added node contains elements we care about
-                if (
-                  node.querySelector && (
-                    node.querySelector('[data-modal]') ||
-                    node.querySelector('[data-form-control]') ||
-                    node.querySelector('[data-form-select]') ||
-                    node.querySelector('[data-tabs], .js-tabs') ||
-                    node.querySelector('[data-table-responsive]')
-                  )
-                ) {
-                  shouldEnhance = true;
-                  break;
-                }
+      // Use unified observer if available
+      if (window.UnifiedMutationObserver) {
+        window.UnifiedMutationObserver.register('responsive-system', {
+          onAddedNodes: function(nodes) {
+            let shouldEnhance = false;
+
+            nodes.forEach(node => {
+              if (
+                node.hasAttribute && (
+                  node.hasAttribute('data-modal') ||
+                  node.hasAttribute('data-form-control') ||
+                  node.hasAttribute('data-form-select') ||
+                  node.hasAttribute('data-tabs') ||
+                  node.hasAttribute('data-table-responsive')
+                )
+              ) {
+                shouldEnhance = true;
+              } else if (
+                node.querySelector && (
+                  node.querySelector('[data-modal]') ||
+                  node.querySelector('[data-form-control]') ||
+                  node.querySelector('[data-form-select]') ||
+                  node.querySelector('[data-tabs], .js-tabs') ||
+                  node.querySelector('[data-table-responsive]')
+                )
+              ) {
+                shouldEnhance = true;
               }
+            });
+
+            if (shouldEnhance) {
+              self.enhanceNewElements();
             }
-          }
+          },
+          priority: 100 // Standard priority
         });
-
-        // Enhance new elements if needed
-        if (shouldEnhance) {
-          setTimeout(() => {
-            this.enhanceNewElements();
-          }, 100);
-        }
-      });
-
-      // Start observing the document
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true
-      });
+      }
     },
 
     /**

@@ -32,17 +32,22 @@
 
     /**
      * Replace drag-and-drop with tap-to-select on mobile
+     * ROOT CAUSE FIX: Uses event delegation for click handling
      */
+    _tapToSelectRegistered: false,
     setupTapToSelect: function () {
       if (!this.isMobile()) return;
 
-      document.querySelectorAll('[data-component="player-card"], [data-component="player-item"]').forEach(card => {
-        // Remove drag attributes on mobile
-        card.removeAttribute('draggable');
-        card.classList.add('cursor-pointer');
+      const self = this;
 
-        // Add touch-friendly selection
-        card.addEventListener('click', (e) => {
+      // One-time setup: delegated click handler
+      if (!this._tapToSelectRegistered) {
+        this._tapToSelectRegistered = true;
+
+        document.addEventListener('click', function(e) {
+          const card = e.target.closest('[data-component="player-card"], [data-component="player-item"]');
+          if (!card) return;
+
           // Prevent if clicking a button inside
           if (e.target.closest('button, a')) return;
 
@@ -51,7 +56,7 @@
           // Toggle selection
           if (card.classList.contains('mobile-selected')) {
             card.classList.remove('mobile-selected');
-            this.selectedPlayer = null;
+            self.selectedPlayer = null;
 
             if (window.Haptics) window.Haptics.deselection();
           } else {
@@ -62,17 +67,24 @@
 
             // Select this card
             card.classList.add('mobile-selected');
-            this.selectedPlayer = playerId;
+            self.selectedPlayer = playerId;
 
             if (window.Haptics) window.Haptics.selection();
 
             // Show quick draft panel
-            this.showQuickDraftPanel(card);
+            self.showQuickDraftPanel(card);
           }
         });
+      }
 
-        // Long-press for player details
-        if (window.Hammer) {
+      // Apply CSS classes to existing cards (idempotent)
+      document.querySelectorAll('[data-component="player-card"], [data-component="player-item"]').forEach(card => {
+        card.removeAttribute('draggable');
+        card.classList.add('cursor-pointer');
+
+        // Long-press for player details (Hammer needs per-element setup)
+        if (window.Hammer && !card._hammerInitialized) {
+          card._hammerInitialized = true;
           const hammer = new Hammer(card);
           hammer.get('press').set({ time: 500 });
 
@@ -288,49 +300,53 @@
 
     /**
      * Optimize player remove buttons for touch
+     * ROOT CAUSE FIX: Uses event delegation for haptic feedback
      */
+    _removeButtonsRegistered: false,
     optimizeRemoveButtons: function () {
       if (!this.isMobile()) return;
 
-      document.querySelectorAll('[data-action="remove-player"]').forEach(btn => {
-        // Make buttons larger
-        btn.classList.add('mobile-touch-target', 'p-3');
+      const self = this;
 
-        // Add haptic feedback
-        btn.addEventListener('click', () => {
+      // One-time setup: delegated click handler for haptic feedback
+      if (!this._removeButtonsRegistered) {
+        this._removeButtonsRegistered = true;
+
+        document.addEventListener('click', function(e) {
+          const btn = e.target.closest('[data-action="remove-player"]');
+          if (!btn) return;
+
+          // Haptic feedback
           if (window.Haptics) window.Haptics.delete();
-        });
 
-        // Add confirmation for touch
-        const originalOnclick = btn.onclick;
-        btn.onclick = (e) => {
-          if (this.isMobile()) {
-            if (window.Swal) {
-              Swal.fire({
-                title: 'Remove Player?',
-                text: 'Are you sure you want to remove this player from the team?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, remove',
-                cancelButtonText: 'Cancel',
-                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
-              }).then((result) => {
-                if (result.isConfirmed) {
-                  if (originalOnclick) originalOnclick.call(btn, e);
-                  if (window.Haptics) window.Haptics.delete();
-                }
-              });
-            } else {
-              if (confirm('Remove this player?')) {
-                if (originalOnclick) originalOnclick.call(btn, e);
+          // Mobile confirmation
+          if (self.isMobile() && window.Swal && !btn._confirmationHandled) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            Swal.fire({
+              title: 'Remove Player?',
+              text: 'Are you sure you want to remove this player from the team?',
+              icon: 'warning',
+              showCancelButton: true,
+              confirmButtonText: 'Yes, remove',
+              cancelButtonText: 'Cancel',
+              confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
+            }).then((result) => {
+              if (result.isConfirmed) {
+                btn._confirmationHandled = true;
+                btn.click(); // Re-trigger with confirmation flag
+                btn._confirmationHandled = false;
                 if (window.Haptics) window.Haptics.delete();
               }
-            }
-            return false;
-          } else {
-            if (originalOnclick) return originalOnclick.call(btn, e);
+            });
           }
-        };
+        }, true); // Capture phase to intercept before default handlers
+      }
+
+      // Apply CSS classes to existing buttons (idempotent)
+      document.querySelectorAll('[data-action="remove-player"]').forEach(btn => {
+        btn.classList.add('mobile-touch-target', 'p-3');
       });
     },
 
@@ -532,32 +548,34 @@
       this.optimizeFilters();
 
       // Re-run when new players are added to DOM
-      const observer = new MutationObserver((mutations) => {
-        let shouldUpdate = false;
+      // REFACTORED: Uses UnifiedMutationObserver to prevent cascade effects
+      if (window.UnifiedMutationObserver) {
+        const self = this;
+        window.UnifiedMutationObserver.register('mobile-draft', {
+          onAddedNodes: function(nodes) {
+            let shouldUpdate = false;
 
-        mutations.forEach(mutation => {
-          mutation.addedNodes.forEach(node => {
-            if (node.nodeType === 1 &&
-                (node.getAttribute?.('data-component') === 'player-card' ||
-                 node.getAttribute?.('data-component') === 'player-item' ||
-                 node.querySelector?.('[data-component="player-card"], [data-component="player-item"]'))) {
-              shouldUpdate = true;
+            nodes.forEach(node => {
+              if (node.getAttribute?.('data-component') === 'player-card' ||
+                  node.getAttribute?.('data-component') === 'player-item' ||
+                  node.querySelector?.('[data-component="player-card"], [data-component="player-item"]')) {
+                shouldUpdate = true;
+              }
+            });
+
+            if (shouldUpdate) {
+              self.setupTapToSelect();
+              self.optimizeRemoveButtons();
             }
-          });
+          },
+          filter: function(node) {
+            return node.getAttribute?.('data-component') === 'player-card' ||
+                   node.getAttribute?.('data-component') === 'player-item' ||
+                   node.querySelector?.('[data-component="player-card"], [data-component="player-item"]');
+          },
+          priority: 110 // Run after responsive-system
         });
-
-        if (shouldUpdate) {
-          setTimeout(() => {
-            this.setupTapToSelect();
-            this.optimizeRemoveButtons();
-          }, 100);
-        }
-      });
-
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true
-      });
+      }
 
       console.log('MobileDraft: Initialized successfully');
     }

@@ -143,12 +143,12 @@
                         <span class="badge bg-label-secondary ms-2" data-badge>{{ players|length }}</span>
                     </h5>
                     <div class="d-flex gap-2">
-                        <div class="input-group" style="width: 250px;" data-input-group>
+                        <div class="input-group dp-search-group" data-input-group>
                             <span class="input-group-text"><i class="ti ti-search"></i></span>
                             <input type="text" class="form-control" id="playerSearch"
                                    placeholder="Search players..." data-form-control>
                         </div>
-                        <select class="form-select" id="positionFilter" style="width: 150px;" data-form-select>
+                        <select class="form-select dp-filter-select" id="positionFilter" data-form-select>
                             <option value="">All Positions</option>
                             <option value="Forward">Forward</option>
                             <option value="Midfielder">Midfielder</option>
@@ -163,13 +163,13 @@
                             <table class="c-table c-table--hoverable" id="playersTable" data-table>
                                 <thead>
                                     <tr>
-                                        <th style="width: 50px;">#</th>
-                                        <th style="width: 280px;">Player</th>
-                                        <th style="width: 120px;">Position</th>
-                                        <th style="width: 140px;">Predicted Round</th>
-                                        <th style="width: 120px;">Confidence</th>
+                                        <th class="dp-col-rank">#</th>
+                                        <th class="dp-col-player">Player</th>
+                                        <th class="dp-col-position">Position</th>
+                                        <th class="dp-col-round">Predicted Round</th>
+                                        <th class="dp-col-confidence">Confidence</th>
                                         <th>Notes</th>
-                                        <th style="width: 140px;">Avg Prediction</th>
+                                        <th class="dp-col-avg">Avg Prediction</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -260,7 +260,7 @@
                         </div>
                     {% else %}
                         <div class="text-center py-5">
-                            <i class="ti ti-users-off text-muted" style="font-size: 3rem;"></i>
+                            <i class="ti ti-users-off text-muted dp-icon-empty"></i>
                             <h5 class="mt-3 text-muted">No Players Found</h5>
                             <p class="text-muted">No players are currently registered in this league.</p>
                         </div>
@@ -281,7 +281,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
             </div>
             <div class="modal-body c-modal__body text-center" data-modal-body>
-                <img id="playerImageModalImg" src="" alt="" class="img-fluid rounded" style="max-height: 70vh;">
+                <img id="playerImageModalImg" src="" alt="" class="img-fluid rounded dp-player-image-modal">
                 <div class="mt-3">
                     <h6 id="playerImageModalName" class="text-muted"></h6>
                 </div>

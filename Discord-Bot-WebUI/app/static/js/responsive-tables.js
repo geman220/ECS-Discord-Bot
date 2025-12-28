@@ -184,54 +184,43 @@
     
     /**
      * Setup MutationObserver to detect and process newly added tables
-     * FIXED: Disconnect existing observer before creating new one to prevent accumulation
+     * REFACTORED: Uses UnifiedMutationObserver to prevent cascade effects
      */
+    _unifiedObserverRegistered: false,
     setupMutationObserver: function() {
-      // Disconnect existing observer if any (prevents accumulation on reinit)
-      if (this._observer) {
-        this._observer.disconnect();
-        this._observer = null;
-      }
+      // Only register once
+      if (this._unifiedObserverRegistered) return;
+      this._unifiedObserverRegistered = true;
 
-      // Create observer instance
-      this._observer = new MutationObserver((mutations) => {
-        let shouldProcess = false;
+      const self = this;
 
-        mutations.forEach(mutation => {
-          // Check for added nodes
-          if (mutation.addedNodes && mutation.addedNodes.length) {
-            for (let i = 0; i < mutation.addedNodes.length; i++) {
-              const node = mutation.addedNodes[i];
+      // Use unified observer if available
+      if (window.UnifiedMutationObserver) {
+        window.UnifiedMutationObserver.register('responsive-tables', {
+          onAddedNodes: function(nodes) {
+            let shouldProcess = false;
 
-              // Check if node is an element
-              if (node.nodeType === 1) {
-                // Check if it's a table with our class
-                if (node.matches && node.matches('table.mobile-card-table')) {
-                  shouldProcess = true;
-                  break;
-                }
-
-                // Check if it contains tables with our class
-                if (node.querySelectorAll && node.querySelectorAll('table.mobile-card-table').length) {
-                  shouldProcess = true;
-                  break;
-                }
+            nodes.forEach(node => {
+              // Check if it's a table with our class
+              if (node.matches && node.matches('table.mobile-card-table')) {
+                shouldProcess = true;
+              } else if (node.querySelectorAll && node.querySelectorAll('table.mobile-card-table').length) {
+                shouldProcess = true;
               }
+            });
+
+            if (shouldProcess) {
+              self.processAllTables();
             }
-          }
+          },
+          filter: function(node) {
+            // Only process nodes that might contain tables
+            return (node.matches && node.matches('table.mobile-card-table')) ||
+                   (node.querySelectorAll && node.querySelectorAll('table.mobile-card-table').length > 0);
+          },
+          priority: 80 // Run before responsive-system for table processing
         });
-
-        // Process tables if needed
-        if (shouldProcess) {
-          this.processAllTables();
-        }
-      });
-
-      // Start observing document body
-      this._observer.observe(document.body, {
-        childList: true,
-        subtree: true
-      });
+      }
     }
   };
   

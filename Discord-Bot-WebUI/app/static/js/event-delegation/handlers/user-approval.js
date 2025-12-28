@@ -112,9 +112,7 @@ EventDelegation.register('deny-user', function(element, e) {
     }
 });
 
-// Make globally available
-window.EventDelegation = EventDelegation;
-
-console.log('[EventDelegation] All handlers loaded');
+// EventDelegation is already exposed globally by core.js
+// No need to re-assign window.EventDelegation here
 
 console.log('[EventDelegation] User approval handlers loaded');

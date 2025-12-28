@@ -22,11 +22,16 @@
   let refreshInterval;
   let queryPerformanceChart;
   let cacheUsageChart;
+  let _initialized = false;
 
   /**
    * Initialize on DOM load
    */
   function init() {
+    // Guard against duplicate initialization
+    if (_initialized) return;
+    _initialized = true;
+
     // Page guard: only run on performance monitoring pages
     const isPerfPage = document.querySelector('[data-page="admin-performance"]') ||
                        document.querySelector('.admin-performance') ||

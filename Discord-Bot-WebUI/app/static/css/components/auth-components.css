@@ -18,7 +18,7 @@
   max-width: 420px;
   margin: 0 auto;
   padding: var(--space-8, 32px);
-  background: var(--color-bg-elevated, #1e293b);
+  background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
   border-radius: var(--radius-2xl, 20px);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
@@ -29,14 +29,14 @@
   font-family: var(--font-display, 'Archivo Black', sans-serif);
   font-size: var(--text-2xl, 1.5rem);
   font-weight: 700;
-  color: var(--color-text-primary, #f8fafc);
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
   text-align: center;
 }
 
 .c-auth-panel__subtitle {
   margin: 0 0 var(--space-6, 24px);
   font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
   text-align: center;
 }
 
@@ -120,7 +120,7 @@
   height: 64px;
   background: rgba(59, 130, 246, 0.1);
   border-radius: 50%;
-  color: var(--color-primary-light, #60a5fa);
+  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
   font-size: 1.5rem;
 }
 
@@ -146,13 +146,13 @@
   margin: 0;
   font-size: var(--text-lg, 1.125rem);
   font-weight: 600;
-  color: var(--color-text-primary, #f8fafc);
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
 }
 
 .c-auth-status__description {
   margin: 0;
   font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
   max-width: 300px;
 }
 
@@ -185,13 +185,13 @@
   margin: 0 0 var(--space-2, 8px);
   font-size: var(--text-sm, 0.875rem);
   font-weight: 500;
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
 }
 
 .c-auth-alternative__description {
   margin: 0;
   font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
 }
 
 /* ============================================================================
@@ -204,12 +204,12 @@
   border-top: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.04));
   text-align: center;
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
 }
 
 .c-auth-help-text {
   font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
   text-align: center;
 }
 
@@ -229,7 +229,7 @@
 
 .c-2fa-setup__qr {
   padding: var(--space-4, 16px);
-  background: #fff;
+  background: var(--color-white, #fff);
   border-radius: var(--radius-md, 8px);
 }
 
@@ -245,7 +245,7 @@
 
 [data-style="light"] .c-auth-panel__title,
 [data-style="light"] .c-auth-status__title {
-  color: var(--color-text-primary, #1e293b);
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
 }
 
 [data-style="light"] .c-auth-alternative {
@@ -257,7 +257,7 @@
 }
 
 [data-style="light"] .c-2fa-setup {
-  background: var(--color-bg-secondary, #f8fafc);
+  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
 }
 
 /* ============================================================================

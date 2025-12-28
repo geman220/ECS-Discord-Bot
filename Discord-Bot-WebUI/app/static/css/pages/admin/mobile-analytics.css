@@ -409,7 +409,7 @@
  */
 .mobile-analytics-chart-controls .btn:focus,
 .mobile-analytics-actions .btn:focus {
-    outline: 2px solid var(--color-focus-ring, var(--color-primary-500, #2563EB));
+    outline: 2px solid var(--color-focus-ring, var(--color-primary-500, var(--color-primary-600, #2563EB)));
     outline-offset: 2px;
 }
 

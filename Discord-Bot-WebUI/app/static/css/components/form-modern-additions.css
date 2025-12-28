@@ -54,7 +54,7 @@
 .c-form-modern__icon {
   position: absolute;
   left: var(--space-3, 12px);
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
   font-size: 1rem;
   pointer-events: none;
 }
@@ -70,7 +70,7 @@
 .c-form-modern__help {
   margin-top: var(--space-1, 4px);
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
 }
 
 /* ============================================================================
@@ -82,7 +82,7 @@
   align-items: flex-start;
   gap: var(--space-2, 8px);
   font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-primary, #f8fafc);
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
   cursor: pointer;
 }
 
@@ -112,13 +112,13 @@
 }
 
 .c-form-field__empty {
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
   font-style: italic;
 }
 
 .c-form-label--required::after {
   content: ' *';
-  color: var(--color-danger, #ef4444);
+  color: var(--color-danger, var(--color-danger-500, #ef4444));
 }
 
 /* ============================================================================
@@ -134,7 +134,7 @@
   margin-bottom: var(--space-2, 8px);
   font-size: var(--text-xs, 0.75rem);
   font-weight: 600;
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -154,16 +154,16 @@
 }
 
 .c-filter-option__input {
-  accent-color: var(--color-primary, #2563EB);
+  accent-color: var(--color-primary, var(--color-primary-600, #2563EB));
 }
 
 .c-filter-option__label {
   font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-primary, #f8fafc);
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
 }
 
 .c-filter-option__icon {
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
 }
 
 /* ============================================================================
@@ -210,7 +210,7 @@
 }
 
 [data-style="light"] .c-form-modern__checkbox-label {
-  color: var(--color-text-primary, #1e293b);
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
 }
 
 [data-style="light"] .c-filter-option:hover {
@@ -218,7 +218,7 @@
 }
 
 [data-style="light"] .c-filter-option__label {
-  color: var(--color-text-primary, #1e293b);
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
 }
 
 /* c-toggle-row now uses BS variables that auto-adapt to theme */

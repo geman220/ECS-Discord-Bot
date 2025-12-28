@@ -118,7 +118,7 @@
    ============================================ */
 .c-user-form__input:invalid,
 .c-user-form__select:invalid {
-    border-color: var(--ecs-danger, #dc3545);
+    border-color: var(--ecs-danger, var(--color-danger, #dc3545));
 }
 
 .c-user-form__input:valid,

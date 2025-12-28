@@ -994,7 +994,7 @@
 
 .c-role-selector__icon {
     font-size: 1rem;
-    color: var(--color-text-muted, #6c757d);
+    color: var(--color-text-muted, var(--color-secondary, #6c757d));
     flex-shrink: 0;
 }
 
@@ -1028,18 +1028,18 @@
 /* Selected state */
 .c-role-selector__checkbox:checked + .c-role-selector__label + .c-role-selector__check,
 .c-role-selector__item:has(.c-role-selector__checkbox:checked) .c-role-selector__check {
-    background-color: var(--color-primary, #0d6efd);
-    border-color: var(--color-primary, #0d6efd);
-    color: #ffffff;
+    background-color: var(--color-primary, var(--color-primary, #0d6efd));
+    border-color: var(--color-primary, var(--color-primary, #0d6efd));
+    color: var(--color-white, #ffffff);
 }
 
 .c-role-selector__item:has(.c-role-selector__checkbox:checked) {
     background-color: var(--color-primary-subtle, rgba(13, 110, 253, 0.1));
-    border-color: var(--color-primary, #0d6efd);
+    border-color: var(--color-primary, var(--color-primary, #0d6efd));
 }
 
 .c-role-selector__item:has(.c-role-selector__checkbox:checked) .c-role-selector__icon {
-    color: var(--color-primary, #0d6efd);
+    color: var(--color-primary, var(--color-primary, #0d6efd));
 }
 
 /* Focus state for accessibility */
@@ -1050,35 +1050,35 @@
 
 /* Dark mode */
 [data-style="dark"] .c-role-selector__item {
-    background-color: var(--color-bg-secondary, #1e293b);
-    border-color: var(--color-border-primary, #334155);
+    background-color: var(--color-bg-secondary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+    border-color: var(--color-border-primary, var(--color-secondary-800, var(--color-secondary-800, #334155)));
 }
 
 [data-style="dark"] .c-role-selector__item:hover {
-    background-color: var(--color-bg-tertiary, #334155);
-    border-color: var(--color-border-hover, #475569);
+    background-color: var(--color-bg-tertiary, var(--color-secondary-800, var(--color-secondary-800, #334155)));
+    border-color: var(--color-border-hover, var(--color-secondary-700, var(--color-secondary-700, #475569)));
 }
 
 [data-style="dark"] .c-role-selector__name {
-    color: var(--color-text-primary, #f1f5f9);
+    color: var(--color-text-primary, var(--color-secondary-100, var(--color-secondary-100, #f1f5f9)));
 }
 
 [data-style="dark"] .c-role-selector__icon {
-    color: var(--color-text-muted, #94a3b8);
+    color: var(--color-text-muted, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
 }
 
 [data-style="dark"] .c-role-selector__check {
-    background-color: var(--color-bg-tertiary, #334155);
-    border-color: var(--color-border-secondary, #475569);
+    background-color: var(--color-bg-tertiary, var(--color-secondary-800, var(--color-secondary-800, #334155)));
+    border-color: var(--color-border-secondary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
 }
 
 [data-style="dark"] .c-role-selector__item:has(.c-role-selector__checkbox:checked) {
     background-color: var(--color-primary-subtle, rgba(96, 165, 250, 0.15));
-    border-color: var(--color-primary, #60a5fa);
+    border-color: var(--color-primary, var(--color-primary-400, #60a5fa));
 }
 
 [data-style="dark"] .c-role-selector__item:has(.c-role-selector__checkbox:checked) .c-role-selector__icon {
-    color: var(--color-primary, #60a5fa);
+    color: var(--color-primary, var(--color-primary-400, #60a5fa));
 }
 
 /* Mobile responsive - stack vertically on small screens */

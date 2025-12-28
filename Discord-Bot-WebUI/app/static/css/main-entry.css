@@ -172,6 +172,7 @@
 @import './pages/scheduled-messages.css';
 @import './pages/store.css';
 @import './pages/utilities.css';
+@import './pages/draft-predictions.css';
 
 /* Admin pages */
 @import './pages/admin/admin-dashboard.css';

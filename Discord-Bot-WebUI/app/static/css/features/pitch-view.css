@@ -284,7 +284,7 @@ html[data-style="dark"] .c-pitch-player-item__stat {
 
 .c-pitch {
     position: relative;
-    background: linear-gradient(135deg, #1a7f3e 0%, #2d9f5e 100%);
+    background: linear-gradient(135deg, var(--pitch-green-dark, #1a7f3e) 0%, var(--pitch-green-light, #2d9f5e) 100%);
     border-radius: var(--draft-radius-lg);
     padding: var(--draft-space-2xl);
     min-height: 800px;
@@ -699,7 +699,7 @@ html[data-style="dark"] .c-pitch-stats {
 /* Soccer Pitch Container */
 .soccer-pitch {
     position: relative;
-    background: linear-gradient(135deg, #1a7f3e 0%, #2d9f5e 100%);
+    background: linear-gradient(135deg, var(--pitch-green-dark, #1a7f3e) 0%, var(--pitch-green-light, #2d9f5e) 100%);
     border-radius: var(--draft-radius-lg, 12px);
     padding: 20px;
     min-height: 700px;
@@ -972,7 +972,7 @@ html[data-style="dark"] .c-pitch-stats {
    ========================================================================== */
 
 .bench-container {
-    background: var(--color-surface-secondary, #f1f5f9);
+    background: var(--color-surface-secondary, var(--color-secondary-100, var(--color-secondary-100, #f1f5f9)));
     border-radius: 12px;
     padding: 12px;
     margin-top: 16px;
@@ -980,8 +980,8 @@ html[data-style="dark"] .c-pitch-stats {
 
 html[data-style="dark"] .bench-container,
 [data-style="dark"] .bench-container {
-    background: #1e293b !important;
-    border: 1px solid #334155;
+    background: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))) !important;
+    border: 1px solid var(--color-secondary-800, var(--color-secondary-800, #334155));
 }
 
 .bench-zone {
@@ -994,7 +994,7 @@ html[data-style="dark"] .bench-container,
     width: 100%;
     min-height: 80px;
     background: rgba(0, 0, 0, 0.05);
-    border: 2px dashed var(--color-border, #e2e8f0);
+    border: 2px dashed var(--color-border, var(--color-secondary-200, var(--color-secondary-200, #e2e8f0)));
     border-radius: 12px;
     padding: 12px;
 }
@@ -1002,18 +1002,18 @@ html[data-style="dark"] .bench-container,
 html[data-style="dark"] .bench-zone,
 [data-style="dark"] .bench-zone {
     background: rgba(255, 255, 255, 0.08) !important;
-    border-color: #475569 !important;
+    border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)) !important;
 }
 
 .bench-zone .position-label {
-    color: #374151;
+    color: var(--color-secondary-700, #374151);
     font-weight: 600;
     margin-bottom: 8px;
 }
 
 html[data-style="dark"] .bench-zone .position-label,
 [data-style="dark"] .bench-zone .position-label {
-    color: #f1f5f9 !important;
+    color: var(--color-secondary-100, var(--color-secondary-100, #f1f5f9)) !important;
 }
 
 .bench-zone .position-players {
@@ -1034,7 +1034,7 @@ html[data-style="dark"] .bench-zone .position-label,
     padding: 4px 10px 4px 4px;
     font-size: 0.75rem;
     font-weight: 600;
-    color: var(--draft-gray-800, #1e293b);
+    color: var(--draft-gray-800, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
     cursor: grab;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     transition: all 0.2s ease;
@@ -1066,7 +1066,7 @@ html[data-style="dark"] .bench-zone .position-label,
 
 /* Dark mode adjustments */
 html[data-style="dark"] .pitch-player-token {
-    background: var(--draft-gray-800, #1e293b);
+    background: var(--draft-gray-800, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
     color: white;
 }
 
@@ -1079,7 +1079,7 @@ html[data-style="dark"] .pitch-player-token {
 }
 
 html[data-style="dark"] .formation-stats-card {
-    background: var(--draft-gray-800, #1e293b);
+    background: var(--draft-gray-800, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
 }
 
 .formation-stats-grid {
@@ -1097,12 +1097,12 @@ html[data-style="dark"] .formation-stats-card {
     font-family: var(--draft-font-display, 'Archivo Black', sans-serif);
     font-size: 1.5rem;
     font-weight: 700;
-    color: var(--draft-primary, #2563eb);
+    color: var(--draft-primary, var(--color-primary-600, #2563eb));
 }
 
 .formation-stat-label {
     font-size: 0.75rem;
-    color: var(--draft-gray-500, #64748b);
+    color: var(--draft-gray-500, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -1129,12 +1129,12 @@ html[data-style="dark"] .formation-stats-card {
 }
 
 .pitch-players-list::-webkit-scrollbar-thumb {
-    background: var(--color-border, #e2e8f0);
+    background: var(--color-border, var(--color-secondary-200, var(--color-secondary-200, #e2e8f0)));
     border-radius: 3px;
 }
 
 html[data-style="dark"] .pitch-players-list::-webkit-scrollbar-thumb {
-    background: var(--draft-gray-600, #475569);
+    background: var(--draft-gray-600, var(--color-secondary-700, var(--color-secondary-700, #475569)));
 }
 
 /* Horizontal Player Card */
@@ -1144,14 +1144,14 @@ html[data-style="dark"] .pitch-players-list::-webkit-scrollbar-thumb {
     gap: 12px;
     padding: 10px;
     background: white;
-    border: 1px solid var(--color-border, #e2e8f0);
+    border: 1px solid var(--color-border, var(--color-secondary-200, var(--color-secondary-200, #e2e8f0)));
     border-radius: 10px;
     cursor: grab;
     transition: all 0.2s ease;
 }
 
 .pitch-player-card:hover {
-    border-color: var(--color-primary, #2563eb);
+    border-color: var(--color-primary, var(--color-primary-600, #2563eb));
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
     transform: translateY(-1px);
 }
@@ -1166,15 +1166,15 @@ html[data-style="dark"] .pitch-players-list::-webkit-scrollbar-thumb {
 
 html[data-style="dark"] .pitch-player-card,
 [data-style="dark"] .pitch-player-card {
-    background: #1e293b !important;
-    border-color: #334155 !important;
-    color: #f1f5f9 !important;
+    background: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))) !important;
+    border-color: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
+    color: var(--color-secondary-100, var(--color-secondary-100, #f1f5f9)) !important;
 }
 
 html[data-style="dark"] .pitch-player-card:hover,
 [data-style="dark"] .pitch-player-card:hover {
-    border-color: #2563eb !important;
-    background: #334155 !important;
+    border-color: var(--color-primary-600, #2563eb) !important;
+    background: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
 }
 
 /* Avatar */
@@ -1184,7 +1184,7 @@ html[data-style="dark"] .pitch-player-card:hover,
     height: 48px;
     border-radius: 50%;
     overflow: hidden;
-    border: 2px solid var(--color-border, #e2e8f0);
+    border: 2px solid var(--color-border, var(--color-secondary-200, var(--color-secondary-200, #e2e8f0)));
 }
 
 .pitch-player-card__avatar img {
@@ -1195,8 +1195,8 @@ html[data-style="dark"] .pitch-player-card:hover,
 
 html[data-style="dark"] .pitch-player-card__avatar,
 [data-style="dark"] .pitch-player-card__avatar {
-    border-color: #475569 !important;
-    background: #334155;
+    border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)) !important;
+    background: var(--color-secondary-800, var(--color-secondary-800, #334155));
 }
 
 /* Content */
@@ -1215,7 +1215,7 @@ html[data-style="dark"] .pitch-player-card__avatar,
 .pitch-player-card__name {
     font-weight: 600;
     font-size: 0.9rem;
-    color: var(--color-text, #1e293b);
+    color: var(--color-text, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1223,7 +1223,7 @@ html[data-style="dark"] .pitch-player-card__avatar,
 
 html[data-style="dark"] .pitch-player-card__name,
 [data-style="dark"] .pitch-player-card__name {
-    color: #f8fafc !important;
+    color: var(--color-secondary-50, var(--color-secondary-50, #f8fafc)) !important;
 }
 
 .pitch-player-card__position {
@@ -1232,7 +1232,7 @@ html[data-style="dark"] .pitch-player-card__name,
     font-weight: 600;
     padding: 2px 6px;
     background: var(--color-primary-light, #dbeafe);
-    color: var(--color-primary, #2563eb);
+    color: var(--color-primary, var(--color-primary-600, #2563eb));
     border-radius: 4px;
     text-transform: uppercase;
 }
@@ -1240,7 +1240,7 @@ html[data-style="dark"] .pitch-player-card__name,
 html[data-style="dark"] .pitch-player-card__position,
 [data-style="dark"] .pitch-player-card__position {
     background: rgba(37, 99, 235, 0.3) !important;
-    color: #93c5fd !important;
+    color: var(--color-primary-300, #93c5fd) !important;
 }
 
 /* Stats Row */
@@ -1257,9 +1257,9 @@ html[data-style="dark"] .pitch-player-card__position,
     font-size: 0.75rem;
     font-weight: 500;
     padding: 2px 6px;
-    background: var(--color-surface-secondary, #f1f5f9);
+    background: var(--color-surface-secondary, var(--color-secondary-100, var(--color-secondary-100, #f1f5f9)));
     border-radius: 4px;
-    color: var(--color-text-secondary, #64748b);
+    color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
 }
 
 .pitch-player-card__stat i {
@@ -1268,60 +1268,60 @@ html[data-style="dark"] .pitch-player-card__position,
 
 html[data-style="dark"] .pitch-player-card__stat,
 [data-style="dark"] .pitch-player-card__stat {
-    background: #334155 !important;
-    color: #cbd5e1 !important;
+    background: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
+    color: var(--color-secondary-300, #cbd5e1) !important;
 }
 
 /* Dark mode stat colors - ensure they're visible */
 html[data-style="dark"] .pitch-player-card__stat--goals,
 [data-style="dark"] .pitch-player-card__stat--goals {
-    color: #4ade80 !important;
+    color: var(--color-success-400, #4ade80) !important;
     background: rgba(34, 197, 94, 0.15) !important;
 }
 
 html[data-style="dark"] .pitch-player-card__stat--assists,
 [data-style="dark"] .pitch-player-card__stat--assists {
-    color: #60a5fa !important;
+    color: var(--color-primary-400, #60a5fa) !important;
     background: rgba(59, 130, 246, 0.15) !important;
 }
 
 html[data-style="dark"] .pitch-player-card__stat--yellow,
 [data-style="dark"] .pitch-player-card__stat--yellow {
-    color: #facc15 !important;
+    color: var(--color-warning-400, #facc15) !important;
     background: rgba(234, 179, 8, 0.15) !important;
 }
 
 html[data-style="dark"] .pitch-player-card__stat--yellow i,
 [data-style="dark"] .pitch-player-card__stat--yellow i {
-    color: #facc15 !important;
+    color: var(--color-warning-400, #facc15) !important;
 }
 
 html[data-style="dark"] .pitch-player-card__stat--red,
 [data-style="dark"] .pitch-player-card__stat--red {
-    color: #f87171 !important;
+    color: var(--color-danger-400, #f87171) !important;
     background: rgba(239, 68, 68, 0.15) !important;
 }
 
 html[data-style="dark"] .pitch-player-card__stat--red i,
 [data-style="dark"] .pitch-player-card__stat--red i {
-    color: #f87171 !important;
+    color: var(--color-danger-400, #f87171) !important;
 }
 
 html[data-style="dark"] .pitch-player-card__stat--attendance.attendance-high,
 [data-style="dark"] .pitch-player-card__stat--attendance.attendance-high {
-    color: #4ade80 !important;
+    color: var(--color-success-400, #4ade80) !important;
     background: rgba(34, 197, 94, 0.15) !important;
 }
 
 html[data-style="dark"] .pitch-player-card__stat--attendance.attendance-medium,
 [data-style="dark"] .pitch-player-card__stat--attendance.attendance-medium {
-    color: #fbbf24 !important;
+    color: var(--color-warning, #fbbf24) !important;
     background: rgba(245, 158, 11, 0.15) !important;
 }
 
 html[data-style="dark"] .pitch-player-card__stat--attendance.attendance-low,
 [data-style="dark"] .pitch-player-card__stat--attendance.attendance-low {
-    color: #f87171 !important;
+    color: var(--color-danger-400, #f87171) !important;
     background: rgba(239, 68, 68, 0.15) !important;
 }
 
@@ -1335,19 +1335,19 @@ html[data-style="dark"] .pitch-player-card__stat--attendance.attendance-low,
 }
 
 .pitch-player-card__stat--yellow {
-    color: #eab308;
+    color: var(--color-warning-500, #eab308);
 }
 
 .pitch-player-card__stat--yellow i {
-    color: #eab308;
+    color: var(--color-warning-500, #eab308);
 }
 
 .pitch-player-card__stat--red {
-    color: #ef4444;
+    color: var(--color-danger-500, #ef4444);
 }
 
 .pitch-player-card__stat--red i {
-    color: #ef4444;
+    color: var(--color-danger-500, #ef4444);
 }
 
 .pitch-player-card__stat--attendance.attendance-high {
@@ -1355,17 +1355,17 @@ html[data-style="dark"] .pitch-player-card__stat--attendance.attendance-low,
 }
 
 .pitch-player-card__stat--attendance.attendance-medium {
-    color: var(--color-warning, #f59e0b);
+    color: var(--color-warning, var(--color-warning-500, #f59e0b));
 }
 
 .pitch-player-card__stat--attendance.attendance-low {
-    color: var(--color-danger, #ef4444);
+    color: var(--color-danger, var(--color-danger-500, #ef4444));
 }
 
 /* Drag Handle */
 .pitch-player-card__drag-handle {
     flex-shrink: 0;
-    color: var(--color-text-muted, #94a3b8);
+    color: var(--color-text-muted, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
     font-size: 1.25rem;
     opacity: 0.5;
     transition: opacity 0.2s;
@@ -1377,12 +1377,12 @@ html[data-style="dark"] .pitch-player-card__stat--attendance.attendance-low,
 
 html[data-style="dark"] .pitch-player-card__drag-handle,
 [data-style="dark"] .pitch-player-card__drag-handle {
-    color: #64748b !important;
+    color: var(--color-secondary-600, var(--color-secondary-600, #64748b)) !important;
 }
 
 html[data-style="dark"] .pitch-player-card:hover .pitch-player-card__drag-handle,
 [data-style="dark"] .pitch-player-card:hover .pitch-player-card__drag-handle {
-    color: #94a3b8 !important;
+    color: var(--color-secondary-400, var(--color-secondary-400, #94a3b8)) !important;
 }
 
 /* Position count badge */
@@ -1443,12 +1443,12 @@ html[data-style="dark"] .pitch-player-card:hover .pitch-player-card__drag-handle
     object-fit: cover;
     border: 3px solid white;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    background: var(--color-surface, #f8fafc);
+    background: var(--color-surface, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
 }
 
 html[data-style="dark"] .positioned-player .player-profile-img {
-    border-color: var(--draft-gray-600, #475569);
-    background: var(--draft-gray-700, #334155);
+    border-color: var(--draft-gray-600, var(--color-secondary-700, var(--color-secondary-700, #475569)));
+    background: var(--draft-gray-700, var(--color-secondary-800, var(--color-secondary-800, #334155)));
 }
 
 /* Player Initials (fallback when no image) */
@@ -1463,14 +1463,14 @@ html[data-style="dark"] .positioned-player .player-profile-img {
     font-size: 0.875rem;
     font-weight: 700;
     color: white;
-    background: linear-gradient(135deg, var(--color-primary, #2563eb) 0%, var(--color-primary-dark, #1d4ed8) 100%);
+    background: linear-gradient(135deg, var(--color-primary, var(--color-primary-600, #2563eb)) 0%, var(--color-primary-dark, #1d4ed8) 100%);
     border: 3px solid white;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     text-transform: uppercase;
 }
 
 html[data-style="dark"] .positioned-player .player-initials {
-    border-color: var(--draft-gray-600, #475569);
+    border-color: var(--draft-gray-600, var(--color-secondary-700, var(--color-secondary-700, #475569)));
 }
 
 /* Remove Button */
@@ -1484,7 +1484,7 @@ html[data-style="dark"] .positioned-player .player-initials {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--color-danger, #ef4444);
+    background: var(--color-danger, var(--color-danger-500, #ef4444));
     color: white;
     border: 2px solid white;
     border-radius: 50%;
@@ -1508,7 +1508,7 @@ html[data-style="dark"] .positioned-player .player-initials {
 
 html[data-style="dark"] .positioned-player .remove-btn,
 [data-style="dark"] .positioned-player .remove-btn {
-    border-color: #1e293b !important;
+    border-color: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))) !important;
 }
 
 /* Bench-specific styling - smaller tokens */
@@ -1532,14 +1532,14 @@ html[data-style="dark"] .positioned-player .remove-btn,
 /* Bench dark mode - ensure player tokens are visible */
 html[data-style="dark"] .bench-zone .positioned-player .player-initials,
 [data-style="dark"] .bench-zone .positioned-player .player-initials {
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
-    border-color: #475569 !important;
+    background: linear-gradient(135deg, var(--color-primary, #3b82f6) 0%, var(--color-primary-700, #1d4ed8) 100%) !important;
+    border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)) !important;
     color: white !important;
 }
 
 html[data-style="dark"] .bench-zone .positioned-player .player-profile-img,
 [data-style="dark"] .bench-zone .positioned-player .player-profile-img {
-    border-color: #475569 !important;
+    border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)) !important;
 }
 
 /* ==========================================================================
@@ -1562,16 +1562,16 @@ html[data-style="dark"] .bench-zone .positioned-player .player-profile-img,
 }
 
 html[data-style="dark"] .pitch-header-card .dropdown-menu {
-    background: var(--draft-gray-800, #1e293b);
-    border-color: var(--draft-gray-700, #334155);
+    background: var(--draft-gray-800, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+    border-color: var(--draft-gray-700, var(--color-secondary-800, var(--color-secondary-800, #334155)));
 }
 
 html[data-style="dark"] .pitch-header-card .dropdown-item {
-    color: var(--draft-gray-200, #e2e8f0);
+    color: var(--draft-gray-200, var(--color-secondary-200, var(--color-secondary-200, #e2e8f0)));
 }
 
 html[data-style="dark"] .pitch-header-card .dropdown-item:hover {
-    background: var(--draft-gray-700, #334155);
+    background: var(--draft-gray-700, var(--color-secondary-800, var(--color-secondary-800, #334155)));
     color: white;
 }
 

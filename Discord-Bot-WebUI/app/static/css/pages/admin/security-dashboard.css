@@ -61,7 +61,7 @@
  * Yellow border for features that are optional or need attention
  */
 .security-feature-card.feature-warning {
-    border-left-color: var(--color-warning, #ffc107);
+    border-left-color: var(--color-warning, var(--color-warning, var(--color-warning, #ffc107)));
 }
 
 /**
@@ -69,7 +69,7 @@
  * Red border for critical features that are disabled
  */
 .security-feature-card.feature-disabled {
-    border-left-color: var(--color-danger, #dc3545);
+    border-left-color: var(--color-danger, var(--color-danger, var(--color-danger, #dc3545)));
 }
 
 /* Dark Mode: Adjust border colors for better contrast */
@@ -196,7 +196,7 @@
     font-size: 3rem;
     line-height: 1;
     display: inline-block;
-    color: var(--color-text-muted, #6c757d);
+    color: var(--color-text-muted, var(--color-secondary, var(--color-secondary, #6c757d)));
 }
 
 /**
@@ -211,7 +211,7 @@
 .security-empty-state p {
     margin-top: var(--space-2, 0.5rem);
     margin-bottom: 0;
-    color: var(--color-text-muted, #6c757d);
+    color: var(--color-text-muted, var(--color-secondary, var(--color-secondary, #6c757d)));
 }
 
 /* Dark Mode: Empty state colors */
@@ -243,7 +243,7 @@
 
 .auto-ban-metric small {
     font-size: var(--text-xs, 0.75rem);
-    color: var(--color-text-muted, #6c757d);
+    color: var(--color-text-muted, var(--color-secondary, var(--color-secondary, #6c757d)));
 }
 
 /* Dark Mode: Auto-ban metrics */
@@ -288,11 +288,11 @@
 }
 
 .security-attack-count.has-attacks {
-    color: var(--color-danger, #dc3545);
+    color: var(--color-danger, var(--color-danger, var(--color-danger, #dc3545)));
 }
 
 .security-attack-count.no-attacks {
-    color: var(--color-text-muted, #6c757d);
+    color: var(--color-text-muted, var(--color-secondary, var(--color-secondary, #6c757d)));
 }
 
 /* Dark Mode: Attack counts */

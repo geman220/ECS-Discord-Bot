@@ -17,7 +17,7 @@
 }
 
 .redis-stat-label {
-    color: var(--ecs-secondary, #6c757d);
+    color: var(--ecs-secondary, var(--color-secondary, var(--color-secondary, #6c757d)));
     font-size: 0.875rem;
 }
 
@@ -34,11 +34,11 @@
 }
 
 .redis-health-unhealthy {
-    background-color: var(--ecs-danger, #dc3545);
+    background-color: var(--ecs-danger, var(--color-danger, var(--color-danger, #dc3545)));
 }
 
 .redis-health-warning {
-    background-color: var(--ecs-warning, #ffc107);
+    background-color: var(--ecs-warning, var(--color-warning, var(--color-warning, #ffc107)));
 }
 
 .redis-auto-refresh {

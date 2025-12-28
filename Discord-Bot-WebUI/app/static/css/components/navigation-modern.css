@@ -62,7 +62,7 @@
   font-family: var(--font-body, 'Barlow', sans-serif);
   font-size: var(--text-sm, 0.875rem);
   font-weight: var(--font-medium, 500);
-  color: var(--color-text-secondary, #64748b);
+  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
   text-decoration: none;
   background: transparent;
   border: none;
@@ -85,7 +85,7 @@
 
 /* Hover state */
 .c-nav-modern__link:hover {
-  color: var(--color-text-primary, #1e293b);
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
   background: var(--color-bg-hover, rgba(0, 0, 0, 0.04));
 }
 
@@ -95,7 +95,7 @@
 
 /* Focus visible state */
 .c-nav-modern__link:focus-visible {
-  outline: 2px solid var(--color-primary, #2563EB);
+  outline: 2px solid var(--color-primary, var(--color-primary-600, #2563EB));
   outline-offset: 2px;
 }
 
@@ -109,7 +109,7 @@
 .c-nav-modern__link--active,
 .c-nav-modern__link.active,
 .c-nav-modern__link[aria-selected="true"] {
-  color: var(--color-primary, #2563EB);
+  color: var(--color-primary, var(--color-primary-600, #2563EB));
   background: var(--color-primary-soft, rgba(59, 130, 246, 0.1));
   font-weight: var(--font-semibold, 600);
 }
@@ -142,22 +142,22 @@
   padding: 0 var(--space-1, 4px);
   font-size: var(--text-xs, 0.75rem);
   font-weight: var(--font-semibold, 600);
-  color: #fff;
-  background: var(--color-primary, #2563EB);
+  color: var(--color-white, #fff);
+  background: var(--color-primary, var(--color-primary-600, #2563EB));
   border-radius: var(--radius-full, 9999px);
   line-height: 1;
 }
 
 .c-nav-modern__badge--success {
-  background: var(--color-success, #10b981);
+  background: var(--color-success, var(--color-success-500, #10b981));
 }
 
 .c-nav-modern__badge--warning {
-  background: var(--color-warning, #f59e0b);
+  background: var(--color-warning, var(--color-warning-500, #f59e0b));
 }
 
 .c-nav-modern__badge--danger {
-  background: var(--color-danger, #ef4444);
+  background: var(--color-danger, var(--color-danger-500, #ef4444));
 }
 
 /* ============================================================================
@@ -165,7 +165,7 @@
    ============================================================================ */
 
 .c-nav-modern--tabs {
-  background: var(--color-bg-secondary, #f8fafc);
+  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
   border-radius: var(--radius-lg, 12px);
   padding: var(--space-1, 4px);
 }
@@ -197,8 +197,8 @@
 .c-nav-modern--pills .c-nav-modern__link--active,
 .c-nav-modern--pills .c-nav-modern__link.active,
 .c-nav-modern--pills .c-nav-modern__link[aria-selected="true"] {
-  color: #fff;
-  background: var(--color-primary, #2563EB);
+  color: var(--color-white, #fff);
+  background: var(--color-primary, var(--color-primary-600, #2563EB));
 }
 
 .c-nav-modern--pills .c-nav-modern__link.is-active:hover,
@@ -234,7 +234,7 @@
   left: var(--space-4, 16px);
   right: var(--space-4, 16px);
   height: 2px;
-  background: var(--color-primary, #2563EB);
+  background: var(--color-primary, var(--color-primary-600, #2563EB));
   border-radius: 2px 2px 0 0;
   transform: scaleX(0);
   transition: transform var(--duration-fast, 150ms) ease;
@@ -343,11 +343,11 @@
    ============================================================================ */
 
 [data-style="dark"] .c-nav-modern__link {
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
 }
 
 [data-style="dark"] .c-nav-modern__link:hover {
-  color: var(--color-text-primary, #f1f5f9);
+  color: var(--color-text-primary, var(--color-secondary-100, var(--color-secondary-100, #f1f5f9)));
   background: var(--color-bg-hover, rgba(255, 255, 255, 0.06));
 }
 
@@ -355,19 +355,19 @@
 [data-style="dark"] .c-nav-modern__link--active,
 [data-style="dark"] .c-nav-modern__link.active,
 [data-style="dark"] .c-nav-modern__link[aria-selected="true"] {
-  color: var(--color-primary-light, #60A5FA);
+  color: var(--color-primary-light, var(--color-primary-400, #60A5FA));
   background: rgba(37, 99, 235, 0.15);
 }
 
 [data-style="dark"] .c-nav-modern--tabs {
-  background: var(--color-bg-secondary, #0f172a);
+  background: var(--color-bg-secondary, var(--color-secondary-950, var(--color-secondary-950, #0f172a)));
 }
 
 [data-style="dark"] .c-nav-modern--tabs .c-nav-modern__link.is-active,
 [data-style="dark"] .c-nav-modern--tabs .c-nav-modern__link--active,
 [data-style="dark"] .c-nav-modern--tabs .c-nav-modern__link.active,
 [data-style="dark"] .c-nav-modern--tabs .c-nav-modern__link[aria-selected="true"] {
-  background: var(--color-bg-primary, #1e293b);
+  background: var(--color-bg-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.2),
     0 1px 2px rgba(0, 0, 0, 0.1);
@@ -377,8 +377,8 @@
 [data-style="dark"] .c-nav-modern--pills .c-nav-modern__link--active,
 [data-style="dark"] .c-nav-modern--pills .c-nav-modern__link.active,
 [data-style="dark"] .c-nav-modern--pills .c-nav-modern__link[aria-selected="true"] {
-  color: #fff;
-  background: var(--color-primary, #2563EB);
+  color: var(--color-white, #fff);
+  background: var(--color-primary, var(--color-primary-600, #2563EB));
 }
 
 [data-style="dark"] .c-nav-modern--underline {

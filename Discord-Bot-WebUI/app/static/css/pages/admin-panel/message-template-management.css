@@ -22,13 +22,13 @@
 
 :root {
   --tmpl-primary: #8b5cf6;
-  --tmpl-success: #10b981;
-  --tmpl-warning: #f59e0b;
+  --tmpl-success: var(--color-success-500, #10b981);
+  --tmpl-warning: var(--color-warning-500, #f59e0b);
   --tmpl-info: #06b6d4;
-  --tmpl-danger: #ef4444;
+  --tmpl-danger: var(--color-danger-500, #ef4444);
 
   --tmpl-bg-base: #fafafa;
-  --tmpl-bg-card: #ffffff;
+  --tmpl-bg-card: var(--color-white, #ffffff);
   --tmpl-border: #e7e5e4;
   --tmpl-border-hover: #d6d3d1;
 
@@ -279,8 +279,8 @@
 }
 
 .c-template-btn--primary:hover {
-  background: #2563EB;
-  border-color: #2563EB;
+  background: var(--color-primary-600, #2563EB);
+  border-color: var(--color-primary-600, #2563EB);
   box-shadow: var(--tmpl-shadow-lg);
   transform: translateY(-2px);
 }
@@ -370,7 +370,7 @@
   .c-template-stat,
   .c-template-actions {
     box-shadow: none;
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-secondary-300, #ddd);
   }
 
   .c-template-btn {

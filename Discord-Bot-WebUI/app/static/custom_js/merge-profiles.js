@@ -9,25 +9,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function initializeMergeProfileUI() {
     // Handle field selection visual feedback
-    document.querySelectorAll('.value-option').forEach(option => {
-        option.addEventListener('click', function() {
-            const field = this.dataset.field;
-            const value = this.dataset.value;
+    // ROOT CAUSE FIX: Uses event delegation instead of per-element listeners
+    document.addEventListener('click', function(e) {
+        const option = e.target.closest('.value-option');
+        if (!option) return;
 
-            // Remove selected class from other options for this field
-            document.querySelectorAll(`[data-field="${field}"]`).forEach(opt => {
-                opt.classList.remove('selected');
-            });
+        const field = option.dataset.field;
+        const value = option.dataset.value;
 
-            // Add selected class to clicked option
-            this.classList.add('selected');
-
-            // Check the radio button
-            this.querySelector('input[type="radio"]').checked = true;
-
-            // Update preview
-            updateMergePreview();
+        // Remove selected class from other options for this field
+        document.querySelectorAll(`[data-field="${field}"]`).forEach(opt => {
+            opt.classList.remove('selected');
         });
+
+        // Add selected class to clicked option
+        option.classList.add('selected');
+
+        // Check the radio button
+        const radio = option.querySelector('input[type="radio"]');
+        if (radio) radio.checked = true;
+
+        // Update preview
+        updateMergePreview();
     });
 
     // Initialize with current selections

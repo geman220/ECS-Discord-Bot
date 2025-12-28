@@ -17,6 +17,8 @@
 (function() {
   'use strict';
 
+  let _initialized = false;
+
   // Image positioning state
   let imagePositionData = {
     zoom: 1,
@@ -37,13 +39,23 @@
   /**
    * Initialize on DOM ready
    */
-  document.addEventListener('DOMContentLoaded', function() {
+  function init() {
+    // Guard against duplicate initialization
+    if (_initialized) return;
+    _initialized = true;
+
     initializeEventDelegation();
     initializeTooltips();
     initializeAutoSubmit();
     initializeBackgroundImages();
     initializeScheduleAccordion();
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 
   /**
    * Set up event delegation for all team detail interactions
@@ -126,10 +138,15 @@
     }
   }
 
+  let _fileInputHandlersSetup = false;
+
   /**
    * Setup file input change handlers
    */
   function setupFileInputHandlers() {
+    if (_fileInputHandlersSetup) return;
+    _fileInputHandlersSetup = true;
+
     // Background image upload with cropping
     const backgroundInput = document.querySelector('[data-action="load-image-cropping"]');
     if (backgroundInput) {

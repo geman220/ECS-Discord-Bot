@@ -33,6 +33,7 @@
   let socket = null;
   let typingTimeout = null;
   let searchTimeout = null;
+  let _eventListenersSetup = false;
 
   // DOM Elements
   const inbox = document.querySelector('[data-component="messages-inbox"]');
@@ -88,6 +89,10 @@
    * Set up event listeners
    */
   function setupEventListeners() {
+    // Guard against duplicate setup
+    if (_eventListenersSetup) return;
+    _eventListenersSetup = true;
+
     // New conversation buttons
     const newConversationBtns = document.querySelectorAll('[data-action="new-conversation"]');
     newConversationBtns.forEach((btn) => {
@@ -147,36 +152,42 @@
 
   /**
    * Set up WebSocket connection
+   * REFACTORED: Uses SocketManager instead of creating own socket
    */
   function setupWebSocket() {
-    if (typeof io === 'undefined') return;
+    // Use SocketManager if available (preferred)
+    if (typeof window.SocketManager !== 'undefined') {
+      console.log('[MessagesInbox] Using SocketManager');
+      socket = window.SocketManager.getSocket();
 
-    // Reuse existing global socket if available (from navbar presence)
-    // Check if socket EXISTS (not just connected) - it may still be connecting
-    if (window.socket) {
-      console.log('[MessagesInbox] Reusing existing socket (connected:', window.socket.connected, ')');
-      socket = window.socket;
-      setupSocketListeners();
+      // Register event listeners through SocketManager
+      window.SocketManager.onConnect('messagesInbox', () => {
+        console.log('[MessagesInbox] WebSocket connected');
+      });
+
+      window.SocketManager.on('messagesInbox', 'new_message', handleNewMessage);
+      window.SocketManager.on('messagesInbox', 'typing_start', handleTypingStart);
+      window.SocketManager.on('messagesInbox', 'typing_stop', handleTypingStop);
+      window.SocketManager.on('messagesInbox', 'message_read', handleMessageRead);
       return;
     }
 
-    // Create new socket if none exists
-    console.log('[MessagesInbox] Creating new socket connection');
-    socket = io({
-      // Use polling first to establish sticky session cookie with multiple workers
+    // Fallback: Direct socket if SocketManager not available
+    if (typeof io === 'undefined') return;
+
+    console.log('[MessagesInbox] SocketManager not available, using direct socket');
+    socket = window.socket || io({
       transports: ['polling', 'websocket'],
       upgrade: true,
       withCredentials: true
     });
-
-    // Store globally for other components to reuse
-    window.socket = socket;
+    if (!window.socket) window.socket = socket;
 
     setupSocketListeners();
   }
 
   /**
-   * Set up socket event listeners
+   * Set up socket event listeners (fallback when SocketManager not available)
    */
   function setupSocketListeners() {
     if (!socket) return;

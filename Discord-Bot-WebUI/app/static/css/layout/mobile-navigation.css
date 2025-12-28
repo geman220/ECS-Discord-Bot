@@ -732,16 +732,16 @@
   height: 60vh;
   border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
   /* Explicit solid background with fallback - NO transparency */
-  background-color: #ffffff !important;
-  background: #ffffff !important;
+  background-color: var(--color-white, #ffffff) !important;
+  background: var(--color-white, #ffffff) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
 
 /* Ensure offcanvas body also has solid background and CAN SCROLL */
 .mobile-more-menu .offcanvas-body {
-  background-color: #ffffff !important;
-  background: #ffffff !important;
+  background-color: var(--color-white, #ffffff) !important;
+  background: var(--color-white, #ffffff) !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
   overscroll-behavior: contain !important;
@@ -752,13 +752,13 @@
 /* Dark mode solid background */
 [data-style="dark"] .c-mobile-more-menu,
 [data-style="dark"] .mobile-more-menu.offcanvas {
-  background-color: #1a1d21 !important;
-  background: #1a1d21 !important;
+  background-color: var(--color-secondary-950, #1a1d21) !important;
+  background: var(--color-secondary-950, #1a1d21) !important;
 }
 
 [data-style="dark"] .mobile-more-menu .offcanvas-body {
-  background-color: #1a1d21 !important;
-  background: #1a1d21 !important;
+  background-color: var(--color-secondary-950, #1a1d21) !important;
+  background: var(--color-secondary-950, #1a1d21) !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
 }

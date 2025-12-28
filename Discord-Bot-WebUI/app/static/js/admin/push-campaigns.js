@@ -405,11 +405,18 @@
     // INITIALIZATION
     // ========================================================================
 
+    let _initialized = false;
+
     function init() {
+        // Guard against duplicate initialization
+        if (_initialized) return;
+
         // Page guard: only run on campaigns page
         if (!document.querySelector('[data-action*="campaign"]')) {
             return;
         }
+
+        _initialized = true;
 
         console.log('[Push Campaigns] Initializing...');
 

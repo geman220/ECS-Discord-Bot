@@ -103,7 +103,7 @@
    ============================================================================ */
 
 .c-btn-modern--primary {
-  background: linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%);
+  background: linear-gradient(135deg, var(--color-info, #0EA5E9) 0%, var(--color-info-600, #0284C7) 100%);
   color: white;
   box-shadow:
     0 1px 3px rgba(14, 165, 233, 0.3),
@@ -111,7 +111,7 @@
 }
 
 .c-btn-modern--primary:hover {
-  background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+  background: linear-gradient(135deg, var(--color-info-600, #0284C7) 0%, var(--color-info-700, #0369A1) 100%);
   transform: translateY(-2px);
   box-shadow:
     0 4px 8px rgba(14, 165, 233, 0.4),
@@ -153,7 +153,7 @@
    ============================================================================ */
 
 .c-btn-modern--success {
-  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  background: linear-gradient(135deg, var(--color-success, #10B981) 0%, var(--color-success-600, #059669) 100%);
   color: white;
   box-shadow:
     0 1px 3px rgba(16, 185, 129, 0.3),
@@ -161,7 +161,7 @@
 }
 
 .c-btn-modern--success:hover {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  background: linear-gradient(135deg, var(--color-success-600, #059669) 0%, var(--color-success-700, #047857) 100%);
   transform: translateY(-2px);
   box-shadow:
     0 4px 8px rgba(16, 185, 129, 0.4),
@@ -173,7 +173,7 @@
    ============================================================================ */
 
 .c-btn-modern--danger {
-  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  background: linear-gradient(135deg, var(--color-danger, #EF4444) 0%, var(--color-danger-600, #DC2626) 100%);
   color: white;
   box-shadow:
     0 1px 3px rgba(239, 68, 68, 0.3),
@@ -181,7 +181,7 @@
 }
 
 .c-btn-modern--danger:hover {
-  background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+  background: linear-gradient(135deg, var(--color-danger-600, #DC2626) 0%, var(--color-danger-700, #B91C1C) 100%);
   transform: translateY(-2px);
   box-shadow:
     0 4px 8px rgba(239, 68, 68, 0.4),
@@ -193,7 +193,7 @@
    ============================================================================ */
 
 .c-btn-modern--warning {
-  background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
+  background: linear-gradient(135deg, var(--color-warning-500, #F97316) 0%, var(--color-warning-600, #EA580C) 100%);
   color: white;
   box-shadow:
     0 1px 3px rgba(249, 115, 22, 0.3),
@@ -201,7 +201,7 @@
 }
 
 .c-btn-modern--warning:hover {
-  background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%);
+  background: linear-gradient(135deg, var(--color-warning-600, #EA580C) 0%, var(--color-warning-700, #C2410C) 100%);
   transform: translateY(-2px);
   box-shadow:
     0 4px 8px rgba(249, 115, 22, 0.4),

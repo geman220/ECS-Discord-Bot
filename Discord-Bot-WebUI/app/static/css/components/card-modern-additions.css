@@ -13,7 +13,7 @@
    ============================================================================ */
 
 .c-card-modern--primary {
-  border-left: 3px solid var(--color-primary, #2563EB);
+  border-left: 3px solid var(--color-primary, var(--color-primary-600, #2563EB));
 }
 
 .c-card-modern--alternative {
@@ -31,7 +31,7 @@
 }
 
 .c-card-modern--team {
-  border-left: 3px solid var(--color-success, #10b981);
+  border-left: 3px solid var(--color-success, var(--color-success-500, #10b981));
 }
 
 .c-card-modern--full-height {
@@ -75,7 +75,7 @@
   justify-content: center;
   width: 24px;
   height: 24px;
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
   cursor: help;
 }
 
@@ -96,12 +96,12 @@
 
 .c-card-modern__icon-wrapper--primary {
   background: rgba(59, 130, 246, 0.15);
-  color: var(--color-primary-light, #60a5fa);
+  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
 }
 
 .c-card-modern__icon {
   font-size: 1.5rem;
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
 }
 
 /* ============================================================================
@@ -114,7 +114,7 @@
 }
 
 .c-card-modern__title--primary {
-  color: var(--color-primary-light, #60a5fa);
+  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
 }
 
 .c-card-modern__label {
@@ -122,7 +122,7 @@
   margin-bottom: var(--space-1, 4px);
   font-size: var(--text-xs, 0.75rem);
   font-weight: 600;
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -136,7 +136,7 @@
   align-items: center;
   gap: var(--space-2, 8px);
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
 }
 
 .c-card-modern__meta-group {
@@ -158,17 +158,17 @@
 .c-card-modern__stat-number {
   font-size: var(--text-3xl, 1.875rem);
   font-weight: 700;
-  color: var(--color-text-primary, #f8fafc);
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
   line-height: 1.2;
 }
 
 .c-card-modern__stat-sublabel {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
 }
 
 .c-card-modern__stat-sublabel--primary {
-  color: var(--color-primary-light, #60a5fa);
+  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
 }
 
 .c-card-modern__stat-sublabel--info {
@@ -201,13 +201,13 @@
 
 [data-style="light"] .c-card-modern__icon-wrapper--primary {
   background: rgba(59, 130, 246, 0.1);
-  color: var(--color-primary, #2563EB);
+  color: var(--color-primary, var(--color-primary-600, #2563EB));
 }
 
 [data-style="light"] .c-card-modern__stat-number {
-  color: var(--color-text-primary, #1e293b);
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
 }
 
 [data-style="light"] .c-card-modern__title--primary {
-  color: var(--color-primary, #2563EB);
+  color: var(--color-primary, var(--color-primary-600, #2563EB));
 }

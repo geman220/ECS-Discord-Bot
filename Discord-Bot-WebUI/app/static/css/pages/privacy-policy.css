@@ -9,7 +9,7 @@
    ======================================== */
 
 .c-privacy-page {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--gradient-start, #667eea) 0%, var(--gradient-end, #764ba2) 100%);
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -66,7 +66,7 @@
 }
 
 .c-privacy-card__header {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, var(--color-primary-600, #2563eb) 100%);
   color: white;
   text-align: center;
   padding: 2rem;
@@ -113,7 +113,7 @@
 .c-privacy-section__title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--color-primary, #2563EB);
+  color: var(--color-primary, var(--color-primary-600, #2563EB));
   margin-bottom: 1rem;
   display: flex;
   align-items: center;
@@ -172,22 +172,22 @@
 
 .c-privacy-section .c-alert--danger {
   background: rgba(239, 68, 68, 0.05);
-  border-left-color: #ef4444;
+  border-left-color: var(--color-danger-500, #ef4444);
 }
 
 .c-privacy-section .c-alert--success {
   background: rgba(16, 185, 129, 0.05);
-  border-left-color: #10b981;
+  border-left-color: var(--color-success-500, #10b981);
 }
 
 .c-privacy-section .c-alert--info {
   background: rgba(59, 130, 246, 0.05);
-  border-left-color: var(--color-primary, #2563EB);
+  border-left-color: var(--color-primary, var(--color-primary-600, #2563EB));
 }
 
 .c-privacy-section .c-alert--warning {
   background: rgba(245, 158, 11, 0.05);
-  border-left-color: #f59e0b;
+  border-left-color: var(--color-warning-500, #f59e0b);
 }
 
 .c-privacy-section .c-alert__icon {
@@ -207,15 +207,15 @@
 }
 
 .c-privacy-section .c-alert--danger .c-alert__heading {
-  color: #dc2626;
+  color: var(--color-danger, #dc2626);
 }
 
 .c-privacy-section .c-alert--success .c-alert__heading {
-  color: #059669;
+  color: var(--color-success-600, #059669);
 }
 
 .c-privacy-section .c-alert--info .c-alert__heading {
-  color: #2563eb;
+  color: var(--color-primary-600, #2563eb);
 }
 
 .c-privacy-section .c-alert__text {
@@ -262,13 +262,13 @@
 .c-compliance-item {
   text-align: center;
   padding: 1.5rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-secondary-200, var(--color-secondary-200, #e2e8f0));
   border-radius: 0.5rem;
   transition: all 0.3s ease;
 }
 
 .c-compliance-item:hover {
-  border-color: var(--color-primary, #2563EB);
+  border-color: var(--color-primary, var(--color-primary-600, #2563EB));
   background: rgba(59, 130, 246, 0.02);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
@@ -276,7 +276,7 @@
 
 .c-compliance-item__icon {
   font-size: 3rem;
-  color: var(--color-primary, #2563EB);
+  color: var(--color-primary, var(--color-primary-600, #2563EB));
   display: block;
   margin-bottom: 0.75rem;
 }
@@ -295,7 +295,7 @@
   text-align: center;
   padding-top: 2rem;
   margin-top: 2rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--color-secondary-200, var(--color-secondary-200, #e2e8f0));
   color: var(--color-text-muted, #52525B);
 }
 

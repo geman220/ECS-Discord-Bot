@@ -27,36 +27,63 @@ class PitchViewSystem {
         console.log('🏟️ Pitch View System initialized');
     }
 
+    /**
+     * REFACTORED: Uses SocketManager instead of creating own socket
+     */
     setupSocket() {
         try {
-            // Reuse existing global socket if available (from navbar presence)
-            // Check if socket EXISTS (not just connected) - it may still be connecting
-            if (window.socket) {
-                console.log('🏟️ [PitchView] Reusing existing socket (connected:', window.socket.connected, ')');
-                this.socket = window.socket;
+            // Use SocketManager if available (preferred)
+            if (typeof window.SocketManager !== 'undefined') {
+                console.log('🏟️ [PitchView] Using SocketManager');
+                this.socket = window.SocketManager.getSocket();
 
-                // If already connected, join room immediately
-                if (this.socket.connected) {
-                    this.isConnected = true;
-                    this.socket.emit('join_draft_room', { league_name: this.leagueName });
-                }
-                // Set up listeners regardless - connect handler will join room when connected
-                this.setupSocketListeners();
+                // Register connect callback - will fire immediately if already connected
+                const self = this;
+                window.SocketManager.onConnect('pitchView', (socket) => {
+                    console.log('✅ Connected to draft system');
+                    self.isConnected = true;
+                    socket.emit('join_draft_room', { league_name: self.leagueName });
+                });
+
+                window.SocketManager.onDisconnect('pitchView', () => {
+                    console.log('❌ Disconnected from draft system');
+                    self.isConnected = false;
+                });
+
+                window.SocketManager.on('pitchView', 'player_drafted_enhanced', (data) => {
+                    console.log('🎯 Player drafted:', data);
+                    self.handlePlayerDrafted(data);
+                });
+
+                window.SocketManager.on('pitchView', 'player_removed_enhanced', (data) => {
+                    console.log('🔥 Player removed:', data);
+                    self.handlePlayerRemoved(data);
+                });
+
+                window.SocketManager.on('pitchView', 'player_position_updated', (data) => {
+                    console.log('📍 Player position updated:', data);
+                    self.handlePlayerPositionUpdated(data);
+                });
+
+                window.SocketManager.on('pitchView', 'error', (data) => {
+                    console.error('❌ Socket error:', data);
+                    self.showToast('Error: ' + data.message, 'error');
+                });
+
                 return;
             }
 
-            // Create new socket if none exists
-            console.log('🏟️ [PitchView] Creating new socket connection');
-            this.socket = io('/', {
-                // Use polling first to establish sticky session cookie with multiple workers
+            // Fallback: Direct socket if SocketManager not available
+            if (typeof io === 'undefined') return;
+
+            console.log('🏟️ [PitchView] SocketManager not available, using direct socket');
+            this.socket = window.socket || io('/', {
                 transports: ['polling', 'websocket'],
                 upgrade: true,
                 timeout: 10000,
                 withCredentials: true
             });
-
-            // Store globally for other components to reuse
-            window.socket = this.socket;
+            if (!window.socket) window.socket = this.socket;
 
             this.setupSocketListeners();
 
@@ -65,6 +92,9 @@ class PitchViewSystem {
         }
     }
 
+    /**
+     * Set up socket event listeners (fallback when SocketManager not available)
+     */
     setupSocketListeners() {
         if (!this.socket) return;
 

@@ -72,8 +72,14 @@
  *    - This would eliminate duplication and ensure consistency
  */
 
+// Guard against duplicate initialization
+let _reportMatchInitialized = false;
+
 // This ensures that all AJAX requests include the CSRF token
 $(document).ready(function () {
+    if (_reportMatchInitialized) return;
+    _reportMatchInitialized = true;
+
     // Set up CSRF token for all AJAX requests
     var csrftoken = $('input[name="csrf_token"]').val();
 
@@ -89,7 +95,7 @@ $(document).ready(function () {
     if (typeof window.playerChoices === 'undefined') {
         window.playerChoices = {};
     }
-    
+
     // Setup edit match buttons when available
     setupEditMatchButtons();
 });
@@ -400,8 +406,13 @@ window.removeEvent = function(button) {
 // Define initialEvents as an object to store initial events per matchId
 window.initialEvents = window.initialEvents || {};
 
+let _editMatchButtonsSetup = false;
+
 // Function to set up edit match buttons
 function setupEditMatchButtons() {
+    if (_editMatchButtonsSetup) return;
+    _editMatchButtonsSetup = true;
+
     // Select all edit match buttons on the page
     const editButtons = document.querySelectorAll('.edit-match-btn');
 

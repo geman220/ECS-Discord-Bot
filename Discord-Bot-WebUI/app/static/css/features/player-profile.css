@@ -699,15 +699,15 @@
 .c-player-header__badge--coach {
     top: -4px;
     right: -4px;
-    background-color: var(--bs-warning, #ffc107);
-    color: #000;
+    background-color: var(--bs-warning, var(--color-warning, #ffc107));
+    color: var(--color-black, #000);
 }
 
 .c-player-header__badge--ref {
     top: -4px;
     left: -4px;
-    background-color: var(--bs-info, #0dcaf0);
-    color: #000;
+    background-color: var(--bs-info, var(--color-info, #0dcaf0));
+    color: var(--color-black, #000);
 }
 
 /* ===== Match Stats Table ===== */
@@ -727,7 +727,7 @@
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--color-text-secondary, #6c757d);
+    color: var(--color-text-secondary, var(--color-secondary, #6c757d));
     margin-bottom: var(--space-2, 0.5rem);
 }
 
@@ -766,7 +766,7 @@
 }
 
 .c-match-stats-table__team {
-    color: var(--color-text-secondary, #6c757d);
+    color: var(--color-text-secondary, var(--color-secondary, #6c757d));
     font-size: 0.875rem;
 }
 
@@ -784,7 +784,7 @@
 }
 
 .c-btn--ghost.c-btn--danger:hover {
-    color: var(--color-danger, #dc3545);
+    color: var(--color-danger, var(--color-danger, #dc3545));
     background: var(--color-danger-subtle, rgba(220, 53, 69, 0.1));
 }
 
@@ -836,7 +836,7 @@
 /* Dark mode support */
 [data-style="dark"] .c-match-stats-table__header {
     background: var(--color-bg-secondary, rgba(255, 255, 255, 0.05));
-    color: var(--color-text-secondary, #94a3b8);
+    color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
 }
 
 [data-style="dark"] .c-match-stats-table__row {
@@ -848,15 +848,15 @@
 }
 
 [data-style="dark"] .c-match-stats-table__date {
-    color: var(--color-text-primary, #f1f5f9);
+    color: var(--color-text-primary, var(--color-secondary-100, var(--color-secondary-100, #f1f5f9)));
 }
 
 [data-style="dark"] .c-match-stats-table__team {
-    color: var(--color-text-secondary, #94a3b8);
+    color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
 }
 
 [data-style="dark"] .c-btn--ghost {
-    color: var(--color-text-muted, #64748b);
+    color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
 }
 
 [data-style="dark"] .c-btn--ghost:hover {

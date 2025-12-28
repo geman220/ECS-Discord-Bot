@@ -24,7 +24,7 @@
                                     <img src="{{ player.image_cache.thumbnail_url if player.image_cache and player.image_cache.thumbnail_url else player.profile_picture_url }}"
                                          alt="{{ player.name }}" class="rounded-circle">
                                 {% else %}
-                                    <div class="avatar-initial rounded-circle bg-label-primary" style="font-size: 1.5rem;">
+                                    <div class="avatar-initial rounded-circle bg-label-primary dp-avatar-initial">
                                         {{ player.name[:2]|upper }}
                                     </div>
                                 {% endif %}
@@ -144,12 +144,12 @@
                             <table class="c-table c-table--hoverable" data-table>
                                 <thead>
                                     <tr>
-                                        <th style="width: 280px;">Coach</th>
-                                        <th style="width: 120px;">Predicted Round</th>
-                                        <th style="width: 120px;">Confidence</th>
+                                        <th class="dp-col-coach">Coach</th>
+                                        <th class="dp-col-confidence">Predicted Round</th>
+                                        <th class="dp-col-confidence">Confidence</th>
                                         <th>Notes</th>
-                                        <th style="width: 180px;">Submitted</th>
-                                        <th style="width: 100px;">Actions</th>
+                                        <th class="dp-col-submitted">Submitted</th>
+                                        <th class="dp-col-actions">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -211,7 +211,7 @@
                         </div>
                     {% else %}
                         <div class="text-center py-5">
-                            <i class="ti ti-list-check text-muted" style="font-size: 3rem;"></i>
+                            <i class="ti ti-list-check text-muted dp-icon-empty"></i>
                             <h5 class="mt-3 text-muted">No Predictions</h5>
                             <p class="text-muted">No coaches have predicted for this player yet.</p>
                         </div>

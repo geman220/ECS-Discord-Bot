@@ -124,7 +124,7 @@
   font-size: var(--text-sm, 0.875rem);
   font-weight: var(--font-medium, 500);
   line-height: 1.4;
-  color: var(--color-text-secondary, #64748b);
+  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
   background: transparent;
   border: none;
   border-radius: var(--radius-md, 8px);
@@ -147,7 +147,7 @@
 
 /* Hover state */
 .c-tabs-modern__tab:hover:not(.is-active) {
-  color: var(--color-text-primary, #1e293b);
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
   background: var(--color-bg-hover, rgba(0, 0, 0, 0.04));
 }
 
@@ -157,7 +157,7 @@
 
 /* Focus visible state */
 .c-tabs-modern__tab:focus-visible {
-  outline: 2px solid var(--color-primary, #2563EB);
+  outline: 2px solid var(--color-primary, var(--color-primary-600, #2563EB));
   outline-offset: 2px;
 }
 
@@ -171,7 +171,7 @@
    ============================================================================ */
 
 .c-tabs-modern__tab.is-active {
-  color: var(--color-primary, #2563EB);
+  color: var(--color-primary, var(--color-primary-600, #2563EB));
   background: var(--color-primary-soft, rgba(59, 130, 246, 0.1));
   font-weight: var(--font-semibold, 600);
   box-shadow:
@@ -189,7 +189,7 @@
   position: absolute;
   inset: -2px;
   border-radius: inherit;
-  background: var(--color-primary, #2563EB);
+  background: var(--color-primary, var(--color-primary-600, #2563EB));
   opacity: 0;
   filter: blur(8px);
   z-index: -1;
@@ -232,7 +232,7 @@
    ============================================================================ */
 
 [data-style="dark"] .c-tabs-modern {
-  background: var(--color-bg-primary, #1e293b);
+  background: var(--color-bg-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
   border-color: var(--color-border-primary, rgba(255, 255, 255, 0.08));
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.2),
@@ -240,24 +240,24 @@
 }
 
 [data-style="dark"] .c-tabs-modern__container::before {
-  background: linear-gradient(to right, var(--color-bg-primary, #1e293b), transparent);
+  background: linear-gradient(to right, var(--color-bg-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b)))), transparent);
 }
 
 [data-style="dark"] .c-tabs-modern__container::after {
-  background: linear-gradient(to left, var(--color-bg-primary, #1e293b), transparent);
+  background: linear-gradient(to left, var(--color-bg-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b)))), transparent);
 }
 
 [data-style="dark"] .c-tabs-modern__tab {
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
 }
 
 [data-style="dark"] .c-tabs-modern__tab:hover:not(.is-active) {
-  color: var(--color-text-primary, #f1f5f9);
+  color: var(--color-text-primary, var(--color-secondary-100, var(--color-secondary-100, #f1f5f9)));
   background: var(--color-bg-hover, rgba(255, 255, 255, 0.06));
 }
 
 [data-style="dark"] .c-tabs-modern__tab.is-active {
-  color: var(--color-primary-light, #60a5fa);
+  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
   background: rgba(59, 130, 246, 0.15);
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.2),

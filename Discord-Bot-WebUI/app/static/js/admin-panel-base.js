@@ -73,27 +73,28 @@
         /**
          * Mobile navigation auto-collapse
          * Uses data-nav-link and data-navbar-collapse selectors
+         * ROOT CAUSE FIX: Uses event delegation instead of per-element listeners
          */
+        _mobileNavRegistered: false,
         initMobileNavigation: function(context) {
-            context = context || document;
+            // Only register document-level delegation once
+            if (this._mobileNavRegistered) return;
+            this._mobileNavRegistered = true;
 
-            // Query by data attribute first, then fall back to classes
-            const navLinks = context.querySelectorAll('[data-nav-link], .navbar-nav .nav-link');
-            const navbarCollapse = context.querySelector('[data-navbar-collapse], .navbar-collapse');
+            const self = this;
 
-            navLinks.forEach(link => {
-                // Skip if already enhanced
-                if (link.dataset.navEnhanced === 'true') return;
-                link.dataset.navEnhanced = 'true';
+            // Single delegated click listener for all nav links
+            document.addEventListener('click', function(e) {
+                const link = e.target.closest('[data-nav-link], .navbar-nav .nav-link');
+                if (!link) return;
 
-                link.addEventListener('click', () => {
-                    if (window.innerWidth < this.CONFIG.TABLET_BREAKPOINT && navbarCollapse && navbarCollapse.classList.contains('show')) {
-                        const bsCollapse = bootstrap.Collapse.getInstance(navbarCollapse);
-                        if (bsCollapse) {
-                            bsCollapse.hide();
-                        }
+                const navbarCollapse = document.querySelector('[data-navbar-collapse], .navbar-collapse');
+                if (window.innerWidth < self.CONFIG.TABLET_BREAKPOINT && navbarCollapse && navbarCollapse.classList.contains('show')) {
+                    const bsCollapse = bootstrap.Collapse.getInstance(navbarCollapse);
+                    if (bsCollapse) {
+                        bsCollapse.hide();
                     }
-                });
+                }
             });
         },
 
@@ -129,33 +130,46 @@
         /**
          * Touch gesture support for cards
          * Uses data-component="admin-card" selector
+         * ROOT CAUSE FIX: Uses event delegation with WeakMap for per-element state
          */
+        _touchGesturesRegistered: false,
+        _touchStartPositions: null, // WeakMap for per-element touch state
         initTouchGestures: function(context) {
-            context = context || document;
+            // Only register document-level delegation once
+            if (this._touchGesturesRegistered) return;
+            this._touchGesturesRegistered = true;
 
-            const adminCards = context.querySelectorAll('[data-component="admin-card"]');
+            // Use WeakMap to store per-element touch start positions
+            this._touchStartPositions = new WeakMap();
+            const self = this;
 
-            adminCards.forEach(card => {
-                // Skip if already enhanced
-                if (card.dataset.gesturesEnhanced === 'true') return;
-                card.dataset.gesturesEnhanced = 'true';
+            // Single delegated touchstart listener
+            document.addEventListener('touchstart', function(e) {
+                const card = e.target.closest('[data-component="admin-card"]');
+                if (!card) return;
 
-                let touchStartY = 0;
+                self._touchStartPositions.set(card, e.touches[0].clientY);
+            }, { passive: true });
 
-                card.addEventListener('touchstart', (e) => {
-                    touchStartY = e.touches[0].clientY;
-                }, { passive: true });
+            // Single delegated touchend listener
+            document.addEventListener('touchend', function(e) {
+                const card = e.target.closest('[data-component="admin-card"]');
+                if (!card) return;
 
-                card.addEventListener('touchend', (e) => {
-                    const touchEndY = e.changedTouches[0].clientY;
-                    const diff = touchStartY - touchEndY;
+                const touchStartY = self._touchStartPositions.get(card);
+                if (touchStartY === undefined) return;
 
-                    // Simple swipe up gesture for card interaction
-                    if (Math.abs(diff) > 50 && diff > 0) {
-                        card.click();
-                    }
-                }, { passive: true });
-            });
+                const touchEndY = e.changedTouches[0].clientY;
+                const diff = touchStartY - touchEndY;
+
+                // Simple swipe up gesture for card interaction
+                if (Math.abs(diff) > 50 && diff > 0) {
+                    card.click();
+                }
+
+                // Clean up
+                self._touchStartPositions.delete(card);
+            }, { passive: true });
         },
 
         /**
@@ -335,71 +349,80 @@
          * Prevent double-tap zoom on buttons and forms
          * Uses data-action or falls back to element types
          * EXCLUDES navigation elements that have their own event handling
+         * ROOT CAUSE FIX: Uses event delegation instead of per-element listeners
          */
+        _doubleTapPreventionRegistered: false,
         initDoubleTapPrevention: function(context) {
-            context = context || document;
+            // Only register document-level delegation once
+            if (this._doubleTapPreventionRegistered) return;
+            this._doubleTapPreventionRegistered = true;
 
-            // Query by data-action first, then fall back to element types
-            // EXCLUDE navigation elements - they have their own controller
-            const interactiveElements = context.querySelectorAll(
-                '[data-action]:not([data-action="toggle-dropdown"]):not([data-action="navigate"]), ' +
-                'button:not(.c-admin-nav__link):not(.c-admin-nav__dropdown-toggle), ' +
-                '.c-btn:not(.c-admin-nav__link), input, select, textarea'
-            );
+            // Helper to check if element matches our interactive selector
+            function isInteractiveElement(el) {
+                // Skip navigation elements
+                if (el.closest('[data-controller="admin-nav"]')) return false;
+                if (el.matches('[data-action="toggle-dropdown"], [data-action="navigate"]')) return false;
+                if (el.matches('.c-admin-nav__link, .c-admin-nav__dropdown-toggle')) return false;
 
-            interactiveElements.forEach(element => {
-                // Skip if already enhanced
-                if (element.dataset.doubleTapPrevented === 'true') return;
-                // Skip if inside admin navigation
-                if (element.closest('[data-controller="admin-nav"]')) return;
+                // Match interactive elements
+                return el.matches('[data-action], button, .c-btn, input, select, textarea');
+            }
 
-                element.dataset.doubleTapPrevented = 'true';
+            // Single delegated touchend listener
+            document.addEventListener('touchend', function(e) {
+                const element = e.target.closest('[data-action], button, .c-btn, input, select, textarea');
+                if (!element || !isInteractiveElement(element)) return;
+                if (element.disabled) return;
 
-                element.addEventListener('touchend', function(e) {
-                    if (this.disabled) return;
+                e.preventDefault();
+                element.click();
+            }, { passive: false });
+
+            // Single delegated click listener for double-click prevention
+            document.addEventListener('click', function(e) {
+                const element = e.target.closest('[data-action], button, .c-btn, input, select, textarea');
+                if (!element || !isInteractiveElement(element)) return;
+
+                if (e.detail > 1) {
                     e.preventDefault();
-                    this.click();
-                }, { passive: false });
-
-                element.addEventListener('click', function(e) {
-                    if (e.detail > 1) {
-                        e.preventDefault();
-                    }
-                });
+                }
             });
         },
 
         /**
          * Smooth scrolling for anchor links
+         * ROOT CAUSE FIX: Uses event delegation instead of per-element listeners
          */
+        _smoothScrollingRegistered: false,
         initSmoothScrolling: function(context) {
-            context = context || document;
+            // Only register document-level delegation once
+            if (this._smoothScrollingRegistered) return;
+            this._smoothScrollingRegistered = true;
 
-            context.querySelectorAll('a[href^="#"]').forEach(anchor => {
-                // Skip if already enhanced
-                if (anchor.dataset.smoothScrollEnhanced === 'true') return;
-                anchor.dataset.smoothScrollEnhanced = 'true';
+            // Single delegated click listener for all anchor links
+            document.addEventListener('click', function(e) {
+                const anchor = e.target.closest('a[href^="#"]');
+                if (!anchor) return;
 
-                anchor.addEventListener('click', function(e) {
-                    const href = this.getAttribute('href');
-                    // Skip empty hash links (href="#") - they're not valid selectors
-                    if (!href || href === '#') {
-                        return;
+                const href = anchor.getAttribute('href');
+                // Skip empty hash links (href="#") - they're not valid selectors
+                if (!href || href === '#') {
+                    return;
+                }
+
+                e.preventDefault();
+                try {
+                    const target = document.querySelector(href);
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
                     }
-                    e.preventDefault();
-                    try {
-                        const target = document.querySelector(href);
-                        if (target) {
-                            target.scrollIntoView({
-                                behavior: 'smooth',
-                                block: 'start'
-                            });
-                        }
-                    } catch (err) {
-                        // Invalid selector, ignore
-                        console.debug('Invalid anchor selector:', href);
-                    }
-                });
+                } catch (err) {
+                    // Invalid selector, ignore
+                    console.debug('Invalid anchor selector:', href);
+                }
             });
         },
 
@@ -678,10 +701,16 @@
         }
     };
 
+    let _serviceWorkerRegistered = false;
+
     /**
      * Service Worker Registration (for offline support)
      */
     function registerServiceWorker() {
+        // Guard against duplicate registration attempts
+        if (_serviceWorkerRegistered) return;
+        _serviceWorkerRegistered = true;
+
         if ('serviceWorker' in navigator && 'caches' in window) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/static/js/service-worker.js')

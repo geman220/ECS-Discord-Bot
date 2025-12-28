@@ -28,7 +28,7 @@
  */
 .drop-zone {
     position: relative !important;
-    border: 2px dashed #ced4da !important;
+    border: 2px dashed var(--color-secondary-300, #ced4da) !important;
     border-radius: 0.375rem !important;
     padding: 2rem !important;
     text-align: center !important;
@@ -37,7 +37,7 @@
 }
 
 [data-style="dark"] .drop-zone {
-    border-color: #495057 !important;
+    border-color: var(--color-secondary-700, #495057) !important;
     background-color: rgba(255, 255, 255, 0.02) !important;
 }
 
@@ -45,7 +45,7 @@
  * Drop zone valid (file accepted)
  */
 .drop-zone-valid {
-    border-color: #198754 !important;
+    border-color: var(--color-success, #198754) !important;
     background-color: rgba(25, 135, 84, 0.05) !important;
 }
 
@@ -57,7 +57,7 @@
  * Drop zone invalid (file rejected)
  */
 .drop-zone-invalid {
-    border-color: #dc3545 !important;
+    border-color: var(--color-danger, #dc3545) !important;
     background-color: rgba(220, 53, 69, 0.05) !important;
 }
 
@@ -69,7 +69,7 @@
  * Drop zone active (dragging over)
  */
 .drop-zone-active {
-    border-color: #0d6efd !important;
+    border-color: var(--color-primary, #0d6efd) !important;
     background-color: rgba(13, 110, 253, 0.1) !important;
     border-style: solid !important;
     transform: scale(1.02) !important;
@@ -79,7 +79,7 @@
  * Drop zone hover
  */
 .drop-zone-hover {
-    border-color: #0d6efd !important;
+    border-color: var(--color-primary, #0d6efd) !important;
     background-color: rgba(13, 110, 253, 0.05) !important;
     cursor: pointer !important;
 }
@@ -132,49 +132,49 @@
  * Status notification variants
  */
 .status-notification-success {
-    background-color: #d1e7dd !important;
-    border-left: 4px solid #198754 !important;
-    color: #0a3622 !important;
+    background-color: var(--color-success-bg, #d1e7dd) !important;
+    border-left: 4px solid var(--color-success, #198754) !important;
+    color: var(--color-success-900, #0a3622) !important;
 }
 
 [data-style="dark"] .status-notification-success {
-    background-color: #0f5132 !important;
-    color: #d1e7dd !important;
+    background-color: var(--color-success-800, #0f5132) !important;
+    color: var(--color-success-bg, #d1e7dd) !important;
 }
 
 .status-notification-error,
 .status-notification-danger {
-    background-color: #f8d7da !important;
-    border-left: 4px solid #dc3545 !important;
-    color: #58151c !important;
+    background-color: var(--color-danger-bg, #f8d7da) !important;
+    border-left: 4px solid var(--color-danger, #dc3545) !important;
+    color: var(--color-danger-900, #58151c) !important;
 }
 
 [data-style="dark"] .status-notification-error,
 [data-style="dark"] .status-notification-danger {
-    background-color: #842029 !important;
-    color: #f8d7da !important;
+    background-color: var(--color-danger-800, #842029) !important;
+    color: var(--color-danger-bg, #f8d7da) !important;
 }
 
 .status-notification-warning {
-    background-color: #fff3cd !important;
-    border-left: 4px solid #ffc107 !important;
-    color: #664d03 !important;
+    background-color: var(--color-warning-bg, #fff3cd) !important;
+    border-left: 4px solid var(--color-warning, #ffc107) !important;
+    color: var(--color-warning-900, #664d03) !important;
 }
 
 [data-style="dark"] .status-notification-warning {
-    background-color: #997404 !important;
-    color: #fff3cd !important;
+    background-color: var(--color-warning-800, #997404) !important;
+    color: var(--color-warning-bg, #fff3cd) !important;
 }
 
 .status-notification-info {
-    background-color: #cff4fc !important;
-    border-left: 4px solid #0dcaf0 !important;
-    color: #055160 !important;
+    background-color: var(--color-info-bg, #cff4fc) !important;
+    border-left: 4px solid var(--color-info, #0dcaf0) !important;
+    color: var(--color-info-900, #055160) !important;
 }
 
 [data-style="dark"] .status-notification-info {
-    background-color: #087990 !important;
-    color: #cff4fc !important;
+    background-color: var(--color-info-800, #087990) !important;
+    color: var(--color-info-bg, #cff4fc) !important;
 }
 
 /* ============================================
@@ -270,35 +270,35 @@
  * Border color variants
  */
 .border-primary {
-    border-color: #0d6efd !important;
+    border-color: var(--color-primary, #0d6efd) !important;
 }
 
 .border-secondary {
-    border-color: #6c757d !important;
+    border-color: var(--color-secondary, #6c757d) !important;
 }
 
 .border-success {
-    border-color: #198754 !important;
+    border-color: var(--color-success, #198754) !important;
 }
 
 .border-danger {
-    border-color: #dc3545 !important;
+    border-color: var(--color-danger, #dc3545) !important;
 }
 
 .border-warning {
-    border-color: #ffc107 !important;
+    border-color: var(--color-warning, #ffc107) !important;
 }
 
 .border-info {
-    border-color: #0dcaf0 !important;
+    border-color: var(--color-info, #0dcaf0) !important;
 }
 
 .border-light {
-    border-color: #f8f9fa !important;
+    border-color: var(--color-secondary-100, #f8f9fa) !important;
 }
 
 .border-dark {
-    border-color: #212529 !important;
+    border-color: var(--color-secondary-900, #212529) !important;
 }
 
 /**
@@ -404,7 +404,7 @@
     width: 8px !important;
     height: 8px !important;
     border-radius: 50% !important;
-    background-color: #dc3545 !important;
+    background-color: var(--color-danger, #dc3545) !important;
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
 }
 
@@ -469,7 +469,7 @@
  * Card selected state
  */
 .card-selected {
-    border-color: #0d6efd !important;
+    border-color: var(--color-primary, #0d6efd) !important;
     border-width: 2px !important;
     box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15) !important;
 }
@@ -492,7 +492,7 @@
     height: 32px !important;
     margin: -16px 0 0 -16px !important;
     border: 3px solid rgba(0, 0, 0, 0.1) !important;
-    border-top-color: #0d6efd !important;
+    border-top-color: var(--color-primary, #0d6efd) !important;
     border-radius: 50% !important;
     animation: spin 0.8s linear infinite !important;
 }
@@ -521,7 +521,7 @@
  */
 .list-item-active {
     background-color: rgba(13, 110, 253, 0.1) !important;
-    border-left: 3px solid #0d6efd !important;
+    border-left: 3px solid var(--color-primary, #0d6efd) !important;
     font-weight: 500 !important;
 }
 
@@ -576,7 +576,7 @@
  * Form control focus
  */
 .form-control-focus {
-    border-color: #86b7fe !important;
+    border-color: var(--color-primary-300, #86b7fe) !important;
     box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
 }
 
@@ -584,7 +584,7 @@
  * Form control valid
  */
 .form-control-valid {
-    border-color: #198754 !important;
+    border-color: var(--color-success, #198754) !important;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23198754' d='M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z'/%3E%3C/svg%3E") !important;
     background-repeat: no-repeat !important;
     background-position: right calc(0.375em + 0.1875rem) center !important;
@@ -596,7 +596,7 @@
  * Form control invalid
  */
 .form-control-invalid {
-    border-color: #dc3545 !important;
+    border-color: var(--color-danger, #dc3545) !important;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23dc3545' d='M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z'/%3E%3Cpath fill='%23dc3545' d='M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E") !important;
     background-repeat: no-repeat !important;
     background-position: right calc(0.375em + 0.1875rem) center !important;
@@ -612,14 +612,14 @@
  * Skeleton loader
  */
 .skeleton {
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%) !important;
+    background: linear-gradient(90deg, var(--color-secondary-100, #f0f0f0) 25%, var(--color-secondary-200, #e0e0e0) 50%, var(--color-secondary-100, #f0f0f0) 75%) !important;
     background-size: 200% 100% !important;
     animation: skeleton-loading 1.5s ease-in-out infinite !important;
     border-radius: 0.25rem !important;
 }
 
 [data-style="dark"] .skeleton {
-    background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%) !important;
+    background: linear-gradient(90deg, var(--color-secondary-800, #2a2a2a) 25%, var(--color-secondary-700, #3a3a3a) 50%, var(--color-secondary-800, #2a2a2a) 75%) !important;
     background-size: 200% 100% !important;
 }
 

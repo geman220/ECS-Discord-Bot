@@ -55,7 +55,7 @@
 /* Dark mode navbar - matches main content background (slate palette) */
 [data-style="dark"] .c-navbar-modern {
   background: var(--color-bg-primary, #0F172A);
-  border-bottom-color: var(--color-border-primary, #475569);
+  border-bottom-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
 }
 
 /* ============================================================================
@@ -161,9 +161,9 @@
 }
 
 [data-style="dark"] .c-navbar-modern__search-input {
-  background: var(--color-bg-elevated, #334155);           /* Slate-800 */
-  border-color: var(--color-border-primary, #475569);      /* Slate-700 */
-  color: var(--color-text-primary, #f8fafc);               /* Slate-50 */
+  background: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));           /* Slate-800 */
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));      /* Slate-700 */
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));               /* Slate-50 */
 }
 
 [data-style="dark"] .c-navbar-modern__search-input::placeholder {
@@ -250,8 +250,8 @@
 }
 
 [data-style="dark"] .c-navbar-modern__nav-btn:hover {
-  background: var(--color-bg-elevated, #334155);           /* Slate-800 */
-  color: var(--color-text-primary, #f8fafc);               /* Slate-50 */
+  background: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));           /* Slate-800 */
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));               /* Slate-50 */
 }
 
 /* Mobile adjustments */
@@ -358,7 +358,7 @@
 }
 
 [data-style="dark"] .c-navbar-modern__avatar {
-  background: var(--color-bg-tertiary, #475569);            /* Slate-700 */
+  background: var(--color-bg-tertiary, var(--color-secondary-700, var(--color-secondary-700, #475569)));            /* Slate-700 */
 }
 
 [data-style="dark"] .c-navbar-modern__avatar-status {
@@ -416,8 +416,8 @@
 }
 
 [data-style="dark"] .c-navbar-modern__dropdown {
-  background: var(--color-bg-elevated, #334155);            /* Slate-800 */
-  border-color: var(--color-border-primary, #475569);       /* Slate-700 */
+  background: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));            /* Slate-800 */
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));       /* Slate-700 */
 }
 
 /* Mobile responsive */
@@ -463,11 +463,11 @@
 }
 
 [data-style="dark"] .c-navbar-modern__dropdown-header {
-  border-bottom-color: var(--color-border-primary, #475569); /* Slate-700 */
+  border-bottom-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569))); /* Slate-700 */
 }
 
 [data-style="dark"] .c-navbar-modern__dropdown-header--sticky {
-  background: var(--color-bg-elevated, #334155);            /* Slate-800 */
+  background: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));            /* Slate-800 */
 }
 
 /* ============================================================================
@@ -531,7 +531,7 @@
 }
 
 [data-style="dark"] .c-navbar-modern__dropdown-item:hover {
-  background: var(--color-bg-tertiary, #475569);            /* Slate-700 */
+  background: var(--color-bg-tertiary, var(--color-secondary-700, var(--color-secondary-700, #475569)));            /* Slate-700 */
 }
 
 /* ============================================================================
@@ -573,7 +573,7 @@
 }
 
 [data-style="dark"] .c-navbar-modern__dropdown-divider {
-  background: var(--color-border-primary, #475569);         /* Slate-700 */
+  background: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));         /* Slate-700 */
 }
 
 /* ============================================================================
@@ -587,7 +587,7 @@
 }
 
 [data-style="dark"] .c-navbar-modern__dropdown-footer {
-  border-top-color: var(--color-border-primary, #475569);   /* Slate-700 */
+  border-top-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));   /* Slate-700 */
 }
 
 /* ============================================================================
@@ -625,12 +625,12 @@
 
 .c-role-status__icon--normal {
   background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
+  color: var(--color-success-500, #10b981);
 }
 
 .c-role-status__icon--active {
   background: rgba(245, 158, 11, 0.15);
-  color: #f59e0b;
+  color: var(--color-warning-500, #f59e0b);
 }
 
 .c-role-status__content {
@@ -641,13 +641,13 @@
 .c-role-status__title {
   font-size: var(--text-sm, 0.875rem);
   font-weight: 600;
-  color: var(--color-text-primary, #f8fafc);
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
   margin-bottom: 2px;
 }
 
 .c-role-status__subtitle {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
 }
 
 .c-role-status__roles {
@@ -664,7 +664,7 @@
   font-size: 0.7rem;
   font-weight: 500;
   background: rgba(245, 158, 11, 0.2);
-  color: #fbbf24;
+  color: var(--color-warning, #fbbf24);
   border-radius: 4px;
 }
 
@@ -677,7 +677,7 @@
   background: rgba(239, 68, 68, 0.15);
   border: none;
   border-radius: 50%;
-  color: #ef4444;
+  color: var(--color-danger-500, #ef4444);
   cursor: pointer;
   transition: all 0.15s ease;
   flex-shrink: 0;
@@ -711,14 +711,14 @@
 .c-role-selector__label {
   font-size: var(--text-xs, 0.75rem);
   font-weight: 500;
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .c-role-selector__clear {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
   background: none;
   border: none;
   cursor: pointer;
@@ -728,7 +728,7 @@
 }
 
 .c-role-selector__clear:hover {
-  color: var(--color-primary, #2563EB);
+  color: var(--color-primary, var(--color-primary-600, #2563EB));
   background: rgba(37, 99, 235, 0.1);
 }
 
@@ -752,7 +752,7 @@
   gap: 6px;
   font-size: 0.65rem;
   font-weight: 600;
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 4px 8px;
@@ -806,8 +806,8 @@
 }
 
 .c-role-selector__item input[type="checkbox"]:checked + .c-role-selector__checkbox {
-  background: var(--color-primary, #2563EB);
-  border-color: var(--color-primary, #2563EB);
+  background: var(--color-primary, var(--color-primary-600, #2563EB));
+  border-color: var(--color-primary, var(--color-primary-600, #2563EB));
 }
 
 .c-role-selector__item input[type="checkbox"]:checked + .c-role-selector__checkbox::after {
@@ -818,7 +818,7 @@
 .c-role-selector__name {
   flex: 1;
   font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-primary, #f8fafc);
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -829,7 +829,7 @@
   font-weight: 600;
   padding: 2px 6px;
   background: rgba(255, 255, 255, 0.1);
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
   border-radius: 10px;
   flex-shrink: 0;
 }
@@ -845,7 +845,7 @@
 
 .c-role-selector__count {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
 }
 
 .c-role-selector__help {
@@ -854,7 +854,7 @@
   gap: 6px;
   padding: var(--space-2, 8px) var(--space-3, 12px);
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
   line-height: 1.4;
 }
 
@@ -885,7 +885,7 @@
 }
 
 [data-style="light"] .c-role-selector__name {
-  color: var(--color-text-primary, #1e293b);
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
 }
 
 [data-style="light"] .c-role-selector__badge {
@@ -1000,11 +1000,11 @@
 }
 
 [data-style="dark"] .c-navbar-modern__notification {
-  border-bottom-color: var(--color-border-primary, #475569); /* Slate-700 */
+  border-bottom-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569))); /* Slate-700 */
 }
 
 [data-style="dark"] .c-navbar-modern__notification:hover {
-  background: var(--color-bg-tertiary, #475569);            /* Slate-700 */
+  background: var(--color-bg-tertiary, var(--color-secondary-700, var(--color-secondary-700, #475569)));            /* Slate-700 */
 }
 
 [data-style="dark"] .c-navbar-modern__notification--unread {
@@ -1012,7 +1012,7 @@
 }
 
 [data-style="dark"] .c-navbar-modern__notification-icon {
-  background: var(--color-bg-elevated, #334155);            /* Slate-800 */
+  background: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));            /* Slate-800 */
 }
 
 /* ============================================================================
@@ -1074,14 +1074,14 @@
 }
 
 [data-style="dark"] .c-navbar-modern__icon-btn {
-  border-color: var(--color-border-primary, #475569);       /* Slate-700 */
-  color: var(--color-text-secondary, #94a3b8);              /* Slate-400 */
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));       /* Slate-700 */
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));              /* Slate-400 */
 }
 
 [data-style="dark"] .c-navbar-modern__icon-btn:hover {
-  background: var(--color-bg-tertiary, #475569);            /* Slate-700 */
-  color: var(--color-text-primary, #f8fafc);                /* Slate-50 */
-  border-color: var(--color-border-secondary, #64748b);     /* Slate-600 */
+  background: var(--color-bg-tertiary, var(--color-secondary-700, var(--color-secondary-700, #475569)));            /* Slate-700 */
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));                /* Slate-50 */
+  border-color: var(--color-border-secondary, var(--color-secondary-600, var(--color-secondary-600, #64748b)));     /* Slate-600 */
 }
 
 /* ============================================================================

@@ -30,12 +30,12 @@
     /* Pitch Neutrals */
     --profile-surface: #FFFFFF;
     --profile-surface-alt: #F8FAFC;
-    --profile-surface-dark: #1E293B;
+    --profile-surface-dark: var(--color-secondary-900, #1E293B);
     --profile-border: #E2E8F0;
     --profile-border-strong: #CBD5E1;
 
     /* Typography */
-    --profile-text-primary: #1E293B;
+    --profile-text-primary: var(--color-secondary-900, #1E293B);
     --profile-text-secondary: #64748B;
     --profile-text-muted: #94A3B8;
     --profile-text-inverse: #FFFFFF;
@@ -150,7 +150,7 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #FFD700, #FFA500, #FFD700);
+    background: linear-gradient(90deg, var(--color-gold, #FFD700), var(--color-orange, #FFA500), var(--color-gold, #FFD700));
     background-size: 200% 100%;
     animation: shimmer 2s ease infinite;
 }

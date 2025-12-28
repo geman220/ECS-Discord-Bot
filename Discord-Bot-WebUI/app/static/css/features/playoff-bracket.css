@@ -388,7 +388,7 @@
 
 .playoff-bracket-container .standings-row.position-3 .position {
     /* Bronze gradient using warm secondary colors */
-    background: linear-gradient(135deg, #CD7F32 0%, #8B4513 100%);
+    background: linear-gradient(135deg, var(--medal-bronze, #CD7F32) 0%, var(--medal-bronze-dark, #8B4513) 100%);
     color: var(--color-neutral-0);
 }
 

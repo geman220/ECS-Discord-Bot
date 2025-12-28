@@ -1,13 +1,13 @@
 /**
  * UI Enhancements - Additional JavaScript for UI fixes
- * FIXED: Added guards to prevent duplicate event listener registration and MutationObserver accumulation
+ * FIXED: Uses UnifiedMutationObserver to prevent cascade effects
  */
 
 (function() {
     'use strict';
 
-    // Track initialization state to prevent duplicate observers and listeners
-    let featherObserver = null;
+    // Track initialization state to prevent duplicate listeners
+    let featherHandlerRegistered = false;
     let turboListenersRegistered = false;
 
     /**
@@ -22,42 +22,40 @@
     /**
      * Initialize Feather Icons
      * Re-runs feather.replace() to ensure all icons are rendered
-     * FIXED: Reuses existing MutationObserver instead of creating new ones
+     * REFACTORED: Uses UnifiedMutationObserver instead of separate observer
      */
     function initFeatherIcons() {
-        if (typeof feather !== 'undefined') {
-            // Initial replace
-            feather.replace();
+        if (typeof feather === 'undefined') return;
 
-            // Only create observer once - disconnect old one if exists
-            if (featherObserver) {
-                // Observer already exists, just run replace for any new icons
-                return;
-            }
+        // Initial replace
+        feather.replace();
 
-            // Watch for dynamic content
-            featherObserver = new MutationObserver(function(mutations) {
-                let hasNewFeatherIcons = false;
-                mutations.forEach(function(mutation) {
-                    mutation.addedNodes.forEach(function(node) {
-                        if (node.nodeType === Node.ELEMENT_NODE) {
-                            if (node.hasAttribute && node.hasAttribute('data-feather')) {
-                                hasNewFeatherIcons = true;
-                            }
-                            if (node.querySelector && node.querySelector('[data-feather]')) {
-                                hasNewFeatherIcons = true;
-                            }
+        // Only register handler once
+        if (featherHandlerRegistered) return;
+        featherHandlerRegistered = true;
+
+        // Use unified observer if available, otherwise skip dynamic updates
+        if (window.UnifiedMutationObserver) {
+            window.UnifiedMutationObserver.register('feather-icons', {
+                onAddedNodes: function(nodes) {
+                    let hasNewIcons = false;
+                    nodes.forEach(function(node) {
+                        if (node.hasAttribute && node.hasAttribute('data-feather')) {
+                            hasNewIcons = true;
+                        } else if (node.querySelector && node.querySelector('[data-feather]')) {
+                            hasNewIcons = true;
                         }
                     });
-                });
-                if (hasNewFeatherIcons) {
-                    feather.replace();
-                }
-            });
-
-            featherObserver.observe(document.body, {
-                childList: true,
-                subtree: true
+                    if (hasNewIcons && typeof feather !== 'undefined') {
+                        feather.replace();
+                    }
+                },
+                filter: function(node) {
+                    // Only process nodes that might contain feather icons
+                    return node.hasAttribute && node.hasAttribute('data-feather') ||
+                           node.querySelector && node.querySelector('[data-feather]');
+                },
+                priority: 50 // Run early since icons are visual
             });
         }
     }
@@ -169,31 +167,38 @@
 
     /**
      * Fallback dropdown initialization (if EventDelegation not available)
+     * ROOT CAUSE FIX: Uses event delegation instead of per-element listeners
      */
+    let _dropdownFallbackRegistered = false;
     function initDropdownFallback() {
-        document.querySelectorAll('[data-action="toggle-dropdown"]').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
+        if (_dropdownFallbackRegistered) return;
+        _dropdownFallbackRegistered = true;
 
-                const dropdownId = this.getAttribute('data-dropdown');
-                const dropdown = document.querySelector(`[data-dropdown-id="${dropdownId}"]`);
+        // Single delegated click listener for all dropdown toggles
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('[data-action="toggle-dropdown"]');
+            if (!btn) return;
 
-                if (dropdown) {
-                    // Close all other dropdowns
-                    document.querySelectorAll('.c-navbar-modern__dropdown.is-open').forEach(function(d) {
-                        if (d !== dropdown) {
-                            d.classList.remove('is-open');
-                            d.setAttribute('aria-hidden', 'true');
-                        }
-                    });
+            e.preventDefault();
+            e.stopPropagation();
 
-                    // Toggle this dropdown
-                    const isOpen = dropdown.classList.toggle('is-open');
-                    dropdown.setAttribute('aria-hidden', !isOpen);
-                    this.setAttribute('aria-expanded', isOpen);
-                }
-            });
+            const dropdownId = btn.getAttribute('data-dropdown');
+            const dropdown = document.querySelector(`[data-dropdown-id="${dropdownId}"]`);
+
+            if (dropdown) {
+                // Close all other dropdowns
+                document.querySelectorAll('.c-navbar-modern__dropdown.is-open').forEach(function(d) {
+                    if (d !== dropdown) {
+                        d.classList.remove('is-open');
+                        d.setAttribute('aria-hidden', 'true');
+                    }
+                });
+
+                // Toggle this dropdown
+                const isOpen = dropdown.classList.toggle('is-open');
+                dropdown.setAttribute('aria-hidden', !isOpen);
+                btn.setAttribute('aria-expanded', isOpen);
+            }
         });
     }
 

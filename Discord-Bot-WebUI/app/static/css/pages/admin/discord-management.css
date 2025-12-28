@@ -461,14 +461,14 @@ a.c-stat-card--info[data-status] .c-stat-card__value {
 }
 
 .c-action-btn--discord {
-  background: #5865F2;
-  border-color: #5865F2;
+  background: var(--discord-primary, #5865F2);
+  border-color: var(--discord-primary, #5865F2);
   color: var(--color-neutral-0);
 }
 
 .c-action-btn--discord:hover {
-  background: #4752C4;
-  border-color: #4752C4;
+  background: var(--discord-primary-dark, #4752C4);
+  border-color: var(--discord-primary-dark, #4752C4);
   color: var(--color-neutral-0);
 }
 

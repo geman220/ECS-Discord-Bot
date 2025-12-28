@@ -71,8 +71,8 @@ html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav {
 /* Modern Theme - Dark Mode - use semantic tokens */
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav,
 html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav {
-  background-color: var(--color-bg-elevated, #334155);
-  border-color: var(--color-border-primary, #475569);
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
@@ -83,8 +83,8 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav {
 [data-theme="dark"] .c-admin-nav,
 .dark-mode .c-admin-nav,
 body[data-style="dark"] .c-admin-nav {
-  background-color: var(--color-bg-elevated, #334155);
-  border-color: var(--color-border-primary, #475569);
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
 }
 
 /* ============================================================================
@@ -200,19 +200,19 @@ body[data-style="dark"] .c-admin-nav {
 /* Hover state */
 .c-admin-nav .c-admin-nav__list .c-admin-nav__link:hover {
   background-color: var(--color-primary-subtle, rgba(37, 99, 235, 0.1));
-  color: var(--color-primary, #2563EB);
+  color: var(--color-primary, var(--color-primary-600, #2563EB));
 }
 
 /* Active state */
 .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active {
-  background-color: var(--color-primary, #2563EB);
+  background-color: var(--color-primary, var(--color-primary-600, #2563EB));
   color: var(--color-text-on-primary, #ffffff);
   font-weight: var(--font-semibold, 600);
 }
 
 /* Focus state for accessibility */
 .c-admin-nav .c-admin-nav__list .c-admin-nav__link:focus-visible {
-  outline: 2px solid var(--color-primary, #2563EB);
+  outline: 2px solid var(--color-primary, var(--color-primary-600, #2563EB));
   outline-offset: 2px;
 }
 
@@ -229,12 +229,12 @@ html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin
 [data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__list .c-admin-nav__link:hover,
 html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__list .c-admin-nav__link:hover {
   background-color: rgba(var(--ecs-primary-rgb, 37, 99, 235), 0.08);
-  color: var(--ecs-primary, #2563EB);
+  color: var(--ecs-primary, var(--color-primary-600, #2563EB));
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active,
 html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active {
-  background-color: var(--ecs-primary, #2563EB);
+  background-color: var(--ecs-primary, var(--color-primary-600, #2563EB));
   color: var(--ecs-neutral-0, #ffffff);
 }
 
@@ -250,12 +250,12 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link:hover,
 html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link:hover {
   background-color: rgba(96, 165, 250, 0.15);
-  color: var(--ecs-primary-light, #60A5FA);
+  color: var(--ecs-primary-light, var(--color-primary-400, #60A5FA));
 }
 
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active,
 html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active {
-  background-color: var(--ecs-primary-light, #60A5FA);
+  background-color: var(--ecs-primary-light, var(--color-primary-400, #60A5FA));
   color: var(--ecs-dark-bg-body, #09090b);
 }
 
@@ -272,14 +272,14 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link {
 .dark-mode .c-admin-nav .c-admin-nav__list .c-admin-nav__link:hover,
 body[data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link:hover {
   background-color: rgba(96, 165, 250, 0.15);
-  color: var(--color-primary-400, #60A5FA);
+  color: var(--color-primary-400, var(--color-primary-400, #60A5FA));
 }
 
 [data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active,
 [data-theme="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active,
 .dark-mode .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active,
 body[data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active {
-  background-color: var(--color-primary-600, #60A5FA);
+  background-color: var(--color-primary-600, var(--color-primary-400, #60A5FA));
   color: var(--color-text-on-primary, #ffffff);
 }
 
@@ -434,8 +434,8 @@ html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin
 
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown,
 html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown {
-  background-color: var(--color-bg-elevated, #334155);
-  border-color: var(--color-border-primary, #475569);
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
   box-shadow:
     0 10px 15px -3px rgba(0, 0, 0, 0.4),
     0 4px 6px -2px rgba(0, 0, 0, 0.3);
@@ -446,8 +446,8 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__
 [data-theme="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown,
 .dark-mode .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown,
 body[data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown {
-  background-color: var(--color-bg-elevated, #334155);
-  border-color: var(--color-border-primary, #475569);
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
   box-shadow:
     0 10px 15px -3px rgba(0, 0, 0, 0.4),
     0 4px 6px -2px rgba(0, 0, 0, 0.3);
@@ -461,7 +461,7 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown {
     margin-top: var(--space-1, 0.25rem);
     box-shadow: none;
     border: none;
-    border-left: 2px solid var(--color-primary, #2563EB);
+    border-left: 2px solid var(--color-primary, var(--color-primary-600, #2563EB));
     border-radius: 0;
     margin-left: var(--space-4, 1rem);
     padding-left: var(--space-2, 0.5rem);
@@ -473,7 +473,7 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown {
   [data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown,
   html[data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown,
   body[data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown {
-    border-left-color: var(--color-primary, #60A5FA);
+    border-left-color: var(--color-primary, var(--color-primary-400, #60A5FA));
     background-color: var(--color-bg-primary, #0F172A);
   }
 }
@@ -518,12 +518,12 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown {
 /* Hover state */
 .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item:hover {
   background-color: var(--color-primary-subtle, rgba(37, 99, 235, 0.1));
-  color: var(--color-primary, #2563EB);
+  color: var(--color-primary, var(--color-primary-600, #2563EB));
 }
 
 /* Active state */
 .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item.is-active {
-  background-color: var(--color-primary, #2563EB);
+  background-color: var(--color-primary, var(--color-primary-600, #2563EB));
   color: var(--color-text-on-primary, #ffffff);
 }
 
@@ -539,7 +539,7 @@ html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin
 [data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item:hover,
 html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item:hover {
   background-color: rgba(var(--ecs-primary-rgb, 37, 99, 235), 0.08);
-  color: var(--ecs-primary, #2563EB);
+  color: var(--ecs-primary, var(--color-primary-600, #2563EB));
 }
 
 /* ============================================================================
@@ -555,12 +555,12 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item:hover,
 html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item:hover {
   background-color: rgba(96, 165, 250, 0.2);
-  color: var(--color-primary-400, #60A5FA);
+  color: var(--color-primary-400, var(--color-primary-400, #60A5FA));
 }
 
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item.is-active,
 html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item.is-active {
-  background-color: var(--color-primary-400, #60A5FA);
+  background-color: var(--color-primary-400, var(--color-primary-400, #60A5FA));
   color: var(--color-bg-primary, #09090b);
 }
 
@@ -577,7 +577,7 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdo
 .dark-mode .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item:hover,
 body[data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item:hover {
   background-color: rgba(96, 165, 250, 0.2);
-  color: var(--color-primary-400, #60A5FA);
+  color: var(--color-primary-400, var(--color-primary-400, #60A5FA));
 }
 
 /* ============================================================================
@@ -816,7 +816,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divi
 .c-admin-nav .c-admin-nav__list .c-admin-nav__item .c-admin-nav__dropdown-toggle.btn:hover,
 .c-admin-nav .c-admin-nav__list .c-admin-nav__item button.c-admin-nav__link:hover {
   background-color: var(--color-primary-subtle, rgba(37, 99, 235, 0.1));
-  color: var(--color-primary, #2563EB);
+  color: var(--color-primary, var(--color-primary-600, #2563EB));
 }
 
 /* Dark mode reset for conflicting button classes */
@@ -842,7 +842,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divi
 [data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__item .c-admin-nav__dropdown-toggle.btn:hover,
 [data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__item button.c-admin-nav__link:hover {
   background-color: rgba(96, 165, 250, 0.15);
-  color: var(--ecs-primary-light, #60A5FA);
+  color: var(--ecs-primary-light, var(--color-primary-400, #60A5FA));
 }
 
 /*

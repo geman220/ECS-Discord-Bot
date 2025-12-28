@@ -1,12 +1,23 @@
 /**
  * Scheduled Message Validation JavaScript
- * 
+ *
  * Handles validation page interactions and real-time updates
  */
 
-document.addEventListener('DOMContentLoaded', function() {
+let _scheduledMsgValidationInitialized = false;
+
+function initScheduledMsgValidation() {
+    if (_scheduledMsgValidationInitialized) return;
+    _scheduledMsgValidationInitialized = true;
+
     initializeValidationPage();
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initScheduledMsgValidation);
+} else {
+    initScheduledMsgValidation();
+}
 
 /**
  * Initialize validation page functionality
@@ -30,10 +41,15 @@ function initializeValidationPage() {
     startCountdownUpdates();
 }
 
+let _autoRefreshSetup = false;
+
 /**
  * Set up auto-refresh for pages with critical issues
  */
 function setupAutoRefresh() {
+    if (_autoRefreshSetup) return;
+    _autoRefreshSetup = true;
+
     // Check if we have overdue messages
     const overdueElement = document.querySelector('[data-overdue-count]');
     if (overdueElement) {
@@ -89,10 +105,15 @@ function refreshValidation() {
     }
 }
 
+let _refreshButtonSetup = false;
+
 /**
  * Set up refresh button functionality
  */
 function setupRefreshButton() {
+    if (_refreshButtonSetup) return;
+    _refreshButtonSetup = true;
+
     const refreshButtons = document.querySelectorAll('[onclick*="refreshValidation"]');
     refreshButtons.forEach(function(btn) {
         btn.id = 'refresh-btn';

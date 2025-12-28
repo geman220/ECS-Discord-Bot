@@ -8,8 +8,8 @@
    CSS Variables for Design Tokens
    ======================================== */
 :root {
-    --bs-body-bg: var(--ecs-dark-bg-body, #0f172a);
-    --bs-body-color: var(--ecs-dark-text-primary, #e2e8f0);
+    --bs-body-bg: var(--ecs-dark-bg-body, var(--color-secondary-950, var(--color-secondary-950, #0f172a)));
+    --bs-body-color: var(--ecs-dark-text-primary, var(--color-secondary-200, var(--color-secondary-200, #e2e8f0)));
     --bs-primary: var(--ecs-primary, #3b82f6);
     --bs-primary-rgb: var(--ecs-primary-rgb, 59, 130, 246);
 }
@@ -18,7 +18,7 @@
    RSVP Page Component
    ======================================== */
 .c-rsvp-page {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    background: linear-gradient(135deg, var(--color-secondary-950, var(--color-secondary-950, #0f172a)) 0%, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))) 100%);
     color: var(--bs-body-color);
     font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
     display: flex;
@@ -32,8 +32,8 @@
    RSVP Card Component
    ======================================== */
 .c-rsvp-card {
-    background: var(--ecs-dark-bg-card, #1e293b);
-    border: 1px solid var(--ecs-dark-border, #334155);
+    background: var(--ecs-dark-bg-card, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+    border: 1px solid var(--ecs-dark-border, var(--color-secondary-800, var(--color-secondary-800, #334155)));
     border-radius: 1rem;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     max-width: 500px;
@@ -46,7 +46,7 @@
 }
 
 .c-rsvp-card__title {
-    color: var(--ecs-dark-text-heading, #f8fafc);
+    color: var(--ecs-dark-text-heading, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
     font-size: 2rem;
     font-weight: 700;
     margin: 1.5rem 0 1rem;
@@ -54,20 +54,20 @@
 }
 
 .c-rsvp-card__text {
-    color: var(--bs-body-color, #e2e8f0);
+    color: var(--bs-body-color, var(--color-secondary-200, var(--color-secondary-200, #e2e8f0)));
     font-size: 1.125rem;
     line-height: 1.6;
     margin-bottom: 1rem;
 }
 
 .c-rsvp-card__info {
-    color: var(--bs-secondary-color, #94a3b8);
+    color: var(--bs-secondary-color, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
     font-size: 1rem;
     margin-bottom: 0.75rem;
 }
 
 .c-rsvp-card__countdown-text {
-    color: var(--bs-secondary-color, #94a3b8);
+    color: var(--bs-secondary-color, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
     font-size: 0.875rem;
     margin: 0;
 }
@@ -77,7 +77,7 @@
    ======================================== */
 .c-rsvp-success-icon {
     font-size: 5rem;
-    color: #10b981;
+    color: var(--color-success-500, #10b981);
     display: block;
     margin-bottom: 1rem;
     animation: success-bounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -105,7 +105,7 @@
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--bs-primary);
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, var(--color-primary-600, #2563eb) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -126,7 +126,7 @@
    RSVP Form Page
    ======================================== */
 .c-rsvp-form {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    background: linear-gradient(135deg, var(--color-secondary-950, var(--color-secondary-950, #0f172a)) 0%, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))) 100%);
     color: var(--bs-body-color);
     font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
     min-height: 100vh;
@@ -134,20 +134,20 @@
 }
 
 .c-rsvp-form__card {
-    background: var(--ecs-dark-bg-card, #1e293b);
-    border: 1px solid var(--ecs-dark-border, #334155);
+    background: var(--ecs-dark-bg-card, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+    border: 1px solid var(--ecs-dark-border, var(--color-secondary-800, var(--color-secondary-800, #334155)));
     margin-bottom: 1.5rem;
     border-radius: 0.75rem;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .c-rsvp-form__title {
-    color: var(--ecs-dark-text-heading, #f8fafc);
+    color: var(--ecs-dark-text-heading, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
     font-weight: 600;
 }
 
 .c-rsvp-form__button {
-    background: linear-gradient(135deg, var(--bs-primary) 0%, #2563eb 100%);
+    background: linear-gradient(135deg, var(--bs-primary) 0%, var(--color-primary-600, #2563eb) 100%);
     border: none;
     font-weight: 600;
     padding: 0.875rem 2rem;
@@ -157,7 +157,7 @@
 }
 
 .c-rsvp-form__button:hover {
-    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    background: linear-gradient(135deg, var(--color-primary-600, #2563eb) 0%, #1e40af 100%);
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
 }
@@ -409,7 +409,7 @@
 }
 
 .c-substitute-rsvp__button--yes:hover {
-    background: var(--bs-success-hover, #198754);
+    background: var(--bs-success-hover, var(--color-success, #198754));
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(25, 135, 84, 0.3);
 }

@@ -362,6 +362,8 @@
     }, CONFIG.DISCORD_UNLINKED_PROMPT_DELAY);
   }
 
+  let _initialized = false;
+
   /**
    * ============================================================================
    * INITIALIZATION
@@ -369,6 +371,10 @@
    * ============================================================================
    */
   function init() {
+    // Guard against duplicate initialization
+    if (_initialized) return;
+    _initialized = true;
+
     // Set viewport height fix
     setViewportHeight();
     window.addEventListener('resize', setViewportHeight);

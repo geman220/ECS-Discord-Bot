@@ -28,16 +28,16 @@
     --wizard-border: rgba(148, 163, 184, 0.12);
     --wizard-border-focus: rgba(88, 101, 242, 0.5);
 
-    --wizard-text-primary: #f1f5f9;
-    --wizard-text-secondary: #94a3b8;
-    --wizard-text-muted: #64748b;
+    --wizard-text-primary: var(--color-secondary-100, var(--color-secondary-100, #f1f5f9));
+    --wizard-text-secondary: var(--color-secondary-400, var(--color-secondary-400, #94a3b8));
+    --wizard-text-muted: var(--color-secondary-600, var(--color-secondary-600, #64748b));
 
     --wizard-primary: #5865F2;
     --wizard-primary-hover: #4752c4;
     --wizard-success: #22c55e;
     --wizard-success-dark: #16a34a;
-    --wizard-warning: #f59e0b;
-    --wizard-danger: #ef4444;
+    --wizard-warning: var(--color-warning-500, #f59e0b);
+    --wizard-danger: var(--color-danger-500, #ef4444);
 
     --wizard-radius: 12px;
     --wizard-radius-lg: 16px;
@@ -302,7 +302,7 @@
 [data-component="profile-wizard"] .c-wizard__card-title,
 [data-component="profile-wizard"] .c-wizard__welcome-title,
 [data-component="profile-wizard"] .c-wizard__welcome-message h2 {
-    color: #fff !important;
+    color: var(--color-white, #fff) !important;
 }
 
 .c-wizard__card-title {

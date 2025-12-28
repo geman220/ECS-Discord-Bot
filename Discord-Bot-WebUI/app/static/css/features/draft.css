@@ -28,9 +28,9 @@
     --draft-gray-300: #CBD5E0;
     --draft-gray-400: #94A3B8;
     --draft-gray-500: #64748B;
-    --draft-gray-600: #475569;
-    --draft-gray-700: #334155;
-    --draft-gray-800: #1E293B;
+    --draft-gray-600: var(--color-secondary-700, var(--color-secondary-700, #475569));
+    --draft-gray-700: var(--color-secondary-800, var(--color-secondary-800, #334155));
+    --draft-gray-800: var(--color-secondary-900, #1E293B);
     --draft-gray-900: #0F172A;
 
     /* Typography - Sharp & Athletic */
@@ -66,9 +66,9 @@
 
 [data-style="dark"] {
     --draft-gray-50: #0F172A;
-    --draft-gray-100: #1E293B;
-    --draft-gray-200: #334155;
-    --draft-gray-300: #475569;
+    --draft-gray-100: var(--color-secondary-900, #1E293B);
+    --draft-gray-200: var(--color-secondary-800, var(--color-secondary-800, #334155));
+    --draft-gray-300: var(--color-secondary-700, var(--color-secondary-700, #475569));
     --draft-gray-400: #64748B;
     --draft-gray-500: #94A3B8;
     --draft-gray-600: #CBD5E0;
@@ -89,17 +89,17 @@
 #teamsAccordion .c-card,
 .container-xxl > .row > .col-lg-8 > .c-card,
 .container-xxl > .row > .col-lg-4 > .c-card {
-    background: #1E293B !important;
-    color: #F1F3F5 !important;
-    border-color: #334155 !important;
+    background: var(--color-secondary-900, #1E293B) !important;
+    color: var(--color-secondary-100, #F1F3F5) !important;
+    border-color: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
 }
 
 .draft-available-container .c-card__header,
 .container-xxl > .row > .col-lg-8 > .c-card > .c-card__header,
 .container-xxl > .row > .col-lg-4 > .c-card > .c-card__header {
     background: transparent !important;
-    color: #F1F3F5 !important;
-    border-color: #334155 !important;
+    color: var(--color-secondary-100, #F1F3F5) !important;
+    border-color: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
 }
 
 .draft-available-container .c-card__body,
@@ -114,15 +114,15 @@
 [data-style="light"] .container-xxl > .row > .col-lg-8 > .c-card,
 [data-style="light"] .container-xxl > .row > .col-lg-4 > .c-card {
     background: white !important;
-    color: #1E293B !important;
-    border-color: #E2E8F0 !important;
+    color: var(--color-secondary-900, #1E293B) !important;
+    border-color: var(--color-secondary-200, #E2E8F0) !important;
 }
 
 [data-style="light"] .draft-available-container .c-card__header,
 [data-style="light"] .container-xxl > .row > .col-lg-8 > .c-card > .c-card__header,
 [data-style="light"] .container-xxl > .row > .col-lg-4 > .c-card > .c-card__header {
-    color: #1E293B !important;
-    border-color: #E2E8F0 !important;
+    color: var(--color-secondary-900, #1E293B) !important;
+    border-color: var(--color-secondary-200, #E2E8F0) !important;
 }
 
 /* ============================================================================
@@ -1172,20 +1172,20 @@ body.is-dragging .js-draft-drop-zone[data-drop-target="available"] .drop-hint::b
 
 /* Override Bootstrap's accordion-item background */
 .draft-team-accordion-item.accordion-item {
-    background: #1E293B !important;
-    border: 1px solid #334155 !important;
+    background: var(--color-secondary-900, #1E293B) !important;
+    border: 1px solid var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
 }
 
 .draft-team-accordion-item .accordion-button {
-    background: #1E293B !important;
-    color: #f8fafc !important;
+    background: var(--color-secondary-900, #1E293B) !important;
+    color: var(--color-secondary-50, var(--color-secondary-50, #f8fafc)) !important;
     padding: 1rem;
     border: none !important;
 }
 
 .draft-team-accordion-item .accordion-button:not(.collapsed) {
-    background: #334155 !important;
-    color: #f8fafc !important;
+    background: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
+    color: var(--color-secondary-50, var(--color-secondary-50, #f8fafc)) !important;
     box-shadow: none !important;
 }
 
@@ -1200,18 +1200,18 @@ body.is-dragging .js-draft-drop-zone[data-drop-target="available"] .drop-hint::b
 
 /* Light mode overrides */
 [data-style="light"] .draft-team-accordion-item.accordion-item {
-    background: #f8fafc !important;
-    border: 1px solid #e2e8f0 !important;
+    background: var(--color-secondary-50, var(--color-secondary-50, #f8fafc)) !important;
+    border: 1px solid var(--color-secondary-200, var(--color-secondary-200, #e2e8f0)) !important;
 }
 
 [data-style="light"] .draft-team-accordion-item .accordion-button {
-    background: #f1f5f9 !important;
-    color: #1e293b !important;
+    background: var(--color-secondary-100, var(--color-secondary-100, #f1f5f9)) !important;
+    color: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))) !important;
 }
 
 [data-style="light"] .draft-team-accordion-item .accordion-button:not(.collapsed) {
-    background: #e2e8f0 !important;
-    color: #1e293b !important;
+    background: var(--color-secondary-200, var(--color-secondary-200, #e2e8f0)) !important;
+    color: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))) !important;
 }
 
 [data-style="light"] .draft-team-accordion-item .accordion-button::after {
@@ -1220,41 +1220,41 @@ body.is-dragging .js-draft-drop-zone[data-drop-target="available"] .drop-hint::b
 
 /* Accordion body - dark mode default */
 .draft-team-accordion-item .accordion-body {
-    background: #0f172a !important;
+    background: var(--color-secondary-950, var(--color-secondary-950, #0f172a)) !important;
     padding: 0.75rem !important;
 }
 
 .draft-team-accordion-item .accordion-collapse {
-    background: #0f172a !important;
+    background: var(--color-secondary-950, var(--color-secondary-950, #0f172a)) !important;
 }
 
 html[data-style="light"] .draft-team-accordion-item .accordion-body,
 [data-style="light"] .draft-team-accordion-item .accordion-body {
-    background: #f8fafc !important;
+    background: var(--color-secondary-50, var(--color-secondary-50, #f8fafc)) !important;
 }
 
 html[data-style="light"] .draft-team-accordion-item .accordion-collapse,
 [data-style="light"] .draft-team-accordion-item .accordion-collapse {
-    background: #f8fafc !important;
+    background: var(--color-secondary-50, var(--color-secondary-50, #f8fafc)) !important;
 }
 
 /* Team roster container */
 .draft-team-roster {
-    background: #1e293b !important;
-    border-color: #334155 !important;
+    background: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))) !important;
+    border-color: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
     min-height: 100px;
 }
 
 html[data-style="light"] .draft-team-roster,
 [data-style="light"] .draft-team-roster {
-    background: #f1f5f9 !important;
-    border-color: #cbd5e1 !important;
+    background: var(--color-secondary-100, var(--color-secondary-100, #f1f5f9)) !important;
+    border-color: var(--color-secondary-300, #cbd5e1) !important;
 }
 
 /* Team player card - dark mode by default */
 .draft-team-player-card {
-    background: #1e293b !important;
-    border: 1px solid #334155 !important;
+    background: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))) !important;
+    border: 1px solid var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
     border-radius: 8px;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -1262,7 +1262,7 @@ html[data-style="light"] .draft-team-roster,
 .draft-team-player-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    background: #334155 !important;
+    background: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
 }
 
 /* c-card__body inside player card - ensure dark mode */
@@ -1274,13 +1274,13 @@ html[data-style="light"] .draft-team-roster,
 html[data-style="light"] .draft-team-player-card,
 [data-style="light"] .draft-team-player-card {
     background: white !important;
-    border: 1px solid #e2e8f0 !important;
+    border: 1px solid var(--color-secondary-200, var(--color-secondary-200, #e2e8f0)) !important;
 }
 
 html[data-style="light"] .draft-team-player-card:hover,
 [data-style="light"] .draft-team-player-card:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    background: #f8fafc !important;
+    background: var(--color-secondary-50, var(--color-secondary-50, #f8fafc)) !important;
 }
 
 /* Player avatar in team cards */
@@ -1298,20 +1298,20 @@ html[data-style="light"] .draft-team-player-card:hover,
 
 /* Player name and position text - dark mode default */
 .draft-team-player-card .fw-semibold {
-    color: #f8fafc !important;
+    color: var(--color-secondary-50, var(--color-secondary-50, #f8fafc)) !important;
 }
 
 .draft-team-player-card .text-truncate {
-    color: #f8fafc !important;
+    color: var(--color-secondary-50, var(--color-secondary-50, #f8fafc)) !important;
 }
 
 .draft-team-player-position {
     font-size: 0.7rem;
-    color: #94a3b8 !important;
+    color: var(--color-secondary-400, var(--color-secondary-400, #94a3b8)) !important;
 }
 
 .draft-team-player-card .text-muted {
-    color: #94a3b8 !important;
+    color: var(--color-secondary-400, var(--color-secondary-400, #94a3b8)) !important;
 }
 
 /* Player name and position text - light mode */
@@ -1319,14 +1319,14 @@ html[data-style="light"] .draft-team-player-card .fw-semibold,
 [data-style="light"] .draft-team-player-card .fw-semibold,
 html[data-style="light"] .draft-team-player-card .text-truncate,
 [data-style="light"] .draft-team-player-card .text-truncate {
-    color: #1e293b !important;
+    color: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))) !important;
 }
 
 html[data-style="light"] .draft-team-player-position,
 [data-style="light"] .draft-team-player-position,
 html[data-style="light"] .draft-team-player-card .text-muted,
 [data-style="light"] .draft-team-player-card .text-muted {
-    color: #64748b !important;
+    color: var(--color-secondary-600, var(--color-secondary-600, #64748b)) !important;
 }
 
 /* Stats layout in team cards */
@@ -1368,7 +1368,7 @@ html[data-style="light"] .draft-team-player-card .text-muted,
    ============================================================================ */
 
 .draft-player-card {
-    background: #1E293B !important;
+    background: var(--color-secondary-900, #1E293B) !important;
     border-radius: 12px;
     overflow: hidden;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -1377,7 +1377,7 @@ html[data-style="light"] .draft-team-player-card .text-muted,
 /* Ensure c-card__body inherits the dark background */
 .draft-player-card .c-card__body {
     background: transparent !important;
-    color: #F1F3F5 !important;
+    color: var(--color-secondary-100, #F1F3F5) !important;
 }
 
 .draft-player-card:hover {
@@ -1387,11 +1387,11 @@ html[data-style="light"] .draft-team-player-card .text-muted,
 
 [data-style="light"] .draft-player-card {
     background: white !important;
-    border: 1px solid #E2E8F0;
+    border: 1px solid var(--color-secondary-200, #E2E8F0);
 }
 
 [data-style="light"] .draft-player-card .c-card__body {
-    color: #1E293B !important;
+    color: var(--color-secondary-900, #1E293B) !important;
 }
 
 /* Player card header with image */

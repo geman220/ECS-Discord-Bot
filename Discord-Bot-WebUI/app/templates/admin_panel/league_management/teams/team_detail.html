@@ -27,7 +27,7 @@
             </div>
             <div class="c-card__body">
                 <div class="text-center mb-4">
-                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 mb-3" style="width: 80px; height: 80px;">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 mb-3 c-league-initial-circle">
                         <span class="fs-1 fw-bold text-primary">{{ team.name[0] if team.name else 'T' }}</span>
                     </div>
                     <h4 class="mb-1">{{ team.name }}</h4>
@@ -161,7 +161,7 @@
                 {% endif %}
                 {% else %}
                 <div class="text-center py-3">
-                    <i class="ti ti-trophy-off text-muted" style="font-size: 2rem;"></i>
+                    <i class="ti ti-trophy-off text-muted c-league-icon--lg"></i>
                     <p class="text-muted mt-2 mb-0">Not assigned to a league</p>
                 </div>
                 {% endif %}
@@ -198,9 +198,9 @@
                                 <td>
                                     <div class="d-flex align-items-center gap-2">
                                         {% if player.user and player.user.profile_picture_url %}
-                                        <img src="{{ player.user.profile_picture_url }}" alt="" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
+                                        <img src="{{ player.user.profile_picture_url }}" alt="" class="rounded-circle c-league-avatar--sm">
                                         {% else %}
-                                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center c-league-placeholder-avatar">
                                             <i class="ti ti-user text-white small"></i>
                                         </div>
                                         {% endif %}
@@ -240,7 +240,7 @@
                 </div>
                 {% else %}
                 <div class="text-center py-5">
-                    <i class="ti ti-users-minus text-muted" style="font-size: 3rem;"></i>
+                    <i class="ti ti-users-minus text-muted c-league-icon--xl"></i>
                     <p class="text-muted mt-2">No players on this team yet</p>
                 </div>
                 {% endif %}

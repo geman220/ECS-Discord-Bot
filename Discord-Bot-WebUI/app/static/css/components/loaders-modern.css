@@ -293,7 +293,7 @@
   background: linear-gradient(
     90deg,
     var(--color-success) 0%,
-    #10B981 100%
+    var(--color-success, #10B981) 100%
   );
 }
 
@@ -301,7 +301,7 @@
   background: linear-gradient(
     90deg,
     var(--color-danger) 0%,
-    #EF4444 100%
+    var(--color-danger, #EF4444) 100%
   );
 }
 
@@ -309,7 +309,7 @@
   background: linear-gradient(
     90deg,
     var(--color-warning) 0%,
-    #F59E0B 100%
+    var(--color-warning, #F59E0B) 100%
   );
 }
 

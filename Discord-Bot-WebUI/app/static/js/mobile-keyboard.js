@@ -379,71 +379,96 @@
 
     /**
      * Setup form validation with keyboard awareness
+     * ROOT CAUSE FIX: Uses event delegation instead of per-element listeners
      */
+    _formValidationRegistered: false,
     setupFormValidation: function () {
-      document.querySelectorAll('form').forEach(form => {
-        form.addEventListener('submit', (e) => {
-          // Find first invalid input
-          const firstInvalid = form.querySelector(':invalid');
+      if (this._formValidationRegistered) return;
+      this._formValidationRegistered = true;
 
-          if (firstInvalid) {
-            e.preventDefault();
+      const self = this;
 
-            // Focus and scroll to first invalid input
-            firstInvalid.focus();
-            this.scrollInputIntoView(firstInvalid);
+      // Delegated submit handler for all forms
+      document.addEventListener('submit', function(e) {
+        const form = e.target;
+        if (form.tagName !== 'FORM') return;
 
-            // Haptic feedback if available
-            if (window.Haptics) {
-              window.Haptics.validationError();
-            }
+        // Find first invalid input
+        const firstInvalid = form.querySelector(':invalid');
+
+        if (firstInvalid) {
+          e.preventDefault();
+
+          // Focus and scroll to first invalid input
+          firstInvalid.focus();
+          self.scrollInputIntoView(firstInvalid);
+
+          // Haptic feedback if available
+          if (window.Haptics) {
+            window.Haptics.validationError();
           }
-        });
+        }
+      }, true); // Capture phase for submit
 
-        // Real-time validation
-        form.querySelectorAll('input, textarea, select').forEach(input => {
-          input.addEventListener('invalid', () => {
-            if (window.Haptics) {
-              window.Haptics.validationError();
-            }
-          });
+      // Delegated invalid handler (uses capture since invalid doesn't bubble)
+      document.addEventListener('invalid', function(e) {
+        if (e.target.matches('input, textarea, select')) {
+          if (window.Haptics) {
+            window.Haptics.validationError();
+          }
+        }
+      }, true); // Capture phase required - invalid doesn't bubble
 
-          input.addEventListener('input', () => {
-            if (input.validity.valid && input.classList.contains('is-invalid')) {
-              input.classList.remove('is-invalid');
-              input.classList.add('is-valid');
-            }
-          });
-        });
+      // Delegated input handler for real-time validation
+      document.addEventListener('input', function(e) {
+        const input = e.target;
+        if (!input.matches('input, textarea, select')) return;
+
+        if (input.validity.valid && input.classList.contains('is-invalid')) {
+          input.classList.remove('is-invalid');
+          input.classList.add('is-valid');
+        }
       });
     },
 
     /**
      * Setup mutation observer for dynamically added inputs
+     * REFACTORED: Uses UnifiedMutationObserver to prevent cascade effects
      */
+    _unifiedObserverRegistered: false,
     setupMutationObserver: function () {
-      const observer = new MutationObserver((mutations) => {
-        mutations.forEach(mutation => {
-          mutation.addedNodes.forEach(node => {
-            if (node.nodeType === 1) { // Element node
+      // Only register once
+      if (this._unifiedObserverRegistered) return;
+      this._unifiedObserverRegistered = true;
+
+      const self = this;
+
+      // Use unified observer if available
+      if (window.UnifiedMutationObserver) {
+        window.UnifiedMutationObserver.register('mobile-keyboard', {
+          onAddedNodes: function(nodes) {
+            nodes.forEach(node => {
               // Check if added node is an input
               if (['INPUT', 'TEXTAREA', 'SELECT'].includes(node.tagName)) {
-                this.optimizeInputType(node);
+                self.optimizeInputType(node);
               }
 
               // Check for inputs within added node
-              node.querySelectorAll?.('input, textarea, select').forEach(input => {
-                this.optimizeInputType(input);
-              });
-            }
-          });
+              if (node.querySelectorAll) {
+                node.querySelectorAll('input, textarea, select').forEach(input => {
+                  self.optimizeInputType(input);
+                });
+              }
+            });
+          },
+          filter: function(node) {
+            // Only process nodes that are or contain form inputs
+            return ['INPUT', 'TEXTAREA', 'SELECT'].includes(node.tagName) ||
+                   (node.querySelectorAll && node.querySelectorAll('input, textarea, select').length > 0);
+          },
+          priority: 90 // Run early for input optimization
         });
-      });
-
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true
-      });
+      }
     },
 
     /**

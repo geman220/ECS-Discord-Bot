@@ -33,13 +33,13 @@
   --auth-border: rgba(148, 163, 184, 0.12);
   --auth-border-focus: rgba(88, 101, 242, 0.5);
 
-  --auth-text-primary: #f1f5f9;
-  --auth-text-secondary: #94a3b8;
-  --auth-text-muted: #64748b;
+  --auth-text-primary: var(--color-secondary-100, var(--color-secondary-100, #f1f5f9));
+  --auth-text-secondary: var(--color-secondary-400, var(--color-secondary-400, #94a3b8));
+  --auth-text-muted: var(--color-secondary-600, var(--color-secondary-600, #64748b));
 
   --auth-discord: #5865F2;
   --auth-discord-hover: #4752c4;
-  --auth-warning: #f59e0b;
+  --auth-warning: var(--color-warning-500, #f59e0b);
   --auth-warning-bg: rgba(245, 158, 11, 0.12);
 
   --auth-radius: 12px;
@@ -600,7 +600,7 @@
 
 .c-auth-benefits__icon {
   font-size: 1.5rem;
-  color: #22c55e;
+  color: var(--color-success, #22c55e);
   display: block;
   margin-bottom: 0.5rem;
 }

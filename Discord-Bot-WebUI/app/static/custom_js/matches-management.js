@@ -32,10 +32,16 @@
     Object.entries(competitionMappings).map(([key, value]) => [value, key])
   );
 
+  let _initialized = false;
+
   /**
    * Initialize match management
    */
   function init() {
+    // Guard against duplicate initialization
+    if (_initialized) return;
+    _initialized = true;
+
     // Event delegation for all match actions
     document.addEventListener('click', handleMatchActions);
 

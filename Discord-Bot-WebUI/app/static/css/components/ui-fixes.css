@@ -53,13 +53,13 @@
 .c-stat__value {
   font-size: var(--text-xl, 1.25rem);
   font-weight: 700;
-  color: var(--color-text-primary, #f8fafc);
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
   line-height: 1;
 }
 
 .c-stat__label {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -72,7 +72,7 @@
 /* Support Bootstrap .active class alongside .is-active */
 .c-nav-modern__link.active,
 .c-nav-modern__link--active {
-  color: var(--color-primary, #2563EB);
+  color: var(--color-primary, var(--color-primary-600, #2563EB));
   background: var(--color-primary-soft, rgba(37, 99, 235, 0.1));
   font-weight: var(--font-semibold, 600);
 }
@@ -85,21 +85,21 @@
 /* Pills variant with Bootstrap active */
 .c-nav-modern--pills .c-nav-modern__link.active,
 .c-nav-modern--pills .c-nav-modern__link--active {
-  color: #fff;
-  background: var(--color-primary, #2563EB);
+  color: var(--color-white, #fff);
+  background: var(--color-primary, var(--color-primary-600, #2563EB));
 }
 
 /* Dark mode for Bootstrap active class */
 [data-style="dark"] .c-nav-modern__link.active,
 [data-style="dark"] .c-nav-modern__link--active {
-  color: var(--color-primary-light, #60A5FA);
+  color: var(--color-primary-light, var(--color-primary-400, #60A5FA));
   background: rgba(37, 99, 235, 0.15);
 }
 
 [data-style="dark"] .c-nav-modern--pills .c-nav-modern__link.active,
 [data-style="dark"] .c-nav-modern--pills .c-nav-modern__link--active {
-  color: #fff;
-  background: var(--color-primary, #2563EB);
+  color: var(--color-white, #fff);
+  background: var(--color-primary, var(--color-primary-600, #2563EB));
 }
 
 /* Tab pane Bootstrap compatibility - CRITICAL FIX
@@ -146,7 +146,7 @@
   top: 100%;
   right: 0;
   min-width: 280px;
-  background: var(--color-bg-elevated, #1e293b);
+  background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
   border-radius: var(--radius-lg, 12px);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
@@ -175,13 +175,14 @@
 /* SMS Modal/Form positioning */
 .c-form-modern {
   position: relative;
-  background: var(--color-bg-card, #1e293b);
+  background: var(--color-bg-card, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
   border-radius: var(--radius-lg, 12px);
   padding: var(--space-4, 16px);
 }
 
 /* Ensure form is not floating */
-#smsOptInForm {
+.c-sms-consent-step__form,
+[data-form="sms-opt-in"] {
   position: relative !important;
   z-index: 1;
 }
@@ -189,7 +190,7 @@
 /* Theme picker card separation */
 .theme-selection-card {
   position: relative;
-  background: var(--color-bg-card, #1e293b);
+  background: var(--color-bg-card, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
   transition: all var(--duration-fast, 150ms) ease;
 }
 
@@ -207,12 +208,12 @@
 .c-stat-box__value {
   font-size: var(--text-base, 1rem);
   font-weight: 600;
-  color: var(--color-text-primary, #f8fafc);
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
 }
 
 .c-stat-box__label {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
   display: block;
   margin-bottom: var(--space-1, 4px);
 }
@@ -232,7 +233,7 @@
 
 .c-settings-card__subtitle {
   font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
 }
 
 /* ============================================================================
@@ -419,7 +420,7 @@
 }
 
 [data-style="light"] .c-stat__value {
-  color: var(--color-text-primary, #1e293b);
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
 }
 
 [data-style="light"] .c-stat-box {
@@ -427,7 +428,7 @@
 }
 
 [data-style="light"] .c-stat-box__value {
-  color: var(--color-text-primary, #1e293b);
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
 }
 
 [data-style="light"] .theme-selection-card {

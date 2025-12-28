@@ -143,49 +143,72 @@ class ScheduleManager {
 
     // ----------------------------------------------------------------
     // 2) EDIT/ADD MATCH LOGIC
+    // ROOT CAUSE FIX: Uses single event delegation handler for all button types
     // ----------------------------------------------------------------
+    _buttonDelegationRegistered: false,
+
     setupAddMatchButtons() {
-        // .schedule-add-match-btn => open the edit modal in "Add" mode
-        document.querySelectorAll('.schedule-add-match-btn').forEach(btn => {
-            btn.addEventListener('click', (evt) => {
-                evt.preventDefault();
-                const data = {
-                    league_id: btn.dataset.leagueId,
-                    week: btn.dataset.week,
-                    date: btn.dataset.date
-                };
-                this.openAddMatchModal(data);
-            });
-        });
+        // Uses delegated handler from setupButtonDelegation
+        this.setupButtonDelegation();
     }
 
     setupEditButtons() {
-        // .schedule-edit-match-btn => open the edit modal in "Edit" mode
-        document.querySelectorAll('.schedule-edit-match-btn').forEach(btn => {
-            btn.addEventListener('click', (evt) => {
-                evt.preventDefault();
-                const matchData = {
-                    match_id: btn.dataset.matchId,
-                    date: btn.dataset.date,
-                    time: btn.dataset.time,
-                    location: btn.dataset.location,
-                    team_a_id: btn.dataset.teamAId,
-                    team_b_id: btn.dataset.teamBId,
-                    week: btn.dataset.week
-                };
-                this.openEditMatchModal(matchData);
-            });
-        });
+        // Uses delegated handler from setupButtonDelegation
+        this.setupButtonDelegation();
     }
 
     setupDeleteButtons() {
-        // .schedule-delete-match-btn => confirm + POST delete
-        document.querySelectorAll('.schedule-delete-match-btn').forEach(btn => {
-            btn.addEventListener('click', async (evt) => {
-                evt.preventDefault();
-                const matchId = btn.dataset.matchId;
-                this.deleteMatch(matchId);
-            });
+        // Uses delegated handler from setupButtonDelegation
+        this.setupButtonDelegation();
+    }
+
+    setupButtonDelegation() {
+        // Only register once
+        if (this._buttonDelegationRegistered) return;
+        this._buttonDelegationRegistered = true;
+
+        const self = this;
+
+        // Single delegated click listener for all schedule buttons
+        document.addEventListener('click', function(e) {
+            // Add match button
+            const addBtn = e.target.closest('.schedule-add-match-btn');
+            if (addBtn) {
+                e.preventDefault();
+                const data = {
+                    league_id: addBtn.dataset.leagueId,
+                    week: addBtn.dataset.week,
+                    date: addBtn.dataset.date
+                };
+                self.openAddMatchModal(data);
+                return;
+            }
+
+            // Edit match button
+            const editBtn = e.target.closest('.schedule-edit-match-btn');
+            if (editBtn) {
+                e.preventDefault();
+                const matchData = {
+                    match_id: editBtn.dataset.matchId,
+                    date: editBtn.dataset.date,
+                    time: editBtn.dataset.time,
+                    location: editBtn.dataset.location,
+                    team_a_id: editBtn.dataset.teamAId,
+                    team_b_id: editBtn.dataset.teamBId,
+                    week: editBtn.dataset.week
+                };
+                self.openEditMatchModal(matchData);
+                return;
+            }
+
+            // Delete match button
+            const deleteBtn = e.target.closest('.schedule-delete-match-btn');
+            if (deleteBtn) {
+                e.preventDefault();
+                const matchId = deleteBtn.dataset.matchId;
+                self.deleteMatch(matchId);
+                return;
+            }
         });
     }
 

@@ -54,7 +54,7 @@
   border-radius: 50%;
   border: none;
   background: linear-gradient(135deg, var(--chat-widget-accent), #5a5edd);
-  color: #fff;
+  color: var(--color-white, #fff);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -101,8 +101,8 @@
   padding: 0 6px;
   font-size: 0.6875rem;
   font-weight: 700;
-  color: #fff;
-  background-color: #ef4444;
+  color: var(--color-white, #fff);
+  background-color: var(--color-danger-500, #ef4444);
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -155,7 +155,7 @@
   justify-content: space-between;
   padding: 0.875rem 1rem;
   background: linear-gradient(135deg, var(--chat-widget-accent), #5a5edd);
-  color: #fff;
+  color: var(--color-white, #fff);
   flex-shrink: 0;
 }
 
@@ -171,7 +171,7 @@
 .c-chat-widget__header-back {
   background: none;
   border: none;
-  color: #fff;
+  color: var(--color-white, #fff);
   cursor: pointer;
   padding: 0.25rem;
   border-radius: 0.25rem;
@@ -195,7 +195,7 @@
 .c-chat-widget__header-btn {
   background: none;
   border: none;
-  color: #fff;
+  color: var(--color-white, #fff);
   cursor: pointer;
   padding: 0.25rem;
   border-radius: 0.25rem;
@@ -308,7 +308,7 @@
   padding: 0 5px;
   font-size: 0.625rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--color-white, #fff);
   background-color: var(--chat-widget-accent);
   border-radius: 9px;
   display: flex;
@@ -376,7 +376,7 @@
 .c-chat-widget__message--sent {
   align-self: flex-end;
   background-color: var(--chat-widget-accent);
-  color: #fff;
+  color: var(--color-white, #fff);
   border-bottom-right-radius: 0.25rem;
 }
 
@@ -465,7 +465,7 @@
   border: none;
   border-radius: 50%;
   background-color: var(--chat-widget-accent);
-  color: #fff;
+  color: var(--color-white, #fff);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -475,7 +475,7 @@
 }
 
 .c-chat-widget__input-send:hover {
-  background-color: #5a5edd;
+  background-color: var(--discord-primary, #5a5edd);
 }
 
 .c-chat-widget__input-send:active {

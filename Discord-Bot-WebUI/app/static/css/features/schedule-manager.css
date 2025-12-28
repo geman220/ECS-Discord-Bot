@@ -29,9 +29,9 @@
 :root {
     /* Purple color scale for bonus weeks */
     --color-purple-50: #F5F3FF;
-    --color-purple-400: #60A5FA;
+    --color-purple-400: var(--color-primary-400, #60A5FA);
     --color-purple-500: #8B5CF6;
-    --color-purple-600: #2563EB;
+    --color-purple-600: var(--color-primary-600, #2563EB);
     --color-purple-700: #1D4ED8;
     --color-purple-rgb: 139, 92, 246;
 

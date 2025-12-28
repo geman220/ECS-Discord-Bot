@@ -196,8 +196,7 @@
  */
 .team-kit-input,
 .team-background-input,
-input[type="file"]#team_kit,
-input[type="file"]#team_background {
+.c-upload-form__input {
     display: none;
 }
 

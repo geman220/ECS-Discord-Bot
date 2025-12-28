@@ -24,15 +24,22 @@
 (function() {
   'use strict';
 
+  let _initialized = false;
+
   // ============================================================================
   // INITIALIZATION
   // ============================================================================
 
   function init() {
+    // Guard against duplicate initialization
+    if (_initialized) return;
+
     // Only initialize if we're on the admin dashboard page
     if (!document.querySelector('.admin-panel-dashboard, [data-page="admin-dashboard"]')) {
       return;
     }
+
+    _initialized = true;
 
     registerEventHandlers();
     highlightActiveNav();
@@ -62,7 +69,12 @@
     window.EventDelegation.register('generate-report', generateReport, { preventDefault: true });
   }
 
+  let _navCardsSetup = false;
+
   function setupNavigationCards() {
+    if (_navCardsSetup) return;
+    _navCardsSetup = true;
+
     // Add pointer cursor to navigation cards
     document.querySelectorAll('[data-action="navigate"]').forEach(card => {
       card.style.cursor = 'pointer';

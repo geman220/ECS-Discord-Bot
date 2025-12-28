@@ -58,6 +58,11 @@
     isDesktop: window.innerWidth >= CONFIG.breakpoints.desktop,
     isSidebarOpen: false,
     collapsedState: localStorage.getItem(CONFIG.storage.collapsedKey) === 'true',
+    // Initialization guards
+    _initialized: false,
+    _eventDelegationSetup: false,
+    _keyboardNavSetup: false,
+    _resizeHandlerSetup: false,
   };
 
   /**
@@ -72,6 +77,10 @@
    */
 
   function init() {
+    // Guard against duplicate initialization
+    if (State._initialized) return;
+    State._initialized = true;
+
     // Cache DOM references
     sidebar = document.querySelector(CONFIG.selectors.sidebar);
 
@@ -107,6 +116,10 @@
    */
 
   function setupEventDelegation() {
+    // Guard against duplicate setup
+    if (State._eventDelegationSetup) return;
+    State._eventDelegationSetup = true;
+
     // Global click handler for all sidebar actions
     document.addEventListener('click', handleClick);
 
@@ -308,6 +321,10 @@
    */
 
   function setupKeyboardNavigation() {
+    // Guard against duplicate setup
+    if (State._keyboardNavSetup) return;
+    State._keyboardNavSetup = true;
+
     sidebar.addEventListener('keydown', handleKeyDown);
   }
 
@@ -498,6 +515,10 @@
    */
 
   function setupResizeHandler() {
+    // Guard against duplicate setup
+    if (State._resizeHandlerSetup) return;
+    State._resizeHandlerSetup = true;
+
     let resizeTimeout;
 
     window.addEventListener('resize', () => {

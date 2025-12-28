@@ -584,7 +584,7 @@
 
 .discord-icon-bg {
     background-color: rgba(88, 101, 242, 0.1);
-    color: #5865F2;
+    color: var(--discord-primary, #5865F2);
 }
 
 .discord-circle-icon {
@@ -595,7 +595,7 @@
 
 .discord-circle-icon i {
     font-size: 2.5rem;
-    color: #5865F2;
+    color: var(--discord-primary, #5865F2);
 }
 
 .discord-circle-icon-disconnected {
@@ -610,7 +610,7 @@
 /* Light Mode - Discord Branding */
 [data-theme-variant="modern"]:not([data-style="dark"]) .discord-icon-bg {
     background-color: rgba(88, 101, 242, 0.08);
-    color: #5865F2;
+    color: var(--discord-primary, #5865F2);
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .discord-circle-icon {
@@ -618,13 +618,13 @@
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .discord-circle-icon i {
-    color: #5865F2;
+    color: var(--discord-primary, #5865F2);
 }
 
 /* Dark Mode - Discord Branding */
 [data-style="dark"] .discord-icon-bg {
     background-color: rgba(88, 101, 242, 0.2);
-    color: #7983f5;
+    color: var(--discord-primary, #7983f5);
 }
 
 [data-style="dark"] .discord-circle-icon {
@@ -632,7 +632,7 @@
 }
 
 [data-style="dark"] .discord-circle-icon i {
-    color: #7983f5;
+    color: var(--discord-primary, #7983f5);
 }
 
 /* ============================================================================

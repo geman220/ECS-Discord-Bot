@@ -75,7 +75,7 @@
  * Replaces inline style="background: linear-gradient(...)"
  */
 .card-gradient-welcome {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    background: linear-gradient(135deg, var(--gradient-start, #667eea) 0%, var(--gradient-end, #764ba2) 100%) !important;
 }
 
 .card-gradient-primary {

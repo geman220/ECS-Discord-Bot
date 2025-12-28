@@ -14,7 +14,7 @@
    ============================================================================ */
 
 .c-player-table {
-  background: var(--color-bg-elevated, #1e293b);
+  background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
   border-radius: var(--radius-xl, 16px);
   overflow: hidden;
@@ -33,7 +33,7 @@
   margin: 0;
   font-size: var(--text-lg, 1.125rem);
   font-weight: 600;
-  color: var(--color-text-primary, #f8fafc);
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
   border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
 }
 
@@ -76,7 +76,7 @@
   padding: var(--space-3, 12px) var(--space-4, 16px);
   font-size: var(--text-xs, 0.75rem);
   font-weight: 600;
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
   text-align: left;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -97,7 +97,7 @@
 .c-player-table__td {
   padding: var(--space-3, 12px) var(--space-4, 16px);
   font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-primary, #f8fafc);
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
   vertical-align: middle;
 }
 
@@ -106,19 +106,19 @@
 }
 
 .c-player-table__td--email {
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
 }
 
 .c-player-table__td--phone {
   font-family: var(--font-mono, monospace);
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
 }
 
 .c-player-table__td--jersey {
   text-align: center;
   font-weight: 700;
-  color: var(--color-primary-light, #60a5fa);
+  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
 }
 
 .c-player-table__td--status {
@@ -134,13 +134,13 @@
    ============================================================================ */
 
 .c-player-table__link {
-  color: var(--color-primary-light, #60a5fa);
+  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
   text-decoration: none;
   transition: color var(--duration-fast, 150ms) ease;
 }
 
 .c-player-table__link:hover {
-  color: var(--color-primary, #2563EB);
+  color: var(--color-primary, var(--color-primary-600, #2563EB));
   text-decoration: underline;
 }
 
@@ -160,7 +160,7 @@
   z-index: 1050;
   min-width: 160px;
   padding: var(--space-2, 8px);
-  background: var(--color-bg-elevated, #1e293b);
+  background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
   border-radius: var(--radius-lg, 12px);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
@@ -173,7 +173,7 @@
   width: 100%;
   padding: var(--space-2, 8px) var(--space-3, 12px);
   font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-primary, #f8fafc);
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
   background: transparent;
   border: none;
   border-radius: var(--radius-md, 8px);
@@ -203,17 +203,17 @@
 }
 
 [data-style="light"] .c-player-table__title {
-  color: var(--color-text-primary, #1e293b);
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
   border-bottom-color: var(--color-border-light, rgba(0, 0, 0, 0.06));
 }
 
 [data-style="light"] .c-player-table__head {
-  background: var(--color-bg-secondary, #f8fafc);
+  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
 }
 
 [data-style="light"] .c-player-table__th,
 [data-style="light"] .c-player-table__header {
-  color: var(--color-text-secondary, #64748b);
+  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
 }
 
 [data-style="light"] .c-player-table__row {
@@ -225,11 +225,11 @@
 }
 
 [data-style="light"] .c-player-table__td {
-  color: var(--color-text-primary, #1e293b);
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
 }
 
 [data-style="light"] .c-player-table__link {
-  color: var(--color-primary, #2563EB);
+  color: var(--color-primary, var(--color-primary-600, #2563EB));
 }
 
 [data-style="light"] .c-player-table__menu {
@@ -238,7 +238,7 @@
 }
 
 [data-style="light"] .c-player-table__menu-item {
-  color: var(--color-text-primary, #1e293b);
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
 }
 
 [data-style="light"] .c-player-table__menu-item:hover {

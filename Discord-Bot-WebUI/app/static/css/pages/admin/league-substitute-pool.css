@@ -169,7 +169,7 @@
 }
 
 .league-pool-notification-discord {
-    background: #7289da; /* Discord brand color - intentional */
+    background: var(--discord-primary, #7289da); /* Discord brand color - intentional */
     color: var(--color-neutral-0, #ffffff);
 }
 

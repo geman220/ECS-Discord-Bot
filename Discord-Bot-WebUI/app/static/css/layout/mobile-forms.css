@@ -818,14 +818,14 @@ div.modal-backdrop.show {
 
 [data-style="dark"] .form-control,
 [data-style="dark"] .form-select {
-  background: var(--color-bg-elevated, #334155);
-  border-color: var(--color-border-primary, #475569);
+  background: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
   color: var(--color-text-primary, #F8FAFC);
 }
 
 [data-style="dark"] .form-control:focus,
 [data-style="dark"] .form-select:focus {
-  background: var(--color-bg-elevated, #334155);
+  background: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
   border-color: var(--color-primary-500, #8b5cf6);
   color: var(--color-text-primary, #F8FAFC);
 }
@@ -843,14 +843,14 @@ div.modal-backdrop.show {
 }
 
 [data-style="dark"] .input-group-text {
-  background: var(--color-bg-elevated, #334155);
-  border-color: var(--color-border-primary, #475569);
+  background: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
   color: var(--color-text-primary, #F8FAFC);
 }
 
 [data-style="dark"] .form-check-input {
-  background-color: var(--color-bg-elevated, #334155);
-  border-color: var(--color-border-primary, #475569);
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
 }
 
 [data-style="dark"] .form-check-input:checked {
@@ -860,18 +860,18 @@ div.modal-backdrop.show {
 
 [data-style="dark"] .form-actions-sticky {
   background: var(--color-bg-primary, #0F172A);
-  border-top-color: var(--color-border-primary, #475569);
+  border-top-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
 }
 
 [data-style="dark"] .select2-container .select2-selection {
-  background: var(--color-bg-elevated, #334155);
-  border-color: var(--color-border-primary, #475569);
+  background: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
   color: var(--color-text-primary, #F8FAFC);
 }
 
 [data-style="dark"] .select2-dropdown {
-  background: var(--color-bg-elevated, #334155);
-  border-color: var(--color-border-primary, #475569);
+  background: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
 }
 
 [data-style="dark"] .select2-results__option {
@@ -879,7 +879,7 @@ div.modal-backdrop.show {
 }
 
 [data-style="dark"] .select2-results__option--highlighted {
-  background: var(--color-bg-tertiary, #475569);
+  background: var(--color-bg-tertiary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
 }
 
 
@@ -1225,17 +1225,17 @@ input:-webkit-autofill:focus {
    ======================================== */
 
 [data-style="dark"] .modal-content {
-  background-color: var(--color-bg-elevated, #334155);
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
   color: var(--color-text-primary, #F8FAFC);
-  border-color: var(--color-border-primary, #475569);
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
 }
 
 [data-style="dark"] .modal-header {
-  border-bottom-color: var(--color-border-primary, #475569);
+  border-bottom-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
 }
 
 [data-style="dark"] .modal-footer {
-  border-top-color: var(--color-border-primary, #475569);
+  border-top-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
 }
 
 [data-style="dark"] .modal-header .btn-close {
@@ -1596,8 +1596,8 @@ input:-webkit-autofill:focus {
    ======================================== */
 
 [data-style="dark"] .form-switch .form-check-input {
-  background-color: var(--color-border-primary, #475569);
-  border-color: var(--color-border-primary, #475569);
+  background-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
 }
 
 [data-style="dark"] .form-switch .form-check-input:checked {
@@ -1610,7 +1610,7 @@ input:-webkit-autofill:focus {
 }
 
 [data-style="dark"] .settings-row {
-  border-bottom-color: var(--color-border-primary, #475569);
+  border-bottom-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
 }
 
 [data-style="dark"] .settings-row .setting-title {
@@ -1789,16 +1789,16 @@ input:-webkit-autofill:focus {
 }
 
 [data-style="dark"] .toggle-group {
-  border-color: var(--color-border-primary, #475569);
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
 }
 
 [data-style="dark"] .toggle-group .form-switch {
-  border-bottom-color: var(--color-border-primary, #475569);
+  border-bottom-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
 }
 
 [data-style="dark"] .toggle-group-title {
-  background: var(--color-bg-elevated, #334155);
-  border-bottom-color: var(--color-border-primary, #475569);
+  background: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
+  border-bottom-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
   color: var(--color-text-primary, #F8FAFC);
 }
 
@@ -2607,18 +2607,18 @@ body:not(.auth-page) .form-select {
    ============================================================================ */
 
 [data-style="dark"] .modal-content {
-  background-color: var(--color-bg-elevated, #334155);
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
   color: var(--color-text-primary, #F8FAFC);
-  border-color: var(--color-border-primary, #475569);
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
 }
 
 [data-style="dark"] .modal-header {
-  border-bottom-color: var(--color-border-primary, #475569);
+  border-bottom-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
 }
 
 [data-style="dark"] .modal-footer {
-  border-top-color: var(--color-border-primary, #475569);
-  background-color: var(--color-bg-elevated, #334155);
+  border-top-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
 }
 
 [data-style="dark"] .modal-header .btn-close {
@@ -2630,14 +2630,14 @@ body:not(.auth-page) .form-select {
 }
 
 [data-style="dark"] .table-responsive-cards tbody tr {
-  background: var(--color-bg-elevated, #334155);
-  border-color: var(--color-border-primary, #475569);
+  background: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
 }
 
 [data-style="dark"] .form-control,
 [data-style="dark"] .form-select {
   background-color: var(--color-bg-primary, #0F172A);
-  border-color: var(--color-border-primary, #475569);
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
   color: var(--color-text-primary, #F8FAFC);
 }
 
@@ -2836,19 +2836,19 @@ body:not(.auth-page) .form-select {
 /* DARK MODE MOBILE ADJUSTMENTS */
 /* Use semantic tokens with hardcoded fallbacks - no circular references */
 [data-style="dark"] .modal-content {
-  background-color: var(--color-bg-elevated, #334155);
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
   color: var(--color-text-primary, #F8FAFC);
 }
 
 [data-style="dark"] .dropdown-menu {
-  background-color: var(--color-bg-elevated, #334155);
-  border-color: var(--color-border-primary, #475569);
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
 }
 
 [data-style="dark"] .form-control,
 [data-style="dark"] .form-select {
   background-color: var(--color-bg-primary, #0F172A);
-  border-color: var(--color-border-primary, #475569);
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
   color: var(--color-text-primary, #F8FAFC);
 }
 

@@ -67,94 +67,108 @@ document.addEventListener('DOMContentLoaded', function() {
 
 /**
  * Setup socket connection for draft enhanced page
+ * REFACTORED: Uses SocketManager instead of creating own socket
  */
 function setupDraftEnhancedSocket() {
-    if (typeof io === 'undefined') return;
+    // Use SocketManager if available (preferred)
+    if (typeof window.SocketManager !== 'undefined') {
+        console.log('[DraftEnhanced] Using SocketManager');
 
-    // Reuse existing global socket if available (from navbar presence)
-    // Check if socket EXISTS (not just connected) - it may still be connecting
-    let socket;
-    if (window.socket) {
-        console.log('[DraftEnhanced] Reusing existing socket (connected:', window.socket.connected, ')');
-        socket = window.socket;
-    } else {
-        // Create new socket if none exists
-        console.log('[DraftEnhanced] Creating new socket connection');
-        socket = io('/', {
-            // Use polling first to establish sticky session cookie with multiple workers
-            transports: ['polling', 'websocket'],
-            upgrade: true,
-            withCredentials: true
+        // Register event listeners through SocketManager
+        window.SocketManager.on('draftEnhanced', 'player_drafted_enhanced', function(data) {
+            console.log('[DraftEnhanced] Player drafted event received:', data);
+            handlePlayerDraftedEvent(data);
         });
-        window.socket = socket;
+
+        window.SocketManager.on('draftEnhanced', 'player_removed_enhanced', function(data) {
+            console.log('[DraftEnhanced] Player removed event received:', data);
+            handlePlayerRemovedEvent(data);
+        });
+
+        window.SocketManager.on('draftEnhanced', 'draft_error', function(data) {
+            console.log('[DraftEnhanced] Draft error:', data.message);
+            handleDraftError(data);
+        });
+
+        // Store socket reference for other functions (backward compatibility)
+        window.draftEnhancedSocket = window.SocketManager.getSocket();
+        return;
     }
 
-    // Store reference for other functions
+    // Fallback: Direct socket if SocketManager not available
+    if (typeof io === 'undefined') return;
+
+    console.log('[DraftEnhanced] SocketManager not available, using direct socket');
+    const socket = window.socket || io('/', {
+        transports: ['polling', 'websocket'],
+        upgrade: true,
+        withCredentials: true
+    });
+    if (!window.socket) window.socket = socket;
     window.draftEnhancedSocket = socket;
 
-    socket.on('player_drafted_enhanced', function(data) {
-        console.log('[DraftEnhanced] Player drafted event received:', data);
+    socket.on('player_drafted_enhanced', handlePlayerDraftedEvent);
+    socket.on('player_removed_enhanced', handlePlayerRemovedEvent);
+    socket.on('draft_error', handleDraftError);
+}
 
-        // Delegate to DraftSystemV2 if available (handles full UI update)
-        if (window.draftSystemInstance && typeof window.draftSystemInstance.handlePlayerDrafted === 'function') {
-            window.draftSystemInstance.handlePlayerDrafted(data);
-        } else {
-            // Fallback: Basic UI update if DraftSystemV2 not available
-            if (data.player && data.player.id) {
-                // Remove player from available pool
-                const playerCard = document.querySelector(`#available-players [data-player-id="${data.player.id}"]`);
-                if (playerCard) {
-                    const column = playerCard.closest('[data-component="player-column"]');
-                    if (column) {
-                        column.remove();
-                        updateAvailablePlayerCount(document.querySelectorAll('#available-players .player-card').length);
-                    }
+// Extracted event handlers for reuse
+function handlePlayerDraftedEvent(data) {
+    if (window.draftSystemInstance && typeof window.draftSystemInstance.handlePlayerDrafted === 'function') {
+        window.draftSystemInstance.handlePlayerDrafted(data);
+    } else {
+        if (data.player && data.player.id) {
+            const playerCard = document.querySelector(`#available-players [data-player-id="${data.player.id}"]`);
+            if (playerCard) {
+                const column = playerCard.closest('[data-component="player-column"]');
+                if (column) {
+                    column.remove();
+                    updateAvailablePlayerCount(document.querySelectorAll('#available-players .player-card').length);
                 }
             }
-            // Update team count
-            if (data.team_id) {
-                setTimeout(() => updateTeamCount(data.team_id), 100);
-            }
         }
-    });
-
-    socket.on('player_removed_enhanced', function(data) {
-        console.log('[DraftEnhanced] Player removed event received:', data);
-
-        // Delegate to DraftSystemV2 if available
-        if (window.draftSystemInstance && typeof window.draftSystemInstance.handlePlayerRemoved === 'function') {
-            window.draftSystemInstance.handlePlayerRemoved(data);
-        } else {
-            // Fallback: Update team count
-            if (data.team_id) {
-                setTimeout(() => updateTeamCount(data.team_id), 100);
-            }
+        if (data.team_id) {
+            setTimeout(() => updateTeamCount(data.team_id), 100);
         }
-    });
-
-    socket.on('draft_error', function(data) {
-        console.log('[DraftEnhanced] Draft error:', data.message);
-        // Show error via DraftSystemV2 toast or fallback alert
-        if (window.draftSystemInstance && typeof window.draftSystemInstance.showToast === 'function') {
-            window.draftSystemInstance.showToast(data.message, 'error');
-        } else if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'error',
-                title: 'Draft Error',
-                text: data.message,
-                timer: 3000,
-                showConfirmButton: false
-            });
-        } else {
-            alert('Draft Error: ' + data.message);
-        }
-    });
+    }
 }
+
+function handlePlayerRemovedEvent(data) {
+    if (window.draftSystemInstance && typeof window.draftSystemInstance.handlePlayerRemoved === 'function') {
+        window.draftSystemInstance.handlePlayerRemoved(data);
+    } else {
+        if (data.team_id) {
+            setTimeout(() => updateTeamCount(data.team_id), 100);
+        }
+    }
+}
+
+function handleDraftError(data) {
+    if (window.draftSystemInstance && typeof window.draftSystemInstance.showToast === 'function') {
+        window.draftSystemInstance.showToast(data.message, 'error');
+    } else if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Draft Error',
+            text: data.message,
+            timer: 3000,
+            showConfirmButton: false
+        });
+    } else {
+        alert('Draft Error: ' + data.message);
+    }
+}
+
+let _eventDelegationSetup = false;
 
 /**
  * Setup event delegation for all button clicks
  */
 function setupEventDelegation() {
+    // Guard against duplicate setup
+    if (_eventDelegationSetup) return;
+    _eventDelegationSetup = true;
+
     // Event delegation for draft player buttons
     document.addEventListener('click', function(e) {
         // Draft player button
@@ -187,10 +201,16 @@ function setupEventDelegation() {
     setupDragAndDrop();
 }
 
+let _dragDropSetup = false;
+
 /**
  * Setup drag and drop functionality for player cards and drop zones
  */
 function setupDragAndDrop() {
+    // Guard against duplicate setup
+    if (_dragDropSetup) return;
+    _dragDropSetup = true;
+
     // Drag start on draggable player cards
     document.addEventListener('dragstart', function(e) {
         const playerCard = e.target.closest('.js-draggable-player');

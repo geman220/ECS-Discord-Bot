@@ -9,55 +9,57 @@ document.addEventListener('DOMContentLoaded', function () {
     const actionField = document.getElementById('action');
 
     // Handle claim account buttons
-    document.querySelectorAll('.claim-account-btn').forEach(button => {
-        button.addEventListener('click', function () {
-            const playerId = this.getAttribute('data-player-id');
-            const playerName = this.getAttribute('data-player-name');
-            const playerEmail = this.getAttribute('data-player-email');
+    // ROOT CAUSE FIX: Uses event delegation instead of per-element listeners
+    document.addEventListener('click', function(e) {
+        const button = e.target.closest('.claim-account-btn');
+        if (!button) return;
 
-            // Show confirmation with SweetAlert
-            Swal.fire({
-                title: 'Claim This Account?',
-                html: `
-                    <p class="mb-2">You're claiming the account for:</p>
-                    <div class="text-start border rounded p-3 bg-light">
-                        <strong>${playerName}</strong><br>
-                        <small class="text-muted">${playerEmail}</small>
-                    </div>
-                    <p class="mt-3 mb-0 small text-muted">
-                        We'll send a verification email to <strong>${playerEmail}</strong> to confirm this is your account.
-                    </p>
-                `,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : 'var(--ecs-primary)',
-                cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-                confirmButtonText: '<i class="ti ti-mail me-1"></i>Send Verification Email',
-                cancelButtonText: 'Cancel',
-                customClass: {
-                    popup: 'text-start'
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Set form values and submit
-                    playerIdField.value = playerId;
-                    actionField.value = 'claim';
+        const playerId = button.getAttribute('data-player-id');
+        const playerName = button.getAttribute('data-player-name');
+        const playerEmail = button.getAttribute('data-player-email');
 
-                    // Show loading state
-                    Swal.fire({
-                        title: 'Sending Verification Email...',
-                        text: 'Please wait while we process your request.',
-                        icon: 'info',
-                        allowOutsideClick: false,
-                        showConfirmButton: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
+        // Show confirmation with SweetAlert
+        Swal.fire({
+            title: 'Claim This Account?',
+            html: `
+                <p class="mb-2">You're claiming the account for:</p>
+                <div class="text-start border rounded p-3 bg-light">
+                    <strong>${playerName}</strong><br>
+                    <small class="text-muted">${playerEmail}</small>
+                </div>
+                <p class="mt-3 mb-0 small text-muted">
+                    We'll send a verification email to <strong>${playerEmail}</strong> to confirm this is your account.
+                </p>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : 'var(--ecs-primary)',
+            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+            confirmButtonText: '<i class="ti ti-mail me-1"></i>Send Verification Email',
+            cancelButtonText: 'Cancel',
+            customClass: {
+                popup: 'text-start'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Set form values and submit
+                playerIdField.value = playerId;
+                actionField.value = 'claim';
 
-                    form.submit();
-                }
-            });
+                // Show loading state
+                Swal.fire({
+                    title: 'Sending Verification Email...',
+                    text: 'Please wait while we process your request.',
+                    icon: 'info',
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                form.submit();
+            }
         });
     });
 
@@ -99,13 +101,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Add hover effects to duplicate cards
-    document.querySelectorAll('.duplicate-option').forEach(card => {
-        card.addEventListener('mouseenter', function () {
-            this.classList.add('card-hover');
-        });
+    // ROOT CAUSE FIX: Uses event delegation instead of per-element listeners
+    document.addEventListener('mouseenter', function(e) {
+        const card = e.target.closest('.duplicate-option');
+        if (card) card.classList.add('card-hover');
+    }, true); // Use capture phase for mouseenter (doesn't bubble)
 
-        card.addEventListener('mouseleave', function () {
-            this.classList.remove('card-hover');
-        });
-    });
+    document.addEventListener('mouseleave', function(e) {
+        const card = e.target.closest('.duplicate-option');
+        if (card) card.classList.remove('card-hover');
+    }, true); // Use capture phase for mouseleave (doesn't bubble)
 });
