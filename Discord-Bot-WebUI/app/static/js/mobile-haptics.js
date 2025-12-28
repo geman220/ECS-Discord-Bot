@@ -334,9 +334,12 @@
 
     // Auto-add haptic feedback to common elements
     // Note: Module-level DOMContentLoaded ensures this runs after DOM is ready
+    // FIXED: Added guards to prevent duplicate event listener registration
 
     // Buttons
     document.querySelectorAll('.btn:not([data-haptics="false"])').forEach(btn => {
+      if (btn.hasAttribute('data-haptics-enhanced')) return;
+      btn.setAttribute('data-haptics-enhanced', 'true');
       btn.addEventListener('click', (e) => {
         // Check button type for appropriate feedback
         if (btn.classList.contains('btn-success')) {
@@ -351,6 +354,8 @@
 
     // Form inputs
     document.querySelectorAll('.form-control, .form-select').forEach(input => {
+      if (input.hasAttribute('data-haptics-enhanced')) return;
+      input.setAttribute('data-haptics-enhanced', 'true');
       input.addEventListener('focus', () => {
         Haptics.inputFocus();
       }, { passive: true });
@@ -362,6 +367,8 @@
 
     // Checkboxes and radios
     document.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(input => {
+      if (input.hasAttribute('data-haptics-check-enhanced')) return;
+      input.setAttribute('data-haptics-check-enhanced', 'true');
       input.addEventListener('change', () => {
         if (input.checked) {
           Haptics.selection();
@@ -373,6 +380,8 @@
 
     // Nav links
     document.querySelectorAll('.nav-link:not([data-haptics="false"])').forEach(link => {
+      if (link.hasAttribute('data-haptics-enhanced')) return;
+      link.setAttribute('data-haptics-enhanced', 'true');
       link.addEventListener('click', () => {
         Haptics.light();
       }, { passive: true });
@@ -380,6 +389,8 @@
 
     // Modal events
     document.querySelectorAll('.modal').forEach(modal => {
+      if (modal.hasAttribute('data-haptics-modal-enhanced')) return;
+      modal.setAttribute('data-haptics-modal-enhanced', 'true');
       modal.addEventListener('shown.bs.modal', () => {
         Haptics.modalOpen();
       });

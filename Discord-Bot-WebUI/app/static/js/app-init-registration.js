@@ -282,12 +282,16 @@
         }
 
         // Close when clicking the overlay (keep this as non-action click)
-        document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('layout-overlay') &&
-                document.documentElement.classList.contains('layout-menu-expanded')) {
-                closeMenu();
-            }
-        });
+        // FIXED: Added guard to prevent duplicate global event listener registration
+        if (!window._mobileMenuOverlayListenerRegistered) {
+            window._mobileMenuOverlayListenerRegistered = true;
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('layout-overlay') &&
+                    document.documentElement.classList.contains('layout-menu-expanded')) {
+                    closeMenu();
+                }
+            });
+        }
 
         // Fix for any inert attributes on menu items
         const menuItems = document.querySelectorAll('.menu-item a');

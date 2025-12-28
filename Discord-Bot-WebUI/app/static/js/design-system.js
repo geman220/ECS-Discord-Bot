@@ -257,9 +257,14 @@
       });
 
       // Apply consistent behavior to all modals (skip BEM modals)
+      // FIXED: Added guard to prevent duplicate event listener registration
       document.querySelectorAll('[data-component="modal"], [role="dialog"]').forEach(modal => {
         // Skip BEM modals - they use their own system
         if (modal.classList.contains('c-modal')) return;
+
+        // Skip if already enhanced to prevent duplicate event listeners
+        if (modal.hasAttribute('data-ecs-modal-enhanced')) return;
+        modal.setAttribute('data-ecs-modal-enhanced', 'true');
 
         const modalId = modal.id;
 

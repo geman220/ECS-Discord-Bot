@@ -79,11 +79,16 @@
 
     /**
      * Add swipe-to-delete for input groups
+     * FIXED: Added guard to prevent duplicate Hammer listener registration
      */
     setupSwipeToDelete: function () {
       if (!window.Hammer || !this.isMobile()) return;
 
       document.querySelectorAll('[data-input-group][id*="event-"], [data-event-entry]').forEach(entry => {
+        // Skip if already enhanced to prevent duplicate Hammer listeners
+        if (entry.hasAttribute('data-swipe-enhanced')) return;
+        entry.setAttribute('data-swipe-enhanced', 'true');
+
         const hammer = new Hammer(entry);
         hammer.get('swipe').set({ direction: Hammer.DIRECTION_LEFT, threshold: 50 });
 
@@ -512,25 +517,33 @@
         // this.convertToFloatingLabels(); // Optional: enable if needed
       }
 
-      // Re-run on modal shown
-      document.addEventListener('shown.bs.modal', () => {
-        setTimeout(() => {
-          this.optimizeInputGroups();
-          this.setupSwipeToDelete();
-          this.addQuickActions();
-        }, 100);
-      });
-
-      // Re-run on window resize
-      let resizeTimeout;
-      window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-          if (this.isMobile()) {
+      // Re-run on modal shown (only register listener once)
+      // FIXED: Added guard to prevent duplicate global event listener registration
+      if (!this._modalListenerRegistered) {
+        this._modalListenerRegistered = true;
+        document.addEventListener('shown.bs.modal', () => {
+          setTimeout(() => {
             this.optimizeInputGroups();
-          }
-        }, 250);
-      });
+            this.setupSwipeToDelete();
+            this.addQuickActions();
+          }, 100);
+        });
+      }
+
+      // Re-run on window resize (only register listener once)
+      // FIXED: Added guard to prevent duplicate global event listener registration
+      if (!this._resizeListenerRegistered) {
+        this._resizeListenerRegistered = true;
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+          clearTimeout(resizeTimeout);
+          resizeTimeout = setTimeout(() => {
+            if (this.isMobile()) {
+              this.optimizeInputGroups();
+            }
+          }, 250);
+        });
+      }
 
       console.log('MobileForms: Initialized successfully (refactored with CSS classes and stable selectors)');
     }

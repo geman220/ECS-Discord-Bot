@@ -100,8 +100,15 @@
     /**
      * Fix iOS 100vh issue with CSS custom property
      * REFACTORED: Using CSS custom property instead of inline styles
+     * FIXED: Added guard to prevent duplicate window event listener registration
      */
     fixIOSViewportHeight: function () {
+      // Guard to prevent duplicate window listeners on re-init
+      if (this._viewportListenersRegistered) {
+        return;
+      }
+      this._viewportListenersRegistered = true;
+
       const setVh = () => {
         const vh = window.innerHeight * 0.01;
         // CSS custom property - this is acceptable as it's dynamic viewport calculation
@@ -125,6 +132,12 @@
             return;
           }
 
+          // Skip if already enhanced
+          if (input.hasAttribute('data-ios-keyboard-enhanced')) {
+            return;
+          }
+          input.setAttribute('data-ios-keyboard-enhanced', 'true');
+
           // Add class when keyboard is visible
           input.addEventListener('focus', () => {
             document.documentElement.classList.add('keyboard-visible');
@@ -140,12 +153,19 @@
 
     /**
      * Set up touch feedback for interactive elements
+     * FIXED: Added guard to prevent duplicate event listener registration
      */
     setupTouchFeedback: function () {
       if (this.device.hasTouch) {
         const touchElements = document.querySelectorAll('button, .btn, a.nav-link, .card-header');
 
         touchElements.forEach(el => {
+          // Skip if already enhanced to prevent duplicate event listeners
+          if (el.hasAttribute('data-touch-enhanced')) {
+            return;
+          }
+          el.setAttribute('data-touch-enhanced', 'true');
+
           // Use opacity change instead of transform for feedback
           el.addEventListener('touchstart', function () {
             this.classList.add('touch-active');
@@ -164,11 +184,18 @@
     /**
      * Enhance modal behavior on mobile devices
      * REFACTORED: Replaced inline styles with CSS classes
+     * FIXED: Added guard to prevent duplicate event listener registration
      */
     enhanceModals: function () {
       const modals = document.querySelectorAll('[data-modal]');
 
       modals.forEach(modal => {
+        // Skip if already enhanced to prevent duplicate event listeners
+        if (modal.hasAttribute('data-modal-enhanced')) {
+          return;
+        }
+        modal.setAttribute('data-modal-enhanced', 'true');
+
         const modalDialog = modal.querySelector('[data-modal-dialog]');
 
         // Auto-convert modals to bottom sheets on mobile (unless explicitly disabled)
@@ -361,9 +388,16 @@
 
     /**
      * Handle keyboard open/close for modals
+     * FIXED: Added guard to prevent duplicate event listener registration
      */
     handleModalKeyboard: function (modal) {
       if (!this.device.isMobile) return;
+
+      // Skip if already handled to prevent duplicate event listeners
+      if (modal.hasAttribute('data-keyboard-enhanced')) {
+        return;
+      }
+      modal.setAttribute('data-keyboard-enhanced', 'true');
 
       const inputs = modal.querySelectorAll('input, textarea, select');
 
@@ -451,11 +485,18 @@
     /**
      * Enhance tables for better mobile experience
      * REFACTORED: Replaced inline styles with CSS classes
+     * FIXED: Added guard to prevent duplicate event listener registration
      */
     enhanceTables: function () {
       const tables = document.querySelectorAll('[data-table-responsive]');
 
       tables.forEach(table => {
+        // Skip if already enhanced to prevent duplicate event listeners
+        if (table.hasAttribute('data-table-enhanced')) {
+          return;
+        }
+        table.setAttribute('data-table-enhanced', 'true');
+
         // Ensure touch scrolling works well
         // REFACTORED: Using CSS class instead of inline style
         table.classList.add('table-responsive-touch');

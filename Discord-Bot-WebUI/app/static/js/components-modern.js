@@ -266,8 +266,15 @@
   const TooltipController = {
     activeTooltip: null,
     tooltips: new Map(),
+    _initialized: false,
 
     init() {
+      // FIXED: Added guard to prevent duplicate event listener registration
+      if (this._initialized) {
+        return;
+      }
+      this._initialized = true;
+
       // Helper to safely get element from event target
       const getElement = (target) => target instanceof Element ? target : null;
 
@@ -355,8 +362,15 @@
    */
   const DropdownController = {
     activeDropdown: null,
+    _initialized: false,
 
     init() {
+      // FIXED: Added guard to prevent duplicate event listener registration
+      if (this._initialized) {
+        return;
+      }
+      this._initialized = true;
+
       // Register dropdown trigger via EventDelegation
       if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
         window.EventDelegation.register('dropdown-trigger', (element, e) => {

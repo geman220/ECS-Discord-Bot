@@ -65,31 +65,36 @@ document.addEventListener('DOMContentLoaded', function () {
             // console.error("Error showing modal:", error);
         }
 
-        modalElement.addEventListener('shown.bs.modal', function () {
-            // Initialize Select2 dropdowns
-            $(modalElement).find('.select2-single').select2({
-                theme: 'bootstrap-5',
-                width: '100%',
-                placeholder: 'Select an option',
-                allowClear: true,
-                dropdownParent: $(modalElement)
+        // FIXED: Added guard to prevent duplicate modal event listener registration
+        if (!modalElement.hasAttribute('data-onboarding-select2-enhanced')) {
+            modalElement.setAttribute('data-onboarding-select2-enhanced', 'true');
+
+            modalElement.addEventListener('shown.bs.modal', function () {
+                // Initialize Select2 dropdowns
+                $(modalElement).find('.select2-single').select2({
+                    theme: 'bootstrap-5',
+                    width: '100%',
+                    placeholder: 'Select an option',
+                    allowClear: true,
+                    dropdownParent: $(modalElement)
+                });
+
+                $(modalElement).find('.select2-multiple').select2({
+                    theme: 'bootstrap-5',
+                    width: '100%',
+                    placeholder: 'Select options',
+                    allowClear: true,
+                    dropdownParent: $(modalElement)
+                });
+
+                // Update the progress bar
+                updateProgress();
             });
 
-            $(modalElement).find('.select2-multiple').select2({
-                theme: 'bootstrap-5',
-                width: '100%',
-                placeholder: 'Select options',
-                allowClear: true,
-                dropdownParent: $(modalElement)
+            modalElement.addEventListener('hidden.bs.modal', function () {
+                $(modalElement).find('.select2-single, .select2-multiple').select2('destroy');
             });
-
-            // Update the progress bar
-            updateProgress();
-        });
-
-        modalElement.addEventListener('hidden.bs.modal', function () {
-            $(modalElement).find('.select2-single, .select2-multiple').select2('destroy');
-        });
+        }
     }
 
     // ======================
@@ -97,20 +102,24 @@ document.addEventListener('DOMContentLoaded', function () {
     // ======================
 
     // Initialize the simple cropper when modal is shown
-    modalElement?.addEventListener('shown.bs.modal', function () {
-        if (!window.SimpleCropperInstance) {
-            window.SimpleCropperInstance = initializeSimpleCropper('cropCanvas');
-        }
+    // FIXED: Added guard to prevent duplicate modal event listener registration
+    if (modalElement && !modalElement.hasAttribute('data-onboarding-modal-enhanced')) {
+        modalElement.setAttribute('data-onboarding-modal-enhanced', 'true');
+        modalElement.addEventListener('shown.bs.modal', function () {
+            if (!window.SimpleCropperInstance) {
+                window.SimpleCropperInstance = initializeSimpleCropper('cropCanvas');
+            }
 
-        // Also ensure the file input has the change listener
-        const imageInput = document.getElementById('image');
-        if (imageInput && !imageInput.hasAttribute('data-listener-added')) {
-            imageInput.setAttribute('data-listener-added', 'true');
-            imageInput.addEventListener('change', function (e) {
-                window.loadImageIntoCropper(this);
-            });
-        }
-    });
+            // Also ensure the file input has the change listener
+            const imageInput = document.getElementById('image');
+            if (imageInput && !imageInput.hasAttribute('data-listener-added')) {
+                imageInput.setAttribute('data-listener-added', 'true');
+                imageInput.addEventListener('change', function (e) {
+                    window.loadImageIntoCropper(this);
+                });
+            }
+        });
+    }
 
     // Note: Crop & Save handling is now done in simple-cropper.js via cropAndSaveProfileImage()
 

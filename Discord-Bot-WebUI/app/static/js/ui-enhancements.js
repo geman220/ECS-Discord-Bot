@@ -1,9 +1,14 @@
 /**
  * UI Enhancements - Additional JavaScript for UI fixes
+ * FIXED: Added guards to prevent duplicate event listener registration and MutationObserver accumulation
  */
 
 (function() {
     'use strict';
+
+    // Track initialization state to prevent duplicate observers and listeners
+    let featherObserver = null;
+    let turboListenersRegistered = false;
 
     /**
      * Initialize all UI enhancements when DOM is ready
@@ -17,14 +22,21 @@
     /**
      * Initialize Feather Icons
      * Re-runs feather.replace() to ensure all icons are rendered
+     * FIXED: Reuses existing MutationObserver instead of creating new ones
      */
     function initFeatherIcons() {
         if (typeof feather !== 'undefined') {
             // Initial replace
             feather.replace();
 
-            // Also watch for dynamic content
-            const observer = new MutationObserver(function(mutations) {
+            // Only create observer once - disconnect old one if exists
+            if (featherObserver) {
+                // Observer already exists, just run replace for any new icons
+                return;
+            }
+
+            // Watch for dynamic content
+            featherObserver = new MutationObserver(function(mutations) {
                 let hasNewFeatherIcons = false;
                 mutations.forEach(function(mutation) {
                     mutation.addedNodes.forEach(function(node) {
@@ -43,7 +55,7 @@
                 }
             });
 
-            observer.observe(document.body, {
+            featherObserver.observe(document.body, {
                 childList: true,
                 subtree: true
             });
@@ -52,6 +64,7 @@
 
     /**
      * Initialize Match History Collapsible Weeks
+     * FIXED: Added guard to prevent duplicate event listener registration
      */
     function initMatchHistoryCollapse() {
         const dateGroups = document.querySelectorAll('.c-match-history__date-group');
@@ -60,6 +73,12 @@
             const header = group.querySelector('.c-match-history__date-header');
 
             if (header) {
+                // Skip if already enhanced to prevent duplicate event listeners
+                if (header.hasAttribute('data-collapse-enhanced')) {
+                    return;
+                }
+                header.setAttribute('data-collapse-enhanced', 'true');
+
                 // Collapse all groups except the first one by default
                 if (index > 0) {
                     group.classList.add('is-collapsed');
@@ -82,10 +101,19 @@
         });
     }
 
+    // Track if dropdown handlers are registered
+    let dropdownHandlersRegistered = false;
+
     /**
      * Register dropdown actions with EventDelegation
+     * FIXED: Added guard to prevent duplicate registration
      */
     function registerDropdownActions() {
+        if (dropdownHandlersRegistered) {
+            return;
+        }
+        dropdownHandlersRegistered = true;
+
         if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
             window.EventDelegation.register('toggle-dropdown', handleToggleDropdown, { preventDefault: true });
         } else {
@@ -178,7 +206,11 @@
     }
 
     // Re-initialize after turbo/ajax page loads
-    document.addEventListener('turbo:load', init);
-    document.addEventListener('turbolinks:load', init);
+    // FIXED: Added guard to prevent duplicate global event listener registration
+    if (!turboListenersRegistered) {
+        turboListenersRegistered = true;
+        document.addEventListener('turbo:load', init);
+        document.addEventListener('turbolinks:load', init);
+    }
 
 })();

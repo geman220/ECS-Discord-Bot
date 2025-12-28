@@ -9,6 +9,9 @@
   'use strict';
   
   const ResponsiveTables = {
+    // Track MutationObserver instance for cleanup
+    _observer: null,
+
     /**
      * Initialize responsive tables functionality
      */
@@ -181,18 +184,25 @@
     
     /**
      * Setup MutationObserver to detect and process newly added tables
+     * FIXED: Disconnect existing observer before creating new one to prevent accumulation
      */
     setupMutationObserver: function() {
+      // Disconnect existing observer if any (prevents accumulation on reinit)
+      if (this._observer) {
+        this._observer.disconnect();
+        this._observer = null;
+      }
+
       // Create observer instance
-      const observer = new MutationObserver((mutations) => {
+      this._observer = new MutationObserver((mutations) => {
         let shouldProcess = false;
-        
+
         mutations.forEach(mutation => {
           // Check for added nodes
           if (mutation.addedNodes && mutation.addedNodes.length) {
             for (let i = 0; i < mutation.addedNodes.length; i++) {
               const node = mutation.addedNodes[i];
-              
+
               // Check if node is an element
               if (node.nodeType === 1) {
                 // Check if it's a table with our class
@@ -200,7 +210,7 @@
                   shouldProcess = true;
                   break;
                 }
-                
+
                 // Check if it contains tables with our class
                 if (node.querySelectorAll && node.querySelectorAll('table.mobile-card-table').length) {
                   shouldProcess = true;
@@ -210,15 +220,15 @@
             }
           }
         });
-        
+
         // Process tables if needed
         if (shouldProcess) {
           this.processAllTables();
         }
       });
-      
+
       // Start observing document body
-      observer.observe(document.body, {
+      this._observer.observe(document.body, {
         childList: true,
         subtree: true
       });
