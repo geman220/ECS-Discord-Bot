@@ -156,6 +156,30 @@ function auditJavaScriptPatterns() {
                 addIssue('critical', 'Security', `eval() is a security risk - use alternatives`, relativePath, lineNum);
             }
 
+            // Check for event delegation bug: using e.target instead of closest() result
+            // Pattern: finds data-action via closest() but then uses target in handler
+            if (/\.closest\s*\(\s*['"][^'"]*data-action[^'"]*['"]\s*\)/.test(line)) {
+                // This line has a closest() call for data-action
+                // Check if later in the function they incorrectly use target/e.target
+                const funcStart = content.lastIndexOf('function', content.indexOf(line));
+                const funcEnd = content.indexOf('}', content.indexOf(line) + line.length);
+                if (funcStart > -1 && funcEnd > -1) {
+                    const funcBody = content.substring(funcStart, funcEnd);
+                    // Check if they assign closest result to a variable
+                    const closestMatch = line.match(/(?:const|let|var)\s+(\w+)\s*=\s*(?:e\.target|target|event\.target)\.closest/);
+                    if (closestMatch) {
+                        const varName = closestMatch[1];
+                        // Check if handler calls use target instead of the variable
+                        const handlerPattern = new RegExp(`handle\\w+\\s*\\(\\s*(?:e\\.target|target|event\\.target)\\s*[,)]`, 'g');
+                        if (handlerPattern.test(funcBody)) {
+                            addIssue('high', 'JS Quality',
+                                `Event delegation bug: handler receives e.target instead of '${varName}' (closest result)`,
+                                relativePath, lineNum);
+                        }
+                    }
+                }
+            }
+
             // Check for innerHTML without sanitization
             // Only flag if it includes variable interpolation that could be user input
             if (/\.innerHTML\s*=/.test(line) && !line.includes('DOMPurify') && !line.includes('sanitize') && !line.includes('trustHtml') && !line.includes('safeHtml')) {

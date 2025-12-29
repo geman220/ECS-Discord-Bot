@@ -129,7 +129,8 @@
 
   function handleClick(event) {
     const target = event.target;
-    const action = target.closest('[data-action]')?.getAttribute('data-action');
+    const actionElement = target.closest('[data-action]');
+    const action = actionElement?.getAttribute('data-action');
 
     if (!action) return;
 
@@ -152,7 +153,7 @@
 
       case 'toggle-submenu':
         event.preventDefault();
-        handleSubmenuToggle(target);
+        handleSubmenuToggle(actionElement);  // Pass the actual button, not the click target
         break;
 
       case 'no-active-season':
