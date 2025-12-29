@@ -158,16 +158,10 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="c-btn c-btn--outline-info" data-action="view-match" data-match-id="{{ match.id }}">
-                                            <i class="ti ti-eye"></i>
-                                        </button>
-                                        <button class="c-btn c-btn--outline-warning" data-action="edit-match" data-match-id="{{ match.id }}">
-                                            <i class="ti ti-edit"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--outline-info" data-action="view-match" data-match-id="{{ match.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
+                                        <button class="c-btn c-btn--outline-warning" data-action="edit-match" data-match-id="{{ match.id }}" aria-label="Edit"><i class="ti ti-edit"></i></button>
                                         {% if not match.date or not match.time %}
-                                        <button class="c-btn c-btn--outline-success" data-action="schedule-match" data-match-id="{{ match.id }}">
-                                            <i class="ti ti-calendar-plus"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--outline-success" data-action="schedule-match" data-match-id="{{ match.id }}" aria-label="Add"><i class="ti ti-calendar-plus"></i></button>
                                         {% endif %}
                                     </div>
                                 </td>

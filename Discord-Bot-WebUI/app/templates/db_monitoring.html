@@ -12,9 +12,7 @@
                     <p class="text-muted">Track database connections and pool health</p>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <button id="refreshBtn" type="button" class="c-btn c-btn--icon-only c-btn--outline-primary c-btn--sm">
-                        <i class="ti ti-refresh"></i>
-                    </button>
+                    <button id="refreshBtn" type="button" class="c-btn c-btn--icon-only c-btn--outline-primary c-btn--sm" aria-label="Refresh"><i class="ti ti-refresh"></i></button>
                     <a href="{{ url_for('monitoring.monitor_dashboard') }}" class="c-btn c-btn--outline-primary c-btn--sm">
                         <i class="ti ti-arrow-left me-1"></i>Back to Task Monitor
                     </a>

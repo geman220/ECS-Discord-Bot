@@ -50,9 +50,7 @@
                                 <i class="ti ti-calendar-stats me-1"></i>Change Season
                             </a>
                         </div>
-                        <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="true" data-collapse-toggle>
-                            <i class="ti ti-chevron-down"></i>
-                        </button>
+                        <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="true" data-collapse-toggle aria-label="Expand"><i class="ti ti-chevron-down"></i></button>
                     </div>
                 </div>
                 <div class="collapse show" id="filterCollapse">
@@ -336,9 +334,7 @@
                                     </td>
                                     <td class="match-actions-cell" data-label="Actions">
                                         <div class="dropdown match-actions-dropdown">
-                                            <button class="c-btn c-btn--sm c-btn--icon-only btn-text-secondary rounded-pill dropdown-toggle hide-arrow ecs-btn ecs-btn-sm ecs-btn-icon" type="button" id="matchActions{{ match.id }}" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle>
-                                                <i class="ti ti-dots-vertical"></i>
-                                            </button>
+                                            <button class="c-btn c-btn--sm c-btn--icon-only btn-text-secondary rounded-pill dropdown-toggle hide-arrow ecs-btn ecs-btn-sm ecs-btn-icon" type="button" id="matchActions{{ match.id }}" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
                                             <ul class="dropdown-menu dropdown-menu-end match-actions-menu" aria-labelledby="matchActions{{ match.id }}" data-dropdown-menu>
                                                 <li>
                                                     <a class="dropdown-item" href="{{ url_for('teams.team_details', team_id=match.home_team_id) }}">

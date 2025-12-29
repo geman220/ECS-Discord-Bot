@@ -252,7 +252,7 @@
                                                                 <div class="c-card__body p-3">
                                                                     <div class="mb-2">
                                                                         <label class="form-label fw-semibold">Player Name *</label>
-                                                                        <input type="text" class="form-control form-control-sm new-player-name" value="{{ ord.player_info.name }}" required data-form-control>
+                                                                        <input type="text" class="form-control form-control-sm new-player-name" value="{{ ord.player_info.name }}" required data-form-control aria-label="Player Name">
                                                                         <div class="form-text">Pre-filled from WooCommerce order - edit if needed</div>
                                                                     </div>
                                                                     
@@ -274,7 +274,7 @@
                                                                 </div>
                                                                 <div class="c-card__body p-3">
                                                                     <div class="mb-2">
-                                                                        <input type="text" class="form-control form-control-sm player-search js-player-search" data-issue-id="{{ outer_loop.index0 }}" data-order-index="{{ loop.index0 }}" placeholder="Search by name, email, or phone..." data-form-control>
+                                                                        <input type="text" class="form-control form-control-sm player-search js-player-search" data-issue-id="{{ outer_loop.index0 }}" data-order-index="{{ loop.index0 }}" placeholder="Search by name, email, or phone..." data-form-control aria-label="Search by name, email, or phone...">
                                                                         <div class="form-text">Type at least 2 characters to search</div>
                                                                     </div>
                                                                     <div class="search-results" id="search-results-{{ outer_loop.index0 }}-{{ loop.index0 }}"></div>
@@ -387,7 +387,7 @@
                                                     </button>
                                                 </div>
                                                 <div class="mt-3 d-none" id="player-search-{{ loop.index0 }}">
-                                                    <input type="text" class="form-control" placeholder="Search existing players..." data-form-control>
+                                                    <input type="text" class="form-control" placeholder="Search existing players..." data-form-control aria-label="Search existing players...">
                                                     <div class="search-results mt-2"></div>
                                                 </div>
                                             </div>

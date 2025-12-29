@@ -30,9 +30,7 @@
                         <h5 class="c-card__title mb-0">
                             <i class="ti ti-filter me-2"></i>Filter Users
                         </h5>
-                        <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary" data-bs-toggle="collapse" data-bs-target="#manage-users-old-filterCollapse" aria-expanded="true" data-collapse-toggle>
-                            <i class="ti ti-chevron-down"></i>
-                        </button>
+                        <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary" data-bs-toggle="collapse" data-bs-target="#manage-users-old-filterCollapse" aria-expanded="true" data-collapse-toggle aria-label="Expand"><i class="ti ti-chevron-down"></i></button>
                     </div>
                 </div>
                 <div class="collapse show" id="manage-users-old-filterCollapse">
@@ -197,9 +195,7 @@
                                 <td class="text-end user-actions-cell" data-label="Actions">
                                     <!-- Desktop Dropdown -->
                                     <div class="dropdown d-none d-lg-block">
-                                        <button class="c-btn c-btn--sm c-btn--icon-only btn-text-secondary rounded-pill dropdown-toggle hide-arrow ecs-btn ecs-btn-sm ecs-btn-icon" type="button" id="userActions{{ user.id }}" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle>
-                                            <i class="ti ti-dots-vertical"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--sm c-btn--icon-only btn-text-secondary rounded-pill dropdown-toggle hide-arrow ecs-btn ecs-btn-sm ecs-btn-icon" type="button" id="userActions{{ user.id }}" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
                                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userActions{{ user.id }}" data-dropdown-menu>
                                             <li>
                                                 <a class="dropdown-item" href="#" data-action="edit-user" data-user-id="{{ user.id }}">

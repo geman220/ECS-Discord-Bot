@@ -141,9 +141,7 @@
                                                 <i class="ti ti-eye"></i>
                                             </button>
                                             <a href="{{ url_for('admin_panel.edit_announcement', announcement_id=announcement.id) }}" 
-                                               class="c-btn c-btn--outline-warning">
-                                                <i class="ti ti-edit"></i>
-                                            </a>
+                                               class="c-btn c-btn--outline-warning" aria-label="Edit"><i class="ti ti-edit"></i></a>
                                             <button class="c-btn c-btn--outline-danger js-delete-announcement"
                                                     data-action="delete-announcement"
                                                     data-id="{{ announcement.id }}"

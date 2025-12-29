@@ -77,7 +77,7 @@
                                 <!-- Simulated Navbar -->
                                 <div class="preview-navbar" data-preview-bg="{{ colors.light.bg_card }}" data-preview-border="{{ colors.light.border }}">
                                     <span class="preview-heading" data-preview-color="{{ colors.light.text_heading }}">ECS Dashboard</span>
-                                    <input type="text" class="form-control form-control-sm preview-input" data-preview-bg="{{ colors.light.bg_input }}" data-preview-border="{{ colors.light.border_input }}" data-preview-color="{{ colors.light.text_body }}" placeholder="Search..." data-form-control>
+                                    <input type="text" class="form-control form-control-sm preview-input" data-preview-bg="{{ colors.light.bg_input }}" data-preview-border="{{ colors.light.border_input }}" data-preview-color="{{ colors.light.text_body }}" placeholder="Search..." data-form-control aria-label="Search...">
                                 </div>
 
                                 <!-- Simulated Card -->
@@ -120,7 +120,7 @@
                                 <!-- Simulated Navbar -->
                                 <div class="preview-navbar-dark" data-preview-bg="{{ colors.dark.bg_card }}" data-preview-border="{{ colors.dark.border }}">
                                     <span class="preview-heading-dark" data-preview-color="{{ colors.dark.text_heading }}">ECS Dashboard</span>
-                                    <input type="text" class="form-control form-control-sm preview-input-dark" data-preview-bg="{{ colors.dark.bg_input }}" data-preview-border="{{ colors.dark.border_input }}" data-preview-color="{{ colors.dark.text_body }}" placeholder="Search..." data-form-control>
+                                    <input type="text" class="form-control form-control-sm preview-input-dark" data-preview-bg="{{ colors.dark.bg_input }}" data-preview-border="{{ colors.dark.border_input }}" data-preview-color="{{ colors.dark.text_body }}" placeholder="Search..." data-form-control aria-label="Search...">
                                 </div>
 
                                 <!-- Simulated Card -->
@@ -190,7 +190,7 @@
                                         <span class="color-field-description">Buttons, links, active states</span>
                                     </label>
                                     <div class="input-group color-picker-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color color-picker-input" id="light-primary" value="{{ colors.light.primary }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color color-picker-input" id="light-primary" value="{{ colors.light.primary }}" data-form-control aria-label="Light-Primary">
                                         <input type="text" class="form-control color-hex-input" id="light-primary-hex" value="{{ colors.light.primary }}" pattern="^#[0-9A-Fa-f]{6}$" data-form-control>
                                     </div>
                                 </div>
@@ -200,7 +200,7 @@
                                         <span class="color-field-description">Hover states, highlights</span>
                                     </label>
                                     <div class="input-group color-picker-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color color-picker-input" id="light-primary_light" value="{{ colors.light.primary_light }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color color-picker-input" id="light-primary_light" value="{{ colors.light.primary_light }}" data-form-control aria-label="Light-Primary Light">
                                         <input type="text" class="form-control color-hex-input" id="light-primary_light-hex" value="{{ colors.light.primary_light }}" data-form-control>
                                     </div>
                                 </div>
@@ -210,7 +210,7 @@
                                         <span class="color-field-description">Pressed states, emphasis</span>
                                     </label>
                                     <div class="input-group color-picker-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color color-picker-input" id="light-primary_dark" value="{{ colors.light.primary_dark }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color color-picker-input" id="light-primary_dark" value="{{ colors.light.primary_dark }}" data-form-control aria-label="Light-Primary Dark">
                                         <input type="text" class="form-control color-hex-input" id="light-primary_dark-hex" value="{{ colors.light.primary_dark }}" data-form-control>
                                     </div>
                                 </div>
@@ -220,7 +220,7 @@
                                         <span class="color-field-description">Secondary buttons, muted UI</span>
                                     </label>
                                     <div class="input-group color-picker-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color color-picker-input" id="light-secondary" value="{{ colors.light.secondary }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color color-picker-input" id="light-secondary" value="{{ colors.light.secondary }}" data-form-control aria-label="Light-Secondary">
                                         <input type="text" class="form-control color-hex-input" id="light-secondary-hex" value="{{ colors.light.secondary }}" data-form-control>
                                     </div>
                                 </div>
@@ -230,7 +230,7 @@
                                         <span class="color-field-description">CTAs, highlights, badges</span>
                                     </label>
                                     <div class="input-group color-picker-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color color-picker-input" id="light-accent" value="{{ colors.light.accent }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color color-picker-input" id="light-accent" value="{{ colors.light.accent }}" data-form-control aria-label="Light-Accent">
                                         <input type="text" class="form-control color-hex-input" id="light-accent-hex" value="{{ colors.light.accent }}" data-form-control>
                                     </div>
                                 </div>
@@ -252,7 +252,7 @@
                                         <span class="text-muted small">h1-h6, card titles</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="light-text_heading" value="{{ colors.light.text_heading }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="light-text_heading" value="{{ colors.light.text_heading }}" data-form-control aria-label="Light-Text Heading">
                                         <input type="text" class="form-control" id="light-text_heading-hex" value="{{ colors.light.text_heading }}" data-form-control>
                                     </div>
                                 </div>
@@ -262,7 +262,7 @@
                                         <span class="text-muted small">Paragraphs, content</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="light-text_body" value="{{ colors.light.text_body }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="light-text_body" value="{{ colors.light.text_body }}" data-form-control aria-label="Light-Text Body">
                                         <input type="text" class="form-control" id="light-text_body-hex" value="{{ colors.light.text_body }}" data-form-control>
                                     </div>
                                 </div>
@@ -272,7 +272,7 @@
                                         <span class="text-muted small">Captions, labels, hints</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="light-text_muted" value="{{ colors.light.text_muted }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="light-text_muted" value="{{ colors.light.text_muted }}" data-form-control aria-label="Light-Text Muted">
                                         <input type="text" class="form-control" id="light-text_muted-hex" value="{{ colors.light.text_muted }}" data-form-control>
                                     </div>
                                 </div>
@@ -282,7 +282,7 @@
                                         <span class="text-muted small">Clickable text links</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="light-text_link" value="{{ colors.light.text_link }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="light-text_link" value="{{ colors.light.text_link }}" data-form-control aria-label="Light-Text Link">
                                         <input type="text" class="form-control" id="light-text_link-hex" value="{{ colors.light.text_link }}" data-form-control>
                                     </div>
                                 </div>
@@ -304,7 +304,7 @@
                                         <span class="text-muted small">Confirmations, completed</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="light-success" value="{{ colors.light.success }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="light-success" value="{{ colors.light.success }}" data-form-control aria-label="Light-Success">
                                         <input type="text" class="form-control" id="light-success-hex" value="{{ colors.light.success }}" data-form-control>
                                     </div>
                                 </div>
@@ -314,7 +314,7 @@
                                         <span class="text-muted small">Cautions, pending states</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="light-warning" value="{{ colors.light.warning }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="light-warning" value="{{ colors.light.warning }}" data-form-control aria-label="Light-Warning">
                                         <input type="text" class="form-control" id="light-warning-hex" value="{{ colors.light.warning }}" data-form-control>
                                     </div>
                                 </div>
@@ -324,7 +324,7 @@
                                         <span class="text-muted small">Errors, destructive actions</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="light-danger" value="{{ colors.light.danger }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="light-danger" value="{{ colors.light.danger }}" data-form-control aria-label="Light-Danger">
                                         <input type="text" class="form-control" id="light-danger-hex" value="{{ colors.light.danger }}" data-form-control>
                                     </div>
                                 </div>
@@ -334,7 +334,7 @@
                                         <span class="text-muted small">Information, tips</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="light-info" value="{{ colors.light.info }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="light-info" value="{{ colors.light.info }}" data-form-control aria-label="Light-Info">
                                         <input type="text" class="form-control" id="light-info-hex" value="{{ colors.light.info }}" data-form-control>
                                     </div>
                                 </div>
@@ -356,7 +356,7 @@
                                         <span class="text-muted small">Main body background</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="light-bg_body" value="{{ colors.light.bg_body }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="light-bg_body" value="{{ colors.light.bg_body }}" data-form-control aria-label="Light-Bg Body">
                                         <input type="text" class="form-control" id="light-bg_body-hex" value="{{ colors.light.bg_body }}" data-form-control>
                                     </div>
                                 </div>
@@ -366,7 +366,7 @@
                                         <span class="text-muted small">Cards, modals, panels</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="light-bg_card" value="{{ colors.light.bg_card }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="light-bg_card" value="{{ colors.light.bg_card }}" data-form-control aria-label="Light-Bg Card">
                                         <input type="text" class="form-control" id="light-bg_card-hex" value="{{ colors.light.bg_card }}" data-form-control>
                                     </div>
                                 </div>
@@ -376,7 +376,7 @@
                                         <span class="text-muted small">Form fields, inputs</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="light-bg_input" value="{{ colors.light.bg_input }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="light-bg_input" value="{{ colors.light.bg_input }}" data-form-control aria-label="Light-Bg Input">
                                         <input type="text" class="form-control" id="light-bg_input-hex" value="{{ colors.light.bg_input }}" data-form-control>
                                     </div>
                                 </div>
@@ -398,7 +398,7 @@
                                         <span class="text-muted small">Card borders, dividers</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="light-border" value="{{ colors.light.border }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="light-border" value="{{ colors.light.border }}" data-form-control aria-label="Light-Border">
                                         <input type="text" class="form-control" id="light-border-hex" value="{{ colors.light.border }}" data-form-control>
                                     </div>
                                 </div>
@@ -408,7 +408,7 @@
                                         <span class="text-muted small">Form field borders</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="light-border_input" value="{{ colors.light.border_input }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="light-border_input" value="{{ colors.light.border_input }}" data-form-control aria-label="Light-Border Input">
                                         <input type="text" class="form-control" id="light-border_input-hex" value="{{ colors.light.border_input }}" data-form-control>
                                     </div>
                                 </div>
@@ -435,7 +435,7 @@
                                         <span class="text-muted small">Brighter for dark backgrounds</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="dark-primary" value="{{ colors.dark.primary }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="dark-primary" value="{{ colors.dark.primary }}" data-form-control aria-label="Dark-Primary">
                                         <input type="text" class="form-control" id="dark-primary-hex" value="{{ colors.dark.primary }}" data-form-control>
                                     </div>
                                 </div>
@@ -445,7 +445,7 @@
                                         <span class="text-muted small">Hover states</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="dark-primary_light" value="{{ colors.dark.primary_light }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="dark-primary_light" value="{{ colors.dark.primary_light }}" data-form-control aria-label="Dark-Primary Light">
                                         <input type="text" class="form-control" id="dark-primary_light-hex" value="{{ colors.dark.primary_light }}" data-form-control>
                                     </div>
                                 </div>
@@ -455,7 +455,7 @@
                                         <span class="text-muted small">Pressed states</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="dark-primary_dark" value="{{ colors.dark.primary_dark }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="dark-primary_dark" value="{{ colors.dark.primary_dark }}" data-form-control aria-label="Dark-Primary Dark">
                                         <input type="text" class="form-control" id="dark-primary_dark-hex" value="{{ colors.dark.primary_dark }}" data-form-control>
                                     </div>
                                 </div>
@@ -465,7 +465,7 @@
                                         <span class="text-muted small">Secondary UI elements</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="dark-secondary" value="{{ colors.dark.secondary }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="dark-secondary" value="{{ colors.dark.secondary }}" data-form-control aria-label="Dark-Secondary">
                                         <input type="text" class="form-control" id="dark-secondary-hex" value="{{ colors.dark.secondary }}" data-form-control>
                                     </div>
                                 </div>
@@ -475,7 +475,7 @@
                                         <span class="text-muted small">CTAs, highlights</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="dark-accent" value="{{ colors.dark.accent }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="dark-accent" value="{{ colors.dark.accent }}" data-form-control aria-label="Dark-Accent">
                                         <input type="text" class="form-control" id="dark-accent-hex" value="{{ colors.dark.accent }}" data-form-control>
                                     </div>
                                 </div>
@@ -497,7 +497,7 @@
                                         <span class="text-muted small">h1-h6, card titles</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="dark-text_heading" value="{{ colors.dark.text_heading }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="dark-text_heading" value="{{ colors.dark.text_heading }}" data-form-control aria-label="Dark-Text Heading">
                                         <input type="text" class="form-control" id="dark-text_heading-hex" value="{{ colors.dark.text_heading }}" data-form-control>
                                     </div>
                                 </div>
@@ -507,7 +507,7 @@
                                         <span class="text-muted small">Paragraphs, content</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="dark-text_body" value="{{ colors.dark.text_body }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="dark-text_body" value="{{ colors.dark.text_body }}" data-form-control aria-label="Dark-Text Body">
                                         <input type="text" class="form-control" id="dark-text_body-hex" value="{{ colors.dark.text_body }}" data-form-control>
                                     </div>
                                 </div>
@@ -517,7 +517,7 @@
                                         <span class="text-muted small">Captions, labels</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="dark-text_muted" value="{{ colors.dark.text_muted }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="dark-text_muted" value="{{ colors.dark.text_muted }}" data-form-control aria-label="Dark-Text Muted">
                                         <input type="text" class="form-control" id="dark-text_muted-hex" value="{{ colors.dark.text_muted }}" data-form-control>
                                     </div>
                                 </div>
@@ -527,7 +527,7 @@
                                         <span class="text-muted small">Clickable text</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="dark-text_link" value="{{ colors.dark.text_link }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="dark-text_link" value="{{ colors.dark.text_link }}" data-form-control aria-label="Dark-Text Link">
                                         <input type="text" class="form-control" id="dark-text_link-hex" value="{{ colors.dark.text_link }}" data-form-control>
                                     </div>
                                 </div>
@@ -549,7 +549,7 @@
                                         <span class="text-muted small">Confirmations</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="dark-success" value="{{ colors.dark.success }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="dark-success" value="{{ colors.dark.success }}" data-form-control aria-label="Dark-Success">
                                         <input type="text" class="form-control" id="dark-success-hex" value="{{ colors.dark.success }}" data-form-control>
                                     </div>
                                 </div>
@@ -559,7 +559,7 @@
                                         <span class="text-muted small">Cautions</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="dark-warning" value="{{ colors.dark.warning }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="dark-warning" value="{{ colors.dark.warning }}" data-form-control aria-label="Dark-Warning">
                                         <input type="text" class="form-control" id="dark-warning-hex" value="{{ colors.dark.warning }}" data-form-control>
                                     </div>
                                 </div>
@@ -569,7 +569,7 @@
                                         <span class="text-muted small">Errors</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="dark-danger" value="{{ colors.dark.danger }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="dark-danger" value="{{ colors.dark.danger }}" data-form-control aria-label="Dark-Danger">
                                         <input type="text" class="form-control" id="dark-danger-hex" value="{{ colors.dark.danger }}" data-form-control>
                                     </div>
                                 </div>
@@ -579,7 +579,7 @@
                                         <span class="text-muted small">Information</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="dark-info" value="{{ colors.dark.info }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="dark-info" value="{{ colors.dark.info }}" data-form-control aria-label="Dark-Info">
                                         <input type="text" class="form-control" id="dark-info-hex" value="{{ colors.dark.info }}" data-form-control>
                                     </div>
                                 </div>
@@ -601,7 +601,7 @@
                                         <span class="text-muted small">Darkest layer</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="dark-bg_body" value="{{ colors.dark.bg_body }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="dark-bg_body" value="{{ colors.dark.bg_body }}" data-form-control aria-label="Dark-Bg Body">
                                         <input type="text" class="form-control" id="dark-bg_body-hex" value="{{ colors.dark.bg_body }}" data-form-control>
                                     </div>
                                 </div>
@@ -611,7 +611,7 @@
                                         <span class="text-muted small">Elevated surfaces</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="dark-bg_card" value="{{ colors.dark.bg_card }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="dark-bg_card" value="{{ colors.dark.bg_card }}" data-form-control aria-label="Dark-Bg Card">
                                         <input type="text" class="form-control" id="dark-bg_card-hex" value="{{ colors.dark.bg_card }}" data-form-control>
                                     </div>
                                 </div>
@@ -621,7 +621,7 @@
                                         <span class="text-muted small">Form fields</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="dark-bg_input" value="{{ colors.dark.bg_input }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="dark-bg_input" value="{{ colors.dark.bg_input }}" data-form-control aria-label="Dark-Bg Input">
                                         <input type="text" class="form-control" id="dark-bg_input-hex" value="{{ colors.dark.bg_input }}" data-form-control>
                                     </div>
                                 </div>
@@ -631,7 +631,7 @@
                                         <span class="text-muted small">Navigation panel</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="dark-bg_sidebar" value="{{ colors.dark.bg_sidebar }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="dark-bg_sidebar" value="{{ colors.dark.bg_sidebar }}" data-form-control aria-label="Dark-Bg Sidebar">
                                         <input type="text" class="form-control" id="dark-bg_sidebar-hex" value="{{ colors.dark.bg_sidebar }}" data-form-control>
                                     </div>
                                 </div>
@@ -653,7 +653,7 @@
                                         <span class="text-muted small">Card borders, dividers</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="dark-border" value="{{ colors.dark.border }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="dark-border" value="{{ colors.dark.border }}" data-form-control aria-label="Dark-Border">
                                         <input type="text" class="form-control" id="dark-border-hex" value="{{ colors.dark.border }}" data-form-control>
                                     </div>
                                 </div>
@@ -663,7 +663,7 @@
                                         <span class="text-muted small">Form field borders</span>
                                     </label>
                                     <div class="input-group" data-input-group>
-                                        <input type="color" class="form-control form-control-color" id="dark-border_input" value="{{ colors.dark.border_input }}" data-form-control>
+                                        <input type="color" class="form-control form-control-color" id="dark-border_input" value="{{ colors.dark.border_input }}" data-form-control aria-label="Dark-Border Input">
                                         <input type="text" class="form-control" id="dark-border_input-hex" value="{{ colors.dark.border_input }}" data-form-control>
                                     </div>
                                 </div>

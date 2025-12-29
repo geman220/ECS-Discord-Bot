@@ -1135,9 +1135,7 @@ async function loadMembers() {
                             <strong>${member.name || 'Unknown'}</strong>
                             <br><small class="text-muted">${member.email || ''}</small>
                         </div>
-                        <button class="c-btn c-btn--sm c-btn--outline-danger js-remove-member" data-action="remove-member" data-member-id="${member.id}">
-                            <i class="ti ti-x"></i>
-                        </button>
+                        <button class="c-btn c-btn--sm c-btn--outline-danger js-remove-member" data-action="remove-member" data-member-id="${member.id}" aria-label="Button"><i class="ti ti-x"></i></button>
                     </div>
                 `).join('');
 

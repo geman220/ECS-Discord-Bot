@@ -35,6 +35,15 @@ import './unified-mutation-observer.js';
 // Core + handlers loaded from event-delegation/index.js
 import './event-delegation/index.js';
 
+// Ensure EventDelegation is initialized (Vite bundling can affect auto-init)
+if (typeof EventDelegation !== 'undefined' && typeof EventDelegation.init === 'function') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => EventDelegation.init());
+    } else {
+        EventDelegation.init();
+    }
+}
+
 // Core utilities
 import './csrf-fetch.js';
 import './helpers-minimal.js';
@@ -126,9 +135,10 @@ import './app-init-registration.js';
 // ============================================================================
 
 import './utils/visibility.js';
+import './utils/safe-html.js';
 import './components/tabs-controller.js';
 import './components/progressive-disclosure.js';
-import './components/mobile-table-enhancer.js';
+// mobile-table-enhancer.js - removed (file doesn't exist)
 
 // ============================================================================
 // 8. CUSTOM JS - Core

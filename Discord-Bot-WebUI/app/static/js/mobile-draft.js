@@ -137,15 +137,13 @@
               <div class="small text-muted">Select team to draft</div>
             </div>
           </div>
-          <button class="btn btn-sm btn-light" onclick="this.closest('.mobile-quick-draft-panel').remove()">
-            <i class="ti ti-x"></i>
-          </button>
+          <button class="btn btn-sm btn-light" data-action="close-quick-draft-panel" aria-label="Close"><i class="ti ti-x"></i></button>
         </div>
         <div class="d-grid gap-2">
-          <button class="btn btn-success btn-lg" onclick="MobileDraft.quickDraft('${playerId}', 'default')">
+          <button class="btn btn-success btn-lg" data-action="quick-draft" data-player-id="${playerId}" data-team="default">
             <i class="ti ti-check"></i> Quick Draft
           </button>
-          <button class="btn btn-outline-primary" onclick="MobileDraft.showTeamSelector('${playerId}')">
+          <button class="btn btn-outline-primary" data-action="show-team-selector" data-player-id="${playerId}">
             <i class="ti ti-users"></i> Select Team
           </button>
         </div>
@@ -597,5 +595,31 @@
 
   // Expose globally
   window.MobileDraft = MobileDraft;
+
+  // ========================================================================
+  // EVENT DELEGATION REGISTRATIONS
+  // ========================================================================
+
+  if (typeof EventDelegation !== 'undefined') {
+    EventDelegation.register('close-quick-draft-panel', function(element) {
+      const panel = element.closest('.mobile-quick-draft-panel');
+      if (panel) panel.remove();
+    }, { preventDefault: true });
+
+    EventDelegation.register('quick-draft', function(element) {
+      const playerId = element.dataset.playerId;
+      const team = element.dataset.team || 'default';
+      if (playerId && window.MobileDraft) {
+        MobileDraft.quickDraft(playerId, team);
+      }
+    }, { preventDefault: true });
+
+    EventDelegation.register('show-team-selector', function(element) {
+      const playerId = element.dataset.playerId;
+      if (playerId && window.MobileDraft) {
+        MobileDraft.showTeamSelector(playerId);
+      }
+    }, { preventDefault: true });
+  }
 
 })(window);

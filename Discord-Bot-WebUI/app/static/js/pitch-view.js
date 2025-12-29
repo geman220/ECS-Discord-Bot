@@ -336,14 +336,22 @@ class PitchViewSystem {
             element.innerHTML = `
                 <img src="${player.profile_picture_url}" alt="${player.name}"
                      class="player-profile-img"
-                     onerror="this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none');">
+                     data-fallback-initials="${this.getPlayerInitials(player.name)}">
                 <div class="player-initials d-none">${this.getPlayerInitials(player.name)}</div>
-                <button class="remove-btn" onclick="pitchViewInstance.removePlayerFromPosition(${player.id}, '${position}', ${teamId})" title="Remove ${player.name}">×</button>
+                <button class="remove-btn" data-action="remove-player-from-pitch" data-player-id="${player.id}" data-position="${position}" data-team-id="${teamId}" title="Remove ${player.name}" aria-label="Remove ${player.name}">×</button>
             `;
+            // Set up image error handling
+            const img = element.querySelector('img');
+            if (img) {
+                img.onerror = function() {
+                    this.classList.add('d-none');
+                    this.nextElementSibling?.classList.remove('d-none');
+                };
+            }
         } else {
             element.innerHTML = `
                 <div class="player-initials">${this.getPlayerInitials(player.name)}</div>
-                <button class="remove-btn" onclick="pitchViewInstance.removePlayerFromPosition(${player.id}, '${position}', ${teamId})" title="Remove ${player.name}">×</button>
+                <button class="remove-btn" data-action="remove-player-from-pitch" data-player-id="${player.id}" data-position="${position}" data-team-id="${teamId}" title="Remove ${player.name}" aria-label="Remove ${player.name}">×</button>
             `;
         }
 
@@ -912,3 +920,18 @@ if (typeof module !== 'undefined' && module.exports) {
 window.initializePitchView = initializePitchView;
 window.handlePositionDrop = handlePositionDrop;
 window.switchTeamView = switchTeamView;
+
+// ============================================================================
+// EVENT DELEGATION REGISTRATIONS
+// ============================================================================
+
+if (typeof EventDelegation !== 'undefined') {
+    EventDelegation.register('remove-player-from-pitch', function(element) {
+        const playerId = parseInt(element.dataset.playerId, 10);
+        const position = element.dataset.position;
+        const teamId = parseInt(element.dataset.teamId, 10);
+        if (window.pitchViewInstance && playerId && position) {
+            window.pitchViewInstance.removePlayerFromPosition(playerId, position, teamId);
+        }
+    }, { preventDefault: true });
+}

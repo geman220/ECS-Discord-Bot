@@ -231,9 +231,7 @@
     actionsCell.innerHTML = `
       <div class="c-match-actions">
         <div class="c-match-actions__dropdown dropdown d-inline-block me-2">
-          <button class="btn btn-link text-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle>
-            <i class="fas fa-ellipsis-v"></i>
-          </button>
+          <button class="btn btn-link text-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle aria-label="More options"><i class="fas fa-ellipsis-v"></i></button>
           <ul class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
             <li>
               <a class="dropdown-item" href="#" data-action="edit-match" data-match-id="${matchId}">

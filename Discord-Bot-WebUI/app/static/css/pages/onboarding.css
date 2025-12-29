@@ -25,7 +25,7 @@
     /* Pitch Neutrals */
     --onboard-surface: #FFFFFF;
     --onboard-surface-alt: #F8FAFC;
-    --onboard-border: #E2E8F0;
+    --onboard-border-color: var(--color-border);
     --onboard-border-strong: #CBD5E1;
 
     /* Typography - Athletic Confidence */

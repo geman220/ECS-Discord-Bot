@@ -47,9 +47,7 @@
                 </td>
                 <td data-label="Actions">
                     <div class="dropdown">
-                        <button class="c-btn c-btn--sm c-btn--icon-only dropdown-toggle" data-bs-toggle="dropdown" data-dropdown-toggle>
-                            <i class="ti ti-dots-vertical"></i>
-                        </button>
+                        <button class="c-btn c-btn--sm c-btn--icon-only dropdown-toggle" data-bs-toggle="dropdown" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
                         <div class="dropdown-menu" data-dropdown-menu>
                             <a class="dropdown-item" href="{{ url_for('edit_user', id=user.id) }}">
                                 <i class="ti ti-edit"></i> Edit

@@ -134,9 +134,7 @@
                                 </td>
                                 <td>
                                     <div class="dropdown">
-                                        <button class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary" type="button" data-bs-toggle="dropdown" data-dropdown-toggle>
-                                            <i class="ti ti-dots-vertical"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary" type="button" data-bs-toggle="dropdown" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
                                         <ul class="dropdown-menu" data-dropdown-menu>
                                             <li>
                                                 <a class="dropdown-item" href="{{ url_for('admin_panel.league_management_team_detail', team_id=team.id) }}">

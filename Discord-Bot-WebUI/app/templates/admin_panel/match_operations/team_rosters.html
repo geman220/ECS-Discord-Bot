@@ -170,12 +170,8 @@
                                         {{ team.players|length if team.players else 0 }} players
                                     </small>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="c-btn c-btn--outline-info c-btn--sm" data-action="view-team-roster" data-team-id="{{ team.id }}">
-                                            <i class="ti ti-eye"></i>
-                                        </button>
-                                        <button class="c-btn c-btn--outline-warning c-btn--sm" data-action="edit-team-roster" data-team-id="{{ team.id }}">
-                                            <i class="ti ti-edit"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--outline-info c-btn--sm" data-action="view-team-roster" data-team-id="{{ team.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
+                                        <button class="c-btn c-btn--outline-warning c-btn--sm" data-action="edit-team-roster" data-team-id="{{ team.id }}" aria-label="Edit"><i class="ti ti-edit"></i></button>
                                     </div>
                                 </div>
                             </div>

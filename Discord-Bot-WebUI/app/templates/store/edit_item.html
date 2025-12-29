@@ -97,18 +97,14 @@
                                         {% set colors = item.available_colors | replace("'", '"') | fromjson %}
                                         {% for color in colors %}
                                         <div class="input-group mb-2" data-input-group>
-                                            <input type="text" class="form-control" name="colors[]" value="{{ color }}" placeholder="e.g. Red, Blue, Green" data-form-control>
-                                            <button type="button" class="c-btn c-btn--outline-danger remove-color {% if loop.first and loop.last %}d-none{% endif %}" data-action="remove-color">
-                                                <i class="ti ti-x"></i>
-                                            </button>
+                                            <input type="text" class="form-control" name="colors[]" value="{{ color }}" placeholder="e.g. Red, Blue, Green" data-form-control aria-label="e.g. Red, Blue, Green">
+                                            <button type="button" class="c-btn c-btn--outline-danger remove-color {% if loop.first and loop.last %}d-none{% endif %}" data-action="remove-color" aria-label="Button"><i class="ti ti-x"></i></button>
                                         </div>
                                         {% endfor %}
                                         {% else %}
                                         <div class="input-group mb-2" data-input-group>
-                                            <input type="text" class="form-control" name="colors[]" placeholder="e.g. Red, Blue, Green" data-form-control>
-                                            <button type="button" class="c-btn c-btn--outline-danger remove-color d-none" data-action="remove-color">
-                                                <i class="ti ti-x"></i>
-                                            </button>
+                                            <input type="text" class="form-control" name="colors[]" placeholder="e.g. Red, Blue, Green" data-form-control aria-label="e.g. Red, Blue, Green">
+                                            <button type="button" class="c-btn c-btn--outline-danger remove-color d-none" data-action="remove-color" aria-label="Button"><i class="ti ti-x"></i></button>
                                         </div>
                                         {% endif %}
                                     </div>
@@ -126,18 +122,14 @@
                                         {% set sizes = item.available_sizes | replace("'", '"') | fromjson %}
                                         {% for size in sizes %}
                                         <div class="input-group mb-2" data-input-group>
-                                            <input type="text" class="form-control" name="sizes[]" value="{{ size }}" placeholder="e.g. S, M, L, XL" data-form-control>
-                                            <button type="button" class="c-btn c-btn--outline-danger remove-size {% if loop.first and loop.last %}d-none{% endif %}" data-action="remove-size">
-                                                <i class="ti ti-x"></i>
-                                            </button>
+                                            <input type="text" class="form-control" name="sizes[]" value="{{ size }}" placeholder="e.g. S, M, L, XL" data-form-control aria-label="e.g. S, M, L, XL">
+                                            <button type="button" class="c-btn c-btn--outline-danger remove-size {% if loop.first and loop.last %}d-none{% endif %}" data-action="remove-size" aria-label="Button"><i class="ti ti-x"></i></button>
                                         </div>
                                         {% endfor %}
                                         {% else %}
                                         <div class="input-group mb-2" data-input-group>
-                                            <input type="text" class="form-control" name="sizes[]" placeholder="e.g. S, M, L, XL" data-form-control>
-                                            <button type="button" class="c-btn c-btn--outline-danger remove-size d-none" data-action="remove-size">
-                                                <i class="ti ti-x"></i>
-                                            </button>
+                                            <input type="text" class="form-control" name="sizes[]" placeholder="e.g. S, M, L, XL" data-form-control aria-label="e.g. S, M, L, XL">
+                                            <button type="button" class="c-btn c-btn--outline-danger remove-size d-none" data-action="remove-size" aria-label="Button"><i class="ti ti-x"></i></button>
                                         </div>
                                         {% endif %}
                                     </div>
@@ -175,10 +167,8 @@ document.addEventListener('DOMContentLoaded', function() {
         div.className = 'input-group mb-2';
         div.setAttribute('data-input-group', '');
         div.innerHTML = `
-            <input type="text" class="form-control" name="colors[]" placeholder="e.g. Red, Blue, Green" data-form-control>
-            <button type="button" class="c-btn c-btn--outline-danger remove-color" data-action="remove-color">
-                <i class="ti ti-x"></i>
-            </button>
+            <input type="text" class="form-control" name="colors[]" placeholder="e.g. Red, Blue, Green" data-form-control aria-label="e.g. Red, Blue, Green">
+            <button type="button" class="c-btn c-btn--outline-danger remove-color" data-action="remove-color" aria-label="Button"><i class="ti ti-x"></i></button>
         `;
         container.appendChild(div);
         updateRemoveButtons('color');
@@ -191,10 +181,8 @@ document.addEventListener('DOMContentLoaded', function() {
         div.className = 'input-group mb-2';
         div.setAttribute('data-input-group', '');
         div.innerHTML = `
-            <input type="text" class="form-control" name="sizes[]" placeholder="e.g. S, M, L, XL" data-form-control>
-            <button type="button" class="c-btn c-btn--outline-danger remove-size" data-action="remove-size">
-                <i class="ti ti-x"></i>
-            </button>
+            <input type="text" class="form-control" name="sizes[]" placeholder="e.g. S, M, L, XL" data-form-control aria-label="e.g. S, M, L, XL">
+            <button type="button" class="c-btn c-btn--outline-danger remove-size" data-action="remove-size" aria-label="Button"><i class="ti ti-x"></i></button>
         `;
         container.appendChild(div);
         updateRemoveButtons('size');

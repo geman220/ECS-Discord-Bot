@@ -53,10 +53,8 @@
             <div class="col-md-4">
                 <label class="form-label">Search</label>
                 <div class="input-group" data-input-group>
-                    <input type="text" name="search" class="form-control" placeholder="Search endpoints..." value="{{ current_filters.search }}" data-form-control>
-                    <button type="submit" class="c-btn c-btn--outline-primary">
-                        <i class="ti ti-search"></i>
-                    </button>
+                    <input type="text" name="search" class="form-control" placeholder="Search endpoints..." value="{{ current_filters.search }}" data-form-control aria-label="Search endpoints...">
+                    <button type="submit" class="c-btn c-btn--outline-primary" aria-label="Search"><i class="ti ti-search"></i></button>
                 </div>
             </div>
             <div class="col-md-3 d-flex align-items-end">
@@ -143,9 +141,7 @@
                                     <i class="ti ti-test-pipe"></i>
                                 </button>
                                 <div class="dropdown">
-                                    <button class="c-btn c-btn--outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-dropdown-toggle>
-                                        <i class="ti ti-dots"></i>
-                                    </button>
+                                    <button class="c-btn c-btn--outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots"></i></button>
                                     <ul class="dropdown-menu" data-dropdown-menu>
                                         <li><a class="dropdown-item js-copy-endpoint" href="#" data-action="copy-endpoint" data-endpoint-path="{{ endpoint.path }}">
                                             <i class="ti ti-copy me-2"></i>Copy Path

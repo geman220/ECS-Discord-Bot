@@ -75,15 +75,9 @@
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <button type="button" class="c-btn c-btn--outline-primary js-edit-sponsor" onclick="editSponsor({{ sponsor.id }})">
-                                    <i class="ti ti-edit"></i>
-                                </button>
-                                <button type="button" class="c-btn btn-outline-{{ 'warning' if sponsor.is_active else 'success' }} js-toggle-sponsor" onclick="toggleSponsor({{ sponsor.id }}, {{ 'false' if sponsor.is_active else 'true' }})">
-                                    <i class="ti ti-{{ 'eye-off' if sponsor.is_active else 'eye' }}"></i>
-                                </button>
-                                <button type="button" class="c-btn c-btn--outline-danger js-delete-sponsor" onclick="deleteSponsor({{ sponsor.id }}, '{{ sponsor.name }}')">
-                                    <i class="ti ti-trash"></i>
-                                </button>
+                                <button type="button" class="c-btn c-btn--outline-primary js-edit-sponsor" onclick="editSponsor({{ sponsor.id }})" aria-label="Edit"><i class="ti ti-edit"></i></button>
+                                <button type="button" class="c-btn btn-outline-{{ 'warning' if sponsor.is_active else 'success' }} js-toggle-sponsor" onclick="toggleSponsor({{ sponsor.id }}, {{ 'false' if sponsor.is_active else 'true' }})" aria-label="View"><i class="ti ti-{{ 'eye-off' if sponsor.is_active else 'eye' }}"></i></button>
+                                <button type="button" class="c-btn c-btn--outline-danger js-delete-sponsor" onclick="deleteSponsor({{ sponsor.id }}, '{{ sponsor.name }}')" aria-label="Delete"><i class="ti ti-trash"></i></button>
                             </div>
                         </td>
                     </tr>

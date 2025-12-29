@@ -148,19 +148,13 @@
                                     <div class="btn-group btn-group-sm">
                                         <button type="button" class="c-btn c-btn--outline-primary"
                                                 data-bs-toggle="modal" data-bs-target="#editSponsorModal"
-                                                data-sponsor='{{ sponsor.to_dict()|tojson }}'>
-                                            <i class="ti ti-edit"></i>
-                                        </button>
+                                                data-sponsor='{{ sponsor.to_dict()|tojson }}' aria-label="Edit"><i class="ti ti-edit"></i></button>
                                         <form action="{{ url_for('wallet_config.toggle_sponsor', sponsor_id=sponsor.id) }}" method="post" class="d-inline">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="c-btn btn-outline-{% if sponsor.is_active %}warning{% else %}success{% endif %}">
-                                                <i class="ti ti-{% if sponsor.is_active %}eye-off{% else %}eye{% endif %}"></i>
-                                            </button>
+                                            <button type="submit" class="c-btn btn-outline-{% if sponsor.is_active %}warning{% else %}success{% endif %}" aria-label="View"><i class="ti ti-{% if sponsor.is_active %}eye-off{% else %}eye{% endif %}"></i></button>
                                         </form>
                                         <button type="button" class="c-btn c-btn--outline-danger js-delete-sponsor"
-                                                data-action="delete-sponsor" data-id="{{ sponsor.id }}" data-name="{{ sponsor.name }}">
-                                            <i class="ti ti-trash"></i>
-                                        </button>
+                                                data-action="delete-sponsor" data-id="{{ sponsor.id }}" data-name="{{ sponsor.name }}" aria-label="Delete"><i class="ti ti-trash"></i></button>
                                     </div>
                                 </td>
                             </tr>
@@ -197,11 +191,11 @@
                 <div class="modal-body c-modal__body" data-modal-body>
                     <div class="mb-3">
                         <label class="form-label">Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" name="name" required data-form-control>
+                        <input type="text" class="form-control" name="name" required data-form-control aria-label="Name">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Display Name</label>
-                        <input type="text" class="form-control" name="display_name" placeholder="Shown on pass" data-form-control>
+                        <input type="text" class="form-control" name="display_name" placeholder="Shown on pass" data-form-control aria-label="Shown on pass">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Description</label>

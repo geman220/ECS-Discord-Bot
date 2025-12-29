@@ -2013,9 +2013,7 @@ function addWizardField() {
                 <div class="form-text">e.g., "North Field", "South Field", "Main Pitch"</div>
             </div>
             <div class="col-md-2 d-flex align-items-end">
-                <button type="button" class="btn btn-outline-danger" data-action="remove-wizard-field">
-                    <i class="fas fa-times"></i>
-                </button>
+                <button type="button" class="btn btn-outline-danger" data-action="remove-wizard-field" aria-label="Close"><i class="fas fa-times"></i></button>
             </div>
         </div>
     `;

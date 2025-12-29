@@ -145,21 +145,15 @@
                                         <button class="c-btn-modern c-btn-modern--info c-btn-modern--sm c-btn-modern--icon"
                                                 data-action="view-user"
                                                 data-user-id="{{ user.id }}"
-                                                data-user-name="{{ user.name or user.username }}">
-                                            <i class="ti ti-eye"></i>
-                                        </button>
+                                                data-user-name="{{ user.name or user.username }}" aria-label="View"><i class="ti ti-eye"></i></button>
                                         <button class="c-btn-modern c-btn-modern--success c-btn-modern--sm c-btn-modern--icon"
                                                 data-action="process-user"
                                                 data-user-id="{{ user.id }}"
-                                                data-user-name="{{ user.name or user.username }}">
-                                            <i class="ti ti-check"></i>
-                                        </button>
+                                                data-user-name="{{ user.name or user.username }}" aria-label="Confirm"><i class="ti ti-check"></i></button>
                                         <button class="c-btn-modern c-btn-modern--danger c-btn-modern--sm c-btn-modern--icon"
                                                 data-action="remove-user"
                                                 data-user-id="{{ user.id }}"
-                                                data-user-name="{{ user.name or user.username }}">
-                                            <i class="ti ti-x"></i>
-                                        </button>
+                                                data-user-name="{{ user.name or user.username }}" aria-label="Button"><i class="ti ti-x"></i></button>
                                     </div>
                                 </td>
                             </tr>
@@ -204,9 +198,7 @@
                                 {% if waitlist_registration_enabled %}Open{% else %}Closed{% endif %}
                             </span>
                             <a href="{{ url_for('admin_panel.feature_toggles') }}#registration"
-                               class="c-btn-modern c-btn-modern--primary c-btn-modern--sm c-btn-modern--icon">
-                                <i class="ti ti-settings"></i>
-                            </a>
+                               class="c-btn-modern c-btn-modern--primary c-btn-modern--sm c-btn-modern--icon" aria-label="Settings"><i class="ti ti-settings"></i></a>
                         </div>
                     </div>
                     <div class="c-list-group__item">
@@ -222,9 +214,7 @@
                         <div class="c-list-group__actions">
                             <span class="c-badge c-badge--success">Enabled</span>
                             <a href="{{ url_for('admin_panel.feature_toggles') }}#notifications"
-                               class="c-btn-modern c-btn-modern--primary c-btn-modern--sm c-btn-modern--icon">
-                                <i class="ti ti-settings"></i>
-                            </a>
+                               class="c-btn-modern c-btn-modern--primary c-btn-modern--sm c-btn-modern--icon" aria-label="Settings"><i class="ti ti-settings"></i></a>
                         </div>
                     </div>
                 </div>

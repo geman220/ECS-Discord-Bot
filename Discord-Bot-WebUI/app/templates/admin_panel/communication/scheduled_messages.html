@@ -256,9 +256,7 @@
                                             {% if (message.status or 'pending') == 'pending' %}
                                             <button class="c-btn c-btn--outline-warning js-edit-message"
                                                     data-action="edit-scheduled-message"
-                                                    data-message-id="{{ message.id }}">
-                                                <i class="ti ti-edit"></i>
-                                            </button>
+                                                    data-message-id="{{ message.id }}" aria-label="Edit"><i class="ti ti-edit"></i></button>
                                             <button class="c-btn c-btn--outline-danger js-cancel-message"
                                                     data-action="cancel-scheduled-message"
                                                     data-message-id="{{ message.id }}"

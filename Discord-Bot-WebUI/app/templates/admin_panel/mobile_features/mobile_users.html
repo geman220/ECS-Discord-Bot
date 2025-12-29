@@ -105,7 +105,7 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Search User</label>
-                        <input type="text" name="search" class="form-control" placeholder="Username or email..." value="{{ request.args.get('search', '') }}" data-form-control>
+                        <input type="text" name="search" class="form-control" placeholder="Username or email..." value="{{ request.args.get('search', '') }}" data-form-control aria-label="Username or email...">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">&nbsp;</label>
@@ -225,15 +225,9 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="c-btn c-btn--outline-info" data-action="view-user-details" data-user-id="{{ user.id }}">
-                                            <i class="ti ti-eye"></i>
-                                        </button>
-                                        <button class="c-btn c-btn--outline-primary" data-action="send-notification" data-user-id="{{ user.id }}">
-                                            <i class="ti ti-send"></i>
-                                        </button>
-                                        <button class="c-btn c-btn--outline-warning" data-action="manage-devices" data-user-id="{{ user.id }}">
-                                            <i class="ti ti-device-mobile"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--outline-info" data-action="view-user-details" data-user-id="{{ user.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
+                                        <button class="c-btn c-btn--outline-primary" data-action="send-notification" data-user-id="{{ user.id }}" aria-label="Send"><i class="ti ti-send"></i></button>
+                                        <button class="c-btn c-btn--outline-warning" data-action="manage-devices" data-user-id="{{ user.id }}" aria-label="Button"><i class="ti ti-device-mobile"></i></button>
                                     </div>
                                 </td>
                             </tr>
@@ -407,9 +401,7 @@ function manageDevices(userId) {
                             <small class="text-muted">iOS 17.2 • Last active: 2 hours ago</small>
                         </div>
                         <div class="btn-group btn-group-sm">
-                            <button class="c-btn c-btn--outline-warning" data-action="deactivate-device" data-token-id="token123">
-                                <i class="ti ti-ban"></i>
-                            </button>
+                            <button class="c-btn c-btn--outline-warning" data-action="deactivate-device" data-token-id="token123" aria-label="Block"><i class="ti ti-ban"></i></button>
                         </div>
                     </div>
                     <div class="list-group-item d-flex justify-content-between align-items-center">
@@ -418,9 +410,7 @@ function manageDevices(userId) {
                             <small class="text-muted">Android 14 • Last active: 1 day ago</small>
                         </div>
                         <div class="btn-group btn-group-sm">
-                            <button class="c-btn c-btn--outline-warning" data-action="deactivate-device" data-token-id="token456">
-                                <i class="ti ti-ban"></i>
-                            </button>
+                            <button class="c-btn c-btn--outline-warning" data-action="deactivate-device" data-token-id="token456" aria-label="Block"><i class="ti ti-ban"></i></button>
                         </div>
                     </div>
                 </div>

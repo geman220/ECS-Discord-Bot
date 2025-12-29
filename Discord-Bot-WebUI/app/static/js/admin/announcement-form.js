@@ -52,7 +52,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const maxChars = 2000;
     const charCount = document.createElement('div');
     charCount.className = 'form-text';
-    charCount.innerHTML = `<small>Characters: <span id="char-count">${contentInput.value.length}</span>/${maxChars}</small>`;
+    // Build character count display safely (no user input in HTML)
+    const small = document.createElement('small');
+    small.textContent = 'Characters: ';
+    const countSpan = document.createElement('span');
+    countSpan.id = 'char-count';
+    countSpan.textContent = contentInput.value.length;
+    small.appendChild(countSpan);
+    small.appendChild(document.createTextNode(`/${maxChars}`));
+    charCount.appendChild(small);
     contentInput.parentNode.appendChild(charCount);
 
     contentInput.addEventListener('input', function() {

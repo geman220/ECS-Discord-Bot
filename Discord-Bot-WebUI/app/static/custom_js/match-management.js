@@ -167,23 +167,17 @@ function createTaskCard(taskType, task, matchId) {
                         data-action="show-task-info"
                         data-task-id="${task.task_id}"
                         data-task-type="${typeName}"
-                        data-task-data='${taskDataJson}'>
-                    <i class="fas fa-info-circle"></i>
-                </button>
+                        data-task-data='${taskDataJson}' aria-label="Button"><i class="fas fa-info-circle"></i></button>
                 ${!isFallback && task.task_id !== 'unknown' && task.task_id !== 'scheduled' ? `
                 <button class="btn btn-xs btn-outline-danger me-1"
                         data-action="revoke-task"
                         data-task-id="${task.task_id}"
                         data-match-id="${matchId}"
-                        data-task-type="${taskType}">
-                    <i class="fas fa-times"></i>
-                </button>` : ''}
+                        data-task-type="${taskType}" aria-label="Close"><i class="fas fa-times"></i></button>` : ''}
                 <button class="btn btn-xs btn-outline-warning"
                         data-action="reschedule-task"
                         data-match-id="${matchId}"
-                        data-task-type="${taskType}">
-                    <i class="fas fa-redo"></i>
-                </button>
+                        data-task-type="${taskType}" aria-label="Button"><i class="fas fa-redo"></i></button>
             </div>
         </div>
     `;

@@ -109,19 +109,15 @@
                             <div class="btn-group btn-group-sm" role="group">
                                 <button type="button" class="c-btn c-btn--outline-secondary view-toggle"
                                         data-action="toggle-pool-view"
-                                        data-view="grid" data-league="{{ league_type }}" data-section="pending">
-                                    <i class="ti ti-grid-dots"></i>
-                                </button>
+                                        data-view="grid" data-league="{{ league_type }}" data-section="pending" aria-label="Grid view"><i class="ti ti-grid-dots"></i></button>
                                 <button type="button" class="c-btn c-btn--outline-secondary view-toggle active"
                                         data-action="toggle-pool-view"
-                                        data-view="list" data-league="{{ league_type }}" data-section="pending">
-                                    <i class="ti ti-list"></i>
-                                </button>
+                                        data-view="list" data-league="{{ league_type }}" data-section="pending" aria-label="List view"><i class="ti ti-list"></i></button>
                             </div>
                             <input type="text" class="form-control form-control-sm pool-filter pool-filter-sm"
                                    placeholder="Filter..."
                                    data-on-input="filter-pool"
-                                   data-league="{{ league_type }}" data-section="pending" data-form-control>
+                                   data-league="{{ league_type }}" data-section="pending" data-form-control aria-label="Filter...">
                         </div>
                     </div>
                     
@@ -213,14 +209,10 @@
                                                     <button class="c-btn c-btn--success"
                                                             data-action="approve-pool-player"
                                                             data-player-id="{{ player.id }}"
-                                                            data-league="{{ league_type }}">
-                                                        <i class="ti ti-check"></i>
-                                                    </button>
+                                                            data-league="{{ league_type }}" aria-label="Confirm"><i class="ti ti-check"></i></button>
                                                     <button class="c-btn c-btn--outline-info"
                                                             data-action="view-pool-player-details"
-                                                            data-player-id="{{ player.id }}">
-                                                        <i class="ti ti-user"></i>
-                                                    </button>
+                                                            data-player-id="{{ player.id }}" aria-label="User"><i class="ti ti-user"></i></button>
                                                 </div>
                                             </div>
                                         </div>
@@ -264,19 +256,15 @@
                             <div class="btn-group btn-group-sm" role="group">
                                 <button type="button" class="c-btn c-btn--outline-secondary view-toggle"
                                         data-action="toggle-pool-view"
-                                        data-view="grid" data-league="{{ league_type }}" data-section="active">
-                                    <i class="ti ti-grid-dots"></i>
-                                </button>
+                                        data-view="grid" data-league="{{ league_type }}" data-section="active" aria-label="Grid view"><i class="ti ti-grid-dots"></i></button>
                                 <button type="button" class="c-btn c-btn--outline-secondary view-toggle active"
                                         data-action="toggle-pool-view"
-                                        data-view="list" data-league="{{ league_type }}" data-section="active">
-                                    <i class="ti ti-list"></i>
-                                </button>
+                                        data-view="list" data-league="{{ league_type }}" data-section="active" aria-label="List view"><i class="ti ti-list"></i></button>
                             </div>
                             <input type="text" class="form-control form-control-sm pool-filter pool-filter-sm"
                                    placeholder="Filter..."
                                    data-on-input="filter-pool"
-                                   data-league="{{ league_type }}" data-section="active" data-form-control>
+                                   data-league="{{ league_type }}" data-section="active" data-form-control aria-label="Filter...">
                         </div>
                     </div>
                     
@@ -416,20 +404,14 @@
                                                     <button class="c-btn c-btn--outline-warning"
                                                             data-action="remove-pool-player"
                                                             data-player-id="{{ pool.player_id }}"
-                                                            data-league="{{ league_type }}">
-                                                        <i class="ti ti-x"></i>
-                                                    </button>
+                                                            data-league="{{ league_type }}" aria-label="Button"><i class="ti ti-x"></i></button>
                                                     <button class="c-btn c-btn--outline-secondary"
                                                             data-action="edit-pool-preferences"
                                                             data-player-id="{{ pool.player_id }}"
-                                                            data-league="{{ league_type }}">
-                                                        <i class="ti ti-edit"></i>
-                                                    </button>
+                                                            data-league="{{ league_type }}" aria-label="Edit"><i class="ti ti-edit"></i></button>
                                                     <button class="c-btn c-btn--outline-info"
                                                             data-action="view-pool-player-details"
-                                                            data-player-id="{{ pool.player_id }}">
-                                                        <i class="ti ti-user"></i>
-                                                    </button>
+                                                            data-player-id="{{ pool.player_id }}" aria-label="User"><i class="ti ti-user"></i></button>
                                                 </div>
                                             </div>
                                         </div>
@@ -649,9 +631,7 @@
                         <div class="col-12">
                             <h6 class="mb-3">
                                 <i class="ti ti-messages me-2"></i>Recent Substitute Requests
-                                <button class="c-btn c-btn--sm c-btn--outline-primary ms-2" id="refreshRequestsBtn">
-                                    <i class="ti ti-refresh"></i>
-                                </button>
+                                <button class="c-btn c-btn--sm c-btn--outline-primary ms-2" id="refreshRequestsBtn" aria-label="Refresh"><i class="ti ti-refresh"></i></button>
                             </h6>
                             <div class="c-table-wrapper" data-table-responsive>
                                 <table class="c-table c-table--compact" data-mobile-table data-table-type="users" data-table>

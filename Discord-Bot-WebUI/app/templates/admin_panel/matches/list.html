@@ -90,10 +90,8 @@
             <div class="col-md-8">
                 <label class="form-label">Search</label>
                 <div class="input-group" data-input-group>
-                    <input type="text" name="search" class="form-control" placeholder="Search teams, location..." value="{{ current_filters.search }}" data-form-control>
-                    <button type="submit" class="c-btn c-btn--outline-primary">
-                        <i class="ti ti-search"></i>
-                    </button>
+                    <input type="text" name="search" class="form-control" placeholder="Search teams, location..." value="{{ current_filters.search }}" data-form-control aria-label="Search teams, location...">
+                    <button type="submit" class="c-btn c-btn--outline-primary" aria-label="Search"><i class="ti ti-search"></i></button>
                 </div>
             </div>
             <div class="col-md-4 d-flex align-items-end">
@@ -200,9 +198,7 @@
                                     <i class="ti ti-edit"></i>
                                 </a>
                                 <div class="dropdown">
-                                    <button class="c-btn c-btn--outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-dropdown-toggle>
-                                        <i class="ti ti-dots"></i>
-                                    </button>
+                                    <button class="c-btn c-btn--outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots"></i></button>
                                     <ul class="dropdown-menu" data-dropdown-menu>
                                         <li><a class="dropdown-item js-duplicate-match" href="#" data-action="duplicate-match" data-match-id="{{ match.id }}">
                                             <i class="ti ti-copy me-2"></i>Duplicate

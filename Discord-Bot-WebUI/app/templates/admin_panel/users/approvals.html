@@ -180,21 +180,15 @@
                                         <button class="c-btn-modern c-btn-modern--info c-btn-modern--sm c-btn-modern--icon"
                                                 data-action="view-user"
                                                 data-user-id="{{ user.id }}"
-                                                data-user-name="{{ user.name or user.username }}">
-                                            <i class="ti ti-eye"></i>
-                                        </button>
+                                                data-user-name="{{ user.name or user.username }}" aria-label="View"><i class="ti ti-eye"></i></button>
                                         <button class="c-btn-modern c-btn-modern--success c-btn-modern--sm c-btn-modern--icon"
                                                 data-action="approve-user"
                                                 data-user-id="{{ user.id }}"
-                                                data-user-name="{{ user.name or user.username }}">
-                                            <i class="ti ti-check"></i>
-                                        </button>
+                                                data-user-name="{{ user.name or user.username }}" aria-label="Confirm"><i class="ti ti-check"></i></button>
                                         <button class="c-btn-modern c-btn-modern--danger c-btn-modern--sm c-btn-modern--icon"
                                                 data-action="reject-user"
                                                 data-user-id="{{ user.id }}"
-                                                data-user-name="{{ user.name or user.username }}">
-                                            <i class="ti ti-x"></i>
-                                        </button>
+                                                data-user-name="{{ user.name or user.username }}" aria-label="Button"><i class="ti ti-x"></i></button>
                                     </div>
                                 </td>
                             </tr>
@@ -287,22 +281,16 @@
                                         <button class="c-btn-modern c-btn-modern--info c-btn-modern--sm c-btn-modern--icon"
                                                 data-action="view-user"
                                                 data-user-id="{{ user.id }}"
-                                                data-user-name="{{ user.name or user.username }}">
-                                            <i class="ti ti-eye"></i>
-                                        </button>
+                                                data-user-name="{{ user.name or user.username }}" aria-label="View"><i class="ti ti-eye"></i></button>
                                         {% if not user.is_approved %}
                                         <button class="c-btn-modern c-btn-modern--success c-btn-modern--sm c-btn-modern--icon"
                                                 data-action="approve-user"
                                                 data-user-id="{{ user.id }}"
-                                                data-user-name="{{ user.name or user.username }}">
-                                            <i class="ti ti-check"></i>
-                                        </button>
+                                                data-user-name="{{ user.name or user.username }}" aria-label="Confirm"><i class="ti ti-check"></i></button>
                                         <button class="c-btn-modern c-btn-modern--danger c-btn-modern--sm c-btn-modern--icon"
                                                 data-action="reject-user"
                                                 data-user-id="{{ user.id }}"
-                                                data-user-name="{{ user.name or user.username }}">
-                                            <i class="ti ti-x"></i>
-                                        </button>
+                                                data-user-name="{{ user.name or user.username }}" aria-label="Button"><i class="ti ti-x"></i></button>
                                         {% endif %}
                                     </div>
                                 </td>

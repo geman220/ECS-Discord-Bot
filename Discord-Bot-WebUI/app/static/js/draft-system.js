@@ -452,7 +452,10 @@ class DraftSystemV2 {
                 statusElement.innerHTML = '<i class="ti ti-wifi me-1"></i>Connected';
             } else {
                 statusElement.className = 'connection-status status-disconnected';
-                statusElement.innerHTML = `<i class="ti ti-wifi-off me-1"></i>${message || 'Disconnected'}`;
+                // Use textContent for the message to prevent XSS
+                const safeMessage = message || 'Disconnected';
+                statusElement.innerHTML = '<i class="ti ti-wifi-off me-1"></i>';
+                statusElement.appendChild(document.createTextNode(safeMessage));
             }
         }
     }

@@ -187,15 +187,9 @@
                                 <td>{{ template.updated_at.strftime('%Y-%m-%d') if template.updated_at else 'Never' }}</td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="c-btn c-btn--outline-primary js-view-template" data-action="view-template" data-template-id="{{ template.id }}">
-                                            <i class="ti ti-eye"></i>
-                                        </button>
-                                        <button class="c-btn c-btn--outline-secondary js-edit-template" data-action="edit-template" data-template-id="{{ template.id }}">
-                                            <i class="ti ti-edit"></i>
-                                        </button>
-                                        <button class="c-btn btn-outline-{% if template.is_active %}warning{% else %}success{% endif %} js-toggle-template" data-action="toggle-template" data-template-id="{{ template.id }}">
-                                            <i class="ti ti-{% if template.is_active %}power{% else %}check{% endif %}"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--outline-primary js-view-template" data-action="view-template" data-template-id="{{ template.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
+                                        <button class="c-btn c-btn--outline-secondary js-edit-template" data-action="edit-template" data-template-id="{{ template.id }}" aria-label="Edit"><i class="ti ti-edit"></i></button>
+                                        <button class="c-btn btn-outline-{% if template.is_active %}warning{% else %}success{% endif %} js-toggle-template" data-action="toggle-template" data-template-id="{{ template.id }}" aria-label="Confirm"><i class="ti ti-{% if template.is_active %}power{% else %}check{% endif %}"></i></button>
                                     </div>
                                 </td>
                             </tr>

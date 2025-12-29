@@ -150,23 +150,17 @@
                                             <button class="c-btn c-btn--outline-info"
                                                     data-action="view-task-details"
                                                     data-task-id="{{ task.id }}"
-                                                    data-task-name="{{ task.name }}">
-                                                <i class="ti ti-eye"></i>
-                                            </button>
+                                                    data-task-name="{{ task.name }}" aria-label="View"><i class="ti ti-eye"></i></button>
                                             {% if task.status in ['running', 'queued'] %}
                                             <button class="c-btn c-btn--outline-danger"
                                                     data-action="cancel-task"
                                                     data-task-id="{{ task.id }}"
-                                                    data-task-name="{{ task.name }}">
-                                                <i class="ti ti-x"></i>
-                                            </button>
+                                                    data-task-name="{{ task.name }}" aria-label="Button"><i class="ti ti-x"></i></button>
                                             {% endif %}
                                             <button class="c-btn c-btn--outline-secondary"
                                                     data-action="view-task-logs"
                                                     data-task-id="{{ task.id }}"
-                                                    data-task-name="{{ task.name }}">
-                                                <i class="ti ti-file-text"></i>
-                                            </button>
+                                                    data-task-name="{{ task.name }}" aria-label="File"><i class="ti ti-file-text"></i></button>
                                         </div>
                                     </td>
                                 </tr>

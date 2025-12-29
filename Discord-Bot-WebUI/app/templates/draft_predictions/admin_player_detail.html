@@ -200,9 +200,7 @@
                                         </td>
                                         <td>
                                             <a href="{{ url_for('draft_predictions.admin_coach_detail', coach_id=coach.id, season_id=season.id, league_type=league_type) }}"
-                                               class="c-btn c-btn--sm c-btn--outline-secondary">
-                                                <i class="ti ti-user"></i>
-                                            </a>
+                                               class="c-btn c-btn--sm c-btn--outline-secondary" aria-label="User"><i class="ti ti-user"></i></a>
                                         </td>
                                     </tr>
                                     {% endfor %}

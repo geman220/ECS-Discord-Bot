@@ -206,18 +206,14 @@
                                     <td><strong>Portal URL</strong></td>
                                     <td>
                                         <code id="portalUrl">{{ request.host_url.rstrip('/') }}</code>
-                                        <button class="c-btn c-btn--sm c-btn--outline-secondary ms-2 js-copy-to-clipboard" onclick="copyToClipboard('portalUrl')">
-                                            <i class="ti ti-copy"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--sm c-btn--outline-secondary ms-2 js-copy-to-clipboard" onclick="copyToClipboard('portalUrl')" aria-label="Copy"><i class="ti ti-copy"></i></button>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td><strong>Webhook Secret</strong></td>
                                     <td>
                                         <code id="webhookSecret">{{ step_data.webhook_secret or 'Generate a secret key below' }}</code>
-                                        <button class="c-btn c-btn--sm c-btn--outline-secondary ms-2 js-copy-to-clipboard" onclick="copyToClipboard('webhookSecret')">
-                                            <i class="ti ti-copy"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--sm c-btn--outline-secondary ms-2 js-copy-to-clipboard" onclick="copyToClipboard('webhookSecret')" aria-label="Copy"><i class="ti ti-copy"></i></button>
                                     </td>
                                 </tr>
                                 <tr>
@@ -263,9 +259,7 @@
                             <button class="c-btn c-btn--outline-primary js-generate-secret" type="button" onclick="generateSecret()">
                                 <i class="ti ti-refresh me-1"></i> Generate
                             </button>
-                            <button class="c-btn c-btn--outline-secondary js-copy-to-clipboard" type="button" onclick="copyToClipboard('generatedSecret')">
-                                <i class="ti ti-copy"></i>
-                            </button>
+                            <button class="c-btn c-btn--outline-secondary js-copy-to-clipboard" type="button" onclick="copyToClipboard('generatedSecret')" aria-label="Copy"><i class="ti ti-copy"></i></button>
                         </div>
                         <small class="text-muted mt-2 d-block">Copy this secret and add it to both your server environment and WordPress plugin settings.</small>
                     </div>
@@ -324,9 +318,7 @@
                                     <td><strong>Delivery URL</strong></td>
                                     <td>
                                         <code id="webhookUrl">{{ request.host_url.rstrip('/') }}/api/v1/wallet/webhook/order-completed</code>
-                                        <button class="c-btn c-btn--sm c-btn--outline-secondary ms-2 js-copy-to-clipboard" onclick="copyToClipboard('webhookUrl')">
-                                            <i class="ti ti-copy"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--sm c-btn--outline-secondary ms-2 js-copy-to-clipboard" onclick="copyToClipboard('webhookUrl')" aria-label="Copy"><i class="ti ti-copy"></i></button>
                                     </td>
                                 </tr>
                                 <tr>

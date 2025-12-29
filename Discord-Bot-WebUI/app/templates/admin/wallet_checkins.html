@@ -167,9 +167,7 @@
                 <ul class="pagination justify-content-center mb-0" data-pagination>
                     {% if checkins.has_prev %}
                     <li class="page-item" data-page-item>
-                        <a class="page-link" href="{{ url_for('wallet_admin.checkins_list', type=pass_type_filter, page=checkins.prev_num) }}">
-                            <i class="ti ti-chevron-left"></i>
-                        </a>
+                        <a class="page-link" href="{{ url_for('wallet_admin.checkins_list', type=pass_type_filter, page=checkins.prev_num) }}" aria-label="Previous"><i class="ti ti-chevron-left"></i></a>
                     </li>
                     {% endif %}
 
@@ -187,9 +185,7 @@
 
                     {% if checkins.has_next %}
                     <li class="page-item" data-page-item>
-                        <a class="page-link" href="{{ url_for('wallet_admin.checkins_list', type=pass_type_filter, page=checkins.next_num) }}">
-                            <i class="ti ti-chevron-right"></i>
-                        </a>
+                        <a class="page-link" href="{{ url_for('wallet_admin.checkins_list', type=pass_type_filter, page=checkins.next_num) }}" aria-label="Next"><i class="ti ti-chevron-right"></i></a>
                     </li>
                     {% endif %}
                 </ul>

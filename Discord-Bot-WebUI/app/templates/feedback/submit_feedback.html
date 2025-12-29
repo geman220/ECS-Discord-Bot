@@ -89,10 +89,8 @@
                         <div class="d-flex">
                             <form method="GET" class="d-flex" data-form="search-feedback">
                                 <div class="c-input-group c-input-group--sm" data-input-group>
-                                    <input type="text" name="q" class="c-input-group__input" placeholder="Search..." value="{{ search_query }}" data-form-control>
-                                    <button class="c-btn c-btn--primary c-btn--sm" type="submit" data-action="search">
-                                        <i class="ti ti-search"></i>
-                                    </button>
+                                    <input type="text" name="q" class="c-input-group__input" placeholder="Search..." value="{{ search_query }}" data-form-control aria-label="Search...">
+                                    <button class="c-btn c-btn--primary c-btn--sm" type="submit" data-action="search" aria-label="Search"><i class="ti ti-search"></i></button>
                                 </div>
                             </form>
                         </div>

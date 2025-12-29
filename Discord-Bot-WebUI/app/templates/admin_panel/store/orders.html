@@ -59,10 +59,8 @@
             <div class="col-md-3">
                 <label class="form-label">Search</label>
                 <div class="input-group" data-input-group>
-                    <input type="text" name="search" class="form-control" placeholder="Search orders..." value="{{ current_filters.search }}" data-form-control>
-                    <button type="submit" class="c-btn c-btn--outline-primary">
-                        <i class="ti ti-search"></i>
-                    </button>
+                    <input type="text" name="search" class="form-control" placeholder="Search orders..." value="{{ current_filters.search }}" data-form-control aria-label="Search orders...">
+                    <button type="submit" class="c-btn c-btn--outline-primary" aria-label="Search"><i class="ti ti-search"></i></button>
                 </div>
             </div>
             <div class="col-md-1 d-flex align-items-end">

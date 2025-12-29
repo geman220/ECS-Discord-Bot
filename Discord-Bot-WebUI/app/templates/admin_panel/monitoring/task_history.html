@@ -213,18 +213,12 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="c-btn c-btn--outline-info" data-action="view-task" data-task-id="{{ task.id }}">
-                                            <i class="ti ti-eye"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--outline-info" data-action="view-task" data-task-id="{{ task.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
                                         {% if task.status == 'failed' %}
-                                        <button class="c-btn c-btn--outline-warning" data-action="retry-task" data-task-id="{{ task.id }}">
-                                            <i class="ti ti-refresh"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--outline-warning" data-action="retry-task" data-task-id="{{ task.id }}" aria-label="Refresh"><i class="ti ti-refresh"></i></button>
                                         {% endif %}
                                         {% if task.status == 'zombie' %}
-                                        <button class="c-btn c-btn--outline-danger" data-action="kill-task" data-task-id="{{ task.id }}">
-                                            <i class="ti ti-x"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--outline-danger" data-action="kill-task" data-task-id="{{ task.id }}" aria-label="Button"><i class="ti ti-x"></i></button>
                                         {% endif %}
                                     </div>
                                 </td>

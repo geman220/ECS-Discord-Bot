@@ -22,7 +22,7 @@
     /* Secure Neutrals */
     --auth-surface: #FFFFFF;
     --auth-surface-alt: #F8FAFC;
-    --auth-border: #E2E8F0;
+    --auth-border-color: var(--color-border);
     --auth-text: var(--color-secondary-900, #1E293B);
     --auth-text-muted: #64748B;
 

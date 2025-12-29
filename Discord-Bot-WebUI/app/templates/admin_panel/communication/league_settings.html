@@ -108,9 +108,7 @@
                                         <form method="POST" action="{{ url_for('admin_panel.toggle_league_setting') }}" class="d-inline">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <input type="hidden" name="setting_id" value="{{ setting.id }}">
-                                            <button type="submit" class="c-btn c-btn--outline-{% if setting.is_active %}warning{% else %}success{% endif %}">
-                                                <i class="ti ti-{% if setting.is_active %}eye-off{% else %}eye{% endif %}"></i>
-                                            </button>
+                                            <button type="submit" class="c-btn c-btn--outline-{% if setting.is_active %}warning{% else %}success{% endif %}" aria-label="View"><i class="ti ti-{% if setting.is_active %}eye-off{% else %}eye{% endif %}"></i></button>
                                         </form>
                                     </div>
                                 </div>

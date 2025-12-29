@@ -87,9 +87,7 @@
                         <h5 class="c-card__title mb-0">
                             <i class="ti ti-filter me-2"></i>Filter Matches
                         </h5>
-                        <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="true" data-collapse-toggle>
-                            <i class="ti ti-chevron-down"></i>
-                        </button>
+                        <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="true" data-collapse-toggle aria-label="Expand"><i class="ti ti-chevron-down"></i></button>
                     </div>
                 </div>
                 <div class="collapse show" id="filterCollapse">
@@ -374,9 +372,7 @@
                                             </td>
                                             <td class="text-end position-relative" class="u-overflow-visible">
                                                 <div class="dropdown">
-                                                    <button class="c-btn c-btn--sm c-btn--icon-only btn-text-secondary rounded-pill dropdown-toggle hide-arrow" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle>
-                                                        <i class="ti ti-dots-vertical"></i>
-                                                    </button>
+                                                    <button class="c-btn c-btn--sm c-btn--icon-only btn-text-secondary rounded-pill dropdown-toggle hide-arrow" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
                                                     <ul class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
                                                         <li>
                                                             <a class="dropdown-item" href="{{ url_for('admin.rsvp_status', match_id=match.id) }}">
@@ -436,9 +432,7 @@
                         <h5 class="c-card__title mb-0">
                             <i class="ti ti-hand-stop me-2"></i>Pending Sub Requests
                         </h5>
-                        <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary" data-bs-toggle="collapse" data-bs-target="#pendingRequestsCollapse" aria-expanded="true" data-collapse-toggle>
-                            <i class="ti ti-chevron-down"></i>
-                        </button>
+                        <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary" data-bs-toggle="collapse" data-bs-target="#pendingRequestsCollapse" aria-expanded="true" data-collapse-toggle aria-label="Expand"><i class="ti ti-chevron-down"></i></button>
                     </div>
                 </div>
                 <div class="collapse show" id="pendingRequestsCollapse">
@@ -517,9 +511,7 @@
                                                 </td>
                                                 <td class="text-end">
                                                     <div class="d-flex gap-2 justify-content-end">
-                                                        <a href="{{ url_for('teams.team_details', team_id=request.team_id) }}" class="c-btn c-btn--sm c-btn--outline-primary">
-                                                            <i class="ti ti-users"></i>
-                                                        </a>
+                                                        <a href="{{ url_for('teams.team_details', team_id=request.team_id) }}" class="c-btn c-btn--sm c-btn--outline-primary" aria-label="User"><i class="ti ti-users"></i></a>
                                                         <button type="button" class="c-btn c-btn--sm c-btn--success" data-bs-toggle="modal" data-bs-target="#fulfillModal{{ request.id }}">
                                                             <i class="ti ti-user-plus"></i> Assign
                                                         </button>

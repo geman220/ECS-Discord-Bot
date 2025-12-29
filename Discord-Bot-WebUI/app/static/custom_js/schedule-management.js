@@ -109,9 +109,7 @@ class ScheduleManager {
               <select name="team_b[]" class="form-select" required>
                 ${optionsHtml}
               </select>
-              <button type="button" class="btn btn-danger" onclick="this.closest('.row').remove()">
-                <i class="ti ti-trash"></i>
-              </button>
+              <button type="button" class="btn btn-danger" onclick="this.closest('.row').remove()" aria-label="Delete"><i class="ti ti-trash"></i></button>
             </div>
           </div>
         `;

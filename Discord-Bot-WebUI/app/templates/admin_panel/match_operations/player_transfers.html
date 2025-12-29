@@ -107,12 +107,8 @@
                             <small class="text-muted">to {{ request.team.name or 'Unknown Team' }}</small>
                         </div>
                         <div class="btn-group btn-group-sm">
-                            <button class="c-btn c-btn--outline-success js-approve-transfer" data-action="approve-transfer" data-request-id="{{ request.id }}">
-                                <i class="ti ti-check"></i>
-                            </button>
-                            <button class="c-btn c-btn--outline-danger js-reject-transfer" data-action="reject-transfer" data-request-id="{{ request.id }}">
-                                <i class="ti ti-x"></i>
-                            </button>
+                            <button class="c-btn c-btn--outline-success js-approve-transfer" data-action="approve-transfer" data-request-id="{{ request.id }}" aria-label="Confirm"><i class="ti ti-check"></i></button>
+                            <button class="c-btn c-btn--outline-danger js-reject-transfer" data-action="reject-transfer" data-request-id="{{ request.id }}" aria-label="Button"><i class="ti ti-x"></i></button>
                         </div>
                     </div>
                     {% endfor %}

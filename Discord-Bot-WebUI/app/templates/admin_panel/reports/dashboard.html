@@ -128,9 +128,7 @@
                                 </td>
                                 <td>{{ feedback.created_at.strftime('%b %d, %Y') if feedback.created_at else 'N/A' }}</td>
                                 <td>
-                                    <a href="{{ url_for('admin_panel.view_feedback', feedback_id=feedback.id) }}" class="c-btn c-btn--sm c-btn--outline-primary">
-                                        <i class="ti ti-eye"></i>
-                                    </a>
+                                    <a href="{{ url_for('admin_panel.view_feedback', feedback_id=feedback.id) }}" class="c-btn c-btn--sm c-btn--outline-primary" aria-label="View"><i class="ti ti-eye"></i></a>
                                 </td>
                             </tr>
                             {% endfor %}

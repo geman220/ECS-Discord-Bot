@@ -214,17 +214,17 @@
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <label class="form-label">Certificate Name <span class="text-danger">*</span></label>
-                                        <input type="text" name="name" class="form-control" placeholder="e.g. ECS Membership Certificate" required data-form-control>
+                                        <input type="text" name="name" class="form-control" placeholder="e.g. ECS Membership Certificate" required data-form-control aria-label="e.g. ECS Membership Certificate">
                                         <small class="form-text text-muted">Descriptive name for this certificate</small>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Pass Type Identifier <span class="text-danger">*</span></label>
-                                        <input type="text" name="pass_type_identifier" class="form-control" placeholder="e.g. pass.com.ecsfc.membership" required data-form-control>
+                                        <input type="text" name="pass_type_identifier" class="form-control" placeholder="e.g. pass.com.ecsfc.membership" required data-form-control aria-label="e.g. pass.com.ecsfc.membership">
                                         <small class="form-text text-muted">From Apple Developer Portal</small>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Team Identifier <span class="text-danger">*</span></label>
-                                        <input type="text" name="team_identifier" class="form-control" placeholder="e.g. ABC123DEF4" required data-form-control>
+                                        <input type="text" name="team_identifier" class="form-control" placeholder="e.g. ABC123DEF4" required data-form-control aria-label="e.g. ABC123DEF4">
                                         <small class="form-text text-muted">Your 10-character Apple Team ID</small>
                                     </div>
                                     <div class="col-md-6">
@@ -240,7 +240,7 @@
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <label class="form-label">Key Name <span class="text-danger">*</span></label>
-                                        <input type="text" name="name" class="form-control" placeholder="e.g. ECS Membership Key" required data-form-control>
+                                        <input type="text" name="name" class="form-control" placeholder="e.g. ECS Membership Key" required data-form-control aria-label="e.g. ECS Membership Key">
                                         <small class="form-text text-muted">Match this to your certificate name</small>
                                     </div>
                                     <div class="col-md-6">
@@ -250,7 +250,7 @@
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Key Password (if encrypted)</label>
-                                        <input type="password" name="key_password" class="form-control" placeholder="Leave blank if not encrypted" data-form-control>
+                                        <input type="password" name="key_password" class="form-control" placeholder="Leave blank if not encrypted" data-form-control aria-label="Leave blank if not encrypted">
                                         <small class="form-text text-muted">Required if key is password-protected</small>
                                     </div>
                                 </div>
@@ -311,13 +311,13 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">Key ID <span class="text-danger">*</span></label>
-                                <input type="text" name="apns_key_id" class="form-control" placeholder="e.g. ABC123DEFG" required data-form-control>
+                                <input type="text" name="apns_key_id" class="form-control" placeholder="e.g. ABC123DEFG" required data-form-control aria-label="e.g. ABC123DEFG">
                                 <small class="form-text text-muted">10-character ID shown when you create the key</small>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Team ID <span class="text-danger">*</span></label>
                                 <input type="text" name="team_identifier" class="form-control" placeholder="e.g. TEAM1234XY"
-                                       value="{{ step_data.apple_certs['certificate'].team_identifier if step_data.apple_certs and 'certificate' in step_data.apple_certs else '' }}" required data-form-control>
+                                       value="{{ step_data.apple_certs['certificate'].team_identifier if step_data.apple_certs and 'certificate' in step_data.apple_certs else '' }}" required data-form-control aria-label="e.g. TEAM1234XY">
                                 <small class="form-text text-muted">Your 10-character Apple Team ID</small>
                             </div>
                             <div class="col-12">
@@ -369,11 +369,11 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">Credential Name <span class="text-danger">*</span></label>
-                                <input type="text" name="name" class="form-control" placeholder="e.g. ECS Google Wallet" required data-form-control>
+                                <input type="text" name="name" class="form-control" placeholder="e.g. ECS Google Wallet" required data-form-control aria-label="e.g. ECS Google Wallet">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Issuer ID <span class="text-danger">*</span></label>
-                                <input type="text" name="issuer_id" class="form-control" placeholder="e.g. 1234567890123456789" required data-form-control>
+                                <input type="text" name="issuer_id" class="form-control" placeholder="e.g. 1234567890123456789" required data-form-control aria-label="e.g. 1234567890123456789">
                                 <small class="form-text text-muted">From Google Pay & Wallet Console</small>
                             </div>
                             <div class="col-12">

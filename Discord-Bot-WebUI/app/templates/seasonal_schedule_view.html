@@ -115,12 +115,8 @@
                                        value="{{ week_data.date.strftime('%Y-%m-%d') }}" id="week-date-{{ week_num }}" data-form-control>
                                 <input type="time" class="form-control week-edit-time-input"
                                        id="week-time-{{ week_num }}" data-form-control>
-                                <button class="c-btn c-btn--sm c-btn--success me-1 js-save-week" data-action="save-week" data-week="{{ week_num }}">
-                                    <i class="ti ti-check"></i>
-                                </button>
-                                <button class="c-btn c-btn--sm c-btn--secondary js-cancel-week-edit" data-action="cancel-week-edit" data-week="{{ week_num }}">
-                                    <i class="ti ti-x"></i>
-                                </button>
+                                <button class="c-btn c-btn--sm c-btn--success me-1 js-save-week" data-action="save-week" data-week="{{ week_num }}" aria-label="Confirm"><i class="ti ti-check"></i></button>
+                                <button class="c-btn c-btn--sm c-btn--secondary js-cancel-week-edit" data-action="cancel-week-edit" data-week="{{ week_num }}" aria-label="Button"><i class="ti ti-x"></i></button>
                             </span>
                             {% if week_data.week_type == 'TST' %}
                             <span class="badge bg-info ms-2" data-badge>TST Week</span>
@@ -133,9 +129,7 @@
                         <div>
                             <span class="text-muted">{{ week_data.matches|length }} matches</span>
                             <div class="btn-group ms-2">
-                                <button class="c-btn c-btn--sm c-btn--outline-primary js-toggle-week" data-action="toggle-week" data-week="{{ week_num }}">
-                                    <i class="ti ti-chevron-down" id="chevron-{{ week_num }}"></i>
-                                </button>
+                                <button class="c-btn c-btn--sm c-btn--outline-primary js-toggle-week" data-action="toggle-week" data-week="{{ week_num }}" aria-label="Expand"><i class="ti ti-chevron-down"></i></button>
                                 <button class="c-btn c-btn--sm c-btn--outline-secondary edit-controls js-edit-week" data-action="edit-week" data-week="{{ week_num }}" title="Edit Week">
                                     <i class="ti ti-edit"></i>
                                 </button>
@@ -316,9 +310,7 @@
                                     </td>
                                     <td>
                                         <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}"
-                                           class="c-btn c-btn--sm c-btn--outline-primary">
-                                            <i class="ti ti-eye"></i>
-                                        </a>
+                                           class="c-btn c-btn--sm c-btn--outline-primary" aria-label="View"><i class="ti ti-eye"></i></a>
                                     </td>
                                     <td class="edit-controls">
                                         <button class="c-btn c-btn--sm c-btn--outline-secondary me-1 js-edit-match"

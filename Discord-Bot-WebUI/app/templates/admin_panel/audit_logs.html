@@ -71,9 +71,7 @@
                             <button type="submit" class="c-btn c-btn--primary flex-grow-1">
                                 <i class="ti ti-search me-1"></i>Filter
                             </button>
-                            <a href="{{ url_for('admin_panel.audit_logs') }}" class="c-btn c-btn--outline-secondary">
-                                <i class="ti ti-x"></i>
-                            </a>
+                            <a href="{{ url_for('admin_panel.audit_logs') }}" class="c-btn c-btn--outline-secondary" aria-label="Button"><i class="ti ti-x"></i></a>
                         </div>
                     </div>
                 </form>
@@ -215,9 +213,7 @@
                                             data-log-id="{{ log.id }}"
                                             data-old-value="{{ log.old_value|e if log.old_value else '' }}"
                                             data-new-value="{{ log.new_value|e if log.new_value else '' }}"
-                                            data-ip-address="{{ log.ip_address or '' }}">
-                                        <i class="ti ti-info-circle"></i>
-                                    </button>
+                                            data-ip-address="{{ log.ip_address or '' }}" aria-label="Information"><i class="ti ti-info-circle"></i></button>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -231,9 +227,7 @@
                     <ul class="pagination justify-content-center mb-0" data-pagination>
                         {% if logs.has_prev %}
                         <li class="page-item" data-page-item>
-                            <a class="page-link" href="{{ url_for('admin_panel.audit_logs', page=logs.prev_num, **current_filters) }}">
-                                <i class="ti ti-chevron-left"></i>
-                            </a>
+                            <a class="page-link" href="{{ url_for('admin_panel.audit_logs', page=logs.prev_num, **current_filters) }}" aria-label="Previous"><i class="ti ti-chevron-left"></i></a>
                         </li>
                         {% endif %}
 
@@ -257,9 +251,7 @@
 
                         {% if logs.has_next %}
                         <li class="page-item" data-page-item>
-                            <a class="page-link" href="{{ url_for('admin_panel.audit_logs', page=logs.next_num, **current_filters) }}">
-                                <i class="ti ti-chevron-right"></i>
-                            </a>
+                            <a class="page-link" href="{{ url_for('admin_panel.audit_logs', page=logs.next_num, **current_filters) }}" aria-label="Next"><i class="ti ti-chevron-right"></i></a>
                         </li>
                         {% endif %}
                     </ul>

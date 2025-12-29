@@ -54,7 +54,7 @@
                     <label class="form-label">Search Matches</label>
                     <input type="text" class="form-control" name="search"
                            value="{{ request.args.get('search', '') }}"
-                           placeholder="Team name, competition..." data-form-control>
+                           placeholder="Team name, competition..." data-form-control aria-label="Team name, competition...">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Status Filter</label>
@@ -209,9 +209,7 @@
                 <!-- Previous -->
                 {% if page > 1 %}
                 <li class="page-item" data-page-item>
-                    <a class="page-link" href="?page={{ page - 1 }}{% if request.args.get('search') %}&search={{ request.args.get('search') }}{% endif %}{% if request.args.get('status') %}&status={{ request.args.get('status') }}{% endif %}{% if request.args.get('reporting') %}&reporting={{ request.args.get('reporting') }}{% endif %}">
-                        <i class="fas fa-chevron-left"></i>
-                    </a>
+                    <a class="page-link" href="?page={{ page - 1 }}{% if request.args.get('search') %}&search={{ request.args.get('search') }}{% endif %}{% if request.args.get('status') %}&status={{ request.args.get('status') }}{% endif %}{% if request.args.get('reporting') %}&reporting={{ request.args.get('reporting') }}{% endif %}" aria-label="Previous"><i class="fas fa-chevron-left"></i></a>
                 </li>
                 {% else %}
                 <li class="page-item disabled" data-page-item data-page-disabled>
@@ -239,9 +237,7 @@
                 <!-- Next -->
                 {% if page < total_pages %}
                 <li class="page-item" data-page-item>
-                    <a class="page-link" href="?page={{ page + 1 }}{% if request.args.get('search') %}&search={{ request.args.get('search') }}{% endif %}{% if request.args.get('status') %}&status={{ request.args.get('status') }}{% endif %}{% if request.args.get('reporting') %}&reporting={{ request.args.get('reporting') }}{% endif %}">
-                        <i class="fas fa-chevron-right"></i>
-                    </a>
+                    <a class="page-link" href="?page={{ page + 1 }}{% if request.args.get('search') %}&search={{ request.args.get('search') }}{% endif %}{% if request.args.get('status') %}&status={{ request.args.get('status') }}{% endif %}{% if request.args.get('reporting') %}&reporting={{ request.args.get('reporting') }}{% endif %}" aria-label="Next"><i class="fas fa-chevron-right"></i></a>
                 </li>
                 {% else %}
                 <li class="page-item disabled" data-page-item data-page-disabled>

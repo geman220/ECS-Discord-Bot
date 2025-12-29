@@ -81,15 +81,11 @@
                                 <button class="c-btn c-btn--sm c-btn--outline-success"
                                         data-action="set-current-season"
                                         data-season-id="{{ season.id }}"
-                                        data-season-name="{{ season.name }}">
-                                    <i class="ti ti-check"></i>
-                                </button>
+                                        data-season-name="{{ season.name }}" aria-label="Confirm"><i class="ti ti-check"></i></button>
                                 <button class="c-btn c-btn--sm c-btn--outline-danger"
                                         data-action="delete-season"
                                         data-season-id="{{ season.id }}"
-                                        data-season-name="{{ season.name }}">
-                                    <i class="ti ti-trash"></i>
-                                </button>
+                                        data-season-name="{{ season.name }}" aria-label="Delete"><i class="ti ti-trash"></i></button>
                                 {% endif %}
                             </div>
                         </div>

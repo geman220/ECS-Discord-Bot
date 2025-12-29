@@ -116,14 +116,12 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Search</label>
-                        <input type="text" name="search" class="form-control" placeholder="Search message content..." value="{{ request.args.get('search', '') }}" data-form-control>
+                        <input type="text" name="search" class="form-control" placeholder="Search message content..." value="{{ request.args.get('search', '') }}" data-form-control aria-label="Search message content...">
                     </div>
                     <div class="col-md-1">
                         <label class="form-label">&nbsp;</label>
                         <div class="d-grid">
-                            <button type="submit" class="c-btn c-btn--primary">
-                                <i class="ti ti-search"></i>
-                            </button>
+                            <button type="submit" class="c-btn c-btn--primary" aria-label="Search"><i class="ti ti-search"></i></button>
                         </div>
                     </div>
                 </form>
@@ -268,20 +266,12 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="c-btn c-btn--outline-info js-view-notification" data-action="view-notification" data-notification-id="{{ notification.id }}">
-                                            <i class="ti ti-eye"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--outline-info js-view-notification" data-action="view-notification" data-notification-id="{{ notification.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
                                         {% if notification.failed_at %}
-                                        <button class="c-btn c-btn--outline-warning js-retry-notification" data-action="retry-notification" data-notification-id="{{ notification.id }}">
-                                            <i class="ti ti-refresh"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--outline-warning js-retry-notification" data-action="retry-notification" data-notification-id="{{ notification.id }}" aria-label="Refresh"><i class="ti ti-refresh"></i></button>
                                         {% endif %}
-                                        <button class="c-btn c-btn--outline-primary js-duplicate-notification" data-action="duplicate-notification" data-notification-id="{{ notification.id }}">
-                                            <i class="ti ti-copy"></i>
-                                        </button>
-                                        <button class="c-btn c-btn--outline-danger js-delete-notification" data-action="delete-notification" data-notification-id="{{ notification.id }}">
-                                            <i class="ti ti-trash"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--outline-primary js-duplicate-notification" data-action="duplicate-notification" data-notification-id="{{ notification.id }}" aria-label="Copy"><i class="ti ti-copy"></i></button>
+                                        <button class="c-btn c-btn--outline-danger js-delete-notification" data-action="delete-notification" data-notification-id="{{ notification.id }}" aria-label="Delete"><i class="ti ti-trash"></i></button>
                                     </div>
                                 </td>
                             </tr>

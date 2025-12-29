@@ -52,10 +52,8 @@
             <div class="col-md-3">
                 <label class="c-form-modern__label">Search</label>
                 <div class="c-form-modern__input-group" data-input-group>
-                    <input type="text" name="search" class="c-form-modern__input" placeholder="Search items..." value="{{ current_filters.search }}" data-form-control data-action="search-items">
-                    <button type="submit" class="c-button c-button--outline-primary">
-                        <i class="ti ti-search"></i>
-                    </button>
+                    <input type="text" name="search" class="c-form-modern__input" placeholder="Search items..." value="{{ current_filters.search }}" data-form-control data-action="search-items" aria-label="Search items...">
+                    <button type="submit" class="c-button c-button--outline-primary" aria-label="Search"><i class="ti ti-search"></i></button>
                 </div>
             </div>
         </form>

@@ -35,9 +35,7 @@ TODO: Remove this template after new system is verified in production
                 <h6 class="c-match-list__title">Manage Upcoming Matches</h6>
                 <div class="c-match-list__actions">
                     <div class="dropdown">
-                        <button class="c-btn c-btn--link dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle>
-                            <i class="fas fa-ellipsis-v"></i>
-                        </button>
+                        <button class="c-btn c-btn--link dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle aria-label="More options"><i class="fas fa-ellipsis-v"></i></button>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton" data-dropdown-menu>
                             <li>
                                 <a class="dropdown-item" href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#addMatchModal">
@@ -85,9 +83,7 @@ TODO: Remove this template after new system is verified in production
                             <td class="text-center" id="actions-{{ match.id }}">
                                 <div class="c-match-actions" data-component="match-actions">
                                     <div class="c-match-actions__dropdown dropdown d-inline-block me-2">
-                                        <button class="c-btn c-btn--link text-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle>
-                                            <i class="fas fa-ellipsis-v"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--link text-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle aria-label="More options"><i class="fas fa-ellipsis-v"></i></button>
                                         <ul class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
                                             <li>
                                                 <a class="dropdown-item" href="#" data-action="edit-match" data-match-id="{{ match.id }}">

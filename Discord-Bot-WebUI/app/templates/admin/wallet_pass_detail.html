@@ -336,9 +336,7 @@
                         <input type="text" class="form-control form-control-sm" id="download-link"
                                value="{{ url_for('public_wallet.pass_info', token=wallet_pass.download_token, _external=True) }}"
                                readonly data-form-control>
-                        <button class="c-btn c-btn--outline-primary c-btn--sm js-copy-link" data-action="copy-link">
-                            <i class="ti ti-copy"></i>
-                        </button>
+                        <button class="c-btn c-btn--outline-primary c-btn--sm js-copy-link" data-action="copy-link" aria-label="Copy"><i class="ti ti-copy"></i></button>
                     </div>
                 </div>
             </div>

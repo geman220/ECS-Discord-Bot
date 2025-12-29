@@ -33,7 +33,7 @@
 [data-dropdown] {
   /* Light mode defaults */
   --dropdown-bg: var(--color-white, #ffffff);
-  --dropdown-border: #e4e4e7;
+  --dropdown-border-color: var(--color-border);
   --dropdown-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
                      0 10px 15px -3px rgba(0, 0, 0, 0.1);
   --dropdown-radius: 0.5rem;

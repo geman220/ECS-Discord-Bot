@@ -254,9 +254,7 @@
                                                 <i class="ti ti-{{ 'check' if rsvp['response'] == 'yes' else 'x' if rsvp['response'] == 'no' else 'help' if rsvp['response'] == 'maybe' else 'minus' }}"></i>
                                                 {{ rsvp['response']|capitalize }}
                                             </span>
-                                            <button class="expand-button js-toggle-card-expansion" data-action="toggle-card-expansion">
-                                                <i class="ti ti-chevron-down"></i>
-                                            </button>
+                                            <button class="expand-button js-toggle-card-expansion" data-action="toggle-card-expansion" aria-label="Expand"><i class="ti ti-chevron-down"></i></button>
                                         </div>
                                     </div>
                                     
@@ -413,9 +411,7 @@
                                             </td>
                                             <td>
                                                 <div class="dropdown">
-                                                    <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary dropdown-toggle hide-arrow" data-bs-toggle="dropdown" data-dropdown-toggle>
-                                                        <i class="ti ti-dots-vertical"></i>
-                                                    </button>
+                                                    <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary dropdown-toggle hide-arrow" data-bs-toggle="dropdown" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
                                                     <div class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
                                                         <a class="dropdown-item" href="{{ url_for('players.player_profile', player_id=rsvp['player'].id) }}">
                                                             <i class="ti ti-user me-1"></i> View Profile
@@ -534,9 +530,7 @@
                                                 <i class="ti ti-{{ 'check' if rsvp['response'] == 'yes' else 'x' if rsvp['response'] == 'no' else 'help' if rsvp['response'] == 'maybe' else 'minus' }}"></i>
                                                 {{ rsvp['response']|capitalize }}
                                             </span>
-                                            <button class="expand-button js-toggle-card-expansion" data-action="toggle-card-expansion">
-                                                <i class="ti ti-chevron-down"></i>
-                                            </button>
+                                            <button class="expand-button js-toggle-card-expansion" data-action="toggle-card-expansion" aria-label="Expand"><i class="ti ti-chevron-down"></i></button>
                                         </div>
                                     </div>
                                     
@@ -674,9 +668,7 @@
                                             </td>
                                             <td>
                                                 <div class="dropdown">
-                                                    <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary dropdown-toggle hide-arrow" data-bs-toggle="dropdown" data-dropdown-toggle>
-                                                        <i class="ti ti-dots-vertical"></i>
-                                                    </button>
+                                                    <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary dropdown-toggle hide-arrow" data-bs-toggle="dropdown" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
                                                     <div class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
                                                         <a class="dropdown-item" href="{{ url_for('players.player_profile', player_id=rsvp['player'].id) }}">
                                                             <i class="ti ti-user me-1"></i> View Profile
@@ -795,9 +787,7 @@
                                                 <i class="ti ti-{{ 'check' if rsvp['response'] == 'yes' else 'x' if rsvp['response'] == 'no' else 'help' if rsvp['response'] == 'maybe' else 'minus' }}"></i>
                                                 {{ rsvp['response']|capitalize }}
                                             </span>
-                                            <button class="expand-button js-toggle-card-expansion" data-action="toggle-card-expansion">
-                                                <i class="ti ti-chevron-down"></i>
-                                            </button>
+                                            <button class="expand-button js-toggle-card-expansion" data-action="toggle-card-expansion" aria-label="Expand"><i class="ti ti-chevron-down"></i></button>
                                         </div>
                                     </div>
                                     
@@ -935,9 +925,7 @@
                                             </td>
                                             <td>
                                                 <div class="dropdown">
-                                                    <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary dropdown-toggle hide-arrow" data-bs-toggle="dropdown" data-dropdown-toggle>
-                                                        <i class="ti ti-dots-vertical"></i>
-                                                    </button>
+                                                    <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary dropdown-toggle hide-arrow" data-bs-toggle="dropdown" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
                                                     <div class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
                                                         <a class="dropdown-item" href="{{ url_for('players.player_profile', player_id=rsvp['player'].id) }}">
                                                             <i class="ti ti-user me-1"></i> View Profile
@@ -1312,9 +1300,7 @@
                                 <h6 class="mb-0">
                                     <i class="ti ti-messages me-2"></i>Recent Substitute Requests for this Match
                                 </h6>
-                                <button class="c-btn c-btn--sm c-btn--outline-primary" id="refreshMatchRequestsBtn">
-                                    <i class="ti ti-refresh"></i>
-                                </button>
+                                <button class="c-btn c-btn--sm c-btn--outline-primary" id="refreshMatchRequestsBtn" aria-label="Refresh"><i class="ti ti-refresh"></i></button>
                             </div>
                             
                             <div class="c-table-wrapper" data-table-responsive>

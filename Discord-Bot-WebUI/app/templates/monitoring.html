@@ -215,9 +215,7 @@
                         <small class="text-muted">Real-time queue monitoring and health status</small>
                     </div>
                     <div class="dropdown">
-                        <button class="c-btn c-btn--sm c-btn--outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-dropdown-toggle>
-                            <i class="ti ti-dots-vertical"></i>
-                        </button>
+                        <button class="c-btn c-btn--sm c-btn--outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
                         <ul class="dropdown-menu" data-dropdown-menu>
                             <li><a class="dropdown-item js-clear-queues" data-action="clear-all-queues"><i class="ti ti-trash me-2"></i>Clear All Queues</a></li>
                             <li><a class="dropdown-item js-pause-queues" data-action="pause-queues"><i class="ti ti-pause me-2"></i>Pause Processing</a></li>
@@ -266,9 +264,7 @@
                         <h5 class="c-card__title mb-0">Active Tasks</h5>
                         <div class="d-flex align-items-center gap-2">
                             <span class="badge bg-label-primary" id="activeTaskCount" data-badge>0</span>
-                            <button class="c-btn c-btn--sm c-btn--outline-secondary js-refresh-tasks" data-action="refresh-active-tasks">
-                                <i class="ti ti-refresh"></i>
-                            </button>
+                            <button class="c-btn c-btn--sm c-btn--outline-secondary js-refresh-tasks" data-action="refresh-active-tasks" aria-label="Refresh"><i class="ti ti-refresh"></i></button>
                         </div>
                     </div>
                 </div>
@@ -292,9 +288,7 @@
                         <h5 class="c-card__title mb-0">Worker Status</h5>
                         <div class="d-flex align-items-center gap-2">
                             <span class="badge bg-label-success" id="workerCount" data-badge>0</span>
-                            <button class="c-btn c-btn--sm c-btn--outline-secondary js-refresh-workers" data-action="refresh-workers">
-                                <i class="ti ti-refresh"></i>
-                            </button>
+                            <button class="c-btn c-btn--sm c-btn--outline-secondary js-refresh-workers" data-action="refresh-workers" aria-label="Refresh"><i class="ti ti-refresh"></i></button>
                         </div>
                     </div>
                 </div>

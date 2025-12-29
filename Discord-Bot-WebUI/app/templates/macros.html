@@ -97,7 +97,7 @@
                                                    value="{{ scorer.minute }}"
                                                    pattern="^\d{1,3}(\+\d{1,2})?$"
                                                    title="Enter minute (e.g., '45' or '45+2')"
-                                                   data-form-control>
+                                                   data-form-control aria-label="Min">
                                             <button class="c-event-entry__remove c-btn c-btn--danger c-btn--sm"
                                                     type="button"
                                                     data-action="remove-event"
@@ -146,7 +146,7 @@
                                                    value="{{ assist.minute }}"
                                                    pattern="^\d{1,3}(\+\d{1,2})?$"
                                                    title="Enter minute"
-                                                   data-form-control>
+                                                   data-form-control aria-label="Min">
                                             <button class="c-event-entry__remove c-btn c-btn--danger c-btn--sm"
                                                     type="button"
                                                     data-action="remove-event"
@@ -199,7 +199,7 @@
                                                    placeholder="Min"
                                                    value="{{ card.minute }}"
                                                    pattern="^\d{1,3}(\+\d{1,2})?$"
-                                                   data-form-control>
+                                                   data-form-control aria-label="Min">
                                             <button class="c-event-entry__remove c-btn c-btn--danger c-btn--sm"
                                                     type="button"
                                                     data-action="remove-event"
@@ -234,7 +234,7 @@
                                                    placeholder="Min"
                                                    value="{{ card.minute }}"
                                                    pattern="^\d{1,3}(\+\d{1,2})?$"
-                                                   data-form-control>
+                                                   data-form-control aria-label="Min">
                                             <button class="c-event-entry__remove c-btn c-btn--danger c-btn--sm"
                                                     type="button"
                                                     data-action="remove-event"
@@ -285,7 +285,7 @@
                                                    placeholder="Min"
                                                    value="{{ own_goal.minute }}"
                                                    pattern="^\d{1,3}(\+\d{1,2})?$"
-                                                   data-form-control>
+                                                   data-form-control aria-label="Min">
                                             <button class="c-event-entry__remove c-btn c-btn--danger c-btn--sm"
                                                     type="button"
                                                     data-action="remove-event"
@@ -1422,7 +1422,7 @@
 
     Usage:
         {% call macros.filter_bar() %}
-            <input type="text" class="form-control" placeholder="Search...">
+            <input type="text" class="form-control" placeholder="Search..." aria-label="Search...">
             <select class="form-select">...</select>
             <button class="btn btn-primary">Apply</button>
         {% endcall %}

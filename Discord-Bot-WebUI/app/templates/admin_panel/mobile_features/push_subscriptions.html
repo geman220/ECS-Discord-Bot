@@ -209,9 +209,7 @@
                                 </td>
                                 <td>
                                     <code class="small">{{ token.token[:20] }}...{{ token.token[-10:] if token.token|length > 30 else token.token }}</code>
-                                    <button class="c-btn c-btn--sm c-btn--outline-secondary ms-1 js-copy-token" data-action="copy-token" data-token="{{ token.token }}">
-                                        <i class="ti ti-copy"></i>
-                                    </button>
+                                    <button class="c-btn c-btn--sm c-btn--outline-secondary ms-1 js-copy-token" data-action="copy-token" data-token="{{ token.token }}" aria-label="Copy"><i class="ti ti-copy"></i></button>
                                 </td>
                                 <td>
                                     {% set platform = 'iOS' if 'iOS' in token.token or token.platform == 'iOS' else 'Android' %}
@@ -239,24 +237,14 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="c-btn c-btn--outline-info js-view-token" data-action="view-token" data-token-id="{{ token.id }}">
-                                            <i class="ti ti-eye"></i>
-                                        </button>
-                                        <button class="c-btn c-btn--outline-primary js-test-notification" data-action="test-notification" data-token-id="{{ token.id }}">
-                                            <i class="ti ti-send"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--outline-info js-view-token" data-action="view-token" data-token-id="{{ token.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
+                                        <button class="c-btn c-btn--outline-primary js-test-notification" data-action="test-notification" data-token-id="{{ token.id }}" aria-label="Send"><i class="ti ti-send"></i></button>
                                         {% if token.is_active %}
-                                        <button class="c-btn c-btn--outline-warning js-deactivate-token" data-action="deactivate-token" data-token-id="{{ token.id }}">
-                                            <i class="ti ti-ban"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--outline-warning js-deactivate-token" data-action="deactivate-token" data-token-id="{{ token.id }}" aria-label="Block"><i class="ti ti-ban"></i></button>
                                         {% else %}
-                                        <button class="c-btn c-btn--outline-success js-activate-token" data-action="activate-token" data-token-id="{{ token.id }}">
-                                            <i class="ti ti-check"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--outline-success js-activate-token" data-action="activate-token" data-token-id="{{ token.id }}" aria-label="Confirm"><i class="ti ti-check"></i></button>
                                         {% endif %}
-                                        <button class="c-btn c-btn--outline-danger js-delete-token" data-action="delete-token" data-token-id="{{ token.id }}">
-                                            <i class="ti ti-trash"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--outline-danger js-delete-token" data-action="delete-token" data-token-id="{{ token.id }}" aria-label="Delete"><i class="ti ti-trash"></i></button>
                                     </div>
                                 </td>
                             </tr>

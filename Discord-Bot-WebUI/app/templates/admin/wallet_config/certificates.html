@@ -115,7 +115,7 @@
                                                     </div>
                                                     <div class="mb-3">
                                                         <label class="form-label">Certificate Name</label>
-                                                        <input type="text" class="form-control" name="name" required placeholder="Descriptive name" data-form-control>
+                                                        <input type="text" class="form-control" name="name" required placeholder="Descriptive name" data-form-control aria-label="Descriptive name">
                                                     </div>
                                                     <div class="mb-3">
                                                         <label class="form-label">Certificate File</label>
@@ -124,11 +124,11 @@
                                                     <input type="hidden" name="platform" value="apple">
                                                     <div class="mb-3">
                                                         <label class="form-label">Team Identifier</label>
-                                                        <input type="text" class="form-control" name="team_identifier" placeholder="From Apple Developer account" data-form-control>
+                                                        <input type="text" class="form-control" name="team_identifier" placeholder="From Apple Developer account" data-form-control aria-label="From Apple Developer account">
                                                     </div>
                                                     <div class="mb-3">
                                                         <label class="form-label">Pass Type Identifier</label>
-                                                        <input type="text" class="form-control" name="pass_type_identifier" placeholder="e.g., pass.com.ecsfc.membership" data-form-control>
+                                                        <input type="text" class="form-control" name="pass_type_identifier" placeholder="e.g., pass.com.ecsfc.membership" data-form-control aria-label="e.g., pass.com.ecsfc.membership">
                                                     </div>
                                                     <button type="submit" class="c-btn c-btn--primary">Upload Certificate</button>
                                                 </form>
@@ -240,7 +240,7 @@
                                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                     <div class="mb-3">
                                                         <label class="form-label">Credential Name</label>
-                                                        <input type="text" class="form-control" name="name" required placeholder="Descriptive name" data-form-control>
+                                                        <input type="text" class="form-control" name="name" required placeholder="Descriptive name" data-form-control aria-label="Descriptive name">
                                                     </div>
                                                     <div class="mb-3">
                                                         <label class="form-label">Credential File (.json)</label>
@@ -250,7 +250,7 @@
                                                     <input type="hidden" name="cert_type" value="credentials">
                                                     <div class="mb-3">
                                                         <label class="form-label">Issuer ID</label>
-                                                        <input type="text" class="form-control" name="issuer_id" placeholder="From Google Pay and Wallet Console" data-form-control>
+                                                        <input type="text" class="form-control" name="issuer_id" placeholder="From Google Pay and Wallet Console" data-form-control aria-label="From Google Pay and Wallet Console">
                                                     </div>
                                                     <button type="submit" class="c-btn c-btn--primary">Upload Credentials</button>
                                                 </form>

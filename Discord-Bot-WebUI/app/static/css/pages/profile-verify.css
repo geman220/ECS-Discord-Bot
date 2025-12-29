@@ -31,7 +31,7 @@
     --profile-surface: #FFFFFF;
     --profile-surface-alt: #F8FAFC;
     --profile-surface-dark: var(--color-secondary-900, #1E293B);
-    --profile-border: #E2E8F0;
+    --profile-border-color: var(--color-border);
     --profile-border-strong: #CBD5E1;
 
     /* Typography */

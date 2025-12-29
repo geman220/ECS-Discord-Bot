@@ -90,7 +90,7 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Campaign Name</label>
-                                <input type="text" class="form-control" name="campaign_name" placeholder="Match Day Reminder" required data-form-control>
+                                <input type="text" class="form-control" name="campaign_name" placeholder="Match Day Reminder" required data-form-control aria-label="Match Day Reminder">
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -111,7 +111,7 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Notification Title</label>
-                                <input type="text" class="form-control" name="notification_title" placeholder="Match Starting Soon!" required data-form-control>
+                                <input type="text" class="form-control" name="notification_title" placeholder="Match Starting Soon!" required data-form-control aria-label="Match Starting Soon!">
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -209,9 +209,7 @@
                                 <p class="c-card__description small text-muted mb-2">{{ template.description }}</p>
                                 <small class="text-muted">Target: {{ template.target_audience }}</small>
                             </div>
-                            <button class="c-btn c-btn--sm c-btn--outline-primary js-load-template" data-action="load-template" data-template-id="{{ template.id }}">
-                                <i class="ti ti-download"></i>
-                            </button>
+                            <button class="c-btn c-btn--sm c-btn--outline-primary js-load-template" data-action="load-template" data-template-id="{{ template.id }}" aria-label="Download"><i class="ti ti-download"></i></button>
                         </div>
                         <div class="mt-2">
                             <small class="badge bg-info">{{ template.estimated_reach }} users</small>
@@ -278,15 +276,9 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="c-btn c-btn--outline-info js-view-campaign-details" data-action="view-campaign-details" data-campaign-id="{{ campaign.id }}">
-                                            <i class="ti ti-eye"></i>
-                                        </button>
-                                        <button class="c-btn c-btn--outline-primary js-duplicate-campaign" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}">
-                                            <i class="ti ti-copy"></i>
-                                        </button>
-                                        <button class="c-btn c-btn--outline-secondary js-download-report" data-action="download-report" data-campaign-id="{{ campaign.id }}">
-                                            <i class="ti ti-download"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--outline-info js-view-campaign-details" data-action="view-campaign-details" data-campaign-id="{{ campaign.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
+                                        <button class="c-btn c-btn--outline-primary js-duplicate-campaign" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}" aria-label="Copy"><i class="ti ti-copy"></i></button>
+                                        <button class="c-btn c-btn--outline-secondary js-download-report" data-action="download-report" data-campaign-id="{{ campaign.id }}" aria-label="Download"><i class="ti ti-download"></i></button>
                                     </div>
                                 </td>
                             </tr>

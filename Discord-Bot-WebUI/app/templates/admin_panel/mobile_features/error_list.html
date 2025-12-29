@@ -58,9 +58,7 @@
                                 <button type="submit" class="c-btn c-btn--primary flex-grow-1">
                                     <i class="ti ti-search me-1"></i>Filter
                                 </button>
-                                <a href="{{ url_for('admin_panel.mobile_error_list') }}" class="c-btn c-btn--outline-secondary">
-                                    <i class="ti ti-x"></i>
-                                </a>
+                                <a href="{{ url_for('admin_panel.mobile_error_list') }}" class="c-btn c-btn--outline-secondary" aria-label="Button"><i class="ti ti-x"></i></a>
                             </div>
                         </div>
                     </div>
@@ -113,9 +111,7 @@
                                 <td>
                                     <button class="c-btn c-btn--sm c-btn--outline-primary js-view-error"
                                             data-action="view-error"
-                                            data-error-id="{{ error.id }}">
-                                        <i class="ti ti-eye"></i>
-                                    </button>
+                                            data-error-id="{{ error.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
                                 </td>
                             </tr>
                             {% endfor %}

@@ -32,7 +32,7 @@
                                 <label class="form-label">Discord ID to Test</label>
                                 <input type="text" class="form-control" name="discord_id" 
                                        value="{{ user_discord_id if user_discord_id else '' }}" 
-                                       placeholder="Enter Discord ID" data-form-control>
+                                       placeholder="Enter Discord ID" data-form-control aria-label="Enter Discord ID">
                                 <small class="text-muted">Leave blank to use your own Discord ID</small>
                             </div>
                             <div class="col-md-6">
@@ -148,7 +148,7 @@
                                         <label class="form-label">Test User Response to Bot</label>
                                         <div class="input-group mb-2" data-input-group>
                                             <input type="text" class="form-control" name="test_message" 
-                                                   placeholder="Test message (e.g., 'I want premier')" value="I think premier" data-form-control>
+                                                   placeholder="Test message (e.g., 'I want premier')" value="I think premier" data-form-control aria-label="Test message (e.g., ">
                                             <button type="submit" name="action" value="test_league_selection" class="c-btn c-btn--outline-primary">
                                                 Process Message
                                             </button>

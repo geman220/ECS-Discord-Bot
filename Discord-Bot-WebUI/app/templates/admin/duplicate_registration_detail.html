@@ -156,9 +156,7 @@
                                 <i class="ti ti-user-check me-2"></i>Existing Player
                                 {% if alert.existing_player.user %}
                                 <a href="{{ url_for('players.player_profile', player_id=alert.existing_player.id) }}" 
-                                   class="c-btn c-btn--sm c-btn--outline-light ms-2" target="_blank">
-                                    <i class="ti ti-external-link"></i>
-                                </a>
+                                   class="c-btn c-btn--sm c-btn--outline-light ms-2" target="_blank" aria-label="Link"><i class="ti ti-external-link"></i></a>
                                 {% endif %}
                             </h6>
                         </div>

@@ -241,7 +241,7 @@
                                                    data-field="notes"
                                                    data-player-id="{{ player.id }}"
                                                    value="{{ prediction.notes if prediction else '' }}"
-                                                   placeholder="Optional notes..." data-form-control>
+                                                   placeholder="Optional notes..." data-form-control aria-label="Optional notes...">
                                         </td>
                                         <td>
                                             {% if stats.get('prediction_count', 0) > 0 %}

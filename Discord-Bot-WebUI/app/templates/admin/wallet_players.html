@@ -193,9 +193,7 @@
                 <ul class="pagination justify-content-center mb-0" data-pagination>
                     {% if players.has_prev %}
                     <li class="page-item" data-page-item>
-                        <a class="page-link" href="{{ url_for_other_page(players.prev_num) }}">
-                            <i class="ti ti-chevron-left"></i>
-                        </a>
+                        <a class="page-link" href="{{ url_for_other_page(players.prev_num) }}" aria-label="Previous"><i class="ti ti-chevron-left"></i></a>
                     </li>
                     {% endif %}
 
@@ -211,9 +209,7 @@
 
                     {% if players.has_next %}
                     <li class="page-item" data-page-item>
-                        <a class="page-link" href="{{ url_for_other_page(players.next_num) }}">
-                            <i class="ti ti-chevron-right"></i>
-                        </a>
+                        <a class="page-link" href="{{ url_for_other_page(players.next_num) }}" aria-label="Next"><i class="ti ti-chevron-right"></i></a>
                     </li>
                     {% endif %}
                 </ul>

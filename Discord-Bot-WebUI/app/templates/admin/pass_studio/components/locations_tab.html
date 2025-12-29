@@ -80,15 +80,9 @@
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <button type="button" class="c-btn c-btn--outline-primary js-edit-location" onclick="editLocation({{ location.id }})">
-                                    <i class="ti ti-edit"></i>
-                                </button>
-                                <button type="button" class="c-btn btn-outline-{{ 'warning' if location.is_active else 'success' }} js-toggle-location" onclick="toggleLocation({{ location.id }}, {{ 'false' if location.is_active else 'true' }})">
-                                    <i class="ti ti-{{ 'eye-off' if location.is_active else 'eye' }}"></i>
-                                </button>
-                                <button type="button" class="c-btn c-btn--outline-danger js-delete-location" onclick="deleteLocation({{ location.id }}, '{{ location.name }}')">
-                                    <i class="ti ti-trash"></i>
-                                </button>
+                                <button type="button" class="c-btn c-btn--outline-primary js-edit-location" onclick="editLocation({{ location.id }})" aria-label="Edit"><i class="ti ti-edit"></i></button>
+                                <button type="button" class="c-btn btn-outline-{{ 'warning' if location.is_active else 'success' }} js-toggle-location" onclick="toggleLocation({{ location.id }}, {{ 'false' if location.is_active else 'true' }})" aria-label="View"><i class="ti ti-{{ 'eye-off' if location.is_active else 'eye' }}"></i></button>
+                                <button type="button" class="c-btn c-btn--outline-danger js-delete-location" onclick="deleteLocation({{ location.id }}, '{{ location.name }}')" aria-label="Delete"><i class="ti ti-trash"></i></button>
                             </div>
                         </td>
                     </tr>

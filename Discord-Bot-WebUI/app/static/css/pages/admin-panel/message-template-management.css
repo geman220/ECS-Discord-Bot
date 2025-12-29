@@ -29,7 +29,7 @@
 
   --tmpl-bg-base: #fafafa;
   --tmpl-bg-card: var(--color-white, #ffffff);
-  --tmpl-border: #e7e5e4;
+  --tmpl-border-color: var(--color-border);
   --tmpl-border-hover: #d6d3d1;
 
   --tmpl-text-primary: #1c1917;

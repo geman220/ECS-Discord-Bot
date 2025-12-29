@@ -113,15 +113,13 @@
                                                         <input type="text" class="form-control field-name" 
                                                                name="field_name_{{ loop.index0 }}" 
                                                                value="{{ field.strip() }}" 
-                                                               placeholder="Field name" required data-form-control>
+                                                               placeholder="Field name" required data-form-control aria-label="Field name">
                                                         <input type="number" class="form-control field-capacity" 
                                                                name="field_capacity_{{ loop.index0 }}" 
                                                                value="20" min="1" max="50" 
-                                                               placeholder="Capacity" title="Field capacity" data-form-control>
+                                                               placeholder="Capacity" title="Field capacity" data-form-control aria-label="Capacity">
                                                         <button type="button" class="c-btn c-btn--outline-danger remove-field js-remove-field"
-                                                                data-action="remove-field" {{ 'disabled' if loop.index0 < 2 else '' }}>
-                                                            <i class="fas fa-times"></i>
-                                                        </button>
+                                                                data-action="remove-field" {{ 'disabled' if loop.index0 < 2 else '' }} aria-label="Close"><i class="fas fa-times"></i></button>
                                                     </div>
                                                 </div>
                                                 {% endfor %}
@@ -446,15 +444,13 @@ function addField() {
         <div class="input-group" data-input-group>
             <input type="text" class="form-control field-name"
                    name="field_name_${fieldCount}"
-                   placeholder="Field name" required data-form-control>
+                   placeholder="Field name" required data-form-control aria-label="Field name">
             <input type="number" class="form-control field-capacity"
                    name="field_capacity_${fieldCount}"
                    value="20" min="1" max="50"
-                   placeholder="Capacity" title="Field capacity" data-form-control>
+                   placeholder="Capacity" title="Field capacity" data-form-control aria-label="Capacity">
             <button type="button" class="c-btn c-btn--outline-danger remove-field js-remove-field"
-                    data-action="remove-field">
-                <i class="fas fa-times"></i>
-            </button>
+                    data-action="remove-field" aria-label="Close"><i class="fas fa-times"></i></button>
         </div>
     `;
     
@@ -504,9 +500,7 @@ function addWeekConfig(weekType = 'REGULAR') {
             <option value="PLAYOFF" ${weekType === 'PLAYOFF' ? 'selected' : ''}>Playoff</option>
         </select>
         <button type="button" class="c-btn c-btn--sm c-btn--outline-danger mt-1 js-remove-week-card"
-                data-action="remove-week-card">
-            <i class="fas fa-times"></i>
-        </button>
+                data-action="remove-week-card" aria-label="Close"><i class="fas fa-times"></i></button>
         <input type="hidden" name="week_order_${weekConfigCount}" value="${weekConfigCount + 1}">
     `;
     

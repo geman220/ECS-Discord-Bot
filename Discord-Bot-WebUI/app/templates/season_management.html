@@ -69,12 +69,8 @@
                                 {% endif %}
                             </h6>
                             <div class="btn-group btn-group-sm">
-                                <button class="c-btn c-btn--outline-primary js-edit-week" data-action="edit-week" data-week-num="{{ week_num }}">
-                                    <i class="ti ti-edit"></i>
-                                </button>
-                                <button class="c-btn c-btn--outline-danger js-delete-week" data-action="delete-week" data-week-num="{{ week_num }}">
-                                    <i class="ti ti-trash"></i>
-                                </button>
+                                <button class="c-btn c-btn--outline-primary js-edit-week" data-action="edit-week" data-week-num="{{ week_num }}" aria-label="Edit"><i class="ti ti-edit"></i></button>
+                                <button class="c-btn c-btn--outline-danger js-delete-week" data-action="delete-week" data-week-num="{{ week_num }}" aria-label="Delete"><i class="ti ti-trash"></i></button>
                             </div>
                         </div>
                         
@@ -106,12 +102,8 @@
                                         </td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <button class="c-btn c-btn--outline-primary js-edit-match" data-action="edit-match" data-match-id="{{ match.id }}">
-                                                    <i class="ti ti-edit"></i>
-                                                </button>
-                                                <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="c-btn c-btn--outline-info">
-                                                    <i class="ti ti-eye"></i>
-                                                </a>
+                                                <button class="c-btn c-btn--outline-primary js-edit-match" data-action="edit-match" data-match-id="{{ match.id }}" aria-label="Edit"><i class="ti ti-edit"></i></button>
+                                                <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="c-btn c-btn--outline-info" aria-label="View"><i class="ti ti-eye"></i></a>
                                             </div>
                                         </td>
                                     </tr>
@@ -338,9 +330,7 @@ function addMatchSlot() {
     matchSlot.innerHTML = `
         <div class="match-slot-header d-flex justify-content-between align-items-center">
             <h6 class="mb-0">Match ${matchSlotCount}</h6>
-            <button type="button" class="c-btn c-btn--sm c-btn--outline-danger js-remove-match-slot" data-action="remove-match-slot">
-                <i class="ti ti-x"></i>
-            </button>
+            <button type="button" class="c-btn c-btn--sm c-btn--outline-danger js-remove-match-slot" data-action="remove-match-slot" aria-label="Button"><i class="ti ti-x"></i></button>
         </div>
         <div class="row">
             <div class="col-md-3 mb-3">

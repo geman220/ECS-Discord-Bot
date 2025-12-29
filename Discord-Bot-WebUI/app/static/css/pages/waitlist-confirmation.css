@@ -23,7 +23,7 @@
     /* Friendly Neutrals */
     --confirm-surface: #FFFFFF;
     --confirm-surface-alt: #F8FAFC;
-    --confirm-border: #E2E8F0;
+    --confirm-border-color: var(--color-border);
     --confirm-text: var(--color-secondary-900, #1E293B);
     --confirm-text-muted: #64748B;
 

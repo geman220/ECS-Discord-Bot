@@ -104,7 +104,7 @@
   --modal-footer-bg: #fafafa;
   --modal-text: #18181b;
   --modal-text-muted: #71717a;
-  --modal-border: #e4e4e7;
+  --modal-border-color: var(--color-border);
   --modal-close-color: #71717a;
 }
 

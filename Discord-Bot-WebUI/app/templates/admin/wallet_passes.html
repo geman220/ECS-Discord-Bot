@@ -172,10 +172,8 @@
                             <input type="hidden" name="tab" value="{{ active_tab or 'ecs' }}">
                             <input type="text" name="search" class="form-control"
                                    placeholder="Search by name or email..."
-                                   value="{{ search or '' }}" data-form-control>
-                            <button type="submit" class="c-btn c-btn--primary">
-                                <i class="ti ti-search"></i>
-                            </button>
+                                   value="{{ search or '' }}" data-form-control aria-label="Search by name or email...">
+                            <button type="submit" class="c-btn c-btn--primary" aria-label="Search"><i class="ti ti-search"></i></button>
                         </form>
                     </div>
                     <div class="col-md-3">
@@ -352,9 +350,7 @@
                 <ul class="pagination justify-content-center mb-0" data-pagination>
                     {% if passes.has_prev %}
                     <li class="page-item" data-page-item>
-                        <a class="page-link" href="{{ url_for('wallet_admin.passes_list', tab=active_tab or 'ecs', page=passes.prev_num, status=status_filter, search=search) }}">
-                            <i class="ti ti-chevron-left"></i>
-                        </a>
+                        <a class="page-link" href="{{ url_for('wallet_admin.passes_list', tab=active_tab or 'ecs', page=passes.prev_num, status=status_filter, search=search) }}" aria-label="Previous"><i class="ti ti-chevron-left"></i></a>
                     </li>
                     {% endif %}
 
@@ -372,9 +368,7 @@
 
                     {% if passes.has_next %}
                     <li class="page-item" data-page-item>
-                        <a class="page-link" href="{{ url_for('wallet_admin.passes_list', tab=active_tab or 'ecs', page=passes.next_num, status=status_filter, search=search) }}">
-                            <i class="ti ti-chevron-right"></i>
-                        </a>
+                        <a class="page-link" href="{{ url_for('wallet_admin.passes_list', tab=active_tab or 'ecs', page=passes.next_num, status=status_filter, search=search) }}" aria-label="Next"><i class="ti ti-chevron-right"></i></a>
                     </li>
                     {% endif %}
                 </ul>

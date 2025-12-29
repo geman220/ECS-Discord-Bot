@@ -295,9 +295,7 @@ function updateSwapModal() {
         div.className = 'selected-match mb-2';
         div.innerHTML = `
             <strong>Match ${index + 1}:</strong> ${match.description}
-            <button class="c-btn c-btn--sm c-btn--outline-danger ml-2 js-remove-swap" data-action="remove-from-swap" data-swap-index="${index}">
-                <i class="fas fa-times"></i>
-            </button>
+            <button class="c-btn c-btn--sm c-btn--outline-danger ml-2 js-remove-swap" data-action="remove-from-swap" data-swap-index="${index}" aria-label="Close"><i class="fas fa-times"></i></button>
         `;
         selectedMatchesDiv.appendChild(div);
     });

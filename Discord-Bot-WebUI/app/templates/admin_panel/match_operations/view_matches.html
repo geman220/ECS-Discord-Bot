@@ -75,9 +75,7 @@
                             <button type="submit" class="c-btn c-btn--primary flex-grow-1">
                                 <i class="ti ti-search me-1"></i>Filter
                             </button>
-                            <a href="{{ url_for('admin_panel.view_matches') }}" class="c-btn c-btn--outline-secondary">
-                                <i class="ti ti-x"></i>
-                            </a>
+                            <a href="{{ url_for('admin_panel.view_matches') }}" class="c-btn c-btn--outline-secondary" aria-label="Button"><i class="ti ti-x"></i></a>
                         </div>
                     </div>
                 </form>
@@ -155,12 +153,8 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="c-btn c-btn--outline-info" data-action="view-match-details" data-match-id="{{ match.id }}">
-                                            <i class="ti ti-eye"></i>
-                                        </button>
-                                        <button class="c-btn c-btn--outline-warning" data-action="edit-match" data-match-id="{{ match.id }}">
-                                            <i class="ti ti-edit"></i>
-                                        </button>
+                                        <button class="c-btn c-btn--outline-info" data-action="view-match-details" data-match-id="{{ match.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
+                                        <button class="c-btn c-btn--outline-warning" data-action="edit-match" data-match-id="{{ match.id }}" aria-label="Edit"><i class="ti ti-edit"></i></button>
                                     </div>
                                 </td>
                             </tr>
@@ -175,9 +169,7 @@
                     <ul class="pagination justify-content-center" data-pagination>
                         {% if matches.has_prev %}
                         <li class="page-item" data-page-item>
-                            <a class="page-link" href="{{ url_for('admin_panel.view_matches', page=matches.prev_num, **request.args) }}">
-                                <i class="ti ti-chevron-left"></i>
-                            </a>
+                            <a class="page-link" href="{{ url_for('admin_panel.view_matches', page=matches.prev_num, **request.args) }}" aria-label="Previous"><i class="ti ti-chevron-left"></i></a>
                         </li>
                         {% endif %}
                         
@@ -201,9 +193,7 @@
                         
                         {% if matches.has_next %}
                         <li class="page-item" data-page-item>
-                            <a class="page-link" href="{{ url_for('admin_panel.view_matches', page=matches.next_num, **request.args) }}">
-                                <i class="ti ti-chevron-right"></i>
-                            </a>
+                            <a class="page-link" href="{{ url_for('admin_panel.view_matches', page=matches.next_num, **request.args) }}" aria-label="Next"><i class="ti ti-chevron-right"></i></a>
                         </li>
                         {% endif %}
                     </ul>
