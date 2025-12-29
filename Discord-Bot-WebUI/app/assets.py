@@ -787,7 +787,6 @@ def init_assets(app):
         'js/draft-history.js',          # Draft history
         'js/draft-system.js',           # Draft system
         'js/mobile-draft.js',           # Mobile draft
-        'js/mobile-table-enhancer.js',  # Mobile table enhancements
         'js/message-management.js',     # Message management
         'js/messages-inbox.js',         # Messages inbox
         'js/pass-studio.js',            # Pass studio
