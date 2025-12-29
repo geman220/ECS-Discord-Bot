@@ -374,6 +374,10 @@
         </div>
     </div>
 
+</div>
+
+{% block modals %}
+{{ super() }}
     <!-- Create Template Modal -->
     <div class="modal c-modal fade" id="createTemplateModal" tabindex="-1" aria-hidden="true" data-modal aria-labelledby="createTemplateModalLabel">
         <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
@@ -416,7 +420,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Edit Template Modal -->
     <div class="modal c-modal fade" id="editTemplateModal" tabindex="-1" aria-hidden="true" data-modal aria-labelledby="editTemplateModalLabel">
         <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
@@ -459,7 +463,7 @@
             </div>
         </div>
     </div>
-</div>
+{% endblock %}
 
 {% block page_js %}
 <script>

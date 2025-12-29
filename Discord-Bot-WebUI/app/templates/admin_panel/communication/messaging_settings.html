@@ -228,46 +228,6 @@
       </div>
     </div>
 
-    {# Edit Permissions Modal #}
-    <div class="modal c-modal fade" id="editPermissionsModal" tabindex="-1" aria-labelledby="editPermissionsModalLabel" aria-hidden="true">
-      <div class="modal-dialog c-modal__dialog modal-dialog-centered">
-        <div class="modal-content c-modal__content">
-          <div class="modal-header c-modal__header">
-            <h5 class="modal-title c-modal__title" id="editPermissionsModalLabel">
-              <i class="ti ti-edit me-2" aria-hidden="true"></i>
-              Edit Permissions: <span id="modalRoleName">Role</span>
-            </h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body c-modal__body">
-            <p class="text-muted mb-3">Select which roles <strong id="modalRoleNameText">this role</strong> can send messages to:</p>
-
-            <div class="c-permission-checklist" id="permissionChecklist">
-              {# Dynamically populated #}
-            </div>
-
-            <div class="c-permission-modal-actions mt-3">
-              <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary" id="modalSelectAll">
-                <i class="ti ti-checkbox me-1" aria-hidden="true"></i>
-                Select All
-              </button>
-              <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary" id="modalDeselectAll">
-                <i class="ti ti-square me-1" aria-hidden="true"></i>
-                Deselect All
-              </button>
-            </div>
-          </div>
-          <div class="modal-footer c-modal__footer">
-            <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="button" class="c-btn c-btn--primary" id="savePermissions">
-              <i class="ti ti-check me-1" aria-hidden="true"></i>
-              Apply Changes
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     {# Quick Actions #}
     <div class="c-card" data-card>
       <div class="c-card__header">
@@ -292,6 +252,50 @@
 
   </div>
 
+</div>
+{% endblock %}
+
+{% block modals %}
+{{ super() }}
+
+{# Edit Permissions Modal #}
+<div class="modal c-modal fade" id="editPermissionsModal" tabindex="-1" aria-labelledby="editPermissionsModalLabel" aria-hidden="true">
+  <div class="modal-dialog c-modal__dialog modal-dialog-centered">
+    <div class="modal-content c-modal__content">
+      <div class="modal-header c-modal__header">
+        <h5 class="modal-title c-modal__title" id="editPermissionsModalLabel">
+          <i class="ti ti-edit me-2" aria-hidden="true"></i>
+          Edit Permissions: <span id="modalRoleName">Role</span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body c-modal__body">
+        <p class="text-muted mb-3">Select which roles <strong id="modalRoleNameText">this role</strong> can send messages to:</p>
+
+        <div class="c-permission-checklist" id="permissionChecklist">
+          {# Dynamically populated #}
+        </div>
+
+        <div class="c-permission-modal-actions mt-3">
+          <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary" id="modalSelectAll">
+            <i class="ti ti-checkbox me-1" aria-hidden="true"></i>
+            Select All
+          </button>
+          <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary" id="modalDeselectAll">
+            <i class="ti ti-square me-1" aria-hidden="true"></i>
+            Deselect All
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer c-modal__footer">
+        <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="c-btn c-btn--primary" id="savePermissions">
+          <i class="ti ti-check me-1" aria-hidden="true"></i>
+          Apply Changes
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 {# Statistics Modal #}

@@ -184,7 +184,10 @@
         <i class="ti ti-plus"></i>
     </button>
 </div>
+{% endblock %}
 
+{% block modals %}
+{{ super() }}
 <!-- Edit/Add Match Modal -->
 <div class="modal c-modal fade" data-modal id="editMatchModal" tabindex="-1" aria-labelledby="editMatchModalLabel" aria-hidden="true">
     <div class="modal-dialog c-modal__dialog" data-modal-dialog>

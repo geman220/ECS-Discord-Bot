@@ -456,6 +456,249 @@
 </div>
 {% endblock %}
 
+{% block modals %}
+{{ super() }}
+<!-- EDIT USER MODAL -->
+<div class="modal c-modal fade" data-modal id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered modal-fullscreen-sm-down" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <form method="POST" action="" id="editUserForm">
+                <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                    <h5 class="modal-title c-modal__title" id="editUserModalLabel">
+                        <i class="ti ti-edit me-2"></i>Edit User
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
+                </div>
+                <div class="modal-body c-modal__body" data-modal-body data-modal-body>
+                    {{ edit_form.csrf_token }}
+                    {{ edit_form.user_id(id='editUserId') }}
+
+                    <div class="mb-3">
+                        <label for="editUsername" class="form-label">Username</label>
+                        <div class="input-group" data-input-group>
+                            <span class="input-group-text"><i class="ti ti-user"></i></span>
+                            <input type="text" class="form-control" id="editUsername" name="username" required data-form-control>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editEmail" class="form-label">Email</label>
+                        <div class="input-group" data-input-group>
+                            <span class="input-group-text"><i class="ti ti-mail"></i></span>
+                            <input type="email" class="form-control" id="editEmail" name="email" required data-form-control>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editRoles" class="form-label">Roles</label>
+                        <select multiple class="form-select select2-multiple" id="editRoles" name="roles" data-form-select>
+                            {% for role in roles %}
+                            <option value="{{ role.id }}">{{ role.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div id="playerProfileSection">
+                        <hr>
+                        <h6 class="mb-3">Player Profile</h6>
+
+                        <div class="mb-3">
+                            <label for="editLeague" class="form-label">League (Primary)</label>
+                            <select class="form-select" id="editLeague" name="league_id" data-form-select>
+                                <option value="0">Select League</option>
+                                {% for league in leagues %}
+                                {% if league.season.is_current %}
+                                <option value="{{ league.id }}">{{ league.name }}</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="editSecondaryLeague" class="form-label">Secondary League (optional)</label>
+                            <select class="form-select" id="editSecondaryLeague" name="secondary_league" data-form-select>
+                                <option value="0">Select Secondary League</option>
+                                {% for league in leagues %}
+                                {% if league.season.is_current %}
+                                <option value="{{ league.id }}">{{ league.name }}</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="editTeam" class="form-label">Team (Primary)</label>
+                            <select class="form-select" id="editTeam" name="team_id" data-form-select>
+                                <option value="0">Select Team</option>
+                                {% for league in leagues %}
+                                {% if league.season.is_current %}
+                                {% for team in league.teams %}
+                                <option value="{{ team.id }}" data-league="{{ league.id }}">{{ team.name }}</option>
+                                {% endfor %}
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="editSecondaryTeam" class="form-label">Secondary Team (optional)</label>
+                            <select class="form-select" id="editSecondaryTeam" name="secondary_team" data-form-select>
+                                <option value="0">Select Secondary Team</option>
+                                {% for league in leagues %}
+                                {% if league.season.is_current %}
+                                {% for team in league.teams %}
+                                <option value="{{ team.id }}" data-league="{{ league.id }}">{{ team.name }} ({{ league.name }})</option>
+                                {% endfor %}
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-check form-switch mb-3">
+                            <input type="checkbox" class="form-check-input" id="editIsCurrentPlayer" name="is_current_player">
+                            <label class="form-check-label" for="editIsCurrentPlayer">Active Player</label>
+                        </div>
+
+                        <div id="noPlayerMessage" class="alert alert-warning d-none" data-alert>
+                            <i class="ti ti-alert-circle me-2"></i>This user does not have a player profile.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>
+                        <i class="ti ti-x me-1"></i>Cancel
+                    </button>
+                    <button type="submit" class="c-btn c-btn--primary">
+                        <i class="ti ti-device-floppy me-1"></i>Update User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Sync Progress Modal -->
+<div class="modal c-modal fade" data-modal id="syncProgressModal" tabindex="-1" aria-hidden="true" aria-labelledby="syncProgressModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="syncProgressModalLabel">Syncing Players from WooCommerce</h5>
+            </div>
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
+                <div class="text-center mb-3">
+                    <div class="spinner-border text-primary" role="status" data-spinner>
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <p><strong>Stage:</strong> <span id="syncStage">Starting...</span></p>
+                <p><strong>Status:</strong> <span id="syncMessage">Initializing sync task...</span></p>
+                <div class="progress mb-2">
+                    <div class="progress-bar" id="syncProgress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sync Review Modal -->
+<div class="modal c-modal fade" data-modal id="syncReviewModal" tabindex="-1" aria-hidden="true" aria-labelledby="syncReviewModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="syncReviewModalLabel">Review WooCommerce Sync Results</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
+            </div>
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
+                <!-- Sync Summary -->
+                <div class="row mb-4">
+                    <div class="col-md-2">
+                        <div class="c-card text-center">
+                            <div class="c-card__body">
+                                <h5 class="c-card__title text-primary" id="newPlayersCount">0</h5>
+                                <p class="c-card__description">New Players</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="c-card text-center">
+                            <div class="c-card__body">
+                                <h5 class="c-card__title text-success" id="existingPlayersCount">0</h5>
+                                <p class="c-card__description">Existing Players</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="c-card text-center">
+                            <div class="c-card__body">
+                                <h5 class="c-card__title text-warning" id="flaggedOrdersCount">0</h5>
+                                <p class="c-card__description">Multi-Orders</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="c-card text-center">
+                            <div class="c-card__body">
+                                <h5 class="c-card__title text-danger" id="emailMismatchCount">0</h5>
+                                <p class="c-card__description">Email Mismatches</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="c-card text-center">
+                            <div class="c-card__body">
+                                <h5 class="c-card__title text-info" id="potentialInactiveCount">0</h5>
+                                <p class="c-card__description">Potential Inactive</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flagged Multi-Person Orders -->
+                <div class="mb-4">
+                    <h6 class="text-warning">⚠️ Multi-Person Orders Requiring Review</h6>
+                    <div id="flaggedOrdersList">
+                        <p class="text-muted">No flagged orders found.</p>
+                    </div>
+                </div>
+
+                <!-- Email Mismatch Players -->
+                <div class="mb-4">
+                    <h6 class="text-danger">📧 Email Mismatches Found</h6>
+                    <div id="emailMismatchList">
+                        <p class="text-muted">No email mismatches found.</p>
+                    </div>
+                </div>
+
+                <!-- New Players Requiring Manual Approval -->
+                <div class="mb-4">
+                    <h6>New Players (Manual Approval Required)</h6>
+                    <div id="newPlayersList">
+                        <p class="text-muted">No new players found.</p>
+                    </div>
+                </div>
+
+                <!-- Status Management Options -->
+                <div class="mb-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="processInactiveCheck" checked>
+                        <label class="form-check-label" for="processInactiveCheck">
+                            <strong>Update Player Status</strong><br>
+                            <small class="text-muted">
+                                Mark players WITHOUT current memberships as inactive, and activate those WITH memberships
+                            </small>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--primary" id="confirmSyncBtn">Confirm & Apply Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
 {% block custom_js %}
 {{ super() }}
 <script>
@@ -1303,126 +1546,4 @@
         });
     });
 </script>
-
-<!-- Sync Progress Modal -->
-<div class="modal c-modal fade" data-modal id="syncProgressModal" tabindex="-1" aria-hidden="true" aria-labelledby="syncProgressModalLabel">
-    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
-        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
-            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
-                <h5 class="modal-title c-modal__title" id="syncProgressModalLabel">Syncing Players from WooCommerce</h5>
-            </div>
-            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
-                <div class="text-center mb-3">
-                    <div class="spinner-border text-primary" role="status" data-spinner>
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                </div>
-                <p><strong>Stage:</strong> <span id="syncStage">Starting...</span></p>
-                <p><strong>Status:</strong> <span id="syncMessage">Initializing sync task...</span></p>
-                <div class="progress mb-2">
-                    <div class="progress-bar" id="syncProgress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Sync Review Modal -->
-<div class="modal c-modal fade" data-modal id="syncReviewModal" tabindex="-1" aria-hidden="true" aria-labelledby="syncReviewModalLabel">
-    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
-        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
-            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
-                <h5 class="modal-title c-modal__title" id="syncReviewModalLabel">Review WooCommerce Sync Results</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
-            </div>
-            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
-                <!-- Sync Summary -->
-                <div class="row mb-4">
-                    <div class="col-md-2">
-                        <div class="c-card text-center">
-                            <div class="c-card__body">
-                                <h5 class="c-card__title text-primary" id="newPlayersCount">0</h5>
-                                <p class="c-card__description">New Players</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="c-card text-center">
-                            <div class="c-card__body">
-                                <h5 class="c-card__title text-success" id="existingPlayersCount">0</h5>
-                                <p class="c-card__description">Existing Players</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="c-card text-center">
-                            <div class="c-card__body">
-                                <h5 class="c-card__title text-warning" id="flaggedOrdersCount">0</h5>
-                                <p class="c-card__description">Multi-Orders</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="c-card text-center">
-                            <div class="c-card__body">
-                                <h5 class="c-card__title text-danger" id="emailMismatchCount">0</h5>
-                                <p class="c-card__description">Email Mismatches</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="c-card text-center">
-                            <div class="c-card__body">
-                                <h5 class="c-card__title text-info" id="potentialInactiveCount">0</h5>
-                                <p class="c-card__description">Potential Inactive</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Flagged Multi-Person Orders -->
-                <div class="mb-4">
-                    <h6 class="text-warning">⚠️ Multi-Person Orders Requiring Review</h6>
-                    <div id="flaggedOrdersList">
-                        <p class="text-muted">No flagged orders found.</p>
-                    </div>
-                </div>
-                
-                <!-- Email Mismatch Players -->
-                <div class="mb-4">
-                    <h6 class="text-danger">📧 Email Mismatches Found</h6>
-                    <div id="emailMismatchList">
-                        <p class="text-muted">No email mismatches found.</p>
-                    </div>
-                </div>
-                
-                <!-- New Players Requiring Manual Approval -->
-                <div class="mb-4">
-                    <h6>New Players (Manual Approval Required)</h6>
-                    <div id="newPlayersList">
-                        <p class="text-muted">No new players found.</p>
-                    </div>
-                </div>
-                
-                <!-- Status Management Options -->
-                <div class="mb-4">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="processInactiveCheck" checked>
-                        <label class="form-check-label" for="processInactiveCheck">
-                            <strong>Update Player Status</strong><br>
-                            <small class="text-muted">
-                                Mark players WITHOUT current memberships as inactive, and activate those WITH memberships
-                            </small>
-                        </label>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
-                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
-                <button type="button" class="c-btn c-btn--primary" id="confirmSyncBtn">Confirm & Apply Changes</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 {% endblock %}

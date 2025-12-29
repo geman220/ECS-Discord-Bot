@@ -283,7 +283,10 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block modals %}
+{{ super() }}
 <!-- Preview Modal -->
 <div class="modal c-modal fade" data-modal id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
     <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
@@ -320,7 +323,7 @@
                 <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" id="edit_template_id" name="template_id" value=""/>
-                    
+
                     <!-- Template Name -->
                     <div class="mb-3">
                         <label for="edit_name" class="form-label">Template Name</label>
@@ -401,7 +404,7 @@
                 <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" id="announcement_id" name="announcement_id" value=""/>
-                    
+
                     <!-- Title -->
                     <div class="mb-3">
                         <label for="announcement_title" class="form-label">Title</label>
@@ -458,7 +461,7 @@
                 <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" id="create_category_id" name="category_id" value=""/>
-                    
+
                     <!-- Template Name -->
                     <div class="mb-3">
                         <label for="create_template_name" class="form-label">Template Name</label>
@@ -563,7 +566,7 @@
                 <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" id="edit_category_id" name="category_id" value=""/>
-                    
+
                     <!-- Category Name -->
                     <div class="mb-3">
                         <label for="edit_category_name" class="form-label">Category Name</label>
@@ -604,12 +607,12 @@
                     </h6>
                     <p class="mb-2">To set up the Discord bot message system, you need to run the initialization script.</p>
                 </div>
-                
+
                 <div class="bg-light p-3 rounded mb-3">
                     <p class="mb-2"><strong>Run this command:</strong></p>
                     <code class="d-block">python initialize_message_config.py</code>
                 </div>
-                
+
                 <p class="text-muted small mb-0">This will create:</p>
                 <ul class="text-muted small">
                     <li>Default message categories (Onboarding, League, System)</li>

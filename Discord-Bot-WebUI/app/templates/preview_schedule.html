@@ -196,6 +196,8 @@
     </div>
 </div>
 
+{% block modals %}
+{{ super() }}
 <!-- Swap Teams Modal -->
 <div class="modal c-modal fade" data-modal id="swapTeamsModal" tabindex="-1" role="dialog" aria-labelledby="swapTeamsModalLabel" aria-hidden="true">
     <div class="modal-dialog c-modal__dialog" data-modal-dialog role="document">
@@ -221,6 +223,7 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
 <script>
 let selectedMatches = [];

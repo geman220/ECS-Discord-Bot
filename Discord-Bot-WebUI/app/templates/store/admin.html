@@ -256,7 +256,10 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block modals %}
+{{ super() }}
 <!-- Create Item Modal -->
 <div class="modal c-modal fade" data-modal id="createItemModal" tabindex="-1" aria-labelledby="createItemModalLabel" aria-hidden="true">
     <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
@@ -270,12 +273,12 @@
                 </div>
                 <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    
+
                     <div class="row">
                         <div class="col-md-8">
                             <div class="mb-3">
                                 <label for="store-admin-item-name" class="form-label">Item Name *</label>
-                                <input type="text" class="form-control" id="store-admin-item-name" name="name" required 
+                                <input type="text" class="form-control" id="store-admin-item-name" name="name" required
                                        placeholder="e.g. 0857 Pioneer Pullover" data-form-control>
                             </div>
                         </div>
@@ -284,43 +287,43 @@
                                 <label for="price" class="form-label">Price (Admin Only)</label>
                                 <div class="input-group" data-input-group>
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="price" name="price" 
+                                    <input type="number" class="form-control" id="price" name="price"
                                            step="0.01" min="0" placeholder="15.00" data-form-control>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="store-admin-item-description" class="form-label">Description</label>
-                        <textarea class="form-control" id="store-admin-item-description" name="description" rows="3" 
+                        <textarea class="form-control" id="store-admin-item-description" name="description" rows="3"
                                   placeholder="Describe the item, materials, features, etc." data-form-control></textarea>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="category" class="form-label">Category</label>
-                        <input type="text" class="form-control" id="category" name="category" 
+                        <input type="text" class="form-control" id="category" name="category"
                                placeholder="e.g. Apparel, Equipment, Accessories" data-form-control>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Image</label>
                         <div class="row">
                             <div class="col-md-6">
                                 <label for="image_file" class="form-label">Upload Image</label>
-                                <input type="file" class="form-control" id="image_file" name="image_file" 
+                                <input type="file" class="form-control" id="image_file" name="image_file"
                                        accept="image/*" data-form-control>
                                 <div class="form-text">Upload an image file</div>
                             </div>
                             <div class="col-md-6">
                                 <label for="image_url" class="form-label">Or Image URL</label>
-                                <input type="url" class="form-control" id="image_url" name="image_url" 
+                                <input type="url" class="form-control" id="image_url" name="image_url"
                                        placeholder="https://example.com/image.jpg" data-form-control>
                                 <div class="form-text">Provide a direct link to an image</div>
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -338,7 +341,7 @@
                                 </button>
                             </div>
                         </div>
-                        
+
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Available Sizes</label>
@@ -383,12 +386,12 @@
             <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <div class="alert alert-warning" data-alert>
                     <i class="ti ti-alert-triangle me-2"></i>
-                    <strong>Warning:</strong> This action will allow all coaches to place new orders for the current season, 
+                    <strong>Warning:</strong> This action will allow all coaches to place new orders for the current season,
                     even if they have already placed an order. Use this at the beginning of a new season.
                 </div>
-                
+
                 <p class="mb-3">Choose how to reset ordering eligibility:</p>
-                
+
                 <div class="form-check mb-3">
                     <input class="form-check-input" type="radio" name="resetType" id="resetAll" value="all" checked>
                     <label class="form-check-label" for="resetAll">
@@ -396,7 +399,7 @@
                         <small class="text-muted">This will permanently delete all orders for the current season and allow everyone to order again.</small>
                     </label>
                 </div>
-                
+
                 <div class="form-check mb-3">
                     <input class="form-check-input" type="radio" name="resetType" id="resetEligibility" value="eligibility">
                     <label class="form-check-label" for="resetEligibility">

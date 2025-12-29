@@ -313,7 +313,10 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
 
+{% block modals %}
+{{ super() }}
 <!-- Discord DM Modal -->
 <div class="modal c-modal fade" data-modal id="discordDMModal" tabindex="-1" aria-hidden="true" aria-labelledby="discordDMModalLabel">
     <div class="modal-dialog c-modal__dialog" data-modal-dialog>

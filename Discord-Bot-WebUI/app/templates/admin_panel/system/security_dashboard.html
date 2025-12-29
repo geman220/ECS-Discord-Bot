@@ -328,7 +328,10 @@
     </div>
 </div>
 {% endif %}
+{% endblock %}
 
+{% block modals %}
+{{ super() }}
 <!-- Ban IP Modal -->
 <div class="modal c-modal fade" id="banIpModal" tabindex="-1" data-modal aria-labelledby="banIpModalLabel">
     <div class="modal-dialog c-modal__dialog" data-modal-dialog>

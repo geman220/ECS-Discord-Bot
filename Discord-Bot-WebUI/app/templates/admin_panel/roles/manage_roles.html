@@ -267,104 +267,108 @@
     </div>
     {% endif %}
 
-    <!-- Create/Edit Role Modal -->
-    <div class="modal c-modal fade" id="roleModal" tabindex="-1" aria-labelledby="roleModalLabel" aria-hidden="true" data-modal>
-        <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
-            <div class="modal-content c-modal__content" data-modal-content>
-                <form method="POST" action="" id="roleForm">
-                    <div class="modal-header c-modal__header bg-light" data-modal-header>
-                        <h5 class="modal-title c-modal__title" id="roleModalLabel">
-                            <i class="ti ti-shield-plus me-2"></i>Create Role
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
-                    </div>
-                    <div class="modal-body c-modal__body" data-modal-body>
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" id="roleId" name="role_id">
+{% endblock %}
 
-                        <div class="mb-3">
-                            <label for="roleName" class="form-label">Role Name</label>
-                            <div class="input-group" data-input-group>
-                                <span class="input-group-text"><i class="ti ti-shield"></i></span>
-                                <input type="text" class="form-control" id="roleName" name="name" required data-form-control>
-                            </div>
-                            <div class="form-text">Choose a descriptive name for the role (e.g., "pl-premier", "Coach Assistant")</div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="roleDescription" class="form-label">Description</label>
-                            <textarea class="form-control" id="roleDescription" name="description" rows="3" placeholder="Describe what this role is for..." data-form-control></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer c-modal__footer" data-modal-footer>
-                        <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
-                        <button type="submit" class="c-btn c-btn--primary">
-                            <i class="ti ti-device-floppy me-1"></i>Save Role
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Role Details Modal -->
-    <div class="modal c-modal fade" id="roleDetailsModal" tabindex="-1" aria-labelledby="roleDetailsModalLabel" aria-hidden="true" data-modal>
-        <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
-            <div class="modal-content c-modal__content" data-modal-content>
+{% block modals %}
+{{ super() }}
+<!-- Create/Edit Role Modal -->
+<div class="modal c-modal fade" id="roleModal" tabindex="-1" aria-labelledby="roleModalLabel" aria-hidden="true" data-modal>
+    <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <form method="POST" action="" id="roleForm">
                 <div class="modal-header c-modal__header bg-light" data-modal-header>
-                    <h5 class="modal-title c-modal__title" id="roleDetailsModalLabel">
-                        <i class="ti ti-shield me-2"></i>Role Details
+                    <h5 class="modal-title c-modal__title" id="roleModalLabel">
+                        <i class="ti ti-shield-plus me-2"></i>Create Role
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
                 </div>
-                <div class="modal-body c-modal__body" id="roleDetailsContent" data-modal data-modal-body aria-labelledby="assignRoleModalLabel">
-                    <!-- Content loaded via JavaScript -->
+                <div class="modal-body c-modal__body" data-modal-body>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" id="roleId" name="role_id">
+
+                    <div class="mb-3">
+                        <label for="roleName" class="form-label">Role Name</label>
+                        <div class="input-group" data-input-group>
+                            <span class="input-group-text"><i class="ti ti-shield"></i></span>
+                            <input type="text" class="form-control" id="roleName" name="name" required data-form-control>
+                        </div>
+                        <div class="form-text">Choose a descriptive name for the role (e.g., "pl-premier", "Coach Assistant")</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="roleDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="roleDescription" name="description" rows="3" placeholder="Describe what this role is for..." data-form-control></textarea>
+                    </div>
                 </div>
                 <div class="modal-footer c-modal__footer" data-modal-footer>
-                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
+                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                    <button type="submit" class="c-btn c-btn--primary">
+                        <i class="ti ti-device-floppy me-1"></i>Save Role
+                    </button>
                 </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Role Details Modal -->
+<div class="modal c-modal fade" id="roleDetailsModal" tabindex="-1" aria-labelledby="roleDetailsModalLabel" aria-hidden="true" data-modal>
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header bg-light" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="roleDetailsModalLabel">
+                    <i class="ti ti-shield me-2"></i>Role Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
+            </div>
+            <div class="modal-body c-modal__body" id="roleDetailsContent" data-modal data-modal-body aria-labelledby="assignRoleModalLabel">
+                <!-- Content loaded via JavaScript -->
+            </div>
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Assign Role Modal -->
-    <div class="modal c-modal fade" id="assignRoleModal" tabindex="-1" aria-labelledby="assignRoleModalLabel" aria-hidden="true" data-modal>
-        <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
-            <div class="modal-content c-modal__content" data-modal-content>
-                <form method="POST" action="" id="assignRoleForm">
-                    <div class="modal-header c-modal__header bg-light" data-modal-header>
-                        <h5 class="modal-title c-modal__title" id="assignRoleModalLabel">
-                            <i class="ti ti-user-plus me-2"></i>Assign Role to User
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
-                    </div>
-                    <div class="modal-body c-modal__body" data-modal-body>
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" id="assignRoleId" name="role_id">
+<!-- Assign Role Modal -->
+<div class="modal c-modal fade" id="assignRoleModal" tabindex="-1" aria-labelledby="assignRoleModalLabel" aria-hidden="true" data-modal>
+    <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <form method="POST" action="" id="assignRoleForm">
+                <div class="modal-header c-modal__header bg-light" data-modal-header>
+                    <h5 class="modal-title c-modal__title" id="assignRoleModalLabel">
+                        <i class="ti ti-user-plus me-2"></i>Assign Role to User
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
+                </div>
+                <div class="modal-body c-modal__body" data-modal-body>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" id="assignRoleId" name="role_id">
 
-                        <div class="mb-3">
-                            <label for="selectUser" class="form-label">Select User</label>
-                            <select class="form-select" id="selectUser" name="user_id" required data-form-select>
-                                <option value="">Choose a user...</option>
-                                <!-- Users loaded via JavaScript -->
-                            </select>
-                        </div>
+                    <div class="mb-3">
+                        <label for="selectUser" class="form-label">Select User</label>
+                        <select class="form-select" id="selectUser" name="user_id" required data-form-select>
+                            <option value="">Choose a user...</option>
+                            <!-- Users loaded via JavaScript -->
+                        </select>
+                    </div>
 
-                        <div class="alert alert-info" data-alert>
-                            <i class="ti ti-info-circle me-2"></i>
-                            <strong>Role:</strong> <span id="assigningRoleName"></span>
-                        </div>
+                    <div class="alert alert-info" data-alert>
+                        <i class="ti ti-info-circle me-2"></i>
+                        <strong>Role:</strong> <span id="assigningRoleName"></span>
                     </div>
-                    <div class="modal-footer c-modal__footer" data-modal-footer>
-                        <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
-                        <button type="submit" class="c-btn c-btn--primary">
-                            <i class="ti ti-user-plus me-1"></i>Assign Role
-                        </button>
-                    </div>
-                </form>
-            </div>
+                </div>
+                <div class="modal-footer c-modal__footer" data-modal-footer>
+                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                    <button type="submit" class="c-btn c-btn--primary">
+                        <i class="ti ti-user-plus me-1"></i>Assign Role
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
+</div>
 
 {% endblock %}
 

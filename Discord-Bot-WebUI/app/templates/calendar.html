@@ -373,7 +373,10 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block modals %}
+{{ super() }}
 <!-- Referee Assignment Modal -->
 <div class="modal c-modal fade" data-modal id="assignRefModal" tabindex="-1" aria-labelledby="assignRefModalLabel" aria-hidden="true">
     <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
@@ -612,7 +615,7 @@
     </div>
 </div>
 {% endif %}
-{% endblock %}
+{% endblock modals %}
 
 {% block custom_js %}
 {{ super() }}

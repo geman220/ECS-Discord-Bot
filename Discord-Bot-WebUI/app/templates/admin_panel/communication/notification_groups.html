@@ -454,7 +454,266 @@
             </div>
         </div>
     </div>
+{% endblock %}
 
+{% block modals %}
+{{ super() }}
+<!-- Create Group Modal -->
+<div class="modal c-modal fade" data-modal id="createGroupModal" tabindex="-1" aria-labelledby="createGroupModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="createGroupModalLabel">
+                    <i class="ti ti-plus me-2"></i>Create Notification Group
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
+            </div>
+            <form id="createGroupForm" class="js-create-group-form">
+                <div class="modal-body c-modal__body" data-modal-body data-modal-body>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="group_name" class="form-label">Group Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="group_name" name="name" required
+                                   placeholder="e.g., Premium Members, Team Captains" data-form-control>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="group_type" class="form-label">Group Type <span class="text-danger">*</span></label>
+                            <select class="form-select js-group-type-select" id="group_type" name="group_type" required data-form-select>
+                                <option value="dynamic">Dynamic (criteria-based)</option>
+                                <option value="static">Static (manual members)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="group_description" class="form-label">Description</label>
+                        <textarea class="form-control" id="group_description" name="description" rows="2"
+                                  placeholder="Describe who belongs to this group..." data-form-control></textarea>
+                    </div>
+
+                    <!-- Dynamic Group Options -->
+                    <div id="dynamicGroupOptions">
+                        <hr>
+                        <h6 class="mb-3"><i class="ti ti-adjustments me-2"></i>Dynamic Targeting Criteria</h6>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="criteria_target_type" class="form-label">Target Type</label>
+                                <select class="form-select js-criteria-target-type" id="criteria_target_type" name="criteria_target_type" data-form-select>
+                                    <option value="all">All Users with Push Enabled</option>
+                                    <option value="team">By Team</option>
+                                    <option value="league">By League</option>
+                                    <option value="role">By Role</option>
+                                    <option value="pool">Substitute Pool</option>
+                                    <option value="platform">By Platform</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="criteria_platform" class="form-label">Platform Filter</label>
+                                <select class="form-select" id="criteria_platform" name="criteria_platform" data-form-select>
+                                    <option value="all">All Platforms</option>
+                                    <option value="ios">iOS Only</option>
+                                    <option value="android">Android Only</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Sub-criteria options -->
+                        <div id="criteriaTeamContainer" class="mb-3 d-none">
+                            <label for="criteria_teams" class="form-label">Select Teams</label>
+                            <select class="form-select" id="criteria_teams" name="criteria_teams" multiple data-form-select>
+                                {% for team in teams|default([]) %}
+                                <option value="{{ team.id }}">{{ team.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Hold Ctrl/Cmd to select multiple</small>
+                        </div>
+
+                        <div id="criteriaLeagueContainer" class="mb-3 d-none">
+                            <label for="criteria_leagues" class="form-label">Select Leagues</label>
+                            <select class="form-select" id="criteria_leagues" name="criteria_leagues" multiple data-form-select>
+                                {% for league in leagues|default([]) %}
+                                <option value="{{ league.id }}">{{ league.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Hold Ctrl/Cmd to select multiple</small>
+                        </div>
+
+                        <div id="criteriaRoleContainer" class="mb-3 d-none">
+                            <label for="criteria_roles" class="form-label">Select Roles</label>
+                            <select class="form-select" id="criteria_roles" name="criteria_roles" multiple data-form-select>
+                                {% for role in roles|default([]) %}
+                                <option value="{{ role.name }}">{{ role.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Hold Ctrl/Cmd to select multiple</small>
+                        </div>
+
+                        <div id="criteriaPoolContainer" class="mb-3 d-none">
+                            <label for="criteria_pool" class="form-label">Select Pool</label>
+                            <select class="form-select" id="criteria_pool" name="criteria_pool" data-form-select>
+                                <option value="all">All Pools</option>
+                                <option value="pub_league">Pub League Sub Pool</option>
+                                <option value="ecs_fc">ECS FC Sub Pool</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Static Group Options (hidden by default) -->
+                    <div id="staticGroupOptions" class="d-none">
+                        <hr>
+                        <div class="alert alert-info" data-alert>
+                            <i class="ti ti-info-circle me-2"></i>
+                            After creating the group, you can add members by clicking the "Manage Members" button.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                    <button type="submit" class="c-btn c-btn--primary">
+                        <i class="ti ti-plus me-1"></i>Create Group
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Group Modal -->
+<div class="modal c-modal fade" data-modal id="editGroupModal" tabindex="-1" aria-labelledby="editGroupModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="editGroupModalLabel">
+                    <i class="ti ti-edit me-2"></i>Edit Notification Group
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
+            </div>
+            <form id="editGroupForm" class="js-edit-group-form">
+                <div class="modal-body c-modal__body" data-modal-body data-modal-body>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" id="edit_group_id" name="group_id">
+
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="edit_group_name" class="form-label">Group Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="edit_group_name" name="name" required data-form-control>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Group Type</label>
+                            <input type="text" class="form-control" id="edit_group_type" disabled data-form-control>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_group_description" class="form-label">Description</label>
+                        <textarea class="form-control" id="edit_group_description" name="description" rows="2" data-form-control></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="edit_group_active" name="is_active" checked>
+                            <label class="form-check-label" for="edit_group_active">Active</label>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic criteria editor (shown only for dynamic groups) -->
+                    <div id="editDynamicCriteria" class="d-none">
+                        <hr>
+                        <h6 class="mb-3"><i class="ti ti-adjustments me-2"></i>Targeting Criteria</h6>
+                        <div id="editCriteriaContent">
+                            <!-- Populated via JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                    <button type="submit" class="c-btn c-btn--warning">
+                        <i class="ti ti-device-floppy me-1"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View Group Details Modal -->
+<div class="modal c-modal fade" data-modal id="viewGroupModal" tabindex="-1" aria-labelledby="viewGroupTitle">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="viewGroupTitle">Group Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
+            </div>
+            <div class="modal-body c-modal__body" data-modal-body id="viewGroupContent" data-modal-body aria-labelledby="viewGroupContentLabel">
+                <div class="text-center py-4">
+                    <div class="spinner-border" role="status" data-spinner></div>
+                </div>
+            </div>
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manage Members Modal (for static groups) -->
+<div class="modal c-modal fade" data-modal id="manageMembersModal" tabindex="-1" aria-labelledby="viewGroupContentLabel">
+    <div class="modal-dialog c-modal__dialog modal-xl c-modal__dialog--xl" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="viewGroupContentLabel">
+                    <i class="ti ti-users me-2"></i>Manage Members - <span id="memberGroupName"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
+            </div>
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
+                <input type="hidden" id="manage_members_group_id">
+
+                <div class="row">
+                    <!-- Add Members Section -->
+                    <div class="col-md-6">
+                        <div class="c-card">
+                            <div class="c-card__header">
+                                <h6 class="mb-0"><i class="ti ti-user-plus me-2"></i>Add Members</h6>
+                            </div>
+                            <div class="c-card__body">
+                                <div class="mb-3">
+                                    <label for="memberSearch" class="form-label">Search Users</label>
+                                    <input type="text" class="form-control js-member-search" id="memberSearch"
+                                           placeholder="Search by name or email..." data-form-control>
+                                </div>
+                                <div id="searchResults" class="list-group u-max-h-300 u-overflow-y-auto">
+                                    <!-- Search results populated via JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Current Members Section -->
+                    <div class="col-md-6">
+                        <div class="c-card">
+                            <div class="c-card__header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0"><i class="ti ti-users me-2"></i>Current Members</h6>
+                                <span class="badge bg-primary" id="memberCount" data-badge>0</span>
+                            </div>
+                            <div class="c-card__body">
+                                <div id="currentMembers" class="list-group u-overflow-y-auto" class="u-max-h-350">
+                                    <!-- Current members populated via JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block custom_css %}

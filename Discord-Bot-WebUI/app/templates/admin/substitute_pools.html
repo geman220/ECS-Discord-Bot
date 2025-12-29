@@ -467,6 +467,10 @@
     {% endfor %}
 </div>
 
+{% endblock %}
+
+{% block modals %}
+{{ super() }}
 <!-- Player Details Modal -->
 <div class="modal c-modal fade" data-modal id="playerDetailsModal" tabindex="-1" aria-labelledby="playerDetailsModalLabel" aria-hidden="true">
     <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
@@ -486,7 +490,7 @@
                         </div>
                         <p class="text-muted ecs-text-secondary">Loading player details...</p>
                     </div>
-                    
+
                     <!-- Profile Content Container -->
                     <div id="detailsData" class="d-none">
                         <!-- Will be populated by JavaScript -->
@@ -509,19 +513,19 @@
                 <form id="preferencesForm">
                     <input type="hidden" id="editPlayerId" name="player_id">
                     <input type="hidden" id="editLeagueType" name="league_type">
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Preferred Positions</label>
-                        <input type="text" class="form-control" id="editPositions" name="preferred_positions" 
+                        <input type="text" class="form-control" id="editPositions" name="preferred_positions"
                                placeholder="e.g., Forward, Midfielder" data-form-control>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Max Matches Per Week</label>
-                        <input type="number" class="form-control" id="editMaxMatches" name="max_matches_per_week" 
+                        <input type="number" class="form-control" id="editMaxMatches" name="max_matches_per_week"
                                min="1" max="10" value="3" data-form-control>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Notification Preferences</label>
                         <div class="form-check">
@@ -543,10 +547,10 @@
                             </label>
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Notes</label>
-                        <textarea class="form-control" id="editNotes" name="notes" rows="3" 
+                        <textarea class="form-control" id="editNotes" name="notes" rows="3"
                                   placeholder="Any additional notes about this substitute..." data-form-control></textarea>
                     </div>
                 </form>
@@ -600,7 +604,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Management Actions -->
                 <div class="p-4">
                     <div class="row mb-4">
@@ -639,7 +643,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Substitute Requests Management -->
                     <div class="row mb-4">
                         <div class="col-12">
@@ -669,7 +673,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Recent Activity -->
                     <div class="row">
                         <div class="col-12">

@@ -548,7 +548,10 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block modals %}
+{{ super() }}
 <!-- Fulfill Modals -->
 {% for request in sub_requests %}
 {% if request.status == 'PENDING' or request.status == 'APPROVED' %}

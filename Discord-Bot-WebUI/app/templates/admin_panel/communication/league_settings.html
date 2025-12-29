@@ -172,104 +172,107 @@
             </div>
         </div>
     </div>
+{% endblock %}
 
-    <!-- Create League Modal -->
-    <div class="modal c-modal fade" id="createLeagueModal" tabindex="-1" aria-labelledby="createLeagueModalLabel">
-        <div class="modal-dialog modal-lg c-modal__dialog">
-            <div class="modal-content c-modal__content">
-                <div class="modal-header c-modal__header">
-                    <h5 class="modal-title c-modal__title" id="createLeagueModalLabel">Add New League</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="POST" action="{{ url_for('admin_panel.create_league_setting') }}">
-                    <div class="modal-body c-modal__body">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="league_key" class="form-label">League Key <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="league_key" name="league_key" required
-                                       placeholder="e.g., pub_league_classic"
-                                       pattern="[a-z_]+" title="Lowercase letters and underscores only">
-                                <small class="text-muted">Unique identifier (lowercase, underscores only)</small>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="display_name" class="form-label">Display Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="display_name" name="display_name" required
-                                       placeholder="e.g., Pub League Classic">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="emoji" class="form-label">Emoji (optional)</label>
-                            <input type="text" class="form-control" id="emoji" name="emoji" maxlength="10"
-                                   placeholder="e.g., 🏆">
-                            <small class="text-muted">Shown next to the league name</small>
-                        </div>
-                        <div class="mb-3">
-                            <label for="welcome_message" class="form-label">Welcome Message <span class="text-danger">*</span></label>
-                            <textarea class="form-control" id="welcome_message" name="welcome_message" rows="3" required
-                                      placeholder="Welcome message sent to new players..."></textarea>
-                            <small class="text-muted">Displayed when a player selects this league</small>
-                        </div>
-                        <div class="mb-3">
-                            <label for="contact_info" class="form-label">Contact Info <span class="text-danger">*</span></label>
-                            <textarea class="form-control" id="contact_info" name="contact_info" rows="2" required
-                                      placeholder="How to get help or ask questions..."></textarea>
-                            <small class="text-muted">Tells players where to go for help</small>
-                        </div>
-                    </div>
-                    <div class="modal-footer c-modal__footer">
-                        <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="c-btn c-btn--primary">Create League</button>
-                    </div>
-                </form>
+{% block modals %}
+{{ super() }}
+<!-- Create League Modal -->
+<div class="modal c-modal fade" id="createLeagueModal" tabindex="-1" aria-labelledby="createLeagueModalLabel">
+    <div class="modal-dialog modal-lg c-modal__dialog">
+        <div class="modal-content c-modal__content">
+            <div class="modal-header c-modal__header">
+                <h5 class="modal-title c-modal__title" id="createLeagueModalLabel">Add New League</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
+            <form method="POST" action="{{ url_for('admin_panel.create_league_setting') }}">
+                <div class="modal-body c-modal__body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="league_key" class="form-label">League Key <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="league_key" name="league_key" required
+                                   placeholder="e.g., pub_league_classic"
+                                   pattern="[a-z_]+" title="Lowercase letters and underscores only">
+                            <small class="text-muted">Unique identifier (lowercase, underscores only)</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="display_name" class="form-label">Display Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="display_name" name="display_name" required
+                                   placeholder="e.g., Pub League Classic">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="emoji" class="form-label">Emoji (optional)</label>
+                        <input type="text" class="form-control" id="emoji" name="emoji" maxlength="10"
+                               placeholder="e.g., 🏆">
+                        <small class="text-muted">Shown next to the league name</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="welcome_message" class="form-label">Welcome Message <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="welcome_message" name="welcome_message" rows="3" required
+                                  placeholder="Welcome message sent to new players..."></textarea>
+                        <small class="text-muted">Displayed when a player selects this league</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="contact_info" class="form-label">Contact Info <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="contact_info" name="contact_info" rows="2" required
+                                  placeholder="How to get help or ask questions..."></textarea>
+                        <small class="text-muted">Tells players where to go for help</small>
+                    </div>
+                </div>
+                <div class="modal-footer c-modal__footer">
+                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="c-btn c-btn--primary">Create League</button>
+                </div>
+            </form>
         </div>
     </div>
+</div>
 
-    <!-- Edit League Modal -->
-    <div class="modal c-modal fade" id="editLeagueModal" tabindex="-1" aria-labelledby="editLeagueModalLabel">
-        <div class="modal-dialog modal-lg c-modal__dialog">
-            <div class="modal-content c-modal__content">
-                <div class="modal-header c-modal__header">
-                    <h5 class="modal-title c-modal__title" id="editLeagueModalLabel">Edit League Setting</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="POST" action="{{ url_for('admin_panel.update_league_setting') }}">
-                    <div class="modal-body c-modal__body">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="setting_id" id="edit_setting_id">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="edit_league_key" class="form-label">League Key</label>
-                                <input type="text" class="form-control" id="edit_league_key" disabled>
-                                <small class="text-muted">Cannot be changed after creation</small>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="edit_display_name" class="form-label">Display Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="edit_display_name" name="display_name" required>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_emoji" class="form-label">Emoji (optional)</label>
-                            <input type="text" class="form-control" id="edit_emoji" name="emoji" maxlength="10">
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_welcome_message" class="form-label">Welcome Message <span class="text-danger">*</span></label>
-                            <textarea class="form-control" id="edit_welcome_message" name="welcome_message" rows="3" required></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_contact_info" class="form-label">Contact Info <span class="text-danger">*</span></label>
-                            <textarea class="form-control" id="edit_contact_info" name="contact_info" rows="2" required></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer c-modal__footer">
-                        <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="c-btn c-btn--primary">Save Changes</button>
-                    </div>
-                </form>
+<!-- Edit League Modal -->
+<div class="modal c-modal fade" id="editLeagueModal" tabindex="-1" aria-labelledby="editLeagueModalLabel">
+    <div class="modal-dialog modal-lg c-modal__dialog">
+        <div class="modal-content c-modal__content">
+            <div class="modal-header c-modal__header">
+                <h5 class="modal-title c-modal__title" id="editLeagueModalLabel">Edit League Setting</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
+            <form method="POST" action="{{ url_for('admin_panel.update_league_setting') }}">
+                <div class="modal-body c-modal__body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="setting_id" id="edit_setting_id">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_league_key" class="form-label">League Key</label>
+                            <input type="text" class="form-control" id="edit_league_key" disabled>
+                            <small class="text-muted">Cannot be changed after creation</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_display_name" class="form-label">Display Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="edit_display_name" name="display_name" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_emoji" class="form-label">Emoji (optional)</label>
+                        <input type="text" class="form-control" id="edit_emoji" name="emoji" maxlength="10">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_welcome_message" class="form-label">Welcome Message <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="edit_welcome_message" name="welcome_message" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_contact_info" class="form-label">Contact Info <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="edit_contact_info" name="contact_info" rows="2" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer c-modal__footer">
+                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="c-btn c-btn--primary">Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
+</div>
 {% endblock %}
 
 {% block custom_css %}

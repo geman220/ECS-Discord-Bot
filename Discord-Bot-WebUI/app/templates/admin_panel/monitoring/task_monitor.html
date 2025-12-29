@@ -320,42 +320,46 @@
             </div>
         </div>
     </div>
+{% endblock %}
 
-    <!-- Task Details Modal -->
-    <div class="modal c-modal fade" id="taskDetailsModal" tabindex="-1" data-modal aria-labelledby="task_details_title">
-        <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
-            <div class="modal-content c-modal__content" data-modal-content>
-                <div class="modal-header c-modal__header" data-modal-header>
-                    <h5 class="modal-title c-modal__title" id="task_details_title">Task Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
-                </div>
-                <div class="modal-body c-modal__body" id="task_details_content" data-modal data-modal-body aria-labelledby="task_logs_title">
-                    <!-- Task details will be loaded here -->
-                </div>
-                <div class="modal-footer c-modal__footer" data-modal-footer>
-                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
-                </div>
+{% block modals %}
+{{ super() }}
+
+<!-- Task Details Modal -->
+<div class="modal c-modal fade" id="taskDetailsModal" tabindex="-1" data-modal aria-labelledby="task_details_title">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="task_details_title">Task Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
+            </div>
+            <div class="modal-body c-modal__body" id="task_details_content" data-modal data-modal-body aria-labelledby="task_logs_title">
+                <!-- Task details will be loaded here -->
+            </div>
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Task Logs Modal -->
-    <div class="modal c-modal fade" id="taskLogsModal" tabindex="-1" data-modal aria-labelledby="task_logs_title">
-        <div class="modal-dialog c-modal__dialog modal-xl c-modal__dialog--xl" data-modal-dialog>
-            <div class="modal-content c-modal__content" data-modal-content>
-                <div class="modal-header c-modal__header" data-modal-header>
-                    <h5 class="modal-title c-modal__title" id="task_logs_title">Task Logs</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
-                </div>
-                <div class="modal-body c-modal__body" id="task_logs_content" data-modal data-modal-body aria-labelledby="task_logs_contentLabel">
-                    <!-- Task logs will be loaded here -->
-                </div>
-                <div class="modal-footer c-modal__footer" data-modal-footer>
-                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
-                </div>
+<!-- Task Logs Modal -->
+<div class="modal c-modal fade" id="taskLogsModal" tabindex="-1" data-modal aria-labelledby="task_logs_title">
+    <div class="modal-dialog c-modal__dialog modal-xl c-modal__dialog--xl" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="task_logs_title">Task Logs</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
+            </div>
+            <div class="modal-body c-modal__body" id="task_logs_content" data-modal data-modal-body aria-labelledby="task_logs_contentLabel">
+                <!-- Task logs will be loaded here -->
+            </div>
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
             </div>
         </div>
     </div>
+</div>
 {% endblock %}
 
 {% block custom_css %}

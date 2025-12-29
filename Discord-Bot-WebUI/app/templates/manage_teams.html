@@ -101,12 +101,15 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block modals %}
+{{ super() }}
 <!-- Add Team Modal -->
 {{ render_add_team_modal() }}
 
 <!-- Edit Team Modal -->
 {{ render_edit_team_modal() }}
-
 {% endblock %}
 
 {% block custom_js %}

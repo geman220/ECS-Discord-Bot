@@ -380,6 +380,8 @@
     {% endif %}
 </div>
 
+{% block modals %}
+{{ super() }}
 <!-- Edit Match Modal -->
 <div class="modal c-modal fade" id="editMatchModal" tabindex="-1" aria-labelledby="editMatchModalLabel" aria-hidden="true" data-modal>
     <div class="modal-dialog c-modal__dialog" data-modal-dialog>
@@ -1320,4 +1322,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+{% endblock %}
 {% endblock %}

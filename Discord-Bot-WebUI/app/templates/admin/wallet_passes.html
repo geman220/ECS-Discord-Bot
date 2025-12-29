@@ -409,6 +409,11 @@
         </div>
     </div>
 
+</div>
+{% endblock %}
+
+{% block modals %}
+{{ super() }}
     <!-- Bulk Generate Modal -->
 {% if 'Global Admin' in user_roles %}
 <div class="modal c-modal fade" data-modal id="bulkGenerateModal" tabindex="-1" aria-labelledby="bulkGenerateModalLabel">
@@ -498,7 +503,6 @@
     </div>
 </div>
 {% endif %}
-</div>
 {% endblock %}
 
 {% block scripts %}

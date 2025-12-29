@@ -187,82 +187,6 @@
             </div>
         </div>
         
-        <!-- Order Modal for this item -->
-        <div class="modal c-modal fade" data-modal id="orderModal{{ item.id }}" tabindex="-1" aria-labelledby="orderModalLabel{{ item.id }}" aria-hidden="true">
-            <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
-                <div class="modal-content c-modal__content" data-modal-content>
-                    <form class="c-order-form" data-component="order-form" data-form="place-order" data-item-id="{{ item.id }}">
-                        <div class="modal-header c-modal__header bg-light" data-modal-header>
-                            <h5 class="modal-title c-modal__title" id="orderModalLabel{{ item.id }}">
-                                <i class="ti ti-shopping-cart me-2"></i>Order: {{ item.name }}
-                            </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body c-modal__body" data-modal-body data-modal-body>
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="quantity" value="1">
-                            
-                            <div class="alert alert-info alert-sm mb-3" data-alert>
-                                <i class="ti ti-info-circle me-1"></i>
-                                <strong>Note:</strong> Both color and size selections are required for all orders.
-                            </div>
-                            
-                            {% if item.available_colors %}
-                            {% set colors = item.available_colors | replace("'", '"') | fromjson %}
-                            {% else %}
-                            {% set colors = [] %}
-                            {% endif %}
-                            
-                            <div class="mb-3">
-                                <label for="color{{ item.id }}" class="form-label">Color *</label>
-                                <select class="form-select" id="color{{ item.id }}" name="color" required data-form-select>
-                                    {% if colors|length == 0 %}
-                                    <option value="N/A" selected>N/A (No color options)</option>
-                                    {% elif colors|length == 1 %}
-                                    <option value="{{ colors[0] }}" selected>{{ colors[0] }}</option>
-                                    {% else %}
-                                    <option value="">Select a color</option>
-                                    {% for color in colors %}
-                                    <option value="{{ color }}">{{ color }}</option>
-                                    {% endfor %}
-                                    {% endif %}
-                                </select>
-                            </div>
-                            
-                            {% if item.available_sizes %}
-                            {% set sizes = item.available_sizes | replace("'", '"') | fromjson %}
-                            {% else %}
-                            {% set sizes = [] %}
-                            {% endif %}
-                            
-                            <div class="mb-3">
-                                <label for="size{{ item.id }}" class="form-label">Size *</label>
-                                <select class="form-select" id="size{{ item.id }}" name="size" required data-form-select>
-                                    {% if sizes|length == 0 %}
-                                    <option value="One Size" selected>One Size</option>
-                                    {% elif sizes|length == 1 %}
-                                    <option value="{{ sizes[0] }}" selected>{{ sizes[0] }}</option>
-                                    {% else %}
-                                    <option value="">Select a size</option>
-                                    {% for size in sizes %}
-                                    <option value="{{ size }}">{{ size }}</option>
-                                    {% endfor %}
-                                    {% endif %}
-                                </select>
-                            </div>
-                        </div>
-                        <div class="modal-footer c-modal__footer bg-light" data-modal-footer>
-                            <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>
-                                <i class="ti ti-x me-1"></i>Cancel
-                            </button>
-                            <button type="submit" class="c-btn c-btn--primary">
-                                <i class="ti ti-shopping-cart me-1"></i>Place Order
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
         {% endfor %}
         {% else %}
         <div class="col-12">
@@ -282,6 +206,88 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block modals %}
+{{ super() }}
+{% for item in items %}
+<!-- Order Modal for this item -->
+<div class="modal c-modal fade" data-modal id="orderModal{{ item.id }}" tabindex="-1" aria-labelledby="orderModalLabel{{ item.id }}" aria-hidden="true">
+    <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <form class="c-order-form" data-component="order-form" data-form="place-order" data-item-id="{{ item.id }}">
+                <div class="modal-header c-modal__header bg-light" data-modal-header>
+                    <h5 class="modal-title c-modal__title" id="orderModalLabel{{ item.id }}">
+                        <i class="ti ti-shopping-cart me-2"></i>Order: {{ item.name }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
+                </div>
+                <div class="modal-body c-modal__body" data-modal-body data-modal-body>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="quantity" value="1">
+
+                    <div class="alert alert-info alert-sm mb-3" data-alert>
+                        <i class="ti ti-info-circle me-1"></i>
+                        <strong>Note:</strong> Both color and size selections are required for all orders.
+                    </div>
+
+                    {% if item.available_colors %}
+                    {% set colors = item.available_colors | replace("'", '"') | fromjson %}
+                    {% else %}
+                    {% set colors = [] %}
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="color{{ item.id }}" class="form-label">Color *</label>
+                        <select class="form-select" id="color{{ item.id }}" name="color" required data-form-select>
+                            {% if colors|length == 0 %}
+                            <option value="N/A" selected>N/A (No color options)</option>
+                            {% elif colors|length == 1 %}
+                            <option value="{{ colors[0] }}" selected>{{ colors[0] }}</option>
+                            {% else %}
+                            <option value="">Select a color</option>
+                            {% for color in colors %}
+                            <option value="{{ color }}">{{ color }}</option>
+                            {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
+
+                    {% if item.available_sizes %}
+                    {% set sizes = item.available_sizes | replace("'", '"') | fromjson %}
+                    {% else %}
+                    {% set sizes = [] %}
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="size{{ item.id }}" class="form-label">Size *</label>
+                        <select class="form-select" id="size{{ item.id }}" name="size" required data-form-select>
+                            {% if sizes|length == 0 %}
+                            <option value="One Size" selected>One Size</option>
+                            {% elif sizes|length == 1 %}
+                            <option value="{{ sizes[0] }}" selected>{{ sizes[0] }}</option>
+                            {% else %}
+                            <option value="">Select a size</option>
+                            {% for size in sizes %}
+                            <option value="{{ size }}">{{ size }}</option>
+                            {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer c-modal__footer bg-light" data-modal-footer>
+                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>
+                        <i class="ti ti-x me-1"></i>Cancel
+                    </button>
+                    <button type="submit" class="c-btn c-btn--primary">
+                        <i class="ti ti-shopping-cart me-1"></i>Place Order
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
 {% endblock %}
 
 {% block custom_js %}

@@ -9,82 +9,6 @@
      class="d-none">
 </div>
 
-<!-- Create Match Modal -->
-<div class="modal c-modal fade" data-modal id="ecsFcCreateMatchModal" tabindex="-1" aria-hidden="true" aria-labelledby="ecsFcCreateMatchModalLabel">
-    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
-        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
-            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
-                <h5 class="modal-title c-modal__title" id="ecsFcCreateMatchModalLabel">
-                    <i class="fas fa-plus me-2"></i>Create ECS FC Match
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
-            </div>
-            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
-                <form id="ecs-fc-create-match-form">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="opponent_name" class="form-label">Opponent Team Name</label>
-                            <input type="text" class="form-control" id="opponent_name" name="opponent_name" required data-form-control>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="match_date" class="form-label">Match Date</label>
-                            <input type="date" class="form-control" id="match_date" name="match_date" required data-form-control>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="match_time" class="form-label">Match Time</label>
-                            <input type="time" class="form-control" id="match_time" name="match_time" required data-form-control>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="ecsfc-section-location" class="form-label">Location</label>
-                            <input type="text" class="form-control" id="ecsfc-section-location" name="location" 
-                                   placeholder="e.g., Starfire Sports Complex" required data-form-control>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="field_name" class="form-label">Field/Pitch (Optional)</label>
-                            <input type="text" class="form-control" id="field_name" name="field_name" 
-                                   placeholder="e.g., Field A, Pitch 1" data-form-control>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="is_home_match" class="form-label">Match Type</label>
-                            <select class="form-select" id="is_home_match" name="is_home_match" required data-form-select>
-                                <option value="true">Home Match</option>
-                                <option value="false">Away Match</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="notes" class="form-label">Notes (Optional)</label>
-                        <textarea class="form-control" id="notes" name="notes" rows="3" 
-                                  placeholder="Additional match details or instructions" data-form-control></textarea>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="send_discord_rsvp" name="send_discord_rsvp" checked>
-                            <label class="form-check-label" for="send_discord_rsvp">
-                                Send Discord RSVP notification to team
-                            </label>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
-                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
-                <button type="button" class="c-btn c-btn--primary" id="ecs-fc-submit-match">
-                    <i class="fas fa-save me-1"></i>Create Match
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Get team data
@@ -241,5 +165,84 @@ document.addEventListener('DOMContentLoaded', function() {
     filter: invert(1);
 }
 </style>
+
+{% block modals %}
+{{ super() }}
+<!-- Create Match Modal -->
+<div class="modal c-modal fade" data-modal id="ecsFcCreateMatchModal" tabindex="-1" aria-hidden="true" aria-labelledby="ecsFcCreateMatchModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="ecsFcCreateMatchModalLabel">
+                    <i class="fas fa-plus me-2"></i>Create ECS FC Match
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
+            </div>
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
+                <form id="ecs-fc-create-match-form">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="opponent_name" class="form-label">Opponent Team Name</label>
+                            <input type="text" class="form-control" id="opponent_name" name="opponent_name" required data-form-control>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="match_date" class="form-label">Match Date</label>
+                            <input type="date" class="form-control" id="match_date" name="match_date" required data-form-control>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="match_time" class="form-label">Match Time</label>
+                            <input type="time" class="form-control" id="match_time" name="match_time" required data-form-control>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="ecsfc-section-location" class="form-label">Location</label>
+                            <input type="text" class="form-control" id="ecsfc-section-location" name="location"
+                                   placeholder="e.g., Starfire Sports Complex" required data-form-control>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="field_name" class="form-label">Field/Pitch (Optional)</label>
+                            <input type="text" class="form-control" id="field_name" name="field_name"
+                                   placeholder="e.g., Field A, Pitch 1" data-form-control>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="is_home_match" class="form-label">Match Type</label>
+                            <select class="form-select" id="is_home_match" name="is_home_match" required data-form-select>
+                                <option value="true">Home Match</option>
+                                <option value="false">Away Match</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes (Optional)</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"
+                                  placeholder="Additional match details or instructions" data-form-control></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="send_discord_rsvp" name="send_discord_rsvp" checked>
+                            <label class="form-check-label" for="send_discord_rsvp">
+                                Send Discord RSVP notification to team
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--primary" id="ecs-fc-submit-match">
+                    <i class="fas fa-save me-1"></i>Create Match
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
 {% endif %}

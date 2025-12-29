@@ -489,7 +489,10 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block modals %}
+{{ super() }}
 <!-- Profile Image Upload Modal -->
 <div class="modal c-modal fade" id="profileImageModal" tabindex="-1" aria-labelledby="profileImageModalLabel" aria-hidden="true" data-modal>
     <div class="modal-dialog c-modal__dialog modal-xl c-modal__dialog--xl modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
@@ -503,7 +506,7 @@
                     <input type="file" id="imageInput" accept="image/*" class="form-control js-image-input" data-form-control>
                     <p class="text-muted small mt-2">Supported formats: JPG, PNG, GIF. Maximum size: 10MB</p>
                 </div>
-                
+
                 <div id="imageEditor" class="d-none">
                     <div class="row">
                         <div class="col-md-8">

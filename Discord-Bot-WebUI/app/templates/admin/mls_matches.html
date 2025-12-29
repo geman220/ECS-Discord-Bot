@@ -120,6 +120,10 @@ TODO: Remove this template after new system is verified in production
     </div>
 </div>
 
+{% endblock %}
+
+{% block modals %}
+{{ super() }}
 <!-- Status Modal -->
 <div class="modal c-modal fade" data-modal id="taskStatusModal" tabindex="-1" aria-labelledby="taskStatusModalLabel">
     <div class="modal-dialog c-modal__dialog" data-modal-dialog>

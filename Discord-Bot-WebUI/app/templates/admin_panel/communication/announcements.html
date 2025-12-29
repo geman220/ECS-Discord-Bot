@@ -171,76 +171,79 @@
             </div>
         </div>
     </div>
+{% endblock %}
 
-    <!-- Create Announcement Modal -->
-    <div class="modal c-modal fade" data-modal id="createAnnouncementModal" tabindex="-1" aria-labelledby="createAnnouncementModalLabel">
-        <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
-            <div class="modal-content c-modal__content" data-modal-content data-modal-content>
-                <div class="modal-header c-modal__header" data-modal-header data-modal-header>
-                    <h5 class="modal-title c-modal__title" id="createAnnouncementModalLabel">Create New Announcement</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
-                </div>
-                <form method="POST" action="{{ url_for('admin_panel.manage_announcements') }}">
-                    <div class="modal-body c-modal__body" data-modal-body data-modal-body>
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <div class="mb-3">
-                            <label for="announcement_title" class="form-label">Title</label>
-                            <input type="text" class="form-control" id="announcement_title" name="title" required data-form-control>
-                        </div>
-                        <div class="mb-3">
-                            <label for="announcement_type" class="form-label">Type</label>
-                            <select class="form-select" id="announcement_type" name="announcement_type" data-form-select>
-                                <option value="general">General</option>
-                                <option value="league">League</option>
-                                <option value="match">Match</option>
-                                <option value="system">System</option>
-                                <option value="maintenance">Maintenance</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="announcement_priority" class="form-label">Priority</label>
-                            <select class="form-select" id="announcement_priority" name="priority" data-form-select>
-                                <option value="low">Low</option>
-                                <option value="normal" selected>Normal</option>
-                                <option value="medium">Medium</option>
-                                <option value="high">High</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="announcement_content" class="form-label">Content</label>
-                            <textarea class="form-control" id="announcement_content" name="content" rows="6" required data-form-control></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
-                        <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
-                        <button type="submit" class="c-btn c-btn--primary">Create Announcement</button>
-                    </div>
-                </form>
+{% block modals %}
+{{ super() }}
+<!-- Create Announcement Modal -->
+<div class="modal c-modal fade" data-modal id="createAnnouncementModal" tabindex="-1" aria-labelledby="createAnnouncementModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="createAnnouncementModalLabel">Create New Announcement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-        </div>
-    </div>
-
-    <!-- View Announcement Modal -->
-    <div class="modal c-modal fade" data-modal id="viewAnnouncementModal" tabindex="-1" aria-labelledby="view_announcement_title">
-        <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
-            <div class="modal-content c-modal__content" data-modal-content data-modal-content>
-                <div class="modal-header c-modal__header" data-modal-header data-modal-header>
-                    <h5 class="modal-title c-modal__title" id="view_announcement_title">Announcement Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
-                </div>
+            <form method="POST" action="{{ url_for('admin_panel.manage_announcements') }}">
                 <div class="modal-body c-modal__body" data-modal-body data-modal-body>
-                    <div class="c-card">
-                        <div class="c-card__body">
-                            <pre id="view_announcement_content" class="mb-0 pre-wrap"></pre>
-                        </div>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="announcement_title" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="announcement_title" name="title" required data-form-control>
+                    </div>
+                    <div class="mb-3">
+                        <label for="announcement_type" class="form-label">Type</label>
+                        <select class="form-select" id="announcement_type" name="announcement_type" data-form-select>
+                            <option value="general">General</option>
+                            <option value="league">League</option>
+                            <option value="match">Match</option>
+                            <option value="system">System</option>
+                            <option value="maintenance">Maintenance</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="announcement_priority" class="form-label">Priority</label>
+                        <select class="form-select" id="announcement_priority" name="priority" data-form-select>
+                            <option value="low">Low</option>
+                            <option value="normal" selected>Normal</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="announcement_content" class="form-label">Content</label>
+                        <textarea class="form-control" id="announcement_content" name="content" rows="6" required data-form-control></textarea>
                     </div>
                 </div>
                 <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
-                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
+                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                    <button type="submit" class="c-btn c-btn--primary">Create Announcement</button>
                 </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View Announcement Modal -->
+<div class="modal c-modal fade" data-modal id="viewAnnouncementModal" tabindex="-1" aria-labelledby="view_announcement_title">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="view_announcement_title">Announcement Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
+            </div>
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
+                <div class="c-card">
+                    <div class="c-card__body">
+                        <pre id="view_announcement_content" class="mb-0 pre-wrap"></pre>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
             </div>
         </div>
     </div>
+</div>
 {% endblock %}
 
 {% block custom_css %}

@@ -155,6 +155,8 @@
     </div>
 </div>
 
+{% block modals %}
+{{ super() }}
 <!-- Edit Preferences Modal -->
 <div class="modal c-modal fade" data-modal id="ecs-sub-pool-editPreferencesModal" tabindex="-1" role="dialog" aria-labelledby="ecs-sub-pool-editPreferencesModalLabel">
     <div class="modal-dialog c-modal__dialog" data-modal-dialog role="document">
@@ -169,12 +171,12 @@
                 <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                     <div class="form-group">
                         <label for="preferredPositions">Preferred Positions</label>
-                        <input type="text" class="form-control" id="preferredPositions" 
+                        <input type="text" class="form-control" id="preferredPositions"
                                placeholder="e.g., Forward, Midfield" data-form-control>
                     </div>
                     <div class="form-group">
                         <label for="maxMatchesPerWeek">Max Matches per Week</label>
-                        <input type="number" class="form-control" id="maxMatchesPerWeek" 
+                        <input type="number" class="form-control" id="maxMatchesPerWeek"
                                min="1" max="7" placeholder="Optional" data-form-control>
                     </div>
                     <div class="form-group">
@@ -223,7 +225,7 @@
                     <p>Configure initial preferences for this substitute:</p>
                     <div class="form-group">
                         <label for="newPreferredPositions">Preferred Positions</label>
-                        <input type="text" class="form-control" id="newPreferredPositions" 
+                        <input type="text" class="form-control" id="newPreferredPositions"
                                placeholder="e.g., Forward, Midfield" data-form-control>
                     </div>
                     <div class="form-group">
@@ -256,6 +258,7 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
 <script>
 let currentPoolId = null;

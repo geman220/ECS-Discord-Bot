@@ -290,6 +290,10 @@
     </div>
 </div>
 
+{% endif %}
+
+{% block modals %}
+{{ super() }}
 <!-- Create Template Modal -->
 <div class="modal c-modal fade" id="createTemplateModal" tabindex="-1" data-modal aria-labelledby="createTemplateModalLabel">
     <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
@@ -310,12 +314,12 @@
                             <option value="{{ pub_type.id }}">Pub League</option>
                         </select>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Template Name</label>
                         <input type="text" name="name" class="form-control" placeholder="e.g. Standard ECS Template" required data-form-control>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Platform</label>
                         <select name="platform" class="form-select" required data-form-select>
@@ -325,7 +329,7 @@
                             <i class="ti ti-info-circle me-1"></i>Google Wallet passes are generated automatically from pass type settings - no template needed.
                         </small>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Template Content (JSON)</label>
                         <textarea name="content" class="form-control" rows="10" required placeholder='{
@@ -364,7 +368,7 @@
 }' data-form-control></textarea>
                         <small class="form-text text-muted">Enter valid JSON template structure for the pass</small>
                     </div>
-                    
+
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="is_default" value="true" id="isDefault">
                         <label class="form-check-label" for="isDefault">
@@ -396,7 +400,7 @@
                 <input type="hidden" name="is_wizard" value="true">
                 <div class="modal-body c-modal__body" data-modal-body>
                     <p>This will generate a default template for ECS Membership passes with standard fields and formatting.</p>
-                    
+
                     <div class="alert alert-info" data-alert>
                         <i class="ti ti-info-circle me-2"></i> The template will include:
                         <ul class="mb-0 mt-2">
@@ -450,4 +454,4 @@
         </div>
     </div>
 </div>
-{% endif %}
+{% endblock %}

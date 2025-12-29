@@ -295,59 +295,62 @@
             </div>
         </div>
     </div>
+{% endblock %}
 
-    <!-- Message Details Modal -->
-    <div class="modal c-modal fade" data-modal id="messageDetailsModal" tabindex="-1" aria-labelledby="message_details_title">
-        <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
-            <div class="modal-content c-modal__content" data-modal-content data-modal-content>
-                <div class="modal-header c-modal__header" data-modal-header data-modal-header>
-                    <h5 class="modal-title c-modal__title" id="message_details_title">Message Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
-                </div>
-                <div class="modal-body c-modal__body" data-modal-body id="message_details_content" data-modal-body aria-labelledby="message_details_contentLabel">
-                    <!-- Message details will be loaded here -->
-                </div>
-                <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
-                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
-                </div>
+{% block modals %}
+{{ super() }}
+<!-- Message Details Modal -->
+<div class="modal c-modal fade" data-modal id="messageDetailsModal" tabindex="-1" aria-labelledby="message_details_title">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="message_details_title">Message Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
+            </div>
+            <div class="modal-body c-modal__body" data-modal-body id="message_details_content" data-modal-body aria-labelledby="message_details_contentLabel">
+                <!-- Message details will be loaded here -->
+            </div>
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Message Preview Modal -->
-    <div class="modal c-modal fade" data-modal id="messagePreviewModal" tabindex="-1" aria-labelledby="message_details_contentLabel">
-        <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
-            <div class="modal-content c-modal__content" data-modal-content data-modal-content>
-                <div class="modal-header c-modal__header" data-modal-header data-modal-header>
-                    <h5 class="modal-title c-modal__title" id="message_details_contentLabel">Message Preview</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
-                </div>
-                <div class="modal-body c-modal__body" data-modal-body data-modal-body>
-                    <div class="c-card">
-                        <div class="c-card__header">
-                            <div class="d-flex align-items-center">
-                                <i class="ti ti-hash me-2"></i>
-                                <span id="preview_channel">general</span>
-                                <span class="badge bg-primary ms-2" id="preview_type" data-badge>announcement</span>
-                            </div>
-                        </div>
-                        <div class="c-card__body">
-                            <h6 id="preview_title">Message Title</h6>
-                            <div id="preview_content">Message content will appear here...</div>
-                        </div>
-                        <div class="c-card__footer">
-                            <small class="text-muted">
-                                Scheduled for: <span id="preview_schedule">Not set</span>
-                            </small>
+<!-- Message Preview Modal -->
+<div class="modal c-modal fade" data-modal id="messagePreviewModal" tabindex="-1" aria-labelledby="message_details_contentLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="message_details_contentLabel">Message Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
+            </div>
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
+                <div class="c-card">
+                    <div class="c-card__header">
+                        <div class="d-flex align-items-center">
+                            <i class="ti ti-hash me-2"></i>
+                            <span id="preview_channel">general</span>
+                            <span class="badge bg-primary ms-2" id="preview_type" data-badge>announcement</span>
                         </div>
                     </div>
+                    <div class="c-card__body">
+                        <h6 id="preview_title">Message Title</h6>
+                        <div id="preview_content">Message content will appear here...</div>
+                    </div>
+                    <div class="c-card__footer">
+                        <small class="text-muted">
+                            Scheduled for: <span id="preview_schedule">Not set</span>
+                        </small>
+                    </div>
                 </div>
-                <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
-                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
-                </div>
+            </div>
+            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
             </div>
         </div>
     </div>
+</div>
 {% endblock %}
 
 {% block custom_css %}

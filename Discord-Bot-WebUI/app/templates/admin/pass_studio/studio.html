@@ -120,6 +120,134 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block modals %}
+{{ super() }}
+{# Add Field Modal #}
+<div class="modal c-modal fade" id="addFieldModal" tabindex="-1" aria-labelledby="addFieldModalLabel" aria-hidden="true" data-modal>
+    <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="addFieldModalLabel">
+                    <i class="ti ti-plus-circle me-2"></i>Add New Field
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
+            </div>
+            <div class="modal-body c-modal__body" data-modal-body>
+                <input type="hidden" id="add-field-type" value="front">
+
+                <!-- Label -->
+                <div class="mb-3">
+                    <label class="form-label fw-medium">Field Label <span class="text-danger">*</span></label>
+                    <input type="text" id="add-field-label" class="form-control" placeholder="e.g., MEMBER, YEAR, TEAM" data-form-control>
+                    <div class="form-text">This appears above the field value on the pass</div>
+                </div>
+
+                <!-- Location (Front only) -->
+                <div class="mb-3" id="add-field-location-group">
+                    <label class="form-label fw-medium">Location <span class="text-danger">*</span></label>
+                    <div class="d-flex flex-wrap gap-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="add-field-location" id="loc-primary" value="primary">
+                            <label class="form-check-label" for="loc-primary">
+                                <span class="badge bg-primary me-1" data-badge>Primary</span>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="add-field-location" id="loc-secondary" value="secondary" checked>
+                            <label class="form-check-label" for="loc-secondary">
+                                <span class="badge bg-info me-1" data-badge>Secondary</span>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="add-field-location" id="loc-auxiliary" value="auxiliary">
+                            <label class="form-check-label" for="loc-auxiliary">
+                                <span class="badge bg-warning me-1" data-badge>Auxiliary</span>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="add-field-location" id="loc-header" value="header">
+                            <label class="form-check-label" for="loc-header">
+                                <span class="badge bg-secondary me-1" data-badge>Header</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Field Type (Back only) -->
+                <div class="mb-3 d-none" id="add-field-type-group">
+                    <label class="form-label fw-medium">Field Type</label>
+                    <select id="add-field-field-type" class="form-select" data-form-select>
+                        <option value="text">Text</option>
+                        <option value="url">URL (tappable link)</option>
+                        <option value="phone">Phone Number</option>
+                        <option value="email">Email Address</option>
+                    </select>
+                </div>
+
+                <!-- Value Mode Tabs -->
+                <div class="mb-3">
+                    <label class="form-label fw-medium">Field Value</label>
+                    <ul class="nav nav-tabs nav-tabs-sm" role="tablist" data-tabs>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="add-simple-tab" data-bs-toggle="tab" data-bs-target="#add-simple-mode" type="button" role="tab">
+                                <i class="ti ti-list me-1"></i>Simple
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="add-advanced-tab" data-bs-toggle="tab" data-bs-target="#add-advanced-mode" type="button" role="tab">
+                                <i class="ti ti-code me-1"></i>Advanced
+                            </button>
+                        </li>
+                    </ul>
+                    <div class="tab-content border border-top-0 rounded-bottom p-3">
+                        <!-- Simple Mode -->
+                        <div class="tab-pane fade show active" id="add-simple-mode" role="tabpanel" data-tab-pane>
+                            <select id="add-field-variable" class="form-select" data-form-select>
+                                <option value="">-- Select a variable --</option>
+                                {% for variable in template_variables %}
+                                <option value="{% raw %}{{{% endraw %}{{ variable.name }}{% raw %}}}{% endraw %}" data-description="{{ variable.description }}">
+                                    {{ variable.name }} - {{ variable.description }}
+                                </option>
+                                {% endfor %}
+                                <option value="__static__">Static text (enter below)</option>
+                            </select>
+                            <input type="text" id="add-field-static" class="form-control mt-2 d-none" placeholder="Enter static text" data-form-control>
+                        </div>
+                        <!-- Advanced Mode -->
+                        <div class="tab-pane fade" id="add-advanced-mode" role="tabpanel" data-tab-pane>
+                            <div class="input-group" data-input-group>
+                                <input type="text" id="add-field-template" class="form-control" placeholder="e.g., Welcome, {% raw %}{{member_name}}{% endraw %}!" data-form-control>
+                                <div class="dropdown">
+                                    <button class="c-btn c-btn--outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-dropdown-toggle>
+                                        Insert
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
+                                        {% for variable in template_variables %}
+                                        <li>
+                                            <a class="dropdown-item js-insert-variable-add" href="#" data-action="insert-variable" data-variable-name="{{ variable.name }}">
+                                                {{ variable.name }}
+                                            </a>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="form-text">Combine variables and text. Example: "Since {% raw %}{{member_since}}{% endraw %}"</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--primary js-create-field" data-action="create-field">
+                    <i class="ti ti-plus me-1"></i>Add Field
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 {# Asset Cropper Modal #}
 {% include 'admin/pass_studio/components/asset_cropper_modal.html' %}

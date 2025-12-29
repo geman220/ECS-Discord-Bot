@@ -311,6 +311,29 @@
         </div>
     </div>
 </div>
+
+{% block modals %}
+{{ super() }}
+<!-- Queue Details Modal -->
+<div class="modal c-modal fade" data-modal id="queueDetailsModal" tabindex="-1" aria-labelledby="queueDetailsModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+                <h5 class="modal-title c-modal__title" id="queueDetailsModalLabel">Queue Task Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
+            </div>
+            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
+                <div id="queueDetailsContent">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status" data-spinner>
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block custom_css %}
@@ -466,27 +489,6 @@
 }
 </style>
 {% endblock %}
-
-<!-- Queue Details Modal -->
-<div class="modal c-modal fade" data-modal id="queueDetailsModal" tabindex="-1" aria-labelledby="queueDetailsModalLabel">
-    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
-        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
-            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
-                <h5 class="modal-title c-modal__title" id="queueDetailsModalLabel">Queue Task Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
-            </div>
-            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
-                <div id="queueDetailsContent">
-                    <div class="text-center">
-                        <div class="spinner-border" role="status" data-spinner>
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 {% block custom_js %}
 <script>

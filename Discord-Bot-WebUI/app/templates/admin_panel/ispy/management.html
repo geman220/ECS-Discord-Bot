@@ -326,8 +326,10 @@
             </div>
         </div>
     </div>
-</div>
+{% endblock %}
 
+{% block modals %}
+{{ super() }}
 <!-- Create Season Modal -->
 <div class="modal c-modal fade" id="createSeasonModal" tabindex="-1" data-modal aria-labelledby="createSeasonModalLabel">
     <div class="modal-dialog c-modal__dialog" data-modal-dialog>
@@ -425,7 +427,6 @@
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block custom_css %}

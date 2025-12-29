@@ -1,5 +1,8 @@
 <!-- ECS FC Schedule Management Modals -->
 
+{% block modals %}
+{{ super() }}
+
 <!-- Create/Edit Match Modal -->
 <div class="modal c-modal fade" data-modal id="createMatchModal" tabindex="-1" aria-labelledby="createMatchModalLabel" aria-hidden="true">
     <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
@@ -273,3 +276,5 @@
 
   ============================================================================
 #}
+
+{% endblock %}

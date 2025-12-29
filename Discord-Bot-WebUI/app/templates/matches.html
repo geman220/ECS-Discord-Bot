@@ -126,7 +126,10 @@ TODO: Remove this template after new system is verified in production
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block modals %}
+{{ super() }}
 <!-- Add Match Modal -->
 <div class="modal c-modal fade" data-modal id="addMatchModal" tabindex="-1" aria-labelledby="addMatchModalLabel" aria-hidden="true">
     <div class="modal-dialog c-modal__dialog" data-modal-dialog>
@@ -156,7 +159,7 @@ TODO: Remove this template after new system is verified in production
         </div>
     </div>
 </div>
-{% endblock %}
+{% endblock modals %}
 
 {% block custom_js %}
 {{ super() }}

@@ -1178,8 +1178,10 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
-<!-- Modals -->
+{% block modals %}
+{{ super() }}
 <!-- Profile Image Modal -->
 <div class="modal c-modal fade" data-modal id="profileImageModal" tabindex="-1" aria-labelledby="profileImageModalLabel" aria-hidden="true">
     <div class="modal-dialog c-modal__dialog modal-xl c-modal__dialog--xl modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
@@ -1447,7 +1449,7 @@
 {% if player.needs_manual_review and is_admin %}
 <div data-modal-auto-show="manualReviewModal"></div>
 {% endif %}
-{% endblock %}
+{% endblock modals %}
 
 {% block custom_js %}
 <!-- Include External JavaScript Files -->

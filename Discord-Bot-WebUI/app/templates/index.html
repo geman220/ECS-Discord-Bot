@@ -5,27 +5,6 @@
 
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
-    <!-- Enhanced Onboarding Modal -->
-    {% if show_onboarding or session.get('force_onboarding') %}
-    <div class="modal c-modal fade" data-modal id="onboardingSlideModal" tabindex="-1" aria-labelledby="onboardingModalLabel" aria-hidden="true" data-bs-backdrop="static">
-        <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
-            <div class="modal-content c-modal__content shadow-lg border-0" data-modal-content>
-                <!-- Modal Header -->
-                <div class="modal-header c-modal__header bg-light border-bottom-0 py-3" data-modal-header>
-                    <h5 class="modal-title c-modal__title fw-bold" id="onboardingModalLabel">
-                        <i class="ti ti-user-circle me-2 text-primary"></i>Player Profile Setup
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-action="close-modal" aria-label="Close"></button>
-                </div>
-                <!-- Modal Body -->
-                <div class="modal-body c-modal__body p-0" data-modal-body>
-                    {% include 'onboarding_modal_content.html' %}
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
     {% if player %}
     <div id="rsvp-data"
          data-player-id="{{ player.id }}"
@@ -480,6 +459,30 @@
     {% endif %}
 </div>
 {% endblock %}
+
+{% block modals %}
+{{ super() }}
+<!-- Enhanced Onboarding Modal -->
+{% if show_onboarding or session.get('force_onboarding') %}
+<div class="modal c-modal fade" data-modal id="onboardingSlideModal" tabindex="-1" aria-labelledby="onboardingModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
+        <div class="modal-content c-modal__content shadow-lg border-0" data-modal-content>
+            <!-- Modal Header -->
+            <div class="modal-header c-modal__header bg-light border-bottom-0 py-3" data-modal-header>
+                <h5 class="modal-title c-modal__title fw-bold" id="onboardingModalLabel">
+                    <i class="ti ti-user-circle me-2 text-primary"></i>Player Profile Setup
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-action="close-modal" aria-label="Close"></button>
+            </div>
+            <!-- Modal Body -->
+            <div class="modal-body c-modal__body p-0" data-modal-body>
+                {% include 'onboarding_modal_content.html' %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock modals %}
 
 {% block custom_css %}
 {{ super() }}

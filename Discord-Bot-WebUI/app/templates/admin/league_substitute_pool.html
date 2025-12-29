@@ -324,6 +324,10 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block modals %}
+{{ super() }}
 <!-- Edit Preferences Modal -->
 <div class="modal c-modal fade" data-modal id="league-sub-pool-editPreferencesModal" tabindex="-1" aria-labelledby="league-sub-pool-editPreferencesModalLabel">
     <div class="modal-dialog c-modal__dialog" data-modal-dialog>
@@ -337,19 +341,19 @@
             <div class="modal-body c-modal__body" data-modal-body data-modal-body>
                 <form id="preferencesForm">
                     <input type="hidden" id="editPlayerId" name="player_id">
-                    
+
                     <div class="form-group">
                         <label>Preferred Positions</label>
-                        <input type="text" class="form-control" id="editPositions" name="preferred_positions" 
+                        <input type="text" class="form-control" id="editPositions" name="preferred_positions"
                                placeholder="e.g., Forward, Midfielder" data-form-control>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Max Matches Per Week</label>
-                        <input type="number" class="form-control" id="editMaxMatches" name="max_matches_per_week" 
+                        <input type="number" class="form-control" id="editMaxMatches" name="max_matches_per_week"
                                min="1" max="10" value="3" data-form-control>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Notification Preferences</label>
                         <div class="form-check">
@@ -371,10 +375,10 @@
                             </label>
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Notes</label>
-                        <textarea class="form-control" id="editNotes" name="notes" rows="3" 
+                        <textarea class="form-control" id="editNotes" name="notes" rows="3"
                                   placeholder="Any additional notes about this substitute..." data-form-control></textarea>
                     </div>
                 </form>

@@ -228,6 +228,10 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block modals %}
+{{ super() }}
 <!-- Bulk Approval Modal -->
 <div class="modal c-modal fade" id="bulkApprovalModal" tabindex="-1" data-modal aria-labelledby="bulkApprovalModalLabel">
     <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
@@ -311,7 +315,6 @@
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block custom_js %}

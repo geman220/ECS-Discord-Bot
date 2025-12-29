@@ -140,7 +140,10 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block modals %}
+{{ super() }}
 <!-- Profile Verification Modal -->
 <div class="modal c-modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true" data-modal>
     <div class="modal-dialog c-modal__dialog modal-xl c-modal__dialog--xl" data-modal-dialog>
@@ -164,7 +167,7 @@
                         <li>Ensure you get the correct jersey size</li>
                     </ul>
                 </div>
-                
+
                 <!-- Profile Form -->
                 <form id="profileForm" data-form-group>
                     <div class="row">
@@ -212,7 +215,7 @@
                                 </select>
                             </div>
                         </div>
-                        
+
                         <!-- Availability & Preferences -->
                         <div class="col-md-6">
                             <h6 class="mb-3">Availability & Preferences</h6>
@@ -255,7 +258,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <!-- Playing Positions -->
                         <div class="col-md-6">
@@ -295,7 +298,7 @@
                                 </select>
                             </div>
                         </div>
-                        
+
                         <!-- Additional Information -->
                         <div class="col-md-6">
                             <h6 class="mb-3">Additional Information</h6>
@@ -305,7 +308,7 @@
                                 <div class="form-text small mb-2">Notes to share with coaches/admins</div>
                                 <textarea class="form-control" id="waitlist-auth-player_notes" name="player_notes" rows="3" readonly data-form-control>{{ player.player_notes if player and player.player_notes else '' }}</textarea>
                             </div>
-                            
+
                             <div class="mb-3">
                                 <h6>Profile Status</h6>
                                 {% if player and player.profile_last_updated %}

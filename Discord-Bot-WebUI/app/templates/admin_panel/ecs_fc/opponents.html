@@ -122,7 +122,10 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block modals %}
+{{ super() }}
 <!-- Add Opponent Modal -->
 <div class="modal fade" id="addOpponentModal" tabindex="-1">
     <div class="modal-dialog">
@@ -239,6 +242,7 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
 {% block custom_js %}
 {{ super() }}

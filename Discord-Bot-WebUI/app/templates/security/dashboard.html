@@ -413,7 +413,10 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block modals %}
+{{ super() }}
 <!-- Ban IP Modal -->
 <div class="modal c-modal fade" id="banIpModal" tabindex="-1" aria-labelledby="banIpModalLabel" aria-hidden="true" data-modal>
     <div class="modal-dialog c-modal__dialog" data-modal-dialog>
@@ -429,11 +432,11 @@
                 <form id="banIpForm">
                     <div class="mb-3">
                         <label for="ipAddress" class="form-label">IP Address <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="ipAddress" name="ip_address" 
+                        <input type="text" class="form-control" id="ipAddress" name="ip_address"
                                placeholder="192.168.1.100" required data-form-control>
                         <div class="form-text">Enter the IP address to ban (IPv4 or IPv6)</div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="banDuration" class="form-label">Ban Duration</label>
                         <select class="form-select" id="banDuration" name="duration" data-form-select>
@@ -444,10 +447,10 @@
                             <option value="">Permanent</option>
                         </select>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="banReason" class="form-label">Reason</label>
-                        <textarea class="form-control" id="banReason" name="reason" rows="3" 
+                        <textarea class="form-control" id="banReason" name="reason" rows="3"
                                   placeholder="Optional reason for the ban..." data-form-control></textarea>
                     </div>
                 </form>

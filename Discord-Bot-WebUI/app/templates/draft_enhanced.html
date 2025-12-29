@@ -371,8 +371,10 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
-
+{% block modals %}
+{{ super() }}
 <!-- Enhanced Player Profile Modal for Draft -->
 <div class="modal c-modal fade" data-modal id="playerProfileModal" tabindex="-1" aria-labelledby="playerProfileModalLabel" aria-hidden="true">
     <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
@@ -445,7 +447,7 @@
         <p class="c-draft-loading-overlay__text">Processing...</p>
     </div>
 </div>
-{% endblock %}
+{% endblock modals %}
 
 {% block custom_js %}
 {{ super() }}

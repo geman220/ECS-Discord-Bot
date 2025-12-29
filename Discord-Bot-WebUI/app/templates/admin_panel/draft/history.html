@@ -164,8 +164,10 @@
         </div>
     </div>
     {% endif %}
-</div>
+{% endblock %}
 
+{% block modals %}
+{{ super() }}
 <!-- Edit Pick Modal -->
 <div class="modal c-modal fade" id="editPickModal" tabindex="-1" data-modal aria-labelledby="editPickModalLabel">
     <div class="modal-dialog c-modal__dialog" data-modal-dialog>

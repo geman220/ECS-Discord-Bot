@@ -732,6 +732,8 @@
     </div>
 </div>
 
+{% block modals %}
+{{ super() }}
 <!-- Player Search Modal -->
 <div class="modal c-modal fade" id="playerSearchModal" tabindex="-1" data-modal aria-labelledby="playerSearchModalLabel">
     <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
@@ -749,6 +751,7 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
 <script>
 // Store sync data and resolutions
