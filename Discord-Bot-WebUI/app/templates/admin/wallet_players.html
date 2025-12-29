@@ -175,8 +175,8 @@
                                         <i class="ti ti-download"></i>
                                     </a>
                                     {% endif %}
-                                    <button type="button" class="c-btn c-btn--outline-primary"
-                                            data-action="check-player-eligibility" data-id="{{ player.id }}" class="js-check-player-eligibility" title="Check Details">
+                                    <button type="button" class="c-btn c-btn--outline-primary js-check-player-eligibility"
+                                            onclick="checkPlayerEligibility({{ player.id }})" title="Check Details">
                                         <i class="ti ti-info-circle"></i>
                                     </button>
                                 </div>

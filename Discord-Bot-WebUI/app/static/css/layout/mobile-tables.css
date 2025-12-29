@@ -204,10 +204,17 @@ body,
   }
 
   /* JUSTIFIED !important: Dropdown z-index must override stacking context to prevent clipping.
-     When dropdown is open, the card needs highest z-index to appear above other cards and modals. */
+     When dropdown is open, the card needs highest z-index to appear above other cards.
+     BUT: Must NOT override modal z-index - modal takes priority when open. */
   .table-responsive tr:has(.dropdown.show),
   .table-responsive tr:has(.dropdown-menu.show) {
     z-index: 1050 !important;
+  }
+
+  /* CRITICAL: When modal is open, page table dropdowns must be below modal backdrop */
+  body.modal-open .table-responsive tr:has(.dropdown.show),
+  body.modal-open .table-responsive tr:has(.dropdown-menu.show) {
+    z-index: var(--z-dropdown, 1000) !important;
   }
 
   /* JUSTIFIED !important: Must override Bootstrap utility classes (.text-center, .d-flex, etc.)

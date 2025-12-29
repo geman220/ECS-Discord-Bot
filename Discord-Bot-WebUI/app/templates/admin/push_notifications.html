@@ -13,7 +13,7 @@
             <p class="text-muted">Manage push notifications for mobile apps</p>
         </div>
         <div class="d-flex gap-2">
-            <button class="c-btn c-btn--sm c-btn--outline-secondary" data-action="refresh-notification-status" class="js-refresh-notification-status">
+            <button class="c-btn c-btn--sm c-btn--outline-secondary js-refresh-notification-status" onclick="refreshNotificationStatus()">
                 <i class="ti ti-refresh me-1"></i>Refresh Status
             </button>
             <button class="c-btn c-btn--sm c-btn--primary" data-bs-toggle="modal" data-bs-target="#broadcastModal">
@@ -140,37 +140,37 @@
                 <div class="c-card__body">
                     <div class="row g-3">
                         <div class="col-md-6 col-lg-4">
-                            <button class="c-btn c-btn--outline-primary w-100" data-action="send-test-notification" class="js-send-test-notification">
+                            <button class="c-btn c-btn--outline-primary w-100 js-send-test-notification" onclick="sendTestNotification()">
                                 <i class="ti ti-test-pipe me-2"></i>
                                 Send Test Notification
                             </button>
                         </div>
                         <div class="col-md-6 col-lg-4">
-                            <button class="c-btn c-btn--outline-success w-100" data-action="send-match-reminder" class="js-send-match-reminder">
+                            <button class="c-btn c-btn--outline-success w-100 js-send-match-reminder" onclick="sendMatchReminder()">
                                 <i class="ti ti-calendar-event me-2"></i>
                                 Send Match Reminder
                             </button>
                         </div>
                         <div class="col-md-6 col-lg-4">
-                            <button class="c-btn c-btn--outline-warning w-100" data-action="send-r-s-v-p-reminder" class="js-send-r-s-v-p-reminder">
+                            <button class="c-btn c-btn--outline-warning w-100 js-send-r-s-v-p-reminder" onclick="sendRSVPReminder()">
                                 <i class="ti ti-clipboard-check me-2"></i>
                                 Send RSVP Reminder
                             </button>
                         </div>
                         <div class="col-md-6 col-lg-4">
-                            <button class="c-btn c-btn--outline-info w-100" data-action="view-notification-logs" class="js-view-notification-logs">
+                            <button class="c-btn c-btn--outline-info w-100 js-view-notification-logs" onclick="viewNotificationLogs()">
                                 <i class="ti ti-file-text me-2"></i>
                                 View Notification Logs
                             </button>
                         </div>
                         <div class="col-md-6 col-lg-4">
-                            <button class="c-btn c-btn--outline-secondary w-100" data-action="manage-tokens" class="js-manage-tokens">
+                            <button class="c-btn c-btn--outline-secondary w-100 js-manage-tokens" onclick="manageTokens()">
                                 <i class="ti ti-settings me-2"></i>
                                 Manage FCM Tokens
                             </button>
                         </div>
                         <div class="col-md-6 col-lg-4">
-                            <button class="c-btn c-btn--outline-danger w-100" data-action="cleanup-invalid-tokens" class="js-cleanup-invalid-tokens">
+                            <button class="c-btn c-btn--outline-danger w-100 js-cleanup-invalid-tokens" onclick="cleanupInvalidTokens()">
                                 <i class="ti ti-trash me-2"></i>
                                 Cleanup Invalid Tokens
                             </button>
@@ -261,7 +261,7 @@
             </div>
             <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
                 <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
-                <button type="button" class="c-btn c-btn--primary" data-action="send-broadcast" class="js-send-broadcast">
+                <button type="button" class="c-btn c-btn--primary js-send-broadcast" onclick="sendBroadcast()">
                     <i class="ti ti-send me-1"></i>Send Notification
                 </button>
             </div>
@@ -288,7 +288,7 @@
             </div>
             <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
                 <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
-                <button type="button" class="c-btn c-btn--primary" data-action="confirm-send-test" class="js-confirm-send-test">
+                <button type="button" class="c-btn c-btn--primary js-confirm-send-test" onclick="confirmSendTest()">
                     <i class="ti ti-send me-1"></i>Send Test
                 </button>
             </div>

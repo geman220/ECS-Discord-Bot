@@ -157,10 +157,84 @@
   isolation: isolate;
 }
 
-/* CRITICAL FIX: When modal is open, page dropdowns should not appear above it */
-body.modal-open .dropdown-menu:not(.c-modal .dropdown-menu),
-body.modal-open [data-dropdown-menu]:not(.c-modal [data-dropdown-menu]) {
+/* ============================================================================
+   CRITICAL FIX: Z-INDEX OVERRIDE WHEN MODAL IS OPEN
+   When modal is open, ALL page content must be below the modal backdrop (1040)
+   ============================================================================ */
+
+/* Force page dropdowns below modal backdrop */
+body.modal-open .dropdown-menu:not(.c-modal .dropdown-menu):not(.modal .dropdown-menu),
+body.modal-open [data-dropdown-menu]:not(.c-modal [data-dropdown-menu]):not(.modal [data-dropdown-menu]) {
   z-index: var(--z-dropdown, 1000) !important;
+}
+
+/* Force dropdown toggle buttons below modal backdrop */
+body.modal-open .dropdown-toggle:not(.c-modal .dropdown-toggle):not(.modal .dropdown-toggle),
+body.modal-open [data-bs-toggle="dropdown"]:not(.c-modal [data-bs-toggle="dropdown"]):not(.modal [data-bs-toggle="dropdown"]) {
+  z-index: auto !important;
+}
+
+/* Force table cell dropdowns below modal backdrop */
+body.modal-open td .dropdown-menu:not(.c-modal td .dropdown-menu),
+body.modal-open .c-table__cell .dropdown-menu:not(.c-modal .c-table__cell .dropdown-menu) {
+  z-index: var(--z-dropdown, 1000) !important;
+}
+
+/* Force card header dropdowns below modal backdrop */
+body.modal-open .c-card__header .dropdown-menu:not(.c-modal .c-card__header .dropdown-menu) {
+  z-index: var(--z-dropdown, 1000) !important;
+}
+
+/* Force action buttons and dropdowns below modal */
+body.modal-open .c-btn:not(.c-modal .c-btn):not(.modal .c-btn),
+body.modal-open .btn:not(.c-modal .btn):not(.modal .btn) {
+  position: relative;
+  z-index: auto;
+}
+
+/* Reset any high z-index on page wrapper when modal is open */
+body.modal-open .layout-page,
+body.modal-open .c-base-layout__page,
+body.modal-open .content-wrapper {
+  z-index: auto !important;
+}
+
+/* Ensure navbar doesn't interfere with modal */
+body.modal-open .navbar:not(.c-modal .navbar):not(.modal .navbar),
+body.modal-open .c-navbar:not(.c-modal .c-navbar) {
+  z-index: var(--z-navbar, 1025) !important;
+}
+
+/* Ensure sidebar doesn't interfere with modal */
+body.modal-open .c-sidebar:not(.c-modal .c-sidebar) {
+  z-index: var(--z-sidebar, 1035) !important;
+}
+
+/* NUCLEAR OPTION: Force ALL page content below modal backdrop
+   This creates a new stacking context at z-index 1 for the main content area
+   so ALL page elements are guaranteed to be below the modal backdrop (1040) */
+body.modal-open .layout-wrapper,
+body.modal-open .layout-container,
+body.modal-open .content-wrapper,
+body.modal-open .container-fluid:not(.c-modal .container-fluid):not(.modal .container-fluid) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure specific button types don't bleed through */
+body.modal-open .c-btn--outline-info:not(.c-modal .c-btn--outline-info):not(.modal .c-btn--outline-info),
+body.modal-open .c-btn--outline-primary:not(.c-modal .c-btn--outline-primary):not(.modal .c-btn--outline-primary) {
+  position: relative;
+  z-index: auto;
+}
+
+/* Card action buttons and dropdowns */
+body.modal-open .c-card .dropdown:not(.c-modal .c-card .dropdown) {
+  z-index: auto;
+}
+
+body.modal-open .c-card .dropdown-toggle:not(.c-modal .c-card .dropdown-toggle) {
+  z-index: auto;
 }
 
 /* Ensure dropdowns INSIDE modals appear above modal content */

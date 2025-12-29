@@ -302,7 +302,7 @@
             </h5>
             <div class="d-flex gap-2">
                 {% if config_status.configured and eligible_players %}
-                <button class="c-btn c-btn--success c-btn--sm" data-action="bulk-generate-passes" class="js-bulk-generate-passes">
+                <button class="c-btn c-btn--success c-btn--sm js-bulk-generate-passes" onclick="bulkGeneratePasses()">
                     <i class="ti ti-download me-1"></i>Bulk Generate
                 </button>
                 {% endif %}
@@ -369,8 +369,8 @@
                                         <i class="ti ti-download"></i>
                                     </a>
                                     {% endif %}
-                                    <button type="button" class="c-btn c-btn--outline-primary"
-                                            data-action="check-player-eligibility" data-id="{{ player.id }}" class="js-check-player-eligibility" title="Check Eligibility">
+                                    <button type="button" class="c-btn c-btn--outline-primary js-check-player-eligibility"
+                                            onclick="checkPlayerEligibility({{ player.id }})" title="Check Eligibility">
                                         <i class="ti ti-info-circle"></i>
                                     </button>
                                 </div>

@@ -102,15 +102,15 @@
                                                         <i class="fas fa-edit me-1"></i>Edit Message
                                                     </a>
                                                     
-                                                    <button type="button" 
-                                                            class="c-btn c-btn--info c-btn--sm mb-2"
-                                                            data-action="preview-template" data-id="{{ template.id }}" class="js-preview-template">
+                                                    <button type="button"
+                                                            class="c-btn c-btn--info c-btn--sm mb-2 js-preview-template"
+                                                            onclick="previewTemplate({{ template.id }})">
                                                         <i class="fas fa-eye me-1"></i>Preview
                                                     </button>
-                                                    
-                                                    <button type="button" 
-                                                            class="c-btn c-btn--secondary c-btn--sm"
-                                                            data-action="copy-template" data-id="{{ template.id }}" class="js-copy-template">
+
+                                                    <button type="button"
+                                                            class="c-btn c-btn--secondary c-btn--sm js-copy-template"
+                                                            onclick="copyTemplate({{ template.id }})">
                                                         <i class="fas fa-copy me-1"></i>Copy Content
                                                     </button>
                                                 </div>

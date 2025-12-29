@@ -69,12 +69,12 @@
                                                 </td>
                                                 <td>
                                                     <div class="btn-group btn-group-sm">
-                                                        <button class="c-btn c-btn--outline-primary" 
-                                                                data-action="edit-sub-preferences" data-id="{{ entry.id }}" class="js-edit-sub-preferences">
+                                                        <button class="c-btn c-btn--outline-primary js-edit-sub-preferences"
+                                                                onclick="editSubPreferences({{ entry.id }})">
                                                             Edit
                                                         </button>
-                                                        <button class="c-btn c-btn--outline-danger" 
-                                                                data-action="remove-from-pool" data-id="{{ entry.id }}" class="js-remove-from-pool">
+                                                        <button class="c-btn c-btn--outline-danger js-remove-from-pool"
+                                                                onclick="removeFromPool({{ entry.id }})">
                                                             Remove
                                                         </button>
                                                     </div>
@@ -131,8 +131,8 @@
                                                     </small>
                                                 </td>
                                                 <td>
-                                                    <button class="c-btn c-btn--sm c-btn--success" 
-                                                            data-action="add-to-pool" data-id="{{ player.id }}" class="js-add-to-pool">
+                                                    <button class="c-btn c-btn--sm c-btn--success js-add-to-pool"
+                                                            onclick="addToPool({{ player.id }})">
                                                         Add to Pool
                                                     </button>
                                                 </td>

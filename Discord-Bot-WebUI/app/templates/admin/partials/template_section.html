@@ -29,13 +29,13 @@ document.addEventListener('click', function(e) {
             </div>
             <div class="d-flex align-items-center gap-2">
                 <span class="badge bg-label-primary" data-badge>{{ category.templates|length }} templates</span>
-                <button type="button" class="c-btn c-btn--sm c-btn--outline-success" 
-                        data-action="create-template" data-id="{{ category.id }}" data-name="{{ category.name }}" class="js-create-template"
+                <button type="button" class="c-btn c-btn--sm c-btn--outline-success js-create-template"
+                        onclick="createTemplate({{ category.id }}, '{{ category.name }}')"
                         data-bs-toggle="tooltip" title="Create New Template">
                     <i class="ti ti-plus"></i>
                 </button>
-                <button type="button" class="c-btn c-btn--sm c-btn--outline-primary"
-                        data-action="edit-category" data-id="{{ category.id }}" data-name="{{ category.name }}" data-description="{{ category.description or '' }}" class="js-edit-category"
+                <button type="button" class="c-btn c-btn--sm c-btn--outline-primary js-edit-category"
+                        onclick="editCategory({{ category.id }}, '{{ category.name }}', '{{ category.description or '' }}')"
                         data-bs-toggle="tooltip" title="Edit Category">
                     <i class="ti ti-edit"></i>
                 </button>
@@ -116,18 +116,18 @@ document.addEventListener('click', function(e) {
                         </td>
                         <td>
                             <div class="d-flex gap-1">
-                                <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-primary" 
-                                        data-action="edit-template" data-id="{{ template.id }}" class="js-edit-template" 
+                                <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-primary js-edit-template"
+                                        onclick="editTemplate({{ template.id }})"
                                         data-bs-toggle="tooltip" title="Edit">
                                     <i class="ti ti-edit"></i>
                                 </button>
-                                <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-info" 
-                                        data-action="preview-template" data-id="{{ template.id }}" class="js-preview-template" 
+                                <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-info js-preview-template"
+                                        onclick="previewTemplate({{ template.id }})"
                                         data-bs-toggle="tooltip" title="Preview">
                                     <i class="ti ti-eye"></i>
                                 </button>
-                                <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary" 
-                                        data-action="copy-template" data-id="{{ template.id }}" class="js-copy-template" 
+                                <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary js-copy-template"
+                                        onclick="copyTemplate({{ template.id }})"
                                         data-bs-toggle="tooltip" title="Copy">
                                     <i class="ti ti-copy"></i>
                                 </button>
@@ -142,8 +142,8 @@ document.addEventListener('click', function(e) {
         <div class="text-center py-4">
             <i class="ti ti-message-plus text-muted" class="u-icon-xl"></i>
             <p class="text-muted mb-2 mt-2">No templates in this category</p>
-            <button type="button" class="c-btn c-btn--sm c-btn--outline-success" 
-                    data-action="create-template" data-id="{{ category.id }}" data-name="{{ category.name }}" class="js-create-template">
+            <button type="button" class="c-btn c-btn--sm c-btn--outline-success js-create-template"
+                onclick="createTemplate({{ category.id }}, '{{ category.name }}')">
                 <i class="ti ti-plus me-1"></i>Create First Template
             </button>
         </div>

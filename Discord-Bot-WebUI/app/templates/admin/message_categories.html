@@ -131,8 +131,8 @@
                             {% endif %}
                             {{ category.name }}
                         </h5>
-                        <button type="button" class="c-btn c-btn--sm c-btn--light" 
-                                data-action="create-template" data-id="{{ category.id }}" data-name="{{ category.name }}" class="js-create-template"
+                        <button type="button" class="c-btn c-btn--sm c-btn--light js-create-template"
+                                onclick="createTemplate({{ category.id }}, '{{ category.name }}')"
                                 data-bs-toggle="tooltip" title="Create New Template">
                             <i class="ti ti-plus me-1"></i>New Template
                         </button>
@@ -181,7 +181,7 @@
                     <h5 class="mb-0">
                         <i class="ti ti-speakerphone me-2"></i>Website Announcements
                     </h5>
-                    <button type="button" class="c-btn c-btn--sm c-btn--outline-primary" data-action="create-announcement" class="js-create-announcement">
+                    <button type="button" class="c-btn c-btn--sm c-btn--outline-primary js-create-announcement" onclick="createAnnouncement()">
                         <i class="ti ti-plus"></i>
                     </button>
                 </div>
@@ -199,13 +199,13 @@
                                         <small class="text-muted">{{ announcement.created_at.strftime('%b %d, %Y') }}</small>
                                     </div>
                                     <div class="d-flex gap-1">
-                                        <button type="button" class="c-btn c-btn--sm c-btn--outline-primary" 
-                                                data-action="edit-announcement" data-id="{{ announcement.id }}" class="js-edit-announcement" 
+                                        <button type="button" class="c-btn c-btn--sm c-btn--outline-primary js-edit-announcement"
+                                                onclick="editAnnouncement({{ announcement.id }})"
                                                 data-bs-toggle="tooltip" title="Edit">
                                             <i class="ti ti-edit"></i>
                                         </button>
-                                        <button type="button" class="c-btn c-btn--sm c-btn--outline-danger" 
-                                                data-action="delete-announcement" data-id="{{ announcement.id }}" class="js-delete-announcement" 
+                                        <button type="button" class="c-btn c-btn--sm c-btn--outline-danger js-delete-announcement"
+                                                onclick="deleteAnnouncement({{ announcement.id }})"
                                                 data-bs-toggle="tooltip" title="Delete">
                                             <i class="ti ti-trash"></i>
                                         </button>
@@ -223,8 +223,8 @@
                         <div class="text-center py-4">
                             <i class="ti ti-speakerphone mb-3" class="u-icon-xl text-muted"></i>
                             <p class="text-muted mb-3">No announcements yet</p>
-                            <button type="button" class="c-btn c-btn--sm c-btn--success" 
-                                    data-action="create-announcement" class="js-create-announcement">
+                            <button type="button" class="c-btn c-btn--sm c-btn--success js-create-announcement"
+                                onclick="createAnnouncement()">
                                 <i class="ti ti-plus me-1"></i>Create Announcement
                             </button>
                         </div>
@@ -246,8 +246,8 @@
                             <i class="ti ti-test-pipe me-1"></i>Test Welcome Message
                         </a>
                         {% endif %}
-                        <button type="button" class="c-btn c-btn--outline-primary c-btn--sm" 
-                                data-action="create-announcement" class="js-create-announcement">
+                        <button type="button" class="c-btn c-btn--outline-primary c-btn--sm js-create-announcement"
+                                onclick="createAnnouncement()">
                             <i class="ti ti-plus me-1"></i>Create Announcement
                         </button>
                     </div>
@@ -374,7 +374,7 @@
                     </div>
                 </div>
                 <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
-                    <button type="button" class="c-btn c-btn--outline-info" data-action="preview-message" class="js-preview-message">
+                    <button type="button" class="c-btn c-btn--outline-info js-preview-message" onclick="previewMessage()">
                         <i class="ti ti-eye me-1"></i>Preview
                     </button>
                     <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
@@ -536,7 +536,7 @@
                     </div>
                 </div>
                 <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
-                    <button type="button" class="c-btn c-btn--outline-info" data-action="preview-new-template" class="js-preview-new-template">
+                    <button type="button" class="c-btn c-btn--outline-info js-preview-new-template" onclick="previewNewTemplate()">
                         <i class="ti ti-eye me-1"></i>Preview
                     </button>
                     <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>

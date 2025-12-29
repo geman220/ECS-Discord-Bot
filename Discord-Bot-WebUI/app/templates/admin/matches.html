@@ -174,13 +174,13 @@
                             <i class="fas fa-eye"></i> Details
                         </a>
                         {% if match.match_id not in sessions_by_match %}
-                            <button class="c-btn c-btn--sm c-btn--success"
-                                    data-action="schedule-match" data-id="{{ match.id }}" class="js-schedule-match">
+                            <button class="c-btn c-btn--sm c-btn--success js-schedule-match"
+                                    onclick="scheduleMatch({{ match.id }})">
                                 <i class="fas fa-broadcast-tower"></i> Schedule Reporting
                             </button>
                         {% elif sessions_by_match[match.match_id].is_active %}
-                            <button class="c-btn c-btn--sm c-btn--danger"
-                                    data-action="stop-session" data-id="{{ sessions_by_match[match.match_id].id }}" class="js-stop-session">
+                            <button class="c-btn c-btn--sm c-btn--danger js-stop-session"
+                                    onclick="stopSession({{ sessions_by_match[match.match_id].id }})">
                                 <i class="fas fa-stop"></i> Stop Reporting
                             </button>
                         {% endif %}

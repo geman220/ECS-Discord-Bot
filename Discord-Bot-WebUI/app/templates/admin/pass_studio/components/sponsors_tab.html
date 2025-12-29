@@ -18,7 +18,7 @@
 <!-- Add Sponsor Button -->
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h6 class="mb-0">Sponsors</h6>
-    <button type="button" class="c-btn c-btn--primary c-btn--sm" data-action="add-sponsor" class="js-add-sponsor">
+    <button type="button" class="c-btn c-btn--primary c-btn--sm js-add-sponsor" onclick="addSponsor()">
         <i class="ti ti-plus me-1"></i> Add Sponsor
     </button>
 </div>
@@ -75,13 +75,13 @@
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <button type="button" class="c-btn c-btn--outline-primary" data-action="edit-sponsor" data-id="{{ sponsor.id }}" class="js-edit-sponsor">
+                                <button type="button" class="c-btn c-btn--outline-primary js-edit-sponsor" onclick="editSponsor({{ sponsor.id }})">
                                     <i class="ti ti-edit"></i>
                                 </button>
-                                <button type="button" class="c-btn btn-outline-{{ 'warning' if sponsor.is_active else 'success' }}" data-action="toggle-sponsor" data-id="{{ sponsor.id }}" data-active="{{ 'false' if sponsor.is_active else 'true' }}" class="js-toggle-sponsor">
+                                <button type="button" class="c-btn btn-outline-{{ 'warning' if sponsor.is_active else 'success' }} js-toggle-sponsor" onclick="toggleSponsor({{ sponsor.id }}, {{ 'false' if sponsor.is_active else 'true' }})">
                                     <i class="ti ti-{{ 'eye-off' if sponsor.is_active else 'eye' }}"></i>
                                 </button>
-                                <button type="button" class="c-btn c-btn--outline-danger" data-action="delete-sponsor" data-id="{{ sponsor.id }}" data-name="{{ sponsor.name }}" class="js-delete-sponsor">
+                                <button type="button" class="c-btn c-btn--outline-danger js-delete-sponsor" onclick="deleteSponsor({{ sponsor.id }}, '{{ sponsor.name }}')">
                                     <i class="ti ti-trash"></i>
                                 </button>
                             </div>
@@ -96,7 +96,7 @@
             <i class="ti ti-building-store fs-1 text-muted"></i>
             <p class="mt-3 text-muted">No sponsors configured yet.</p>
             <p class="text-muted small">Add sponsors to display their information on passes.</p>
-            <button type="button" class="c-btn c-btn--primary" data-action="add-sponsor" class="js-add-sponsor">
+            <button type="button" class="c-btn c-btn--primary js-add-sponsor" onclick="addSponsor()">
                 <i class="ti ti-plus me-1"></i> Add First Sponsor
             </button>
         </div>

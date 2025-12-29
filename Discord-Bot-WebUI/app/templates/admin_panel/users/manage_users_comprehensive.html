@@ -124,7 +124,7 @@
                             </a>
                         </div>
                         <div class="col-auto">
-                            <button type="button" class="c-btn c-btn--outline-success js-bulk-approve" data-action="bulk-approve">
+                            <button type="button" class="c-btn c-btn--outline-success js-bulk-approve" onclick="bulkApprove()">
                                 <i class="ti ti-user-check me-1"></i>Bulk Approve
                             </button>
                         </div>
@@ -134,14 +134,14 @@
                                     <i class="ti ti-download me-1"></i>Export Users
                                 </button>
                                 <ul class="dropdown-menu c-dropdown__menu" data-dropdown-menu>
-                                    <li><a class="dropdown-item c-dropdown__item js-export-users" href="#" data-action="export-users" data-export-type="all"><i class="ti ti-users c-dropdown__item-icon"></i>All Users</a></li>
-                                    <li><a class="dropdown-item c-dropdown__item js-export-users" href="#" data-action="export-users" data-export-type="approved"><i class="ti ti-user-check c-dropdown__item-icon"></i>Approved Only</a></li>
-                                    <li><a class="dropdown-item c-dropdown__item js-export-users" href="#" data-action="export-users" data-export-type="pending"><i class="ti ti-user-pause c-dropdown__item-icon"></i>Pending Only</a></li>
+                                    <li><a class="dropdown-item c-dropdown__item js-export-users" href="#" onclick="exportUsers('all')"><i class="ti ti-users c-dropdown__item-icon"></i>All Users</a></li>
+                                    <li><a class="dropdown-item c-dropdown__item js-export-users" href="#" onclick="exportUsers('approved')"><i class="ti ti-user-check c-dropdown__item-icon"></i>Approved Only</a></li>
+                                    <li><a class="dropdown-item c-dropdown__item js-export-users" href="#" onclick="exportUsers('pending')"><i class="ti ti-user-pause c-dropdown__item-icon"></i>Pending Only</a></li>
                                 </ul>
                             </div>
                         </div>
                         <div class="col-auto">
-                            <button type="button" class="c-btn c-btn--outline-primary js-sync-users" data-action="sync-users">
+                            <button type="button" class="c-btn c-btn--outline-primary js-sync-users" onclick="syncUsers()">
                                 <i class="ti ti-refresh me-1"></i>Sync from WooCommerce
                             </button>
                         </div>
@@ -223,7 +223,7 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <button type="button" class="c-btn c-btn--primary me-2 js-create-user" data-action="create-user">
+                    <button type="button" class="c-btn c-btn--primary me-2 js-create-user" onclick="createUser()">
                         <i class="ti ti-user-plus me-1"></i>Create New User
                     </button>
                     <div class="dropdown d-inline me-2" data-dropdown>
@@ -231,17 +231,17 @@
                             <i class="ti ti-checklist me-1"></i>Bulk Actions
                         </button>
                         <ul class="dropdown-menu c-dropdown__menu" data-dropdown-menu>
-                            <li><a class="dropdown-item c-dropdown__item c-dropdown__item--success js-bulk-action" href="#" data-action="bulk-action" data-bulk-type="approve">
+                            <li><a class="dropdown-item c-dropdown__item c-dropdown__item--success js-bulk-action" href="#" onclick="bulkAction('approve')">
                                 <i class="ti ti-user-check c-dropdown__item-icon"></i>Approve Selected
                             </a></li>
-                            <li><a class="dropdown-item c-dropdown__item c-dropdown__item--success js-bulk-action" href="#" data-action="bulk-action" data-bulk-type="activate">
+                            <li><a class="dropdown-item c-dropdown__item c-dropdown__item--success js-bulk-action" href="#" onclick="bulkAction('activate')">
                                 <i class="ti ti-user-bolt c-dropdown__item-icon"></i>Activate Selected
                             </a></li>
-                            <li><a class="dropdown-item c-dropdown__item c-dropdown__item--warning js-bulk-action" href="#" data-action="bulk-action" data-bulk-type="deactivate">
+                            <li><a class="dropdown-item c-dropdown__item c-dropdown__item--warning js-bulk-action" href="#" onclick="bulkAction('deactivate')">
                                 <i class="ti ti-user-off c-dropdown__item-icon"></i>Deactivate Selected
                             </a></li>
                             <li><hr class="dropdown-divider c-dropdown__divider"></li>
-                            <li><a class="dropdown-item c-dropdown__item c-dropdown__item--danger js-bulk-action" href="#" data-action="bulk-action" data-bulk-type="delete">
+                            <li><a class="dropdown-item c-dropdown__item c-dropdown__item--danger js-bulk-action" href="#" onclick="bulkAction('delete')">
                                 <i class="ti ti-trash c-dropdown__item-icon"></i>Delete Selected
                             </a></li>
                         </ul>
@@ -264,7 +264,7 @@
                             <thead class="c-table--light" scope="col">
                                 <tr>
                                     <th width="40" scope="col">
-                                        <input type="checkbox" id="manage-users-selectAll" class="js-toggle-all-users" data-action="toggle-all-users">
+                                        <input type="checkbox" id="manage-users-selectAll" class="js-toggle-all-users" onchange="toggleAllUsers(this)">
                                     </th>
                                     <th scope="col">User</th>
                                     <th scope="col">Email</th>

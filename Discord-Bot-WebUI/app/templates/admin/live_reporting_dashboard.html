@@ -262,10 +262,10 @@
                         <a href="{{ url_for('admin_live.realtime_status') }}" class="c-btn c-btn--info">
                             <i class="fas fa-heartbeat"></i> Real-time Status
                         </a>
-                        <button class="c-btn c-btn--warning" data-action="force-sync" class="js-force-sync">
+                        <button class="c-btn c-btn--warning js-force-sync" onclick="forceSync()">
                             <i class="fas fa-sync"></i> Force Sync
                         </button>
-                        <button class="c-btn c-btn--secondary" data-action="refresh-dashboard" class="js-refresh-dashboard">
+                        <button class="c-btn c-btn--secondary js-refresh-dashboard" onclick="refreshDashboard()">
                             <i class="fas fa-refresh"></i> Refresh
                         </button>
                     </div>
