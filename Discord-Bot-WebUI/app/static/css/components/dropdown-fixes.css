@@ -18,15 +18,49 @@
    ============================================================================ */
 
 /* Tables with dropdowns need overflow visible when open */
+/* CSS :has() selector for modern browsers */
 .c-table-wrapper:has(.dropdown.show),
-.table-responsive:has(.dropdown.show) {
-  overflow: visible;
+.table-responsive:has(.dropdown.show),
+.c-table-wrapper:has(.dropdown-menu.show),
+.table-responsive:has(.dropdown-menu.show) {
+  overflow: visible !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+}
+
+/* JavaScript fallback class for older browsers */
+.c-table-wrapper.dropdown-open,
+.table-responsive.dropdown-open {
+  overflow: visible !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+}
+
+/* Card body containing table with open dropdown */
+.c-card__body:has(.dropdown.show),
+.card-body:has(.dropdown.show),
+.c-card__body:has(.dropdown-menu.show),
+.card-body:has(.dropdown-menu.show) {
+  overflow: visible !important;
+}
+
+/* JavaScript fallback class for card bodies */
+.c-card__body.dropdown-open,
+.card-body.dropdown-open {
+  overflow: visible !important;
 }
 
 /* Allow dropdowns to escape table scroll containers */
 .table-responsive {
   overflow-x: auto;
   overflow-y: visible;
+}
+
+/* Action dropdowns in table cells need proper z-index */
+td .dropdown-menu.show,
+.c-table__cell .dropdown-menu.show,
+.user-actions-cell .dropdown-menu.show {
+  z-index: var(--z-modal-dropdown, 1055) !important;
 }
 
 /* Action dropdowns in table cells need higher z-index */
@@ -37,9 +71,10 @@ td .dropdown-menu,
 
 /* Ensure dropdown parent cells allow overflow */
 td:has(.dropdown),
-.c-table__cell:has(.dropdown) {
-  overflow: visible;
-  position: relative;
+.c-table__cell:has(.dropdown),
+.user-actions-cell {
+  overflow: visible !important;
+  position: static;
 }
 
 /* ============================================================================

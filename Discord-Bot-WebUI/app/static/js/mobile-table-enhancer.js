@@ -109,6 +109,30 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  // Handle table wrapper overflow when dropdowns open
+  // This ensures dropdowns aren't clipped by overflow:auto on parent containers
+  function handleDropdownOverflow(dropdown, isOpen) {
+    // Find all parent containers that might clip the dropdown
+    let parent = dropdown.parentElement;
+    while (parent && parent !== document.body) {
+      if (parent.classList.contains('c-table-wrapper') ||
+          parent.classList.contains('table-responsive') ||
+          parent.classList.contains('c-card__body') ||
+          parent.classList.contains('card-body')) {
+        if (isOpen) {
+          parent.classList.add('dropdown-open');
+        } else {
+          // Only remove if no other dropdowns are open in this container
+          const openDropdowns = parent.querySelectorAll('.dropdown-menu.show');
+          if (openDropdowns.length === 0) {
+            parent.classList.remove('dropdown-open');
+          }
+        }
+      }
+      parent = parent.parentElement;
+    }
+  }
+
   // Monitor dropdowns opening
   let isAdjusting = false; // Prevent infinite loop
   const observer = new MutationObserver(function(mutations) {
@@ -122,6 +146,7 @@ document.addEventListener('DOMContentLoaded', function() {
           !mutation.target.classList.contains('dropdown-adjusted')) {
         isAdjusting = true;
         mutation.target.classList.add('dropdown-adjusted'); // Mark as processed
+        handleDropdownOverflow(mutation.target, true); // Enable overflow visible
         adjustDropdownPosition();
         isAdjusting = false;
       }
@@ -131,6 +156,7 @@ document.addEventListener('DOMContentLoaded', function() {
           mutation.target.hasAttribute('data-dropdown-menu') &&
           !mutation.target.classList.contains('show')) {
         mutation.target.classList.remove('dropdown-adjusted', 'dropdown-position-above', 'dropdown-position-below', 'dropdown-align-right', 'dropdown-align-left');
+        handleDropdownOverflow(mutation.target, false); // Restore overflow
       }
     });
   });
@@ -138,6 +164,22 @@ document.addEventListener('DOMContentLoaded', function() {
   // Observe all dropdown menus for class changes
   document.querySelectorAll('[data-dropdown-menu]').forEach(function(dropdown) {
     observer.observe(dropdown, { attributes: true });
+  });
+
+  // Also use Bootstrap's dropdown events for reliability
+  // This catches all dropdowns including those without data-dropdown-menu
+  document.addEventListener('shown.bs.dropdown', function(e) {
+    const dropdownMenu = e.target.querySelector('.dropdown-menu');
+    if (dropdownMenu) {
+      handleDropdownOverflow(dropdownMenu, true);
+    }
+  });
+
+  document.addEventListener('hidden.bs.dropdown', function(e) {
+    const dropdownMenu = e.target.querySelector('.dropdown-menu');
+    if (dropdownMenu) {
+      handleDropdownOverflow(dropdownMenu, false);
+    }
   });
 
   // Fix pagination on mobile
