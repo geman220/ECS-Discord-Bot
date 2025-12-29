@@ -519,6 +519,21 @@
   min-width: 56px;
 }
 
+/* Mobile: Ensure all icon buttons meet 44px minimum touch target (WCAG 2.1 AA) */
+@media (max-width: 767.98px) {
+  .btn-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+
+  .btn-icon.btn-sm {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+}
+
 /* ============================================================================
    9. BUTTON GROUPS
    Adjacent buttons

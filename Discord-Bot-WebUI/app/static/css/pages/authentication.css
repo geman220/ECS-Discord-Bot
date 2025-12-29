@@ -770,3 +770,92 @@
 .c-auth-checkbox__label--muted {
   color: var(--auth-text-muted);
 }
+
+/* =============================================================================
+   Mobile Registration Page Fixes
+   Ensure waiver, checkbox, and buttons are all accessible on mobile
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Reduce waiver content height on mobile to leave room for checkbox/buttons */
+  .c-waiver__content {
+    max-height: 200px;
+  }
+
+  /* Reduce waiver padding on mobile */
+  .c-waiver {
+    margin-bottom: 1rem;
+  }
+
+  .c-waiver__header {
+    padding: 0.75rem;
+  }
+
+  .c-waiver__content {
+    padding: 0.75rem;
+  }
+
+  /* Ensure checkbox is clearly visible */
+  .c-auth-checkbox {
+    padding: 0.75rem;
+    background: rgba(88, 101, 242, 0.08);
+    border-radius: var(--auth-radius, 0.5rem);
+    margin-bottom: 1rem;
+  }
+
+  /* Make the terms label more prominent on mobile */
+  .c-auth-checkbox__label {
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+
+  /* Ensure buttons are fully visible and tappable */
+  .c-auth-btn-row {
+    padding-bottom: env(safe-area-inset-bottom, 1rem);
+  }
+
+  /* Account info card - more compact on mobile */
+  .c-auth-help-card--mb-lg {
+    margin-bottom: 1rem;
+  }
+
+  /* Alert - more compact */
+  .c-auth-alert {
+    padding: 0.75rem;
+  }
+
+  .c-auth-alert__title {
+    font-size: 0.875rem;
+  }
+
+  .c-auth-alert__text {
+    font-size: 0.8125rem;
+  }
+
+  /* Auth wrapper - ensure it doesn't get cut off */
+  .c-auth-wrapper--wide {
+    max-width: 100%;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  /* Form body padding adjustment */
+  .c-auth-form__body {
+    padding: 1rem;
+  }
+}
+
+/* Extra small screens (iPhone SE, etc.) */
+@media (max-width: 375px) {
+  .c-waiver__content {
+    max-height: 150px;
+  }
+
+  .c-auth-form__title {
+    font-size: 1.125rem;
+  }
+
+  .c-auth-form__subtitle {
+    font-size: 0.8125rem;
+  }
+}

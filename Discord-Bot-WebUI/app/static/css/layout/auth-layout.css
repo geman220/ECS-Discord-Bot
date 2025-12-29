@@ -50,9 +50,19 @@
   justify-content: center;
   /* Background is handled by page-specific CSS (authentication.css) */
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   margin: 0;
   padding: 0;
+}
+
+/* Mobile: Allow scrolling and start content from top when it exceeds viewport */
+@media (max-width: 767.98px) {
+  .c-auth-layout__body {
+    align-items: flex-start;
+    padding-top: 1rem;
+    padding-bottom: 2rem;
+  }
 }
 
 /* ============================================================================
