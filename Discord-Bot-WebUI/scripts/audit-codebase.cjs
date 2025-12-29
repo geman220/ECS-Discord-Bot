@@ -615,6 +615,41 @@ function auditSecurity() {
 function auditViteCompatibility() {
     log(colors.cyan, '\n=== Auditing Vite/Build Compatibility ===\n');
 
+    // Check main-entry.js for InitSystem import order
+    const mainEntryPath = path.join(JS_DIR, 'main-entry.js');
+    if (fs.existsSync(mainEntryPath)) {
+        const content = fs.readFileSync(mainEntryPath, 'utf8');
+        const lines = content.split('\n');
+
+        let initSystemLine = -1;
+        const registrationFiles = [];
+
+        lines.forEach((line, idx) => {
+            if (line.includes("import './init-system.js'")) {
+                initSystemLine = idx + 1;
+            }
+        });
+
+        // Find files that register with InitSystem
+        const jsFiles = getAllFiles(JS_DIR, '.js');
+        for (const file of jsFiles) {
+            const fileContent = fs.readFileSync(file, 'utf8');
+            if (fileContent.includes('InitSystem.register') && !file.includes('init-system.js')) {
+                const relPath = path.relative(JS_DIR, file);
+                // Check if this file is imported before init-system.js in main-entry.js
+                lines.forEach((line, idx) => {
+                    if (line.includes(`'./${relPath}'`) || line.includes(`"./${relPath}"`)) {
+                        if (initSystemLine > 0 && idx + 1 < initSystemLine) {
+                            addIssue('high', 'Build',
+                                `${relPath} registers with InitSystem but is imported before init-system.js (line ${idx + 1} vs ${initSystemLine})`,
+                                'app/static/js/main-entry.js', idx + 1);
+                        }
+                    }
+                });
+            }
+        }
+    }
+
     const jsFiles = getAllFiles(JS_DIR, '.js');
 
     for (const file of jsFiles) {

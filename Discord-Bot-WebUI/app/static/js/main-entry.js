@@ -27,6 +27,9 @@ import './vendor-globals.js';
 // 1. CORE SYSTEMS - Must load after vendors
 // ============================================================================
 
+// InitSystem - MUST be first so all modules can register with it
+import './init-system.js';
+
 // Unified MutationObserver - MUST load before any modules that use MutationObservers
 // Consolidates all body-level observers to prevent cascade effects (89% CPU fix)
 import './unified-mutation-observer.js';
@@ -124,10 +127,10 @@ import './match-operations/match-reports.js';
 import './match-operations/seasons.js';
 
 // ============================================================================
-// 6. INITIALIZATION SYSTEM - Must load before app-init-registration
+// 6. APP INITIALIZATION REGISTRATION
 // ============================================================================
 
-import './init-system.js';
+// init-system.js already loaded in section 1 (before modules that register with it)
 import './app-init-registration.js';
 
 // ============================================================================
