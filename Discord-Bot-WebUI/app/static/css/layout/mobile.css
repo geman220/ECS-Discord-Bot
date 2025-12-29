@@ -238,7 +238,7 @@ body:not(.auth-page) h6 { font-size: var(--mobile-text-sm); }
  * z-index values from component libraries or nested stacking contexts.
  */
 .toast-container {
-  z-index: 1070 !important;
+  z-index: var(--z-toast, 1090) !important;
 }
 
 .alert {
@@ -252,7 +252,7 @@ body:not(.auth-page) h6 { font-size: var(--mobile-text-sm); }
  * to provide critical real-time feedback about connectivity issues.
  */
 .c-connection-status {
-  z-index: 1070 !important;
+  z-index: var(--z-toast, 1090) !important;
 }
 
 
@@ -844,9 +844,10 @@ body:not(.auth-page) h6 { font-size: var(--mobile-text-sm); }
 /**
  * Z-INDEX: Notifications (Duplicate Prevention)
  * These are duplicates from above - kept for backwards compatibility
+ * Now using CSS variables for consistency with z-index.css
  */
 .toast-container {
-  z-index: 1070 !important;
+  z-index: var(--z-toast, 1090) !important;
 }
 
 .alert {
@@ -854,7 +855,7 @@ body:not(.auth-page) h6 { font-size: var(--mobile-text-sm); }
 }
 
 .c-connection-status {
-  z-index: 1070 !important;
+  z-index: var(--z-toast, 1090) !important;
 }
 
 

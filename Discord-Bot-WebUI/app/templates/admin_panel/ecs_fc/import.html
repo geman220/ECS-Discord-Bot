@@ -1,0 +1,131 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Import Schedule - ECS FC{% endblock %}
+
+{% block panel_description %}Import matches from CSV file{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.ecs_fc_dashboard') }}">ECS FC Hub</a></li>
+<li class="breadcrumb-item active">Import Schedule</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <div class="col-lg-8 col-md-10 mx-auto">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="mb-0">
+                    <i class="ti ti-file-import me-2"></i>Import Schedule from CSV
+                </h5>
+            </div>
+            <div class="c-card__body">
+                <form method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <!-- Team Selection -->
+                    <div class="mb-4">
+                        <label for="team_id" class="c-form-label">Team <span class="text-danger">*</span></label>
+                        <select name="team_id" id="team_id" class="c-form-control" required>
+                            <option value="">Select Team...</option>
+                            {% for team in teams %}
+                            <option value="{{ team.id }}" {% if preselect_team_id == team.id %}selected{% endif %}>
+                                {{ team.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- File Upload -->
+                    <div class="mb-4">
+                        <label for="csv_file" class="c-form-label">CSV File <span class="text-danger">*</span></label>
+                        <input type="file" name="csv_file" id="csv_file" class="c-form-control" accept=".csv" required>
+                        <small class="text-muted">Upload a CSV file with match schedule</small>
+                    </div>
+
+                    <!-- CSV Format -->
+                    <div class="mb-4">
+                        <div class="c-card border bg-light">
+                            <div class="c-card__header bg-transparent py-2">
+                                <h6 class="mb-0"><i class="ti ti-info-circle me-2"></i>Expected CSV Format</h6>
+                            </div>
+                            <div class="c-card__body py-2">
+                                <p class="mb-2 small">Your CSV should have the following columns (header row required):</p>
+                                <table class="table table-sm table-bordered mb-3">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Column</th>
+                                            <th>Required</th>
+                                            <th>Format</th>
+                                            <th>Example</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><code>opponent</code></td>
+                                            <td><span class="badge bg-danger">Yes</span></td>
+                                            <td>Text</td>
+                                            <td>Seattle United O50</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>date</code></td>
+                                            <td><span class="badge bg-danger">Yes</span></td>
+                                            <td>YYYY-MM-DD</td>
+                                            <td>2025-01-15</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>time</code></td>
+                                            <td><span class="badge bg-warning">Optional</span></td>
+                                            <td>HH:MM</td>
+                                            <td>19:00</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>location</code></td>
+                                            <td><span class="badge bg-warning">Optional</span></td>
+                                            <td>Text</td>
+                                            <td>Memorial Stadium</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>field</code></td>
+                                            <td><span class="badge bg-secondary">Optional</span></td>
+                                            <td>Text</td>
+                                            <td>Field A</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>home</code></td>
+                                            <td><span class="badge bg-secondary">Optional</span></td>
+                                            <td>Y/N</td>
+                                            <td>Y</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>notes</code></td>
+                                            <td><span class="badge bg-secondary">Optional</span></td>
+                                            <td>Text</td>
+                                            <td>League match</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                <p class="mb-2 small"><strong>Example CSV:</strong></p>
+                                <pre class="bg-dark text-light p-2 rounded small mb-0">opponent,date,time,location,field,home,notes
+Seattle United O50,2025-01-15,19:00,Memorial Stadium,Field A,Y,League match
+Wednesday FC,2025-01-22,19:30,Starfire,Field 2,N,Away game
+Eastside Masters,2025-01-29,18:00,Marymoor Park,,Y,</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('admin_panel.ecs_fc_dashboard') }}" class="c-btn c-btn--outline-secondary">
+                            <i class="ti ti-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="c-btn c-btn--primary">
+                            <i class="ti ti-upload me-1"></i>Import Matches
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

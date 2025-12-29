@@ -75,6 +75,9 @@ def register_all_routes(admin_panel_bp):
     # Phase 6: Appearance Management (Theme customization)
     from . import appearance
 
+    # Phase 7: ECS FC Team Management
+    from . import ecs_fc_management
+
     # All routes are automatically registered when modules are imported
     # due to the @admin_panel_bp.route decorators
     pass

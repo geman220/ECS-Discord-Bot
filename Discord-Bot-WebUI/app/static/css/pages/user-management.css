@@ -78,12 +78,12 @@
 
 .user-management-page .select2-container--open,
 .select2-container--open.select2-container {
-    z-index: 10040;
+    z-index: var(--z-modal-dropdown, 1055);
 }
 
 .user-management-page .select2-dropdown,
 .select2-dropdown {
-    z-index: 10050;
+    z-index: calc(var(--z-modal-dropdown, 1055) + 5);
     background-color: var(--color-bg-elevated);
     border: 1px solid var(--color-border-primary);
     box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));

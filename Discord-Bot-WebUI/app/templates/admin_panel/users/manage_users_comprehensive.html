@@ -438,7 +438,11 @@
     </div>
     {% endif %}
 
-    <!-- Edit User Modal -->
+{% endblock %}
+
+{% block modals %}
+{{ super() }}
+    <!-- Edit User Modal - At body level for proper z-index stacking -->
     <div class="modal c-modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true" data-modal>
         <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg modal-dialog-centered c-modal__dialog--centered modal-dialog-scrollable c-modal__dialog--scrollable" data-modal-dialog>
             <div class="modal-content c-modal__content" data-modal-content>
@@ -621,7 +625,6 @@
             </div>
         </div>
     </div>
-
 {% endblock %}
 
 {% block custom_js %}

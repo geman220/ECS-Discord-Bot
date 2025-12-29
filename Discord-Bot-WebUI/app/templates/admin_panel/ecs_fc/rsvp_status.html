@@ -1,0 +1,226 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}RSVP Status - {{ match.opponent_name }}{% endblock %}
+
+{% block panel_description %}View RSVP responses for match{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.ecs_fc_dashboard') }}">ECS FC Hub</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.ecs_fc_team_schedule', team_id=match.team_id) }}">{{ match.team.name }}</a></li>
+<li class="breadcrumb-item active">RSVP Status</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <!-- Match Info -->
+    <div class="col-12 mb-4">
+        <div class="c-card">
+            <div class="c-card__body">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h4 class="mb-1">
+                            {{ match.team.name }}
+                            <span class="text-muted mx-2">vs</span>
+                            {{ match.opponent_name }}
+                        </h4>
+                        <p class="text-muted mb-0">
+                            <i class="ti ti-calendar me-1"></i>{{ match.match_date.strftime('%A, %B %d, %Y') }}
+                            <span class="mx-2">|</span>
+                            <i class="ti ti-clock me-1"></i>{{ match.match_time.strftime('%I:%M %p') }}
+                            <span class="mx-2">|</span>
+                            <i class="ti ti-map-pin me-1"></i>{{ match.location }}{% if match.field_name %} - {{ match.field_name }}{% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                        <a href="{{ url_for('admin_panel.ecs_fc_match_edit', match_id=match.id) }}"
+                           class="c-btn c-btn--outline-primary">
+                            <i class="ti ti-edit me-1"></i>Edit Match
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RSVP Summary -->
+    <div class="col-12 mb-4">
+        <div class="row">
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="c-card h-100 bg-success bg-opacity-10 border-success">
+                    <div class="c-card__body text-center">
+                        <i class="ti ti-check fs-1 text-success mb-2"></i>
+                        <h2 class="mb-0 text-success">{{ rsvp_counts.yes }}</h2>
+                        <small class="text-muted">Yes</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="c-card h-100 bg-danger bg-opacity-10 border-danger">
+                    <div class="c-card__body text-center">
+                        <i class="ti ti-x fs-1 text-danger mb-2"></i>
+                        <h2 class="mb-0 text-danger">{{ rsvp_counts.no }}</h2>
+                        <small class="text-muted">No</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="c-card h-100 bg-warning bg-opacity-10 border-warning">
+                    <div class="c-card__body text-center">
+                        <i class="ti ti-question-mark fs-1 text-warning mb-2"></i>
+                        <h2 class="mb-0 text-warning">{{ rsvp_counts.maybe }}</h2>
+                        <small class="text-muted">Maybe</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="c-card h-100 bg-secondary bg-opacity-10 border-secondary">
+                    <div class="c-card__body text-center">
+                        <i class="ti ti-minus fs-1 text-secondary mb-2"></i>
+                        <h2 class="mb-0 text-secondary">{{ rsvp_counts.no_response }}</h2>
+                        <small class="text-muted">No Response</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Response Lists -->
+    <div class="col-lg-6 mb-4">
+        <div class="c-card h-100">
+            <div class="c-card__header bg-success bg-opacity-10">
+                <h5 class="mb-0 text-success">
+                    <i class="ti ti-check me-2"></i>Yes ({{ responses.yes|length }})
+                </h5>
+            </div>
+            <div class="c-card__body p-0">
+                {% if responses.yes %}
+                <ul class="list-group list-group-flush">
+                    {% for avail in responses.yes %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            {% if avail.player %}
+                            <strong>{{ avail.player.name }}</strong>
+                            {% else %}
+                            <span class="text-muted">Discord ID: {{ avail.discord_id }}</span>
+                            {% endif %}
+                        </div>
+                        {% if avail.responded_at %}
+                        <small class="text-muted">{{ avail.responded_at.strftime('%b %d, %I:%M %p') }}</small>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="ti ti-mood-sad fs-1 mb-2 d-block"></i>
+                    No responses yet
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <div class="c-card h-100">
+            <div class="c-card__header bg-danger bg-opacity-10">
+                <h5 class="mb-0 text-danger">
+                    <i class="ti ti-x me-2"></i>No ({{ responses.no|length }})
+                </h5>
+            </div>
+            <div class="c-card__body p-0">
+                {% if responses.no %}
+                <ul class="list-group list-group-flush">
+                    {% for avail in responses.no %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            {% if avail.player %}
+                            <strong>{{ avail.player.name }}</strong>
+                            {% else %}
+                            <span class="text-muted">Discord ID: {{ avail.discord_id }}</span>
+                            {% endif %}
+                        </div>
+                        {% if avail.responded_at %}
+                        <small class="text-muted">{{ avail.responded_at.strftime('%b %d, %I:%M %p') }}</small>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    No "No" responses
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <div class="c-card h-100">
+            <div class="c-card__header bg-warning bg-opacity-10">
+                <h5 class="mb-0 text-warning">
+                    <i class="ti ti-question-mark me-2"></i>Maybe ({{ responses.maybe|length }})
+                </h5>
+            </div>
+            <div class="c-card__body p-0">
+                {% if responses.maybe %}
+                <ul class="list-group list-group-flush">
+                    {% for avail in responses.maybe %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            {% if avail.player %}
+                            <strong>{{ avail.player.name }}</strong>
+                            {% else %}
+                            <span class="text-muted">Discord ID: {{ avail.discord_id }}</span>
+                            {% endif %}
+                        </div>
+                        {% if avail.responded_at %}
+                        <small class="text-muted">{{ avail.responded_at.strftime('%b %d, %I:%M %p') }}</small>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    No "Maybe" responses
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <div class="c-card h-100">
+            <div class="c-card__header bg-secondary bg-opacity-10">
+                <h5 class="mb-0 text-secondary">
+                    <i class="ti ti-minus me-2"></i>No Response ({{ responses.no_response|length }})
+                </h5>
+            </div>
+            <div class="c-card__body p-0">
+                {% if responses.no_response %}
+                <ul class="list-group list-group-flush">
+                    {% for avail in responses.no_response %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            {% if avail.player %}
+                            <strong>{{ avail.player.name }}</strong>
+                            {% else %}
+                            <span class="text-muted">Discord ID: {{ avail.discord_id }}</span>
+                            {% endif %}
+                        </div>
+                        <button type="button" class="c-btn c-btn--sm c-btn--outline-primary"
+                                title="Send Reminder" disabled>
+                            <i class="ti ti-bell"></i>
+                        </button>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    Everyone has responded!
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

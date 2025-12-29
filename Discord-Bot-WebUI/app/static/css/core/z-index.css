@@ -41,6 +41,9 @@
   /* Sidebar - above navbar, below modal backdrop */
   --z-sidebar: 1035;
 
+  /* Chat widget - same level as sidebar, below modal backdrop */
+  --z-chat-widget: 1035;
+
   /* ============================================
    * Overlay Layers (1040-1089)
    * ============================================ */

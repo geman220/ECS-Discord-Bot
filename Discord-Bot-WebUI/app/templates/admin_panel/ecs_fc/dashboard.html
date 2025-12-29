@@ -1,0 +1,185 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}ECS FC Management - Admin Panel{% endblock %}
+
+{% block panel_description %}ECS FC club team management hub{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">ECS FC Hub</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <!-- Quick Actions -->
+    <div class="col-12 mb-4">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="ti ti-bolt me-2"></i>Quick Actions</h5>
+            </div>
+            <div class="c-card__body">
+                <div class="row">
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <a href="{{ url_for('admin_panel.ecs_fc_match_create') }}" class="c-btn c-btn--primary w-100">
+                            <i class="ti ti-plus me-2"></i>Create Match
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <a href="{{ url_for('admin_panel.ecs_fc_matches') }}" class="c-btn c-btn--info w-100">
+                            <i class="ti ti-list me-2"></i>All Matches
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <a href="{{ url_for('admin_panel.ecs_fc_opponents') }}" class="c-btn c-btn--success w-100">
+                            <i class="ti ti-users-group me-2"></i>Opponents Library
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <a href="{{ url_for('admin_panel.ecs_fc_import') }}" class="c-btn c-btn--outline-secondary w-100">
+                            <i class="ti ti-file-import me-2"></i>Import Schedule
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Cards -->
+    <div class="col-12 mb-4">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="mb-0"><i class="ti ti-shield me-2"></i>ECS FC Teams</h5>
+            </div>
+            <div class="c-card__body">
+                {% if teams %}
+                <div class="row">
+                    {% for team in teams %}
+                    <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                        <div class="c-card h-100 border">
+                            <div class="c-card__body">
+                                <h5 class="mb-3">
+                                    <i class="ti ti-shirt-sport text-primary me-2"></i>
+                                    {{ team.name }}
+                                </h5>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Upcoming</span>
+                                    <span class="badge bg-primary">{{ team_stats[team.id].upcoming_matches }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Pending RSVP</span>
+                                    <span class="badge bg-warning">{{ team_stats[team.id].pending_rsvp }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-3">
+                                    <span class="text-muted">Players</span>
+                                    <span class="badge bg-info">{{ team_stats[team.id].total_players }}</span>
+                                </div>
+                                <a href="{{ url_for('admin_panel.ecs_fc_team_schedule', team_id=team.id) }}"
+                                   class="c-btn c-btn--outline-primary w-100">
+                                    <i class="ti ti-calendar me-1"></i>View Schedule
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-mood-empty fs-1 text-muted mb-3 d-block"></i>
+                    <p class="text-muted">No ECS FC teams found</p>
+                    <p class="small text-muted">ECS FC teams are created through League Management</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Upcoming Matches -->
+    <div class="col-12">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="ti ti-calendar-event me-2"></i>Upcoming Matches</h5>
+                <a href="{{ url_for('admin_panel.ecs_fc_matches') }}" class="c-btn c-btn--sm c-btn--outline-primary">
+                    View All
+                </a>
+            </div>
+            <div class="c-card__body p-0">
+                {% if upcoming_matches %}
+                <div class="table-responsive">
+                    <table class="c-table c-table--hover">
+                        <thead>
+                            <tr>
+                                <th>Team</th>
+                                <th>Opponent</th>
+                                <th>Date & Time</th>
+                                <th>Location</th>
+                                <th>RSVP</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for match in upcoming_matches %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('admin_panel.ecs_fc_team_schedule', team_id=match.team_id) }}">
+                                        {{ match.team.name }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if match.is_home_match %}
+                                    <span class="badge bg-success me-1">H</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary me-1">A</span>
+                                    {% endif %}
+                                    {{ match.opponent_name }}
+                                </td>
+                                <td>
+                                    <div>{{ match.match_date.strftime('%a, %b %d') }}</div>
+                                    <small class="text-muted">{{ match.match_time.strftime('%I:%M %p') }}</small>
+                                </td>
+                                <td>
+                                    <div>{{ match.location }}</div>
+                                    {% if match.field_name %}
+                                    <small class="text-muted">{{ match.field_name }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-success" title="Yes">{{ match.rsvp_counts.yes }}</span>
+                                    <span class="badge bg-danger" title="No">{{ match.rsvp_counts.no }}</span>
+                                    <span class="badge bg-warning" title="Maybe">{{ match.rsvp_counts.maybe }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ match.status_color }}">
+                                        <i class="{{ match.status_icon }} me-1"></i>{{ match.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}"
+                                           class="c-btn c-btn--sm c-btn--outline-primary" title="View RSVP">
+                                            <i class="ti ti-users"></i>
+                                        </a>
+                                        <a href="{{ url_for('admin_panel.ecs_fc_match_edit', match_id=match.id) }}"
+                                           class="c-btn c-btn--sm c-btn--outline-secondary" title="Edit">
+                                            <i class="ti ti-edit"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-calendar-off fs-1 text-muted mb-3 d-block"></i>
+                    <p class="text-muted">No upcoming matches</p>
+                    <a href="{{ url_for('admin_panel.ecs_fc_match_create') }}" class="c-btn c-btn--primary">
+                        <i class="ti ti-plus me-2"></i>Create Match
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

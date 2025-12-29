@@ -45,6 +45,7 @@ import './handlers/season-wizard.js';        // Season creation, auto-scheduling
 import './handlers/pass-studio.js';          // Wallet pass design
 import './handlers/security-actions.js';     // IP banning, security monitoring
 import './handlers/calendar-actions.js';     // Calendar subscriptions
+import './handlers/ecs-fc-management.js';    // ECS FC team management
 
 // Onboarding
 import './handlers/onboarding-wizard.js';    // New user onboarding

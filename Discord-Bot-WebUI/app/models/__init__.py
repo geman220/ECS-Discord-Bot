@@ -78,7 +78,7 @@ from .match_status import (
 )
 
 from .ecs_fc import (
-    EcsFcMatch, EcsFcAvailability, EcsFcScheduleTemplate,
+    ExternalOpponent, EcsFcMatch, EcsFcAvailability, EcsFcScheduleTemplate,
     get_ecs_fc_teams, is_ecs_fc_team, get_ecs_fc_matches_for_team,
     get_ecs_fc_matches_for_date_range
 )
@@ -194,7 +194,7 @@ __all__ = [
     'MatchStatus',
 
     # ECS FC models
-    'EcsFcMatch', 'EcsFcAvailability', 'EcsFcScheduleTemplate',
+    'ExternalOpponent', 'EcsFcMatch', 'EcsFcAvailability', 'EcsFcScheduleTemplate',
     'get_ecs_fc_teams', 'is_ecs_fc_team', 'get_ecs_fc_matches_for_team',
     'get_ecs_fc_matches_for_date_range',
     

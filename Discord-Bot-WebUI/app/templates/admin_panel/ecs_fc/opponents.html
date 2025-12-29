@@ -1,0 +1,327 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Opponents Library - ECS FC{% endblock %}
+
+{% block panel_description %}Manage external opponent teams{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.ecs_fc_dashboard') }}">ECS FC Hub</a></li>
+<li class="breadcrumb-item active">Opponents Library</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <!-- Header -->
+    <div class="col-12 mb-4">
+        <div class="c-card">
+            <div class="c-card__body d-flex justify-content-between align-items-center">
+                <div>
+                    <form method="get" class="d-inline">
+                        <div class="form-check form-check-inline">
+                            <input type="checkbox" class="form-check-input" id="showInactive" name="show_inactive"
+                                   value="true" {% if show_inactive %}checked{% endif %}
+                                   onchange="this.form.submit()">
+                            <label class="form-check-label" for="showInactive">Show inactive</label>
+                        </div>
+                    </form>
+                </div>
+                <button type="button" class="c-btn c-btn--primary" data-bs-toggle="modal" data-bs-target="#addOpponentModal">
+                    <i class="ti ti-plus me-1"></i>Add Opponent
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Opponents Table -->
+    <div class="col-12">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="mb-0">
+                    <i class="ti ti-users-group me-2"></i>External Opponents
+                    <span class="badge bg-primary ms-2">{{ opponents|length }}</span>
+                </h5>
+            </div>
+            <div class="c-card__body p-0">
+                {% if opponents %}
+                <div class="table-responsive">
+                    <table class="c-table c-table--hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Short Name</th>
+                                <th>Home Venue</th>
+                                <th>City</th>
+                                <th>League</th>
+                                <th>Matches</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for opp in opponents %}
+                            <tr>
+                                <td><strong>{{ opp.name }}</strong></td>
+                                <td>{{ opp.short_name or '-' }}</td>
+                                <td>{{ opp.home_venue or '-' }}</td>
+                                <td>{{ opp.city or '-' }}</td>
+                                <td>{{ opp.league_affiliation or '-' }}</td>
+                                <td>
+                                    <span class="badge bg-info">{{ opp.matches|length }}</span>
+                                </td>
+                                <td>
+                                    {% if opp.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button type="button"
+                                                class="c-btn c-btn--sm c-btn--outline-primary"
+                                                title="Edit"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editOpponentModal"
+                                                data-opponent-id="{{ opp.id }}"
+                                                data-opponent-name="{{ opp.name }}"
+                                                data-opponent-short-name="{{ opp.short_name or '' }}"
+                                                data-opponent-home-venue="{{ opp.home_venue or '' }}"
+                                                data-opponent-city="{{ opp.city or '' }}"
+                                                data-opponent-league="{{ opp.league_affiliation or '' }}"
+                                                data-opponent-contact="{{ opp.contact_info or '' }}"
+                                                data-opponent-notes="{{ opp.notes or '' }}"
+                                                data-opponent-active="{{ 'true' if opp.is_active else 'false' }}">
+                                            <i class="ti ti-edit"></i>
+                                        </button>
+                                        {% if opp.is_active %}
+                                        <button type="button"
+                                                class="c-btn c-btn--sm c-btn--outline-danger"
+                                                title="Deactivate"
+                                                data-action="deactivate-opponent"
+                                                data-opponent-id="{{ opp.id }}">
+                                            <i class="ti ti-trash"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-users-group fs-1 text-muted mb-3 d-block"></i>
+                    <p class="text-muted">No opponents in library</p>
+                    <button type="button" class="c-btn c-btn--primary" data-bs-toggle="modal" data-bs-target="#addOpponentModal">
+                        <i class="ti ti-plus me-2"></i>Add Opponent
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Opponent Modal -->
+<div class="modal fade" id="addOpponentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addOpponentForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="ti ti-plus me-2"></i>Add Opponent</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="add_name" class="c-form-label">Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" id="add_name" class="c-form-control" required
+                               placeholder="e.g., Seattle United O50">
+                    </div>
+                    <div class="mb-3">
+                        <label for="add_short_name" class="c-form-label">Short Name</label>
+                        <input type="text" name="short_name" id="add_short_name" class="c-form-control"
+                               placeholder="e.g., SEA United">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="add_home_venue" class="c-form-label">Home Venue</label>
+                            <input type="text" name="home_venue" id="add_home_venue" class="c-form-control"
+                                   placeholder="e.g., Memorial Stadium">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="add_city" class="c-form-label">City</label>
+                            <input type="text" name="city" id="add_city" class="c-form-control"
+                                   placeholder="e.g., Seattle">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="add_league_affiliation" class="c-form-label">League Affiliation</label>
+                        <input type="text" name="league_affiliation" id="add_league_affiliation" class="c-form-control"
+                               placeholder="e.g., WSSL, GSSL">
+                    </div>
+                    <div class="mb-3">
+                        <label for="add_contact_info" class="c-form-label">Contact Info</label>
+                        <textarea name="contact_info" id="add_contact_info" class="c-form-control" rows="2"
+                                  placeholder="Name, email, phone..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="add_notes" class="c-form-label">Notes</label>
+                        <textarea name="notes" id="add_notes" class="c-form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="c-btn c-btn--primary">
+                        <i class="ti ti-plus me-1"></i>Add Opponent
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Opponent Modal -->
+<div class="modal fade" id="editOpponentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editOpponentForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="opponent_id" id="edit_opponent_id">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="ti ti-edit me-2"></i>Edit Opponent</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_name" class="c-form-label">Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" id="edit_name" class="c-form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_short_name" class="c-form-label">Short Name</label>
+                        <input type="text" name="short_name" id="edit_short_name" class="c-form-control">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="edit_home_venue" class="c-form-label">Home Venue</label>
+                            <input type="text" name="home_venue" id="edit_home_venue" class="c-form-control">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="edit_city" class="c-form-label">City</label>
+                            <input type="text" name="city" id="edit_city" class="c-form-control">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_league_affiliation" class="c-form-label">League Affiliation</label>
+                        <input type="text" name="league_affiliation" id="edit_league_affiliation" class="c-form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_contact_info" class="c-form-label">Contact Info</label>
+                        <textarea name="contact_info" id="edit_contact_info" class="c-form-control" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_notes" class="c-form-label">Notes</label>
+                        <textarea name="notes" id="edit_notes" class="c-form-control" rows="2"></textarea>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" name="is_active" id="edit_is_active" value="true">
+                        <label class="form-check-label" for="edit_is_active">Active</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="c-btn c-btn--primary">
+                        <i class="ti ti-check me-1"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Edit modal population
+    const editModal = document.getElementById('editOpponentModal');
+    if (editModal) {
+        editModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            document.getElementById('edit_opponent_id').value = button.dataset.opponentId;
+            document.getElementById('edit_name').value = button.dataset.opponentName;
+            document.getElementById('edit_short_name').value = button.dataset.opponentShortName;
+            document.getElementById('edit_home_venue').value = button.dataset.opponentHomeVenue;
+            document.getElementById('edit_city').value = button.dataset.opponentCity;
+            document.getElementById('edit_league_affiliation').value = button.dataset.opponentLeague;
+            document.getElementById('edit_contact_info').value = button.dataset.opponentContact;
+            document.getElementById('edit_notes').value = button.dataset.opponentNotes;
+            document.getElementById('edit_is_active').checked = button.dataset.opponentActive === 'true';
+        });
+    }
+
+    // Add opponent form
+    const addForm = document.getElementById('addOpponentForm');
+    if (addForm) {
+        addForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+
+            fetch('{{ url_for("admin_panel.ecs_fc_opponent_create") }}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Success', data.message, 'success').then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                Swal.fire('Error', 'An error occurred', 'error');
+            });
+        });
+    }
+
+    // Edit opponent form
+    const editForm = document.getElementById('editOpponentForm');
+    if (editForm) {
+        editForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const opponentId = document.getElementById('edit_opponent_id').value;
+
+            fetch(`/admin-panel/ecs-fc/opponent/${opponentId}/update`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Success', data.message, 'success').then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                Swal.fire('Error', 'An error occurred', 'error');
+            });
+        });
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

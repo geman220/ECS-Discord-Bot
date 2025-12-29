@@ -967,6 +967,10 @@
         });
     </script>
 
+    {# Modal Container - Body Level for Proper Z-Index Stacking #}
+    {# Modals placed here escape parent stacking contexts and layer correctly #}
+    {% block modals %}{% endblock %}
+
     {# Floating Chat Widget - Facebook Messenger style #}
     {% if safe_current_user.is_authenticated %}
     {% include 'components/_chat_widget.html' %}

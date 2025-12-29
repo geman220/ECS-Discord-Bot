@@ -4,6 +4,7 @@
 ECS FC Models Module
 
 This module contains models specific to ECS FC functionality:
+- ExternalOpponent: Reusable external opponent teams
 - EcsFcMatch: ECS FC match scheduling
 - EcsFcAvailability: ECS FC player availability
 - EcsFcScheduleTemplate: ECS FC schedule templates
@@ -16,13 +17,58 @@ from sqlalchemy.orm import relationship
 from app.core import db
 
 
+class ExternalOpponent(db.Model):
+    """
+    Model for reusable external opponent teams.
+
+    ECS FC teams play against external teams not in our database.
+    This model allows saving commonly-played opponents for reuse.
+    """
+    __tablename__ = 'external_opponents'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False, unique=True)
+    short_name = db.Column(db.String(100), nullable=True)  # Abbreviated name
+    home_venue = db.Column(db.String(255), nullable=True)
+    city = db.Column(db.String(100), nullable=True)
+    league_affiliation = db.Column(db.String(100), nullable=True)  # WSSL, GSSL, etc.
+    contact_info = db.Column(db.Text, nullable=True)  # Contact name, email, phone
+    notes = db.Column(db.Text, nullable=True)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+    # Relationships
+    creator = db.relationship('User', foreign_keys=[created_by], backref='created_opponents')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'short_name': self.short_name,
+            'home_venue': self.home_venue,
+            'city': self.city,
+            'league_affiliation': self.league_affiliation,
+            'contact_info': self.contact_info,
+            'notes': self.notes,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+    def __repr__(self):
+        return f'<ExternalOpponent {self.name}>'
+
+
 class EcsFcMatch(db.Model):
     """Model for ECS FC matches."""
     __tablename__ = 'ecs_fc_matches'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
-    opponent_name = db.Column(db.String(255), nullable=False)
+    opponent_name = db.Column(db.String(255), nullable=False)  # Always stored (from library or free-text)
+    external_opponent_id = db.Column(db.Integer, db.ForeignKey('external_opponents.id'), nullable=True)  # Optional link to library
     match_date = db.Column(db.Date, nullable=False)
     match_time = db.Column(db.Time, nullable=False)
     location = db.Column(db.String(100), nullable=False)
@@ -37,9 +83,10 @@ class EcsFcMatch(db.Model):
     updated_at = db.Column(db.DateTime, nullable=False)
     rsvp_deadline = db.Column(db.DateTime, nullable=True)
     rsvp_reminder_sent = db.Column(db.Boolean, nullable=False, default=False)
-    
+
     # Relationships
     team = db.relationship('Team', foreign_keys=[team_id], backref='ecs_fc_matches')
+    external_opponent = db.relationship('ExternalOpponent', foreign_keys=[external_opponent_id], backref='matches')
     availability = db.relationship('EcsFcAvailability', back_populates='match', cascade='all, delete-orphan')
     
     def to_dict(self):
@@ -47,6 +94,7 @@ class EcsFcMatch(db.Model):
             'id': self.id,
             'team_id': self.team_id,
             'opponent_name': self.opponent_name,
+            'external_opponent_id': self.external_opponent_id,
             'match_date': self.match_date.isoformat() if self.match_date else None,
             'match_time': self.match_time.isoformat() if self.match_time else None,
             'location': self.location,

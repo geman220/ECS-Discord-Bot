@@ -1,0 +1,156 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}{{ team.name }} Schedule - ECS FC{% endblock %}
+
+{% block panel_description %}Manage {{ team.name }} matches and schedule{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.ecs_fc_dashboard') }}">ECS FC Hub</a></li>
+<li class="breadcrumb-item active">{{ team.name }}</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <!-- Team Header -->
+    <div class="col-12 mb-4">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="mb-1">
+                        <i class="ti ti-shield text-primary me-2"></i>{{ team.name }}
+                    </h4>
+                    <small class="text-muted">ECS FC Team Schedule</small>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('admin_panel.ecs_fc_match_create', team_id=team.id) }}"
+                       class="c-btn c-btn--primary">
+                        <i class="ti ti-plus me-1"></i>Add Match
+                    </a>
+                    <a href="{{ url_for('admin_panel.ecs_fc_import', team_id=team.id) }}"
+                       class="c-btn c-btn--outline-secondary">
+                        <i class="ti ti-file-import me-1"></i>Import
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="col-12 mb-4">
+        <div class="c-card">
+            <div class="c-card__body">
+                <form method="get" class="d-flex gap-3 align-items-center">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="showPast" name="show_past"
+                               value="true" {% if show_past %}checked{% endif %}
+                               onchange="this.form.submit()">
+                        <label class="form-check-label" for="showPast">Show past matches</label>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Matches Table -->
+    <div class="col-12">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="mb-0">
+                    <i class="ti ti-calendar me-2"></i>
+                    {% if show_past %}All Matches{% else %}Upcoming Matches{% endif %}
+                    <span class="badge bg-primary ms-2">{{ matches|length }}</span>
+                </h5>
+            </div>
+            <div class="c-card__body p-0">
+                {% if matches %}
+                <div class="table-responsive">
+                    <table class="c-table c-table--hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Opponent</th>
+                                <th>Location</th>
+                                <th>RSVP</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for match in matches %}
+                            <tr>
+                                <td>
+                                    <strong>{{ match.match_date.strftime('%a, %b %d, %Y') }}</strong>
+                                </td>
+                                <td>{{ match.match_time.strftime('%I:%M %p') }}</td>
+                                <td>
+                                    {% if match.is_home_match %}
+                                    <span class="badge bg-success me-1" title="Home">H</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary me-1" title="Away">A</span>
+                                    {% endif %}
+                                    {{ match.opponent_name }}
+                                    {% if match.external_opponent_id %}
+                                    <i class="ti ti-link text-muted ms-1" title="From Library"></i>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div>{{ match.location }}</div>
+                                    {% if match.field_name %}
+                                    <small class="text-muted">{{ match.field_name }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}"
+                                       class="text-decoration-none">
+                                        <span class="badge bg-success" title="Yes">{{ match.rsvp_counts.yes }}</span>
+                                        <span class="badge bg-danger" title="No">{{ match.rsvp_counts.no }}</span>
+                                        <span class="badge bg-warning" title="Maybe">{{ match.rsvp_counts.maybe }}</span>
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ match.status_color }}">
+                                        <i class="{{ match.status_icon }} me-1"></i>{{ match.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}"
+                                           class="c-btn c-btn--sm c-btn--outline-info" title="View RSVP">
+                                            <i class="ti ti-users"></i>
+                                        </a>
+                                        <a href="{{ url_for('admin_panel.ecs_fc_match_edit', match_id=match.id) }}"
+                                           class="c-btn c-btn--sm c-btn--outline-primary" title="Edit">
+                                            <i class="ti ti-edit"></i>
+                                        </a>
+                                        <button type="button"
+                                                class="c-btn c-btn--sm c-btn--outline-danger"
+                                                title="Delete"
+                                                data-action="delete-ecs-fc-match"
+                                                data-match-id="{{ match.id }}">
+                                            <i class="ti ti-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-calendar-off fs-1 text-muted mb-3 d-block"></i>
+                    <p class="text-muted">
+                        {% if show_past %}No matches found{% else %}No upcoming matches{% endif %}
+                    </p>
+                    <a href="{{ url_for('admin_panel.ecs_fc_match_create', team_id=team.id) }}"
+                       class="c-btn c-btn--primary">
+                        <i class="ti ti-plus me-2"></i>Add Match
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

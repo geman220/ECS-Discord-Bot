@@ -31,7 +31,7 @@
   --cw-spacing: 24px;
   --cw-border-radius: 16px;
   --cw-animation-duration: 0.25s;
-  --cw-z-index: 1040;
+  --cw-z-index: var(--z-chat-widget, 1035);
 
   /* Colors - uses design system tokens with fallbacks */
   --cw-bg: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
@@ -1071,7 +1071,7 @@
     /* Panel must be interactive */
     touch-action: auto;
     pointer-events: auto;
-    z-index: 10001;
+    z-index: calc(var(--z-modal, 1050) + 1);
   }
 
   .c-chat-widget[data-state="open"] .c-chat-widget__panel {
@@ -1087,7 +1087,7 @@
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 10000;
+    z-index: var(--z-modal, 1050);
     pointer-events: auto;
   }
 
@@ -1282,6 +1282,22 @@
     transition: none;
     animation: none;
   }
+}
+
+
+/* --------------------------------------------------------------------------
+   Hide When Modal Is Open
+   -------------------------------------------------------------------------- */
+
+body.modal-open .c-chat-widget {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+/* Ensure chat widget returns smoothly when modal closes */
+.c-chat-widget {
+  transition: opacity 0.2s ease;
 }
 
 
