@@ -490,19 +490,22 @@
    Automatic dark theme using data attribute (no !important needed!)
    ============================================================================ */
 
-[data-style="dark"] .dropdown-menu {
-  /* Background - explicit dark solid color (slate palette) */
-  background-color: var(--color-secondary-800, var(--color-secondary-800, #334155)); /* Slate-800 */
-  background: var(--color-secondary-800, var(--color-secondary-800, #334155));
+[data-style="dark"] .dropdown-menu,
+html[data-style="dark"] .dropdown-menu,
+[data-style="dark"] .dropdown-menu.show,
+html[data-style="dark"] .dropdown-menu.show {
+  /* Background - explicit dark solid color (slate palette) - MUST be opaque */
+  background-color: #334155 !important; /* Slate-800 - hardcoded for reliability */
+  background: #334155 !important;
 
   /* Border - dark border for contrast */
-  border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)); /* Slate-700 */
+  border-color: #475569 !important; /* Slate-700 */
 
   /* Enhanced shadow for visibility on dark backgrounds */
   box-shadow:
     0 4px 6px -1px rgba(0, 0, 0, 0.3),
     0 10px 15px -3px rgba(0, 0, 0, 0.4),
-    0 20px 25px -5px rgba(0, 0, 0, 0.2);
+    0 20px 25px -5px rgba(0, 0, 0, 0.2) !important;
 }
 
 [data-style="dark"] .dropdown-item {

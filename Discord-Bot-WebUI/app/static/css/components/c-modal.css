@@ -62,6 +62,12 @@
 
 .c-modal,
 .modal {
+  /* Z-INDEX - CRITICAL: Must be above all page content */
+  z-index: var(--z-modal, 1050) !important;
+
+  /* ISOLATION - Create new stacking context to prevent bleed-through */
+  isolation: isolate;
+
   /* RESPONSIVE SPACING - scales with viewport */
   --modal-padding: clamp(1rem, 3vw, 1.5rem);
   --modal-gap: clamp(0.75rem, 2vw, 1rem);
@@ -127,9 +133,42 @@
   max-height: calc(100vh - var(--modal-margin) * 2);
   overflow: hidden;
 
-  /* Ensure content is above backdrop */
+  /* Z-INDEX - CRITICAL: Content must be above everything */
   position: relative;
-  z-index: 1;
+  z-index: var(--z-modal, 1050);
+}
+
+/* Modal dialog wrapper - ensure proper stacking */
+.c-modal__dialog,
+.modal-dialog {
+  position: relative;
+  z-index: var(--z-modal, 1050);
+}
+
+/* Modal backdrop - must cover all page content */
+.modal-backdrop {
+  z-index: var(--z-modal-backdrop, 1040) !important;
+}
+
+/* When modal is shown, ensure proper stacking */
+.modal.show,
+.c-modal.show {
+  z-index: var(--z-modal, 1050) !important;
+  isolation: isolate;
+}
+
+/* CRITICAL FIX: When modal is open, page dropdowns should not appear above it */
+body.modal-open .dropdown-menu:not(.c-modal .dropdown-menu),
+body.modal-open [data-dropdown-menu]:not(.c-modal [data-dropdown-menu]) {
+  z-index: var(--z-dropdown, 1000) !important;
+}
+
+/* Ensure dropdowns INSIDE modals appear above modal content */
+.c-modal .dropdown-menu,
+.modal .dropdown-menu,
+.c-modal [data-dropdown-menu],
+.modal [data-dropdown-menu] {
+  z-index: var(--z-modal-dropdown, 1055) !important;
 }
 
 /* Bootstrap modal-content compatibility */

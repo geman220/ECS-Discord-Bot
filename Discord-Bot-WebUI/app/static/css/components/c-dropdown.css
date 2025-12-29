@@ -63,27 +63,29 @@
 /* Dark mode - scoped to component using semantic tokens - Slate palette */
 [data-style="dark"] .c-dropdown,
 [data-style="dark"] [data-dropdown],
+html[data-style="dark"] .c-dropdown,
+html[data-style="dark"] [data-dropdown],
 .c-dropdown[data-theme="dark"],
 [data-dropdown][data-theme="dark"] {
-  /* Use semantic tokens that resolve correctly in dark mode */
-  --dropdown-bg: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));           /* Slate-800 */
-  --dropdown-border: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));    /* Slate-700 */
+  /* Hardcoded fallbacks to ensure solid backgrounds */
+  --dropdown-bg: #334155;           /* Slate-800 - hardcoded for reliability */
+  --dropdown-border: #475569;       /* Slate-700 */
   --dropdown-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3),
                      0 10px 15px -3px rgba(0, 0, 0, 0.4);
 
-  --dropdown-item-color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));  /* Slate-50 */
-  --dropdown-item-hover-bg: var(--color-hover-bg, rgba(255, 255, 255, 0.06));
-  --dropdown-item-active-bg: var(--color-active-bg, rgba(255, 255, 255, 0.1));
+  --dropdown-item-color: #f8fafc;   /* Slate-50 */
+  --dropdown-item-hover-bg: rgba(255, 255, 255, 0.06);
+  --dropdown-item-active-bg: rgba(255, 255, 255, 0.1);
 
-  --dropdown-item-danger: var(--color-danger-600, #f87171);
-  --dropdown-item-danger-hover-bg: var(--color-danger-subtle, rgba(248, 113, 113, 0.12));
-  --dropdown-item-warning: var(--color-warning-600, #fbbf24);
-  --dropdown-item-warning-hover-bg: var(--color-warning-subtle, rgba(251, 191, 36, 0.12));
-  --dropdown-item-success: var(--color-success-600, #4ade80);
-  --dropdown-item-success-hover-bg: var(--color-success-subtle, rgba(74, 222, 128, 0.12));
+  --dropdown-item-danger: #f87171;
+  --dropdown-item-danger-hover-bg: rgba(248, 113, 113, 0.12);
+  --dropdown-item-warning: #fbbf24;
+  --dropdown-item-warning-hover-bg: rgba(251, 191, 36, 0.12);
+  --dropdown-item-success: #4ade80;
+  --dropdown-item-success-hover-bg: rgba(74, 222, 128, 0.12);
 
-  --dropdown-divider: var(--color-border-secondary, var(--color-secondary-700, var(--color-secondary-700, #475569))); /* Slate-700 */
-  --dropdown-icon-color: var(--color-text-muted, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));    /* Slate-400 */
+  --dropdown-divider: #475569;      /* Slate-700 */
+  --dropdown-icon-color: #94a3b8;   /* Slate-400 */
 }
 
 /* ----------------------------------------------------------------------------
