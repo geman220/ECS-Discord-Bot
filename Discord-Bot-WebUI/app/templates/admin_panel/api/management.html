@@ -164,7 +164,7 @@
             <div class="c-card__body">
                 {% if stats.endpoint_breakdown %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table>
+                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="api-breakdown">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Blueprint</th>
@@ -246,7 +246,7 @@
             <div class="c-card__body">
                 {% if endpoints %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table>
+                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="api-endpoints">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Endpoint</th>

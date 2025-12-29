@@ -812,7 +812,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
           <h6 class="mb-3">Messages Last 7 Days</h6>
           <div class="c-table-wrapper mb-4">
-            <table class="c-table c-table--compact">
+            <table class="c-table c-table--compact" data-mobile-table data-table-type="statistics">
               <thead>
                 <tr>
                   ${data.daily_counts.map(d => `<th class="text-center">${d.date}</th>`).join('')}

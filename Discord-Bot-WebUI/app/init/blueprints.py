@@ -208,6 +208,8 @@ def _register_api_blueprints(app, bp, csrf):
     app.register_blueprint(bp['draft_predictions_bp'])
     app.register_blueprint(bp['notifications_bp'])
     app.register_blueprint(bp['navbar_notifications_bp'])  # In-app notifications for navbar
+    # Exempt navbar notifications from CSRF - presence refresh is a background heartbeat
+    csrf.exempt(bp['navbar_notifications_bp'])
 
     # Register rate limit exemptions for high-frequency presence endpoints
     from app.routes.navbar_notifications import register_rate_limit_exemptions

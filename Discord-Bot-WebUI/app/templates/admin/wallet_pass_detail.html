@@ -109,7 +109,7 @@
                             <h6 class="text-muted mb-3">
                                 <i class="ti ti-user me-1"></i>Member Information
                             </h6>
-                            <table class="c-table detail-table c-table--compact" data-table>
+                            <table class="c-table detail-table c-table--compact" data-mobile-table data-table-type="wallet" data-table>
                                 <tr>
                                     <td>Name</td>
                                     <td class="fw-semibold">{{ wallet_pass.member_name }}</td>
@@ -136,7 +136,7 @@
                             <h6 class="text-muted mb-3">
                                 <i class="ti ti-calendar me-1"></i>Pass Validity
                             </h6>
-                            <table class="c-table detail-table c-table--compact" data-table>
+                            <table class="c-table detail-table c-table--compact" data-mobile-table data-table-type="wallet" data-table>
                                 <tr>
                                     <td>Validity Period</td>
                                     <td class="fw-semibold">{{ wallet_pass.display_validity }}</td>
@@ -164,7 +164,7 @@
                             <h6 class="text-muted mb-3">
                                 <i class="ti ti-database me-1"></i>System Information
                             </h6>
-                            <table class="c-table detail-table c-table--compact" data-table>
+                            <table class="c-table detail-table c-table--compact" data-mobile-table data-table-type="wallet" data-table>
                                 <tr>
                                     <td>Pass ID</td>
                                     <td><code class="small">{{ wallet_pass.id }}</code></td>
@@ -191,7 +191,7 @@
                             <h6 class="text-muted mb-3">
                                 <i class="ti ti-shopping-cart me-1"></i>WooCommerce
                             </h6>
-                            <table class="c-table detail-table c-table--compact" data-table>
+                            <table class="c-table detail-table c-table--compact" data-mobile-table data-table-type="wallet" data-table>
                                 <tr>
                                     <td>Order ID</td>
                                     <td>{{ wallet_pass.woo_order_id or '-' }}</td>
@@ -212,7 +212,7 @@
                             <h6 class="text-muted mb-3 mt-4">
                                 <i class="ti ti-ban me-1"></i>Void Information
                             </h6>
-                            <table class="c-table detail-table c-table--compact" data-table>
+                            <table class="c-table detail-table c-table--compact" data-mobile-table data-table-type="wallet" data-table>
                                 <tr>
                                     <td>Voided At</td>
                                     <td>{{ wallet_pass.voided_at.strftime('%b %d, %Y %H:%M') }}</td>
@@ -241,7 +241,7 @@
                 <div class="c-card__body">
                     {% if checkins %}
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--compact c-table--hoverable" data-table>
+                        <table class="c-table c-table--compact c-table--hoverable" data-mobile-table data-table-type="wallet" data-table>
                             <thead class="c-table--light" scope="col">
                                 <tr>
                                     <th scope="col">Date/Time</th>

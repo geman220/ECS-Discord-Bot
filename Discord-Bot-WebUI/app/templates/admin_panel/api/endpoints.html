@@ -76,7 +76,7 @@
     <div class="c-card__body p-0">
         {% if endpoints %}
         <div class="c-table-wrapper" data-table-responsive>
-            <table class="c-table c-table--hoverable mb-0" data-table>
+            <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="api-endpoints">
                 <thead class="c-table--light" scope="col">
                     <tr>
                         <th scope="col">Endpoint</th>
@@ -378,7 +378,7 @@ function viewEndpointDetails(endpointPath) {
                             <div class="col-12">
                                 <h6>Common Errors</h6>
                                 <div class="c-table-wrapper" data-table-responsive>
-                                    <table class="c-table c-table--compact" data-table>
+                                    <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="api">
                                         <thead scope="col">
                                             <tr><th scope="col">Error</th><th scope="col">Count</th></tr>
                                         </thead>
@@ -400,7 +400,7 @@ function viewEndpointDetails(endpointPath) {
                             <div class="col-12">
                                 <h6>Recent Activity</h6>
                                 <div class="c-table-wrapper" data-table-responsive>
-                                    <table class="c-table c-table--compact" data-table>
+                                    <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="api">
                                         <thead scope="col">
                                             <tr><th scope="col">Time</th><th scope="col">Method</th><th scope="col">Status</th><th scope="col">Response Time</th></tr>
                                         </thead>

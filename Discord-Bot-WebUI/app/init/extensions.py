@@ -49,6 +49,21 @@ def init_extensions(app, db):
     login_manager.login_view = 'auth.login'
     login_manager.login_message = None  # Disable the default message
 
+    # IMPORTANT: Register CSRF exemptions BEFORE csrf.init_app()
+    # Flask-WTF checks request.csrf_exempt attribute in its protect() method
+    @app.before_request
+    def exempt_background_endpoints_from_csrf():
+        """Exempt background/polling endpoints from CSRF - they have their own auth."""
+        from flask import request
+        # Socket.IO has its own authentication mechanism
+        # Navbar notifications uses session auth but is a background heartbeat
+        exempt_prefixes = (
+            '/socket.io/',
+            '/api/notifications/',  # Presence refresh is a background heartbeat
+        )
+        if request.path.startswith(exempt_prefixes):
+            request.csrf_exempt = True
+
     # Initialize CSRF with explicit configuration
     csrf.init_app(app)
     # Register admin routes that should be exempt from CSRF

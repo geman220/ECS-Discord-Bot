@@ -42,18 +42,7 @@
       // Helper to safely get element from event target
       const getElement = (target) => target instanceof Element ? target : null;
 
-      // Register modal triggers via EventDelegation
-      if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
-        window.EventDelegation.register('modal-trigger', (element, e) => {
-          const modalId = element.dataset.modalTrigger;
-          if (modalId) {
-            this.open(modalId);
-          }
-        }, { preventDefault: true });
-
-        // Note: close-modal action is handled by ModalManager for all modal types
-        // (Bootstrap .modal, [data-modal], and .c-modal-modern)
-      }
+      // EventDelegation handlers are registered at module scope below
 
       // Close on backdrop click
       document.addEventListener('click', (e) => {
@@ -176,15 +165,7 @@
         document.body.appendChild(this.container);
       }
 
-      // Register dismiss action via EventDelegation
-      if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
-        window.EventDelegation.register('dismiss-toast', (element, e) => {
-          const toastId = element.dataset.toastId;
-          if (toastId) {
-            this.dismiss(toastId);
-          }
-        });
-      }
+      // EventDelegation handler is registered at module scope below
     },
 
     show(options = {}) {
@@ -383,27 +364,7 @@
       }
       this._initialized = true;
 
-      // Register dropdown trigger via EventDelegation
-      if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
-        window.EventDelegation.register('dropdown-trigger', (element, e) => {
-          const dropdownId = element.dataset.dropdownTrigger;
-          if (dropdownId) {
-            this.toggle(dropdownId);
-          }
-        }, { preventDefault: true });
-      } else {
-        // Fallback
-        document.addEventListener('click', (e) => {
-          if (!(e.target instanceof Element)) return;
-
-          const trigger = e.target.closest('[data-dropdown-trigger]');
-          if (trigger) {
-            e.preventDefault();
-            const dropdownId = trigger.dataset.dropdownTrigger;
-            this.toggle(dropdownId);
-          }
-        });
-      }
+      // EventDelegation handler is registered at module scope below
 
       // Close if clicking outside
       document.addEventListener('click', (e) => {
@@ -674,5 +635,26 @@
       init();
     }
   }
+
+  // ============================================================================
+  // EVENT DELEGATION - Registered at module scope
+  // ============================================================================
+  // Handlers registered when IIFE executes, delegating to controller instances
+
+  // Toast dismiss action
+  EventDelegation.register('dismiss-toast', (element, e) => {
+    const toastId = element.dataset.toastId;
+    if (toastId && window.ModernComponents?.Toast) {
+      window.ModernComponents.Toast.dismiss(toastId);
+    }
+  }, { preventDefault: true });
+
+  // Dropdown trigger action
+  EventDelegation.register('dropdown-trigger', (element, e) => {
+    const dropdownId = element.dataset.dropdownTrigger;
+    if (dropdownId && window.ModernComponents?.Dropdown) {
+      window.ModernComponents.Dropdown.toggle(dropdownId);
+    }
+  }, { preventDefault: true });
 
 })();

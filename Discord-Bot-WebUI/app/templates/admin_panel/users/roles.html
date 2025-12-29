@@ -84,8 +84,8 @@
                     <h5 class="c-card__title mb-0">
                         <i class="ti ti-shield me-2"></i>System Roles
                     </h5>
-                    <div>
-                        <button class="c-btn c-btn--outline-secondary me-2 js-back-button" data-action="back">
+                    <div class="c-action-bar">
+                        <button class="c-btn c-btn--outline-secondary js-back-button" data-action="back">
                             <i class="ti ti-arrow-left me-1"></i>Back
                         </button>
                         <a href="{{ url_for('admin_panel.feature_toggles') }}#roles" class="c-btn c-btn--outline-primary">
@@ -96,7 +96,7 @@
                 <div class="c-card__body p-0">
                     {% if roles %}
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--hoverable mb-0" data-table>
+                        <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="roles">
                             <thead class="c-table--light" scope="col">
                                 <tr>
                                     <th scope="col">Role Name</th>

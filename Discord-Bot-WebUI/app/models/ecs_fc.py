@@ -198,6 +198,31 @@ def is_ecs_fc_team(team_id):
     return 'ECS FC' in league.name
 
 
+def is_ecs_fc_league(league_id):
+    """
+    Check if a league is an ECS FC league.
+
+    ECS FC leagues allow players to be on multiple teams within the same league,
+    unlike Pub League (Classic/Premier) which restricts players to one team per league.
+
+    Args:
+        league_id: The ID of the league to check
+
+    Returns:
+        bool: True if the league is an ECS FC league, False otherwise
+    """
+    from app.models.core import League
+
+    if not league_id:
+        return False
+
+    league = League.query.get(league_id)
+    if not league:
+        return False
+
+    return 'ECS FC' in league.name
+
+
 def get_ecs_fc_matches_for_team(team_id, start_date=None, end_date=None):
     """Get ECS FC matches for a specific team."""
     query = EcsFcMatch.query.filter(EcsFcMatch.team_id == team_id)

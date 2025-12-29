@@ -68,7 +68,7 @@
             <div class="c-card__body">
                 {% if history %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table>
+                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="seasons">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Season</th>
@@ -306,7 +306,7 @@ function lookupPlayerHistory() {
         .then(response => response.json())
         .then(result => {
             if (result.success && result.history.length > 0) {
-                let html = '<table class="c-table c-table--compact" data-table><thead scope="col"><tr><th scope="col">Season</th><th scope="col">Team</th></tr></thead><tbody>';
+                let html = '<table class="c-table c-table--compact" data-table data-mobile-table data-table-type="history"><thead scope="col"><tr><th scope="col">Season</th><th scope="col">Team</th></tr></thead><tbody>';
                 result.history.forEach(h => {
                     html += `<tr><td>${escapeHtml(h.season_name)}</td><td>${escapeHtml(h.team_name)}</td></tr>`;
                 });

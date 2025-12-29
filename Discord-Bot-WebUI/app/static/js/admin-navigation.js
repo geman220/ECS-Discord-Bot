@@ -48,45 +48,12 @@
     }
 
     /**
-     * Register actions with EventDelegation or fallback to direct handlers
+     * Register actions - now a no-op since handlers are registered at module scope
+     * Kept for backward compatibility
      */
     registerActions() {
-      // Use window.EventDelegation for ES module compatibility (Vite bundles each module separately)
-      if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
-        window.EventDelegation.register('toggle-admin-dropdown', this.handleToggleDropdown.bind(this), { preventDefault: true });
-        window.EventDelegation.register('admin-navigate', this.handleNavigation.bind(this), { preventDefault: false });
-        window.EventDelegation.register('close-admin-dropdown', this.handleCloseDropdown.bind(this), { preventDefault: true });
-        console.log('[AdminNavigation] Registered handlers with EventDelegation');
-      } else {
-        // Fallback: Add direct click handler on nav container when EventDelegation isn't available
-        console.log('[AdminNavigation] EventDelegation not found, using fallback click handler');
-        this.nav.addEventListener('click', this.handleFallbackClick.bind(this));
-      }
-    }
-
-    /**
-     * Fallback click handler when EventDelegation is unavailable
-     * @param {Event} e - Click event
-     */
-    handleFallbackClick(e) {
-      const target = e.target.closest('[data-action]');
-      if (!target) return;
-
-      const action = target.dataset.action;
-
-      switch (action) {
-        case 'toggle-admin-dropdown':
-          e.preventDefault();
-          this.toggleDropdown(target);
-          break;
-        case 'close-admin-dropdown':
-          e.preventDefault();
-          this.closeDropdown(target);
-          break;
-        case 'admin-navigate':
-          this.handleNavigation(target, e);
-          break;
-      }
+      // Handlers are now registered at module scope for proper timing
+      // See bottom of file for EventDelegation.register() calls
     }
 
     /**
@@ -323,6 +290,41 @@
    */
   window.AdminNavigationController = AdminNavigationController;
   window.initAdminNavigation = initAdminNavigation;
+
+  // ========================================================================
+  // EVENT DELEGATION - Registered at module scope
+  // ========================================================================
+  // Handlers registered when IIFE executes, ensuring EventDelegation is available.
+  // Handlers find the controller instance on the closest nav element.
+
+  /**
+   * Helper to find the controller instance for an element
+   */
+  function getController(element) {
+    const nav = element.closest('[data-controller="admin-nav"]') || element.closest('.c-admin-nav');
+    return nav ? nav.adminNavController : null;
+  }
+
+  EventDelegation.register('toggle-admin-dropdown', (element, e) => {
+    const controller = getController(element);
+    if (controller) {
+      controller.toggleDropdown(element);
+    }
+  }, { preventDefault: true });
+
+  EventDelegation.register('admin-navigate', (element, e) => {
+    const controller = getController(element);
+    if (controller) {
+      controller.handleNavigation(element, e);
+    }
+  }, { preventDefault: false });
+
+  EventDelegation.register('close-admin-dropdown', (element, e) => {
+    const controller = getController(element);
+    if (controller) {
+      controller.closeDropdown(element);
+    }
+  }, { preventDefault: true });
 
 })();
 

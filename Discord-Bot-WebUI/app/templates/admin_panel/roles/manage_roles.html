@@ -124,7 +124,7 @@
                 </div>
                 <div class="c-card__body p-0">
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--hoverable mb-0" data-table>
+                        <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="roles">
                             <thead class="c-table--light" scope="col">
                                 <tr>
                                     <th scope="col">Role Name</th>
@@ -238,7 +238,7 @@
                 </div>
                 <div class="c-card__body">
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--compact" data-table>
+                        <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="roles">
                             <thead scope="col">
                                 <tr>
                                     <th scope="col">User</th>
@@ -491,7 +491,7 @@ function viewRoleDetails(roleId) {
                     <div class="row">
                         <div class="col-md-6">
                             <h6>Role Information</h6>
-                            <table class="c-table c-table--compact" data-table>
+                            <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="roles">
                                 <tr><td><strong>Name:</strong></td><td>${role.name}</td></tr>
                                 <tr><td><strong>Description:</strong></td><td>${role.description || 'No description'}</td></tr>
                                 <tr><td><strong>Users:</strong></td><td>${role.user_count}</td></tr>

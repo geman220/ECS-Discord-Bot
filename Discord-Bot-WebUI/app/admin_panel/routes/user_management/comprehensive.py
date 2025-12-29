@@ -23,6 +23,7 @@ from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.models.core import User, Role, League
 from app.models import Player, Team, Season
+from app.models.ecs_fc import is_ecs_fc_team
 from app.decorators import role_required
 from app.utils.db_utils import transactional
 from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
@@ -323,15 +324,52 @@ def edit_user_comprehensive(user_id):
                 if secondary_league and secondary_league != user.player.primary_league:
                     user.player.other_leagues.append(secondary_league)
 
-            # Handle secondary team (remove non-primary teams, add new if specified)
-            teams_to_remove = [t for t in user.player.teams if t.id != user.player.primary_team_id]
+            # Get ECS FC team IDs from the multi-select form field
+            ecs_fc_team_ids = request.form.getlist('ecs_fc_team_ids[]')
+            ecs_fc_team_ids = [int(tid) for tid in ecs_fc_team_ids if tid]
+
+            # Build the list of teams the player should be on
+            target_team_ids = set()
+
+            # Always keep the primary team
+            if user.player.primary_team_id:
+                target_team_ids.add(user.player.primary_team_id)
+
+            # Add secondary team if specified (for non-ECS FC leagues)
+            if secondary_team_id:
+                target_team_ids.add(int(secondary_team_id))
+
+            # Add all selected ECS FC teams
+            target_team_ids.update(ecs_fc_team_ids)
+
+            # Current team IDs
+            current_team_ids = {t.id for t in user.player.teams}
+
+            # Remove teams that should no longer be assigned
+            # (except keep ECS FC teams - they're handled by the multi-select)
+            teams_to_remove = []
+            for team in user.player.teams:
+                team_is_ecs_fc = is_ecs_fc_team(team.id)
+                # For ECS FC teams: only remove if not in selected ecs_fc_team_ids
+                # For non-ECS FC teams: only keep primary and secondary
+                if team_is_ecs_fc:
+                    if team.id not in ecs_fc_team_ids:
+                        teams_to_remove.append(team)
+                else:
+                    if team.id not in target_team_ids:
+                        teams_to_remove.append(team)
+
             for team in teams_to_remove:
                 user.player.teams.remove(team)
-            if secondary_team_id:
-                secondary_team = Team.query.get(int(secondary_team_id))
-                if secondary_team and secondary_team.id != user.player.primary_team_id:
-                    if secondary_team not in user.player.teams:
-                        user.player.teams.append(secondary_team)
+                logger.info(f"Removed player {user.player.id} from team {team.id}")
+
+            # Add new teams
+            for team_id in target_team_ids:
+                if team_id not in current_team_ids:
+                    team_to_add = Team.query.get(team_id)
+                    if team_to_add and team_to_add not in user.player.teams:
+                        user.player.teams.append(team_to_add)
+                        logger.info(f"Added player {user.player.id} to team {team_id}")
 
         # Update roles - including auto league-to-role mapping
         if role_ids:

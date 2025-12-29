@@ -159,6 +159,43 @@ EventDelegation.register('ban-ip', async function(element, e) {
     }
 });
 
+/**
+ * Clear Rate Limit Action
+ * Clears rate limit counters for a specific IP address
+ * This resets request counts and attack counts, allowing the IP to make requests again
+ */
+EventDelegation.register('clear-rate-limit', async function(element, e) {
+    e.preventDefault();
+
+    const ip = element.dataset.ip;
+
+    if (!ip) {
+        console.error('[clear-rate-limit] Missing IP address');
+        return;
+    }
+
+    if (window.securityDashboard && typeof window.securityDashboard.clearRateLimit === 'function') {
+        await window.securityDashboard.clearRateLimit(ip, element);
+    } else {
+        console.error('[clear-rate-limit] SecurityDashboard instance not available');
+    }
+});
+
+/**
+ * Clear All Rate Limits Action
+ * Clears all rate limit counters for all IPs
+ * This resets all request counts and attack counts (but not bans)
+ */
+EventDelegation.register('clear-all-rate-limits', async function(element, e) {
+    e.preventDefault();
+
+    if (window.securityDashboard && typeof window.securityDashboard.clearAllRateLimits === 'function') {
+        await window.securityDashboard.clearAllRateLimits();
+    } else {
+        console.error('[clear-all-rate-limits] SecurityDashboard instance not available');
+    }
+});
+
 // ============================================================================
 
 console.log('[EventDelegation] Security handlers loaded');

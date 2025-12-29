@@ -21,6 +21,7 @@ from app.admin_panel import admin_panel_bp
 from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.models.core import User, Role
+from app.models.ecs_fc import is_ecs_fc_team
 from app.decorators import role_required
 from app.utils.db_utils import transactional
 from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
@@ -497,6 +498,12 @@ def user_details_api(user_id):
                         secondary_league_id = team.league_id
                     break
 
+            # Get ECS FC team IDs (for multi-team selection)
+            ecs_fc_team_ids = [
+                team.id for team in user.player.teams
+                if is_ecs_fc_team(team.id)
+            ] if user.player.teams else []
+
             user_data['has_player'] = True
             user_data['player'] = {
                 'id': user.player.id,
@@ -506,6 +513,7 @@ def user_details_api(user_id):
                 'secondary_league_id': secondary_league_id,
                 'secondary_team_id': secondary_team_id,
                 'team_ids': all_team_ids,
+                'ecs_fc_team_ids': ecs_fc_team_ids,
                 'is_current_player': user.player.is_current_player,
                 'discord_id': user.player.discord_id,
                 'jersey_size': user.player.jersey_size,

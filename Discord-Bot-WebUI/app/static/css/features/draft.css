@@ -1497,3 +1497,103 @@ html[data-style="light"] .draft-team-player-card .text-muted,
 .draft-connection-status {
     z-index: 1050;
 }
+
+/* ============================================================================
+   ECS FC MULTI-TEAM SECTION
+   ============================================================================
+   Styles for players who are already on an ECS FC team but can be added to
+   additional teams within the same league.
+   ============================================================================ */
+
+/* Multi-team section header */
+.draft-multi-team-header {
+    background-color: rgba(var(--bs-info-rgb), 0.1);
+    cursor: pointer;
+}
+
+.draft-multi-team-header:hover {
+    background-color: rgba(var(--bs-info-rgb), 0.15);
+}
+
+[data-bs-theme="dark"] .draft-multi-team-header {
+    background-color: rgba(var(--bs-info-rgb), 0.15);
+}
+
+[data-bs-theme="dark"] .draft-multi-team-header:hover {
+    background-color: rgba(var(--bs-info-rgb), 0.2);
+}
+
+/* Multi-team player card styling */
+.draft-player-card--multi-team {
+    border: 2px solid var(--bs-info) !important;
+    position: relative;
+}
+
+.draft-player-card--multi-team::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--bs-info), var(--bs-primary));
+    z-index: 1;
+}
+
+/* Multi-team badge */
+.draft-multi-team-badge {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 0 0 0.375rem 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.draft-multi-team-badge i {
+    font-size: 0.875rem;
+}
+
+/* Multi-team footer showing existing teams */
+.draft-multi-team-footer {
+    background-color: rgba(var(--bs-info-rgb), 0.1);
+    border-top: 1px solid rgba(var(--bs-info-rgb), 0.2);
+    color: var(--bs-info);
+}
+
+[data-bs-theme="dark"] .draft-multi-team-footer {
+    background-color: rgba(var(--bs-info-rgb), 0.15);
+}
+
+/* Collapse icon rotation */
+.c-card__collapse-icon {
+    transition: transform 0.3s ease;
+}
+
+.c-card__header--collapsible[aria-expanded="false"] .c-card__collapse-icon,
+.c-card__header--collapsible.collapsed .c-card__collapse-icon {
+    transform: rotate(-90deg);
+}
+
+/* Multi-team section container */
+#ecsFcMultiTeamSection {
+    border-color: var(--bs-info);
+}
+
+#ecsFcMultiTeamSection .c-card__body {
+    padding: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Hover effect for multi-team cards */
+.draft-player-card--multi-team:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(var(--bs-info-rgb), 0.25);
+}
+
+/* Dragging state for multi-team cards */
+.draft-player-card--multi-team.dragging {
+    opacity: 0.6;
+    border-color: var(--bs-primary);
+}

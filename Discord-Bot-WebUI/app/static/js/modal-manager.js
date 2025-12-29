@@ -129,110 +129,12 @@ class ModalManager {
 
     /**
      * Set up event delegation for data-action triggers
-     * Supports: show-modal, hide-modal, toggle-modal, close-modal
-     * Uses EventDelegation system if available
+     * Note: EventDelegation handlers are registered at module scope below
      * @private
      */
     static setupEventDelegation() {
-        // Use EventDelegation if available
-        if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
-            // Show modal
-            window.EventDelegation.register('show-modal', (element, e) => {
-                const modalId = element.dataset.modalId;
-                if (modalId) {
-                    const options = this.parseOptionsFromElement(element);
-                    this.show(modalId, options);
-                } else {
-                    console.error('[ModalManager] data-action="show-modal" requires data-modal-id attribute');
-                }
-            }, { preventDefault: true });
-
-            // Hide modal
-            window.EventDelegation.register('hide-modal', (element, e) => {
-                const modalId = element.dataset.modalId;
-                if (modalId) {
-                    this.hide(modalId);
-                } else {
-                    // Try to find the closest modal and close it
-                    const closestModal = element.closest('[data-modal], .modal');
-                    if (closestModal && closestModal.id) {
-                        this.hide(closestModal.id);
-                    }
-                }
-            }, { preventDefault: true });
-
-            // Close modal (alias for hide) - handles all modal types
-            window.EventDelegation.register('close-modal', (element, e) => {
-                const modalId = element.dataset.modalId;
-                if (modalId) {
-                    this.hide(modalId);
-                } else {
-                    // Support Bootstrap .modal, custom [data-modal], and .c-modal-modern
-                    const closestModal = element.closest('[data-modal], .modal, .c-modal-modern');
-                    if (closestModal && closestModal.id) {
-                        this.hide(closestModal.id);
-                    }
-                }
-            }, { preventDefault: true });
-
-            // Toggle modal
-            window.EventDelegation.register('toggle-modal', (element, e) => {
-                const modalId = element.dataset.modalId;
-                if (modalId) {
-                    this.toggle(modalId);
-                } else {
-                    console.error('[ModalManager] data-action="toggle-modal" requires data-modal-id attribute');
-                }
-            }, { preventDefault: true });
-
-            this.log('Event delegation registered via EventDelegation system');
-        } else {
-            // Fallback: Use standard event delegation
-            document.addEventListener('click', (e) => {
-                const actionElement = e.target.closest('[data-action]');
-                if (!actionElement) return;
-
-                const action = actionElement.dataset.action;
-                const modalId = actionElement.dataset.modalId;
-
-                switch (action) {
-                    case 'show-modal':
-                        if (modalId) {
-                            e.preventDefault();
-                            const options = this.parseOptionsFromElement(actionElement);
-                            this.show(modalId, options);
-                        } else {
-                            console.error('[ModalManager] data-action="show-modal" requires data-modal-id attribute');
-                        }
-                        break;
-
-                    case 'hide-modal':
-                    case 'close-modal':
-                        e.preventDefault();
-                        if (modalId) {
-                            this.hide(modalId);
-                        } else {
-                            // Try to find the closest modal and close it
-                            const closestModal = actionElement.closest('[data-modal], .modal');
-                            if (closestModal && closestModal.id) {
-                                this.hide(closestModal.id);
-                            }
-                        }
-                        break;
-
-                    case 'toggle-modal':
-                        if (modalId) {
-                            e.preventDefault();
-                            this.toggle(modalId);
-                        } else {
-                            console.error('[ModalManager] data-action="toggle-modal" requires data-modal-id attribute');
-                        }
-                        break;
-                }
-            });
-
-            this.log('Event delegation registered via fallback click handler');
-        }
+        // EventDelegation handlers are registered at module scope for proper timing
+        this.log('Event delegation handlers are registered at module scope');
     }
 
     /**
@@ -529,3 +431,57 @@ window.safeShowModal = function(modalId) {
     console.warn('[Deprecated] safeShowModal() is deprecated. Use ModalManager.show() instead.');
     return ModalManager.show(modalId);
 };
+
+// ============================================================================
+// EVENT DELEGATION - Registered at module scope
+// ============================================================================
+// Handlers registered when module loads, delegating to ModalManager
+
+// Show modal
+EventDelegation.register('show-modal', (element, e) => {
+    const modalId = element.dataset.modalId;
+    if (modalId) {
+        const options = ModalManager.parseOptionsFromElement(element);
+        ModalManager.show(modalId, options);
+    } else {
+        console.error('[ModalManager] data-action="show-modal" requires data-modal-id attribute');
+    }
+}, { preventDefault: true });
+
+// Hide modal
+EventDelegation.register('hide-modal', (element, e) => {
+    const modalId = element.dataset.modalId;
+    if (modalId) {
+        ModalManager.hide(modalId);
+    } else {
+        // Try to find the closest modal and close it
+        const closestModal = element.closest('[data-modal], .modal');
+        if (closestModal && closestModal.id) {
+            ModalManager.hide(closestModal.id);
+        }
+    }
+}, { preventDefault: true });
+
+// Close modal (alias for hide) - handles all modal types
+EventDelegation.register('close-modal', (element, e) => {
+    const modalId = element.dataset.modalId;
+    if (modalId) {
+        ModalManager.hide(modalId);
+    } else {
+        // Support Bootstrap .modal, custom [data-modal], and .c-modal-modern
+        const closestModal = element.closest('[data-modal], .modal, .c-modal-modern');
+        if (closestModal && closestModal.id) {
+            ModalManager.hide(closestModal.id);
+        }
+    }
+}, { preventDefault: true });
+
+// Toggle modal
+EventDelegation.register('toggle-modal', (element, e) => {
+    const modalId = element.dataset.modalId;
+    if (modalId) {
+        ModalManager.toggle(modalId);
+    } else {
+        console.error('[ModalManager] data-action="toggle-modal" requires data-modal-id attribute');
+    }
+}, { preventDefault: true });

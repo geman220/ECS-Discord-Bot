@@ -656,6 +656,9 @@
 .c-messages-message {
   max-width: 65%;
   animation: message-appear 0.25s ease-out;
+  /* Prevent flex stretch - bubbles should only be as tall as their content */
+  align-self: flex-start;
+  flex-shrink: 0;
 }
 
 @keyframes message-appear {
@@ -682,6 +685,10 @@
   font-size: 0.9375rem;
   line-height: 1.55;
   word-wrap: break-word;
+  /* Ensure bubble height matches content */
+  min-height: auto;
+  height: auto;
+  display: inline-block;
 }
 
 .c-messages-message--sent .c-messages-message__bubble {
@@ -696,6 +703,13 @@
   color: var(--msg-bubble-received-text);
   border-radius: 18px 18px 18px 4px;
   box-shadow: var(--msg-shadow-sm);
+}
+
+/* Dark mode - ensure consistent received bubble styling */
+[data-style="dark"] .c-messages-message--received .c-messages-message__bubble {
+  background-color: var(--color-secondary-800, #334155);
+  color: var(--color-secondary-100, #f1f5f9);
+  border: 1px solid var(--color-secondary-700, #475569);
 }
 
 .c-messages-message__time {

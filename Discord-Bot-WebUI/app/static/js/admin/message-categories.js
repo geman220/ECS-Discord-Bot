@@ -125,23 +125,6 @@
     }
 
     // ========================================================================
-    // EVENT DELEGATION
-    // ========================================================================
-
-    /**
-     * Initialize event delegation for category actions
-     */
-    function initEventDelegation() {
-        if (!window.EventDelegation || typeof window.EventDelegation.register !== 'function') {
-            console.error('[Message Categories] EventDelegation not available');
-            return;
-        }
-
-        window.EventDelegation.register('edit-category', handleEditCategory, { preventDefault: true });
-        window.EventDelegation.register('delete-category', handleDeleteCategory, { preventDefault: true });
-    }
-
-    // ========================================================================
     // INITIALIZATION
     // ========================================================================
 
@@ -155,9 +138,17 @@
         }
 
         console.log('[Message Categories] Initializing...');
-        initEventDelegation();
+        // EventDelegation handlers are registered at module scope below
         console.log('[Message Categories] Initialization complete');
     }
+
+    // ========================================================================
+    // EVENT DELEGATION - Registered at module scope
+    // ========================================================================
+    // Handlers registered when IIFE executes, ensuring EventDelegation is available
+
+    EventDelegation.register('edit-category', handleEditCategory, { preventDefault: true });
+    EventDelegation.register('delete-category', handleDeleteCategory, { preventDefault: true });
 
     // ========================================================================
     // DOM READY

@@ -99,7 +99,7 @@
             <div class="c-card__body p-0">
                 {% if active_pools %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable mb-0" data-table>
+                    <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="substitutes">
                         <thead class="c-table--light" scope="col">
                             <tr>
                                 <th scope="col">Player</th>
@@ -623,7 +623,7 @@ async function loadStatistics() {
 
                 ${stats.top_performers.length > 0 ? `
                 <h6>Top Performers</h6>
-                <table class="c-table c-table--compact" data-table>
+                <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="statistics">
                     <thead scope="col">
                         <tr>
                             <th scope="col">Player</th>

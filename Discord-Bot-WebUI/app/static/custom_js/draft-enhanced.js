@@ -176,7 +176,11 @@ function setupEventDelegation() {
             const btn = e.target.closest('.js-draft-player');
             const playerId = btn.dataset.playerId;
             const playerName = btn.dataset.playerName;
-            confirmDraftPlayer(playerId, playerName);
+            const isMultiTeam = btn.dataset.isMultiTeam === 'true';
+            // Get existing teams from the player card
+            const playerCard = btn.closest('.player-card');
+            const existingTeams = playerCard?.dataset.existingTeams || '';
+            confirmDraftPlayer(playerId, playerName, isMultiTeam, existingTeams);
         }
 
         // View player profile button
@@ -679,10 +683,56 @@ function updateAllTeamCounts() {
 
 /**
  * Custom Draft Confirmation Modal (replaces SweetAlert2)
+ * @param {string} playerId - The player's ID
+ * @param {string} playerName - The player's name
+ * @param {boolean} isMultiTeam - Whether this player is already on an ECS FC team
+ * @param {string} existingTeams - Comma-separated list of teams the player is already on
  */
-function confirmDraftPlayer(playerId, playerName) {
+function confirmDraftPlayer(playerId, playerName, isMultiTeam = false, existingTeams = '') {
+    // For multi-team players, show confirmation first
+    if (isMultiTeam && existingTeams) {
+        // Use SweetAlert2 for the confirmation if available, otherwise use native confirm
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Add to Another ECS FC Team?',
+                html: `<p>This player is already on:</p>
+                       <p class="fw-bold text-info">${existingTeams}</p>
+                       <p>Add <strong>${playerName}</strong> to an additional team?</p>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Continue',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#0066FF',
+                cancelButtonColor: '#6c757d'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    showDraftTeamSelection(playerId, playerName, existingTeams);
+                }
+            });
+        } else {
+            // Fallback to native confirm
+            const confirmed = confirm(`${playerName} is already on: ${existingTeams}\n\nAdd to an additional team?`);
+            if (confirmed) {
+                showDraftTeamSelection(playerId, playerName, existingTeams);
+            }
+        }
+        return;
+    }
+
+    // Standard draft flow - show team selection directly
+    showDraftTeamSelection(playerId, playerName, existingTeams);
+}
+
+/**
+ * Show the team selection modal for drafting
+ */
+function showDraftTeamSelection(playerId, playerName, existingTeams = '') {
     // Populate the message
-    document.getElementById('draftPlayerMessage').innerHTML = `Select a team for <strong>${playerName}</strong>:`;
+    let message = `Select a team for <strong>${playerName}</strong>:`;
+    if (existingTeams) {
+        message = `Select an additional team for <strong>${playerName}</strong>:<br><small class="text-muted">Already on: ${existingTeams}</small>`;
+    }
+    document.getElementById('draftPlayerMessage').innerHTML = message;
 
     // Populate team options
     const teamSelect = document.getElementById('teamSelect');

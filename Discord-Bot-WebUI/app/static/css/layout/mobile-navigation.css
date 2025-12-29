@@ -632,6 +632,11 @@
   box-shadow: var(--shadow-lg);
   z-index: var(--z-sticky);
   padding-bottom: env(safe-area-inset-bottom);
+  /* GPU acceleration for scroll stability */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* BEM: Bottom nav container */

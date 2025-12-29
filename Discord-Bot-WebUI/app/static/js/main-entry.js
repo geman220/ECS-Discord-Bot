@@ -127,6 +127,8 @@ import './app-init-registration.js';
 
 import './utils/visibility.js';
 import './components/tabs-controller.js';
+import './components/progressive-disclosure.js';
+import './components/mobile-table-enhancer.js';
 
 // ============================================================================
 // 8. CUSTOM JS - Core
@@ -211,7 +213,6 @@ import './admin-panel-feature-toggles.js';
 import './admin/announcement-form.js';
 import './auto_schedule_wizard.js';
 import './mobile-draft.js';
-import './mobile-table-enhancer.js';
 import './message-management.js';
 import './messages-inbox.js';
 import './pass-studio.js';

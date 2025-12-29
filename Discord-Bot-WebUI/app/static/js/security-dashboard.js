@@ -404,11 +404,11 @@ class SecurityDashboard {
 
         try {
             const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
-            
+
             const headers = {
                 'Content-Type': 'application/json'
             };
-            
+
             if (csrfToken) {
                 headers['X-CSRFToken'] = csrfToken;
             }
@@ -423,10 +423,10 @@ class SecurityDashboard {
             }
 
             const data = await response.json();
-            
+
             if (data.success) {
                 this.showAlert(data.message, 'success');
-                
+
                 // Refresh the page data
                 await this.refreshAll();
             } else {
@@ -438,6 +438,115 @@ class SecurityDashboard {
         } finally {
             clearAllBansBtn.disabled = false;
             clearAllBansBtn.innerHTML = originalText;
+        }
+    }
+
+    async clearRateLimit(ip, button) {
+        if (!ip) return;
+
+        const originalHTML = button ? button.innerHTML : '';
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = '<i class="ti ti-loader-2"></i>';
+        }
+
+        try {
+            const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
+
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+
+            if (csrfToken) {
+                headers['X-CSRFToken'] = csrfToken;
+            }
+
+            const response = await fetch('/security/clear_rate_limit', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({ ip_address: ip })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to clear rate limit: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.showAlert(data.message, 'success');
+
+                // Remove the IP from the monitored list or update its display
+                const ipContainer = document.querySelector(`[data-monitored-ip="${ip}"]`);
+                if (ipContainer) {
+                    ipContainer.remove();
+                }
+
+                // Refresh stats
+                await this.refreshStats();
+            } else {
+                throw new Error(data.error || 'Unknown error');
+            }
+        } catch (error) {
+            console.error('Error clearing rate limit:', error);
+            this.showAlert('Error clearing rate limit: ' + error.message, 'error');
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+            }
+        }
+    }
+
+    async clearAllRateLimits() {
+        if (!confirm('Are you sure you want to clear ALL rate limits? This will reset request counters for all IPs.')) {
+            return;
+        }
+
+        const clearAllRateLimitsBtn = document.getElementById('clearAllRateLimitsBtn');
+        const originalText = clearAllRateLimitsBtn ? clearAllRateLimitsBtn.innerHTML : '';
+        if (clearAllRateLimitsBtn) {
+            clearAllRateLimitsBtn.disabled = true;
+            clearAllRateLimitsBtn.innerHTML = '<i class="ti ti-loader-2"></i> Clearing...';
+        }
+
+        try {
+            const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
+
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+
+            if (csrfToken) {
+                headers['X-CSRFToken'] = csrfToken;
+            }
+
+            const response = await fetch('/security/clear_all_rate_limits', {
+                method: 'POST',
+                headers: headers
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to clear rate limits: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.showAlert(data.message, 'success');
+
+                // Refresh the page data
+                await this.refreshAll();
+            } else {
+                throw new Error(data.error || 'Unknown error');
+            }
+        } catch (error) {
+            console.error('Error clearing rate limits:', error);
+            this.showAlert('Error clearing rate limits: ' + error.message, 'error');
+        } finally {
+            if (clearAllRateLimitsBtn) {
+                clearAllRateLimitsBtn.disabled = false;
+                clearAllRateLimitsBtn.innerHTML = originalText;
+            }
         }
     }
 

@@ -253,7 +253,7 @@
                 </div>
                 <div id="roster-{{ team.id }}" class="collapse show">
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--hoverable mb-0" data-table>
+                        <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="roster">
                             <thead scope="col"><tr><th scope="col">Player</th><th class="text-center d-none d-md-table-cell" scope="col">G</th><th class="text-center d-none d-md-table-cell" scope="col">A</th><th class="text-center d-none d-lg-table-cell" scope="col">YC</th><th class="text-center d-none d-lg-table-cell" scope="col">RC</th><th class="text-center" scope="col">Attendance</th></tr></thead>
                             <tbody>
                                 {% for player, attendance, season_stats in stats.roster %}

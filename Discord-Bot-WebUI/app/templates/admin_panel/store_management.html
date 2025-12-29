@@ -121,7 +121,7 @@
     </div>
     <div class="c-orders-table" data-component="orders-table">
         <div class="c-orders-table__wrapper">
-            <table class="c-orders-table__table">
+            <table class="c-orders-table__table" data-mobile-table data-table-type="orders">
                 <thead class="c-orders-table__head">
                     <tr>
                         <th>Order ID</th>
@@ -329,7 +329,7 @@ function viewAllProducts() {
         html: `
             <div class="text-start">
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--compact" data-table>
+                    <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="orders">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Name</th>
@@ -423,7 +423,7 @@ function viewPendingOrders() {
         html: `
             <div class="text-start">
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--compact" data-table>
+                    <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="orders">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Order ID</th>
@@ -471,7 +471,7 @@ function viewCompletedOrders() {
         html: `
             <div class="text-start">
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--compact" data-table>
+                    <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="orders">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Order ID</th>

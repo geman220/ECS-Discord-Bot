@@ -132,13 +132,11 @@
   }
 
   /**
-   * Register event handlers using EventDelegation
+   * Register event handlers - now a no-op, handlers registered at module scope
    */
   function registerEventHandlers() {
-    if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
-      window.EventDelegation.register('toggle-auto-refresh', handleToggleAutoRefresh, { preventDefault: true });
-      window.EventDelegation.register('clear-cache', handleClearCache, { preventDefault: true });
-    }
+    // Handlers are now registered at module scope for proper timing
+    // See bottom of file for EventDelegation.register() calls
   }
 
   /**
@@ -290,6 +288,14 @@
     const value = getComputedStyle(document.documentElement).getPropertyValue(varName);
     return value ? value.trim() : null;
   }
+
+  // ============================================================================
+  // EVENT DELEGATION - Registered at module scope
+  // ============================================================================
+  // Handlers registered when IIFE executes, ensuring EventDelegation is available
+
+  EventDelegation.register('toggle-auto-refresh', handleToggleAutoRefresh, { preventDefault: true });
+  EventDelegation.register('clear-cache', handleClearCache, { preventDefault: true });
 
   // Run initialization when DOM is ready
   if (document.readyState === 'loading') {

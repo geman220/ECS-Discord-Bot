@@ -109,6 +109,18 @@ class SecurityMiddleware:
                     self._handle_security_violation(client_ip)
                 return
 
+            # Skip ALL security checks for trusted webhook endpoints
+            # These receive external data that may contain legitimate patterns
+            # that would otherwise trigger false positives (e.g., WooCommerce sends
+            # WordPress URLs like /wp-content/ which triggers the wp- pattern)
+            trusted_webhook_endpoints = [
+                '/api/v1/wallet/webhook/',  # WooCommerce wallet webhooks
+                '/webhook/',                 # General webhooks
+            ]
+            if any(request.path.startswith(path) for path in trusted_webhook_endpoints):
+                # Webhooks are validated by signature, not attack patterns
+                return
+
             # Get client IP (handle proxy headers from Traefik)
             client_ip = self._get_client_ip()
 
@@ -403,21 +415,74 @@ class RequestRateLimiter:
         self.blacklist[ip] = time.time() + new_duration
         logger.warning(f"IP {ip} AUTO-BANNED for {new_duration/3600} hours")
     
+    def clear_rate_limit(self, ip):
+        """Clear rate limit counters for a specific IP address.
+
+        This resets:
+        - Request count (allows new requests immediately)
+        - Attack count (resets auto-ban threshold)
+
+        Does NOT remove from blacklist - use unban for that.
+
+        Returns:
+            dict: Summary of what was cleared
+        """
+        cleared = {
+            'requests_cleared': 0,
+            'attack_count_cleared': 0
+        }
+
+        # Clear request history
+        if ip in self.requests:
+            cleared['requests_cleared'] = len(self.requests[ip])
+            del self.requests[ip]
+            logger.info(f"Cleared {cleared['requests_cleared']} request records for IP {ip}")
+
+        # Clear attack count
+        if ip in self.attack_counts:
+            cleared['attack_count_cleared'] = self.attack_counts[ip]
+            del self.attack_counts[ip]
+            logger.info(f"Cleared attack count ({cleared['attack_count_cleared']}) for IP {ip}")
+
+        return cleared
+
+    def clear_all_rate_limits(self):
+        """Clear all rate limit counters (but not blacklist/bans).
+
+        Returns:
+            dict: Summary of what was cleared
+        """
+        cleared = {
+            'ips_cleared': len(self.requests),
+            'total_requests_cleared': sum(len(reqs) for reqs in self.requests.values()),
+            'attack_counts_cleared': len(self.attack_counts),
+            'total_attacks_cleared': sum(self.attack_counts.values())
+        }
+
+        self.requests.clear()
+        self.attack_counts.clear()
+
+        logger.info(f"Cleared all rate limits: {cleared['ips_cleared']} IPs, "
+                   f"{cleared['total_requests_cleared']} requests, "
+                   f"{cleared['attack_counts_cleared']} attack records")
+
+        return cleared
+
     def _cleanup_old_entries(self):
         """Remove old rate limiting entries."""
         current_time = time.time()
         window = 3600  # 1 hour
-        
+
         # Clean up request history
         for ip in list(self.requests.keys()):
             ip_requests = self.requests[ip]
             while ip_requests and ip_requests[0] < current_time - window:
                 ip_requests.popleft()
-            
+
             # Remove empty entries
             if not ip_requests:
                 del self.requests[ip]
-        
+
         # Clean up expired blacklist entries
         expired_ips = [
             ip for ip, expiry in self.blacklist.items()
@@ -425,7 +490,7 @@ class RequestRateLimiter:
         ]
         for ip in expired_ips:
             del self.blacklist[ip]
-        
+
         self.last_cleanup = current_time
 
 

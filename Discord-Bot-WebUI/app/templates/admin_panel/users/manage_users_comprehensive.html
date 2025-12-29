@@ -260,7 +260,7 @@
             <div class="c-card">
                 <div class="c-card__body p-0">
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--hoverable mb-0" data-table>
+                        <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="users">
                             <thead class="c-table--light" scope="col">
                                 <tr>
                                     <th width="40" scope="col">
@@ -609,6 +609,29 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                    <!-- ECS FC Multi-Team Section -->
+                                    <div id="ecsFcTeamsSection" class="mt-3 d-none">
+                                        <div class="alert alert-info py-2 mb-3">
+                                            <i class="ti ti-info-circle me-1"></i>
+                                            <small>ECS FC players can be on multiple teams within the same league</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="editEcsFcTeams" class="form-label">ECS FC Team Memberships</label>
+                                            <select class="form-select" id="editEcsFcTeams" name="ecs_fc_team_ids" multiple size="4" data-form-select>
+                                                {% for league in leagues %}
+                                                    {% if 'ECS FC' in league.name %}
+                                                        {% for team in league.teams %}
+                                                        <option value="{{ team.id }}" data-league="{{ league.id }}">
+                                                            {{ team.name }}
+                                                        </option>
+                                                        {% endfor %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
+                                            <div class="form-text">Hold Ctrl/Cmd to select multiple teams</div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -629,6 +652,7 @@
 
 {% block custom_js %}
 {{ super() }}
+<script src="{{ url_for('static', filename='custom_js/user-management-ecs-fc.js') }}"></script>
 <script>
 let editUserModal, editUserForm;
 

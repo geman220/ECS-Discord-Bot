@@ -1330,12 +1330,8 @@
   // ============================================================================
 
   function registerEventHandlers() {
-    // Register delete-menu action via EventDelegation
-    if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
-      window.EventDelegation.register('delete-menu', handleDeleteMenuClick, {
-        preventDefault: true
-      });
-    }
+    // EventDelegation handler is registered at module scope below
+    // This function is kept for consistency but no longer registers handlers
   }
 
   // ============================================================================
@@ -1478,5 +1474,12 @@
     refresh: loadConversations,
     getUnreadCount: () => state.unreadCount
   };
+
+  // ============================================================================
+  // EVENT DELEGATION - Registered at module scope
+  // ============================================================================
+  // Handler registered when IIFE executes
+
+  EventDelegation.register('delete-menu', handleDeleteMenuClick, { preventDefault: true });
 
 })();

@@ -454,6 +454,51 @@
     },
 
     /**
+     * Scroll Detection - Prevent Accidental Clicks During Scroll
+     *
+     * On mobile, users often accidentally trigger clicks when trying to scroll.
+     * This tracks scroll state and prevents click events during active scrolling.
+     */
+    setupScrollClickPrevention: function () {
+      let isScrolling = false;
+      let scrollTimeout = null;
+      const SCROLL_TIMEOUT = 150; // ms to wait after scroll stops
+
+      // Track touch move (scrolling)
+      document.addEventListener('touchmove', () => {
+        isScrolling = true;
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+          isScrolling = false;
+        }, SCROLL_TIMEOUT);
+      }, { passive: true });
+
+      // Reset on touch start
+      document.addEventListener('touchstart', () => {
+        // Don't immediately reset - wait a tiny bit
+        // This helps with quick taps after scrolling
+      }, { passive: true });
+
+      // Prevent click events during scroll momentum
+      document.addEventListener('click', (e) => {
+        if (isScrolling) {
+          // Only prevent on interactive elements that aren't form controls
+          const target = e.target;
+          const isFormControl = target.matches('input, select, textarea, [contenteditable]');
+          const isLink = target.closest('a, button, [role="button"], .btn, .nav-link, .list-group-item');
+
+          if (isLink && !isFormControl) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.debug('[MobileGestures] Prevented accidental click during scroll');
+          }
+        }
+      }, { capture: true });
+
+      console.debug('[MobileGestures] Scroll click prevention initialized');
+    },
+
+    /**
      * Initialize all gesture handlers
      */
     init: function () {
@@ -461,6 +506,9 @@
         console.log('MobileGestures: Not a touch device, skipping initialization');
         return;
       }
+
+      // Always setup scroll click prevention (doesn't need Hammer.js)
+      this.setupScrollClickPrevention();
 
       if (!this.isHammerLoaded()) {
         console.warn('MobileGestures: Hammer.js not loaded, gesture support disabled');

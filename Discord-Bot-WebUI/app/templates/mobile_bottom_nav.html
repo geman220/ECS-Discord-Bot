@@ -226,8 +226,10 @@
 
         if (!themeIcon || !themeText) return;
 
-        const isDark = document.documentElement.classList.contains('dark-style') ||
-                      document.documentElement.getAttribute('data-theme') === 'dark';
+        // Check current theme using data-style attribute (our standard)
+        const currentStyle = document.documentElement.getAttribute('data-style');
+        const isDark = currentStyle === 'dark' ||
+                      document.documentElement.classList.contains('dark-style');
 
         if (isDark) {
             themeIcon.classList.remove('ti-moon');
@@ -242,15 +244,19 @@
 
     // Toggle theme function
     window.toggleTheme = function() {
-        // Try to find existing theme toggle button
-        const mainThemeToggle = document.querySelector('.style-switcher-toggle, #darkModeToggle, [data-theme-toggle]');
-
-        if (mainThemeToggle) {
-            mainThemeToggle.click();
+        // Use SimpleThemeSwitcher if available (preferred method)
+        if (window.themeSwitcher && typeof window.themeSwitcher.setTheme === 'function') {
+            const currentTheme = window.themeSwitcher.getEffectiveTheme();
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            window.themeSwitcher.setTheme(newTheme);
         } else {
-            // Fallback: toggle class directly
-            document.documentElement.classList.toggle('dark-style');
-            document.documentElement.classList.toggle('light-style');
+            // Fallback: toggle data-style attribute directly
+            const currentStyle = document.documentElement.getAttribute('data-style') || 'light';
+            const newStyle = currentStyle === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-style', newStyle);
+            document.documentElement.classList.remove('dark-style', 'light-style');
+            document.documentElement.classList.add(`${newStyle}-style`);
+            localStorage.setItem('template-style', newStyle);
         }
 
         // Update mobile theme toggle

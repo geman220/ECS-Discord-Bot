@@ -55,10 +55,12 @@
             <div class="c-card__body">
                 <div class="row align-items-center">
                     <div class="col-md-6 mb-2 mb-md-0">
-                        <button id="scan-btn" class="c-btn c-btn--primary me-2">
-                            <i class="ti ti-scan me-1"></i>Scan for Duplicates
-                        </button>
-                        <span class="text-muted small">Last scan: {{ stats.last_scan or 'Never' }}</span>
+                        <div class="c-action-bar c-action-bar--inline">
+                            <button id="scan-btn" class="c-btn c-btn--primary">
+                                <i class="ti ti-scan me-1"></i>Scan for Duplicates
+                            </button>
+                            <span class="text-muted small">Last scan: {{ stats.last_scan or 'Never' }}</span>
+                        </div>
                     </div>
                     <div class="col-md-6 text-md-end">
                         <span class="text-muted">Showing {{ duplicate_groups|length }} potential duplicate groups</span>
@@ -94,7 +96,7 @@
                 </div>
                 <div class="c-card__body p-0">
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--compact c-table--hoverable mb-0" data-table>
+                        <table class="c-table c-table--compact c-table--hoverable mb-0" data-table data-mobile-table data-table-type="duplicates">
                             <thead scope="col">
                                 <tr>
                                     <th class="u-w-80" scope="col">

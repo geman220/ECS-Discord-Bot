@@ -579,16 +579,16 @@ def clear_all_bans():
         # Get current user
         from app.utils.user_helpers import safe_current_user
         cleared_by = safe_current_user.username if safe_current_user else 'System'
-        
+
         # Clear database bans
         from app.models import IPBan
         count = IPBan.clear_all_bans()
-        
+
         # Clear in-memory middleware bans
         security_middleware = getattr(current_app, 'security_middleware', None)
         if security_middleware and hasattr(security_middleware, 'rate_limiter'):
             security_middleware.rate_limiter.blacklist.clear()
-        
+
         # Log security event
         from app.models import SecurityEvent
         SecurityEvent.log_event(
@@ -599,14 +599,134 @@ def clear_all_bans():
             request_path='/security/clear_all_bans',
             request_method='POST'
         )
-        
+
         logger.info(f"All IP bans cleared by {cleared_by}. {count} bans removed.")
-        
+
         return jsonify({
             'success': True,
             'message': f'Successfully cleared {count} IP ban(s)'
         })
-        
+
     except Exception as e:
         logger.error(f"Error clearing all bans: {e}")
         return jsonify({'error': 'Failed to clear IP bans'}), 500
+
+
+@security_status_bp.route('/security/clear_rate_limit', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def clear_rate_limit():
+    """Clear rate limit counters for a specific IP address.
+
+    This resets:
+    - Request count (allows new requests immediately)
+    - Attack count (resets auto-ban threshold)
+
+    Does NOT remove from blacklist - use unban_ip for that.
+    """
+    try:
+        data = request.get_json() or {}
+        ip_address = data.get('ip_address') or request.form.get('ip_address')
+        if not ip_address:
+            return jsonify({'error': 'IP address required'}), 400
+
+        # Validate IP address format
+        try:
+            ipaddress.ip_address(ip_address)
+        except ValueError:
+            return jsonify({'error': 'Invalid IP address format'}), 400
+
+        # Get current user
+        from app.utils.user_helpers import safe_current_user
+        cleared_by = safe_current_user.username if safe_current_user else 'System'
+
+        # Clear rate limits from security middleware
+        security_middleware = getattr(current_app, 'security_middleware', None)
+        if not security_middleware or not hasattr(security_middleware, 'rate_limiter'):
+            return jsonify({'error': 'Security middleware not available'}), 500
+
+        rate_limiter = security_middleware.rate_limiter
+        cleared = rate_limiter.clear_rate_limit(ip_address)
+
+        if cleared['requests_cleared'] == 0 and cleared['attack_count_cleared'] == 0:
+            return jsonify({
+                'success': True,
+                'message': f'No rate limit data found for IP {ip_address}'
+            })
+
+        # Log security event
+        from app.models import SecurityEvent
+        SecurityEvent.log_event(
+            event_type='rate_limit_cleared',
+            ip_address=ip_address,
+            severity='low',
+            description=f'Rate limits cleared by {cleared_by}. '
+                       f'Requests: {cleared["requests_cleared"]}, '
+                       f'Attack count: {cleared["attack_count_cleared"]}',
+            request_path='/security/clear_rate_limit',
+            request_method='POST'
+        )
+
+        logger.info(f"Rate limits cleared for IP {ip_address} by {cleared_by}")
+
+        return jsonify({
+            'success': True,
+            'message': f'Rate limits cleared for IP {ip_address}',
+            'details': cleared
+        })
+
+    except Exception as e:
+        logger.error(f"Error clearing rate limit: {e}")
+        return jsonify({'error': 'Failed to clear rate limit'}), 500
+
+
+@security_status_bp.route('/security/clear_all_rate_limits', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def clear_all_rate_limits():
+    """Clear all rate limit counters (but not bans/blacklist).
+
+    This resets:
+    - All request counts for all IPs
+    - All attack counts for all IPs
+
+    Does NOT remove IPs from blacklist - use clear_all_bans for that.
+    """
+    try:
+        # Get current user
+        from app.utils.user_helpers import safe_current_user
+        cleared_by = safe_current_user.username if safe_current_user else 'System'
+
+        # Clear all rate limits from security middleware
+        security_middleware = getattr(current_app, 'security_middleware', None)
+        if not security_middleware or not hasattr(security_middleware, 'rate_limiter'):
+            return jsonify({'error': 'Security middleware not available'}), 500
+
+        rate_limiter = security_middleware.rate_limiter
+        cleared = rate_limiter.clear_all_rate_limits()
+
+        # Log security event
+        from app.models import SecurityEvent
+        SecurityEvent.log_event(
+            event_type='all_rate_limits_cleared',
+            ip_address='system',
+            severity='medium',
+            description=f'All rate limits cleared by {cleared_by}. '
+                       f'IPs: {cleared["ips_cleared"]}, '
+                       f'Requests: {cleared["total_requests_cleared"]}, '
+                       f'Attack records: {cleared["attack_counts_cleared"]}',
+            request_path='/security/clear_all_rate_limits',
+            request_method='POST'
+        )
+
+        logger.info(f"All rate limits cleared by {cleared_by}: {cleared}")
+
+        return jsonify({
+            'success': True,
+            'message': f'Successfully cleared rate limits for {cleared["ips_cleared"]} IP(s)',
+            'details': cleared
+        })
+
+    except Exception as e:
+        logger.error(f"Error clearing all rate limits: {e}")
+        return jsonify({'error': 'Failed to clear rate limits'}), 500

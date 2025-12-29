@@ -60,7 +60,7 @@
                     <i class="ti ti-clipboard-list"></i>
                     <span>Waitlist Queue</span>
                 </div>
-                <div class="c-card-modern__actions">
+                <div class="c-card-modern__actions c-action-bar">
                     <button class="c-btn-modern c-btn-modern--secondary c-btn-modern--sm" data-action="back">
                         <i class="ti ti-arrow-left"></i>
                         <span>Back</span>
@@ -75,7 +75,7 @@
             <div class="c-card-modern__body c-card-modern__body--no-padding">
                 {% if waitlist_users %}
                 <div class="c-table-modern__wrapper">
-                    <table class="c-table-modern">
+                    <table class="c-table-modern" data-mobile-table data-table-type="waitlist">
                         <thead class="c-table-modern__header">
                             <tr class="c-table-modern__row">
                                 <th class="c-table-modern__cell c-table-modern__cell--header">

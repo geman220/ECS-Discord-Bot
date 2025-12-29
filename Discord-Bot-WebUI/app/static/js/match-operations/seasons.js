@@ -340,27 +340,24 @@
     }
 
     // ========================================================================
-    // EVENT DELEGATION REGISTRATIONS
+    // EVENT DELEGATION REGISTRATIONS - Module scope
     // ========================================================================
+    // Note: create-season is handled by event-delegation/handlers/season-wizard.js
 
-    if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
-        // Note: create-season is handled by event-delegation/handlers/season-wizard.js
+    EventDelegation.register('view-season', function(element, e) {
+        const seasonId = element.dataset.seasonId;
+        viewSeason(seasonId);
+    }, { preventDefault: true });
 
-        window.EventDelegation.register('view-season', function(element, e) {
-            const seasonId = element.dataset.seasonId;
-            viewSeason(seasonId);
-        }, { preventDefault: true });
+    EventDelegation.register('edit-season', function(element, e) {
+        const seasonId = element.dataset.seasonId;
+        editSeason(seasonId);
+    }, { preventDefault: true });
 
-        window.EventDelegation.register('edit-season', function(element, e) {
-            const seasonId = element.dataset.seasonId;
-            editSeason(seasonId);
-        }, { preventDefault: true });
-
-        window.EventDelegation.register('set-current-season', function(element, e) {
-            const seasonId = element.dataset.seasonId;
-            setCurrentSeason(seasonId);
-        }, { preventDefault: true });
-    }
+    EventDelegation.register('set-current-season', function(element, e) {
+        const seasonId = element.dataset.seasonId;
+        setCurrentSeason(seasonId);
+    }, { preventDefault: true });
 
 })();
 

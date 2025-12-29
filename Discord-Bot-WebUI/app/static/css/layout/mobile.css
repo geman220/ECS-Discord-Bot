@@ -1394,7 +1394,7 @@ img {
     padding: 0.75rem;
     font-size: 0.875rem;
     border-radius: var(--admin-border-radius);
-    background: white;
+    background: var(--color-bg-card, #ffffff);
     box-shadow: var(--admin-box-shadow);
     border: 1px solid var(--admin-light);
   }
@@ -1839,7 +1839,7 @@ img {
         padding: 0.75rem;
         font-size: 0.875rem;
         border-radius: var(--admin-border-radius);
-        background: white;
+        background: var(--color-bg-card, #ffffff);
         box-shadow: var(--admin-box-shadow);
         border: 1px solid var(--admin-light);
     }
@@ -2355,3 +2355,75 @@ img {
 /* SweetAlert z-index - MOVED TO mobile-modals.css to avoid duplication */
 
 /* See mobile-modals.css for comprehensive SweetAlert2 z-index rules */
+
+
+/* ============================================================================
+   MOBILE CONTAINER OVERFLOW PROTECTION
+   Prevents content from escaping container bounds on mobile
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Prevent horizontal overflow in cards and content areas */
+  .card,
+  .c-card,
+  .card-body,
+  .c-card__content,
+  .content-wrapper,
+  .layout-page {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
+  /* Button groups should wrap on mobile */
+  .btn-group:not(.btn-group-vertical) {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* Button group buttons should have proper sizing */
+  .btn-group .btn {
+    flex: 1 1 auto;
+    min-width: 80px;
+  }
+
+  /* Horizontal scroll for action bars that shouldn't wrap */
+  .c-draft-actions,
+  .c-stats-actions,
+  .c-action-bar,
+  .c-toolbar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.5rem;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+
+  /* Ensure action bar buttons don't shrink too small */
+  .c-draft-actions .btn,
+  .c-stats-actions .btn,
+  .c-action-bar .btn {
+    flex-shrink: 0;
+  }
+
+  /* Fix for elements escaping bounds (like "Pitch" button from screenshots) */
+  .c-player-stats,
+  .c-draft-panel,
+  .c-stats-container {
+    overflow: hidden;
+    max-width: 100%;
+  }
+
+  /* Ensure images don't overflow */
+  img,
+  video,
+  iframe {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Fix inline button groups */
+  .d-inline-flex.btn-group,
+  .d-flex.btn-group {
+    flex-wrap: wrap;
+  }
+}

@@ -82,78 +82,12 @@ class ModernNavbarController {
   }
 
   /**
-   * Register all data-action handlers via EventDelegation
+   * Register event handlers - now a no-op since handlers are registered at module scope
+   * Kept for backward compatibility if anything calls it
    */
   registerEventHandlers() {
-    if (!window.EventDelegation || typeof window.EventDelegation.register !== 'function') {
-      console.warn('[Navbar] EventDelegation not available, using fallback');
-      return;
-    }
-
-    // Mobile menu toggle
-    window.EventDelegation.register('toggle-menu', (element, e) => {
-      this.toggleMobileMenu();
-    }, { preventDefault: true });
-
-    // Dropdown toggles (scoped name to avoid collision with admin nav)
-    window.EventDelegation.register('toggle-navbar-dropdown', (element, e) => {
-      const dropdownId = element.dataset.dropdown;
-      if (dropdownId) {
-        this.toggleDropdown(dropdownId);
-      }
-    }, { preventDefault: true });
-
-    // Theme switcher
-    window.EventDelegation.register('switch-theme', (element, e) => {
-      const theme = element.dataset.theme;
-      if (theme) {
-        this.switchTheme(theme);
-      }
-    }, { preventDefault: true });
-
-    // Role impersonation
-    window.EventDelegation.register('start-impersonation', (element, e) => {
-      this.startRoleImpersonation();
-    }, { preventDefault: true });
-
-    window.EventDelegation.register('stop-impersonation', (element, e) => {
-      this.stopRoleImpersonation();
-    }, { preventDefault: true });
-
-    // Notification actions
-    window.EventDelegation.register('mark-read', (element, e) => {
-      const notificationId = element.dataset.notificationId;
-      if (notificationId) {
-        this.markNotificationRead(notificationId);
-      }
-    }, { preventDefault: true });
-
-    window.EventDelegation.register('mark-all-read', (element, e) => {
-      this.markAllNotificationsRead();
-    }, { preventDefault: true });
-
-    window.EventDelegation.register('clear-all-notifications', (element, e) => {
-      this.clearAllNotifications();
-    }, { preventDefault: true });
-
-    window.EventDelegation.register('dismiss-notification', (element, e) => {
-      const notificationId = element.dataset.notificationId;
-      if (notificationId) {
-        this.dismissNotification(notificationId);
-      }
-    }, { preventDefault: true, stopPropagation: true });
-
-    window.EventDelegation.register('expand-notification', (element, e) => {
-      const notificationId = element.dataset.notificationId;
-      if (notificationId) {
-        this.toggleNotificationExpand(notificationId);
-      }
-    }, { preventDefault: true });
-
-    // Logout
-    window.EventDelegation.register('logout', (element, e) => {
-      this.handleLogout();
-    }, { preventDefault: true });
+    // Handlers are now registered at module scope for proper timing
+    // See bottom of file for EventDelegation.register() calls
   }
 
   /**
@@ -356,8 +290,9 @@ class ModernNavbarController {
    * Initialize search functionality
    */
   initSearch() {
+    const searchContainer = document.querySelector('.c-navbar-modern__search');
     const searchInput = document.querySelector('.c-navbar-modern__search-input');
-    if (!searchInput) return;
+    if (!searchInput || !searchContainer) return;
 
     // Prevent form submission
     const form = searchInput.closest('form');
@@ -383,11 +318,48 @@ class ModernNavbarController {
 
     // Focus animation
     searchInput.addEventListener('focus', () => {
-      searchInput.parentElement.classList.add('is-focused');
+      searchContainer.classList.add('is-focused');
+      // On mobile, expand the search
+      if (window.innerWidth <= 767.98) {
+        searchContainer.classList.add('is-expanded');
+      }
     });
 
     searchInput.addEventListener('blur', () => {
-      searchInput.parentElement.classList.remove('is-focused');
+      searchContainer.classList.remove('is-focused');
+      // On mobile, collapse if empty
+      if (window.innerWidth <= 767.98 && !searchInput.value.trim()) {
+        setTimeout(() => {
+          searchContainer.classList.remove('is-expanded');
+        }, 150);
+      }
+    });
+
+    // Mobile: Click on collapsed search icon to expand
+    searchContainer.addEventListener('click', (e) => {
+      if (window.innerWidth <= 767.98 && !searchContainer.classList.contains('is-expanded')) {
+        e.preventDefault();
+        searchContainer.classList.add('is-expanded');
+        searchInput.focus();
+      }
+    });
+
+    // Close expanded search when clicking outside
+    document.addEventListener('click', (e) => {
+      if (window.innerWidth <= 767.98 &&
+          searchContainer.classList.contains('is-expanded') &&
+          !searchContainer.contains(e.target) &&
+          !searchInput.value.trim()) {
+        searchContainer.classList.remove('is-expanded');
+      }
+    });
+
+    // Handle escape key to close expanded search
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && window.innerWidth <= 767.98) {
+        searchInput.blur();
+        searchContainer.classList.remove('is-expanded');
+      }
     });
   }
 
@@ -1360,3 +1332,88 @@ if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = ModernNavbarController;
 }
+
+// ============================================================================
+// EVENT DELEGATION HANDLERS - Registered at module scope
+// ============================================================================
+// These are registered when the module loads, ensuring EventDelegation is available.
+// Handlers delegate to window.navbarController which is set when navbar initializes.
+
+// Mobile menu toggle
+EventDelegation.register('toggle-menu', (element, e) => {
+  if (window.navbarController) {
+    window.navbarController.toggleMobileMenu();
+  }
+}, { preventDefault: true });
+
+// Dropdown toggles (scoped name to avoid collision with admin nav)
+EventDelegation.register('toggle-navbar-dropdown', (element, e) => {
+  const dropdownId = element.dataset.dropdown;
+  if (dropdownId && window.navbarController) {
+    window.navbarController.toggleDropdown(dropdownId);
+  }
+}, { preventDefault: true });
+
+// Theme switcher
+EventDelegation.register('switch-theme', (element, e) => {
+  const theme = element.dataset.theme;
+  if (theme && window.navbarController) {
+    window.navbarController.switchTheme(theme);
+  }
+}, { preventDefault: true });
+
+// Role impersonation
+EventDelegation.register('start-impersonation', (element, e) => {
+  if (window.navbarController) {
+    window.navbarController.startRoleImpersonation();
+  }
+}, { preventDefault: true });
+
+EventDelegation.register('stop-impersonation', (element, e) => {
+  if (window.navbarController) {
+    window.navbarController.stopRoleImpersonation();
+  }
+}, { preventDefault: true });
+
+// Notification actions
+EventDelegation.register('mark-read', (element, e) => {
+  const notificationId = element.dataset.notificationId;
+  if (notificationId && window.navbarController) {
+    window.navbarController.markNotificationRead(notificationId);
+  }
+}, { preventDefault: true });
+
+EventDelegation.register('mark-all-read', (element, e) => {
+  if (window.navbarController) {
+    window.navbarController.markAllNotificationsRead();
+  }
+}, { preventDefault: true });
+
+EventDelegation.register('clear-all-notifications', (element, e) => {
+  if (window.navbarController) {
+    window.navbarController.clearAllNotifications();
+  }
+}, { preventDefault: true });
+
+EventDelegation.register('dismiss-notification', (element, e) => {
+  const notificationId = element.dataset.notificationId;
+  if (notificationId && window.navbarController) {
+    window.navbarController.dismissNotification(notificationId);
+  }
+}, { preventDefault: true, stopPropagation: true });
+
+EventDelegation.register('expand-notification', (element, e) => {
+  const notificationId = element.dataset.notificationId;
+  if (notificationId && window.navbarController) {
+    window.navbarController.toggleNotificationExpand(notificationId);
+  }
+}, { preventDefault: true });
+
+// Logout
+EventDelegation.register('logout', (element, e) => {
+  if (window.navbarController) {
+    window.navbarController.handleLogout();
+  }
+}, { preventDefault: true });
+
+console.log('[Navbar] EventDelegation handlers registered at module scope');

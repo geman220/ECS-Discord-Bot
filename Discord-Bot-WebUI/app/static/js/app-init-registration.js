@@ -265,21 +265,8 @@
             }
         }
 
-        // Register event delegation handler for menu toggle
-        if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
-            window.EventDelegation.register('toggle-mobile-menu', function(element, e) {
-                e.preventDefault();
-                toggleMenu();
-            }, { preventDefault: true });
-        }
-
-        // Register event delegation handler for close icon
-        if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
-            window.EventDelegation.register('close-mobile-menu', function(element, e) {
-                e.preventDefault();
-                closeMenu();
-            }, { preventDefault: true });
-        }
+        // Note: EventDelegation handlers for mobile menu are registered at module scope
+        // See bottom of file
 
         // Close when clicking the overlay (keep this as non-action click)
         // FIXED: Added guard to prevent duplicate global event listener registration
@@ -378,5 +365,27 @@
     // ============================================================================
     console.log('[App Init] ✅ 7 components registered successfully');
     console.log('[App Init] Run InitSystemDebug.printOrder() to view initialization order');
+
+    // ============================================================================
+    // EVENT DELEGATION - Registered at module scope
+    // ============================================================================
+    // Mobile menu handlers - work directly with DOM classes
+
+    EventDelegation.register('toggle-mobile-menu', function(element, e) {
+        e.preventDefault();
+        if (document.documentElement.classList.contains('layout-menu-expanded')) {
+            document.documentElement.classList.remove('layout-menu-expanded');
+            document.body.classList.remove('sidebar-open');
+        } else {
+            document.documentElement.classList.add('layout-menu-expanded');
+            document.body.classList.add('sidebar-open');
+        }
+    }, { preventDefault: true });
+
+    EventDelegation.register('close-mobile-menu', function(element, e) {
+        e.preventDefault();
+        document.documentElement.classList.remove('layout-menu-expanded');
+        document.body.classList.remove('sidebar-open');
+    }, { preventDefault: true });
 
 })(window, document);

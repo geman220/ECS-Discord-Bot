@@ -38,6 +38,8 @@ def _init_csrf_handlers(app, csrf):
 
         # Skip for API routes that should be exempt from CSRF
         exempt_prefixes = [
+            '/socket.io/',  # Socket.IO has its own authentication
+            '/api/notifications/',  # Presence refresh is a background heartbeat
             '/api/substitute-pools/',
             '/api/ecs-fc/',
             '/api/availability/',
@@ -70,6 +72,8 @@ def _init_before_request(app):
         # Check for CSRF exemption first
         path = request.path
         exempt_routes = [
+            '/socket.io/',  # Socket.IO has its own authentication
+            '/api/notifications/',  # Presence refresh is a background heartbeat
             '/admin/force_send/',
             '/admin/delete_message/',
             '/admin/update_rsvp',

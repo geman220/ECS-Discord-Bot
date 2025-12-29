@@ -49,24 +49,12 @@
   }
 
   // ============================================================================
-  // EVENT REGISTRATION - Uses central EventDelegation system
+  // EVENT REGISTRATION - Now a no-op, handlers registered at module scope
   // ============================================================================
 
   function registerEventHandlers() {
-    // Check if EventDelegation is available
-    if (!window.EventDelegation || typeof window.EventDelegation.register !== 'function') {
-      console.warn('[AdminDashboard] EventDelegation not available, skipping handler registration');
-      return;
-    }
-
-    // Register only the actions this module handles
-    window.EventDelegation.register('navigate', handleNavigate);
-    window.EventDelegation.register('open-navigation-settings', openNavigationSettings, { preventDefault: true });
-    window.EventDelegation.register('open-registration-settings', openRegistrationSettings, { preventDefault: true });
-    window.EventDelegation.register('open-task-monitor', openTaskMonitor, { preventDefault: true });
-    window.EventDelegation.register('open-database-monitor', openDatabaseMonitor, { preventDefault: true });
-    window.EventDelegation.register('open-match-reports', openMatchReports, { preventDefault: true });
-    window.EventDelegation.register('generate-report', generateReport, { preventDefault: true });
+    // Handlers are now registered at module scope for proper timing
+    // See bottom of file for EventDelegation.register() calls
   }
 
   let _navCardsSetup = false;
@@ -583,6 +571,19 @@
     console.error('CSRF token not found');
     return '';
   }
+
+  // ============================================================================
+  // EVENT DELEGATION - Registered at module scope
+  // ============================================================================
+  // Handlers registered when IIFE executes, ensuring EventDelegation is available
+
+  EventDelegation.register('navigate', handleNavigate);
+  EventDelegation.register('open-navigation-settings', openNavigationSettings, { preventDefault: true });
+  EventDelegation.register('open-registration-settings', openRegistrationSettings, { preventDefault: true });
+  EventDelegation.register('open-task-monitor', openTaskMonitor, { preventDefault: true });
+  EventDelegation.register('open-database-monitor', openDatabaseMonitor, { preventDefault: true });
+  EventDelegation.register('open-match-reports', openMatchReports, { preventDefault: true });
+  EventDelegation.register('generate-report', generateReport, { preventDefault: true });
 
   // ============================================================================
   // AUTO-INITIALIZE

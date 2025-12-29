@@ -644,3 +644,44 @@
         box-shadow: 0 0 0 0 rgba(var(--ecs-warning-rgb, 245, 158, 11), 0);
     }
 }
+
+/* ============================================
+   GLOBAL TOUCH-ACTION FOR MOBILE
+   Prevents accidental clicks during scroll
+   Only applies on touch devices (pointer: coarse)
+   ============================================ */
+
+@media (pointer: coarse) {
+    /* Apply touch-action: manipulation to all interactive elements
+       This removes the 300ms click delay and prevents double-tap zoom
+       while still allowing pan/scroll gestures */
+    .btn,
+    .nav-link,
+    a,
+    button,
+    [role="button"],
+    .clickable,
+    .list-group-item,
+    .c-table td,
+    .card,
+    .dropdown-item,
+    .c-sidebar__nav-link,
+    .c-mobile-bottom-nav__item,
+    .form-control,
+    .form-select,
+    input,
+    select,
+    textarea,
+    label {
+        touch-action: manipulation;
+    }
+
+    /* Ensure proper touch handling on scrollable containers */
+    .table-responsive,
+    .modal-body,
+    .offcanvas-body,
+    .overflow-auto,
+    .overflow-scroll {
+        -webkit-overflow-scrolling: touch;
+    }
+}

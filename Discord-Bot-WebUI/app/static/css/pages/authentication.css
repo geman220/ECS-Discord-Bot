@@ -814,6 +814,16 @@
     padding-bottom: env(safe-area-inset-bottom, 1rem);
   }
 
+  /* Auth buttons - ensure minimum tap target size */
+  .c-auth-btn {
+    min-height: 48px;
+    font-size: 1rem;
+  }
+
+  .c-auth-btn + .c-auth-btn {
+    margin-top: 0.75rem;
+  }
+
   /* Account info card - more compact on mobile */
   .c-auth-help-card--mb-lg {
     margin-bottom: 1rem;

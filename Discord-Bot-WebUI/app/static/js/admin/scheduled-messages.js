@@ -458,27 +458,6 @@
     }
 
     // ========================================================================
-    // EVENT DELEGATION
-    // ========================================================================
-
-    /**
-     * Initialize event delegation for scheduled message actions
-     */
-    function initEventDelegation() {
-        if (!window.EventDelegation || typeof window.EventDelegation.register !== 'function') {
-            console.error('[Scheduled Messages] EventDelegation not available');
-            return;
-        }
-
-        window.EventDelegation.register('go-back-scheduled', handleGoBack, { preventDefault: true });
-        window.EventDelegation.register('preview-message', handlePreviewMessage, { preventDefault: true });
-        window.EventDelegation.register('view-scheduled-message', handleViewScheduledMessage, { preventDefault: true });
-        window.EventDelegation.register('edit-scheduled-message', handleEditScheduledMessage, { preventDefault: true });
-        window.EventDelegation.register('cancel-scheduled-message', handleCancelScheduledMessage, { preventDefault: true });
-        window.EventDelegation.register('retry-scheduled-message', handleRetryScheduledMessage, { preventDefault: true });
-    }
-
-    // ========================================================================
     // INITIALIZATION
     // ========================================================================
 
@@ -496,10 +475,22 @@
         initRecurringToggle();
         initQueueFiltering();
         initMinDateTime();
-        initEventDelegation();
+        // EventDelegation handlers are registered at module scope below
 
         console.log('[Scheduled Messages] Initialization complete');
     }
+
+    // ========================================================================
+    // EVENT DELEGATION - Registered at module scope
+    // ========================================================================
+    // Handlers registered when IIFE executes, ensuring EventDelegation is available
+
+    EventDelegation.register('go-back-scheduled', handleGoBack, { preventDefault: true });
+    EventDelegation.register('preview-message', handlePreviewMessage, { preventDefault: true });
+    EventDelegation.register('view-scheduled-message', handleViewScheduledMessage, { preventDefault: true });
+    EventDelegation.register('edit-scheduled-message', handleEditScheduledMessage, { preventDefault: true });
+    EventDelegation.register('cancel-scheduled-message', handleCancelScheduledMessage, { preventDefault: true });
+    EventDelegation.register('retry-scheduled-message', handleRetryScheduledMessage, { preventDefault: true });
 
     // ========================================================================
     // DOM READY

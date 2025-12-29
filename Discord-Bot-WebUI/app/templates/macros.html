@@ -1233,3 +1233,201 @@
     </div>
 </div>
 {% endmacro %}
+
+
+{# ============================================================================
+   MOBILE-FRIENDLY TABLE MACROS
+   ============================================================================
+   These macros create tables that automatically transform to cards on mobile.
+   Works with mobile-table-enhancer.js for automatic data-label attributes.
+   ============================================================================ #}
+
+{% macro mobile_table(id=none, table_type=none, css_classes='', mobile_primary=none, mobile_expand=true) %}
+{#
+    Wraps table content in a mobile-optimized responsive container.
+
+    Args:
+        id: Table ID attribute
+        table_type: Type hint for styling (users, standings, logs, orders, etc.)
+        css_classes: Additional CSS classes
+        mobile_primary: Comma-separated column indices to always show on mobile (0-based)
+        mobile_expand: Whether rows are expandable on mobile (default: true)
+
+    Usage:
+        {% call macros.mobile_table(id='userTable', table_type='users', mobile_primary='0,1,5') %}
+        <thead>...</thead>
+        <tbody>...</tbody>
+        {% endcall %}
+#}
+<div class="table-responsive">
+    <table class="table c-table {{ css_classes }}"
+           {% if id %}id="{{ id }}"{% endif %}
+           {% if table_type %}data-table-type="{{ table_type }}"{% endif %}
+           {% if mobile_primary %}data-mobile-primary="{{ mobile_primary }}"{% endif %}
+           {% if not mobile_expand %}data-mobile-expand="false"{% endif %}
+           data-mobile-table>
+        {{ caller() }}
+    </table>
+</div>
+{% endmacro %}
+
+
+{% macro mobile_table_header(columns) %}
+{#
+    Renders a table header row with proper accessibility attributes.
+
+    Args:
+        columns: List of column definitions, each can be:
+                 - String: Just the header text
+                 - Dict: {text: 'Header', priority: 'high|medium|low', class: 'extra-class'}
+
+    Usage:
+        {{ macros.mobile_table_header(['Name', 'Email', {'text': 'Actions', 'priority': 'high'}]) }}
+#}
+<thead>
+    <tr>
+        {% for col in columns %}
+        {% if col is string %}
+        <th scope="col">{{ col }}</th>
+        {% else %}
+        <th scope="col"
+            {% if col.priority %}data-mobile-priority="{{ col.priority }}"{% endif %}
+            {% if col.class %}class="{{ col.class }}"{% endif %}>
+            {{ col.text }}
+        </th>
+        {% endif %}
+        {% endfor %}
+    </tr>
+</thead>
+{% endmacro %}
+
+
+{% macro disclosure(id=none, group=none, expanded=false, variant='card', remember=false) %}
+{#
+    Creates a progressive disclosure component for expandable content.
+
+    Args:
+        id: Unique identifier for the disclosure
+        group: Group name for accordion behavior (only one open at a time)
+        expanded: Whether initially expanded (default: false)
+        variant: Style variant ('card', 'inline', 'table-row')
+        remember: Whether to persist open/closed state in localStorage
+
+    Usage:
+        {% call macros.disclosure(id='details-1', group='faq') %}
+            {% call macros.disclosure_trigger() %}
+                Click to expand
+            {% endcall %}
+            {% call macros.disclosure_content() %}
+                Hidden content here...
+            {% endcall %}
+        {% endcall %}
+#}
+<div class="c-disclosure c-disclosure--{{ variant }} {% if expanded %}is-expanded{% endif %}"
+     {% if id %}id="{{ id }}"{% endif %}
+     {% if group %}data-disclosure-group="{{ group }}"{% endif %}
+     {% if remember %}data-disclosure-remember{% endif %}
+     data-disclosure>
+    {{ caller() }}
+</div>
+{% endmacro %}
+
+
+{% macro disclosure_trigger() %}
+{#
+    The clickable trigger for a disclosure component.
+    Must be used inside a disclosure() call.
+#}
+<button type="button" class="c-disclosure__trigger" data-disclosure-trigger>
+    <span class="c-disclosure__trigger-text">{{ caller() }}</span>
+    <i class="c-disclosure__icon ti ti-chevron-down"></i>
+</button>
+{% endmacro %}
+
+
+{% macro disclosure_content() %}
+{#
+    The expandable content for a disclosure component.
+    Must be used inside a disclosure() call.
+#}
+<div class="c-disclosure__content" data-disclosure-content>
+    <div class="c-disclosure__content-inner">
+        {{ caller() }}
+    </div>
+</div>
+{% endmacro %}
+
+
+{% macro data_summary(primary, secondary=none, meta=none) %}
+{#
+    Renders a data summary block for progressive disclosure triggers.
+    Shows primary info prominently, secondary as supporting text.
+
+    Args:
+        primary: Main text to display (e.g., name, title)
+        secondary: List of secondary info items
+        meta: List of metadata items with icons [{icon: 'calendar', text: '2 days ago'}]
+
+    Usage:
+        {{ macros.data_summary(
+            primary=user.name,
+            secondary=[user.email, user.role],
+            meta=[{'icon': 'calendar', 'text': user.created_at}]
+        ) }}
+#}
+<div class="c-data-summary">
+    <div class="c-data-summary__primary">{{ primary }}</div>
+    {% if secondary %}
+    <div class="c-data-summary__secondary">
+        {% for item in secondary %}
+        <span>{{ item }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% if meta %}
+    <div class="c-data-summary__secondary">
+        {% for item in meta %}
+        <span class="c-data-summary__meta">
+            {% if item.icon %}<i class="c-data-summary__meta-icon ti ti-{{ item.icon }}"></i>{% endif %}
+            {{ item.text }}
+        </span>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro action_bar(css_classes='') %}
+{#
+    Creates a mobile-optimized action button container.
+    Buttons stack and wrap properly on mobile.
+
+    Usage:
+        {% call macros.action_bar() %}
+            <button class="btn btn-primary">Save</button>
+            <button class="btn btn-secondary">Cancel</button>
+        {% endcall %}
+#}
+<div class="c-action-bar {{ css_classes }}">
+    {{ caller() }}
+</div>
+{% endmacro %}
+
+
+{% macro filter_bar(css_classes='') %}
+{#
+    Creates a mobile-optimized filter/search container.
+    Filters stack vertically on mobile.
+
+    Usage:
+        {% call macros.filter_bar() %}
+            <input type="text" class="form-control" placeholder="Search...">
+            <select class="form-select">...</select>
+            <button class="btn btn-primary">Apply</button>
+        {% endcall %}
+#}
+<div class="c-filter-bar {{ css_classes }}">
+    {{ caller() }}
+</div>
+{% endmacro %}

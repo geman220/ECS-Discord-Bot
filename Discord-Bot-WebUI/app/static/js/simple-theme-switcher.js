@@ -100,49 +100,9 @@ class SimpleThemeSwitcher {
 
   /**
    * Setup event listeners for theme switching
+   * Note: EventDelegation handlers are registered at module scope below
    */
   setupEventListeners() {
-    // Register EventDelegation handlers for theme switching
-    if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
-      // Handle settings page theme buttons (data-action="set-theme")
-      window.EventDelegation.register('set-theme', (element, e) => {
-        const theme = element.getAttribute('data-theme');
-        if (theme) {
-          console.log('Theme switching to (action):', theme);
-          this.setTheme(theme);
-
-          // Update button states in settings page
-          document.querySelectorAll('[data-action="set-theme"]').forEach(btn => {
-            btn.classList.remove('btn-primary');
-            btn.classList.add('btn-outline-secondary');
-          });
-          element.classList.remove('btn-outline-secondary');
-          element.classList.add('btn-primary');
-        }
-      }, { preventDefault: true });
-
-      // Handle navbar dropdown theme options (data-action="select-theme")
-      window.EventDelegation.register('select-theme', (element, e) => {
-        const theme = element.getAttribute('data-theme');
-        if (theme) {
-          console.log('Theme switching to:', theme);
-          this.setTheme(theme);
-
-          // Close dropdown manually if needed
-          const dropdown = element.closest('[data-role="theme-dropdown-menu"]');
-          if (dropdown) {
-            const toggle = document.querySelector('[data-role="theme-dropdown-toggle"]');
-            if (toggle && window.bootstrap) {
-              const dropdownInstance = window.bootstrap.Dropdown.getInstance(toggle);
-              if (dropdownInstance) {
-                dropdownInstance.hide();
-              }
-            }
-          }
-        }
-      }, { preventDefault: true });
-    }
-
     // Handle keyboard shortcuts (optional)
     document.addEventListener('keydown', (e) => {
       // Ctrl/Cmd + Shift + T for theme switching
@@ -420,3 +380,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Expose for debugging
 window.SimpleThemeSwitcher = SimpleThemeSwitcher;
+
+// ============================================================================
+// EVENT DELEGATION - Registered at module scope
+// ============================================================================
+// Handlers registered when module loads, ensuring EventDelegation is available.
+// Handlers delegate to window.themeSwitcher which is set on DOMContentLoaded.
+
+// Handle settings page theme buttons (data-action="set-theme")
+EventDelegation.register('set-theme', (element, e) => {
+  if (!window.themeSwitcher) return;
+
+  const theme = element.getAttribute('data-theme');
+  if (theme) {
+    console.log('Theme switching to (action):', theme);
+    window.themeSwitcher.setTheme(theme);
+
+    // Update button states in settings page
+    document.querySelectorAll('[data-action="set-theme"]').forEach(btn => {
+      btn.classList.remove('btn-primary');
+      btn.classList.add('btn-outline-secondary');
+    });
+    element.classList.remove('btn-outline-secondary');
+    element.classList.add('btn-primary');
+  }
+}, { preventDefault: true });
+
+// Handle navbar dropdown theme options (data-action="select-theme")
+EventDelegation.register('select-theme', (element, e) => {
+  if (!window.themeSwitcher) return;
+
+  const theme = element.getAttribute('data-theme');
+  if (theme) {
+    console.log('Theme switching to:', theme);
+    window.themeSwitcher.setTheme(theme);
+
+    // Close dropdown manually if needed
+    const dropdown = element.closest('[data-role="theme-dropdown-menu"]');
+    if (dropdown) {
+      const toggle = document.querySelector('[data-role="theme-dropdown-toggle"]');
+      if (toggle && window.bootstrap) {
+        const dropdownInstance = window.bootstrap.Dropdown.getInstance(toggle);
+        if (dropdownInstance) {
+          dropdownInstance.hide();
+        }
+      }
+    }
+  }
+}, { preventDefault: true });

@@ -32,6 +32,7 @@ from app.models import (
 from app.attendance_service import AttendanceService
 from app.image_cache_service import ImageCacheService
 from app.draft_cache_service import DraftCacheService
+from app.models.ecs_fc import is_ecs_fc_league
 from app.sockets.session import socket_session
 from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
 
@@ -940,21 +941,36 @@ def draft_league(league_name: str):
     
     logger.debug(f"Loaded {len(all_players_query)} total players for processing")
     
-    # Separate players into available/drafted using Python filtering (faster than DB queries)
+    # Separate players into available/drafted/multi-team using Python filtering
     available_players_raw = []
     drafted_players_raw = []
-    
+    ecs_fc_multi_team_players_raw = []  # Players already on ECS FC team (still draftable)
+
     # Build team lookup for faster filtering
     team_ids_set = set(team_ids)
-    
+
+    # Check if this is an ECS FC league
+    is_ecs_fc = is_ecs_fc_league(current_league.id)
+
     for player in all_players_query:
         player_team_ids = {team.id for team in player.teams}
-        if player_team_ids.intersection(team_ids_set):
+        teams_in_this_league = player_team_ids.intersection(team_ids_set)
+
+        if teams_in_this_league:
+            if is_ecs_fc:
+                # ECS FC: Player can be drafted to additional teams
+                # Store their existing teams for display
+                player.existing_ecs_fc_teams = [
+                    team.name for team in player.teams
+                    if team.id in teams_in_this_league
+                ]
+                ecs_fc_multi_team_players_raw.append(player)
+            # Always add to drafted for roster display
             drafted_players_raw.append(player)
         else:
             available_players_raw.append(player)
-    
-    logger.debug(f"Separated into {len(available_players_raw)} available and {len(drafted_players_raw)} drafted players")
+
+    logger.debug(f"Separated into {len(available_players_raw)} available, {len(ecs_fc_multi_team_players_raw)} multi-team, and {len(drafted_players_raw)} drafted players")
     
     # Try to get cached data first
     cache_key_available = f"{db_league_name}_available"
@@ -984,6 +1000,17 @@ def draft_league(league_name: str):
             DraftCacheService.set_enhanced_players_cache(db_league_name, 'drafted', drafted_players)
     else:
         logger.debug(f"Using cached player data for {db_league_name}")
+
+    # Process ECS FC multi-team players (no caching - dynamic based on current state)
+    ecs_fc_multi_team_players = []
+    if is_ecs_fc and ecs_fc_multi_team_players_raw:
+        ecs_fc_multi_team_players = DraftService.get_enhanced_player_data(
+            ecs_fc_multi_team_players_raw,
+            current_league.season_id
+        )
+        # Add existing team names to enhanced data
+        for enhanced, raw in zip(ecs_fc_multi_team_players, ecs_fc_multi_team_players_raw):
+            enhanced['existing_ecs_fc_teams'] = getattr(raw, 'existing_ecs_fc_teams', [])
 
     # FIRST: Deduplicate the drafted_players list itself (cache might have duplicates)
     seen_player_ids = set()
@@ -1035,7 +1062,10 @@ def draft_league(league_name: str):
         available_players=available_players,
         drafted_players_by_team=drafted_by_team,
         analytics=analytics,
-        current_season_id=current_league.season_id
+        current_season_id=current_league.season_id,
+        # ECS FC multi-team support
+        is_ecs_fc_league=is_ecs_fc,
+        ecs_fc_multi_team_players=ecs_fc_multi_team_players
     )
 
 
@@ -1323,9 +1353,10 @@ def api_draft_player():
                 session.query(Team.id).filter(Team.league_id == league.id)
             )
         ).first()
-        
-        if existing_assignment:
-            return jsonify({'error': 'Player already assigned to a team'}), 400
+
+        # ECS FC allows multi-team membership, skip check for ECS FC leagues
+        if existing_assignment and not is_ecs_fc_league(league.id):
+            return jsonify({'error': 'Player already assigned to a team in this league'}), 400
         
         # Add player to team and set as primary team
         team.players.append(player)

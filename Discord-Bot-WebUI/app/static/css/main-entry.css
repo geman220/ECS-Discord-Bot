@@ -104,6 +104,8 @@
 @import './components/ui-fixes.css';
 @import './components/c-schedule.css';
 @import './components/chat-widget.css';
+@import './components/progressive-disclosure.css';
+@import './components/mobile-data-cards.css';
 
 /* ============================================================================
    4. LAYOUT

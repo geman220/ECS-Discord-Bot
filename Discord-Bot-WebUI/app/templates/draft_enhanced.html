@@ -245,6 +245,110 @@
                 </div>
             </div>
 
+            <!-- ECS FC Multi-Team Eligible Section -->
+            {% if is_ecs_fc_league and ecs_fc_multi_team_players %}
+            <div class="c-card c-card--collapsible mt-4" id="ecsFcMultiTeamSection">
+                <div class="c-card__header c-card__header--collapsible draft-multi-team-header" data-bs-toggle="collapse"
+                     data-bs-target="#ecsFcMultiTeamBody" aria-expanded="true">
+                    <h5 class="mb-0 d-flex align-items-center">
+                        <i class="ti ti-users-group me-2"></i>
+                        Already on ECS FC Team
+                        <span class="c-badge c-badge--secondary ms-2">{{ ecs_fc_multi_team_players|length }}</span>
+                    </h5>
+                    <span class="c-card__collapse-icon">
+                        <i class="ti ti-chevron-down"></i>
+                    </span>
+                </div>
+                <div class="collapse show" id="ecsFcMultiTeamBody">
+                    <div class="c-card__body">
+                        <p class="text-muted small mb-3">
+                            <i class="ti ti-info-circle me-1"></i>
+                            These players can be added to additional ECS FC teams
+                        </p>
+                        <div class="row g-3" id="ecs-fc-multi-team-players">
+                            {% for player in ecs_fc_multi_team_players %}
+                            <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6">
+                                <div id="player-multi-{{ player.id }}" class="c-card player-card draft-player-card draft-player-card--multi-team border-0 shadow-sm h-100 js-draggable-player"
+                                     data-player-id="{{ player.id }}"
+                                     data-player-name="{{ player.name|lower }}"
+                                     data-position="{{ (player.favorite_position or '')|lower }}"
+                                     data-existing-teams="{{ player.existing_ecs_fc_teams | join(', ') }}"
+                                     draggable="true">
+
+                                    <!-- Player Image Header -->
+                                    <div class="position-relative overflow-hidden draft-player-card-header">
+                                        <img src="{{ player.profile_picture_medium or player.profile_picture_webp or player.profile_picture_url or '/static/img/default_player.png' }}"
+                                             alt="{{ player.name }}"
+                                             class="player-face-crop draft-player-image js-player-image"
+                                             loading="lazy"
+                                             data-fallback="/static/img/default_player.png">
+                                        <div class="position-absolute w-100 h-100 draft-player-overlay"></div>
+
+                                        <!-- Multi-team indicator badge -->
+                                        <div class="position-absolute top-0 start-0 draft-badge-container-start">
+                                            <div class="draft-multi-team-badge bg-info text-white" title="On multiple teams">
+                                                <i class="ti ti-users"></i>
+                                            </div>
+                                        </div>
+
+                                        <!-- Player Name Overlay -->
+                                        <div class="position-absolute bottom-0 start-0 p-2 draft-player-name-overlay">
+                                            <h6 class="text-white fw-bold mb-0 text-shadow-sm">{{ player.name }}</h6>
+                                        </div>
+                                    </div>
+
+                                    <!-- Player Info Body -->
+                                    <div class="c-card__body p-3 text-center">
+                                        <!-- Position Badge -->
+                                        <div class="mb-2">
+                                            {% if player.favorite_position and player.favorite_position != 'Any' %}
+                                            <span class="badge bg-primary rounded-pill" data-badge>{{ format_position(player.favorite_position) }}</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary rounded-pill" data-badge>Any Position</span>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Stats Row -->
+                                        <div class="row text-center mb-2 small">
+                                            <div class="col-6">
+                                                <div class="fw-bold text-success">{{ player.career_goals }}</div>
+                                                <div class="text-muted">Goals</div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="fw-bold text-info">{{ player.career_assists }}</div>
+                                                <div class="text-muted">Assists</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Existing Teams Footer -->
+                                    <div class="c-card__footer draft-multi-team-footer p-2">
+                                        <div class="small text-center">
+                                            <i class="ti ti-users me-1"></i>
+                                            <span class="fw-medium">{{ player.existing_ecs_fc_teams | join(', ') }}</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Action Buttons -->
+                                    <div class="c-card__footer bg-transparent border-0 p-2 pt-0">
+                                        <div class="d-grid gap-1">
+                                            <button class="c-btn c-btn--sm fw-bold btn-draft-primary js-draft-player"
+                                                    data-player-id="{{ player.id }}"
+                                                    data-player-name="{{ player.name|escape }}"
+                                                    data-is-multi-team="true">
+                                                <i class="ti ti-user-plus me-1"></i>Add to Team
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Empty State -->
             <div id="emptyState" class="draft-empty-state">
                 <div class="draft-empty-state-icon">

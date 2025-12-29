@@ -28,6 +28,7 @@ from app.models import (
 from app.draft_enhanced import DraftService
 from app.draft_cache_service import DraftCacheService
 from app.db_utils import mark_player_for_discord_update
+from app.models.ecs_fc import is_ecs_fc_league
 from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
 
 logger = logging.getLogger(__name__)
@@ -253,17 +254,12 @@ def get_available_players(league_name: str):
             )
         )
 
-        not_drafted = ~exists().where(
-            and_(
-                player_teams.c.player_id == Player.id,
-                player_teams.c.team_id.in_(team_ids)
-            )
-        )
+        # Check if this is an ECS FC league
+        is_ecs_fc = is_ecs_fc_league(league.id)
 
         query = (
             session.query(Player)
             .filter(belongs_to_league)
-            .filter(not_drafted)
             .filter(Player.is_current_player == True)
             .options(
                 joinedload(Player.career_stats),
@@ -271,6 +267,17 @@ def get_available_players(league_name: str):
                 selectinload(Player.teams)
             )
         )
+
+        # For Pub League: exclude players already on a team
+        # For ECS FC: include all players (multi-team allowed)
+        if not is_ecs_fc:
+            not_drafted = ~exists().where(
+                and_(
+                    player_teams.c.player_id == Player.id,
+                    player_teams.c.team_id.in_(team_ids)
+                )
+            )
+            query = query.filter(not_drafted)
 
         # Apply search filter
         if search:
@@ -295,12 +302,25 @@ def get_available_players(league_name: str):
             current_league.season_id
         )
 
+        # For ECS FC: add existing team information for multi-team support
+        if is_ecs_fc:
+            team_ids_set = set(team_ids)
+            for i, player_data in enumerate(players):
+                raw_player = players_raw[i]
+                existing_teams = [
+                    {"id": team.id, "name": team.name}
+                    for team in raw_player.teams
+                    if team.id in team_ids_set
+                ]
+                player_data['existing_ecs_fc_teams'] = existing_teams
+
         return jsonify({
             "players": players,
             "total": total_count,
             "page": page,
             "per_page": per_page,
-            "total_pages": (total_count + per_page - 1) // per_page
+            "total_pages": (total_count + per_page - 1) // per_page,
+            "is_ecs_fc_league": is_ecs_fc
         }), 200
 
 
@@ -465,7 +485,8 @@ def draft_player(league_name: str):
             )
         ).first()
 
-        if existing:
+        # ECS FC allows multi-team membership, skip check for ECS FC leagues
+        if existing and not is_ecs_fc_league(league.id):
             return jsonify({"msg": "Player is already on a team in this league"}), 400
 
         # Add player to team

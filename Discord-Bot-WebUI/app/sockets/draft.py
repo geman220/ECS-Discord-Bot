@@ -13,6 +13,7 @@ from flask_socketio import emit, join_room
 
 from app.core import socketio
 from app.core.session_manager import managed_session
+from app.models.ecs_fc import is_ecs_fc_league
 from app.sockets.utils import get_draft_lock, cleanup_draft_lock
 
 logger = logging.getLogger(__name__)
@@ -164,7 +165,8 @@ def handle_draft_player_enhanced(data):
                     )
                 ).first()
 
-                if existing_player_team:
+                # ECS FC allows multi-team membership, skip check for ECS FC leagues
+                if existing_player_team and not is_ecs_fc_league(league.id):
                     existing_team = session.query(Team).filter(Team.id == existing_player_team.team_id).first()
                     team_name_existing = existing_team.name if existing_team else "unknown team"
                     print(f"🚫 Player {player.name} already assigned to {team_name_existing} in {league.name}")
@@ -180,7 +182,8 @@ def handle_draft_player_enhanced(data):
                     )
                 ).first()
 
-                if existing_pts:
+                # ECS FC allows multi-team membership, skip check for ECS FC leagues
+                if existing_pts and not is_ecs_fc_league(league.id):
                     existing_team = session.query(Team).filter(Team.id == existing_pts.team_id).first()
                     team_name_existing = existing_team.name if existing_team else "unknown team"
                     print(f"🚫 Player {player.name} already has PlayerTeamSeason record with {team_name_existing} in season {season_id}")

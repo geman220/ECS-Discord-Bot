@@ -118,8 +118,8 @@
     let dropdownHandlersRegistered = false;
 
     /**
-     * Register dropdown actions with EventDelegation
-     * FIXED: Added guard to prevent duplicate registration
+     * Register dropdown actions
+     * Note: EventDelegation handler is registered at module scope below
      */
     function registerDropdownActions() {
         if (dropdownHandlersRegistered) {
@@ -127,12 +127,7 @@
         }
         dropdownHandlersRegistered = true;
 
-        if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
-            window.EventDelegation.register('toggle-dropdown', handleToggleDropdown, { preventDefault: true });
-        } else {
-            // Fallback: direct event listeners if EventDelegation not available
-            initDropdownFallback();
-        }
+        // EventDelegation handler is registered at module scope for proper timing
 
         // Close dropdowns when clicking outside
         document.addEventListener('click', handleOutsideClick);
@@ -166,43 +161,6 @@
     }
 
     /**
-     * Fallback dropdown initialization (if EventDelegation not available)
-     * ROOT CAUSE FIX: Uses event delegation instead of per-element listeners
-     */
-    let _dropdownFallbackRegistered = false;
-    function initDropdownFallback() {
-        if (_dropdownFallbackRegistered) return;
-        _dropdownFallbackRegistered = true;
-
-        // Single delegated click listener for all dropdown toggles
-        document.addEventListener('click', function(e) {
-            const btn = e.target.closest('[data-action="toggle-dropdown"]');
-            if (!btn) return;
-
-            e.preventDefault();
-            e.stopPropagation();
-
-            const dropdownId = btn.getAttribute('data-dropdown');
-            const dropdown = document.querySelector(`[data-dropdown-id="${dropdownId}"]`);
-
-            if (dropdown) {
-                // Close all other dropdowns
-                document.querySelectorAll('.c-navbar-modern__dropdown.is-open').forEach(function(d) {
-                    if (d !== dropdown) {
-                        d.classList.remove('is-open');
-                        d.setAttribute('aria-hidden', 'true');
-                    }
-                });
-
-                // Toggle this dropdown
-                const isOpen = dropdown.classList.toggle('is-open');
-                dropdown.setAttribute('aria-hidden', !isOpen);
-                btn.setAttribute('aria-expanded', isOpen);
-            }
-        });
-    }
-
-    /**
      * Handle clicks outside dropdowns
      */
     function handleOutsideClick(e) {
@@ -232,5 +190,12 @@
         document.addEventListener('turbo:load', init);
         document.addEventListener('turbolinks:load', init);
     }
+
+    // ============================================================================
+    // EVENT DELEGATION - Registered at module scope
+    // ============================================================================
+    // Handler registered when IIFE executes
+
+    EventDelegation.register('toggle-dropdown', handleToggleDropdown, { preventDefault: true });
 
 })();
