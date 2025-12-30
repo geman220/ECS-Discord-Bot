@@ -1346,86 +1346,109 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 
 // ============================================================================
-// EVENT DELEGATION HANDLERS - Registered at module scope
+// EVENT DELEGATION HANDLERS - Safe registration
 // ============================================================================
-// These are registered when the module loads, ensuring EventDelegation is available.
-// Handlers delegate to window.navbarController which is set when navbar initializes.
+// Wrapped in a function to handle both bundled (Vite) and individual script loading.
+// In Vite bundle, EventDelegation is available immediately.
+// In individual loading, we wait for DOMContentLoaded when EventDelegation should be ready.
 
-// Mobile menu toggle
-EventDelegation.register('toggle-menu', (element, e) => {
-  if (window.navbarController) {
-    window.navbarController.toggleMobileMenu();
+function registerNavbarEventHandlers() {
+  // Safety check - EventDelegation must exist
+  if (typeof EventDelegation === 'undefined' || typeof EventDelegation.register !== 'function') {
+    console.warn('[Navbar] EventDelegation not available, handlers not registered');
+    return;
   }
-}, { preventDefault: true });
 
-// Dropdown toggles (scoped name to avoid collision with admin nav)
-EventDelegation.register('toggle-navbar-dropdown', (element, e) => {
-  const dropdownId = element.dataset.dropdown;
-  if (dropdownId && window.navbarController) {
-    window.navbarController.toggleDropdown(dropdownId);
+  // Prevent double registration
+  if (window._navbarHandlersRegistered) {
+    return;
   }
-}, { preventDefault: true });
+  window._navbarHandlersRegistered = true;
 
-// Theme switcher
-EventDelegation.register('switch-theme', (element, e) => {
-  const theme = element.dataset.theme;
-  if (theme && window.navbarController) {
-    window.navbarController.switchTheme(theme);
-  }
-}, { preventDefault: true });
+  // Mobile menu toggle
+  EventDelegation.register('toggle-menu', (element, e) => {
+    if (window.navbarController) {
+      window.navbarController.toggleMobileMenu();
+    }
+  }, { preventDefault: true });
 
-// Role impersonation
-EventDelegation.register('start-impersonation', (element, e) => {
-  if (window.navbarController) {
-    window.navbarController.startRoleImpersonation();
-  }
-}, { preventDefault: true });
+  // Dropdown toggles (scoped name to avoid collision with admin nav)
+  EventDelegation.register('toggle-navbar-dropdown', (element, e) => {
+    const dropdownId = element.dataset.dropdown;
+    if (dropdownId && window.navbarController) {
+      window.navbarController.toggleDropdown(dropdownId);
+    }
+  }, { preventDefault: true });
 
-EventDelegation.register('stop-impersonation', (element, e) => {
-  if (window.navbarController) {
-    window.navbarController.stopRoleImpersonation();
-  }
-}, { preventDefault: true });
+  // Theme switcher
+  EventDelegation.register('switch-theme', (element, e) => {
+    const theme = element.dataset.theme;
+    if (theme && window.navbarController) {
+      window.navbarController.switchTheme(theme);
+    }
+  }, { preventDefault: true });
 
-// Notification actions
-EventDelegation.register('mark-read', (element, e) => {
-  const notificationId = element.dataset.notificationId;
-  if (notificationId && window.navbarController) {
-    window.navbarController.markNotificationRead(notificationId);
-  }
-}, { preventDefault: true });
+  // Role impersonation
+  EventDelegation.register('start-impersonation', (element, e) => {
+    if (window.navbarController) {
+      window.navbarController.startRoleImpersonation();
+    }
+  }, { preventDefault: true });
 
-EventDelegation.register('mark-all-read', (element, e) => {
-  if (window.navbarController) {
-    window.navbarController.markAllNotificationsRead();
-  }
-}, { preventDefault: true });
+  EventDelegation.register('stop-impersonation', (element, e) => {
+    if (window.navbarController) {
+      window.navbarController.stopRoleImpersonation();
+    }
+  }, { preventDefault: true });
 
-EventDelegation.register('clear-all-notifications', (element, e) => {
-  if (window.navbarController) {
-    window.navbarController.clearAllNotifications();
-  }
-}, { preventDefault: true });
+  // Notification actions
+  EventDelegation.register('mark-read', (element, e) => {
+    const notificationId = element.dataset.notificationId;
+    if (notificationId && window.navbarController) {
+      window.navbarController.markNotificationRead(notificationId);
+    }
+  }, { preventDefault: true });
 
-EventDelegation.register('dismiss-notification', (element, e) => {
-  const notificationId = element.dataset.notificationId;
-  if (notificationId && window.navbarController) {
-    window.navbarController.dismissNotification(notificationId);
-  }
-}, { preventDefault: true, stopPropagation: true });
+  EventDelegation.register('mark-all-read', (element, e) => {
+    if (window.navbarController) {
+      window.navbarController.markAllNotificationsRead();
+    }
+  }, { preventDefault: true });
 
-EventDelegation.register('expand-notification', (element, e) => {
-  const notificationId = element.dataset.notificationId;
-  if (notificationId && window.navbarController) {
-    window.navbarController.toggleNotificationExpand(notificationId);
-  }
-}, { preventDefault: true });
+  EventDelegation.register('clear-all-notifications', (element, e) => {
+    if (window.navbarController) {
+      window.navbarController.clearAllNotifications();
+    }
+  }, { preventDefault: true });
 
-// Logout
-EventDelegation.register('logout', (element, e) => {
-  if (window.navbarController) {
-    window.navbarController.handleLogout();
-  }
-}, { preventDefault: true });
+  EventDelegation.register('dismiss-notification', (element, e) => {
+    const notificationId = element.dataset.notificationId;
+    if (notificationId && window.navbarController) {
+      window.navbarController.dismissNotification(notificationId);
+    }
+  }, { preventDefault: true, stopPropagation: true });
 
-console.log('[Navbar] EventDelegation handlers registered at module scope');
+  EventDelegation.register('expand-notification', (element, e) => {
+    const notificationId = element.dataset.notificationId;
+    if (notificationId && window.navbarController) {
+      window.navbarController.toggleNotificationExpand(notificationId);
+    }
+  }, { preventDefault: true });
+
+  // Logout
+  EventDelegation.register('logout', (element, e) => {
+    if (window.navbarController) {
+      window.navbarController.handleLogout();
+    }
+  }, { preventDefault: true });
+
+  console.log('[Navbar] EventDelegation handlers registered');
+}
+
+// Try to register immediately (works in Vite bundle)
+if (typeof EventDelegation !== 'undefined') {
+  registerNavbarEventHandlers();
+} else {
+  // Fallback: Wait for DOMContentLoaded (for individual script loading)
+  document.addEventListener('DOMContentLoaded', registerNavbarEventHandlers);
+}

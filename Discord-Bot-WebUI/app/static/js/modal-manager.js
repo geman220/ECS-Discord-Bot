@@ -433,55 +433,79 @@ window.safeShowModal = function(modalId) {
 };
 
 // ============================================================================
-// EVENT DELEGATION - Registered at module scope
+// EVENT DELEGATION - Safe registration
 // ============================================================================
-// Handlers registered when module loads, delegating to ModalManager
+// Wrapped to handle both bundled (Vite) and individual script loading.
 
-// Show modal
-EventDelegation.register('show-modal', (element, e) => {
-    const modalId = element.dataset.modalId;
-    if (modalId) {
-        const options = ModalManager.parseOptionsFromElement(element);
-        ModalManager.show(modalId, options);
-    } else {
-        console.error('[ModalManager] data-action="show-modal" requires data-modal-id attribute');
+function registerModalManagerEventHandlers() {
+    // Safety check - EventDelegation must exist
+    if (typeof EventDelegation === 'undefined' || typeof EventDelegation.register !== 'function') {
+        console.warn('[ModalManager] EventDelegation not available, handlers not registered');
+        return;
     }
-}, { preventDefault: true });
 
-// Hide modal
-EventDelegation.register('hide-modal', (element, e) => {
-    const modalId = element.dataset.modalId;
-    if (modalId) {
-        ModalManager.hide(modalId);
-    } else {
-        // Try to find the closest modal and close it
-        const closestModal = element.closest('[data-modal], .modal');
-        if (closestModal && closestModal.id) {
-            ModalManager.hide(closestModal.id);
+    // Prevent double registration
+    if (window._modalManagerHandlersRegistered) {
+        return;
+    }
+    window._modalManagerHandlersRegistered = true;
+
+    // Show modal
+    EventDelegation.register('show-modal', (element, e) => {
+        const modalId = element.dataset.modalId;
+        if (modalId) {
+            const options = ModalManager.parseOptionsFromElement(element);
+            ModalManager.show(modalId, options);
+        } else {
+            console.error('[ModalManager] data-action="show-modal" requires data-modal-id attribute');
         }
-    }
-}, { preventDefault: true });
+    }, { preventDefault: true });
 
-// Close modal (alias for hide) - handles all modal types
-EventDelegation.register('close-modal', (element, e) => {
-    const modalId = element.dataset.modalId;
-    if (modalId) {
-        ModalManager.hide(modalId);
-    } else {
-        // Support Bootstrap .modal, custom [data-modal], and .c-modal-modern
-        const closestModal = element.closest('[data-modal], .modal, .c-modal-modern');
-        if (closestModal && closestModal.id) {
-            ModalManager.hide(closestModal.id);
+    // Hide modal
+    EventDelegation.register('hide-modal', (element, e) => {
+        const modalId = element.dataset.modalId;
+        if (modalId) {
+            ModalManager.hide(modalId);
+        } else {
+            // Try to find the closest modal and close it
+            const closestModal = element.closest('[data-modal], .modal');
+            if (closestModal && closestModal.id) {
+                ModalManager.hide(closestModal.id);
+            }
         }
-    }
-}, { preventDefault: true });
+    }, { preventDefault: true });
 
-// Toggle modal
-EventDelegation.register('toggle-modal', (element, e) => {
-    const modalId = element.dataset.modalId;
-    if (modalId) {
-        ModalManager.toggle(modalId);
-    } else {
-        console.error('[ModalManager] data-action="toggle-modal" requires data-modal-id attribute');
-    }
-}, { preventDefault: true });
+    // Close modal (alias for hide) - handles all modal types
+    EventDelegation.register('close-modal', (element, e) => {
+        const modalId = element.dataset.modalId;
+        if (modalId) {
+            ModalManager.hide(modalId);
+        } else {
+            // Support Bootstrap .modal, custom [data-modal], and .c-modal-modern
+            const closestModal = element.closest('[data-modal], .modal, .c-modal-modern');
+            if (closestModal && closestModal.id) {
+                ModalManager.hide(closestModal.id);
+            }
+        }
+    }, { preventDefault: true });
+
+    // Toggle modal
+    EventDelegation.register('toggle-modal', (element, e) => {
+        const modalId = element.dataset.modalId;
+        if (modalId) {
+            ModalManager.toggle(modalId);
+        } else {
+            console.error('[ModalManager] data-action="toggle-modal" requires data-modal-id attribute');
+        }
+    }, { preventDefault: true });
+
+    console.log('[ModalManager] Event delegation handlers registered');
+}
+
+// Try to register immediately (works in Vite bundle)
+if (typeof EventDelegation !== 'undefined') {
+    registerModalManagerEventHandlers();
+} else {
+    // Fallback: Wait for DOMContentLoaded (for individual script loading)
+    document.addEventListener('DOMContentLoaded', registerModalManagerEventHandlers);
+}

@@ -429,8 +429,8 @@
 </nav>
 
 {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-<!-- Link to Modern Navbar Styles -->
-<link rel="stylesheet" href="{{ url_for('static', filename='css/layout/navbar-modern.css') }}">
+<!-- Link to Modern Navbar Styles (use components version, NOT layout version) -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/navbar-modern.css') }}">
 
 <!-- Link to Modern Navbar JavaScript -->
 <script src="{{ url_for('static', filename='js/navbar-modern.js') }}" defer></script>

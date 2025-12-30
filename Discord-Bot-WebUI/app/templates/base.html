@@ -525,8 +525,11 @@
     <!-- Bootstrap UMD version (fixes "_element is not defined" error) -->
     <script src="{{ url_for('static', filename='vendor/js/bootstrap.bundle.js') }}"></script>
 
+    <!-- Event Delegation System - MUST load early (many scripts depend on it) -->
+    <script src="{{ url_for('static', filename='js/event-delegation/core.js') }}"></script>
+
     <!-- ModalManager - Centralized modal management (Best Practice 2025) -->
-    <!-- MUST load after Bootstrap, before any code that uses modals -->
+    <!-- MUST load after Bootstrap and EventDelegation, before any code that uses modals -->
     <script src="{{ url_for('static', filename='js/modal-manager.js') }}"></script>
 
     <!-- Waves library for ripple effects (logic only, styling via CSS) -->
@@ -648,10 +651,6 @@
 
     <!-- Report Match JS - Consolidated functionality -->
     <script src="{{ url_for('static', filename='custom_js/report_match.js') }}"></script>
-
-    <!-- Event Delegation System - Centralized event handling for data-action attributes -->
-    <!-- CRITICAL: Must load after report_match.js which defines handleEditButtonClick -->
-    <script src="{{ url_for('static', filename='js/event-delegation.js') }}"></script>
 
     <!-- Modal Helpers - Consolidated modal utilities (replaces simple-modal-fix.js + simple-report-fix.js) -->
     <script src="{{ url_for('static', filename='custom_js/modal-helpers.js') }}"></script>
