@@ -1304,11 +1304,21 @@ class ModernNavbarController {
   }
 }
 
-// Initialize function
+// Initialize function with guard
+let navbarInitialized = false;
+
 function initNavbar() {
+  // Guard against double initialization
+  if (navbarInitialized) {
+    console.debug('[Navbar] Already initialized, skipping');
+    return;
+  }
+
   // Only initialize if navbar exists on page
   if (document.querySelector('.c-navbar-modern')) {
+    console.log('[Navbar] Initializing ModernNavbarController');
     window.navbarController = new ModernNavbarController();
+    navbarInitialized = true;
   }
 }
 
@@ -1319,13 +1329,15 @@ if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
     description: 'Modern navbar controller (search, dropdowns, mobile menu)',
     reinitializable: false
   });
+}
+
+// ALSO run fallback to ensure initialization even if InitSystem fails to run
+// The guard prevents double initialization
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initNavbar);
 } else {
-  // Fallback: Initialize when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initNavbar);
-  } else {
-    initNavbar();
-  }
+  // DOM already ready - initialize now
+  initNavbar();
 }
 
 // Export for module usage

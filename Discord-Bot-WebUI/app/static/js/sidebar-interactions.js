@@ -586,12 +586,13 @@
       description: 'Sidebar toggle, collapse, and mobile drawer interactions',
       reinitializable: false
     });
+  }
+
+  // ALSO run fallback to ensure initialization even if InitSystem fails to run
+  // The internal guard (State._initialized) prevents double initialization
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    // Fallback: Initialize on DOM ready
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', init);
-    } else {
-      init();
-    }
+    init();
   }
 })();

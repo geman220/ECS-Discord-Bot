@@ -397,6 +397,46 @@ def mark_message_read(message_id):
         }), 200
 
 
+@mobile_api_v2.route('/messages/<int:message_id>', methods=['DELETE'])
+@jwt_required()
+def delete_message(message_id):
+    """
+    Delete (hide) a single message for the current user.
+
+    This is a soft delete - the message is hidden for the current user
+    but remains visible to the other participant.
+
+    Args:
+        message_id: The ID of the message to delete
+
+    Returns:
+        JSON with success message
+    """
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session_db:
+        # Find the message - user must be sender or recipient
+        message = session_db.query(DirectMessage).filter(
+            DirectMessage.id == message_id,
+            ((DirectMessage.sender_id == current_user_id) |
+             (DirectMessage.recipient_id == current_user_id))
+        ).first()
+
+        if not message:
+            return jsonify({"msg": "Message not found"}), 404
+
+        # Hide for this user only
+        message.hide_for_user(current_user_id)
+        session_db.commit()
+
+        logger.info(f"User {current_user_id} deleted message {message_id}")
+
+        return jsonify({
+            'msg': 'Message deleted',
+            'message_id': message_id
+        }), 200
+
+
 @mobile_api_v2.route('/messages/mark-all-read', methods=['POST'])
 @jwt_required()
 def mark_all_messages_read():

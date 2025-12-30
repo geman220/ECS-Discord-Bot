@@ -244,10 +244,27 @@ import '../assets/js/main.js';
 // ============================================================================
 // All components have been registered via imports above.
 // Now trigger the InitSystem to run all registered initializers in priority order.
-if (typeof InitSystem !== 'undefined') {
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => InitSystem.init());
-    } else {
-        InitSystem.init();
+// Use a try-catch to ensure InitSystem.init() runs even if prior code had errors.
+function triggerInitSystem() {
+    try {
+        if (typeof window.InitSystem !== 'undefined' && !window.InitSystem.initialized) {
+            console.log('[Main Entry] Triggering InitSystem.init()');
+            window.InitSystem.init();
+        }
+    } catch (e) {
+        console.error('[Main Entry] Error in InitSystem.init():', e);
     }
 }
+
+// Multiple fallbacks to ensure InitSystem.init() runs
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', triggerInitSystem);
+} else {
+    triggerInitSystem();
+}
+
+// Failsafe: Also try after a short delay in case of race conditions
+setTimeout(triggerInitSystem, 100);
+
+// Ultimate failsafe: Try on window load
+window.addEventListener('load', triggerInitSystem);

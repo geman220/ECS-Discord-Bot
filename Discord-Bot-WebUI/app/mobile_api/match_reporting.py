@@ -430,6 +430,132 @@ def delete_match_event(match_id: int, event_id: int):
         }), 200
 
 
+@mobile_api_v2.route('/report_match/<int:match_id>', methods=['POST'])
+@jwt_required()
+def report_match(match_id: int):
+    """
+    Submit a complete match report with score and events.
+
+    This is the final submission endpoint that marks the match as reported.
+
+    Args:
+        match_id: Match ID
+
+    Expected JSON:
+        home_team_score: Final home team score (required)
+        away_team_score: Final away team score (required)
+        notes: Optional match notes
+        events: Optional list of events to add
+            Each event: { player_id, event_type, minute, team_id (for own_goal) }
+
+    Returns:
+        JSON with reported match details
+    """
+    current_user_id = int(get_jwt_identity())
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"msg": "Missing request data"}), 400
+
+    home_score = data.get('home_team_score')
+    away_score = data.get('away_team_score')
+
+    if home_score is None or away_score is None:
+        return jsonify({"msg": "Both home_team_score and away_team_score are required"}), 400
+
+    try:
+        home_score = int(home_score)
+        away_score = int(away_score)
+    except (ValueError, TypeError):
+        return jsonify({"msg": "Scores must be integers"}), 400
+
+    if home_score < 0 or away_score < 0:
+        return jsonify({"msg": "Scores cannot be negative"}), 400
+
+    with managed_session() as session:
+        # Get current user's player profile
+        player = session.query(Player).filter_by(user_id=current_user_id).first()
+        if not player:
+            return jsonify({"msg": "Player profile not found"}), 404
+
+        # Get match with teams
+        match = session.query(Match).options(
+            joinedload(Match.home_team),
+            joinedload(Match.away_team)
+        ).get(match_id)
+
+        if not match:
+            return jsonify({"msg": "Match not found"}), 404
+
+        # Check authorization
+        if not is_coach_for_match(session, player.id, match):
+            return jsonify({"msg": "You are not authorized to report this match"}), 403
+
+        # Update scores
+        match.home_team_score = home_score
+        match.away_team_score = away_score
+        match.reported = True
+
+        # Add notes if provided
+        notes = data.get('notes')
+        if notes:
+            match.notes = notes
+
+        # Add events if provided
+        events_data = data.get('events', [])
+        created_events = []
+
+        for event_data in events_data:
+            event_type = event_data.get('event_type')
+            if not event_type or event_type not in VALID_EVENT_TYPES:
+                continue  # Skip invalid events
+
+            event = PlayerEvent(
+                match_id=match_id,
+                event_type=PlayerEventType(event_type),
+                minute=str(event_data.get('minute')) if event_data.get('minute') else None
+            )
+
+            if event_type == 'own_goal':
+                event.team_id = event_data.get('team_id')
+            else:
+                event.player_id = event_data.get('player_id')
+
+            session.add(event)
+            created_events.append({
+                "event_type": event_type,
+                "player_id": event.player_id,
+                "team_id": event.team_id,
+                "minute": event.minute
+            })
+
+        session.commit()
+
+        logger.info(f"Match {match_id} reported by user {current_user_id}: {home_score}-{away_score}")
+
+        return jsonify({
+            "success": True,
+            "msg": "Match reported successfully",
+            "match": {
+                "id": match.id,
+                "date": match.date.isoformat() if match.date else None,
+                "home_team": {
+                    "id": match.home_team.id,
+                    "name": match.home_team.name
+                },
+                "away_team": {
+                    "id": match.away_team.id,
+                    "name": match.away_team.name
+                },
+                "home_team_score": match.home_team_score,
+                "away_team_score": match.away_team_score,
+                "reported": match.reported,
+                "notes": match.notes
+            },
+            "events_created": len(created_events)
+        }), 200
+
+
 @mobile_api_v2.route('/matches/<int:match_id>/score', methods=['PUT'])
 @jwt_required()
 def update_match_score(match_id: int):
