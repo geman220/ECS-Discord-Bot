@@ -8,7 +8,7 @@
 export default [
   {
     // Apply to all JS files in static directory
-    files: ['app/static/js/**/*.js', 'app/static/custom_js/**/*.js'],
+    files: ['app/static/js/**/*.js', 'app/static/custom_js/**/*.js', 'app/static/assets/js/**/*.js'],
 
     languageOptions: {
       ecmaVersion: 2022,
@@ -166,7 +166,7 @@ export default [
       'app/static/dist/**',
       'app/static/gen/**',
       'app/static/node_modules/**',
-      'app/static/assets/**',
+      // NOTE: assets/js/main.js needs to be linted, so don't ignore all of assets/
     ],
   },
 ];
