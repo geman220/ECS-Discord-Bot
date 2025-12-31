@@ -261,7 +261,7 @@
       if (!teamsContainer) return;
 
       const hammer = new window.Hammer(teamsContainer);
-      hammer.get('swipe').set({ direction: Hammer.DIRECTION_HORIZONTAL });
+      hammer.get('swipe').set({ direction: window.Hammer.DIRECTION_HORIZONTAL });
 
       const teams = Array.from(teamsContainer.querySelectorAll('.accordion-item, .team-card'));
 

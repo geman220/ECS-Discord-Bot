@@ -211,7 +211,7 @@
 
         swipeIn: function(targetEl, callback) {
             // Hammer.js gesture support - if available
-            if (typeof Hammer !== 'undefined' && typeof targetEl === 'string') {
+            if (typeof window.Hammer !== 'undefined' && typeof targetEl === 'string') {
                 const el = document.querySelector(targetEl);
                 if (el) {
                     const hammer = new window.Hammer(el);
@@ -221,12 +221,12 @@
         },
 
         swipeOut: function(targetEl, callback) {
-            if (typeof Hammer !== 'undefined' && typeof targetEl === 'string') {
+            if (typeof window.Hammer !== 'undefined' && typeof targetEl === 'string') {
                 setTimeout(() => {
                     const el = document.querySelector(targetEl);
                     if (el) {
                         const hammer = new window.Hammer(el);
-                        hammer.get('pan').set({ direction: Hammer.DIRECTION_ALL, threshold: 250 });
+                        hammer.get('pan').set({ direction: window.Hammer.DIRECTION_ALL, threshold: 250 });
                         hammer.on('panleft', callback);
                     }
                 }, 500);

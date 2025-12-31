@@ -33,7 +33,7 @@
      * @returns {boolean}
      */
     isHammerLoaded: function () {
-      return typeof Hammer !== 'undefined';
+      return typeof window.Hammer !== 'undefined';
     },
 
     /**
@@ -47,7 +47,7 @@
         if (!modalDialog) return;
 
         const hammer = new window.Hammer(modalDialog);
-        hammer.get('swipe').set({ direction: Hammer.DIRECTION_DOWN, threshold: 50 });
+        hammer.get('swipe').set({ direction: window.Hammer.DIRECTION_DOWN, threshold: 50 });
 
         hammer.on('swipedown', (ev) => {
           // Only dismiss if swiping from near the top (drag handle area)
@@ -61,7 +61,7 @@
         });
 
         // Visual feedback during pan (drag)
-        hammer.get('pan').set({ direction: Hammer.DIRECTION_DOWN, threshold: 0 });
+        hammer.get('pan').set({ direction: window.Hammer.DIRECTION_DOWN, threshold: 0 });
         let startY = 0;
 
         hammer.on('panstart', (ev) => {
@@ -144,7 +144,7 @@
 
       document.querySelectorAll('[data-pull-refresh="true"], .table-responsive').forEach(container => {
         const hammer = new window.Hammer(container);
-        hammer.get('pan').set({ direction: Hammer.DIRECTION_DOWN, threshold: 10 });
+        hammer.get('pan').set({ direction: window.Hammer.DIRECTION_DOWN, threshold: 10 });
 
         let startY = 0;
         let isPulling = false;

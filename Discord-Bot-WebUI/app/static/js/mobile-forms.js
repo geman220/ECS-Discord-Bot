@@ -90,7 +90,7 @@
         entry.setAttribute('data-swipe-enhanced', 'true');
 
         const hammer = new window.Hammer(entry);
-        hammer.get('swipe').set({ direction: Hammer.DIRECTION_LEFT, threshold: 50 });
+        hammer.get('swipe').set({ direction: window.Hammer.DIRECTION_LEFT, threshold: 50 });
 
         let deleteIndicator = entry.querySelector('.swipe-delete-indicator');
         if (!deleteIndicator) {
