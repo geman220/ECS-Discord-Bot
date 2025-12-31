@@ -337,7 +337,7 @@
             const message = messageField ? messageField.value.trim() : '';
 
             if (!message) {
-                showToast('Please enter a message', 'error');
+                window.showToast('Please enter a message', 'error');
                 if (messageField) messageField.focus();
                 return;
             }
@@ -356,19 +356,19 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showToast('Message sent successfully!', 'success');
+                    window.showToast('Message sent successfully!', 'success');
                     form.reset();
 
                     // Close modal
                     const modalInstance = window.bootstrap.Modal.getInstance(contactModal);
                     if (modalInstance) modalInstance.hide();
                 } else {
-                    showToast(data.message || 'Failed to send message', 'error');
+                    window.showToast(data.message || 'Failed to send message', 'error');
                 }
             })
             .catch(error => {
                 console.error('Contact form error:', error);
-                showToast('An error occurred. Please try again.', 'error');
+                window.showToast('An error occurred. Please try again.', 'error');
             });
         });
     }
@@ -390,7 +390,7 @@
 
             if (messages && messages.length > 0) {
                 messages.forEach(msg => {
-                    showToast(msg.text, msg.category);
+                    window.showToast(msg.text, msg.category);
                 });
             }
         } catch (e) {
@@ -494,15 +494,15 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                showToast('Profile picture removed', 'success');
+                window.showToast('Profile picture removed', 'success');
                 setTimeout(() => location.reload(), 1000);
             } else {
-                showToast(data.message || 'Failed to remove image', 'error');
+                window.showToast(data.message || 'Failed to remove image', 'error');
             }
         })
         .catch(error => {
             console.error('Image remove error:', error);
-            showToast('An error occurred', 'error');
+            window.showToast('An error occurred', 'error');
         });
     }
 
@@ -608,7 +608,7 @@
             })
             .catch(error => {
                 console.error('Error fetching stat:', error);
-                showToast('Error loading stat data', 'error');
+                window.showToast('Error loading stat data', 'error');
             });
     }
 
@@ -632,15 +632,15 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                showToast('Stat updated successfully', 'success');
+                window.showToast('Stat updated successfully', 'success');
                 setTimeout(() => location.reload(), 1000);
             } else {
-                showToast(data.error || 'Failed to update stat', 'error');
+                window.showToast(data.error || 'Failed to update stat', 'error');
             }
         })
         .catch(error => {
             console.error('Error updating stat:', error);
-            showToast('An error occurred', 'error');
+            window.showToast('An error occurred', 'error');
         });
     }
 
@@ -693,7 +693,7 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                showToast('Stat removed successfully', 'success');
+                window.showToast('Stat removed successfully', 'success');
                 // Animate row removal
                 if (row) {
                     row.style.transition = 'opacity 0.3s, transform 0.3s';
@@ -704,12 +704,12 @@
                     setTimeout(() => location.reload(), 1000);
                 }
             } else {
-                showToast(data.error || 'Failed to remove stat', 'error');
+                window.showToast(data.error || 'Failed to remove stat', 'error');
             }
         })
         .catch(error => {
             console.error('Error removing stat:', error);
-            showToast('An error occurred', 'error');
+            window.showToast('An error occurred', 'error');
         });
     }
 

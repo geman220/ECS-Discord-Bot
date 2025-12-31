@@ -190,16 +190,16 @@
    * Set up socket event listeners (fallback when SocketManager not available)
    */
   function setupSocketListeners() {
-    if (!socket) return;
+    if (!window.socket) return;
 
-    socket.on('connect', () => {
+    window.socket.on('connect', () => {
       console.log('[MessagesInbox] WebSocket connected');
     });
 
-    socket.on('new_message', handleNewMessage);
-    socket.on('typing_start', handleTypingStart);
-    socket.on('typing_stop', handleTypingStop);
-    socket.on('message_read', handleMessageRead);
+    window.socket.on('new_message', handleNewMessage);
+    window.socket.on('typing_start', handleTypingStart);
+    window.socket.on('typing_stop', handleTypingStop);
+    window.socket.on('message_read', handleMessageRead);
   }
 
   /**
@@ -350,7 +350,7 @@
     }
 
     if (elements.chatName) {
-      elements.chatName.innerHTML = escapeHtml(user.name) + roleBadges;
+      elements.chatName.innerHTML = window.escapeHtml(user.name) + roleBadges;
       elements.chatName.href = user.profile_url || '#';
     }
 
@@ -528,12 +528,12 @@
     elements.messageInput.style.height = Math.min(elements.messageInput.scrollHeight, 120) + 'px';
 
     // Send typing indicator
-    if (SETTINGS.typing_indicators && activeUserId && socket) {
+    if (SETTINGS.typing_indicators && activeUserId && window.socket) {
       clearTimeout(typingTimeout);
-      socket.emit('typing_start', { recipient_id: activeUserId });
+      window.socket.emit('typing_start', { recipient_id: activeUserId });
 
       typingTimeout = setTimeout(() => {
-        socket.emit('typing_stop', { recipient_id: activeUserId });
+        window.socket.emit('typing_stop', { recipient_id: activeUserId });
       }, 2000);
     }
   }
@@ -594,7 +594,7 @@
 
         // Stop typing indicator
         if (socket) {
-          socket.emit('typing_stop', { recipient_id: activeUserId });
+          window.socket.emit('typing_stop', { recipient_id: activeUserId });
         }
       } else {
         showError(data.error || 'Failed to send message');

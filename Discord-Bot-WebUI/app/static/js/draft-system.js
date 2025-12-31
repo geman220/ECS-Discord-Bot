@@ -163,7 +163,7 @@ class DraftSystemV2 {
                 // Register connect callback - fires immediately if already connected
                 window.SocketManager.onConnect('DraftSystem', (socket) => {
                     console.log('🔌 [Draft] Socket connected via SocketManager');
-                    this.socket = socket;
+                    this.socket = window.socket;
                     this.isConnected = true;
                     this.updateConnectionStatus(true);
                     this.socket.emit('join_draft_room', { league_name: this.leagueName });
@@ -873,7 +873,7 @@ class DraftSystemV2 {
                         <div class="flex-grow-1 min-width-0">
                             <div class="fw-semibold text-truncate small">${player.name}</div>
                             <div class="text-muted" style="font-size: 0.75rem;">
-                                ${formatPosition(player.favorite_position) || 'Any'}
+                                ${window.formatPosition(player.favorite_position) || 'Any'}
                             </div>
                         </div>
                         <button class="btn btn-outline-danger btn-sm p-1"
@@ -946,7 +946,7 @@ class DraftSystemV2 {
 
         const profilePictureUrl = player.profile_picture_url || '/static/img/default_player.png';
         const experienceLevel = player.experience_level || player.league_experience_seasons || 'Unknown';
-        const position = formatPosition(player.favorite_position || player.position) || 'Any';
+        const position = window.formatPosition(player.favorite_position || player.position) || 'Any';
 
         // Get enhanced player data
         const mediumPictureUrl = player.profile_picture_medium || player.profile_picture_webp || profilePictureUrl;
@@ -1663,24 +1663,24 @@ var draftSystemInstance = null;
 // Initialize function
 function initializeDraftSystem(leagueName) {
     draftSystemInstance = new DraftSystemV2(leagueName);
-    return draftSystemInstance;
+    return window.draftSystemInstance;
 }
 
 // Global functions for template compatibility
 function showDraftModal(playerId, playerName) {
     if (draftSystemInstance) {
-        draftSystemInstance.showDraftModal(playerId, playerName);
+        window.draftSystemInstance.showDraftModal(playerId, playerName);
     }
 }
 
 function confirmDraftPlayer(playerId, playerName) {
     if (draftSystemInstance) {
-        draftSystemInstance.showDraftModal(playerId, playerName);
+        window.draftSystemInstance.showDraftModal(playerId, playerName);
     }
 }
 
 function confirmRemovePlayer(playerId, teamId, playerName, teamName) {
-    if (!draftSystemInstance) return;
+    if (!window.draftSystemInstance) return;
 
     if (window.Swal) {
         window.Swal.fire({
@@ -1697,81 +1697,81 @@ function confirmRemovePlayer(playerId, teamId, playerName, teamName) {
             buttonsStyling: false
         }).then((result) => {
             if (result.isConfirmed) {
-                draftSystemInstance.removePlayer(playerId, teamId);
+                window.draftSystemInstance.removePlayer(playerId, teamId);
             }
         });
     } else {
         // Fallback
         if (confirm(`Remove ${playerName} from ${teamName}?`)) {
-            draftSystemInstance.removePlayer(playerId, teamId);
+            window.draftSystemInstance.removePlayer(playerId, teamId);
         }
     }
 }
 
 function confirmDraft(teamId, teamName) {
     if (draftSystemInstance) {
-        draftSystemInstance.confirmDraft(teamId, teamName);
+        window.draftSystemInstance.confirmDraft(teamId, teamName);
     }
 }
 
 function removePlayer(playerId, teamId) {
     if (draftSystemInstance) {
-        draftSystemInstance.removePlayer(playerId, teamId);
+        window.draftSystemInstance.removePlayer(playerId, teamId);
     }
 }
 
 function refreshDraft() {
     if (draftSystemInstance) {
-        draftSystemInstance.refreshDraft();
+        window.draftSystemInstance.refreshDraft();
     }
 }
 
 function viewPlayerProfile(playerId) {
     if (draftSystemInstance) {
-        draftSystemInstance.viewPlayerProfile(playerId);
+        window.draftSystemInstance.viewPlayerProfile(playerId);
     }
 }
 
 function handleDragStart(event, playerId) {
     if (draftSystemInstance) {
-        draftSystemInstance.handleDragStart(event, playerId);
+        window.draftSystemInstance.handleDragStart(event, playerId);
     }
 }
 
 function handleDragEnd(event) {
     if (draftSystemInstance) {
-        draftSystemInstance.handleDragEnd(event);
+        window.draftSystemInstance.handleDragEnd(event);
     }
 }
 
 function handleDragOver(event) {
     if (draftSystemInstance) {
-        draftSystemInstance.handleDragOver(event);
+        window.draftSystemInstance.handleDragOver(event);
     }
 }
 
 function handleDragLeave(event) {
     if (draftSystemInstance) {
-        draftSystemInstance.handleDragLeave(event);
+        window.draftSystemInstance.handleDragLeave(event);
     }
 }
 
 function handleDrop(event, teamId) {
     if (draftSystemInstance) {
-        draftSystemInstance.handleDrop(event, teamId);
+        window.draftSystemInstance.handleDrop(event, teamId);
     }
 }
 
 function handleDropToAvailable(event) {
     if (draftSystemInstance) {
-        draftSystemInstance.handleDropToAvailable(event);
+        window.draftSystemInstance.handleDropToAvailable(event);
     }
 }
 
 // Global smartCropImage function for template compatibility
 function smartCropImage(img) {
     if (draftSystemInstance) {
-        draftSystemInstance.smartCropImage(img);
+        window.draftSystemInstance.smartCropImage(img);
     }
 }
 

@@ -42,7 +42,7 @@ class PitchViewSystem {
                 window.SocketManager.onConnect('pitchView', (socket) => {
                     console.log('✅ Connected to draft system');
                     self.isConnected = true;
-                    socket.emit('join_draft_room', { league_name: self.leagueName });
+                    window.socket.emit('join_draft_room', { league_name: self.leagueName });
                 });
 
                 window.SocketManager.onDisconnect('pitchView', () => {
@@ -88,7 +88,7 @@ class PitchViewSystem {
             this.setupSocketListeners();
 
         } catch (error) {
-            console.error('Failed to initialize socket:', error);
+            console.error('Failed to initialize window.socket:', error);
         }
     }
 

@@ -41,7 +41,7 @@ function initLiveReporting(config) {
     setupUIListeners();
     
     // Join the match room when connected
-    socket.on('connect', () => {
+    window.socket.on('connect', () => {
         // Connected to live reporting server
         joinMatch();
     });
@@ -52,7 +52,7 @@ function initLiveReporting(config) {
  */
 function setupSocketListeners() {
     // Connection events
-    socket.on('disconnect', () => {
+    window.socket.on('disconnect', () => {
         // Disconnected from live reporting server
         liveReportingShowNotification('Connection lost. Attempting to reconnect...', 'warning');
         
@@ -63,32 +63,32 @@ function setupSocketListeners() {
         }
     });
     
-    socket.on('error', (error) => {
+    window.socket.on('error', (error) => {
         // Socket error
         liveReportingShowNotification('Error: ' + error.message, 'danger');
     });
     
     // Match state events
-    socket.on('match_state', (state) => {
+    window.socket.on('match_state', (state) => {
         // Received match state
         matchState = state;
         updateMatchUI(state);
     });
     
-    socket.on('active_reporters', (reporters) => {
+    window.socket.on('active_reporters', (reporters) => {
         // Active reporters
         activeReporters = reporters;
         updateReportersUI(reporters);
     });
     
-    socket.on('player_shifts', (shifts) => {
+    window.socket.on('player_shifts', (shifts) => {
         // Player shifts
         playerShifts = shifts;
         updateShiftsUI(shifts);
     });
     
     // Live updates
-    socket.on('reporter_joined', (data) => {
+    window.socket.on('reporter_joined', (data) => {
         // Reporter joined
         liveReportingShowNotification(`${data.username} joined as a reporter for ${data.team_name}`, 'info');
         
@@ -99,7 +99,7 @@ function setupSocketListeners() {
         }
     });
     
-    socket.on('reporter_left', (data) => {
+    window.socket.on('reporter_left', (data) => {
         // Reporter left
         liveReportingShowNotification(`${data.username} is no longer reporting`, 'info');
         
@@ -108,7 +108,7 @@ function setupSocketListeners() {
         updateReportersUI(activeReporters);
     });
     
-    socket.on('score_updated', (data) => {
+    window.socket.on('score_updated', (data) => {
         // Score updated
         
         // Update match state
@@ -121,7 +121,7 @@ function setupSocketListeners() {
         liveReportingShowNotification(`Score updated to ${data.home_score}-${data.away_score} by ${data.updated_by_name}`, 'success');
     });
 
-    socket.on('timer_updated', (data) => {
+    window.socket.on('timer_updated', (data) => {
         // Timer updated
 
         // Update match state
@@ -138,7 +138,7 @@ function setupSocketListeners() {
         liveReportingShowNotification(`Timer updated by ${data.updated_by_name}`, 'info');
     });
     
-    socket.on('event_added', (data) => {
+    window.socket.on('event_added', (data) => {
         // Event added
         const event = data.event;
         
@@ -162,7 +162,7 @@ function setupSocketListeners() {
         liveReportingShowNotification(`New event: ${eventMessage}`, 'success');
     });
 
-    socket.on('player_shift_updated', (data) => {
+    window.socket.on('player_shift_updated', (data) => {
         // Player shift updated
 
         // Only process shift updates for our team
@@ -187,7 +187,7 @@ function setupSocketListeners() {
         }
     });
     
-    socket.on('report_submitted', (data) => {
+    window.socket.on('report_submitted', (data) => {
         // Report submitted
         
         // Update match state
@@ -206,7 +206,7 @@ function setupSocketListeners() {
         window.$('#reportCompleteMessage').removeClass('u-hidden');
     });
 
-    socket.on('report_submission_error', (data) => {
+    window.socket.on('report_submission_error', (data) => {
         // Report submission error
         liveReportingShowNotification(`Error submitting report: ${data.message}`, 'danger');
     });
@@ -279,7 +279,7 @@ function setupUIListeners() {
         const eventPlayerId = window.$('#eventPlayer').val();
         const eventMinute = window.$('#eventMinute').val();
         
-        addEvent({
+        window.addEvent({
             event_type: eventType,
             team_id: parseInt(eventTeamId),
             player_id: eventPlayerId ? parseInt(eventPlayerId) : null,
@@ -344,7 +344,7 @@ function setupUIListeners() {
  * Join a match room
  */
 function joinMatch() {
-    socket.emit('join_match', {
+    window.socket.emit('join_match', {
         match_id: matchId,
         team_id: teamId
     });
@@ -354,7 +354,7 @@ function joinMatch() {
  * Leave a match room
  */
 function leaveMatch() {
-    socket.emit('leave_match', {
+    window.socket.emit('leave_match', {
         match_id: matchId
     });
 }
@@ -363,7 +363,7 @@ function leaveMatch() {
  * Update the match score
  */
 function updateScore(homeScore, awayScore) {
-    socket.emit('update_score', {
+    window.socket.emit('update_score', {
         match_id: matchId,
         home_score: homeScore,
         away_score: awayScore
@@ -384,7 +384,7 @@ function updateTimer(elapsedSeconds, isRunning, period = null) {
         data.period = period;
     }
     
-    socket.emit('update_timer', data);
+    window.socket.emit('update_timer', data);
 }
 
 /**
@@ -454,7 +454,7 @@ function startTimerInterval() {
  * Add a match event
  */
 function addEvent(eventData) {
-    socket.emit('add_event', {
+    window.socket.emit('add_event', {
         match_id: matchId,
         event: eventData
     });
@@ -464,7 +464,7 @@ function addEvent(eventData) {
  * Toggle a player's shift status
  */
 function togglePlayerShift(playerId, isActive) {
-    socket.emit('update_player_shift', {
+    window.socket.emit('update_player_shift', {
         match_id: matchId,
         player_id: playerId,
         is_active: isActive,
@@ -478,7 +478,7 @@ function togglePlayerShift(playerId, isActive) {
 function submitFinalReport() {
     const notes = window.$('#matchNotes').val();
     
-    socket.emit('submit_report', {
+    window.socket.emit('submit_report', {
         match_id: matchId,
         report_data: {
             notes: notes

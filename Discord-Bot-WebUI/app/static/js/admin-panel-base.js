@@ -725,7 +725,7 @@
     }
 
     // Expose AdminPanel globally (MUST be before any callbacks or registrations)
-    window.AdminPanel = AdminPanelBase;
+    window.AdminPanel = window.AdminPanelBase;
     window.AdminPanelBase = AdminPanelBase;
 
     // Register with InitSystem if available

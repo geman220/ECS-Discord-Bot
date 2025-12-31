@@ -363,7 +363,7 @@ class ScheduleManager {
         if (_initialized) return;
         _initialized = true;
 
-        window.scheduleManager = new ScheduleManager();
+        window.scheduleManager = new window.ScheduleManager();
     }
 
     // Register with InitSystem (primary)

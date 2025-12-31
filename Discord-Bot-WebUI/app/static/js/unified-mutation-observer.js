@@ -55,7 +55,7 @@
      */
     register: function(id, config) {
       if (_handlers.has(id)) {
-        console.warn(`[UnifiedMutationObserver] Handler "${id}" already registered, replacing`);
+        console.warn(`[window.UnifiedMutationObserver] Handler "${id}" already registered, replacing`);
       }
 
       _handlers.set(id, {
@@ -186,7 +186,7 @@
               }
             }
           } catch (e) {
-            console.error(`[UnifiedMutationObserver] Error in handler "${id}":`, e);
+            console.error(`[window.UnifiedMutationObserver] Error in handler "${id}":`, e);
           }
         });
 

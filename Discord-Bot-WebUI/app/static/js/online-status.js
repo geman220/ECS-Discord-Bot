@@ -169,19 +169,19 @@
      * @param {Socket} socket
      */
     attachSocketListeners(socket) {
-      socket.on('user_online', (data) => {
+      window.socket.on('user_online', (data) => {
         if (data.user_id) {
           this.setUserStatus(data.user_id, true);
         }
       });
 
-      socket.on('user_offline', (data) => {
+      window.socket.on('user_offline', (data) => {
         if (data.user_id) {
           this.setUserStatus(data.user_id, false);
         }
       });
 
-      socket.on('presence_update', (data) => {
+      window.socket.on('presence_update', (data) => {
         if (data.user_id !== undefined && data.online !== undefined) {
           this.setUserStatus(data.user_id, data.online);
         }

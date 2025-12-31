@@ -106,7 +106,7 @@ function init() {
 
             // Initialize simple cropper
             if (!window.SimpleCropperInstance) {
-                window.SimpleCropperInstance = initializeSimpleCropper('cropCanvas');
+                window.SimpleCropperInstance = window.initializeSimpleCropper('cropCanvas');
             }
 
             // Update the progress bar

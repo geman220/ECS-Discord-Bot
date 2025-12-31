@@ -55,13 +55,13 @@ const EventDelegation = {
      */
     register(action, handler, options = {}) {
         if (typeof handler !== 'function') {
-            console.error(`[EventDelegation] Handler for action "${action}" must be a function`);
+            console.error(`[window.EventDelegation] Handler for action "${action}" must be a function`);
             return;
         }
 
         // Duplicate detection - warn if handler already exists
         if (this.handlers.has(action)) {
-            console.warn(`[EventDelegation] WARNING: Handler for action "${action}" is being overwritten! This may cause unexpected behavior. Consider using unique action names.`);
+            console.warn(`[window.EventDelegation] WARNING: Handler for action "${action}" is being overwritten! This may cause unexpected behavior. Consider using unique action names.`);
             this.duplicates.add(action);
         }
 
@@ -76,7 +76,7 @@ const EventDelegation = {
         this.stats.handlersRegistered++;
 
         if (this.debug) {
-            console.log(`[EventDelegation] Registered handler: ${action}`);
+            console.log(`[window.EventDelegation] Registered handler: ${action}`);
         }
     },
 
@@ -88,7 +88,7 @@ const EventDelegation = {
             this.handlers.delete(action);
             this.stats.handlersRegistered--;
             if (this.debug) {
-                console.log(`[EventDelegation] Unregistered handler: ${action}`);
+                console.log(`[window.EventDelegation] Unregistered handler: ${action}`);
             }
         }
     },
@@ -134,7 +134,7 @@ const EventDelegation = {
         document.addEventListener('keydown', this.handleKeydown.bind(this), false);
 
         console.log('[EventDelegation] System initialized');
-        console.log(`[EventDelegation] Registered ${this.stats.handlersRegistered} handlers`);
+        console.log(`[window.EventDelegation] Registered ${this.stats.handlersRegistered} handlers`);
     },
 
     /**
@@ -151,7 +151,7 @@ const EventDelegation = {
             this.stats.eventsProcessed++;
 
             if (this.debug) {
-                console.log(`[EventDelegation] Handling click action: ${action}`, {
+                console.log(`[window.EventDelegation] Handling click action: ${action}`, {
                     element: actionElement,
                     data: actionElement.dataset
                 });
@@ -161,12 +161,12 @@ const EventDelegation = {
                 handler(actionElement, e);
             } catch (error) {
                 this.stats.errorsEncountered++;
-                console.error(`[EventDelegation] Error in handler "${action}":`, error);
+                console.error(`[window.EventDelegation] Error in handler "${action}":`, error);
                 this.handleError(action, error, actionElement);
             }
         } else {
             if (this.debug) {
-                console.warn(`[EventDelegation] No handler registered for action: ${action}`);
+                console.warn(`[window.EventDelegation] No handler registered for action: ${action}`);
             }
         }
     },
@@ -187,7 +187,7 @@ const EventDelegation = {
                 handler(target, e);
             } catch (error) {
                 this.stats.errorsEncountered++;
-                console.error(`[EventDelegation] Error in handler "${action}":`, error);
+                console.error(`[window.EventDelegation] Error in handler "${action}":`, error);
             }
         }
     },
@@ -208,7 +208,7 @@ const EventDelegation = {
                 handler(target, e);
             } catch (error) {
                 this.stats.errorsEncountered++;
-                console.error(`[EventDelegation] Error in handler "${action}":`, error);
+                console.error(`[window.EventDelegation] Error in handler "${action}":`, error);
             }
         }
     },
@@ -229,7 +229,7 @@ const EventDelegation = {
                 handler(form, e);
             } catch (error) {
                 this.stats.errorsEncountered++;
-                console.error(`[EventDelegation] Error in handler "${action}":`, error);
+                console.error(`[window.EventDelegation] Error in handler "${action}":`, error);
             }
         }
     },
@@ -250,7 +250,7 @@ const EventDelegation = {
                 handler(target, e);
             } catch (error) {
                 this.stats.errorsEncountered++;
-                console.error(`[EventDelegation] Error in handler "${action}":`, error);
+                console.error(`[window.EventDelegation] Error in handler "${action}":`, error);
             }
         }
     },
@@ -259,7 +259,7 @@ const EventDelegation = {
      * Handle errors in action handlers
      */
     handleError(action, error, element) {
-        console.error(`[EventDelegation] Action "${action}" failed:`, error);
+        console.error(`[window.EventDelegation] Action "${action}" failed:`, error);
         if (typeof showNotification === 'function') {
             showNotification('Error', `Action failed: ${action}`, 'error');
         }

@@ -70,17 +70,17 @@
         break;
       case 'remove-match':
         e.preventDefault();
-        removeMatch(matchId);
+        window.removeMatch(matchId);
         break;
       case 'clear-matches':
         e.preventDefault();
-        clearAllMatches();
+        window.clearAllMatches();
         break;
       case 'start-reporting':
-        startLiveReporting(matchId);
+        window.startLiveReporting(matchId);
         break;
       case 'stop-reporting':
-        stopLiveReporting(matchId);
+        window.stopLiveReporting(matchId);
         break;
       case 'save-row':
         e.preventDefault();

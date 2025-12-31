@@ -87,14 +87,14 @@
             if (data.message_content) {
                 navigator.clipboard.writeText(data.message_content).then(function() {
                     // Show success toast
-                    showToast('Success', 'Message content copied to clipboard!', 'success');
+                    window.showToast('Success', 'Message content copied to clipboard!', 'success');
                 }).catch(function(err) {
-                    showToast('Error', 'Failed to copy to clipboard', 'danger');
+                    window.showToast('Error', 'Failed to copy to clipboard', 'danger');
                 });
             }
         })
         .catch(error => {
-            showToast('Error', 'Error copying template: ' + error.message, 'danger');
+            window.showToast('Error', 'Error copying template: ' + error.message, 'danger');
         });
     };
 
@@ -103,7 +103,7 @@
         const messageContent = document.getElementById('message_content').value;
         
         if (!messageContent.trim()) {
-            showToast('Warning', 'Please enter message content to preview.', 'warning');
+            window.showToast('Warning', 'Please enter message content to preview.', 'warning');
             return;
         }
 

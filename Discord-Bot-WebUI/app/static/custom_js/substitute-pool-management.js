@@ -73,7 +73,7 @@ window.subPoolHandleDrop = function(event) {
 
     // Only allow drops within the same league
     if (data.league !== targetLeague) {
-        subPoolShowAlert('error', 'Cannot move players between different leagues');
+        window.subPoolShowAlert('error', 'Cannot move players between different leagues');
         return;
     }
 
@@ -84,9 +84,9 @@ window.subPoolHandleDrop = function(event) {
 
     // Handle the drop
     if (targetStatus === 'active') {
-        approvePlayer(data.playerId, data.league);
+        window.approvePlayer(data.playerId, data.league);
     } else if (targetStatus === 'pending') {
-        removePlayer(data.playerId, data.league);
+        window.removePlayer(data.playerId, data.league);
     }
 };
 
@@ -138,11 +138,11 @@ function performSearch(query) {
             if (response.success) {
                 displaySearchResults(response.players);
             } else {
-                subPoolShowAlert('error', response.message);
+                window.subPoolShowAlert('error', response.message);
             }
         },
         error: function() {
-            subPoolShowAlert('error', 'Search failed. Please try again.');
+            window.subPoolShowAlert('error', 'Search failed. Please try again.');
         }
     });
 }
@@ -212,7 +212,7 @@ function subPoolInitializeEventHandlers() {
     window.$(document).on('click', '.approve-player', function() {
         const playerId = window.$(this).data('player-id');
         const league = window.$(this).data('league');
-        approvePlayer(playerId, league);
+        window.approvePlayer(playerId, league);
     });
 
     // Remove player
@@ -221,7 +221,7 @@ function subPoolInitializeEventHandlers() {
         const league = window.$(this).data('league');
 
         if (confirm('Are you sure you want to remove this player from the substitute pool?')) {
-            removePlayer(playerId, league);
+            window.removePlayer(playerId, league);
         }
     });
 
@@ -235,14 +235,14 @@ function subPoolInitializeEventHandlers() {
     // Player details
     window.$(document).on('click', '.player-details-btn', function() {
         const playerId = window.$(this).data('player-id');
-        openPlayerDetailsModal(playerId);
+        window.openPlayerDetailsModal(playerId);
     });
 
     // Add to league from search
     window.$(document).on('click', '.add-to-league', function() {
         const playerId = window.$(this).data('player-id');
         const league = window.$(this).data('league');
-        approvePlayer(playerId, league);
+        window.approvePlayer(playerId, league);
     });
 
     // Save preferences
@@ -276,13 +276,13 @@ function subPoolInitializeEventHandlers() {
         const league = window.$(this).data('league');
         const section = window.$(this).data('section');
 
-        filterPlayerCards(league, section, filterText);
+        window.filterPlayerCards(league, section, filterText);
     });
 
     // Manage league modal
     window.$(document).on('click', '.manage-league-btn', function() {
         const league = window.$(this).data('league');
-        openLeagueManagementModal(league);
+        window.openLeagueManagementModal(league);
     });
     */
 }
@@ -301,14 +301,14 @@ function approvePlayer(playerId, league) {
         }),
         success: function(response) {
             if (response.success) {
-                subPoolShowAlert('success', response.message);
+                window.subPoolShowAlert('success', response.message);
                 setTimeout(() => location.reload(), 1500);
             } else {
-                subPoolShowAlert('error', response.message);
+                window.subPoolShowAlert('error', response.message);
             }
         },
         error: function() {
-            subPoolShowAlert('error', 'Failed to add player to pool');
+            window.subPoolShowAlert('error', 'Failed to add player to pool');
         }
     });
 }
@@ -329,14 +329,14 @@ function removePlayer(playerId, league) {
         }),
         success: function(response) {
             if (response.success) {
-                subPoolShowAlert('success', response.message);
+                window.subPoolShowAlert('success', response.message);
                 setTimeout(() => location.reload(), 1500);
             } else {
-                subPoolShowAlert('error', response.message);
+                window.subPoolShowAlert('error', response.message);
             }
         },
         error: function() {
-            subPoolShowAlert('error', 'Failed to remove player from pool');
+            window.subPoolShowAlert('error', 'Failed to remove player from pool');
         }
     });
 }
@@ -554,7 +554,7 @@ window.$(document).on('click', '.pagination .page-link', function(e) {
 
     if (page && paginationState[key] && page !== paginationState[key].currentPage) {
         paginationState[key].currentPage = page;
-        updatePagination(league, section);
+        window.updatePagination(league, section);
     }
 });
 */

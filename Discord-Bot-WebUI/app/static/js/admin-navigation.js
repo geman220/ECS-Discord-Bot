@@ -255,7 +255,7 @@
       const altNav = document.querySelector('.c-admin-nav');
       if (altNav && !altNav.hasAttribute('data-controller')) {
         altNav.setAttribute('data-controller', 'admin-nav');
-        altNav.adminNavController = new AdminNavigationController(altNav);
+        altNav.adminNavController = new window.AdminNavigationController(altNav);
       }
       return;
     }
@@ -265,7 +265,7 @@
       if (nav.adminNavController) return;
 
       // Create and attach controller
-      nav.adminNavController = new AdminNavigationController(nav);
+      nav.adminNavController = new window.AdminNavigationController(nav);
     });
   }
 
@@ -286,7 +286,7 @@
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initAdminNavigation);
   } else {
-    initAdminNavigation();
+    window.initAdminNavigation();
   }
 
   /**

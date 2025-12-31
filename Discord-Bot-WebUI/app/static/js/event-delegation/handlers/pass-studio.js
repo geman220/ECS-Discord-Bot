@@ -37,7 +37,7 @@ window.EventDelegation.register('update-pass-style', function(element, e) {
     if (window.PassStudio && typeof window.PassStudio.updatePassStylePreview === 'function') {
         window.PassStudio.updatePassStylePreview();
     } else {
-        console.error('[update-pass-style] PassStudio.updatePassStylePreview not available');
+        console.error('[update-pass-style] window.PassStudio.updatePassStylePreview not available');
     }
 });
 
@@ -150,7 +150,7 @@ window.EventDelegation.register('open-asset-cropper', function(element, e) {
     if (window.PassStudio && typeof window.PassStudio.openAssetCropper === 'function') {
         window.PassStudio.openAssetCropper(assetType);
     } else {
-        console.error('[open-asset-cropper] PassStudio.openAssetCropper not available');
+        console.error('[open-asset-cropper] window.PassStudio.openAssetCropper not available');
     }
 });
 

@@ -66,7 +66,7 @@ function openLeagueManagementModal(league) {
     window.$('#leagueTitle').text(config.name);
     
     // Load league statistics
-    loadLeagueStatistics(league);
+    window.loadLeagueStatistics(league);
     
     // Store current league for modal actions
     window.$('#leagueManagementModal').data('current-league', league);
@@ -97,10 +97,10 @@ function loadLeagueStatistics(league) {
     });
     
     // Load recent activity
-    loadRecentActivity(league);
+    window.loadRecentActivity(league);
     
     // Load substitute requests
-    loadSubstituteRequests(league);
+    window.loadSubstituteRequests(league);
 }
 
 function loadRecentActivity(league) {
@@ -152,7 +152,7 @@ function loadRecentActivity(league) {
                         <br>
                         <small class="text-muted">Status: ${xhr.status} - ${error}</small>
                         <br>
-                        <button class="js-retry-activity mt-2" data-action="retry-activity" onclick="loadRecentActivity('${league}')">
+                        <button class="js-retry-activity mt-2" data-action="retry-activity" onclick="window.loadRecentActivity('${league}')">
                             <i class="ti ti-refresh me-1"></i>Retry
                         </button>
                     </td>
@@ -232,7 +232,7 @@ function loadSubstituteRequests(league) {
                         <i class="ti ti-alert-circle text-warning me-2"></i>
                         <span class="text-muted">Unable to load substitute requests</span>
                         <br>
-                        <button class="js-retry-requests mt-2" data-action="retry-requests" onclick="loadSubstituteRequests('${league}')">
+                        <button class="js-retry-requests mt-2" data-action="retry-requests" onclick="window.loadSubstituteRequests('${league}')">
                             <i class="ti ti-refresh me-1"></i>Retry
                         </button>
                     </td>
@@ -401,7 +401,7 @@ function performResendRequest(requestId, league) {
         success: function(response) {
             if (response.success) {
                 subRequestShowNotification('success', response.message);
-                loadSubstituteRequests(league); // Refresh the table
+                window.loadSubstituteRequests(league); // Refresh the table
             } else {
                 subRequestShowNotification('error', response.message);
             }
@@ -456,7 +456,7 @@ function cancelSubstituteRequest(requestId, league, teamName) {
         success: function(response) {
             if (response.success) {
                 subRequestShowNotification('success', response.message);
-                loadSubstituteRequests(league); // Refresh the table
+                window.loadSubstituteRequests(league); // Refresh the table
             } else {
                 subRequestShowNotification('error', response.message);
             }
@@ -509,7 +509,7 @@ function loadMatchSubstituteRequests(matchId) {
                         <i class="ti ti-alert-circle text-warning me-2"></i>
                         <span class="text-muted">Unable to load substitute requests</span>
                         <br>
-                        <button class="js-retry-match-requests mt-2" data-action="retry-match-requests" data-match-id="${matchId}" onclick="loadMatchSubstituteRequests(this.dataset.matchId)">
+                        <button class="js-retry-match-requests mt-2" data-action="retry-match-requests" data-match-id="${matchId}" onclick="window.loadMatchSubstituteRequests(this.dataset.matchId)">
                             <i class="ti ti-refresh me-1"></i>Retry
                         </button>
                     </td>
@@ -637,27 +637,27 @@ window.$(document).on('click', '[data-action="resend-request"]', function() {
     const league = window.$(this).data('league');
     const teamName = window.$(this).data('team');
     const createdAt = window.$(this).data('created');
-    resendSubstituteRequest(requestId, league, teamName, createdAt);
+    window.resendSubstituteRequest(requestId, league, teamName, createdAt);
 });
 
 window.$(document).on('click', '[data-action="cancel-request"]', function() {
     const requestId = window.$(this).data('request-id');
     const league = window.$(this).data('league');
     const teamName = window.$(this).data('team');
-    cancelSubstituteRequest(requestId, league, teamName);
+    window.cancelSubstituteRequest(requestId, league, teamName);
 });
 
 window.$(document).on('click', '[data-action="refresh-requests"]', function() {
     const league = window.$('#leagueManagementModal').data('current-league');
     if (league) {
-        loadSubstituteRequests(league);
+        window.loadSubstituteRequests(league);
     }
 });
 
 window.$(document).on('click', '[data-action="view-request-details"]', function() {
     const requestId = window.$(this).data('request-id');
     const league = window.$('#leagueManagementModal').data('current-league');
-    viewRequestDetails(requestId, league);
+    window.viewRequestDetails(requestId, league);
 });
 
 // Event handlers for match-specific requests
@@ -685,7 +685,7 @@ window.$(document).on('click', '[data-action="delete-request"]', function() {
 
 window.$(document).on('click', '[data-action="refresh-match-requests"]', function() {
     if (typeof matchId !== 'undefined') {
-        loadMatchSubstituteRequests(matchId);
+        window.loadMatchSubstituteRequests(matchId);
     }
 });
 
@@ -693,7 +693,7 @@ window.$(document).on('click', '[data-action="view-match-request-details"]', fun
     const requestId = window.$(this).data('request-id');
     // Determine league type from the current page context
     const league = 'ECS FC'; // Default for match pages, could be made dynamic
-    viewRequestDetails(requestId, league);
+    window.viewRequestDetails(requestId, league);
 });
 
 function resendMatchSubstituteRequest(requestId, league, teamName, createdAt) {
@@ -744,7 +744,7 @@ function performMatchResendRequest(requestId, league) {
             if (response.success) {
                 subRequestShowNotification('success', response.message);
                 if (typeof matchId !== 'undefined') {
-                    loadMatchSubstituteRequests(matchId);
+                    window.loadMatchSubstituteRequests(matchId);
                 }
             } else {
                 subRequestShowNotification('error', response.message);
@@ -800,7 +800,7 @@ function cancelMatchSubstituteRequest(requestId, league, teamName) {
             if (response.success) {
                 subRequestShowNotification('success', response.message);
                 if (typeof matchId !== 'undefined') {
-                    loadMatchSubstituteRequests(matchId);
+                    window.loadMatchSubstituteRequests(matchId);
                 }
             } else {
                 subRequestShowNotification('error', response.message);
@@ -866,14 +866,14 @@ function performDeleteRequest(requestId, league) {
 
                 // Also reload the data for consistency
                 if (typeof loadRecentActivity === 'function') {
-                    loadRecentActivity(league);
+                    window.loadRecentActivity(league);
                 }
                 if (typeof loadSubstituteRequests === 'function') {
-                    loadSubstituteRequests(league);
+                    window.loadSubstituteRequests(league);
                 }
                 // For match-specific requests
                 if (typeof matchId !== 'undefined' && typeof loadMatchSubstituteRequests === 'function') {
-                    loadMatchSubstituteRequests(matchId);
+                    window.loadMatchSubstituteRequests(matchId);
                 }
             } else {
                 subRequestShowNotification('error', response.error || 'Failed to delete request');
@@ -977,7 +977,7 @@ function bulkApproveAllPending(league) {
     let completed = 0;
     playerIds.forEach(playerId => {
         if (typeof approvePlayer === 'function') {
-            approvePlayer(playerId, league);
+            window.approvePlayer(playerId, league);
             completed++;
 
             if (completed === playerIds.length) {
@@ -1248,12 +1248,12 @@ function assignSubstitute(requestId, playerId, league, position) {
                 if (window.$('#substituteRequestsTable').length) {
                     const league = window.$('#leagueManagementModal').data('current-league');
                     if (league) {
-                        loadSubstituteRequests(league);
+                        window.loadSubstituteRequests(league);
                     }
                 }
                 // Refresh match requests table if visible
                 if (window.$('#matchSubstituteRequestsTable').length && typeof matchId !== 'undefined') {
-                    loadMatchSubstituteRequests(matchId);
+                    window.loadMatchSubstituteRequests(matchId);
                 }
             } else {
                 subRequestShowNotification('error', response.message);
@@ -1273,7 +1273,7 @@ window.$(document).on('click', '[data-action="resend-from-details"]', function()
     const createdAt = window.$(this).data('created');
 
     window.$('#requestDetailsModal').modal('hide');
-    resendSubstituteRequest(requestId, league, teamName, createdAt);
+    window.resendSubstituteRequest(requestId, league, teamName, createdAt);
 });
 
     // Export functions to window for template compatibility

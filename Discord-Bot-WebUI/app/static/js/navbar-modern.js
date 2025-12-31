@@ -1166,7 +1166,7 @@ class ModernNavbarController {
 
       // Register connect callback - fires immediately if already connected
       window.SocketManager.onConnect('Navbar', (socket) => {
-        this.presenceSocket = socket;
+        this.presenceSocket = window.socket;
         this.updateOnlineStatus(true);
         console.debug('Presence socket connected via SocketManager');
       });
@@ -1223,7 +1223,7 @@ class ModernNavbarController {
       this.attachSocketListenersDirect(this.presenceSocket);
 
     } catch (error) {
-      console.warn('Failed to initialize presence socket:', error);
+      console.warn('Failed to initialize presence window.socket:', error);
       this.checkPresence();
     }
   }
@@ -1232,26 +1232,26 @@ class ModernNavbarController {
    * Attach event listeners directly to socket (fallback when SocketManager not available)
    */
   attachSocketListenersDirect(socket) {
-    socket.on('connect', () => {
+    window.socket.on('connect', () => {
       this.updateOnlineStatus(true);
       console.debug('Presence socket connected');
     });
 
-    socket.on('disconnect', () => {
+    window.socket.on('disconnect', () => {
       this.updateOnlineStatus(false);
       console.debug('Presence socket disconnected');
     });
 
-    socket.on('authentication_success', (data) => {
+    window.socket.on('authentication_success', (data) => {
       this.updateOnlineStatus(true);
       console.debug('Presence authenticated:', data.username);
     });
 
-    socket.on('authentication_failed', () => {
+    window.socket.on('authentication_failed', () => {
       this.updateOnlineStatus(true);
     });
 
-    socket.on('connect_error', (error) => {
+    window.socket.on('connect_error', (error) => {
       console.warn('Presence socket connection error:', error.message);
       this.updateOnlineStatus(false);
     });

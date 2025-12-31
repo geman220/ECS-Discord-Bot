@@ -264,10 +264,10 @@ function initSmsVerification() {
         // Setup initial state if elements exist
         // Note: We don't add event listeners here since they are already set with inline onchange/onclick
         if (smsToggle.checked) {
-            toggleSmsConsent(true);
+            window.toggleSmsConsent(true);
 
             if (smsConsent.checked) {
-                toggleSmsVerification(true);
+                window.toggleSmsVerification(true);
             }
         }
     }

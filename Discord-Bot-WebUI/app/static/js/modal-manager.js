@@ -119,7 +119,7 @@ class ModalManager {
                     this.modalInstances.set(modalEl.id, instance);
                     this.log(`Cached modal: ${modalEl.id}`);
                 } catch (error) {
-                    console.error(`[ModalManager] Failed to initialize modal ${modalEl.id}:`, error);
+                    console.error(`[window.ModalManager] Failed to initialize modal ${modalEl.id}:`, error);
                 }
             } else {
                 console.warn('[ModalManager] Found modal without ID. Modals should have unique IDs:', modalEl);
@@ -217,7 +217,7 @@ class ModalManager {
             const modalElement = document.getElementById(modalId);
 
             if (!modalElement) {
-                console.error(`[ModalManager] Modal element not found: ${modalId}`);
+                console.error(`[window.ModalManager] Modal element not found: ${modalId}`);
                 return false;
             }
 
@@ -234,7 +234,7 @@ class ModalManager {
                 this.modalInstances.set(modalId, modal);
                 this.log(`Created and cached new modal: ${modalId}`);
             } catch (error) {
-                console.error(`[ModalManager] Failed to initialize modal ${modalId}:`, error);
+                console.error(`[window.ModalManager] Failed to initialize modal ${modalId}:`, error);
                 return false;
             }
         }
@@ -244,7 +244,7 @@ class ModalManager {
             modal.show();
             return true;
         } catch (error) {
-            console.error(`[ModalManager] Failed to show modal ${modalId}:`, error);
+            console.error(`[window.ModalManager] Failed to show modal ${modalId}:`, error);
             return false;
         }
     }
@@ -265,7 +265,7 @@ class ModalManager {
         const modal = this.modalInstances.get(modalId);
 
         if (!modal) {
-            console.warn(`[ModalManager] Modal not found in cache: ${modalId}`);
+            console.warn(`[window.ModalManager] Modal not found in cache: ${modalId}`);
 
             // Try to find it in DOM and get Bootstrap instance
             const modalElement = document.getElementById(modalId);
@@ -276,7 +276,7 @@ class ModalManager {
                         instance.hide();
                         return true;
                     } catch (error) {
-                        console.error(`[ModalManager] Failed to hide modal ${modalId}:`, error);
+                        console.error(`[window.ModalManager] Failed to hide modal ${modalId}:`, error);
                         return false;
                     }
                 }
@@ -289,7 +289,7 @@ class ModalManager {
             modal.hide();
             return true;
         } catch (error) {
-            console.error(`[ModalManager] Failed to hide modal ${modalId}:`, error);
+            console.error(`[window.ModalManager] Failed to hide modal ${modalId}:`, error);
             return false;
         }
     }
@@ -316,7 +316,7 @@ class ModalManager {
             modal.toggle();
             return true;
         } catch (error) {
-            console.error(`[ModalManager] Failed to toggle modal ${modalId}:`, error);
+            console.error(`[window.ModalManager] Failed to toggle modal ${modalId}:`, error);
             return false;
         }
     }
@@ -342,7 +342,7 @@ class ModalManager {
                 const modal = this.modalInstances.get(modalId);
                 modal.dispose();
             } catch (error) {
-                console.warn(`[ModalManager] Error disposing modal ${modalId}:`, error);
+                console.warn(`[window.ModalManager] Error disposing modal ${modalId}:`, error);
             }
 
             this.modalInstances.delete(modalId);
@@ -359,7 +359,7 @@ class ModalManager {
             try {
                 modal.dispose();
             } catch (error) {
-                console.warn(`[ModalManager] Error disposing modal ${modalId}:`, error);
+                console.warn(`[window.ModalManager] Error disposing modal ${modalId}:`, error);
             }
         });
 
@@ -423,13 +423,13 @@ if (typeof window.InitSystem !== 'undefined') {
 
 // Backward compatibility: Maintain the old helper functions
 window.safeGetModal = function(modalId) {
-    console.warn('[Deprecated] safeGetModal() is deprecated. Use ModalManager.getInstance() instead.');
-    return ModalManager.getInstance(modalId);
+    console.warn('[Deprecated] safeGetModal() is deprecated. Use window.ModalManager.getInstance() instead.');
+    return window.ModalManager.getInstance(modalId);
 };
 
 window.safeShowModal = function(modalId) {
-    console.warn('[Deprecated] safeShowModal() is deprecated. Use ModalManager.show() instead.');
-    return ModalManager.show(modalId);
+    console.warn('[Deprecated] safeShowModal() is deprecated. Use window.ModalManager.show() instead.');
+    return window.ModalManager.show(modalId);
 };
 
 // ============================================================================
@@ -456,8 +456,8 @@ function registerModalManagerEventHandlers() {
     window.EventDelegation.register('show-modal', (element, e) => {
         const modalId = element.dataset.modalId;
         if (modalId) {
-            const options = ModalManager.parseOptionsFromElement(element);
-            ModalManager.show(modalId, options);
+            const options = window.ModalManager.parseOptionsFromElement(element);
+            window.ModalManager.show(modalId, options);
         } else {
             console.error('[ModalManager] data-action="show-modal" requires data-modal-id attribute');
         }
@@ -467,12 +467,12 @@ function registerModalManagerEventHandlers() {
     window.EventDelegation.register('hide-modal', (element, e) => {
         const modalId = element.dataset.modalId;
         if (modalId) {
-            ModalManager.hide(modalId);
+            window.ModalManager.hide(modalId);
         } else {
             // Try to find the closest modal and close it
             const closestModal = element.closest('[data-modal], .modal');
             if (closestModal && closestModal.id) {
-                ModalManager.hide(closestModal.id);
+                window.ModalManager.hide(closestModal.id);
             }
         }
     }, { preventDefault: true });
@@ -481,12 +481,12 @@ function registerModalManagerEventHandlers() {
     window.EventDelegation.register('close-modal', (element, e) => {
         const modalId = element.dataset.modalId;
         if (modalId) {
-            ModalManager.hide(modalId);
+            window.ModalManager.hide(modalId);
         } else {
             // Support Bootstrap .modal, custom [data-modal], and .c-modal-modern
             const closestModal = element.closest('[data-modal], .modal, .c-modal-modern');
             if (closestModal && closestModal.id) {
-                ModalManager.hide(closestModal.id);
+                window.ModalManager.hide(closestModal.id);
             }
         }
     }, { preventDefault: true });
@@ -495,7 +495,7 @@ function registerModalManagerEventHandlers() {
     window.EventDelegation.register('toggle-modal', (element, e) => {
         const modalId = element.dataset.modalId;
         if (modalId) {
-            ModalManager.toggle(modalId);
+            window.ModalManager.toggle(modalId);
         } else {
             console.error('[ModalManager] data-action="toggle-modal" requires data-modal-id attribute');
         }

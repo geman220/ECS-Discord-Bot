@@ -58,7 +58,7 @@ function updateMatchRow(match) {
     }
 
     // Update task details with real-time data
-    loadMatchTaskDetails(match.id);
+    window.loadMatchTaskDetails(match.id);
 }
 
 // Load detailed task information for a specific match
@@ -302,7 +302,7 @@ function revokeTask(taskId, matchId, taskType) {
             .then(data => {
                 if (data.success) {
                     window.Swal.fire('Revoked!', data.message, 'success');
-                    loadMatchTaskDetails(matchId);
+                    window.loadMatchTaskDetails(matchId);
                 } else {
                     window.Swal.fire('Error!', data.error, 'error');
                 }
@@ -326,7 +326,7 @@ function rescheduleTask(matchId, taskType) {
     }).then((result) => {
         if (result.isConfirmed) {
             // Use existing schedule match functionality
-            matchMgmtScheduleMatch(matchId);
+            window.matchMgmtScheduleMatch(matchId);
         }
     });
 }
@@ -369,7 +369,7 @@ function loadAllTaskDetails() {
     matchRows.forEach(row => {
         const matchId = row.getAttribute('data-match-id');
         if (matchId) {
-            loadMatchTaskDetails(matchId);
+            window.loadMatchTaskDetails(matchId);
         }
     });
 
@@ -380,7 +380,7 @@ function loadAllTaskDetails() {
         historicalRows.forEach(row => {
             const matchId = row.getAttribute('data-match-id');
             if (matchId) {
-                loadMatchTaskDetails(matchId);
+                window.loadMatchTaskDetails(matchId);
             }
         });
     }
@@ -516,7 +516,7 @@ function matchMgmtScheduleMatch(matchId) {
     .then(data => {
         if (data.success) {
             window.Swal.fire('Success!', data.message, 'success');
-            refreshStatuses();
+            window.refreshStatuses();
         } else {
             window.Swal.fire('Error!', data.message, 'error');
         }
@@ -539,7 +539,7 @@ function createThreadNow(matchId) {
     .then(data => {
         if (data.success) {
             window.Swal.fire('Success!', data.message, 'success');
-            refreshStatuses();
+            window.refreshStatuses();
         } else {
             window.Swal.fire('Error!', data.message, 'error');
         }
@@ -562,7 +562,7 @@ function startLiveReporting(matchId) {
     .then(data => {
         if (data.success) {
             window.Swal.fire('Success!', data.message, 'success');
-            refreshStatuses();
+            window.refreshStatuses();
         } else {
             window.Swal.fire('Error!', data.message, 'error');
         }
@@ -585,7 +585,7 @@ function stopLiveReporting(matchId) {
     .then(data => {
         if (data.success) {
             window.Swal.fire('Success!', data.message, 'success');
-            refreshStatuses();
+            window.refreshStatuses();
         } else {
             window.Swal.fire('Error!', data.message, 'error');
         }
@@ -690,7 +690,7 @@ function scheduleAllMatches() {
             .then(data => {
                 if (data.success) {
                     window.Swal.fire('Success!', data.message, 'success');
-                    refreshStatuses();
+                    window.refreshStatuses();
                 } else {
                     window.Swal.fire('Error!', data.message, 'error');
                 }
@@ -821,7 +821,7 @@ function removeMatch(matchId) {
 // Queue management functions
 function matchMgmtShowQueueStatus() {
     window.$('#queueStatusModal').modal('show');
-    refreshQueueStatus();
+    window.refreshQueueStatus();
 }
 
 function refreshQueueStatus() {
@@ -986,7 +986,7 @@ function forceScheduleMatch(matchId) {
             .then(data => {
                 if (data.success) {
                     window.Swal.fire('Success!', data.message, 'success');
-                    refreshStatuses();
+                    window.refreshStatuses();
                 } else {
                     window.Swal.fire('Error!', data.message, 'error');
                 }
@@ -1034,7 +1034,7 @@ function forceScheduleMatch(matchId) {
                     document.querySelectorAll('[data-match-type="historical"][data-match-id]').forEach(card => {
                         const matchId = card.dataset.matchId;
                         if (matchId) {
-                            loadMatchTaskDetails(matchId);
+                            window.loadMatchTaskDetails(matchId);
                         }
                     });
                 }, 100);

@@ -31,10 +31,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Safely patch the setupCustomBehaviors method
     try {
       // Keep a reference to the original method
-      const originalSetupCustomBehaviors = ECSDesignSystem.setupCustomBehaviors;
+      const originalSetupCustomBehaviors = window.ECSDesignSystem.setupCustomBehaviors;
       
       // Replace with our safe version
-      ECSDesignSystem.setupCustomBehaviors = function() {
+      window.ECSDesignSystem.setupCustomBehaviors = function() {
         // console.log('Using safe setupCustomBehaviors');
         
         // Try to call individual methods safely
@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // Call the setup method to initialize
       setTimeout(function() {
         try {
-          ECSDesignSystem.setupCustomBehaviors();
+          window.ECSDesignSystem.setupCustomBehaviors();
         } catch (e) {
           // console.error('Error in setupCustomBehaviors:', e);
         }

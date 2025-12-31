@@ -457,7 +457,7 @@
     };
 
     // Initialize immediately
-    Helpers.init();
+    window.Helpers.init();
 
     // Expose globally
     window.Helpers = Helpers;

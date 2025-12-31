@@ -95,7 +95,7 @@
     }
 
     // Set up event delegation
-    setupEventDelegation();
+    window.setupEventDelegation();
 
     // Set up keyboard navigation
     setupKeyboardNavigation();

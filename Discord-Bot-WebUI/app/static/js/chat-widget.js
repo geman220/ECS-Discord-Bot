@@ -139,7 +139,7 @@
 
       return await response.json();
     } catch (error) {
-      console.error(`[ChatWidget] API Error: ${url}`, error);
+      console.error(`[window.ChatWidget] API Error: ${url}`, error);
       throw error;
     }
   }
@@ -200,7 +200,7 @@
       return data;
     } catch (error) {
       console.error('[ChatWidget] Failed to send message', error);
-      showToast('Failed to send message', 'error');
+      window.showToast('Failed to send message', 'error');
       throw error;
     }
   }
@@ -319,7 +319,7 @@
              role="button"
              tabindex="0">
           <div class="c-chat-widget__conv-avatar ${isOnline ? 'c-chat-widget__conv-avatar--online' : ''}">
-            <img src="${avatarUrl}" alt="${escapeHtml(conv.user.name)}" onerror="this.src='${defaultAvatar}'">
+            <img src="${avatarUrl}" alt="${window.escapeHtml(conv.user.name)}" onerror="this.src='${defaultAvatar}'">
           </div>
           <div class="c-chat-widget__conv-content">
             <div class="c-chat-widget__conv-header">
@@ -327,7 +327,7 @@
               <span class="c-chat-widget__conv-time">${conv.last_message.time_ago}</span>
             </div>
             <div class="c-chat-widget__conv-preview">
-              ${conv.last_message.sent_by_me ? 'You: ' : ''}${escapeHtml(conv.last_message.content)}
+              ${conv.last_message.sent_by_me ? 'You: ' : ''}${window.escapeHtml(conv.last_message.content)}
             </div>
           </div>
           ${isUnread ? `<div class="c-chat-widget__conv-badge">${conv.unread_count}</div>` : ''}
@@ -374,7 +374,7 @@
       }
 
       // Convert emoji shortcodes
-      const contentWithEmojis = convertEmojiShortcodes(escapeHtml(msg.content));
+      const contentWithEmojis = convertEmojiShortcodes(window.escapeHtml(msg.content));
 
       return `
         <div class="c-chat-widget__message c-chat-widget__message--${isSent ? 'sent' : 'received'}"
@@ -482,13 +482,13 @@
 
         renderMessages();
         scrollToBottom();
-        showToast(deleteFor === 'everyone' ? 'Message unsent' : 'Message deleted', 'success');
+        window.showToast(deleteFor === 'everyone' ? 'Message unsent' : 'Message deleted', 'success');
       } else {
-        showToast(response.error || 'Failed to delete message', 'error');
+        window.showToast(response.error || 'Failed to delete message', 'error');
       }
     } catch (error) {
       console.error('[ChatWidget] Delete message error:', error);
-      showToast('Failed to delete message', 'error');
+      window.showToast('Failed to delete message', 'error');
     }
   }
 
@@ -563,7 +563,7 @@
              role="button"
              tabindex="0">
           <div class="c-chat-widget__search-result-avatar">
-            <img src="${avatarUrl}" alt="${escapeHtml(user.name)}" onerror="this.src='${defaultAvatar}'">
+            <img src="${avatarUrl}" alt="${window.escapeHtml(user.name)}" onerror="this.src='${defaultAvatar}'">
           </div>
           <span class="c-chat-widget__search-result-name">${escapeHtml(user.name)}${roleBadges}</span>
         </div>
@@ -600,7 +600,7 @@
              role="button"
              tabindex="0">
           <div class="c-chat-widget__online-avatar">
-            <img src="${avatarUrl}" alt="${escapeHtml(user.name)}" onerror="this.src='${defaultAvatar}'">
+            <img src="${avatarUrl}" alt="${window.escapeHtml(user.name)}" onerror="this.src='${defaultAvatar}'">
           </div>
           <span class="c-chat-widget__online-name">${escapeHtml(user.name.split(' ')[0])}</span>
         </div>
@@ -732,7 +732,7 @@
     if (elements.chatName) {
       // Display name with role badges
       const roleBadges = renderRoleBadges(roleInfo);
-      elements.chatName.innerHTML = escapeHtml(userName) + roleBadges;
+      elements.chatName.innerHTML = window.escapeHtml(userName) + roleBadges;
     }
     if (elements.chatStatus) {
       elements.chatStatus.textContent = state.activeConversation.isOnline ? 'Online' : 'Offline';
@@ -968,7 +968,7 @@
       } else if (window.socket) {
         // Socket exists but not connected - wait for connect event
         socket = window.socket;
-        socket.once('connect', () => {
+        window.socket.once('connect', () => {
           attachSocketListenersDirect();
         });
       } else {
@@ -1010,25 +1010,25 @@
   }
 
   function attachSocketListenersDirect() {
-    if (!socket) return;
+    if (!window.socket) return;
 
     // Message events
-    socket.on('new_message', handleNewMessage);
-    socket.on('dm_sent', handleMessageSent);
-    socket.on('dm_error', handleMessageError);
-    socket.on('dm_unread_update', handleUnreadUpdate);
-    socket.on('message_deleted', handleMessageDeleted);
+    window.socket.on('new_message', handleNewMessage);
+    window.socket.on('dm_sent', handleMessageSent);
+    window.socket.on('dm_error', handleMessageError);
+    window.socket.on('dm_unread_update', handleUnreadUpdate);
+    window.socket.on('message_deleted', handleMessageDeleted);
 
     // Typing events
-    socket.on('user_typing', handleUserTyping);
+    window.socket.on('user_typing', handleUserTyping);
 
     // Read receipts
-    socket.on('messages_read', handleMessagesRead);
+    window.socket.on('messages_read', handleMessagesRead);
 
     // Presence events
-    socket.on('user_online', handleUserOnline);
-    socket.on('user_offline', handleUserOffline);
-    socket.on('online_users', handleOnlineUsers);
+    window.socket.on('user_online', handleUserOnline);
+    window.socket.on('user_offline', handleUserOffline);
+    window.socket.on('online_users', handleOnlineUsers);
 
     console.log('[ChatWidget] Socket listeners attached (direct)');
   }
@@ -1061,8 +1061,8 @@
     }
 
     // Fallback
-    if (socket && socket.connected) {
-      socket.emit('join_messaging');
+    if (socket && window.socket.connected) {
+      window.socket.emit('join_messaging');
     }
   }
 
@@ -1081,7 +1081,7 @@
       if (typeof window.SocketManager !== 'undefined') {
         window.SocketManager.emit('mark_dm_read', { sender_id: message.sender_id });
       } else if (socket) {
-        socket.emit('mark_dm_read', { sender_id: message.sender_id });
+        window.socket.emit('mark_dm_read', { sender_id: message.sender_id });
       }
     }
 
@@ -1100,7 +1100,7 @@
   }
 
   function handleMessageError(data) {
-    showToast(data.error || 'Failed to send message', 'error');
+    window.showToast(data.error || 'Failed to send message', 'error');
   }
 
   function handleUnreadUpdate(data) {
@@ -1187,7 +1187,7 @@
 
     // Check if we can emit
     const canEmit = (typeof window.SocketManager !== 'undefined' && window.SocketManager.isConnected()) ||
-                    (socket && socket.connected);
+                    (socket && window.socket.connected);
     if (!canEmit) return;
 
     if (!state.isTyping) {
@@ -1195,7 +1195,7 @@
       if (typeof window.SocketManager !== 'undefined') {
         window.SocketManager.emit('typing_start', { recipient_id: state.activeConversation.id });
       } else if (socket) {
-        socket.emit('typing_start', { recipient_id: state.activeConversation.id });
+        window.socket.emit('typing_start', { recipient_id: state.activeConversation.id });
       }
     }
 
@@ -1206,7 +1206,7 @@
       if (typeof window.SocketManager !== 'undefined') {
         window.SocketManager.emit('typing_stop', { recipient_id: state.activeConversation.id });
       } else if (socket) {
-        socket.emit('typing_stop', { recipient_id: state.activeConversation.id });
+        window.socket.emit('typing_stop', { recipient_id: state.activeConversation.id });
       }
     }, CONFIG.ui.typingDebounce);
   }
@@ -1295,7 +1295,7 @@
         timerProgressBar: true
       });
     } else {
-      console.log(`[ChatWidget] ${type}: ${message}`);
+      console.log(`[window.ChatWidget] ${type}: ${message}`);
     }
   }
 

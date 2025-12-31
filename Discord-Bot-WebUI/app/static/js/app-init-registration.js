@@ -130,10 +130,10 @@
         }
 
         // Store reference to original setupCustomBehaviors method
-        const originalSetupCustomBehaviors = ECSDesignSystem.setupCustomBehaviors;
+        const originalSetupCustomBehaviors = window.ECSDesignSystem.setupCustomBehaviors;
 
         // Replace with our safe version that handles errors gracefully
-        ECSDesignSystem.setupCustomBehaviors = function() {
+        window.ECSDesignSystem.setupCustomBehaviors = function() {
             try {
                 // Try to run the original implementation first
                 if (typeof originalSetupCustomBehaviors === 'function') {
@@ -173,7 +173,7 @@
         // Call the setup method after a delay to ensure DOM is ready
         setTimeout(function() {
             try {
-                ECSDesignSystem.setupCustomBehaviors();
+                window.ECSDesignSystem.setupCustomBehaviors();
             } catch (e) {
                 console.error('[Design System Fix] Error in setupCustomBehaviors:', e);
             }

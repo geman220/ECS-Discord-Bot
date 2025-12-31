@@ -250,7 +250,7 @@ class DiscordMembershipChecker {
     
     // Static method to manually trigger Discord join prompt
     static showJoinPrompt(options = {}) {
-        const checker = new DiscordMembershipChecker({
+        const checker = new window.DiscordMembershipChecker({
             checkOnLoad: false,
             showUrgentPopup: true,
             ...options
@@ -301,7 +301,7 @@ function initDiscordChecker() {
         window.location.pathname.includes('auth') ||
         document.querySelector('[data-discord-check="auto"]')) {
         window._discordCheckerInitialized = true;
-        window.discordChecker = new DiscordMembershipChecker();
+        window.discordChecker = new window.DiscordMembershipChecker();
     }
 }
 

@@ -614,7 +614,7 @@
   // Register with InitSystem if available
   if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
     window.InitSystem.register('design-system', function() {
-      ECSDesignSystem.init();
+      window.ECSDesignSystem.init();
     }, {
       priority: 90,
       description: 'ECS Design System (theme, colors, focus states)',
@@ -623,7 +623,7 @@
   } else {
     // Fallback: Initialize on DOM ready
     document.addEventListener('DOMContentLoaded', function() {
-      ECSDesignSystem.init();
+      window.ECSDesignSystem.init();
     });
   }
 })();

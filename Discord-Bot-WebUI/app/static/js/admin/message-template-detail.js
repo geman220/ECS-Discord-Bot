@@ -284,7 +284,7 @@
         const editChannel = e.target.dataset.templateChannel;
         const editContext = e.target.dataset.templateContext;
         const editActive = e.target.dataset.templateActive === 'true';
-        editTemplate(editId, editName, editDesc, editContent, editChannel, editContext, editActive);
+        window.editTemplate(editId, editName, editDesc, editContent, editChannel, editContext, editActive);
     }
 
     /**

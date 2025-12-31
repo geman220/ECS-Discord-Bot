@@ -109,7 +109,7 @@
   function getSocket() {
     // Return existing socket if available
     if (socket) {
-      return socket;
+      return window.socket;
     }
 
     // Check if Socket.IO is available
@@ -122,7 +122,7 @@
     if (window.socket && window.socket.io) {
       log('Reusing existing global socket');
       socket = window.socket;
-      isConnected = socket.connected;
+      isConnected = window.socket.connected;
       attachInternalListeners();
 
       // If already connected, fire callbacks
@@ -130,7 +130,7 @@
         fireConnectCallbacks();
       }
 
-      return socket;
+      return window.socket;
     }
 
     // Create new socket connection
@@ -143,7 +143,7 @@
 
       attachInternalListeners();
 
-      return socket;
+      return window.socket;
     } catch (err) {
       error('Failed to create socket:', err);
       return null;
@@ -154,17 +154,17 @@
    * Attach internal event listeners for connection management
    */
   function attachInternalListeners() {
-    if (!socket) return;
+    if (!window.socket) return;
 
     // Remove existing listeners to prevent duplicates on reconnect
-    socket.off('connect', handleConnect);
-    socket.off('disconnect', handleDisconnect);
-    socket.off('connect_error', handleConnectError);
+    window.socket.off('connect', handleConnect);
+    window.socket.off('disconnect', handleDisconnect);
+    window.socket.off('connect_error', handleConnectError);
 
     // Attach listeners
-    socket.on('connect', handleConnect);
-    socket.on('disconnect', handleDisconnect);
-    socket.on('connect_error', handleConnectError);
+    window.socket.on('connect', handleConnect);
+    window.socket.on('disconnect', handleDisconnect);
+    window.socket.on('connect_error', handleConnectError);
 
     log('Internal listeners attached');
   }
@@ -292,7 +292,7 @@
      * @returns {boolean}
      */
     isConnected: function() {
-      return isConnected && socket && socket.connected;
+      return isConnected && socket && window.socket.connected;
     },
 
     /**
@@ -302,7 +302,7 @@
      */
     isOptimisticallyConnected: function() {
       // Actually connected
-      if (isConnected && socket && socket.connected) {
+      if (isConnected && socket && window.socket.connected) {
         return true;
       }
       // Recently connected (within last 3 seconds)
@@ -326,7 +326,7 @@
       log(`Registered connect callback: ${componentName}`);
 
       // If already connected, fire immediately
-      if (isConnected && socket) {
+      if (isConnected && window.socket) {
         log(`Already connected, firing callback for: ${componentName}`);
         try {
           callback(socket);
@@ -360,11 +360,11 @@
      * @param {Function} callback - Event handler
      */
     on: function(componentName, eventName, callback) {
-      if (!socket) {
+      if (!window.socket) {
         getSocket(); // Ensure socket exists
       }
 
-      if (!socket) {
+      if (!window.socket) {
         warn(`Cannot register event ${eventName}: no socket`);
         return;
       }
@@ -378,12 +378,12 @@
 
       // If there's already a listener for this event from this component, remove it
       if (componentListeners.has(eventName)) {
-        socket.off(eventName, componentListeners.get(eventName));
+        window.socket.off(eventName, componentListeners.get(eventName));
       }
 
       // Register the new listener
       componentListeners.set(eventName, callback);
-      socket.on(eventName, callback);
+      window.socket.on(eventName, callback);
 
       log(`Registered event listener: ${componentName}/${eventName}`);
     },
@@ -400,7 +400,7 @@
         return false;
       }
 
-      socket.emit(eventName, data);
+      window.socket.emit(eventName, data);
       return true;
     },
 
@@ -418,10 +418,10 @@
       disconnectCallbacks.delete(componentName);
 
       // Remove event listeners
-      if (eventListeners.has(componentName) && socket) {
+      if (eventListeners.has(componentName) && window.socket) {
         const componentListeners = eventListeners.get(componentName);
         componentListeners.forEach((callback, eventName) => {
-          socket.off(eventName, callback);
+          window.socket.off(eventName, callback);
         });
         eventListeners.delete(componentName);
       }
@@ -434,7 +434,7 @@
      */
     reconnect: function() {
       if (socket) {
-        socket.connect();
+        window.socket.connect();
       } else {
         getSocket();
       }
@@ -445,7 +445,7 @@
      */
     disconnect: function() {
       if (socket) {
-        socket.disconnect();
+        window.socket.disconnect();
       }
     },
 
@@ -499,7 +499,7 @@
   document.addEventListener('visibilitychange', function() {
     if (document.visibilityState === 'visible' && socket && !socket.connected) {
       log('Page visible, reconnecting socket');
-      socket.connect();
+      window.socket.connect();
     }
   });
 

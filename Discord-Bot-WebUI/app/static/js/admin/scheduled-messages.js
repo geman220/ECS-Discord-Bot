@@ -411,7 +411,7 @@
      * @param {Event} e - The event object
      */
     function handlePreviewMessage(e) {
-        previewMessage();
+        window.previewMessage();
     }
 
     /**

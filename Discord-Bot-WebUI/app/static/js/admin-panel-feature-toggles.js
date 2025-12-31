@@ -106,7 +106,7 @@
         }
 
         // Show success message
-        showToast('success', 'Setting Updated', data.message);
+        window.showToast('success', 'Setting Updated', data.message);
       } else {
         // Revert the toggle and status
         toggle.checked = !isEnabled;
@@ -115,7 +115,7 @@
         }
 
         // Show error message
-        showToast('error', 'Error', data.message || 'Failed to update setting');
+        window.showToast('error', 'Error', data.message || 'Failed to update setting');
       }
     })
     .catch(error => {
@@ -127,7 +127,7 @@
         statusLabel.textContent = !isEnabled ? 'Enabled' : 'Disabled';
       }
 
-      showToast('error', 'Network Error', 'Failed to communicate with server');
+      window.showToast('error', 'Network Error', 'Failed to communicate with server');
     })
     .finally(() => {
       toggle.disabled = false;

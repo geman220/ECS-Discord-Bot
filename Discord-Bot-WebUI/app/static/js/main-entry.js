@@ -246,7 +246,7 @@ if (typeof window.EventDelegation !== 'undefined') {
 // Initialize all InitSystem components in priority order
 function initializeApp() {
     if (typeof window.InitSystem !== 'undefined' && !window.InitSystem.initialized) {
-        console.log('[Main Entry] Triggering InitSystem.init()');
+        console.log('[Main Entry] Triggering window.InitSystem.init()');
         window.InitSystem.init();
     }
 }

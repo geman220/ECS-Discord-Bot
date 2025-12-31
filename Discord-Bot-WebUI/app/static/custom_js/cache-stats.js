@@ -24,7 +24,7 @@
 
     // Manual refresh button
     refreshButton.addEventListener('click', function() {
-      refreshStats();
+      window.refreshStats();
       this.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Refreshing...';
       setTimeout(() => {
         this.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';

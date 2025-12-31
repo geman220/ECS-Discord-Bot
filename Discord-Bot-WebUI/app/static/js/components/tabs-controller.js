@@ -204,7 +204,7 @@
         showTab(tabId) {
             const trigger = document.querySelector(`[data-tab-trigger="${tabId}"]`);
             if (!trigger) {
-                console.warn(`TabsController: Tab trigger not found for "${tabId}"`);
+                console.warn(`window.TabsController: Tab trigger not found for "${tabId}"`);
                 return;
             }
 

@@ -584,12 +584,12 @@
     document.addEventListener('DOMContentLoaded', () => {
       // Only init if on draft page
       if (document.querySelector('[data-component="player-card"], [data-component="draft-container"]')) {
-        MobileDraft.init();
+        window.MobileDraft.init();
       }
     });
   } else {
     if (document.querySelector('[data-component="player-card"], [data-component="draft-container"]')) {
-      MobileDraft.init();
+      window.MobileDraft.init();
     }
   }
 
@@ -611,14 +611,14 @@
       const playerId = element.dataset.playerId;
       const team = element.dataset.team || 'default';
       if (playerId && window.MobileDraft) {
-        MobileDraft.quickDraft(playerId, team);
+        window.MobileDraft.quickDraft(playerId, team);
       }
     }, { preventDefault: true });
 
     window.EventDelegation.register('show-team-selector', function(element) {
       const playerId = element.dataset.playerId;
       if (playerId && window.MobileDraft) {
-        MobileDraft.showTeamSelector(playerId);
+        window.MobileDraft.showTeamSelector(playerId);
       }
     }, { preventDefault: true });
   }

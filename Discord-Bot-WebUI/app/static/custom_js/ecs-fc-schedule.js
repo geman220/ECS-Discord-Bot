@@ -80,8 +80,8 @@ function ecsFcInitializeEventHandlers() {
     // Real-time updates via WebSocket
     if (typeof window.io !== 'undefined') {
         const socket = window.io();
-        socket.on('rsvp_update', handleRsvpUpdate);
-        socket.on('match_update', handleMatchUpdate);
+        window.socket.on('rsvp_update', handleRsvpUpdate);
+        window.socket.on('match_update', handleMatchUpdate);
     }
 }
 

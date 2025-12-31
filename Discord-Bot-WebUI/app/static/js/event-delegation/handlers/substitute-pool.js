@@ -23,7 +23,7 @@ window.EventDelegation.register('approve-pool-player', function(element, e) {
     }
 
     if (typeof approvePlayer === 'function') {
-        approvePlayer(playerId, league);
+        window.approvePlayer(playerId, league);
     } else {
         console.error('[approve-pool-player] approvePlayer function not found');
     }
@@ -48,14 +48,14 @@ window.EventDelegation.register('remove-pool-player', function(element, e) {
 
     // Pool management context (uses league parameter)
     if (league && typeof removePlayer === 'function') {
-        removePlayer(playerId, league);
+        window.removePlayer(playerId, league);
     }
     // Pool detail context (uses playerName parameter)
     else if (typeof removeFromPool === 'function') {
-        removeFromPool(playerId, playerName);
+        window.removeFromPool(playerId, playerName);
     }
     else {
-        console.error('[remove-pool-player] No removal function available (removePlayer or removeFromPool)');
+        console.error('[remove-pool-player] No removal function available (removePlayer or window.removeFromPool)');
     }
 });
 
@@ -96,7 +96,7 @@ window.EventDelegation.register('view-pool-player-details', function(element, e)
     }
 
     if (typeof openPlayerDetailsModal === 'function') {
-        openPlayerDetailsModal(playerId);
+        window.openPlayerDetailsModal(playerId);
     } else {
         console.error('[view-pool-player-details] openPlayerDetailsModal function not found');
     }
@@ -118,7 +118,7 @@ window.EventDelegation.register('add-player-to-league', function(element, e) {
     }
 
     if (typeof approvePlayer === 'function') {
-        approvePlayer(playerId, league);
+        window.approvePlayer(playerId, league);
     } else {
         console.error('[add-player-to-league] approvePlayer function not found');
     }
@@ -173,7 +173,7 @@ window.EventDelegation.register('filter-pool', function(element, e) {
     }
 
     if (typeof filterPlayerCards === 'function') {
-        filterPlayerCards(league, section, filterText);
+        window.filterPlayerCards(league, section, filterText);
     } else {
         // Fallback implementation
         const cards = document.querySelectorAll(
@@ -204,7 +204,7 @@ window.EventDelegation.register('manage-league-pool', function(element, e) {
     }
 
     if (typeof openLeagueManagementModal === 'function') {
-        openLeagueManagementModal(league);
+        window.openLeagueManagementModal(league);
     } else {
         console.error('[manage-league-pool] openLeagueManagementModal function not found');
     }
@@ -246,7 +246,7 @@ window.EventDelegation.register('pool-pagination', function(element, e) {
         if (page !== paginationState[key].currentPage) {
             paginationState[key].currentPage = page;
             if (typeof updatePagination === 'function') {
-                updatePagination(league, section);
+                window.updatePagination(league, section);
             }
         }
     }

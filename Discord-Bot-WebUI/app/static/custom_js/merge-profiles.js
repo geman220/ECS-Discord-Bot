@@ -12,7 +12,7 @@
         if (_initialized) return;
         _initialized = true;
 
-        initializeMergeProfileUI();
+        window.initializeMergeProfileUI();
     }
 
     function initializeMergeProfileUI() {
@@ -37,11 +37,11 @@
             if (radio) radio.checked = true;
 
             // Update preview
-            updateMergePreview();
+            window.updateMergePreview();
         });
 
         // Initialize with current selections
-        updateMergePreview();
+        window.updateMergePreview();
     }
 
     function updateMergePreview() {

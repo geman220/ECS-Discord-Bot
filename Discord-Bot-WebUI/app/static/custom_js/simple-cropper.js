@@ -281,7 +281,7 @@ window.loadImageIntoCropper = function(fileInput) {
     
     window.SimpleCropperInstance.loadImage(file).then(() => {
         // Switch UI from upload to crop mode
-        switchToCropMode();
+        window.switchToCropMode();
     }).catch(error => {
         console.error('Error loading image:', error);
         if (window.Swal) {
@@ -324,7 +324,7 @@ window.resetImageSelection = function() {
     }
     
     // Switch back to upload mode
-    switchToUploadMode();
+    window.switchToUploadMode();
 };
 
 window.switchToUploadMode = function() {
@@ -421,7 +421,7 @@ window.getCroppedImage = function() {
         }
         
         // Switch back to upload mode showing the updated profile picture
-        switchToUploadMode();
+        window.switchToUploadMode();
         
         // Show success message
         if (window.Swal) {
@@ -442,7 +442,7 @@ window.getCroppedImage = function() {
         if (profilePic) {
             profilePic.src = croppedData;
         }
-        switchToUploadMode();
+        window.switchToUploadMode();
         
         // Show error but don't block the flow
         if (window.Swal) {

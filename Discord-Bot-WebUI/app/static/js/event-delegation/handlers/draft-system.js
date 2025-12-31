@@ -24,7 +24,7 @@ window.EventDelegation.register('draft-player', function(element, e) {
 
     // Call global function
     if (typeof confirmDraftPlayer === 'function') {
-        confirmDraftPlayer(playerId, playerName);
+        window.confirmDraftPlayer(playerId, playerName);
     } else if (window.draftSystemInstance && typeof window.draftSystemInstance.showDraftModal === 'function') {
         window.draftSystemInstance.showDraftModal(playerId, playerName);
     } else {
@@ -51,7 +51,7 @@ window.EventDelegation.register('remove-player', function(element, e) {
 
     // Call global function
     if (typeof confirmRemovePlayer === 'function') {
-        confirmRemovePlayer(playerId, teamId, playerName, teamName);
+        window.confirmRemovePlayer(playerId, teamId, playerName, teamName);
     } else {
         console.error('[remove-player] Function not found');
     }
@@ -75,7 +75,7 @@ window.EventDelegation.register('view-player-profile', function(element, e) {
     if (window.draftSystemInstance && typeof window.draftSystemInstance.openPlayerModal === 'function') {
         window.draftSystemInstance.openPlayerModal(playerId);
     } else if (typeof openPlayerModal === 'function') {
-        openPlayerModal(playerId);
+        window.openPlayerModal(playerId);
     } else {
         console.error('[view-player-profile] No modal function available');
     }

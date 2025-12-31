@@ -32,7 +32,7 @@ window.EventDelegation.register('show-task-info', function(element, e) {
     }
 
     if (typeof showTaskInfo === 'function') {
-        showTaskInfo(taskId, taskType, taskData);
+        window.showTaskInfo(taskId, taskType, taskData);
     } else {
         console.error('[show-task-info] Function not found');
     }
@@ -55,7 +55,7 @@ window.EventDelegation.register('revoke-task', function(element, e) {
     }
 
     if (typeof revokeTask === 'function') {
-        revokeTask(taskId, matchId, taskType);
+        window.revokeTask(taskId, matchId, taskType);
     } else {
         console.error('[revoke-task] Function not found');
     }
@@ -77,7 +77,7 @@ window.EventDelegation.register('reschedule-task', function(element, e) {
     }
 
     if (typeof rescheduleTask === 'function') {
-        rescheduleTask(matchId, taskType);
+        window.rescheduleTask(matchId, taskType);
     } else {
         console.error('[reschedule-task] Function not found');
     }
@@ -91,9 +91,9 @@ window.EventDelegation.register('refresh-tasks', function(element, e) {
     e.preventDefault();
 
     if (typeof loadAllTaskDetails === 'function') {
-        loadAllTaskDetails();
+        window.loadAllTaskDetails();
     } else if (typeof refreshStatuses === 'function') {
-        refreshStatuses();
+        window.refreshStatuses();
     } else {
         console.error('[refresh-tasks] No refresh function found');
     }

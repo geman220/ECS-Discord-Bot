@@ -20,21 +20,21 @@
         // Event delegation for Edit buttons
         window.$(document).on('click', '.edit-match-stat-btn', function () {
             var statId = window.$(this).data('stat-id');
-            matchStatsEditMatch(statId);
+            window.matchStatsEditMatch(statId);
         });
 
         // Event delegation for Remove buttons
         window.$(document).on('click', '.remove-match-stat-btn', function () {
             var statId = window.$(this).data('stat-id');
-            removeMatchStat(statId);
+            window.removeMatchStat(statId);
         });
 
         // Initialize filter on page load
-        filterMatchStats();
+        window.filterMatchStats();
 
         // Bind filter change
         window.$('#matchFilter').on('change', function () {
-            filterMatchStats();
+            window.filterMatchStats();
         });
 
         // Handle form submission for editing match stats with SA2 confirmation

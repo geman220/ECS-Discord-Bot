@@ -109,7 +109,7 @@
         const editId = e.target.dataset.categoryId;
         const editName = e.target.dataset.categoryName;
         const editDesc = e.target.dataset.categoryDescription;
-        editCategory(editId, editName, editDesc);
+        window.editCategory(editId, editName, editDesc);
     }
 
     /**

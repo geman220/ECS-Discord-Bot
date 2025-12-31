@@ -177,7 +177,7 @@ function updateCountdowns() {
         const hours = parseFloat(element.getAttribute('data-hours-until'));
         const newHours = hours - (1/60); // Subtract 1 minute
         element.setAttribute('data-hours-until', newHours);
-        element.textContent = formatCountdown(newHours);
+        element.textContent = window.formatCountdown(newHours);
     });
 }
 

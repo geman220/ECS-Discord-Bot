@@ -356,7 +356,7 @@ class DraftPredictionsManager {
         _initialized = true;
 
         if (document.getElementById('playersTable')) {
-            window.draftPredictionsManager = new DraftPredictionsManager();
+            window.draftPredictionsManager = new window.DraftPredictionsManager();
         }
     }
 

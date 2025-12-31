@@ -327,8 +327,8 @@
    * Initialize haptics with event delegation
    * ROOT CAUSE FIX: Uses document-level event delegation instead of per-element listeners
    */
-  Haptics._initialized = false;
-  Haptics.init = function () {
+  window.Haptics._initialized = false;
+  window.Haptics.init = function () {
     // Only initialize once - event delegation handles all elements
     if (this._initialized) return;
     this._initialized = true;

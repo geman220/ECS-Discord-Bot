@@ -46,23 +46,23 @@
     console.log('🎉 Draft System v2 loaded successfully');
 
     // Update team counts on page load
-    updateAllTeamCounts();
+    window.updateAllTeamCounts();
 
     // Setup live search functionality
-    setupLiveSearch();
+    window.setupLiveSearch();
 
     // Set initial available player count
     const initialCount = document.querySelectorAll('#available-players .player-card').length;
-    updateAvailablePlayerCount(initialCount);
+    window.updateAvailablePlayerCount(initialCount);
 
     // Setup event delegation for buttons
-    setupEventDelegation();
+    window.setupEventDelegation();
 
     // Setup image error handlers using delegation
-    setupImageErrorHandlers();
+    window.setupImageErrorHandlers();
 
     // Listen for socket events to update team counts
-    setupDraftEnhancedSocket();
+    window.setupDraftEnhancedSocket();
     }
 
 /**
@@ -105,11 +105,11 @@ function setupDraftEnhancedSocket() {
         withCredentials: true
     });
     if (!window.socket) window.socket = socket;
-    window.draftEnhancedSocket = socket;
+    window.draftEnhancedSocket = window.socket;
 
-    socket.on('player_drafted_enhanced', handlePlayerDraftedEvent);
-    socket.on('player_removed_enhanced', handlePlayerRemovedEvent);
-    socket.on('draft_error', handleDraftError);
+    window.socket.on('player_drafted_enhanced', handlePlayerDraftedEvent);
+    window.socket.on('player_removed_enhanced', handlePlayerRemovedEvent);
+    window.socket.on('draft_error', handleDraftError);
 }
 
 // Extracted event handlers for reuse
@@ -123,12 +123,12 @@ function handlePlayerDraftedEvent(data) {
                 const column = playerCard.closest('[data-component="player-column"]');
                 if (column) {
                     column.remove();
-                    updateAvailablePlayerCount(document.querySelectorAll('#available-players .player-card').length);
+                    window.updateAvailablePlayerCount(document.querySelectorAll('#available-players .player-card').length);
                 }
             }
         }
         if (data.team_id) {
-            setTimeout(() => updateTeamCount(data.team_id), 100);
+            setTimeout(() => window.updateTeamCount(data.team_id), 100);
         }
     }
 }
@@ -138,7 +138,7 @@ function handlePlayerRemovedEvent(data) {
         window.draftSystemInstance.handlePlayerRemoved(data);
     } else {
         if (data.team_id) {
-            setTimeout(() => updateTeamCount(data.team_id), 100);
+            setTimeout(() => window.updateTeamCount(data.team_id), 100);
         }
     }
 }
@@ -183,14 +183,14 @@ function setupEventDelegation() {
             // Get existing teams from the player card
             const playerCard = btn.closest('.player-card');
             const existingTeams = playerCard?.dataset.existingTeams || '';
-            confirmDraftPlayer(playerId, playerName, isMultiTeam, existingTeams);
+            window.confirmDraftPlayer(playerId, playerName, isMultiTeam, existingTeams);
         }
 
         // View player profile button
         if (e.target.closest('.js-view-player-profile')) {
             const btn = e.target.closest('.js-view-player-profile');
             const playerId = btn.dataset.playerId;
-            openPlayerModal(playerId);
+            window.openPlayerModal(playerId);
         }
 
         // Remove player button
@@ -200,12 +200,12 @@ function setupEventDelegation() {
             const teamId = btn.dataset.teamId;
             const playerName = btn.dataset.playerName;
             const teamName = btn.dataset.teamName;
-            confirmRemovePlayer(playerId, teamId, playerName, teamName);
+            window.confirmRemovePlayer(playerId, teamId, playerName, teamName);
         }
     });
 
     // Setup drag and drop event delegation
-    setupDragAndDrop();
+    window.setupDragAndDrop();
 }
 
 // Guard against redeclaration
@@ -296,7 +296,7 @@ function setupDragAndDrop() {
                 handleDropOnTeam(playerId, teamId, dropZone);
             } else if (dropTarget === 'available') {
                 // Dropping back to available pool - undraft the player
-                handleDropToAvailable(playerId);
+                window.handleDropToAvailable(playerId);
             }
         }
     });
@@ -337,7 +337,7 @@ function handleDropOnTeam(playerId, teamId, dropZone) {
     // Try SocketManager first (most reliable)
     if (typeof window.SocketManager !== 'undefined' && window.SocketManager.isConnected()) {
         const socket = window.SocketManager.getSocket();
-        socket.emit('draft_player_enhanced', {
+        window.socket.emit('draft_player_enhanced', {
             player_id: parseInt(playerId),
             team_id: parseInt(teamId),
             league_name: leagueName,
@@ -361,8 +361,8 @@ function handleDropOnTeam(playerId, teamId, dropZone) {
 
     // Fallback to global socket
     const socket = window.draftEnhancedSocket || window.socket;
-    if (socket && socket.connected) {
-        socket.emit('draft_player_enhanced', {
+    if (socket && window.socket.connected) {
+        window.socket.emit('draft_player_enhanced', {
             player_id: parseInt(playerId),
             team_id: parseInt(teamId),
             league_name: leagueName,
@@ -448,8 +448,8 @@ function handleDropToAvailable(playerId) {
 
     // Fallback to global socket
     const socket = window.draftEnhancedSocket || window.socket;
-    if (socket && socket.connected) {
-        socket.emit('remove_player_enhanced', emitData);
+    if (socket && window.socket.connected) {
+        window.socket.emit('remove_player_enhanced', emitData);
         console.log(`[DraftEnhanced] Undrafting player ${playerId} from team ${teamId} via global socket`);
     } else {
         console.error('[DraftEnhanced] No connected socket available - cannot undraft');
@@ -502,7 +502,7 @@ function setupImageErrorHandlers() {
         console.log('Image loaded successfully:', e.target.src);
         // Apply smart cropping if function exists
         if (typeof smartCropImage === 'function') {
-            smartCropImage(e.target);
+            window.smartCropImage(e.target);
         }
     }, true); // Use capture phase - load events don't bubble
 }
@@ -514,13 +514,13 @@ function confirmRemovePlayer(playerId, teamId, playerName, teamName) {
     if (confirm(`Remove ${playerName} from ${teamName}?`)) {
         // Execute removal via socket or API
         const socket = window.draftEnhancedSocket || window.socket;
-        if (socket && socket.connected) {
+        if (socket && window.socket.connected) {
             // Get league name from the page (same way confirmDraftPlayer does)
             const leagueNameScript = document.querySelector('script[data-league-name]');
             const leagueName = leagueNameScript ? leagueNameScript.getAttribute('data-league-name') :
                                (window.draftSystemInstance ? window.draftSystemInstance.leagueName : '');
 
-            socket.emit('remove_player_enhanced', {
+            window.socket.emit('remove_player_enhanced', {
                 player_id: parseInt(playerId),
                 team_id: parseInt(teamId),
                 league_name: leagueName
@@ -608,7 +608,7 @@ function filterPlayers() {
     }
 
     // Update both counters
-    updateAvailablePlayerCount(visibleCount);
+    window.updateAvailablePlayerCount(visibleCount);
 
     // Show/hide empty state
     const emptyState = document.getElementById('emptyState');
@@ -685,7 +685,7 @@ function updateAllTeamCounts() {
     // Find all team sections and update their counts
     document.querySelectorAll('[id^="teamPlayers"]').forEach(teamSection => {
         const teamId = teamSection.id.replace('teamPlayers', '');
-        updateTeamCount(teamId);
+        window.updateTeamCount(teamId);
     });
 }
 
@@ -776,8 +776,8 @@ function showDraftTeamSelection(playerId, playerName, existingTeams = '') {
 
         // Execute the draft via socket or API
         const socket = window.draftEnhancedSocket || window.socket;
-        if (socket && socket.connected) {
-            socket.emit('draft_player_enhanced', {
+        if (socket && window.socket.connected) {
+            window.socket.emit('draft_player_enhanced', {
                 player_id: parseInt(playerId),
                 team_id: parseInt(selectedTeamId),
                 league_name: leagueName
@@ -809,7 +809,7 @@ function openPlayerModal(playerId) {
     fetch(`/players/api/player_profile/${playerId}`)
         .then(response => response.json())
         .then(data => {
-            displayPlayerProfile(data, playerId);
+            window.displayPlayerProfile(data, playerId);
         })
         .catch(error => {
             console.error('Error loading player profile:', error);
@@ -877,7 +877,7 @@ function displayPlayerProfile(data, playerId) {
                         ${data.other_positions ? `
                         <div class="mb-2">
                             <strong class="draft-profile-label">Other Positions:</strong>
-                            <small class="draft-profile-value">${Array.isArray(data.other_positions) ? data.other_positions.map(pos => formatPosition(pos)).join(', ') : data.other_positions}</small>
+                            <small class="draft-profile-value">${Array.isArray(data.other_positions) ? data.other_positions.map(pos => window.formatPosition(pos)).join(', ') : data.other_positions}</small>
                         </div>
                         ` : ''}
                         ${data.positions_to_avoid ? `
@@ -930,7 +930,7 @@ function displayPlayerProfile(data, playerId) {
     document.getElementById('profileData').classList.add('is-visible');
 
     // Re-setup image error handlers for dynamically added images
-    setupImageErrorHandlers();
+    window.setupImageErrorHandlers();
 
     // Show draft button and set up click handler
     const draftButton = document.getElementById('draftFromModal');
@@ -938,7 +938,7 @@ function displayPlayerProfile(data, playerId) {
     draftButton.onclick = () => {
         // Close modal and trigger draft
         window.bootstrap.Modal.getInstance(document.getElementById('playerProfileModal')).hide();
-        confirmDraftPlayer(playerId, data.name);
+        window.confirmDraftPlayer(playerId, data.name);
     };
 }
 

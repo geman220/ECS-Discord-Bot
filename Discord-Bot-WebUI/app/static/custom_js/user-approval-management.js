@@ -56,14 +56,14 @@ function initializeFormSubmitListeners() {
     if (approvalForm) {
         approvalForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            submitApproval();
+            window.submitApproval();
         });
     }
 
     if (denialForm) {
         denialForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            submitDenial();
+            window.submitDenial();
         });
     }
 }

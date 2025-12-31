@@ -155,7 +155,7 @@
         showTab(tabId) {
             const trigger = document.querySelector(`[data-tab-trigger="${tabId}"]`);
             if (!trigger) {
-                console.warn(`SettingsTabs: Tab trigger not found for "${tabId}"`);
+                console.warn(`window.SettingsTabs: Tab trigger not found for "${tabId}"`);
                 return;
             }
 
@@ -167,9 +167,9 @@
     };
 
     // Add _initialized guard to init method
-    const originalInit = SettingsTabs.init;
+    const originalInit = window.SettingsTabs.init;
     let _initialized = false;
-    SettingsTabs.init = function() {
+    window.SettingsTabs.init = function() {
         if (_initialized) return;
         _initialized = true;
         originalInit.call(this);

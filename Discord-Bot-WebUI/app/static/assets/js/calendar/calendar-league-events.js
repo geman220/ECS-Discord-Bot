@@ -172,7 +172,7 @@ const LeagueEventManager = (function() {
      */
     function openCreateModal(date = null) {
         if (!isAdmin) {
-            showToast('error', 'You do not have permission to create events');
+            window.showToast('error', 'You do not have permission to create events');
             return;
         }
 
@@ -200,7 +200,7 @@ const LeagueEventManager = (function() {
      */
     function openEditModal(event) {
         if (!isAdmin) {
-            showToast('error', 'You do not have permission to edit events');
+            window.showToast('error', 'You do not have permission to edit events');
             return;
         }
 
@@ -280,7 +280,7 @@ const LeagueEventManager = (function() {
             const savedEvent = await response.json();
 
             modal.hide();
-            showToast('success', isEdit ? 'Event updated successfully' : 'Event created successfully');
+            window.showToast('success', isEdit ? 'Event updated successfully' : 'Event created successfully');
 
             // Trigger calendar refresh
             if (typeof window.refreshCalendar === 'function') {
@@ -291,7 +291,7 @@ const LeagueEventManager = (function() {
 
         } catch (error) {
             console.error('Error saving event:', error);
-            showToast('error', error.message || 'Failed to save event');
+            window.showToast('error', error.message || 'Failed to save event');
         }
     }
 
@@ -320,7 +320,7 @@ const LeagueEventManager = (function() {
             }
 
             modal.hide();
-            showToast('success', 'Event deleted successfully');
+            window.showToast('success', 'Event deleted successfully');
 
             // Trigger calendar refresh
             if (typeof window.refreshCalendar === 'function') {
@@ -331,7 +331,7 @@ const LeagueEventManager = (function() {
 
         } catch (error) {
             console.error('Error deleting event:', error);
-            showToast('error', error.message || 'Failed to delete event');
+            window.showToast('error', error.message || 'Failed to delete event');
         }
     }
 

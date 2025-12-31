@@ -450,10 +450,10 @@
   // Initialize when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      ProfileVerification.init();
+      window.ProfileVerification.init();
     });
   } else {
-    ProfileVerification.init();
+    window.ProfileVerification.init();
   }
 
   // Export for external access

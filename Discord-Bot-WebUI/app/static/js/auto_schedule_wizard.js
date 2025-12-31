@@ -1998,7 +1998,7 @@ function applyWizardTemplate(templateType) {
     
     // Show success feedback
     const template = templateType.charAt(0).toUpperCase() + templateType.slice(1);
-    showToast(`${template} template applied successfully!`, 'success');
+    window.showToast(`${template} template applied successfully!`, 'success');
 }
 
 /**

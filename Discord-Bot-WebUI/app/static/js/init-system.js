@@ -497,14 +497,14 @@
     window.InitSystem = InitSystem;
 
     // Auto-initialize on DOMContentLoaded (if enabled)
-    if (InitSystem.config.autoInit) {
+    if (window.InitSystem.config.autoInit) {
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
-                InitSystem.init();
+                window.InitSystem.init();
             });
         } else {
             // DOM already loaded, init immediately
-            InitSystem.init();
+            window.InitSystem.init();
         }
     }
 
@@ -514,14 +514,14 @@
          * Print initialization order
          */
         printOrder() {
-            console.table(InitSystem.getInitOrder());
+            console.table(window.InitSystem.getInitOrder());
         },
 
         /**
          * Print component status
          */
         printStatus() {
-            const status = InitSystem._getStatus();
+            const status = window.InitSystem._getStatus();
             console.log('Initialization Status:', status);
             console.log(`Total: ${status.total}, Initialized: ${status.initialized}, Failed: ${status.failed}, Pending: ${status.pending}`);
 
@@ -539,7 +539,7 @@
          */
         async testReinit(componentNames) {
             console.log('Testing re-initialization:', componentNames);
-            const results = await InitSystem.reinit(componentNames);
+            const results = await window.InitSystem.reinit(componentNames);
             console.log('Results:', results);
         },
 
@@ -547,7 +547,7 @@
          * Get component details
          */
         getComponent(name) {
-            const component = InitSystem.getComponent(name);
+            const component = window.InitSystem.getComponent(name);
             if (component) {
                 console.log(`Component: ${name}`, component);
             } else {

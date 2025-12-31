@@ -174,12 +174,12 @@
                     list.classList.remove('u-hidden');
                     updateButtonIcon(button, 'ti-calendar-minus', 'Hide Assignments');
                 } else {
-                    showToast('error', 'Failed to load assignments.');
+                    window.showToast('error', 'Failed to load assignments.');
                 }
             })
             .catch(error => {
                 console.error('Error loading assignments:', error);
-                showToast('error', 'An error occurred while loading assignments.');
+                window.showToast('error', 'An error occurred while loading assignments.');
             })
             .finally(() => {
                 spinner.classList.add('u-hidden');
@@ -311,7 +311,7 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                showToast('success', data.message);
+                window.showToast('success', data.message);
 
                 // Close modal
                 const modal = window.bootstrap.Modal.getInstance(document.getElementById('assignSubModal'));
@@ -327,12 +327,12 @@
                     window.location.reload();
                 }, 1500);
             } else {
-                showToast('error', data.message);
+                window.showToast('error', data.message);
             }
         })
         .catch(error => {
             console.error('Error assigning sub:', error);
-            showToast('error', 'An error occurred while trying to assign the sub.');
+            window.showToast('error', 'An error occurred while trying to assign the sub.');
         })
         .finally(() => {
             // Re-enable button
@@ -365,7 +365,7 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                showToast('success', data.message);
+                window.showToast('success', data.message);
 
                 // Find and remove the assignment item
                 const item = button.closest('.c-assignment-item');
@@ -382,12 +382,12 @@
                     }
                 }, 300);
             } else {
-                showToast('error', data.message);
+                window.showToast('error', data.message);
             }
         })
         .catch(error => {
             console.error('Error removing assignment:', error);
-            showToast('error', 'An error occurred while trying to remove the assignment.');
+            window.showToast('error', 'An error occurred while trying to remove the assignment.');
         });
     }
 

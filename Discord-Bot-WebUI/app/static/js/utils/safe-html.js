@@ -46,7 +46,7 @@
     function safeHtml(strings, ...values) {
         return strings.reduce((result, str, i) => {
             const value = values[i - 1];
-            const escaped = typeof value === 'string' ? escapeHtml(value) : (value ?? '');
+            const escaped = typeof value === 'string' ? window.escapeHtml(value) : (value ?? '');
             return result + escaped + str;
         });
     }

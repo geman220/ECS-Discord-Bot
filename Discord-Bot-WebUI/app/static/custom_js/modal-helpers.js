@@ -134,7 +134,7 @@
         ensureModalInitialized: function(modalId) {
             const modalElement = document.getElementById(modalId);
             if (!modalElement) {
-                console.warn(`[Modal Helpers] Modal element #${modalId} not found`);
+                console.warn(`[Modal window.Helpers] Modal element #${modalId} not found`);
                 return null;
             }
 
@@ -328,7 +328,7 @@
                 }
             });
 
-            console.log(`[Modal Helpers] Transform fix applied to ${buttons.length} buttons`);
+            console.log(`[Modal window.Helpers] Transform fix applied to ${buttons.length} buttons`);
         },
 
         // ========================================================================
@@ -419,7 +419,7 @@
         window.InitSystem.register('ModalHelpers', function(context) {
             window.ModalHelpers.init(context);
         }, {
-            priority: 25 // After ModalManager (20)
+            priority: 25 // After window.ModalManager (20)
         });
     } else {
         // Fallback to DOMContentLoaded

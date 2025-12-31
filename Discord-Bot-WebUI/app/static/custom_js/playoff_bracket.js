@@ -493,7 +493,7 @@ class PlayoffBracket {
         // Auto-initialize if container exists and data is available
         const container = document.querySelector('.playoff-bracket-container');
         if (container && window.playoffConfig) {
-            window.playoffBracket = new PlayoffBracket(
+            window.playoffBracket = new window.PlayoffBracket(
                 window.playoffConfig.leagueId,
                 window.playoffConfig.seasonId,
                 window.playoffConfig.currentTeamId

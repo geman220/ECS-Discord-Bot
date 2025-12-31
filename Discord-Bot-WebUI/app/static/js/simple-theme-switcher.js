@@ -346,7 +346,7 @@ class SimpleThemeSwitcher {
 // Initialize theme switcher
 function initThemeSwitcher() {
   // Create global instance
-  window.themeSwitcher = new SimpleThemeSwitcher();
+  window.themeSwitcher = new window.SimpleThemeSwitcher();
 
   // Check if theme sync is needed (set by early script)
   if (window._themeNeedsSync) {
