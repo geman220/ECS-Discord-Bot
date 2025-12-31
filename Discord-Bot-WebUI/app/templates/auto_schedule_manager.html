@@ -1353,101 +1353,16 @@
 </div>
 {% endblock %}
 
-<!-- JavaScript URLs for external file -->
+<!-- Auto Schedule Manager Module (extracted from inline JS) -->
+<script src="{{ url_for('static', filename='custom_js/auto-schedule-manager.js') }}"></script>
 <script>
-    window.autoScheduleUrls = {
-        setActiveSeason: '{{ url_for("auto_schedule.set_active_season") }}',
-        createSeasonWizard: '{{ url_for("auto_schedule.create_season_wizard") }}'
-    };
-
-    // CONVERTED TO EVENT DELEGATION: All event listeners now handled by EventDelegation system
-    // The data-action attributes on buttons automatically trigger the registered handlers in event-delegation.js
-    // No need for manual addEventListener calls - the centralized system handles all click events
-
-    function confirmDeleteSeason(seasonId, seasonName) {
-        Swal.fire({
-            title: 'Are you sure?',
-            html: `You are about to <strong>COMPLETELY DELETE</strong> the season "<strong>${seasonName}</strong>".<br><br>This will remove:<br>• All teams<br>• All matches<br>• Discord channels<br>• Player assignments<br><br><strong>This action cannot be undone!</strong>`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : undefined,
-            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : undefined,
-            confirmButtonText: 'Yes, delete it!',
-            cancelButtonText: 'Cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                document.getElementById('deleteSeasonForm' + seasonId).submit();
-            }
-        });
-    }
-
-    function recreateDiscordResources(seasonId, seasonName) {
-        Swal.fire({
-            title: 'Recreate Discord Resources?',
-            html: `This will recreate all Discord resources for "<strong>${seasonName}</strong>":<br><br>• Discord roles for each team<br>• Discord channels for each team<br>• Proper permissions and channel access<br><br>This is safe to run and will not delete existing data.`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : undefined,
-            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : undefined,
-            confirmButtonText: '<i class="fab fa-discord me-1"></i>Recreate Resources',
-            cancelButtonText: 'Cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Show processing dialog
-                Swal.fire({
-                    title: 'Creating Discord Resources...',
-                    html: 'Please wait while Discord roles and channels are created.',
-                    icon: 'info',
-                    allowOutsideClick: false,
-                    showConfirmButton: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-
-                // Make the API call
-                fetch('/auto-schedule/recreate-discord-resources', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('meta[name=csrf-token]').content
-                    },
-                    body: JSON.stringify({
-                        season_id: seasonId
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        Swal.fire({
-                            title: 'Success!',
-                            html: `Discord resources have been queued for creation.<br><br>${data.message}`,
-                            icon: 'success',
-                            confirmButtonText: 'OK'
-                        });
-                    } else {
-                        Swal.fire({
-                            title: 'Error',
-                            html: `Failed to recreate Discord resources:<br><br>${data.message}`,
-                            icon: 'error',
-                            confirmButtonText: 'OK'
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    Swal.fire({
-                        title: 'Error',
-                        text: 'An unexpected error occurred while recreating Discord resources.',
-                        icon: 'error',
-                        confirmButtonText: 'OK'
-                    });
-                });
-            }
-        });
-    }
+// Initialize Auto Schedule Manager with template data
+AutoScheduleManager.init({
+    setActiveSeasonUrl: '{{ url_for("auto_schedule.set_active_season") }}',
+    createSeasonWizardUrl: '{{ url_for("auto_schedule.create_season_wizard") }}'
+});
 </script>
 
-<!-- External JavaScript -->
+<!-- External JavaScript (Season Wizard) -->
 <script src="{{ url_for('static', filename='js/auto_schedule_wizard.js') }}"></script>
 {% endblock %}

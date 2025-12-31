@@ -300,21 +300,26 @@
 {{ super() }}
 {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <script>
+// Page-specific state and match ID (required for API calls)
 let currentPlayerId = null;
 let currentResponse = null;
+const matchId = {{ match.id }};
 
-function filterResponses(response) {
+// Filter responses by type - exposed for event delegation
+window.filterResponses = function(response) {
     // Remove active class from all filter buttons
     document.querySelectorAll('[id^="filter-"]').forEach(btn => {
         btn.classList.remove('btn-primary');
         btn.classList.add('btn-outline-primary', 'btn-outline-success', 'btn-outline-danger', 'btn-outline-warning', 'btn-outline-secondary');
     });
-    
+
     // Add active class to clicked button
     const activeBtn = document.getElementById(`filter-${response}`);
-    activeBtn.classList.remove('btn-outline-primary', 'btn-outline-success', 'btn-outline-danger', 'btn-outline-warning', 'btn-outline-secondary');
-    activeBtn.classList.add('btn-primary');
-    
+    if (activeBtn) {
+        activeBtn.classList.remove('btn-outline-primary', 'btn-outline-success', 'btn-outline-danger', 'btn-outline-warning', 'btn-outline-secondary');
+        activeBtn.classList.add('btn-primary');
+    }
+
     // Filter table rows
     const rows = document.querySelectorAll('#rsvpTable tbody tr');
     rows.forEach(row => {
@@ -325,141 +330,56 @@ function filterResponses(response) {
             row.style.display = 'none';
         }
     });
-}
+};
 
-function updatePlayerRsvp(playerId, response) {
+// Update player RSVP - exposed for event delegation
+window.updatePlayerRsvp = function(playerId, response) {
     currentPlayerId = playerId;
     currentResponse = response;
-    
+
     // Get player name from the table
     const row = document.querySelector(`tr[data-response] td div span.fw-semibold`);
     const playerName = row ? row.textContent : 'Player';
-    
+
     // Update modal content
-    document.getElementById('playerName').textContent = playerName;
-    document.getElementById('responseType').textContent = 
-        response === 'yes' ? 'Available' : 
-        response === 'no' ? 'Unavailable' : 'Maybe';
-    
-    // Clear notes
-    document.getElementById('adminNotes').value = '';
-    
+    const playerNameEl = document.getElementById('playerName');
+    const responseTypeEl = document.getElementById('responseType');
+    const adminNotesEl = document.getElementById('adminNotes');
+
+    if (playerNameEl) playerNameEl.textContent = playerName;
+    if (responseTypeEl) {
+        responseTypeEl.textContent = response === 'yes' ? 'Available' :
+            response === 'no' ? 'Unavailable' : 'Maybe';
+    }
+    if (adminNotesEl) adminNotesEl.value = '';
+
     // Show modal
-    ModalManager.show('updateRsvpModal');
-}
-
-function sendReminder() {
-    if (confirm('Send RSVP reminder to all players who haven\'t responded?')) {
-        fetch(`/api/ecs-fc/matches/{{ match.id }}/remind`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Reminder Sent!',
-                        text: data.message,
-                        timer: 3000
-                    });
-                } else {
-                    alert('Reminder sent successfully!');
-                }
-            } else {
-                throw new Error(data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: error.message || 'Failed to send reminder'
-                });
-            } else {
-                alert('Error: ' + (error.message || 'Failed to send reminder'));
-            }
-        });
+    if (typeof ModalManager !== 'undefined') {
+        ModalManager.show('updateRsvpModal');
     }
-}
+};
 
-function sendIndividualReminder(playerId) {
-    if (confirm('Send individual RSVP reminder to this player?')) {
-        fetch(`/api/ecs-fc/matches/{{ match.id }}/remind`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: JSON.stringify({ target_players: [playerId] })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Reminder Sent!',
-                        text: 'Individual reminder sent successfully',
-                        timer: 3000
-                    });
-                } else {
-                    alert('Individual reminder sent successfully!');
-                }
-            } else {
-                throw new Error(data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: error.message || 'Failed to send individual reminder'
-                });
-            } else {
-                alert('Error: ' + (error.message || 'Failed to send individual reminder'));
-            }
-        });
-    }
-}
+// Send reminder to all - exposed for event delegation
+window.sendReminder = function() {
+    if (!confirm('Send RSVP reminder to all players who haven\'t responded?')) return;
 
-// Handle confirm update button
-document.getElementById('confirmUpdate').addEventListener('click', function() {
-    const notes = document.getElementById('adminNotes').value.trim();
-    
-    fetch('/api/ecs-fc/rsvp/update', {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    fetch(`/api/ecs-fc/matches/${matchId}/remind`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        },
-        body: JSON.stringify({
-            match_id: {{ match.id }},
-            player_id: currentPlayerId,
-            response: currentResponse,
-            notes: notes || null,
-            admin_override: true
-        })
+            'X-CSRFToken': csrfToken
+        }
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('updateRsvpModal'));
-            modal.hide();
-            
-            // Refresh page to show updated RSVP
-            setTimeout(() => {
-                location.reload();
-            }, 500);
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({ icon: 'success', title: 'Reminder Sent!', text: data.message, timer: 3000 });
+            } else {
+                alert('Reminder sent successfully!');
+            }
         } else {
             throw new Error(data.message);
         }
@@ -467,20 +387,96 @@ document.getElementById('confirmUpdate').addEventListener('click', function() {
     .catch(error => {
         console.error('Error:', error);
         if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: error.message || 'Failed to update RSVP'
-            });
+            Swal.fire({ icon: 'error', title: 'Error', text: error.message || 'Failed to send reminder' });
         } else {
-            alert('Error: ' + (error.message || 'Failed to update RSVP'));
+            alert('Error: ' + (error.message || 'Failed to send reminder'));
         }
     });
-});
+};
 
-// Initialize filter to show all
+// Send individual reminder - exposed for event delegation
+window.sendIndividualReminder = function(playerId) {
+    if (!confirm('Send individual RSVP reminder to this player?')) return;
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    fetch(`/api/ecs-fc/matches/${matchId}/remind`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ target_players: [playerId] })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({ icon: 'success', title: 'Reminder Sent!', text: 'Individual reminder sent successfully', timer: 3000 });
+            } else {
+                alert('Individual reminder sent successfully!');
+            }
+        } else {
+            throw new Error(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({ icon: 'error', title: 'Error', text: error.message || 'Failed to send individual reminder' });
+        } else {
+            alert('Error: ' + (error.message || 'Failed to send individual reminder'));
+        }
+    });
+};
+
+// Handle confirm update button via event delegation
 document.addEventListener('DOMContentLoaded', function() {
-    filterResponses('all');
+    // Initialize filter to show all
+    window.filterResponses('all');
+
+    // Handle confirm update button
+    const confirmBtn = document.getElementById('confirmUpdate');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function() {
+            const notes = document.getElementById('adminNotes')?.value?.trim() || '';
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+            fetch('/api/ecs-fc/rsvp/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    match_id: matchId,
+                    player_id: currentPlayerId,
+                    response: currentResponse,
+                    notes: notes || null,
+                    admin_override: true
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const modalEl = document.getElementById('updateRsvpModal');
+                    const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+                    if (modal) modal.hide();
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    throw new Error(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'error', title: 'Error', text: error.message || 'Failed to update RSVP' });
+                } else {
+                    alert('Error: ' + (error.message || 'Failed to update RSVP'));
+                }
+            });
+        });
+    }
 });
 </script>
 {% endif %}

@@ -260,33 +260,87 @@
 </div>
 {% endblock %}
 
+{% block custom_js %}
+{{ super() }}
 <script>
+// Page-specific state
 let currentPoolId = null;
 let currentPlayerId = null;
 
-function editSubPreferences(poolId) {
+// Edit sub preferences - exposed for event delegation
+window.editSubPreferences = function(poolId) {
     currentPoolId = poolId;
-    // In a real implementation, you'd populate the form with existing values
-    $('#editPreferencesModal').modal('show');
-}
+    if (window.jQuery) {
+        window.jQuery('#editPreferencesModal').modal('show');
+    } else if (typeof ModalManager !== 'undefined') {
+        ModalManager.show('editPreferencesModal');
+    }
+};
 
-function addToPool(playerId) {
+// Add to pool - exposed for event delegation
+window.addToPool = function(playerId) {
     currentPlayerId = playerId;
-    $('#addToPoolModal').modal('show');
-}
+    if (window.jQuery) {
+        window.jQuery('#addToPoolModal').modal('show');
+    } else if (typeof ModalManager !== 'undefined') {
+        ModalManager.show('addToPoolModal');
+    }
+};
 
-function removeFromPool(poolId) {
-    if (confirm('Are you sure you want to remove this player from the substitute pool?')) {
-        fetch(`/admin/ecs-fc/sub-pool/${poolId}/remove`, {
+// Remove from pool - exposed for event delegation
+window.removeFromPool = function(poolId) {
+    if (!confirm('Are you sure you want to remove this player from the substitute pool?')) return;
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                      document.querySelector('input[name="csrf_token"]')?.value || '';
+
+    fetch(`/admin/ecs-fc/sub-pool/${poolId}/remove`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while removing the player.');
+    });
+};
+
+// jQuery form handlers (only if jQuery is available)
+if (window.jQuery) {
+    const $ = window.jQuery;
+
+    $('#editPreferencesForm').on('submit', function(e) {
+        e.preventDefault();
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                          document.querySelector('input[name="csrf_token"]')?.value || '';
+
+        const formData = new FormData();
+        formData.append('preferred_positions', $('#preferredPositions').val());
+        formData.append('max_matches_per_week', $('#maxMatchesPerWeek').val());
+        formData.append('sms_notifications', $('#smsNotifications').prop('checked'));
+        formData.append('discord_notifications', $('#discordNotifications').prop('checked'));
+        formData.append('email_notifications', $('#emailNotifications').prop('checked'));
+
+        fetch(`/admin/ecs-fc/sub-pool/${currentPoolId}/update`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token() }}'
-            }
+            body: formData,
+            headers: { 'X-CSRFToken': csrfToken }
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                $('#editPreferencesModal').modal('hide');
                 location.reload();
             } else {
                 alert('Error: ' + data.message);
@@ -294,73 +348,42 @@ function removeFromPool(poolId) {
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('An error occurred while removing the player.');
+            alert('An error occurred while updating preferences.');
         });
-    }
+    });
+
+    $('#addToPoolForm').on('submit', function(e) {
+        e.preventDefault();
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                          document.querySelector('input[name="csrf_token"]')?.value || '';
+
+        const formData = new FormData();
+        formData.append('player_id', currentPlayerId);
+        formData.append('preferred_positions', $('#newPreferredPositions').val());
+        formData.append('sms_notifications', $('#newSmsNotifications').prop('checked'));
+        formData.append('discord_notifications', $('#newDiscordNotifications').prop('checked'));
+        formData.append('email_notifications', $('#newEmailNotifications').prop('checked'));
+
+        fetch('/admin/ecs-fc/sub-pool/add', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                $('#addToPoolModal').modal('hide');
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while adding the player.');
+        });
+    });
 }
-
-$('#editPreferencesForm').on('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData();
-    formData.append('preferred_positions', $('#preferredPositions').val());
-    formData.append('max_matches_per_week', $('#maxMatchesPerWeek').val());
-    formData.append('sms_notifications', $('#smsNotifications').prop('checked'));
-    formData.append('discord_notifications', $('#discordNotifications').prop('checked'));
-    formData.append('email_notifications', $('#emailNotifications').prop('checked'));
-    
-    fetch(`/admin/ecs-fc/sub-pool/${currentPoolId}/update`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRFToken': '{{ csrf_token() }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            $('#editPreferencesModal').modal('hide');
-            location.reload();
-        } else {
-            alert('Error: ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while updating preferences.');
-    });
-});
-
-$('#addToPoolForm').on('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData();
-    formData.append('player_id', currentPlayerId);
-    formData.append('preferred_positions', $('#newPreferredPositions').val());
-    formData.append('sms_notifications', $('#newSmsNotifications').prop('checked'));
-    formData.append('discord_notifications', $('#newDiscordNotifications').prop('checked'));
-    formData.append('email_notifications', $('#newEmailNotifications').prop('checked'));
-    
-    fetch('/admin/ecs-fc/sub-pool/add', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRFToken': '{{ csrf_token() }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            $('#addToPoolModal').modal('hide');
-            location.reload();
-        } else {
-            alert('Error: ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while adding the player.');
-    });
-});
 </script>
 {% endblock %}

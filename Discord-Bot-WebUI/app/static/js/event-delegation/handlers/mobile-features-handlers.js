@@ -809,4 +809,801 @@ EventDelegation.register('view-error', async (element, event) => {
     }
 });
 
+// ============================================================================
+// MOBILE USERS HANDLERS
+// ============================================================================
+
+/**
+ * View mobile user details
+ */
+EventDelegation.register('view-user-details', async (element, event) => {
+    event.preventDefault();
+    const userId = element.dataset.userId;
+
+    if (!userId) {
+        Swal.fire('Error', 'User ID not available', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/admin-panel/mobile/user-details?user_id=${userId}`);
+        const data = await response.json();
+
+        if (data.success) {
+            const user = data.user;
+            let deviceTokensHtml = '';
+
+            if (user.device_tokens && user.device_tokens.length > 0) {
+                deviceTokensHtml = user.device_tokens.map(token => `
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Token:</strong> ${token.token.substring(0, 20)}...<br>
+                                <small class="text-muted">Platform: ${token.platform || 'Unknown'} | Created: ${token.created_at ? new Date(token.created_at).toLocaleDateString() : 'Unknown'}</small>
+                            </div>
+                            <span class="badge bg-${token.is_active ? 'success' : 'secondary'}" data-badge>
+                                ${token.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                deviceTokensHtml = '<p class="text-muted">No device tokens found</p>';
+            }
+
+            Swal.fire({
+                title: `User Details: ${user.username || 'Unknown'}`,
+                html: `
+                    <div class="text-start">
+                        <div class="mb-3">
+                            <strong>User ID:</strong> ${user.id}<br>
+                            <strong>Username:</strong> ${user.username || 'Unknown'}<br>
+                            <strong>Email:</strong> ${user.email || 'No email'}<br>
+                            <strong>Joined:</strong> ${user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
+                        </div>
+                        <div class="mb-3">
+                            <strong>Device Tokens:</strong><br>
+                            ${deviceTokensHtml}
+                        </div>
+                    </div>
+                `,
+                width: '600px',
+                confirmButtonText: 'Close'
+            });
+        } else {
+            Swal.fire('Error', data.message || 'Failed to load user details', 'error');
+        }
+    } catch (error) {
+        console.error('Error fetching user details:', error);
+        Swal.fire('Error', 'Failed to load user details', 'error');
+    }
+});
+
+/**
+ * Send notification to a single user
+ */
+EventDelegation.register('send-notification', (element, event) => {
+    event.preventDefault();
+    const userId = element.dataset.userId;
+
+    Swal.fire({
+        title: 'Send Push Notification',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label">Notification Title</label>
+                    <input type="text" class="form-control" id="notificationTitle" placeholder="Match Update" data-form-control>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Notification Message</label>
+                    <textarea class="form-control" id="notificationMessage" rows="3" placeholder="Your match against Arsenal FC starts in 30 minutes!" data-form-control></textarea>
+                </div>
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="highPriority">
+                        <label class="form-check-label" for="highPriority">
+                            High Priority Notification
+                        </label>
+                    </div>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Send Notification',
+        width: '500px',
+        preConfirm: () => {
+            const title = document.getElementById('notificationTitle').value;
+            const message = document.getElementById('notificationMessage').value;
+
+            if (!title || !message) {
+                Swal.showValidationMessage('Please fill in both title and message');
+                return false;
+            }
+
+            return {
+                title: title,
+                message: message,
+                highPriority: document.getElementById('highPriority').checked
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Notification Sent!', 'Push notification has been sent to the user.', 'success');
+        }
+    });
+});
+
+/**
+ * Manage devices for a user
+ */
+EventDelegation.register('manage-devices', (element, event) => {
+    event.preventDefault();
+    const userId = element.dataset.userId;
+
+    Swal.fire({
+        title: 'Device Management',
+        html: `
+            <div class="text-start">
+                <p class="text-muted">Loading device information...</p>
+                <div class="list-group">
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>iPhone 12 Pro</strong><br>
+                            <small class="text-muted">iOS 17.2 - Last active: 2 hours ago</small>
+                        </div>
+                        <div class="btn-group btn-group-sm">
+                            <button class="c-btn c-btn--outline-warning" data-action="deactivate-device" data-token-id="token123" aria-label="Block"><i class="ti ti-ban"></i></button>
+                        </div>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Samsung Galaxy S23</strong><br>
+                            <small class="text-muted">Android 14 - Last active: 1 day ago</small>
+                        </div>
+                        <div class="btn-group btn-group-sm">
+                            <button class="c-btn c-btn--outline-warning" data-action="deactivate-device" data-token-id="token456" aria-label="Block"><i class="ti ti-ban"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `,
+        width: '600px',
+        confirmButtonText: 'Close'
+    });
+});
+
+/**
+ * Deactivate a device
+ */
+EventDelegation.register('deactivate-device', (element, event) => {
+    event.preventDefault();
+    const tokenId = element.dataset.tokenId;
+    const deactivateUrl = element.dataset.deactivateUrl || '/admin-panel/mobile/deactivate-device';
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    Swal.fire({
+        title: 'Deactivate Device?',
+        text: 'This will stop push notifications to this device',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Deactivate',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(deactivateUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfToken
+                },
+                body: `token_id=${tokenId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Device Deactivated!', 'The device has been deactivated successfully.', 'success');
+                } else {
+                    Swal.fire('Error', data.message || 'Failed to deactivate device', 'error');
+                }
+            })
+            .catch(error => {
+                Swal.fire('Error', 'Failed to deactivate device', 'error');
+            });
+        }
+    });
+});
+
+/**
+ * Send bulk notification
+ */
+EventDelegation.register('send-bulk-notification', (element, event) => {
+    event.preventDefault();
+    const selectedUsers = Array.from(document.querySelectorAll('.user-checkbox:checked')).map(cb => cb.value);
+
+    if (selectedUsers.length === 0) {
+        Swal.fire('No Users Selected', 'Please select users to send notifications to.', 'warning');
+        return;
+    }
+
+    Swal.fire({
+        title: `Send Bulk Notification (${selectedUsers.length} users)`,
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label">Notification Title</label>
+                    <input type="text" class="form-control" id="bulkNotificationTitle" placeholder="Important Update" data-form-control>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Notification Message</label>
+                    <textarea class="form-control" id="bulkNotificationMessage" rows="3" placeholder="Check out the latest updates in the app!" data-form-control></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Send Schedule</label>
+                    <select class="form-select" id="sendSchedule" data-form-select>
+                        <option value="immediate">Send Immediately</option>
+                        <option value="scheduled">Schedule for Later</option>
+                    </select>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Send to All Selected',
+        width: '500px',
+        preConfirm: () => {
+            const title = document.getElementById('bulkNotificationTitle').value;
+            const message = document.getElementById('bulkNotificationMessage').value;
+
+            if (!title || !message) {
+                Swal.showValidationMessage('Please fill in both title and message');
+                return false;
+            }
+
+            return {
+                title: title,
+                message: message,
+                schedule: document.getElementById('sendSchedule').value
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Bulk Notification Sent!', `Notification sent to ${selectedUsers.length} users.`, 'success');
+        }
+    });
+});
+
+/**
+ * Export user data
+ */
+EventDelegation.register('export-user-data', (element, event) => {
+    event.preventDefault();
+    const selectedUsers = Array.from(document.querySelectorAll('.user-checkbox:checked')).map(cb => cb.value);
+
+    Swal.fire({
+        title: 'Export User Data?',
+        text: selectedUsers.length > 0 ? `Export data for ${selectedUsers.length} selected users?` : 'Export data for all visible users?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Export Data'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Export Started!', 'User data export is being prepared for download.', 'success');
+        }
+    });
+});
+
+/**
+ * Bulk device management
+ */
+EventDelegation.register('bulk-device-management', (element, event) => {
+    event.preventDefault();
+    const selectedUsers = Array.from(document.querySelectorAll('.user-checkbox:checked')).map(cb => cb.value);
+
+    if (selectedUsers.length === 0) {
+        Swal.fire('No Users Selected', 'Please select users to manage their devices.', 'warning');
+        return;
+    }
+
+    Swal.fire({
+        title: `Bulk Device Management (${selectedUsers.length} users)`,
+        html: `
+            <div class="text-start">
+                <div class="list-group">
+                    <button class="list-group-item list-group-item-action" data-action="bulk-deactivate-devices">
+                        <i class="ti ti-ban text-danger me-2"></i>
+                        <strong>Deactivate All Devices</strong><br>
+                        <small class="text-muted">Stop push notifications for selected users</small>
+                    </button>
+                    <button class="list-group-item list-group-item-action" data-action="bulk-reactivate-devices">
+                        <i class="ti ti-check text-success me-2"></i>
+                        <strong>Reactivate All Devices</strong><br>
+                        <small class="text-muted">Resume push notifications for selected users</small>
+                    </button>
+                    <button class="list-group-item list-group-item-action" data-action="cleanup-inactive-devices">
+                        <i class="ti ti-trash text-warning me-2"></i>
+                        <strong>Cleanup Inactive Devices</strong><br>
+                        <small class="text-muted">Remove devices not used in 30+ days</small>
+                    </button>
+                </div>
+            </div>
+        `,
+        width: '500px',
+        showCancelButton: true,
+        showConfirmButton: false,
+        cancelButtonText: 'Close'
+    });
+});
+
+/**
+ * Bulk deactivate devices
+ */
+EventDelegation.register('bulk-deactivate-devices', (element, event) => {
+    event.preventDefault();
+    Swal.fire({
+        title: 'Deactivate All Devices?',
+        text: 'This will stop push notifications for all selected users',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Deactivate All',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Devices Deactivated!', 'All devices for selected users have been deactivated.', 'success');
+        }
+    });
+});
+
+/**
+ * Bulk reactivate devices
+ */
+EventDelegation.register('bulk-reactivate-devices', (element, event) => {
+    event.preventDefault();
+    Swal.fire({
+        title: 'Reactivate All Devices?',
+        text: 'This will resume push notifications for all selected users',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Reactivate All'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Devices Reactivated!', 'All devices for selected users have been reactivated.', 'success');
+        }
+    });
+});
+
+/**
+ * Cleanup inactive devices
+ */
+EventDelegation.register('cleanup-inactive-devices', (element, event) => {
+    event.preventDefault();
+    Swal.fire({
+        title: 'Cleanup Inactive Devices?',
+        text: 'This will remove device tokens not used in the last 30 days',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Cleanup Devices'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Cleanup Complete!', 'Inactive devices have been removed.', 'success');
+        }
+    });
+});
+
+// ============================================================================
+// PUSH CAMPAIGNS HANDLERS
+// ============================================================================
+
+/**
+ * Preview campaign
+ */
+EventDelegation.register('preview-campaign', (element, event) => {
+    event.preventDefault();
+    const form = document.getElementById('campaignForm');
+    if (!form) return;
+
+    const formData = new FormData(form);
+    const title = formData.get('notification_title') || 'Notification Title';
+    const message = formData.get('notification_message') || 'Notification message will appear here';
+    const audience = formData.get('target_audience') || 'all';
+    const schedule = formData.get('send_schedule') || 'immediate';
+
+    Swal.fire({
+        title: 'Campaign Preview',
+        html: `
+            <div class="text-start">
+                <div class="c-card border mb-3 mx-auto" style="max-width: 300px;">
+                    <div class="c-card__body">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="bg-primary rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                <i class="ti ti-shield text-white"></i>
+                            </div>
+                            <div>
+                                <strong style="font-size: 14px;">ECS FC</strong><br>
+                                <small class="text-muted">now</small>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <strong style="font-size: 15px;">${title}</strong>
+                        </div>
+                        <div style="font-size: 14px;" class="text-muted">
+                            ${message}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <strong>Campaign Details:</strong><br>
+                    <small>
+                    - Target Audience: ${audience}<br>
+                    - Send Schedule: ${schedule}<br>
+                    - High Priority: ${formData.get('high_priority') ? 'Yes' : 'No'}
+                    </small>
+                </div>
+            </div>
+        `,
+        width: '400px',
+        confirmButtonText: 'Close'
+    });
+});
+
+/**
+ * Save draft
+ */
+EventDelegation.register('save-draft', (element, event) => {
+    event.preventDefault();
+    Swal.fire({
+        title: 'Save Draft?',
+        text: 'This will save the campaign as a draft for later editing',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Save Draft'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Draft Saved!', 'Campaign has been saved as a draft.', 'success');
+        }
+    });
+});
+
+/**
+ * Load template
+ */
+EventDelegation.register('load-template', (element, event) => {
+    event.preventDefault();
+    const templateId = element.dataset.templateId;
+
+    const templates = {
+        1: {
+            name: 'Match Day Reminder',
+            title: 'Match Starting Soon!',
+            message: 'Your match against [OPPONENT] starts in 30 minutes. Good luck team!',
+            type: 'match_reminder',
+            audience: 'active'
+        },
+        2: {
+            name: 'Season Update',
+            title: 'Season Standings Update',
+            message: 'Check out the latest season standings and upcoming fixtures in the app!',
+            type: 'season_update',
+            audience: 'all'
+        },
+        3: {
+            name: 'Event Announcement',
+            title: 'Special Event This Weekend',
+            message: 'Join us for our annual tournament this weekend. Register now!',
+            type: 'event_announcement',
+            audience: 'active'
+        }
+    };
+
+    const template = templates[templateId];
+    if (template) {
+        const nameInput = document.querySelector('input[name="campaign_name"]');
+        const titleInput = document.querySelector('input[name="notification_title"]');
+        const messageInput = document.querySelector('textarea[name="notification_message"]');
+        const typeSelect = document.querySelector('select[name="campaign_type"]');
+        const audienceSelect = document.querySelector('select[name="target_audience"]');
+        const counter = document.getElementById('messageCounter');
+
+        if (nameInput) nameInput.value = template.name;
+        if (titleInput) titleInput.value = template.title;
+        if (messageInput) messageInput.value = template.message;
+        if (typeSelect) typeSelect.value = template.type;
+        if (audienceSelect) audienceSelect.value = template.audience;
+        if (counter) counter.textContent = template.message.length;
+
+        Swal.fire('Template Loaded!', `${template.name} template has been applied.`, 'success');
+    }
+});
+
+/**
+ * View campaign details
+ */
+EventDelegation.register('view-campaign-details', (element, event) => {
+    event.preventDefault();
+    const campaignId = element.dataset.campaignId;
+
+    Swal.fire({
+        title: `Campaign Details`,
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <strong>Campaign ID:</strong> ${campaignId}<br>
+                    <strong>Type:</strong> Match Reminder<br>
+                    <strong>Created:</strong> 2024-01-15 09:00:00<br>
+                    <strong>Sent:</strong> 2024-01-15 10:30:00
+                </div>
+                <div class="mb-3">
+                    <strong>Notification Content:</strong><br>
+                    <div class="c-card bg-light p-2">
+                        <strong>Title:</strong> Match Starting Soon!<br>
+                        <strong>Message:</strong> Your match against Arsenal FC starts in 30 minutes. Good luck team!
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <strong>Performance Metrics:</strong><br>
+                    - Recipients: 150 users<br>
+                    - Delivered: 95% (142 users)<br>
+                    - Opened: 78% (117 users)<br>
+                    - Clicked: 45% (68 users)
+                </div>
+            </div>
+        `,
+        width: '600px',
+        confirmButtonText: 'Close'
+    });
+});
+
+/**
+ * Duplicate campaign
+ */
+EventDelegation.register('duplicate-campaign', (element, event) => {
+    event.preventDefault();
+    const campaignId = element.dataset.campaignId;
+
+    Swal.fire({
+        title: 'Duplicate Campaign?',
+        text: 'This will create a copy of this campaign that you can edit',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Duplicate Campaign'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const nameInput = document.querySelector('input[name="campaign_name"]');
+            const titleInput = document.querySelector('input[name="notification_title"]');
+            const messageInput = document.querySelector('textarea[name="notification_message"]');
+            const typeSelect = document.querySelector('select[name="campaign_type"]');
+            const audienceSelect = document.querySelector('select[name="target_audience"]');
+
+            if (nameInput) nameInput.value = 'Copy of Week 5 Match Reminders';
+            if (titleInput) titleInput.value = 'Match Starting Soon!';
+            if (messageInput) messageInput.value = 'Your match against Arsenal FC starts in 30 minutes. Good luck team!';
+            if (typeSelect) typeSelect.value = 'match_reminder';
+            if (audienceSelect) audienceSelect.value = 'active';
+
+            Swal.fire('Campaign Duplicated!', 'Campaign has been loaded into the form for editing.', 'success');
+        }
+    });
+});
+
+/**
+ * Download report
+ */
+EventDelegation.register('download-report', (element, event) => {
+    event.preventDefault();
+    const campaignId = element.dataset.campaignId;
+
+    Swal.fire({
+        title: 'Download Campaign Report?',
+        text: 'This will generate a detailed analytics report for this campaign',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Download Report'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Report Generating...', 'Your campaign report is being prepared for download.', 'success');
+        }
+    });
+});
+
+// ============================================================================
+// PUSH HISTORY HANDLERS
+// ============================================================================
+
+/**
+ * View notification details
+ */
+EventDelegation.register('view-notification', (element, event) => {
+    event.preventDefault();
+    const notificationId = element.dataset.notificationId;
+
+    Swal.fire({
+        title: `Notification Details`,
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <strong>Notification ID:</strong> ${notificationId}<br>
+                    <strong>Type:</strong> Push Notification<br>
+                    <strong>Status:</strong> <span class="badge bg-success" data-badge>Sent</span><br>
+                    <strong>Created:</strong> 2024-01-30 18:00:00
+                </div>
+                <div class="mb-3">
+                    <strong>Content:</strong><br>
+                    <div class="c-card bg-light p-2">
+                        <strong>Title:</strong> Match Starting Soon!<br>
+                        <strong>Message:</strong> Your match against Arsenal FC starts in 30 minutes. Good luck team!
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <strong>Delivery Information:</strong><br>
+                    - Sent to: john.doe@example.com<br>
+                    - Device: iPhone 12 Pro (iOS)<br>
+                    - Sent at: 2024-01-30 18:00:15<br>
+                    - Delivered at: 2024-01-30 18:00:18<br>
+                    - Opened at: 2024-01-30 18:02:45
+                </div>
+            </div>
+        `,
+        width: '600px',
+        confirmButtonText: 'Close'
+    });
+});
+
+/**
+ * Retry notification
+ */
+EventDelegation.register('retry-notification', (element, event) => {
+    event.preventDefault();
+    const notificationId = element.dataset.notificationId;
+
+    Swal.fire({
+        title: 'Retry Notification?',
+        text: 'This will attempt to resend the failed notification',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Retry Send'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Retrying...',
+                text: 'Attempting to resend notification',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                    setTimeout(() => {
+                        Swal.fire('Notification Retried!', 'The notification has been queued for retry.', 'success')
+                            .then(() => location.reload());
+                    }, 2000);
+                }
+            });
+        }
+    });
+});
+
+/**
+ * Duplicate notification
+ */
+EventDelegation.register('duplicate-notification', (element, event) => {
+    event.preventDefault();
+    const notificationId = element.dataset.notificationId;
+
+    Swal.fire({
+        title: 'Duplicate Notification?',
+        text: 'This will create a copy of this notification that you can send again',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Duplicate'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Notification Duplicated!', 'The notification has been copied to a new campaign.', 'success');
+        }
+    });
+});
+
+/**
+ * Delete notification
+ */
+EventDelegation.register('delete-notification', (element, event) => {
+    event.preventDefault();
+    const notificationId = element.dataset.notificationId;
+
+    Swal.fire({
+        title: 'Delete Notification?',
+        text: 'This will permanently remove this notification from history',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Delete',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Notification Deleted!', 'The notification has been removed from history.', 'success')
+                .then(() => location.reload());
+        }
+    });
+});
+
+/**
+ * Retry failed notifications
+ */
+EventDelegation.register('retry-failed', (element, event) => {
+    event.preventDefault();
+    const selectedNotifications = Array.from(document.querySelectorAll('.notification-checkbox:checked')).map(cb => cb.value);
+
+    if (selectedNotifications.length === 0) {
+        Swal.fire('No Notifications Selected', 'Please select failed notifications to retry.', 'warning');
+        return;
+    }
+
+    Swal.fire({
+        title: `Retry ${selectedNotifications.length} Failed Notifications?`,
+        text: 'This will attempt to resend all selected failed notifications',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Retry All'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Retrying Notifications...',
+                text: 'Processing retry requests',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                    setTimeout(() => {
+                        Swal.fire('Retry Complete!', `${selectedNotifications.length} notifications have been queued for retry.`, 'success')
+                            .then(() => location.reload());
+                    }, 3000);
+                }
+            });
+        }
+    });
+});
+
+/**
+ * Export history
+ */
+EventDelegation.register('export-history', (element, event) => {
+    event.preventDefault();
+    const selectedNotifications = Array.from(document.querySelectorAll('.notification-checkbox:checked')).map(cb => cb.value);
+
+    Swal.fire({
+        title: 'Export Push History?',
+        text: selectedNotifications.length > 0 ? `Export ${selectedNotifications.length} selected notifications?` : 'Export all visible notifications?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Export Data'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Export Started!', 'Push history export is being prepared for download.', 'success');
+        }
+    });
+});
+
+/**
+ * Cleanup old notifications
+ */
+EventDelegation.register('cleanup-old', (element, event) => {
+    event.preventDefault();
+    Swal.fire({
+        title: 'Cleanup Old Notifications?',
+        text: 'This will permanently remove push notifications older than 90 days',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Cleanup Old',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Cleaning Up...',
+                text: 'Removing old push notifications',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                    setTimeout(() => {
+                        Swal.fire('Cleanup Complete!', '247 old notifications have been removed.', 'success')
+                            .then(() => location.reload());
+                    }, 2000);
+                }
+            });
+        }
+    });
+});
+
 console.log('[EventDelegation] Mobile features handlers loaded');

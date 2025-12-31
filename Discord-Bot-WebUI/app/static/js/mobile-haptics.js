@@ -13,6 +13,10 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from './init-system.js';
+
+let _initialized = false;
+
 /**
    * Haptics controller with various vibration patterns
    */
@@ -326,11 +330,10 @@ export const Haptics = {
    * Initialize haptics with event delegation
    * ROOT CAUSE FIX: Uses document-level event delegation instead of per-element listeners
    */
-  window.Haptics._initialized = false;
   window.Haptics.init = function () {
     // Only initialize once - event delegation handles all elements
-    if (this._initialized) return;
-    this._initialized = true;
+    if (_initialized) return;
+    _initialized = true;
 
     if (!this.isSupported()) {
       console.log('Haptics: Vibration API not supported');
@@ -400,7 +403,16 @@ export const Haptics = {
   // Expose globally (MUST be before any callbacks or registrations)
   window.Haptics = Haptics;
 
-  // Auto-initialize
+  // Register with InitSystem
+  if (InitSystem && InitSystem.register) {
+    InitSystem.register('mobile-haptics', () => Haptics.init(), {
+      priority: 35,
+      reinitializable: false,
+      description: 'Mobile haptic feedback'
+    });
+  }
+
+  // Fallback initialization
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => window.Haptics.init());
   } else {

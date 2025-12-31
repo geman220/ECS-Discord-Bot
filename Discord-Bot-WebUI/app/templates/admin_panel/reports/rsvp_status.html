@@ -10,7 +10,7 @@
 {% endblock %}
 
 {% block panel_content %}
-<div class="row">
+<div class="row" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% elif match %}{{ match.id }}{% endif %}">
     <!-- Match Info -->
     <div class="col-12 mb-4">
         <div class="c-card">
@@ -252,45 +252,6 @@
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-<script>
-const matchId = '{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% elif match %}{{ match.id }}{% endif %}';
-
-// Event delegation for RSVP actions
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.js-update-rsvp').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const playerId = this.dataset.playerId;
-            const response = this.dataset.response;
-            updateRsvp(playerId, response);
-        });
-    });
-});
-
-function updateRsvp(playerId, response) {
-    const formData = new FormData();
-    formData.append('player_id', playerId);
-    formData.append('match_id', matchId);
-    formData.append('response', response);
-
-    fetch('{{ url_for("admin_panel.update_rsvp") }}', {
-        method: 'POST',
-        body: formData,
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            AdminPanel.showMobileToast(data.message, 'success');
-            location.reload();
-        } else {
-            AdminPanel.showMobileToast('Error: ' + data.message, 'danger');
-        }
-    })
-    .catch(err => {
-        AdminPanel.showMobileToast('Error updating RSVP', 'danger');
-    });
-}
-</script>
-{% endif %}
+{# RSVP actions now handled by EventDelegation via admin-reports-handlers.js #}
+{# Match ID stored in data-match-id attribute on row container #}
 {% endblock %}

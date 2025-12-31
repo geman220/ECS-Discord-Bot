@@ -192,69 +192,95 @@
 {% block custom_js %}
 {{ super() }}
 <script>
-function previewMessage() {
-    const messageContent = document.getElementById('message_content').value;
-    
+// Preview message content - exposed for event delegation
+window.previewMessage = function() {
+    const messageContentEl = document.getElementById('message_content');
+    if (!messageContentEl) return;
+
+    const messageContent = messageContentEl.value;
+
     if (!messageContent.trim()) {
-        alert('Please enter message content to preview.');
+        if (typeof Swal !== 'undefined') {
+            Swal.fire('Warning', 'Please enter message content to preview.', 'warning');
+        } else {
+            alert('Please enter message content to preview.');
+        }
         return;
     }
-    
+
     // Show modal
-    ModalManager.show('message-template-previewModal');
+    if (typeof ModalManager !== 'undefined') {
+        ModalManager.show('message-template-previewModal');
+    }
 
     // Set loading state
-    document.getElementById('message-template-previewContent').innerHTML = `
-        <div class="text-center">
-            <div class="spinner-border" role="status" data-spinner>
-                <span class="visually-hidden">Loading...</span>
+    const previewContent = document.getElementById('message-template-previewContent');
+    if (previewContent) {
+        previewContent.innerHTML = `
+            <div class="text-center">
+                <div class="spinner-border" role="status" data-spinner>
+                    <span class="visually-hidden">Loading...</span>
+                </div>
             </div>
-        </div>
-    `;
-    
-    // Create a preview by simulating the template with sample data
-    const sampleData = {
-        username: 'SampleUser',
-        league_display_name: 'Pub League Premier',
-        league_welcome_message: 'Welcome to competitive soccer!',
-        league_contact_info: 'Contact us at admin@ecsfc.com'
-    };
-    
-    let preview = messageContent;
-    for (const [key, value] of Object.entries(sampleData)) {
-        const regex = new RegExp(`{${key}}`, 'g');
-        preview = preview.replace(regex, value);
+        `;
+
+        // Create a preview by simulating the template with sample data
+        const sampleData = {
+            username: 'SampleUser',
+            league_display_name: 'Pub League Premier',
+            league_welcome_message: 'Welcome to competitive soccer!',
+            league_contact_info: 'Contact us at admin@ecsfc.com'
+        };
+
+        let preview = messageContent;
+        for (const [key, value] of Object.entries(sampleData)) {
+            const regex = new RegExp(`{${key}}`, 'g');
+            preview = preview.replace(regex, value);
+        }
+
+        previewContent.innerHTML = `
+            <div class="mb-3">
+                <h6>Preview with sample data:</h6>
+                <div class="bg-light p-3 rounded border u-white-space-pre-wrap">${preview}</div>
+            </div>
+            <div>
+                <h6>Sample variables used:</h6>
+                <pre class="small bg-light p-2 rounded">${JSON.stringify(sampleData, null, 2)}</pre>
+            </div>
+        `;
     }
-    
-    document.getElementById('message-template-previewContent').innerHTML = `
-        <div class="mb-3">
-            <h6>Preview with sample data:</h6>
-            <div class="bg-light p-3 rounded border u-white-space-pre-wrap">${preview}</div>
-        </div>
-        <div>
-            <h6>Sample variables used:</h6>
-            <pre class="small bg-light p-2 rounded">${JSON.stringify(sampleData, null, 2)}</pre>
-        </div>
-    `;
-}
+};
 
-// Auto-save functionality (optional)
-let autoSaveTimeout;
-document.getElementById('message_content').addEventListener('input', function() {
-    clearTimeout(autoSaveTimeout);
-    autoSaveTimeout = setTimeout(function() {
-        console.log('Auto-save triggered (not implemented)');
-        // Implement auto-save functionality here if desired
-    }, 2000);
-});
+// Auto-save functionality and form validation
+document.addEventListener('DOMContentLoaded', function() {
+    const messageContentEl = document.getElementById('message_content');
+    const editTemplateForm = document.getElementById('editTemplateForm');
 
-// Form validation
-document.getElementById('editTemplateForm').addEventListener('submit', function(e) {
-    const messageContent = document.getElementById('message_content').value;
-    if (!messageContent.trim()) {
-        e.preventDefault();
-        alert('Message content cannot be empty.');
-        return false;
+    // Auto-save functionality (optional)
+    let autoSaveTimeout;
+    if (messageContentEl) {
+        messageContentEl.addEventListener('input', function() {
+            clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(function() {
+                console.log('[message-template] Auto-save triggered (not implemented)');
+            }, 2000);
+        });
+    }
+
+    // Form validation
+    if (editTemplateForm) {
+        editTemplateForm.addEventListener('submit', function(e) {
+            const messageContent = messageContentEl?.value || '';
+            if (!messageContent.trim()) {
+                e.preventDefault();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire('Warning', 'Message content cannot be empty.', 'warning');
+                } else {
+                    alert('Message content cannot be empty.');
+                }
+                return false;
+            }
+        });
     }
 });
 </script>

@@ -59,7 +59,7 @@
                         </div>
                     </div>
                     <div class="col-md-4 text-md-end">
-                        <select id="priority-filter" class="form-select form-select-sm d-inline-block w-auto" data-form-select>
+                        <select id="priority-filter" class="form-select form-select-sm d-inline-block w-auto" data-form-select data-action="filter-feedback-priority">
                             <option value="">All Priorities</option>
                             <option value="High" {{ 'selected' if priority_filter == 'High' }}>High</option>
                             <option value="Medium" {{ 'selected' if priority_filter == 'Medium' }}>Medium</option>
@@ -185,75 +185,5 @@
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-<script>
-// Event delegation for feedback actions
-document.addEventListener('DOMContentLoaded', function() {
-    // Close Feedback button delegation
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.js-close-feedback')) {
-            const btn = e.target.closest('.js-close-feedback');
-            const feedbackId = btn.dataset.feedbackId;
-            closeFeedback(feedbackId);
-        }
-    });
-
-    // Delete Feedback button delegation
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.js-delete-feedback')) {
-            const btn = e.target.closest('.js-delete-feedback');
-            const feedbackId = btn.dataset.feedbackId;
-            deleteFeedback(feedbackId);
-        }
-    });
-});
-
-document.getElementById('priority-filter').addEventListener('change', function() {
-    const priority = this.value;
-    const url = new URL(window.location.href);
-    if (priority) {
-        url.searchParams.set('priority', priority);
-    } else {
-        url.searchParams.delete('priority');
-    }
-    window.location.href = url.toString();
-});
-
-function closeFeedback(feedbackId) {
-    if (!confirm('Close this feedback?')) return;
-
-    fetch(`{{ url_for('admin_panel.close_feedback', feedback_id=0) }}`.replace('0', feedbackId), { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                AdminPanel.showMobileToast(data.message, 'success');
-                location.reload();
-            } else {
-                AdminPanel.showMobileToast('Error: ' + data.message, 'danger');
-            }
-        })
-        .catch(error => {
-            AdminPanel.showMobileToast('Error closing feedback', 'danger');
-        });
-}
-
-function deleteFeedback(feedbackId) {
-    if (!confirm('Delete this feedback? This cannot be undone.')) return;
-
-    fetch(`{{ url_for('admin_panel.delete_feedback', feedback_id=0) }}`.replace('0', feedbackId), { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                AdminPanel.showMobileToast(data.message, 'success');
-                location.reload();
-            } else {
-                AdminPanel.showMobileToast('Error: ' + data.message, 'danger');
-            }
-        })
-        .catch(error => {
-            AdminPanel.showMobileToast('Error deleting feedback', 'danger');
-        });
-}
-</script>
-{% endif %}
+{# Feedback actions now handled by EventDelegation via admin-reports-handlers.js #}
 {% endblock %}

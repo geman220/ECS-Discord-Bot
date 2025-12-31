@@ -61,15 +61,15 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2>Draft Cache Statistics</h2>
                 <div>
-                    <button id="draft-cache-refresh-btn" class="c-btn c-btn--primary c-btn--sm me-2">Refresh</button>
+                    <button id="draft-cache-refresh-btn" class="c-btn c-btn--primary c-btn--sm me-2" data-action="refresh-draft-cache">Refresh</button>
                     <a href="/admin/redis/stats" class="c-btn c-btn--secondary c-btn--sm me-2">Redis Stats</a>
-                    <button id="invalidate-all-btn" class="c-btn c-btn--danger c-btn--sm">Clear All Draft Cache</button>
+                    <button id="invalidate-all-btn" class="c-btn c-btn--danger c-btn--sm" data-action="invalidate-all-cache">Clear All Draft Cache</button>
                 </div>
             </div>
 
             <div class="auto-refresh">
                 <label>
-                    <input type="checkbox" id="draft-cache-auto-refresh" checked> Auto-refresh every 10 seconds
+                    <input type="checkbox" id="draft-cache-auto-refresh" data-action="toggle-draft-cache-auto-refresh" checked> Auto-refresh every 10 seconds
                 </label>
                 <span id="draft-cache-last-updated" class="ms-3 text-muted"></span>
             </div>
@@ -226,7 +226,7 @@
                                             </div>
                                         </div>
                                         <div class="mt-2">
-                                            <button class="c-btn c-btn--sm c-btn--outline-primary warm-cache-btn" data-league="{{ league_name }}">
+                                            <button class="c-btn c-btn--sm c-btn--outline-primary warm-cache-btn" data-action="warm-cache" data-league="{{ league_name }}">
                                                 Warm Cache
                                             </button>
                                         </div>
@@ -245,101 +245,6 @@
 
 {% block custom_js %}
 {{ super() }}
-<script>
-let autoRefreshInterval;
-
-function updateDraftCacheStats() {
-    fetch('/admin/redis/api/draft-cache-stats')
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                console.error('Error fetching draft cache stats:', data.error);
-                return;
-            }
-            
-            // Update overall statistics
-            const totalKeys = Object.values(data.draft_cache_keys || {}).reduce((a, b) => a + b, 0);
-            document.getElementById('total-cache-keys').textContent = totalKeys;
-            
-            // Update cache type breakdown
-            document.getElementById('player-cache-count').textContent = data.draft_cache_keys?.players || 0;
-            document.getElementById('analytics-cache-count').textContent = data.draft_cache_keys?.analytics || 0;
-            document.getElementById('team-cache-count').textContent = data.draft_cache_keys?.teams || 0;
-            document.getElementById('availability-cache-count').textContent = data.draft_cache_keys?.availability || 0;
-            
-            // Update connection pool stats
-            if (data.connection_pool?.pool_stats) {
-                document.getElementById('redis-pool-utilization').textContent = 
-                    (data.connection_pool.pool_stats.utilization_percent || 0) + '%';
-                document.getElementById('max-connections').textContent = 
-                    data.connection_pool.pool_stats.max_connections || 'N/A';
-                document.getElementById('connections-in-use').textContent = 
-                    data.connection_pool.pool_stats.in_use_connections || 'N/A';
-                document.getElementById('connections-available').textContent = 
-                    data.connection_pool.pool_stats.available_connections || 'N/A';
-                document.getElementById('connections-created').textContent = 
-                    data.connection_pool.pool_stats.created_connections || 'N/A';
-            }
-            
-            // Update last updated time
-            document.getElementById('last-updated').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
-        })
-        .catch(error => {
-            console.error('Error updating draft cache stats:', error);
-        });
-}
-
-function warmCache(leagueName) {
-    fetch(`/admin/redis/warm-draft-cache/${leagueName}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                alert('Error warming cache: ' + data.error);
-            } else {
-                alert(`Cache warming initiated for ${leagueName}`);
-                updateDraftCacheStats();
-            }
-        })
-        .catch(error => {
-            alert('Error warming cache: ' + error);
-        });
-}
-
-function invalidateAllCache() {
-    if (!confirm('Are you sure you want to clear all draft cache? This will cause temporary performance impact during the next draft loads.')) {
-        return;
-    }
-    
-    // This would require implementing an invalidate-all endpoint
-    alert('Full cache invalidation not yet implemented. Use individual league cache warming instead.');
-}
-
-// Event listeners
-document.getElementById('refresh-btn').addEventListener('click', updateDraftCacheStats);
-document.getElementById('invalidate-all-btn').addEventListener('click', invalidateAllCache);
-
-// Warm cache buttons
-document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('warm-cache-btn')) {
-        const leagueName = e.target.getAttribute('data-league');
-        warmCache(leagueName);
-    }
-});
-
-document.getElementById('auto-refresh').addEventListener('change', function() {
-    if (this.checked) {
-        autoRefreshInterval = setInterval(updateDraftCacheStats, 10000);
-    } else {
-        clearInterval(autoRefreshInterval);
-    }
-});
-
-// Initialize auto-refresh
-if (document.getElementById('auto-refresh').checked) {
-    autoRefreshInterval = setInterval(updateDraftCacheStats, 10000);
-}
-
-// Initial load
-updateDraftCacheStats();
-</script>
+{# Inline JS removed - handlers now in admin-cache.js event delegation handler #}
+{# All draft cache functions are handled by data-action attributes and InitSystem #}
 {% endblock %}

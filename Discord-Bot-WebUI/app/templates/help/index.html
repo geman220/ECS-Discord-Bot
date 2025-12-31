@@ -52,60 +52,8 @@
 
 {% block custom_js %}
 {{ super() }}
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Initialize Fancybox (if needed)
-        const fancyboxElements = document.querySelectorAll('[data-fancybox]');
-        if (fancyboxElements.length > 0 && typeof Fancybox !== 'undefined') {
-            Fancybox.bind('[data-fancybox]', {
-                loop: true,
-                buttons: ["zoom", "slideShow", "fullScreen", "close"],
-                animationEffect: "zoom",
-            });
-        }
-
-        // Debounced search for help topics using event delegation
-        let debounceTimeout;
-        document.addEventListener('input', function(e) {
-            const searchInput = e.target.closest('[data-action="search-topics"]');
-            if (!searchInput) return;
-
-            clearTimeout(debounceTimeout);
-            const query = searchInput.value;
-
-            debounceTimeout = setTimeout(function () {
-                fetch("{{ url_for('help.search_topics') }}?" + new URLSearchParams({ query: query }))
-                    .then(response => response.json())
-                    .then(data => {
-                        const list = document.querySelector('[data-topics-list]');
-                        list.innerHTML = '';
-
-                        if (data.topics && data.topics.length) {
-                            data.topics.forEach(function (topic) {
-                                const topicUrl = "{{ url_for('help.index') }}".replace(/\/$/, '') + "/" + topic.id;
-                                const li = document.createElement('li');
-                                li.className = 'c-list-modern__item c-list-modern__item--clickable';
-                                li.innerHTML = `
-                                    <a href="${topicUrl}"
-                                       class="c-list-modern__link"
-                                       data-action="view-topic"
-                                       data-topic-id="${topic.id}">
-                                        <i class="ti ti-book c-list-modern__icon"></i>
-                                        ${topic.title}
-                                        <i class="ti ti-chevron-right c-list-modern__chevron"></i>
-                                    </a>
-                                `;
-                                list.appendChild(li);
-                            });
-                        } else {
-                            list.innerHTML = '<li class="c-list-modern__item c-list-modern__item--empty"><i class="ti ti-info-circle c-list-modern__icon"></i>No help topics available.</li>';
-                        }
-                    })
-                    .catch(error => {
-                        console.error("Error while searching topics:", error);
-                    });
-            }, 300);
-        });
-    });
-</script>
+<!-- Help Search Module loaded via Vite in production, or directly in development -->
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+<script type="module" src="{{ url_for('static', filename='custom_js/help-search.js') }}"></script>
+{% endif %}
 {% endblock %}

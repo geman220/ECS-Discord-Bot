@@ -245,71 +245,7 @@
 {% block custom_js %}
 {{ super() }}
 {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Event delegation for match actions
-    document.addEventListener('click', function(e) {
-        const target = e.target.closest('[data-action]');
-        if (!target) return;
-
-        const action = target.dataset.action;
-
-        switch(action) {
-            case 'edit-match':
-                editMatch(target.dataset.matchId);
-                break;
-            case 'send-reminder':
-                sendReminder(target.dataset.matchId);
-                break;
-        }
-    });
-});
-
-function editMatch(matchId) {
-    // Implement edit match modal
-    alert('Edit match functionality would go here');
-}
-
-function sendReminder(matchId) {
-    if (confirm('Send RSVP reminder to all players who haven\'t responded?')) {
-        fetch(`/api/ecs-fc/matches/${matchId}/remind`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Reminder Sent!',
-                        text: data.message,
-                        timer: 3000
-                    });
-                } else {
-                    alert('Reminder sent successfully!');
-                }
-            } else {
-                throw new Error(data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: error.message || 'Failed to send reminder'
-                });
-            } else {
-                alert('Error: ' + (error.message || 'Failed to send reminder'));
-            }
-        });
-    }
-}
-</script>
+<!-- ECS FC Match Module (extracted from inline JS) -->
+<script src="{{ url_for('static', filename='custom_js/ecs-fc-match.js') }}"></script>
 {% endif %}
 {% endblock %}

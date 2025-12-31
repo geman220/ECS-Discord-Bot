@@ -13,6 +13,10 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from './init-system.js';
+
+let _initialized = false;
+
 /**
    * Mobile Gestures Controller
    */
@@ -501,10 +505,14 @@ export const MobileGestures = {
      * Initialize all gesture handlers
      */
     init: function () {
+      if (_initialized) return;
+
       if (!this.isTouchDevice()) {
         console.log('MobileGestures: Not a touch device, skipping initialization');
         return;
       }
+
+      _initialized = true;
 
       // Always setup scroll click prevention (doesn't need Hammer.js)
       this.setupScrollClickPrevention();
@@ -574,7 +582,16 @@ export const MobileGestures = {
   // Expose globally (MUST be before any callbacks or registrations)
   window.MobileGestures = MobileGestures;
 
-  // Auto-initialize
+  // Register with InitSystem
+  if (InitSystem && InitSystem.register) {
+    InitSystem.register('mobile-gestures', () => MobileGestures.init(), {
+      priority: 40,
+      reinitializable: false,
+      description: 'Mobile gesture handlers'
+    });
+  }
+
+  // Fallback initialization
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => window.MobileGestures.init());
   } else {

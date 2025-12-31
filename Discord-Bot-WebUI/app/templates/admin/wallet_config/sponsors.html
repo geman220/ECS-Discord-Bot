@@ -312,14 +312,22 @@
 {% endblock %}
 
 {% block scripts %}
+{{ super() }}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Edit modal population
+(function() {
+    'use strict';
+
+    // Edit modal population - Bootstrap event
     const editModal = document.getElementById('editSponsorModal');
     if (editModal) {
         editModal.addEventListener('show.bs.modal', function(event) {
             const button = event.relatedTarget;
-            const sponsor = JSON.parse(button.getAttribute('data-sponsor'));
+            if (!button) return;
+
+            const sponsorData = button.getAttribute('data-sponsor');
+            if (!sponsorData) return;
+
+            const sponsor = JSON.parse(sponsorData);
 
             document.getElementById('editSponsorForm').action = '/admin/wallet/config/sponsors/' + sponsor.id + '/edit';
             document.getElementById('editName').value = sponsor.name;
@@ -332,41 +340,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('editIsActive').checked = sponsor.is_active;
         });
     }
-
-    // Delete sponsor button handlers
-    document.querySelectorAll('.js-delete-sponsor').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            const id = this.dataset.id;
-            const name = this.dataset.name;
-            deleteSponsor(id, name);
-        });
-    });
-});
-
-function deleteSponsor(id, name) {
-    Swal.fire({
-        title: 'Delete Sponsor?',
-        text: `Are you sure you want to delete "${name}"?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#d33',
-        confirmButtonText: 'Yes, delete'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '/admin/wallet/config/sponsors/' + id + '/delete';
-
-            const csrf = document.createElement('input');
-            csrf.type = 'hidden';
-            csrf.name = 'csrf_token';
-            csrf.value = '{{ csrf_token() }}';
-            form.appendChild(csrf);
-
-            document.body.appendChild(form);
-            form.submit();
-        }
-    });
-}
+})();
 </script>
 {% endblock %}

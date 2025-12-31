@@ -225,10 +225,10 @@
                                                                 data-platform="{{ template.platform }}">
                                                             Edit
                                                         </button>
-                                                        <form action="{{ url_for('wallet_config.delete_template', template_id=template.id) }}" method="post" class="d-inline ms-1 delete-template-form">
+                                                        <form action="{{ url_for('wallet_config.delete_template', template_id=template.id) }}" method="post" class="d-inline ms-1">
                                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                             <input type="hidden" name="template_name" value="{{ template.name }}">
-                                                            <button type="submit" class="c-btn c-btn--sm c-btn--outline-danger">Delete</button>
+                                                            <button type="submit" class="c-btn c-btn--sm c-btn--outline-danger" data-action="delete-template">Delete</button>
                                                         </form>
                                                     </div>
                                                 </td>
@@ -362,10 +362,10 @@
                                                                 data-platform="{{ template.platform }}">
                                                             Edit
                                                         </button>
-                                                        <form action="{{ url_for('wallet_config.delete_template', template_id=template.id) }}" method="post" class="d-inline ms-1 delete-template-form">
+                                                        <form action="{{ url_for('wallet_config.delete_template', template_id=template.id) }}" method="post" class="d-inline ms-1">
                                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                             <input type="hidden" name="template_name" value="{{ template.name }}">
-                                                            <button type="submit" class="c-btn c-btn--sm c-btn--outline-danger">Delete</button>
+                                                            <button type="submit" class="c-btn c-btn--sm c-btn--outline-danger" data-action="delete-template">Delete</button>
                                                         </form>
                                                     </div>
                                                 </td>
@@ -486,55 +486,48 @@
 {% endblock %}
 
 {% block page_js %}
+{{ super() }}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Handle delete template forms with SweetAlert2
-        document.querySelectorAll('.delete-template-form').forEach(function(form) {
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const templateName = form.querySelector('input[name="template_name"]').value;
+(function() {
+    'use strict';
 
-                Swal.fire({
-                    title: 'Delete Template?',
-                    text: `Are you sure you want to delete "${templateName}"? This action cannot be undone.`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#d33',
-                    cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-                    confirmButtonText: 'Yes, delete it',
-                    cancelButtonText: 'Cancel'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        form.submit();
-                    }
-                });
-            });
-        });
+    // Initialize CodeMirror for template content
+    let createEditor, editEditor;
 
-        // Initialize CodeMirror for template content
-        const createEditor = CodeMirror.fromTextArea(document.getElementById('templateContent'), {
+    const templateContentEl = document.getElementById('templateContent');
+    const editTemplateContentEl = document.getElementById('editTemplateContent');
+
+    if (templateContentEl && typeof CodeMirror !== 'undefined') {
+        createEditor = CodeMirror.fromTextArea(templateContentEl, {
             mode: { name: "javascript", json: true },
             theme: "monokai",
             lineNumbers: true,
             indentUnit: 4
         });
-        
-        const editEditor = CodeMirror.fromTextArea(document.getElementById('editTemplateContent'), {
+    }
+
+    if (editTemplateContentEl && typeof CodeMirror !== 'undefined') {
+        editEditor = CodeMirror.fromTextArea(editTemplateContentEl, {
             mode: { name: "javascript", json: true },
             theme: "monokai",
             lineNumbers: true,
             indentUnit: 4
         });
-        
-        // Handle create template modal
-        const createTemplateModal = document.getElementById('createTemplateModal');
-        if (createTemplateModal) {
-            createTemplateModal.addEventListener('show.bs.modal', function (event) {
-                const button = event.relatedTarget;
-                const passTypeId = button.getAttribute('data-pass-type-id');
-                document.getElementById('passTypeId').value = passTypeId;
-                
-                // Create a basic template if none exists
+    }
+
+    // Handle create template modal
+    const createTemplateModal = document.getElementById('createTemplateModal');
+    if (createTemplateModal) {
+        createTemplateModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            if (!button) return;
+
+            const passTypeId = button.getAttribute('data-pass-type-id');
+            const passTypeIdInput = document.getElementById('passTypeId');
+            if (passTypeIdInput) passTypeIdInput.value = passTypeId;
+
+            // Create a basic template if none exists
+            if (createEditor) {
                 createEditor.setValue(JSON.stringify({
                     formatVersion: 1,
                     passTypeIdentifier: "{{pass_type_identifier}}",
@@ -563,35 +556,44 @@
                         ]
                     }
                 }, null, 2));
-            });
-        }
-        
-        // Handle edit template modal
-        const editTemplateModal = document.getElementById('editTemplateModal');
-        if (editTemplateModal) {
-            editTemplateModal.addEventListener('show.bs.modal', function (event) {
-                const button = event.relatedTarget;
-                const templateId = button.getAttribute('data-template-id');
-                const templateName = button.getAttribute('data-template-name');
-                const templateContent = button.getAttribute('data-template-content');
-                const passTypeId = button.getAttribute('data-pass-type-id');
-                const platform = button.getAttribute('data-platform');
-                
-                document.getElementById('editTemplateName').value = templateName;
-                document.getElementById('editPassTypeId').value = passTypeId;
-                document.getElementById('editTemplatePlatform').value = platform;
-                
-                // Format JSON for display
+            }
+        });
+    }
+
+    // Handle edit template modal
+    const editTemplateModal = document.getElementById('editTemplateModal');
+    if (editTemplateModal) {
+        editTemplateModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            if (!button) return;
+
+            const templateName = button.getAttribute('data-template-name');
+            const templateContent = button.getAttribute('data-template-content');
+            const passTypeId = button.getAttribute('data-pass-type-id');
+            const platform = button.getAttribute('data-platform');
+
+            const editTemplateNameEl = document.getElementById('editTemplateName');
+            const editPassTypeIdEl = document.getElementById('editPassTypeId');
+            const editTemplatePlatformEl = document.getElementById('editTemplatePlatform');
+
+            if (editTemplateNameEl) editTemplateNameEl.value = templateName;
+            if (editPassTypeIdEl) editPassTypeIdEl.value = passTypeId;
+            if (editTemplatePlatformEl) editTemplatePlatformEl.value = platform;
+
+            // Format JSON for display
+            if (editEditor && templateContent) {
                 try {
                     const formattedContent = JSON.stringify(JSON.parse(templateContent), null, 2);
                     editEditor.setValue(formattedContent);
                 } catch (e) {
                     editEditor.setValue(templateContent);
                 }
-            });
-        }
-    });
+            }
+        });
+    }
+})();
 </script>
+{# Delete template handler is now in wallet-config-handlers.js using data-action="delete-template" #}
 {% endblock %}
 {% endif %}
 {% endblock %}

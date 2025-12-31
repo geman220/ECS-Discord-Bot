@@ -432,8 +432,110 @@ EventDelegation.register('send-individual-reminder', function(element, e) {
 }, { preventDefault: true });
 
 // ============================================================================
+// RSVP STATUS PAGE ACTIONS
+// ============================================================================
+
+/**
+ * Toggle Card Expansion (Mobile)
+ * Expands/collapses RSVP card details on mobile
+ */
+EventDelegation.register('toggle-card-expansion', function(element, e) {
+    e.preventDefault();
+    const card = element.closest('.rsvp-mobile-card');
+    if (!card) return;
+
+    const cardBody = card.querySelector('.rsvp-card-body');
+    if (!cardBody) return;
+
+    const isExpanded = cardBody.classList.contains('show');
+
+    if (isExpanded) {
+        cardBody.classList.remove('show');
+        element.classList.remove('expanded');
+    } else {
+        cardBody.classList.add('show');
+        element.classList.add('expanded');
+    }
+}, { preventDefault: true });
+
+/**
+ * Update Substitute Slots
+ * Dynamically generates substitute slot form fields
+ */
+EventDelegation.register('update-substitute-slots', function(element, e) {
+    updateSubstituteSlots();
+});
+
+/**
+ * Helper function to update substitute slots form
+ */
+function updateSubstituteSlots() {
+    const countEl = document.getElementById('substitutes_needed');
+    const container = document.getElementById('substitute-slots-container');
+
+    if (!countEl || !container) return;
+
+    const count = parseInt(countEl.value) || 0;
+
+    // Clear existing slots
+    container.innerHTML = '';
+
+    // Create slots for each substitute needed
+    for (let i = 1; i <= count; i++) {
+        const slotHtml = `
+            <div class="row mb-2 substitute-slot" data-slot="${i}">
+                <div class="col-1">
+                    <span class="badge bg-primary" data-badge>${i}</span>
+                </div>
+                <div class="col-6">
+                    <select class="form-select form-select-sm" name="slot_${i}_position" data-form-select>
+                        <option value="">Any Position</option>
+                        <option value="Goalkeeper">Goalkeeper</option>
+                        <option value="Center Back">Center Back</option>
+                        <option value="Left Back">Left Back</option>
+                        <option value="Right Back">Right Back</option>
+                        <option value="Defensive Midfielder">Defensive Midfielder</option>
+                        <option value="Central Midfielder">Central Midfielder</option>
+                        <option value="Attacking Midfielder">Attacking Midfielder</option>
+                        <option value="Left Midfielder">Left Midfielder</option>
+                        <option value="Right Midfielder">Right Midfielder</option>
+                        <option value="Left Winger">Left Winger</option>
+                        <option value="Right Winger">Right Winger</option>
+                        <option value="Forward">Forward</option>
+                        <option value="Striker">Striker</option>
+                    </select>
+                </div>
+                <div class="col-5">
+                    <select class="form-select form-select-sm" name="slot_${i}_gender" data-form-select>
+                        <option value="">Any Gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                    </select>
+                </div>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', slotHtml);
+    }
+}
+
+// ============================================================================
 
 console.log('[EventDelegation] RSVP handlers loaded');
 
 // Backward compatibility
 window.updateRSVPStatus = updateRSVPStatus;
+window.toggleCardExpansion = function(button) {
+    const card = button.closest('.rsvp-mobile-card');
+    if (!card) return;
+    const cardBody = card.querySelector('.rsvp-card-body');
+    if (!cardBody) return;
+    const isExpanded = cardBody.classList.contains('show');
+    if (isExpanded) {
+        cardBody.classList.remove('show');
+        button.classList.remove('expanded');
+    } else {
+        cardBody.classList.add('show');
+        button.classList.add('expanded');
+    }
+};
+window.updateSubstituteSlots = updateSubstituteSlots;

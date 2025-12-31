@@ -158,68 +158,8 @@
 
 {% block custom_js %}
 {{ super() }}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Add color functionality
-    document.getElementById('add-color').addEventListener('click', function() {
-        const container = document.getElementById('colors-container');
-        const div = document.createElement('div');
-        div.className = 'input-group mb-2';
-        div.setAttribute('data-input-group', '');
-        div.innerHTML = `
-            <input type="text" class="form-control" name="colors[]" placeholder="e.g. Red, Blue, Green" data-form-control aria-label="e.g. Red, Blue, Green">
-            <button type="button" class="c-btn c-btn--outline-danger remove-color" data-action="remove-color" aria-label="Button"><i class="ti ti-x"></i></button>
-        `;
-        container.appendChild(div);
-        updateRemoveButtons('color');
-    });
-
-    // Add size functionality
-    document.getElementById('add-size').addEventListener('click', function() {
-        const container = document.getElementById('sizes-container');
-        const div = document.createElement('div');
-        div.className = 'input-group mb-2';
-        div.setAttribute('data-input-group', '');
-        div.innerHTML = `
-            <input type="text" class="form-control" name="sizes[]" placeholder="e.g. S, M, L, XL" data-form-control aria-label="e.g. S, M, L, XL">
-            <button type="button" class="c-btn c-btn--outline-danger remove-size" data-action="remove-size" aria-label="Button"><i class="ti ti-x"></i></button>
-        `;
-        container.appendChild(div);
-        updateRemoveButtons('size');
-    });
-
-    // Remove color/size functionality using event delegation
-    document.addEventListener('click', function(e) {
-        const removeColorBtn = e.target.closest('[data-action="remove-color"]');
-        const removeSizeBtn = e.target.closest('[data-action="remove-size"]');
-
-        if (removeColorBtn) {
-            removeColorBtn.closest('.input-group').remove();
-            updateRemoveButtons('color');
-        }
-        if (removeSizeBtn) {
-            removeSizeBtn.closest('.input-group').remove();
-            updateRemoveButtons('size');
-        }
-    });
-
-    // Update remove button visibility
-    function updateRemoveButtons(type) {
-        const container = document.getElementById(`${type}s-container`);
-        const groups = container.querySelectorAll('.input-group');
-        groups.forEach((group, index) => {
-            const removeBtn = group.querySelector(`[data-action="remove-${type}"]`);
-            if (groups.length > 1) {
-                removeBtn.classList.remove('d-none');
-            } else {
-                removeBtn.classList.add('d-none');
-            }
-        });
-    }
-
-    // Initial update
-    updateRemoveButtons('color');
-    updateRemoveButtons('size');
-});
-</script>
+<!-- Store Edit Item Module loaded via Vite in production, or directly in development -->
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+<script type="module" src="{{ url_for('static', filename='custom_js/store-edit-item.js') }}"></script>
+{% endif %}
 {% endblock %}

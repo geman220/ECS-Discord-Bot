@@ -175,11 +175,11 @@
                     </div>
                     
                     <div class="d-flex justify-content-between mt-3">
-                        <button type="button" class="c-btn c-btn--outline-secondary js-preview-campaign" data-action="preview-campaign">
+                        <button type="button" class="c-btn c-btn--outline-secondary" data-action="preview-campaign">
                             <i class="ti ti-eye me-1"></i>Preview
                         </button>
                         <div>
-                            <button type="button" class="c-btn c-btn--outline-primary me-2 js-save-draft" data-action="save-draft">
+                            <button type="button" class="c-btn c-btn--outline-primary me-2" data-action="save-draft">
                                 <i class="ti ti-file me-1"></i>Save Draft
                             </button>
                             <button type="submit" class="c-btn c-btn--primary">
@@ -209,7 +209,7 @@
                                 <p class="c-card__description small text-muted mb-2">{{ template.description }}</p>
                                 <small class="text-muted">Target: {{ template.target_audience }}</small>
                             </div>
-                            <button class="c-btn c-btn--sm c-btn--outline-primary js-load-template" data-action="load-template" data-template-id="{{ template.id }}" aria-label="Download"><i class="ti ti-download"></i></button>
+                            <button class="c-btn c-btn--sm c-btn--outline-primary" data-action="load-template" data-template-id="{{ template.id }}" aria-label="Download"><i class="ti ti-download"></i></button>
                         </div>
                         <div class="mt-2">
                             <small class="badge bg-info">{{ template.estimated_reach }} users</small>
@@ -276,9 +276,9 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="c-btn c-btn--outline-info js-view-campaign-details" data-action="view-campaign-details" data-campaign-id="{{ campaign.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
-                                        <button class="c-btn c-btn--outline-primary js-duplicate-campaign" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}" aria-label="Copy"><i class="ti ti-copy"></i></button>
-                                        <button class="c-btn c-btn--outline-secondary js-download-report" data-action="download-report" data-campaign-id="{{ campaign.id }}" aria-label="Download"><i class="ti ti-download"></i></button>
+                                        <button class="c-btn c-btn--outline-info" data-action="view-campaign-details" data-campaign-id="{{ campaign.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
+                                        <button class="c-btn c-btn--outline-primary" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}" aria-label="Copy"><i class="ti ti-copy"></i></button>
+                                        <button class="c-btn c-btn--outline-secondary" data-action="download-report" data-campaign-id="{{ campaign.id }}" aria-label="Download"><i class="ti ti-download"></i></button>
                                     </div>
                                 </td>
                             </tr>
@@ -302,296 +302,87 @@
 
 {% block custom_js %}
 {{ super() }}
+{# Event handlers managed by mobile-features-handlers.js via EventDelegation #}
 <script>
-// Form handling
-document.getElementById('campaignForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    createCampaign();
-});
+(function() {
+    'use strict';
 
-// Message counter
-document.querySelector('textarea[name="notification_message"]').addEventListener('input', function() {
-    const counter = document.getElementById('messageCounter');
-    counter.textContent = this.value.length;
-    
-    if (this.value.length > 160) {
-        counter.classList.add('text-danger');
+    // Register initialization with InitSystem
+    if (typeof InitSystem !== 'undefined') {
+        InitSystem.register('push-campaigns', initPushCampaigns);
     } else {
-        counter.classList.remove('text-danger');
+        document.addEventListener('DOMContentLoaded', initPushCampaigns);
     }
-});
 
-// Send schedule handling
-document.querySelector('select[name="send_schedule"]').addEventListener('change', function() {
-    const scheduledField = document.getElementById('scheduledDateField');
-    if (this.value === 'scheduled' || this.value === 'recurring') {
-        scheduledField.classList.remove('d-none');
-    } else {
-        scheduledField.classList.add('d-none');
-    }
-});
+    function initPushCampaigns() {
+        const form = document.getElementById('campaignForm');
+        const messageTextarea = document.querySelector('textarea[name="notification_message"]');
+        const scheduleSelect = document.querySelector('select[name="send_schedule"]');
 
-// Preview campaign button
-document.querySelectorAll('.js-preview-campaign').forEach(btn => {
-    btn.addEventListener('click', function() {
-        previewCampaign();
-    });
-});
+        // Form handling
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                createCampaign();
+            });
+        }
 
-// Save draft button
-document.querySelectorAll('.js-save-draft').forEach(btn => {
-    btn.addEventListener('click', function() {
-        saveDraft();
-    });
-});
-
-// Load template buttons
-document.querySelectorAll('.js-load-template').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const templateId = this.dataset.templateId;
-        loadTemplate(templateId);
-    });
-});
-
-// View campaign details buttons
-document.querySelectorAll('.js-view-campaign-details').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const campaignId = this.dataset.campaignId;
-        viewCampaignDetails(campaignId);
-    });
-});
-
-// Duplicate campaign buttons
-document.querySelectorAll('.js-duplicate-campaign').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const campaignId = this.dataset.campaignId;
-        duplicateCampaign(campaignId);
-    });
-});
-
-// Download report buttons
-document.querySelectorAll('.js-download-report').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const campaignId = this.dataset.campaignId;
-        downloadReport(campaignId);
-    });
-});
-
-function createCampaign() {
-    const form = document.getElementById('campaignForm');
-    const formData = new FormData(form);
-    
-    // Validate message length
-    const message = formData.get('notification_message');
-    if (message.length > 160) {
-        Swal.fire('Message Too Long', 'Please keep the notification message under 160 characters.', 'warning');
-        return;
-    }
-    
-    Swal.fire({
-        title: 'Create Campaign?',
-        text: 'This will send push notifications to the selected audience',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Create Campaign'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire({
-                title: 'Creating Campaign...',
-                text: 'Setting up your push notification campaign',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                    // Simulate campaign creation
-                    setTimeout(() => {
-                        Swal.fire('Campaign Created!', 'Your push notification campaign has been created successfully.', 'success')
-                            .then(() => location.reload());
-                    }, 3000);
+        // Message counter
+        if (messageTextarea) {
+            messageTextarea.addEventListener('input', function() {
+                const counter = document.getElementById('messageCounter');
+                if (counter) {
+                    counter.textContent = this.value.length;
+                    counter.classList.toggle('text-danger', this.value.length > 160);
                 }
             });
         }
-    });
-}
 
-function previewCampaign() {
-    const form = document.getElementById('campaignForm');
-    const formData = new FormData(form);
-    
-    const title = formData.get('notification_title') || 'Notification Title';
-    const message = formData.get('notification_message') || 'Notification message will appear here';
-    const audience = formData.get('target_audience') || 'all';
-    const schedule = formData.get('send_schedule') || 'immediate';
-    
-    // Get estimated reach based on audience
-    let estimatedReach = '{{ campaign_data.total_users }}';
-    if (audience === 'active') estimatedReach = '{{ campaign_data.active_users }}';
-    
-    Swal.fire({
-        title: 'Campaign Preview',
-        html: `
-            <div class="text-start">
-                <div class="c-card border mb-3 u-max-w-300 mx-auto">
-                    <div class="c-card__body">
-                        <div class="d-flex align-items-center mb-2">
-                            <div class="bg-primary rounded-circle me-2" class="u-w-h-32 u-flex-center">
-                                <i class="ti ti-shield text-white"></i>
-                            </div>
-                            <div>
-                                <strong class="u-font-size-14">ECS FC</strong><br>
-                                <small class="text-muted">now</small>
-                            </div>
-                        </div>
-                        <div class="mb-2">
-                            <strong class="u-font-size-15">${title}</strong>
-                        </div>
-                        <div class="u-font-size-14 text-muted">
-                            ${message}
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="mt-3">
-                    <strong>Campaign Details:</strong><br>
-                    <small>
-                    • Target Audience: ${audience}<br>
-                    • Estimated Reach: ${estimatedReach} users<br>
-                    • Send Schedule: ${schedule}<br>
-                    • High Priority: ${formData.get('high_priority') ? 'Yes' : 'No'}
-                    </small>
-                </div>
-            </div>
-        `,
-        width: '400px',
-        confirmButtonText: 'Close'
-    });
-}
-
-function saveDraft() {
-    Swal.fire({
-        title: 'Save Draft?',
-        text: 'This will save the campaign as a draft for later editing',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Save Draft'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire('Draft Saved!', 'Campaign has been saved as a draft.', 'success');
+        // Send schedule handling
+        if (scheduleSelect) {
+            scheduleSelect.addEventListener('change', function() {
+                const scheduledField = document.getElementById('scheduledDateField');
+                if (scheduledField) {
+                    scheduledField.classList.toggle('d-none', this.value !== 'scheduled' && this.value !== 'recurring');
+                }
+            });
         }
-    });
-}
-
-function loadTemplate(templateId) {
-    const templates = {
-        1: {
-            name: 'Match Day Reminder',
-            title: 'Match Starting Soon!',
-            message: 'Your match against [OPPONENT] starts in 30 minutes. Good luck team!',
-            type: 'match_reminder',
-            audience: 'active'
-        },
-        2: {
-            name: 'Season Update',
-            title: 'Season Standings Update',
-            message: 'Check out the latest season standings and upcoming fixtures in the app!',
-            type: 'season_update',
-            audience: 'all'
-        },
-        3: {
-            name: 'Event Announcement',
-            title: 'Special Event This Weekend',
-            message: 'Join us for our annual tournament this weekend. Register now!',
-            type: 'event_announcement',
-            audience: 'active'
-        }
-    };
-    
-    const template = templates[templateId];
-    if (template) {
-        document.querySelector('input[name="campaign_name"]').value = template.name;
-        document.querySelector('input[name="notification_title"]').value = template.title;
-        document.querySelector('textarea[name="notification_message"]').value = template.message;
-        document.querySelector('select[name="campaign_type"]').value = template.type;
-        document.querySelector('select[name="target_audience"]').value = template.audience;
-        
-        // Update message counter
-        const counter = document.getElementById('messageCounter');
-        counter.textContent = template.message.length;
-        
-        Swal.fire('Template Loaded!', `${template.name} template has been applied.`, 'success');
     }
-}
 
-function viewCampaignDetails(campaignId) {
-    Swal.fire({
-        title: `Campaign Details: Week 5 Match Reminders`,
-        html: `
-            <div class="text-start">
-                <div class="mb-3">
-                    <strong>Campaign ID:</strong> ${campaignId}<br>
-                    <strong>Type:</strong> Match Reminder<br>
-                    <strong>Created:</strong> 2024-01-15 09:00:00<br>
-                    <strong>Sent:</strong> 2024-01-15 10:30:00
-                </div>
-                <div class="mb-3">
-                    <strong>Notification Content:</strong><br>
-                    <div class="c-card bg-light p-2">
-                        <strong>Title:</strong> Match Starting Soon!<br>
-                        <strong>Message:</strong> Your match against Arsenal FC starts in 30 minutes. Good luck team!
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <strong>Performance Metrics:</strong><br>
-                    • Recipients: {{ campaign_data.active_users }} users<br>
-                    • Delivered: 95% ({{ (campaign_data.active_users * 0.95)|int }} users)<br>
-                    • Opened: 78% ({{ (campaign_data.active_users * 0.78)|int }} users)<br>
-                    • Clicked: 45% ({{ (campaign_data.active_users * 0.45)|int }} users)
-                </div>
-                <div class="mb-3">
-                    <strong>Audience Breakdown:</strong><br>
-                    • iOS Users: 60%<br>
-                    • Android Users: 40%<br>
-                    • Active Players: 100%
-                </div>
-            </div>
-        `,
-        width: '600px',
-        confirmButtonText: 'Close'
-    });
-}
+    function createCampaign() {
+        const form = document.getElementById('campaignForm');
+        const formData = new FormData(form);
 
-function duplicateCampaign(campaignId) {
-    Swal.fire({
-        title: 'Duplicate Campaign?',
-        text: 'This will create a copy of this campaign that you can edit',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Duplicate Campaign'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Load campaign data into form
-            document.querySelector('input[name="campaign_name"]').value = 'Copy of Week 5 Match Reminders';
-            document.querySelector('input[name="notification_title"]').value = 'Match Starting Soon!';
-            document.querySelector('textarea[name="notification_message"]').value = 'Your match against Arsenal FC starts in 30 minutes. Good luck team!';
-            document.querySelector('select[name="campaign_type"]').value = 'match_reminder';
-            document.querySelector('select[name="target_audience"]').value = 'active';
-            
-            Swal.fire('Campaign Duplicated!', 'Campaign has been loaded into the form for editing.', 'success');
+        // Validate message length
+        const message = formData.get('notification_message');
+        if (message && message.length > 160) {
+            Swal.fire('Message Too Long', 'Please keep the notification message under 160 characters.', 'warning');
+            return;
         }
-    });
-}
 
-function downloadReport(campaignId) {
-    Swal.fire({
-        title: 'Download Campaign Report?',
-        text: 'This will generate a detailed analytics report for this campaign',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Download Report'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire('Report Generating...', 'Your campaign report is being prepared for download.', 'success');
-        }
-    });
-}
+        Swal.fire({
+            title: 'Create Campaign?',
+            text: 'This will send push notifications to the selected audience',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Create Campaign'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Creating Campaign...',
+                    text: 'Setting up your push notification campaign',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                        setTimeout(() => {
+                            Swal.fire('Campaign Created!', 'Your push notification campaign has been created successfully.', 'success')
+                                .then(() => location.reload());
+                        }, 3000);
+                    }
+                });
+            }
+        });
+    }
+})();
 </script>
 {% endblock %}

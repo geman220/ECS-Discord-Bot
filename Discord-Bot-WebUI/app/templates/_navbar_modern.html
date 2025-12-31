@@ -324,8 +324,8 @@
                         {% if safe_current_user.player and safe_current_user.player.profile_picture_url %}
                         <img src="{{ safe_current_user.player.profile_picture_url }}"
                              alt="{{ safe_current_user.player.name }}"
-                             class="c-navbar-modern__avatar-img"
-                             onerror="this.classList.add('is-hidden'); this.nextElementSibling.classList.remove('is-hidden');">
+                             class="c-navbar-modern__avatar-img js-avatar-fallback"
+                             data-fallback-target="initials">
                         <div class="c-navbar-modern__avatar-initials is-hidden" data-fallback="initials">{{ initials }}</div>
                         {% else %}
                         <div class="c-navbar-modern__avatar-initials">{{ initials }}</div>
@@ -346,8 +346,8 @@
                                 {% if safe_current_user.player and safe_current_user.player.profile_picture_url %}
                                 <img src="{{ safe_current_user.player.profile_picture_url }}"
                                      alt="{{ safe_current_user.player.name }}"
-                                     class="c-navbar-modern__avatar-img"
-                                     onerror="this.classList.add('is-hidden'); this.nextElementSibling.classList.remove('is-hidden');">
+                                     class="c-navbar-modern__avatar-img js-avatar-fallback"
+                                     data-fallback-target="initials">
                                 <div class="c-navbar-modern__avatar-initials is-hidden" data-fallback="initials">{{ initials }}</div>
                                 {% else %}
                                 <div class="c-navbar-modern__avatar-initials">{{ initials }}</div>

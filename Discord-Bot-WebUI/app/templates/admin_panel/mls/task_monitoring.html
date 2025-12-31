@@ -110,8 +110,8 @@
             <div class="c-card__header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="ti ti-list-check me-2"></i>Scheduled Tasks ({{ tasks|length }})</h5>
                 <div>
-                    <span class="badge bg-secondary me-2" id="auto-refresh-status" data-badge>Auto-refresh: ON</span>
-                    <button id="manual-refresh-btn" class="c-btn c-btn--sm c-btn--outline-primary">
+                    <span class="badge bg-secondary me-2" data-action="toggle-auto-refresh-status" data-auto-refresh="true" data-badge style="cursor: pointer;">Auto-refresh: ON</span>
+                    <button class="c-btn c-btn--sm c-btn--outline-primary" data-action="manual-refresh">
                         <i class="ti ti-reload"></i> Refresh
                     </button>
                 </div>
@@ -197,12 +197,12 @@
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
                                         {% if task.state in ['failed', 'expired'] %}
-                                        <button type="button" class="c-btn c-btn--outline-primary retry-task-btn" data-task-id="{{ task.id }}" title="Retry Task">
+                                        <button type="button" class="c-btn c-btn--outline-primary" data-action="retry-task" data-task-id="{{ task.id }}" title="Retry Task">
                                             <i class="ti ti-reload"></i>
                                         </button>
                                         {% endif %}
                                         {% if task.state in ['scheduled', 'failed'] %}
-                                        <button type="button" class="c-btn c-btn--outline-secondary expire-task-btn" data-task-id="{{ task.id }}" title="Expire Task">
+                                        <button type="button" class="c-btn c-btn--outline-secondary" data-action="expire-task" data-task-id="{{ task.id }}" title="Expire Task">
                                             <i class="ti ti-clock-off"></i>
                                         </button>
                                         {% endif %}
@@ -242,113 +242,33 @@
 
 {% block custom_js %}
 {{ super() }}
+{# Event handlers managed by mls-handlers.js via EventDelegation #}
 <script>
-// Auto-refresh functionality
-let autoRefreshEnabled = true;
-let autoRefreshInterval = null;
+(function() {
+    'use strict';
 
-function startAutoRefresh() {
-    if (autoRefreshInterval) clearInterval(autoRefreshInterval);
-    autoRefreshInterval = setInterval(() => {
-        if (autoRefreshEnabled) {
-            location.reload();
-        }
-    }, 30000); // Refresh every 30 seconds
-}
+    // Register initialization with InitSystem
+    if (typeof InitSystem !== 'undefined') {
+        InitSystem.register('task-monitoring', initTaskMonitoring);
+    } else {
+        document.addEventListener('DOMContentLoaded', initTaskMonitoring);
+    }
 
-// Manual refresh
-document.getElementById('manual-refresh-btn').addEventListener('click', () => {
-    location.reload();
-});
+    function initTaskMonitoring() {
+        // Initialize auto-refresh state
+        window.taskMonitorAutoRefresh = true;
 
-// Toggle auto-refresh
-document.getElementById('auto-refresh-status').addEventListener('click', function() {
-    autoRefreshEnabled = !autoRefreshEnabled;
-    this.textContent = `Auto-refresh: ${autoRefreshEnabled ? 'ON' : 'OFF'}`;
-    this.classList.toggle('bg-secondary', !autoRefreshEnabled);
-    this.classList.toggle('bg-success', autoRefreshEnabled);
-});
+        // Start auto-refresh
+        startAutoRefresh();
+    }
 
-// Show toast notification
-function showToast(message, isSuccess = true) {
-    const toast = document.getElementById('actionToast');
-    const toastBody = document.getElementById('toastMessage');
-    toastBody.textContent = message;
-    toast.classList.remove('bg-success', 'bg-danger', 'text-white');
-    toast.classList.add(isSuccess ? 'bg-success' : 'bg-danger', 'text-white');
-    const bsToast = new bootstrap.Toast(toast);
-    bsToast.show();
-}
-
-// Retry task
-document.querySelectorAll('.retry-task-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const taskId = this.getAttribute('data-task-id');
-        if (!confirm('Retry this task?')) return;
-
-        this.disabled = true;
-        this.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-
-        fetch(`/admin-panel/mls/task/${taskId}/retry`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
+    function startAutoRefresh() {
+        setInterval(() => {
+            if (window.taskMonitorAutoRefresh) {
+                location.reload();
             }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showToast(data.message, true);
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                showToast(data.error || 'Failed to retry task', false);
-                this.disabled = false;
-                this.innerHTML = '<i class="ti ti-reload"></i>';
-            }
-        })
-        .catch(error => {
-            showToast('Error: ' + error.message, false);
-            this.disabled = false;
-            this.innerHTML = '<i class="ti ti-reload"></i>';
-        });
-    });
-});
-
-// Expire task
-document.querySelectorAll('.expire-task-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const taskId = this.getAttribute('data-task-id');
-        if (!confirm('Mark this task as expired?')) return;
-
-        this.disabled = true;
-        this.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-
-        fetch(`/admin-panel/mls/task/${taskId}/expire`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showToast(data.message, true);
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                showToast(data.error || 'Failed to expire task', false);
-                this.disabled = false;
-                this.innerHTML = '<i class="ti ti-clock-off"></i>';
-            }
-        })
-        .catch(error => {
-            showToast('Error: ' + error.message, false);
-            this.disabled = false;
-            this.innerHTML = '<i class="ti ti-clock-off"></i>';
-        });
-    });
-});
-
-// Start auto-refresh
-startAutoRefresh();
+        }, 30000); // Refresh every 30 seconds
+    }
+})();
 </script>
 {% endblock %}

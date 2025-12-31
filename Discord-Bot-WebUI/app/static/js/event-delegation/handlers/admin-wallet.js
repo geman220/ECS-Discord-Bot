@@ -385,4 +385,190 @@ EventDelegation.register('bulk-generate-passes', (element, event) => {
     });
 });
 
+// ============================================================================
+// PLAYER ELIGIBILITY
+// ============================================================================
+
+/**
+ * Check player eligibility and show modal
+ */
+EventDelegation.register('check-player-eligibility', (element, event) => {
+    event.preventDefault();
+    const playerId = element.dataset.playerId;
+
+    if (!playerId) return;
+
+    const modalBody = document.getElementById('eligibilityModalBody');
+
+    if (typeof ModalManager !== 'undefined') {
+        ModalManager.show('eligibilityModal');
+    } else if (typeof bootstrap !== 'undefined') {
+        const modal = new bootstrap.Modal(document.getElementById('eligibilityModal'));
+        modal.show();
+    }
+
+    // Construct the URL by replacing 0 with the actual player ID
+    const baseUrl = window.location.origin;
+    const url = `${baseUrl}/admin/wallet/check-eligibility/${playerId}`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            let html = `
+                <div class="mb-3">
+                    <h6 class="mb-0">${data.player_name}</h6>
+                    <small class="text-muted">Player ID: ${data.player_id}</small>
+                </div>
+
+                <div class="alert alert-${data.eligible ? 'success' : 'warning'} d-flex align-items-center" data-alert>
+                    <i class="ti ti-${data.eligible ? 'circle-check' : 'alert-triangle'} me-2 fs-4"></i>
+                    <div>
+                        <strong>${data.eligible ? 'Eligible for Wallet Pass' : 'Not Currently Eligible'}</strong>
+                        <p class="mb-0 small">${data.eligible ? 'This player meets all requirements.' : 'See issues below.'}</p>
+                    </div>
+                </div>
+            `;
+
+            if (data.issues && data.issues.length > 0) {
+                html += '<h6 class="mt-3 mb-2">Issues to Resolve:</h6><ul class="list-unstyled mb-0">';
+                data.issues.forEach(issue => {
+                    html += `<li class="text-danger mb-2"><i class="ti ti-x me-2"></i>${issue}</li>`;
+                });
+                html += '</ul>';
+            }
+
+            if (data.info) {
+                html += `
+                    <hr class="my-3">
+                    <h6 class="mb-2">Player Details</h6>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <small class="text-muted d-block">Status</small>
+                            <span class="badge ${data.info.is_current_player ? 'bg-success' : 'bg-secondary'}" data-badge>${data.info.is_current_player ? 'Active' : 'Inactive'}</span>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted d-block">User Account</small>
+                            <span class="badge ${data.info.has_user_account ? 'bg-success' : 'bg-secondary'}" data-badge>${data.info.has_user_account ? 'Yes' : 'No'}</span>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted d-block">Primary Team</small>
+                            <span>${data.info.primary_team || '<em class="text-muted">None</em>'}</span>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted d-block">League</small>
+                            <span>${data.info.league || '<em class="text-muted">None</em>'}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (modalBody) modalBody.innerHTML = html;
+        })
+        .catch(error => {
+            if (modalBody) {
+                modalBody.innerHTML = '<div class="alert alert-danger" data-alert><i class="ti ti-alert-circle me-2"></i>Error checking eligibility. Please try again.</div>';
+            }
+        });
+});
+
+/**
+ * Bulk generate wallet passes
+ */
+EventDelegation.register('bulk-generate-wallet-passes', (element, event) => {
+    event.preventDefault();
+
+    if (!confirm('Generate passes for all eligible players?\n\nThis will create passes that can be downloaded by each player. Continue?')) {
+        return;
+    }
+
+    // Get eligible player IDs from the data attribute or collect from table
+    let eligiblePlayerIds = [];
+
+    // Try to get from data attribute first
+    const idsAttr = element.dataset.playerIds;
+    if (idsAttr) {
+        try {
+            eligiblePlayerIds = JSON.parse(idsAttr);
+        } catch (e) {
+            console.error('Failed to parse player IDs:', e);
+        }
+    }
+
+    // If no IDs found, try to collect from table checkboxes or rows
+    if (eligiblePlayerIds.length === 0) {
+        const table = document.querySelector('.c-table tbody');
+        if (table) {
+            table.querySelectorAll('tr').forEach(row => {
+                // Look for player ID in various places
+                const idCell = row.querySelector('td small');
+                if (idCell && idCell.textContent.includes('ID:')) {
+                    const idMatch = idCell.textContent.match(/ID:\s*(\d+)/);
+                    if (idMatch) {
+                        eligiblePlayerIds.push(parseInt(idMatch[1]));
+                    }
+                }
+            });
+        }
+    }
+
+    if (eligiblePlayerIds.length === 0) {
+        alert('No eligible players found.');
+        return;
+    }
+
+    // Show loading state
+    const originalText = element.innerHTML;
+    element.disabled = true;
+    element.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generating...';
+
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+    fetch('/admin/wallet/generate-bulk-passes', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ player_ids: eligiblePlayerIds })
+    })
+    .then(response => response.json())
+    .then(data => {
+        element.disabled = false;
+        element.innerHTML = originalText;
+
+        let message = `Bulk Generation Complete\n\n`;
+        message += `Success: ${data.success?.length || 0} passes\n`;
+        message += `Failed: ${data.failed?.length || 0} passes`;
+
+        if (data.failed && data.failed.length > 0) {
+            message += '\n\nFailed:\n';
+            data.failed.slice(0, 5).forEach(failure => {
+                message += `- ${failure.player_name || 'Player ' + failure.player_id}: ${failure.error}\n`;
+            });
+            if (data.failed.length > 5) {
+                message += `...and ${data.failed.length - 5} more`;
+            }
+        }
+
+        alert(message);
+        if (data.success && data.success.length > 0) {
+            location.reload();
+        }
+    })
+    .catch(error => {
+        element.disabled = false;
+        element.innerHTML = originalText;
+        alert('Error during bulk generation. Please try again.');
+    });
+});
+
+/**
+ * Reload page action
+ */
+EventDelegation.register('reload-page', (element, event) => {
+    event.preventDefault();
+    location.reload();
+});
+
 console.log('[EventDelegation] Admin wallet handlers loaded');

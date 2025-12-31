@@ -9,6 +9,9 @@
  */
 
 import { EventDelegation } from '../core.js';
+import { InitSystem } from '../../init-system.js';
+
+let _initialized = false;
 
 // ============================================================================
 // MODULE STATE
@@ -327,9 +330,13 @@ EventDelegation.register('submit-removal', (element, event) => {
  * This runs on page load for the waitlist page
  */
 function initAutoRefresh() {
+    if (_initialized) return;
+
     // Only run on waitlist page
     const waitlistCount = document.getElementById('waitlist-count');
     if (!waitlistCount) return;
+
+    _initialized = true;
 
     setInterval(function() {
         fetch('/admin/user-waitlist/stats')
@@ -349,9 +356,20 @@ function initAutoRefresh() {
                 console.error('Error refreshing stats:', error);
             });
     }, 30000);
+
+    console.log('[EventDelegation] Admin waitlist auto-refresh initialized');
 }
 
-// Initialize auto-refresh when DOM is ready
+// Register with InitSystem
+if (InitSystem && InitSystem.register) {
+    InitSystem.register('admin-waitlist', initAutoRefresh, {
+        priority: 50,
+        reinitializable: false,
+        description: 'Admin waitlist auto-refresh stats'
+    });
+}
+
+// Fallback initialization
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initAutoRefresh);
 } else {

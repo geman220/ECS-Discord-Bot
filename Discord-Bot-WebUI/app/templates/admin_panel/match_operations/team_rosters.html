@@ -214,72 +214,10 @@
 {% block custom_js %}
 {{ super() }}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Event delegation for team roster actions
-    document.addEventListener('click', function(e) {
-        const target = e.target.closest('[data-action]');
-        if (!target) return;
-
-        const action = target.dataset.action;
-        const teamId = target.dataset.teamId;
-
-        switch(action) {
-            case 'manage-player-assignments':
-                managePlayerAssignments();
-                break;
-            case 'view-team-roster':
-                viewTeamRoster(teamId);
-                break;
-            case 'edit-team-roster':
-                editTeamRoster(teamId);
-                break;
-            case 'show-teams-without-players':
-                showTeamsWithoutPlayers();
-                break;
-        }
-    });
-});
-
-function managePlayerAssignments() {
-    Swal.fire({
-        title: 'Assign Players',
-        text: 'Player assignment functionality coming soon!',
-        icon: 'info'
-    });
-}
-
-function viewTeamRoster(teamId) {
-    Swal.fire({
-        title: 'View Team Roster',
-        text: 'Team roster details functionality coming soon!',
-        icon: 'info'
-    });
-}
-
-function editTeamRoster(teamId) {
-    Swal.fire({
-        title: 'Edit Team Roster',
-        text: 'Team roster editing functionality coming soon!',
-        icon: 'info'
-    });
-}
-
-function showTeamsWithoutPlayers() {
-    let teamsWithoutPlayers = {{ teams_without_players|map(attribute='name')|list|tojson if teams_without_players else '[]' }};
-
-    if (teamsWithoutPlayers.length > 0) {
-        Swal.fire({
-            title: 'Teams Without Players',
-            html: '<ul class="text-start">' + teamsWithoutPlayers.map(team => '<li>' + team + '</li>').join('') + '</ul>',
-            icon: 'warning',
-            confirmButtonText: 'Assign Players'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                managePlayerAssignments();
-            }
-        });
-    }
-}
+// Team rosters configuration
+window.TEAM_ROSTERS_CONFIG = {
+    teamsWithoutPlayers: {{ teams_without_players|map(attribute='name')|list|tojson if teams_without_players else '[]' }}
+};
 </script>
 {% endblock %}
 

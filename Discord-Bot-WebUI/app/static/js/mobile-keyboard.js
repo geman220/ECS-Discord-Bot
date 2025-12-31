@@ -16,6 +16,10 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from './init-system.js';
+
+let _initialized = false;
+
 /**
    * Mobile Keyboard Controller
    */
@@ -520,10 +524,14 @@ export const MobileKeyboard = {
      * Initialize keyboard handler
      */
     init: function () {
+      if (_initialized) return;
+
       if (!this.isMobile()) {
         console.log('MobileKeyboard: Not a mobile device, skipping initialization');
         return;
       }
+
+      _initialized = true;
 
       // Setup handlers
       this.setupInputHandlers();
@@ -557,7 +565,16 @@ export const MobileKeyboard = {
   // Expose globally (MUST be before any callbacks or registrations)
   window.MobileKeyboard = MobileKeyboard;
 
-  // Auto-initialize
+  // Register with InitSystem
+  if (InitSystem && InitSystem.register) {
+    InitSystem.register('mobile-keyboard', () => MobileKeyboard.init(), {
+      priority: 45,
+      reinitializable: false,
+      description: 'Mobile keyboard handlers'
+    });
+  }
+
+  // Fallback initialization
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => window.MobileKeyboard.init());
   } else {

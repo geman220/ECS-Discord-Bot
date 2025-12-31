@@ -207,32 +207,16 @@
 {% block custom_js %}
 {{ super() }}
 {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+<!-- Admin Reports Module (extracted from inline JS) -->
+<script src="{{ url_for('static', filename='custom_js/admin-reports.js') }}"></script>
 <script>
-function confirmDelete(feedbackId) {
-    Swal.fire({
-        title: 'Are you sure?',
-        text: "You want to permanently delete this feedback? This action cannot be undone.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-        confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // If confirmed, submit the delete form
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = "{{ url_for('admin.delete_feedback', feedback_id=0) }}".replace('0', feedbackId);
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = 'csrf_token';
-            csrfInput.value = "{{ csrf_token() }}";
-            form.appendChild(csrfInput);
-            document.body.appendChild(form);
-            form.submit();
-        }
-    });
-}
+// Initialize AdminReports with template data
+AdminReports.init({
+    deleteFeedbackUrl: '{{ url_for("admin.delete_feedback", feedback_id=0) }}',
+    csrfToken: '{{ csrf_token() }}'
+});
+// Make confirmDelete available globally for onclick attributes
+window.confirmDelete = AdminReports.confirmDelete;
 </script>
 {% endif %}
 {% endblock %}

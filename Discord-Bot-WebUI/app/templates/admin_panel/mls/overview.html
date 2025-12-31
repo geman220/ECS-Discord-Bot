@@ -62,12 +62,12 @@
                         </a>
                     </div>
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <button id="fetch-espn-btn" class="c-btn c-btn--success w-100">
+                        <button class="c-btn c-btn--success w-100" data-action="fetch-espn">
                             <i class="ti ti-download me-2"></i>Fetch from ESPN
                         </button>
                     </div>
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <button id="schedule-all-btn" class="c-btn c-btn--info w-100">
+                        <button class="c-btn c-btn--info w-100" data-action="schedule-all-matches">
                             <i class="ti ti-calendar-event me-2"></i>Schedule All
                         </button>
                     </div>
@@ -129,16 +129,16 @@
                                 <td>
                                     <div class="btn-group btn-group-sm">
                                         {% if not match.thread_created %}
-                                        <button class="c-btn c-btn--outline-primary js-create-thread" data-action="create-thread" data-match-id="{{ match.id }}" title="Create Thread">
+                                        <button class="c-btn c-btn--outline-primary" data-action="create-thread" data-match-id="{{ match.id }}" title="Create Thread">
                                             <i class="ti ti-message-plus"></i>
                                         </button>
                                         {% endif %}
                                         {% if match.live_reporting_status != 'running' %}
-                                        <button class="c-btn c-btn--outline-success js-start-reporting" data-action="start-reporting" data-match-id="{{ match.id }}" title="Start Reporting">
+                                        <button class="c-btn c-btn--outline-success" data-action="start-reporting" data-match-id="{{ match.id }}" title="Start Reporting">
                                             <i class="ti ti-player-play"></i>
                                         </button>
                                         {% else %}
-                                        <button class="c-btn c-btn--outline-warning js-stop-reporting" data-action="stop-reporting" data-match-id="{{ match.id }}" title="Stop Reporting">
+                                        <button class="c-btn c-btn--outline-warning" data-action="stop-reporting" data-match-id="{{ match.id }}" title="Stop Reporting">
                                             <i class="ti ti-player-stop"></i>
                                         </button>
                                         {% endif %}
@@ -153,7 +153,7 @@
                 <div class="text-center py-4">
                     <i class="ti ti-calendar-off fs-1 text-muted mb-3"></i>
                     <p class="text-muted">No upcoming matches found.</p>
-                    <button id="fetch-espn-empty-btn" class="c-btn c-btn--success">
+                    <button class="c-btn c-btn--success" data-action="fetch-espn">
                         <i class="ti ti-download me-2"></i>Fetch Matches from ESPN
                     </button>
                 </div>
@@ -166,148 +166,30 @@
 
 {% block custom_js %}
 {{ super() }}
+{# Event handlers managed by mls-handlers.js via EventDelegation #}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Fetch from ESPN buttons
-    const fetchBtns = document.querySelectorAll('#fetch-espn-btn, #fetch-espn-empty-btn');
-    fetchBtns.forEach(btn => {
-        btn.addEventListener('click', fetchFromESPN);
-    });
+(function() {
+    'use strict';
 
-    // Schedule all button
-    const scheduleBtn = document.getElementById('schedule-all-btn');
-    if (scheduleBtn) {
-        scheduleBtn.addEventListener('click', scheduleAll);
+    // Register initialization with InitSystem
+    if (typeof InitSystem !== 'undefined') {
+        InitSystem.register('mls-overview', initMlsOverview);
+    } else {
+        document.addEventListener('DOMContentLoaded', initMlsOverview);
     }
 
-    // Create thread buttons
-    document.querySelectorAll('.js-create-thread').forEach(btn => {
-        btn.addEventListener('click', function() {
-            createThread(this.dataset.matchId);
-        });
-    });
-
-    // Start reporting buttons
-    document.querySelectorAll('.js-start-reporting').forEach(btn => {
-        btn.addEventListener('click', function() {
-            startReporting(this.dataset.matchId);
-        });
-    });
-
-    // Stop reporting buttons
-    document.querySelectorAll('.js-stop-reporting').forEach(btn => {
-        btn.addEventListener('click', function() {
-            stopReporting(this.dataset.matchId);
-        });
-    });
-
-    // Add spin animation
-    const style = document.createElement('style');
-    style.textContent = `
-        .spin { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    `;
-    document.head.appendChild(style);
-});
-
-function fetchFromESPN(event) {
-    const btn = event.currentTarget;
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="ti ti-loader spin me-2"></i>Fetching...';
-    btn.disabled = true;
-
-    fetch('{{ url_for("admin_panel.mls_fetch_espn") }}', { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                AdminPanel.showMobileToast(data.message, 'success');
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
-            }
-        })
-        .catch(error => {
-            AdminPanel.showMobileToast('Error fetching matches', 'danger');
-        })
-        .finally(() => {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        });
-}
-
-function scheduleAll(event) {
-    if (!confirm('This will schedule tasks for all upcoming matches. Continue?')) return;
-
-    const btn = event.currentTarget;
-    btn.innerHTML = '<i class="ti ti-loader spin me-2"></i>Scheduling...';
-    btn.disabled = true;
-
-    fetch('{{ url_for("admin_panel.mls_schedule_all") }}', { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                AdminPanel.showMobileToast(data.message, 'success');
-            } else {
-                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
-            }
-        })
-        .catch(error => {
-            AdminPanel.showMobileToast('Error scheduling matches', 'danger');
-        })
-        .finally(() => {
-            btn.innerHTML = '<i class="ti ti-calendar-event me-2"></i>Schedule All';
-            btn.disabled = false;
-        });
-}
-
-function createThread(matchId) {
-    fetch(`{{ url_for('admin_panel.mls_create_thread', match_id=0) }}`.replace('0', matchId), { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                AdminPanel.showMobileToast(data.message, 'success');
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
-            }
-        })
-        .catch(error => {
-            AdminPanel.showMobileToast('Error creating thread', 'danger');
-        });
-}
-
-function startReporting(matchId) {
-    fetch(`{{ url_for('admin_panel.mls_start_reporting', match_id=0) }}`.replace('0', matchId), { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                AdminPanel.showMobileToast(data.message, 'success');
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
-            }
-        })
-        .catch(error => {
-            AdminPanel.showMobileToast('Error starting reporting', 'danger');
-        });
-}
-
-function stopReporting(matchId) {
-    if (!confirm('Stop live reporting for this match?')) return;
-
-    fetch(`{{ url_for('admin_panel.mls_stop_reporting', match_id=0) }}`.replace('0', matchId), { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                AdminPanel.showMobileToast(data.message, 'success');
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
-            }
-        })
-        .catch(error => {
-            AdminPanel.showMobileToast('Error stopping reporting', 'danger');
-        });
-}
+    function initMlsOverview() {
+        // Add spin animation CSS if not already present
+        if (!document.getElementById('spin-animation-style')) {
+            const style = document.createElement('style');
+            style.id = 'spin-animation-style';
+            style.textContent = `
+                .spin { animation: spin 1s linear infinite; }
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+})();
 </script>
 {% endblock %}

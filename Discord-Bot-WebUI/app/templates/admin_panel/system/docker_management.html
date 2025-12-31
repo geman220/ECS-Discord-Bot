@@ -209,148 +209,61 @@
 {% block custom_js %}
 {{ super() }}
 <script>
+{# Docker management now handled by EventDelegation via system-handlers.js #}
+{# Store API URLs and state for container log viewing #}
 let currentContainerId = null;
-let logModal = null;
 
-document.addEventListener('DOMContentLoaded', function() {
-    logModal = ModalManager.getInstance('logModal');
+// Make viewContainerLogs available globally for the handler
+window.viewContainerLogs = function(containerId, containerName) {
+    currentContainerId = containerId;
 
-    // Manage container buttons
-    document.querySelectorAll('.js-manage-container').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const containerId = this.dataset.containerId;
-            const action = this.dataset.containerAction;
-            manageContainer(containerId, action);
-        });
-    });
-
-    // View logs buttons
-    document.querySelectorAll('.js-view-logs').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const containerId = this.dataset.containerId;
-            const containerName = this.dataset.containerName;
-            viewLogs(containerId, containerName);
-        });
-    });
-
-    // Refresh logs button in modal
-    document.querySelectorAll('.js-refresh-logs').forEach(btn => {
-        btn.addEventListener('click', function() {
-            refreshLogs();
-        });
-    });
-});
-
-function refreshContainers() {
-    const refreshBtn = document.getElementById('refresh-btn');
-    refreshBtn.innerHTML = '<i class="ti ti-loader spin me-1"></i>Refreshing...';
-    refreshBtn.disabled = true;
-
-    fetch('{{ url_for("admin_panel.docker_status_api") }}')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                updateContainerDisplay(data.containers);
-                AdminPanel.showMobileToast('Container status refreshed', 'success');
-            } else {
-                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
-            }
-        })
-        .catch(error => {
-            console.error('Error refreshing containers:', error);
-            AdminPanel.showMobileToast('Error refreshing container status', 'danger');
-        })
-        .finally(() => {
-            refreshBtn.innerHTML = '<i class="ti ti-refresh me-1"></i>Refresh';
-            refreshBtn.disabled = false;
-        });
-}
-
-function updateContainerDisplay(containers) {
-    const running = containers.filter(c => c.status && c.status.startsWith('running')).length;
-    const stopped = containers.length - running;
-
-    document.getElementById('running-count').textContent = running;
-    document.getElementById('stopped-count').textContent = stopped;
-    document.getElementById('total-count').textContent = containers.length;
-}
-
-function manageContainer(containerId, action) {
-    if (!confirm(`Are you sure you want to ${action} this container?`)) {
-        return;
+    const logModalLabel = document.getElementById('logModalLabel');
+    if (logModalLabel) {
+        logModalLabel.innerHTML = `<i class="ti ti-file-text me-2"></i>Logs: ${containerName}`;
     }
 
-    fetch(`{{ url_for('admin_panel.docker_manage_container', container_id='CONTAINER_ID', action='ACTION') }}`
-        .replace('CONTAINER_ID', containerId)
-        .replace('ACTION', action), {
-        method: 'POST'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            AdminPanel.showMobileToast(data.message, 'success');
-            setTimeout(refreshContainers, 1000);
-        } else {
-            AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
-        }
-    })
-    .catch(error => {
-        console.error('Error managing container:', error);
-        AdminPanel.showMobileToast('Error managing container', 'danger');
-    });
-}
-
-function viewLogs(containerId, containerName) {
-    currentContainerId = containerId;
-    document.getElementById('logModalLabel').innerHTML =
-        `<i class="ti ti-file-text me-2"></i>Logs: ${containerName}`;
-    document.getElementById('log-content').innerHTML = `
-        <div class="text-center py-4">
-            <div class="spinner-border text-primary" role="status" data-spinner>
-                <span class="visually-hidden">Loading...</span>
+    const logContent = document.getElementById('log-content');
+    if (logContent) {
+        logContent.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status" data-spinner>
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Loading logs...</p>
             </div>
-            <p class="mt-2 text-muted">Loading logs...</p>
-        </div>
-    `;
+        `;
+    }
 
-    logModal.show();
+    const logModal = (typeof ModalManager !== 'undefined') ? ModalManager.getInstance('logModal') : null;
+    if (logModal) {
+        logModal.show();
+    }
     fetchLogs(containerId);
-}
+};
 
 function fetchLogs(containerId) {
-    fetch(`{{ url_for('admin_panel.docker_view_logs', container_id='CONTAINER_ID') }}`
-        .replace('CONTAINER_ID', containerId))
+    fetch('{{ url_for("admin_panel.docker_view_logs", container_id="CONTAINER_ID") }}'.replace('CONTAINER_ID', containerId))
     .then(response => response.json())
     .then(data => {
         const logContent = document.getElementById('log-content');
+        if (!logContent) return;
+
         if (data.error) {
             logContent.innerHTML = `<div class="alert alert-danger" data-alert>${data.error}</div>`;
         } else {
             const logs = data.logs || 'No logs available';
             logContent.innerHTML = `
-                <pre class="bg-dark text-light p-3 rounded u-h-400 u-overflow-y-auto" class="u-font-size-0-8rem">${escapeHtml(logs)}</pre>
+                <pre class="bg-dark text-light p-3 rounded u-h-400 u-overflow-y-auto">${escapeHtml(logs)}</pre>
             `;
         }
     })
     .catch(error => {
         console.error('Error fetching logs:', error);
-        document.getElementById('log-content').innerHTML =
-            `<div class="alert alert-danger" data-alert>Error loading logs: ${error}</div>`;
+        const logContent = document.getElementById('log-content');
+        if (logContent) {
+            logContent.innerHTML = `<div class="alert alert-danger" data-alert>Error loading logs: ${error}</div>`;
+        }
     });
-}
-
-function refreshLogs() {
-    if (currentContainerId) {
-        document.getElementById('log-content').innerHTML = `
-            <div class="text-center py-4">
-                <div class="spinner-border text-primary" role="status" data-spinner>
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-2 text-muted">Refreshing logs...</p>
-            </div>
-        `;
-        fetchLogs(currentContainerId);
-    }
 }
 
 function escapeHtml(text) {
@@ -359,19 +272,57 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-document.getElementById('refresh-btn').addEventListener('click', refreshContainers);
+document.addEventListener('DOMContentLoaded', function() {
+    // Refresh button
+    const refreshBtn = document.getElementById('docker-refresh-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            location.reload();
+        });
+    }
 
-// Add spin animation
-const style = document.createElement('style');
-style.textContent = `
-    .spin {
-        animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-`;
-document.head.appendChild(style);
+    // Refresh logs button in modal
+    document.querySelectorAll('[data-action="refresh-logs"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (currentContainerId) {
+                const logContent = document.getElementById('log-content');
+                if (logContent) {
+                    logContent.innerHTML = `
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status" data-spinner>
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Refreshing logs...</p>
+                        </div>
+                    `;
+                }
+                fetchLogs(currentContainerId);
+            }
+        });
+    });
+
+    // Set up container action buttons with API URLs
+    document.querySelectorAll('[data-action="manage-container"]').forEach(btn => {
+        const containerId = btn.dataset.containerId;
+        const action = btn.dataset.containerAction;
+        if (containerId && action) {
+            btn.dataset.apiUrl = '{{ url_for("admin_panel.docker_manage_container", container_id="CONTAINER_ID", action="ACTION") }}'
+                .replace('CONTAINER_ID', containerId)
+                .replace('ACTION', action);
+        }
+    });
+
+    // Set up view logs buttons
+    document.querySelectorAll('[data-action="view-logs"]').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const containerId = this.dataset.containerId;
+            const containerName = this.dataset.containerName;
+            if (containerId) {
+                window.viewContainerLogs(containerId, containerName);
+            }
+        });
+    });
+});
 </script>
 {% endblock %}

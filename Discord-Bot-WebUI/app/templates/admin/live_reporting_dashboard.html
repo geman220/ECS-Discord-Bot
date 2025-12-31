@@ -278,52 +278,73 @@
 {% block custom_js %}
 {{ super() }}
 <script>
+// Page-specific auto-refresh functionality
 let countdown = 30;
 let refreshTimer;
 
-function startCountdown() {
+// Start countdown - exposed for event delegation
+window.startCountdown = function() {
     refreshTimer = setInterval(function() {
         countdown--;
-        document.getElementById('countdown').textContent = countdown;
+        const countdownEl = document.getElementById('countdown');
+        if (countdownEl) countdownEl.textContent = countdown;
 
         if (countdown <= 0) {
-            refreshDashboard();
+            window.refreshDashboard();
         }
     }, 1000);
-}
+};
 
-function refreshDashboard() {
-    document.getElementById('refreshIcon').classList.add('fa-spin');
+// Refresh dashboard - exposed for event delegation
+window.refreshDashboard = function() {
+    const refreshIcon = document.getElementById('refreshIcon');
+    if (refreshIcon) refreshIcon.classList.add('fa-spin');
     location.reload();
-}
+};
 
-function forceSync() {
-    if (confirm('Force synchronization with real-time service?')) {
-        fetch('/admin/live-reporting/api/force-sync', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
+// Force sync - exposed for event delegation
+window.forceSync = function() {
+    if (!confirm('Force synchronization with real-time service?')) return;
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    fetch('/admin/live-reporting/api/force-sync', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('Success', `Sync successful: ${data.message}`, 'success');
+            } else {
                 alert(`Sync successful: ${data.message}`);
-                refreshDashboard();
+            }
+            window.refreshDashboard();
+        } else {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('Error', `Sync failed: ${data.error}`, 'error');
             } else {
                 alert(`Sync failed: ${data.error}`);
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        if (typeof Swal !== 'undefined') {
+            Swal.fire('Error', 'Error performing sync', 'error');
+        } else {
             alert('Error performing sync');
-        });
-    }
-}
+        }
+    });
+};
 
 // Start countdown when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    startCountdown();
+    window.startCountdown();
 });
 </script>
 {% endblock %}

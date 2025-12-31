@@ -75,7 +75,7 @@
                     </div>
                     <h5>Getting Started</h5>
                     <p class="text-muted mb-3">Basic introduction to the wallet pass system</p>
-                    <a href="#getting-started" class="c-btn c-btn--primary c-btn--sm scroll-to">Read Guide</a>
+                    <a href="#getting-started" class="c-btn c-btn--primary c-btn--sm" data-action="scroll-to-section">Read Guide</a>
                 </div>
             </div>
         </div>
@@ -99,7 +99,7 @@
                     </div>
                     <h5>Asset Management</h5>
                     <p class="text-muted mb-3">Working with icons, logos and images</p>
-                    <a href="#asset-management" class="c-btn c-btn--primary c-btn--sm scroll-to">Read Guide</a>
+                    <a href="#asset-management" class="c-btn c-btn--primary c-btn--sm" data-action="scroll-to-section">Read Guide</a>
                 </div>
             </div>
         </div>
@@ -111,7 +111,7 @@
                     </div>
                     <h5>Templates</h5>
                     <p class="text-muted mb-3">Customizing pass templates</p>
-                    <a href="#templates" class="c-btn c-btn--primary c-btn--sm scroll-to">Read Guide</a>
+                    <a href="#templates" class="c-btn c-btn--primary c-btn--sm" data-action="scroll-to-section">Read Guide</a>
                 </div>
             </div>
         </div>
@@ -620,24 +620,5 @@
 
 {% block scripts %}
 {{ super() }}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Smooth scrolling for anchor links
-    document.querySelectorAll('.scroll-to').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            
-            const targetId = this.getAttribute('href').substring(1);
-            const targetElement = document.getElementById(targetId);
-            
-            if (targetElement) {
-                window.scrollTo({
-                    top: targetElement.offsetTop - 80,
-                    behavior: 'smooth'
-                });
-            }
-        });
-    });
-});
-</script>
+{# Smooth scroll handler is now in wallet-config-handlers.js using data-action="scroll-to-section" #}
 {% endblock %}

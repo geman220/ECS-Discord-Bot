@@ -182,115 +182,16 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+<!-- User Duplicates Module (extracted from inline JS) -->
+<script src="{{ url_for('static', filename='custom_js/user-duplicates.js') }}"></script>
 <script>
-// Enable merge button when primary is selected
-document.querySelectorAll('.primary-select').forEach(radio => {
-    radio.addEventListener('change', function() {
-        const groupId = this.dataset.group;
-        const mergeBtn = document.querySelector(`.merge-btn[data-group="${groupId}"]`);
-        if (mergeBtn) {
-            mergeBtn.disabled = false;
-            mergeBtn.innerHTML = '<i class="ti ti-git-merge me-1"></i>Merge into Selected';
-        }
-    });
+// Initialize UserDuplicates with template data
+UserDuplicates.init({
+    mergeUrl: '{{ url_for("admin_panel.merge_duplicate_users") }}',
+    dismissUrl: '{{ url_for("admin_panel.dismiss_duplicate") }}',
+    scanUrl: '{{ url_for("admin_panel.scan_for_duplicates") }}'
 });
-
-// Merge functionality
-document.querySelectorAll('.merge-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const groupId = this.dataset.group;
-        const allUserIds = JSON.parse(this.dataset.users);
-        const primaryRadio = document.querySelector(`input[name="primary-${groupId}"]:checked`);
-
-        if (!primaryRadio) {
-            AdminPanel.showMobileToast('Please select a primary account first', 'warning');
-            return;
-        }
-
-        const primaryUserId = parseInt(primaryRadio.value);
-        const duplicateUserIds = allUserIds.filter(id => id !== primaryUserId);
-
-        if (!confirm(`Merge ${duplicateUserIds.length} accounts into the selected primary account? This cannot be undone.`)) {
-            return;
-        }
-
-        fetch('{{ url_for("admin_panel.merge_duplicate_users") }}', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                primary_user_id: primaryUserId,
-                duplicate_user_ids: duplicateUserIds
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                AdminPanel.showMobileToast(data.message, 'success');
-                location.reload();
-            } else {
-                AdminPanel.showMobileToast('Error: ' + data.message, 'danger');
-            }
-        })
-        .catch(error => {
-            AdminPanel.showMobileToast('Error merging accounts', 'danger');
-        });
-    });
-});
-
-// Event delegation for dismiss group button
-document.addEventListener('click', function(e) {
-    if (e.target.closest('.js-dismiss-group')) {
-        const btn = e.target.closest('.js-dismiss-group');
-        const userIds = JSON.parse(btn.dataset.userIds);
-
-        if (!confirm('Mark these users as NOT duplicates? They will no longer appear together.')) return;
-
-        fetch('{{ url_for("admin_panel.dismiss_duplicate") }}', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_ids: userIds })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                AdminPanel.showMobileToast(data.message, 'success');
-                location.reload();
-            } else {
-                AdminPanel.showMobileToast('Error: ' + data.message, 'danger');
-            }
-        })
-        .catch(error => {
-            AdminPanel.showMobileToast('Error dismissing group', 'danger');
-        });
-    }
-});
-
-// Scan button
-document.getElementById('scan-btn')?.addEventListener('click', runScan);
-document.getElementById('scan-btn-alt')?.addEventListener('click', runScan);
-
-function runScan() {
-    const btn = event.target.closest('button');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Scanning...';
-
-    fetch('{{ url_for("admin_panel.scan_for_duplicates") }}', { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                AdminPanel.showMobileToast(data.message, 'success');
-                location.reload();
-            } else {
-                AdminPanel.showMobileToast('Error: ' + data.message, 'danger');
-            }
-        })
-        .catch(error => {
-            AdminPanel.showMobileToast('Error running scan', 'danger');
-        })
-        .finally(() => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="ti ti-scan me-1"></i>Scan for Duplicates';
-        });
-}
 </script>
+{% endif %}
 {% endblock %}

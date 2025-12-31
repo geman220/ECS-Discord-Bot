@@ -373,300 +373,109 @@
 {% block custom_js %}
 {{ super() }}
 <script>
-let roleModal, roleForm, roleDetailsModal, assignRoleModal, assignRoleForm;
-
+{# Role management now handled by EventDelegation via admin-roles-handlers.js #}
+{# Store URL templates in form data attributes for the handler to use #}
 document.addEventListener('DOMContentLoaded', function() {
-    roleModal = ModalManager.getInstance('roleModal');
-    roleForm = document.getElementById('roleForm');
-    roleDetailsModal = ModalManager.getInstance('roleDetailsModal');
-    assignRoleModal = ModalManager.getInstance('assignRoleModal');
-    assignRoleForm = document.getElementById('assignRoleForm');
+    const roleForm = document.getElementById('roleForm');
+    const assignRoleForm = document.getElementById('assignRoleForm');
 
-    // Handle form submissions
-    roleForm.addEventListener('submit', handleRoleSubmit);
-    assignRoleForm.addEventListener('submit', handleAssignRoleSubmit);
+    if (roleForm) {
+        roleForm.dataset.createUrl = '{{ url_for("admin_panel.create_role_comprehensive") }}';
+        roleForm.dataset.editUrl = '{{ url_for("admin_panel.edit_role_comprehensive", role_id=0) }}';
 
-    // Event delegation for role actions
-    document.querySelectorAll('.js-create-role').forEach(btn => {
-        btn.addEventListener('click', createRole);
-    });
-
-    document.querySelectorAll('.js-export-roles').forEach(btn => {
-        btn.addEventListener('click', exportRoles);
-    });
-
-    document.querySelectorAll('.js-view-role-users').forEach(link => {
-        link.addEventListener('click', function(e) {
+        // Handle form submission via EventDelegation
+        roleForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            viewRoleUsers(this.dataset.roleId);
-        });
-    });
+            const formData = new FormData(roleForm);
 
-    document.querySelectorAll('.js-view-role-details').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            viewRoleDetails(this.dataset.roleId);
-        });
-    });
-
-    document.querySelectorAll('.js-edit-role').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            editRole(this.dataset.roleId);
-        });
-    });
-
-    document.querySelectorAll('.js-assign-role').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            assignRole(this.dataset.roleId);
-        });
-    });
-
-    document.querySelectorAll('.js-delete-role').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            deleteRole(this.dataset.roleId, this.dataset.roleName);
-        });
-    });
-});
-
-function createRole() {
-    // Reset form
-    roleForm.reset();
-    document.getElementById('roleId').value = '';
-    document.getElementById('roleModalLabel').innerHTML = '<i class="ti ti-shield-plus me-2"></i>Create Role';
-    roleForm.action = '{{ url_for("admin_panel.create_role_comprehensive") }}';
-    
-    roleModal.show();
-}
-
-function editRole(roleId) {
-    // Show loading
-    Swal.fire({
-        title: 'Loading Role Data',
-        html: '<div class="text-center"><div class="spinner-border text-primary" role="status" data-spinner></div></div>',
-        allowOutsideClick: false,
-        showConfirmButton: false
-    });
-
-    // Fetch role data
-    fetch(`{{ url_for('admin_panel.role_comprehensive_details', role_id=0) }}`.replace('0', roleId))
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Populate form
-                document.getElementById('roleId').value = data.role.id;
-                document.getElementById('roleName').value = data.role.name;
-                document.getElementById('roleDescription').value = data.role.description || '';
-                document.getElementById('roleModalLabel').innerHTML = '<i class="ti ti-edit me-2"></i>Edit Role';
-                roleForm.action = `{{ url_for('admin_panel.edit_role_comprehensive', role_id=0) }}`.replace('0', roleId);
-                
-                Swal.close();
-                roleModal.show();
-            } else {
-                throw new Error(data.message);
-            }
-        })
-        .catch(error => {
-            Swal.close();
-            Swal.fire('Error', error.message || 'Failed to load role data', 'error');
-        });
-}
-
-function viewRoleDetails(roleId) {
-    // Show loading
-    document.getElementById('roleDetailsContent').innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status" data-spinner></div></div>';
-    roleDetailsModal.show();
-
-    // Fetch role details
-    fetch(`{{ url_for('admin_panel.role_comprehensive_details', role_id=0) }}`.replace('0', roleId))
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const role = data.role;
-                let content = `
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Role Information</h6>
-                            <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="roles">
-                                <tr><td><strong>Name:</strong></td><td>${role.name}</td></tr>
-                                <tr><td><strong>Description:</strong></td><td>${role.description || 'No description'}</td></tr>
-                                <tr><td><strong>Users:</strong></td><td>${role.user_count}</td></tr>
-                                <tr><td><strong>Created:</strong></td><td>${role.created_at ? new Date(role.created_at).toLocaleDateString() : '-'}</td></tr>
-                            </table>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>Users with this Role</h6>
-                            <div class="u-overflow-y-auto" class="u-max-h-200">
-                `;
-                
-                if (role.users && role.users.length > 0) {
-                    role.users.forEach(user => {
-                        content += `
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <div>
-                                    <strong>${user.username}</strong>
-                                    <br><small class="text-muted">${user.email}</small>
-                                </div>
-                                <div>
-                                    <span class="badge bg-label-${user.is_approved ? 'success' : 'warning'}" data-badge>${user.is_approved ? 'Approved' : 'Pending'}</span>
-                                    <span class="badge bg-label-${user.is_active ? 'success' : 'danger'}" data-badge>${user.is_active ? 'Active' : 'Inactive'}</span>
-                                </div>
-                            </div>
-                        `;
-                    });
-                } else {
-                    content += '<p class="text-muted">No users have this role</p>';
-                }
-                
-                content += `
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                document.getElementById('roleDetailsContent').innerHTML = content;
-            } else {
-                throw new Error(data.message);
-            }
-        })
-        .catch(error => {
-            document.getElementById('roleDetailsContent').innerHTML = `<div class="alert alert-danger" data-alert>Error: ${error.message}</div>`;
-        });
-}
-
-function assignRole(roleId) {
-    document.getElementById('assignRoleId').value = roleId;
-    document.getElementById('assigningRoleName').textContent = 'Loading...';
-    assignRoleForm.action = `{{ url_for('admin_panel.assign_role_to_user_comprehensive', role_id=0) }}`.replace('0', roleId);
-
-    // Clear and show loading in user select
-    const userSelect = document.getElementById('selectUser');
-    userSelect.innerHTML = '<option value="">Loading users...</option>';
-
-    // Get role name and available users
-    Promise.all([
-        fetch(`{{ url_for('admin_panel.role_comprehensive_details', role_id=0) }}`.replace('0', roleId)).then(r => r.json()),
-        fetch(`{{ url_for('admin_panel.get_available_users_for_role', role_id=0) }}`.replace('0', roleId)).then(r => r.json())
-    ]).then(([roleData, usersData]) => {
-        // Set role name
-        if (roleData.success) {
-            document.getElementById('assigningRoleName').textContent = roleData.role.name;
-        }
-
-        // Populate user dropdown
-        userSelect.innerHTML = '<option value="">Choose a user...</option>';
-        if (usersData.success && usersData.users.length > 0) {
-            usersData.users.forEach(user => {
-                const option = document.createElement('option');
-                option.value = user.id;
-                option.textContent = `${user.username} (${user.email})`;
-                if (!user.is_active) {
-                    option.textContent += ' [Inactive]';
-                    option.classList.add('text-muted');
-                }
-                userSelect.appendChild(option);
-            });
-        } else {
-            userSelect.innerHTML = '<option value="">No available users (all have this role)</option>';
-        }
-    }).catch(error => {
-        console.error('Error loading data:', error);
-        userSelect.innerHTML = '<option value="">Error loading users</option>';
-    });
-
-    assignRoleModal.show();
-}
-
-function deleteRole(roleId, roleName) {
-    Swal.fire({
-        title: 'Delete Role?',
-        text: `This will permanently delete the role "${roleName}". This action cannot be undone.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, Delete',
-        cancelButtonText: 'Cancel',
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch(`{{ url_for('admin_panel.delete_role_comprehensive', role_id=0) }}`.replace('0', roleId), {
+            fetch(roleForm.action, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': '{{ csrf_token() }}'
-                }
+                body: formData
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire('Deleted!', data.message, 'success').then(() => {
+                    if (typeof ModalManager !== 'undefined') {
+                        ModalManager.getInstance('roleModal')?.hide();
+                    }
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Success', data.message, 'success').then(() => location.reload());
+                    } else {
                         location.reload();
-                    });
+                    }
                 } else {
-                    Swal.fire('Error', data.message, 'error');
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Error', data.message, 'error');
+                    }
+                }
+            })
+            .catch(error => {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire('Error', 'Failed to save role', 'error');
                 }
             });
-        }
-    });
-}
+        });
+    }
 
-function viewRoleUsers(roleId) {
-    window.location.href = `{{ url_for('admin_panel.role_comprehensive_users', role_id=0) }}`.replace('0', roleId);
-}
+    if (assignRoleForm) {
+        assignRoleForm.dataset.assignUrl = '{{ url_for("admin_panel.assign_role_to_user_comprehensive", role_id=0) }}';
 
-function handleRoleSubmit(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(roleForm);
-    
-    fetch(roleForm.action, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            roleModal.hide();
-            Swal.fire('Success', data.message, 'success').then(() => {
-                location.reload();
+        // Handle form submission via EventDelegation
+        assignRoleForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(assignRoleForm);
+
+            fetch(assignRoleForm.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (typeof ModalManager !== 'undefined') {
+                        ModalManager.getInstance('assignRoleModal')?.hide();
+                    }
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Success', data.message, 'success').then(() => location.reload());
+                    } else {
+                        location.reload();
+                    }
+                } else {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Error', data.message, 'error');
+                    }
+                }
+            })
+            .catch(error => {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire('Error', 'Failed to assign role', 'error');
+                }
             });
-        } else {
-            Swal.fire('Error', data.message, 'error');
-        }
-    })
-    .catch(error => {
-        Swal.fire('Error', 'Failed to save role', 'error');
-    });
-}
+        });
+    }
 
-function handleAssignRoleSubmit(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(assignRoleForm);
-    
-    fetch(assignRoleForm.action, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            assignRoleModal.hide();
-            Swal.fire('Success', data.message, 'success').then(() => {
-                location.reload();
-            });
-        } else {
-            Swal.fire('Error', data.message, 'error');
+    // Store API URLs in data attributes for EventDelegation handlers
+    document.querySelectorAll('[data-action="edit-role"], [data-action="view-role-details"], [data-action="assign-role"]').forEach(el => {
+        const roleId = el.dataset.roleId;
+        if (roleId) {
+            el.dataset.apiUrl = '{{ url_for("admin_panel.role_comprehensive_details", role_id=0) }}'.replace('0', roleId);
+            el.dataset.usersApiUrl = '{{ url_for("admin_panel.get_available_users_for_role", role_id=0) }}'.replace('0', roleId);
         }
-    })
-    .catch(error => {
-        Swal.fire('Error', 'Failed to assign role', 'error');
     });
-}
 
-function exportRoles() {
-    Swal.fire('Feature Coming Soon', 'Role export functionality will be added soon.', 'info');
-}
+    document.querySelectorAll('[data-action="delete-role"]').forEach(el => {
+        const roleId = el.dataset.roleId;
+        if (roleId) {
+            el.dataset.deleteUrl = '{{ url_for("admin_panel.delete_role_comprehensive", role_id=0) }}'.replace('0', roleId);
+        }
+    });
+
+    document.querySelectorAll('[data-action="view-role-users"]').forEach(el => {
+        const roleId = el.dataset.roleId;
+        if (roleId) {
+            el.dataset.usersUrl = '{{ url_for("admin_panel.role_comprehensive_users", role_id=0) }}'.replace('0', roleId);
+        }
+    });
+});
 </script>
 {% endblock %}

@@ -170,55 +170,10 @@
     </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Detect iOS + non-Safari browser and show warning
-    (function() {
-        const ua = navigator.userAgent;
-        const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-        const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
-
-        if (isIOS && !isSafari) {
-            const warning = document.getElementById('safari-warning');
-            if (warning) {
-                warning.classList.remove('d-none');
-            }
-        }
-    })();
-
-    // Handle copy link button
-    const copyBtn = document.querySelector('.js-copy-link');
-    if (copyBtn) {
-        copyBtn.addEventListener('click', copyPageLink);
-    }
-});
-
-function copyPageLink() {
-    navigator.clipboard.writeText(window.location.href).then(function() {
-        const feedback = document.getElementById('copy-feedback');
-        if (feedback) {
-            feedback.classList.remove('d-none');
-            setTimeout(function() {
-                feedback.classList.add('d-none');
-            }, 3000);
-        }
-    }).catch(function() {
-        // Fallback for older browsers
-        const textArea = document.createElement('textarea');
-        textArea.value = window.location.href;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-
-        const feedback = document.getElementById('copy-feedback');
-        if (feedback) {
-            feedback.classList.remove('d-none');
-            setTimeout(function() {
-                feedback.classList.add('d-none');
-            }, 3000);
-        }
-    });
-}
-</script>
+{% block custom_js %}
+{{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+<script src="{{ url_for('static', filename='custom_js/wallet-pass-info.js') }}"></script>
+{% endif %}
+{% endblock %}
 {% endblock %}

@@ -183,27 +183,6 @@
 
 {% block custom_js %}
 {{ super() }}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Opponent source toggle
-    const libraryRadio = document.getElementById('oppLibrary');
-    const customRadio = document.getElementById('oppCustom');
-    const librarySelect = document.getElementById('librarySelect');
-    const customInput = document.getElementById('customInput');
-
-    function toggleOpponentSource() {
-        if (libraryRadio.checked) {
-            librarySelect.style.display = '';
-            customInput.style.display = 'none';
-        } else {
-            librarySelect.style.display = 'none';
-            customInput.style.display = '';
-        }
-    }
-
-    libraryRadio.addEventListener('change', toggleOpponentSource);
-    customRadio.addEventListener('change', toggleOpponentSource);
-});
-</script>
+{# ECS FC match form - uses admin-ecs-fc-match.js module #}
 {% endblock %}
 {% endblock %}

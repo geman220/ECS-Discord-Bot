@@ -302,7 +302,7 @@
             </h5>
             <div class="d-flex gap-2">
                 {% if config_status.configured and eligible_players %}
-                <button class="c-btn c-btn--success c-btn--sm js-bulk-generate-passes" data-action="bulk-generate-wallet-passes">
+                <button class="c-btn c-btn--success c-btn--sm" data-action="bulk-generate-wallet-passes" data-player-ids="{{ eligible_players | map(attribute='id') | list | tojson }}">
                     <i class="ti ti-download me-1"></i>Bulk Generate
                 </button>
                 {% endif %}
@@ -430,121 +430,9 @@
 
 {% block scripts %}
 {{ super() }}
-<script>
-// Check player eligibility
-function checkPlayerEligibility(playerId) {
-    const modalBody = document.getElementById('eligibilityModalBody');
-
-    ModalManager.show('eligibilityModal');
-
-    fetch(`{{ url_for('wallet_admin.check_player_eligibility', player_id=0) }}`.replace('0', playerId))
-        .then(response => response.json())
-        .then(data => {
-            let html = `
-                <div class="mb-3">
-                    <h6 class="mb-0">${data.player_name}</h6>
-                    <small class="text-muted">Player ID: ${data.player_id}</small>
-                </div>
-
-                <div class="alert alert-${data.eligible ? 'success' : 'warning'} d-flex align-items-center" data-alert>
-                    <i class="ti ti-${data.eligible ? 'circle-check' : 'alert-triangle'} me-2 fs-4"></i>
-                    <div>
-                        <strong>${data.eligible ? 'Eligible' : 'Not Eligible'}</strong>
-                        <p class="mb-0 small">${data.eligible ? 'This player can receive a digital wallet pass.' : 'This player cannot receive a pass yet.'}</p>
-                    </div>
-                </div>
-            `;
-
-            if (data.issues && data.issues.length > 0) {
-                html += '<h6 class="mt-3 mb-2">Issues to Resolve:</h6><ul class="list-unstyled mb-0">';
-                data.issues.forEach(issue => {
-                    html += `<li class="text-danger mb-2"><i class="ti ti-x me-2"></i>${issue}</li>`;
-                });
-                html += '</ul>';
-            }
-
-            if (data.info) {
-                html += `
-                    <hr class="my-3">
-                    <h6 class="mb-2">Player Details</h6>
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <small class="text-muted d-block">Status</small>
-                            <span class="badge ${data.info.is_current_player ? 'bg-success' : 'bg-secondary'}" data-badge>${data.info.is_current_player ? 'Active' : 'Inactive'}</span>
-                        </div>
-                        <div class="col-6">
-                            <small class="text-muted d-block">User Account</small>
-                            <span class="badge ${data.info.has_user_account ? 'bg-success' : 'bg-secondary'}" data-badge>${data.info.has_user_account ? 'Yes' : 'No'}</span>
-                        </div>
-                        <div class="col-6">
-                            <small class="text-muted d-block">Primary Team</small>
-                            <span>${data.info.primary_team || '<em class="text-muted">None</em>'}</span>
-                        </div>
-                        <div class="col-6">
-                            <small class="text-muted d-block">League</small>
-                            <span>${data.info.league || '<em class="text-muted">None</em>'}</span>
-                        </div>
-                    </div>
-                `;
-            }
-
-            modalBody.innerHTML = html;
-        })
-        .catch(error => {
-            modalBody.innerHTML = '<div class="alert alert-danger" data-alert><i class="ti ti-alert-circle me-2"></i>Error checking eligibility. Please try again.</div>';
-        });
-}
-
-// Bulk generate passes
-function bulkGeneratePasses() {
-    if (!confirm('Generate passes for all eligible players?\n\nThis will create passes that can be downloaded by each player. Continue?')) {
-        return;
-    }
-
-    const eligiblePlayerIds = {{ eligible_players | map(attribute='id') | list | tojson }};
-
-    // Show loading state
-    const btn = event.target;
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generating...';
-
-    fetch(`{{ url_for('wallet_admin.generate_bulk_passes') }}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ player_ids: eligiblePlayerIds })
-    })
-    .then(response => response.json())
-    .then(data => {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-
-        let message = `Bulk Generation Complete\n\n`;
-        message += `Success: ${data.success.length} passes\n`;
-        message += `Failed: ${data.failed.length} passes`;
-
-        if (data.failed.length > 0) {
-            message += '\n\nFailed:\n';
-            data.failed.slice(0, 5).forEach(failure => {
-                message += `- ${failure.player_name || 'Player ' + failure.player_id}: ${failure.error}\n`;
-            });
-            if (data.failed.length > 5) {
-                message += `...and ${data.failed.length - 5} more`;
-            }
-        }
-
-        alert(message);
-        if (data.success.length > 0) {
-            location.reload();
-        }
-    })
-    .catch(error => {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-        alert('Error during bulk generation. Please try again.');
-    });
-}
-</script>
+{# All handlers are now in admin-wallet.js using data-action attributes:
+   - data-action="check-player-eligibility" with data-player-id
+   - data-action="bulk-generate-wallet-passes" with data-player-ids (JSON array)
+   - data-action="reload-page"
+#}
 {% endblock %}

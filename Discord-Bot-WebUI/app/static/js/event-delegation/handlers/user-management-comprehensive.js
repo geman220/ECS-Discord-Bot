@@ -1,4 +1,7 @@
 import { EventDelegation } from '../core.js';
+import { InitSystem } from '../../init-system.js';
+
+let _initialized = false;
 
 /**
  * Comprehensive User Management Action Handlers
@@ -66,13 +69,6 @@ function initModalReferences() {
         editUserModal = ModalManager.getInstance('editUserModal');
     }
     editUserForm = document.getElementById('editUserForm');
-}
-
-// Initialize on DOM ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initModalReferences);
-} else {
-    initModalReferences();
 }
 
 // ============================================================================
@@ -686,7 +682,19 @@ function handleEditUserSubmit(e) {
 /**
  * Initialize the comprehensive user management module
  */
-function initUserManagementComprehensive() {
+function init() {
+    if (_initialized) return;
+
+    // Page guard - only initialize on user management page
+    const editUserModal = document.getElementById('editUserModal');
+    const userTable = document.querySelector('.user-checkbox');
+    if (!editUserModal && !userTable) return;
+
+    _initialized = true;
+
+    // Initialize modal references
+    initModalReferences();
+
     // Setup league-team filtering
     setupLeagueTeamFiltering();
 
@@ -695,13 +703,24 @@ function initUserManagementComprehensive() {
     if (form) {
         form.addEventListener('submit', handleEditUserSubmit);
     }
+
+    console.log('[EventDelegation] User management comprehensive initialized');
 }
 
-// Initialize on DOM ready
+// Register with InitSystem
+if (InitSystem && InitSystem.register) {
+    InitSystem.register('user-management-comprehensive', init, {
+        priority: 50,
+        reinitializable: false,
+        description: 'Comprehensive user management handlers'
+    });
+}
+
+// Fallback initialization
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initUserManagementComprehensive);
+    document.addEventListener('DOMContentLoaded', init);
 } else {
-    initUserManagementComprehensive();
+    init();
 }
 
 console.log('[EventDelegation] User management comprehensive handlers loaded');

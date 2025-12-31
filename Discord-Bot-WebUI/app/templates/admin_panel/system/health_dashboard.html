@@ -168,17 +168,34 @@
 {% block custom_js %}
 {{ super() }}
 <script>
+{# Health dashboard now uses EventDelegation via system-handlers.js for refresh-health action #}
+{# Page-specific functionality for task status and Twilio testing remains here #}
+
 document.addEventListener('DOMContentLoaded', function() {
     loadTaskStatus();
 
     // Auto-refresh every 30 seconds
     setInterval(refreshHealth, 30000);
+
+    // Refresh button
+    const refreshBtn = document.getElementById('health-refresh-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', refreshHealth);
+    }
+
+    // Twilio test button
+    const twilioBtn = document.getElementById('twilio-test-btn');
+    if (twilioBtn) {
+        twilioBtn.addEventListener('click', testTwilio);
+    }
 });
 
 function refreshHealth() {
-    const refreshBtn = document.getElementById('refresh-btn');
-    refreshBtn.innerHTML = '<i class="ti ti-refresh me-1 spin"></i>Refreshing...';
-    refreshBtn.disabled = true;
+    const refreshBtn = document.getElementById('health-refresh-btn');
+    if (refreshBtn) {
+        refreshBtn.innerHTML = '<i class="ti ti-refresh me-1 spin"></i>Refreshing...';
+        refreshBtn.disabled = true;
+    }
 
     fetch('{{ url_for("admin_panel.health_check_api") }}')
         .then(response => response.json())
@@ -188,11 +205,15 @@ function refreshHealth() {
         })
         .catch(error => {
             console.error('Error refreshing health:', error);
-            AdminPanel.showMobileToast('Error refreshing health status', 'danger');
+            if (typeof AdminPanel !== 'undefined') {
+                AdminPanel.showMobileToast('Error refreshing health status', 'danger');
+            }
         })
         .finally(() => {
-            refreshBtn.innerHTML = '<i class="ti ti-refresh me-1"></i>Refresh';
-            refreshBtn.disabled = false;
+            if (refreshBtn) {
+                refreshBtn.innerHTML = '<i class="ti ti-refresh me-1"></i>Refresh';
+                refreshBtn.disabled = false;
+            }
         });
 }
 
@@ -200,12 +221,12 @@ function updateHealthDisplay(data) {
     const statusEl = document.getElementById('overall-status');
     const lastCheckEl = document.getElementById('last-check');
 
-    statusEl.textContent = data.status;
-    lastCheckEl.textContent = 'Last check: ' + data.timestamp;
+    if (statusEl) statusEl.textContent = data.status;
+    if (lastCheckEl) lastCheckEl.textContent = 'Last check: ' + data.timestamp;
 
-    // Update component cards would require more complex DOM manipulation
-    // For now, just show a toast
-    AdminPanel.showMobileToast('Health status refreshed', 'success');
+    if (typeof AdminPanel !== 'undefined') {
+        AdminPanel.showMobileToast('Health status refreshed', 'success');
+    }
 }
 
 function loadTaskStatus() {
@@ -213,6 +234,7 @@ function loadTaskStatus() {
         .then(response => response.json())
         .then(data => {
             const container = document.getElementById('task-status-content');
+            if (!container) return;
 
             if (data.status === 'error') {
                 container.innerHTML = `<div class="alert alert-danger" data-alert>${data.message}</div>`;
@@ -256,15 +278,17 @@ function loadTaskStatus() {
         })
         .catch(error => {
             console.error('Error loading task status:', error);
-            document.getElementById('task-status-content').innerHTML =
-                '<div class="alert alert-warning" data-alert>Unable to load task status</div>';
+            const container = document.getElementById('task-status-content');
+            if (container) {
+                container.innerHTML = '<div class="alert alert-warning" data-alert>Unable to load task status</div>';
+            }
         });
 }
 
-document.getElementById('refresh-btn').addEventListener('click', refreshHealth);
+function testTwilio() {
+    const btn = document.getElementById('twilio-test-btn');
+    if (!btn) return;
 
-document.getElementById('twilio-test-btn').addEventListener('click', function() {
-    const btn = this;
     btn.innerHTML = '<i class="ti ti-loader me-1 spin"></i>Testing...';
     btn.disabled = true;
 
@@ -273,6 +297,7 @@ document.getElementById('twilio-test-btn').addEventListener('click', function() 
         .then(data => {
             const section = document.getElementById('twilio-results-section');
             const container = document.getElementById('twilio-results');
+            if (!section || !container) return;
 
             section.classList.remove('d-none');
 
@@ -332,25 +357,14 @@ document.getElementById('twilio-test-btn').addEventListener('click', function() 
         })
         .catch(error => {
             console.error('Error testing Twilio:', error);
-            AdminPanel.showMobileToast('Error testing Twilio configuration', 'danger');
+            if (typeof AdminPanel !== 'undefined') {
+                AdminPanel.showMobileToast('Error testing Twilio configuration', 'danger');
+            }
         })
         .finally(() => {
             btn.innerHTML = '<i class="ti ti-phone me-1"></i>Test Twilio';
             btn.disabled = false;
         });
-});
-
-// Add spin animation
-const style = document.createElement('style');
-style.textContent = `
-    .spin {
-        animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-`;
-document.head.appendChild(style);
+}
 </script>
 {% endblock %}

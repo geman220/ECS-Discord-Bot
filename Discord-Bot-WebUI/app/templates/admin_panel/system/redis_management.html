@@ -230,6 +230,7 @@
 {% block custom_js %}
 {{ super() }}
 <script>
+{# Redis management uses page-specific functions with EventDelegation for refresh-redis-stats, clear-redis-cache #}
 let autoRefreshInterval;
 
 function updateStats() {
@@ -245,41 +246,68 @@ function updateStats() {
             const healthIndicator = data.health?.overall ? 'active' : 'inactive';
             const healthText = data.health?.overall ? 'All connections healthy' : 'Connection issues detected';
             const healthClass = data.health?.overall ? 'text-success' : 'text-danger';
-            document.getElementById('health-status').innerHTML =
-                `<span class="status-indicator ${healthIndicator} me-2"></span><span class="${healthClass}">${healthText}</span>`;
+            const healthStatusEl = document.getElementById('health-status');
+            if (healthStatusEl) {
+                healthStatusEl.innerHTML = `<span class="status-indicator ${healthIndicator} me-2"></span><span class="${healthClass}">${healthText}</span>`;
+            }
 
             // Update client status
-            document.getElementById('decoded-status').innerHTML = data.health?.decoded_client ? "&#10003;" : "&#10007;";
-            document.getElementById('decoded-status').className = data.health?.decoded_client ? "fs-4 text-success" : "fs-4 text-danger";
-            document.getElementById('raw-status').innerHTML = data.health?.raw_client ? "&#10003;" : "&#10007;";
-            document.getElementById('raw-status').className = data.health?.raw_client ? "fs-4 text-success" : "fs-4 text-danger";
+            const decodedStatusEl = document.getElementById('decoded-status');
+            if (decodedStatusEl) {
+                decodedStatusEl.innerHTML = data.health?.decoded_client ? "&#10003;" : "&#10007;";
+                decodedStatusEl.className = data.health?.decoded_client ? "fs-4 text-success" : "fs-4 text-danger";
+            }
+
+            const rawStatusEl = document.getElementById('raw-status');
+            if (rawStatusEl) {
+                rawStatusEl.innerHTML = data.health?.raw_client ? "&#10003;" : "&#10007;";
+                rawStatusEl.className = data.health?.raw_client ? "fs-4 text-success" : "fs-4 text-danger";
+            }
 
             // Update pool stats
             if (data.pool_stats) {
-                document.getElementById('max-connections').textContent = data.pool_stats.max_connections || 0;
+                const maxConnEl = document.getElementById('redis-mgmt-max-connections');
+                if (maxConnEl) maxConnEl.textContent = data.pool_stats.max_connections || 0;
+
                 const utilization = data.pool_stats.utilization_percent || 0;
-                document.getElementById('utilization').textContent = utilization + '%';
+                const utilizationEl = document.getElementById('utilization');
+                if (utilizationEl) utilizationEl.textContent = utilization + '%';
 
                 const utilizationBar = document.getElementById('utilization-bar');
-                utilizationBar.style.width = utilization + '%';
-                utilizationBar.className = 'progress-bar ' +
-                    (utilization > 90 ? 'bg-danger' : utilization > 75 ? 'bg-warning' : 'bg-success');
+                if (utilizationBar) {
+                    utilizationBar.style.width = utilization + '%';
+                    utilizationBar.className = 'progress-bar ' +
+                        (utilization > 90 ? 'bg-danger' : utilization > 75 ? 'bg-warning' : 'bg-success');
+                }
 
-                document.getElementById('created-connections').textContent = data.pool_stats.created_connections || 0;
-                document.getElementById('available-connections').textContent = data.pool_stats.available_connections || 0;
-                document.getElementById('in-use-connections').textContent = data.pool_stats.in_use_connections || 0;
+                const createdConnEl = document.getElementById('created-connections');
+                if (createdConnEl) createdConnEl.textContent = data.pool_stats.created_connections || 0;
+
+                const availableConnEl = document.getElementById('available-connections');
+                if (availableConnEl) availableConnEl.textContent = data.pool_stats.available_connections || 0;
+
+                const inUseConnEl = document.getElementById('in-use-connections');
+                if (inUseConnEl) inUseConnEl.textContent = data.pool_stats.in_use_connections || 0;
             }
 
             // Update server metrics
             if (data.server_metrics) {
-                document.getElementById('connected-clients').textContent = data.server_metrics.connected_clients || 'N/A';
-                document.getElementById('memory-usage').textContent = data.server_metrics.used_memory_human || 'N/A';
-                document.getElementById('commands-processed').textContent = data.server_metrics.total_commands_processed || 'N/A';
-                document.getElementById('ops-per-sec').textContent = data.server_metrics.instantaneous_ops_per_sec || 'N/A';
+                const connClientsEl = document.getElementById('connected-clients');
+                if (connClientsEl) connClientsEl.textContent = data.server_metrics.connected_clients || 'N/A';
+
+                const memUsageEl = document.getElementById('memory-usage');
+                if (memUsageEl) memUsageEl.textContent = data.server_metrics.used_memory_human || 'N/A';
+
+                const cmdsProcEl = document.getElementById('commands-processed');
+                if (cmdsProcEl) cmdsProcEl.textContent = data.server_metrics.total_commands_processed || 'N/A';
+
+                const opsSecEl = document.getElementById('ops-per-sec');
+                if (opsSecEl) opsSecEl.textContent = data.server_metrics.instantaneous_ops_per_sec || 'N/A';
             }
 
             // Update last updated time
-            document.getElementById('last-updated').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+            const lastUpdatedEl = document.getElementById('last-updated');
+            if (lastUpdatedEl) lastUpdatedEl.textContent = 'Last updated: ' + new Date().toLocaleTimeString();
         })
         .catch(error => {
             console.error('Error updating stats:', error);
@@ -288,6 +316,8 @@ function updateStats() {
 
 function testConnection() {
     const testButton = document.getElementById('test-btn');
+    if (!testButton) return;
+
     const originalText = testButton.innerHTML;
     testButton.innerHTML = '<i class="ti ti-loader spin me-1"></i>Testing...';
     testButton.disabled = true;
@@ -296,6 +326,8 @@ function testConnection() {
         .then(response => response.json())
         .then(data => {
             const resultsDiv = document.getElementById('test-results');
+            if (!resultsDiv) return;
+
             if (data.error) {
                 resultsDiv.innerHTML = `<div class="alert alert-danger mb-0" data-alert>${data.error}</div>`;
             } else {
@@ -323,8 +355,10 @@ function testConnection() {
             }
         })
         .catch(error => {
-            document.getElementById('test-results').innerHTML =
-                `<div class="alert alert-danger mb-0" data-alert>Error running tests: ${error}</div>`;
+            const resultsDiv = document.getElementById('test-results');
+            if (resultsDiv) {
+                resultsDiv.innerHTML = `<div class="alert alert-danger mb-0" data-alert>Error running tests: ${error}</div>`;
+            }
         })
         .finally(() => {
             testButton.innerHTML = originalText;
@@ -334,6 +368,8 @@ function testConnection() {
 
 function cleanupConnections() {
     const cleanupButton = document.getElementById('cleanup-btn');
+    if (!cleanupButton) return;
+
     const originalText = cleanupButton.innerHTML;
     cleanupButton.innerHTML = '<i class="ti ti-loader spin me-1"></i>Cleaning...';
     cleanupButton.disabled = true;
@@ -342,14 +378,20 @@ function cleanupConnections() {
         .then(response => response.json())
         .then(data => {
             if (data.error) {
-                AdminPanel.showMobileToast('Error during cleanup: ' + data.error, 'danger');
+                if (typeof AdminPanel !== 'undefined') {
+                    AdminPanel.showMobileToast('Error during cleanup: ' + data.error, 'danger');
+                }
             } else {
-                AdminPanel.showMobileToast('Connection cleanup completed successfully', 'success');
+                if (typeof AdminPanel !== 'undefined') {
+                    AdminPanel.showMobileToast('Connection cleanup completed successfully', 'success');
+                }
                 updateStats();
             }
         })
         .catch(error => {
-            AdminPanel.showMobileToast('Error during cleanup: ' + error, 'danger');
+            if (typeof AdminPanel !== 'undefined') {
+                AdminPanel.showMobileToast('Error during cleanup: ' + error, 'danger');
+            }
         })
         .finally(() => {
             cleanupButton.innerHTML = originalText;
@@ -357,38 +399,35 @@ function cleanupConnections() {
         });
 }
 
-// Event listeners
-document.getElementById('refresh-btn').addEventListener('click', updateStats);
-document.getElementById('test-btn').addEventListener('click', testConnection);
-document.getElementById('cleanup-btn').addEventListener('click', cleanupConnections);
+document.addEventListener('DOMContentLoaded', function() {
+    // Event listeners
+    const refreshBtn = document.getElementById('redis-mgmt-refresh-btn');
+    if (refreshBtn) refreshBtn.addEventListener('click', updateStats);
 
-document.getElementById('auto-refresh').addEventListener('change', function() {
-    if (this.checked) {
-        autoRefreshInterval = setInterval(updateStats, 5000);
-    } else {
-        clearInterval(autoRefreshInterval);
+    const testBtn = document.getElementById('test-btn');
+    if (testBtn) testBtn.addEventListener('click', testConnection);
+
+    const cleanupBtn = document.getElementById('cleanup-btn');
+    if (cleanupBtn) cleanupBtn.addEventListener('click', cleanupConnections);
+
+    const autoRefreshToggle = document.getElementById('auto-refresh');
+    if (autoRefreshToggle) {
+        autoRefreshToggle.addEventListener('change', function() {
+            if (this.checked) {
+                autoRefreshInterval = setInterval(updateStats, 5000);
+            } else {
+                clearInterval(autoRefreshInterval);
+            }
+        });
+
+        // Initialize auto-refresh
+        if (autoRefreshToggle.checked) {
+            autoRefreshInterval = setInterval(updateStats, 5000);
+        }
     }
+
+    // Initial load
+    updateStats();
 });
-
-// Initialize auto-refresh
-if (document.getElementById('auto-refresh').checked) {
-    autoRefreshInterval = setInterval(updateStats, 5000);
-}
-
-// Initial load
-updateStats();
-
-// Add spin animation
-const style = document.createElement('style');
-style.textContent = `
-    .spin {
-        animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-`;
-document.head.appendChild(style);
 </script>
 {% endblock %}

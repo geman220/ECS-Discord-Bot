@@ -84,6 +84,23 @@ export class ModernNavbarController {
     this.initRoleImpersonation();
     this.initTheme();
     this.initPresence();
+    this.initAvatarFallbacks();
+  }
+
+  /**
+   * Initialize avatar image fallbacks - replaces inline onerror handlers
+   */
+  initAvatarFallbacks() {
+    const avatars = this.navbar.querySelectorAll('.js-avatar-fallback');
+    avatars.forEach(img => {
+      img.addEventListener('error', () => {
+        img.classList.add('is-hidden');
+        const fallback = img.nextElementSibling;
+        if (fallback && fallback.dataset.fallback === 'initials') {
+          fallback.classList.remove('is-hidden');
+        }
+      });
+    });
   }
 
   /**

@@ -159,42 +159,6 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Delete subgroup button handlers
-    document.querySelectorAll('.js-delete-subgroup').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            const id = this.dataset.id;
-            const name = this.dataset.name;
-            deleteSubgroup(id, name);
-        });
-    });
-});
-
-function deleteSubgroup(id, name) {
-    Swal.fire({
-        title: 'Delete Subgroup?',
-        text: `Are you sure you want to delete "${name}"?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#d33',
-        confirmButtonText: 'Yes, delete'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '/admin/wallet/config/subgroups/' + id + '/delete';
-
-            const csrf = document.createElement('input');
-            csrf.type = 'hidden';
-            csrf.name = 'csrf_token';
-            csrf.value = '{{ csrf_token() }}';
-            form.appendChild(csrf);
-
-            document.body.appendChild(form);
-            form.submit();
-        }
-    });
-}
-</script>
+{{ super() }}
+{# Delete subgroup handler is now in wallet-config-handlers.js using data-action="delete-subgroup" #}
 {% endblock %}

@@ -211,6 +211,26 @@ import '../custom_js/waves-css-override.js';
 import '../custom_js/waitlist-login-register.js';
 import '../custom_js/waitlist-register-authenticated.js';
 import '../custom_js/waitlist-register.js';
+import '../custom_js/waitlist-carousel.js';
+import '../custom_js/waitlist-discord-cropper.js';
+import '../custom_js/wallet-pass-info.js';
+import '../custom_js/auto-schedule-config.js';
+import '../custom_js/ecs-fc-match.js';
+import '../custom_js/mobile-bottom-nav.js';
+import '../custom_js/online-users-widget.js';
+import '../custom_js/sync-review.js';
+
+// ============================================================================
+// 10b. CUSTOM JS - Admin Panel (League Management & Match Operations)
+// ============================================================================
+
+import '../custom_js/admin-seasons-management.js';
+import '../custom_js/admin-teams-management.js';
+import '../custom_js/admin-league-history.js';
+import '../custom_js/admin-season-wizard.js';
+import '../custom_js/admin-match-operations.js';
+import '../custom_js/admin-ispy-management.js';
+import '../custom_js/admin-ecs-fc-match.js';
 
 // ============================================================================
 // 11. ADDITIONAL JS MODULES

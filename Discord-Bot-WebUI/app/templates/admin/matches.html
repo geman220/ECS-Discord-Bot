@@ -254,53 +254,85 @@
 {{ super() }}
 {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <script>
-function scheduleMatch(matchId) {
-    if (confirm('Schedule live reporting for this match?')) {
-        fetch(`/admin/live-reporting/api/schedule-match/${matchId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert(`Success: ${data.message}`);
-                location.reload();
-            } else {
-                alert(`Error: ${data.error}`);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error scheduling match');
-        });
-    }
-}
+// Schedule match for live reporting - exposed for event delegation
+window.scheduleMatch = function(matchId) {
+    if (!confirm('Schedule live reporting for this match?')) return;
 
-function stopSession(sessionId) {
-    if (confirm('Stop this live reporting session?')) {
-        fetch(`/admin/live-reporting/api/session/${sessionId}/stop`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    fetch(`/admin/live-reporting/api/schedule-match/${matchId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('Success', data.message, 'success').then(() => location.reload());
+            } else {
                 alert(`Success: ${data.message}`);
                 location.reload();
+            }
+        } else {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('Error', data.error, 'error');
             } else {
                 alert(`Error: ${data.error}`);
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        if (typeof Swal !== 'undefined') {
+            Swal.fire('Error', 'Error scheduling match', 'error');
+        } else {
+            alert('Error scheduling match');
+        }
+    });
+};
+
+// Stop session - exposed for event delegation
+window.stopSession = function(sessionId) {
+    if (!confirm('Stop this live reporting session?')) return;
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    fetch(`/admin/live-reporting/api/session/${sessionId}/stop`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('Success', data.message, 'success').then(() => location.reload());
+            } else {
+                alert(`Success: ${data.message}`);
+                location.reload();
+            }
+        } else {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('Error', data.error, 'error');
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        if (typeof Swal !== 'undefined') {
+            Swal.fire('Error', 'Error stopping session', 'error');
+        } else {
             alert('Error stopping session');
-        });
-    }
-}
+        }
+    });
+};
 </script>
 {% endif %}
 {% endblock %}

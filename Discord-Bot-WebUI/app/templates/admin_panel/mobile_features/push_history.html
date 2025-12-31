@@ -305,317 +305,116 @@
 }
 </style>
 
+{# Event handlers managed by mobile-features-handlers.js via EventDelegation #}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Event delegation for push history actions
-document.addEventListener('DOMContentLoaded', function() {
-    // Bulk actions
-    document.querySelectorAll('.js-retry-failed').forEach(btn => {
-        btn.addEventListener('click', retryFailed);
-    });
+(function() {
+    'use strict';
 
-    document.querySelectorAll('.js-export-history').forEach(btn => {
-        btn.addEventListener('click', exportHistory);
-    });
+    // Register initialization with InitSystem
+    if (typeof InitSystem !== 'undefined') {
+        InitSystem.register('push-history', initPushHistory);
+    } else {
+        document.addEventListener('DOMContentLoaded', initPushHistory);
+    }
 
-    document.querySelectorAll('.js-cleanup-old').forEach(btn => {
-        btn.addEventListener('click', cleanupOld);
-    });
+    let pushHistoryChart = null;
+    let statusDistChart = null;
 
-    // Individual notification actions
-    document.querySelectorAll('.js-view-notification').forEach(btn => {
-        btn.addEventListener('click', function() {
-            viewNotificationDetails(this.dataset.notificationId);
-        });
-    });
+    function initPushHistory() {
+        // Select all functionality
+        const selectAllEl = document.getElementById('push-history-selectAll');
+        if (selectAllEl) {
+            selectAllEl.addEventListener('change', function() {
+                document.querySelectorAll('.notification-checkbox').forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                });
+            });
+        }
 
-    document.querySelectorAll('.js-retry-notification').forEach(btn => {
-        btn.addEventListener('click', function() {
-            retryNotification(this.dataset.notificationId);
-        });
-    });
+        // Initialize charts
+        initCharts();
 
-    document.querySelectorAll('.js-duplicate-notification').forEach(btn => {
-        btn.addEventListener('click', function() {
-            duplicateNotification(this.dataset.notificationId);
-        });
-    });
+        // Auto-refresh charts every 5 minutes
+        setInterval(() => {
+            if (pushHistoryChart) pushHistoryChart.update();
+            if (statusDistChart) statusDistChart.update();
+        }, 300000);
+    }
 
-    document.querySelectorAll('.js-delete-notification').forEach(btn => {
-        btn.addEventListener('click', function() {
-            deleteNotification(this.dataset.notificationId);
-        });
-    });
-});
+    function initCharts() {
+        const pushHistoryEl = document.getElementById('pushHistoryChart');
+        const statusDistEl = document.getElementById('statusDistributionChart');
 
-// Select all functionality
-const pushHistorySelectAll = document.getElementById('push-history-selectAll');
-if (pushHistorySelectAll) {
-    pushHistorySelectAll.addEventListener('change', function() {
-        const checkboxes = document.querySelectorAll('.notification-checkbox');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = this.checked;
-        });
-    });
-}
-
-// Push History Trends Chart
-const pushHistoryCtx = document.getElementById('pushHistoryChart').getContext('2d');
-const pushHistoryChart = new Chart(pushHistoryCtx, {
-    type: 'line',
-    data: {
-        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7'],
-        datasets: [{
-            label: 'Notifications Sent',
-            data: [45, 52, 38, 67, 58, 72, 65],
-            borderColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#007bff',
-            backgroundColor: 'rgba(0, 123, 255, 0.1)',
-            tension: 0.4,
-            fill: true
-        }, {
-            label: 'Delivery Rate (%)',
-            data: [95, 97, 93, 96, 98, 94, 95],
-            borderColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
-            backgroundColor: 'rgba(40, 167, 69, 0.1)',
-            tension: 0.4,
-            yAxisID: 'y1'
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-            y: {
-                beginAtZero: true,
-                title: {
-                    display: true,
-                    text: 'Notifications Sent'
-                }
-            },
-            y1: {
-                type: 'linear',
-                display: true,
-                position: 'right',
-                min: 0,
-                max: 100,
-                title: {
-                    display: true,
-                    text: 'Delivery Rate (%)'
+        if (pushHistoryEl) {
+            const ctx = pushHistoryEl.getContext('2d');
+            pushHistoryChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7'],
+                    datasets: [{
+                        label: 'Notifications Sent',
+                        data: [45, 52, 38, 67, 58, 72, 65],
+                        borderColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'Delivery Rate (%)',
+                        data: [95, 97, 93, 96, 98, 94, 95],
+                        borderColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        tension: 0.4,
+                        yAxisID: 'y1'
+                    }]
                 },
-                grid: {
-                    drawOnChartArea: false,
-                }
-            }
-        },
-        plugins: {
-            legend: {
-                position: 'top'
-            }
-        }
-    }
-});
-
-// Status Distribution Chart
-const statusDistCtx = document.getElementById('statusDistributionChart').getContext('2d');
-const statusDistChart = new Chart(statusDistCtx, {
-    type: 'doughnut',
-    data: {
-        labels: ['Sent', 'Delivered', 'Failed', 'Pending'],
-        datasets: [{
-            data: [{{ stats.total_sent or 0 }}, {{ (stats.total_sent * 0.95)|int if stats.total_sent else 0 }}, {{ (stats.total_sent * 0.03)|int if stats.total_sent else 0 }}, {{ (stats.total_sent * 0.02)|int if stats.total_sent else 0 }}],
-            backgroundColor: [
-                (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#007bff',
-                (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
-                (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-                (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ffc107'
-            ]
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom'
-            }
-        }
-    }
-});
-
-function viewNotificationDetails(notificationId) {
-    Swal.fire({
-        title: `Notification Details`,
-        html: `
-            <div class="text-start">
-                <div class="mb-3">
-                    <strong>Notification ID:</strong> ${notificationId}<br>
-                    <strong>Type:</strong> Push Notification<br>
-                    <strong>Status:</strong> <span class="badge bg-success" data-badge>Sent</span><br>
-                    <strong>Created:</strong> 2024-01-30 18:00:00
-                </div>
-                <div class="mb-3">
-                    <strong>Content:</strong><br>
-                    <div class="c-card bg-light p-2">
-                        <strong>Title:</strong> Match Starting Soon!<br>
-                        <strong>Message:</strong> Your match against Arsenal FC starts in 30 minutes. Good luck team!
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <strong>Delivery Information:</strong><br>
-                    • Sent to: john.doe@example.com<br>
-                    • Device: iPhone 12 Pro (iOS)<br>
-                    • Sent at: 2024-01-30 18:00:15<br>
-                    • Delivered at: 2024-01-30 18:00:18<br>
-                    • Opened at: 2024-01-30 18:02:45
-                </div>
-                <div class="mb-3">
-                    <strong>Metadata:</strong><br>
-                    • Campaign: Match Day Reminders<br>
-                    • Priority: High<br>
-                    • Badge Count: 1<br>
-                    • Sound: default.aiff
-                </div>
-            </div>
-        `,
-        width: '600px',
-        confirmButtonText: 'Close'
-    });
-}
-
-function retryNotification(notificationId) {
-    Swal.fire({
-        title: 'Retry Notification?',
-        text: 'This will attempt to resend the failed notification',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Retry Send'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire({
-                title: 'Retrying...',
-                text: 'Attempting to resend notification',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                    setTimeout(() => {
-                        Swal.fire('Notification Retried!', 'The notification has been queued for retry.', 'success')
-                            .then(() => location.reload());
-                    }, 2000);
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Notifications Sent' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            min: 0,
+                            max: 100,
+                            title: { display: true, text: 'Delivery Rate (%)' },
+                            grid: { drawOnChartArea: false }
+                        }
+                    },
+                    plugins: { legend: { position: 'top' } }
                 }
             });
         }
-    });
-}
 
-function duplicateNotification(notificationId) {
-    Swal.fire({
-        title: 'Duplicate Notification?',
-        text: 'This will create a copy of this notification that you can send again',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Duplicate'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Redirect to campaigns page with notification data pre-filled
-            Swal.fire('Notification Duplicated!', 'The notification has been copied to a new campaign.', 'success');
+        if (statusDistEl) {
+            const ctx = statusDistEl.getContext('2d');
+            statusDistChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Sent', 'Delivered', 'Failed', 'Pending'],
+                    datasets: [{
+                        data: [{{ stats.total_sent or 0 }}, {{ (stats.total_sent * 0.95)|int if stats.total_sent else 0 }}, {{ (stats.total_sent * 0.03)|int if stats.total_sent else 0 }}, {{ (stats.total_sent * 0.02)|int if stats.total_sent else 0 }}],
+                        backgroundColor: [
+                            (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#007bff',
+                            (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
+                            (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+                            (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ffc107'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
         }
-    });
-}
-
-function deleteNotification(notificationId) {
-    Swal.fire({
-        title: 'Delete Notification?',
-        text: 'This will permanently remove this notification from history',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Delete',
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire('Notification Deleted!', 'The notification has been removed from history.', 'success')
-                .then(() => location.reload());
-        }
-    });
-}
-
-function retryFailed() {
-    const selectedNotifications = Array.from(document.querySelectorAll('.notification-checkbox:checked')).map(cb => cb.value);
-    
-    if (selectedNotifications.length === 0) {
-        Swal.fire('No Notifications Selected', 'Please select failed notifications to retry.', 'warning');
-        return;
     }
-    
-    Swal.fire({
-        title: `Retry ${selectedNotifications.length} Failed Notifications?`,
-        text: 'This will attempt to resend all selected failed notifications',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Retry All'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire({
-                title: 'Retrying Notifications...',
-                text: 'Processing retry requests',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                    setTimeout(() => {
-                        Swal.fire('Retry Complete!', `${selectedNotifications.length} notifications have been queued for retry.`, 'success')
-                            .then(() => location.reload());
-                    }, 3000);
-                }
-            });
-        }
-    });
-}
-
-function exportHistory() {
-    const selectedNotifications = Array.from(document.querySelectorAll('.notification-checkbox:checked')).map(cb => cb.value);
-    
-    Swal.fire({
-        title: 'Export Push History?',
-        text: selectedNotifications.length > 0 ? `Export ${selectedNotifications.length} selected notifications?` : 'Export all visible notifications?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Export Data'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire('Export Started!', 'Push history export is being prepared for download.', 'success');
-        }
-    });
-}
-
-function cleanupOld() {
-    Swal.fire({
-        title: 'Cleanup Old Notifications?',
-        text: 'This will permanently remove push notifications older than 90 days',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Cleanup Old',
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire({
-                title: 'Cleaning Up...',
-                text: 'Removing old push notifications',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                    setTimeout(() => {
-                        Swal.fire('Cleanup Complete!', '247 old notifications have been removed.', 'success')
-                            .then(() => location.reload());
-                    }, 2000);
-                }
-            });
-        }
-    });
-}
-
-// Auto-refresh charts every 5 minutes
-setInterval(() => {
-    pushHistoryChart.update();
-    statusDistChart.update();
-}, 300000);
+})();
 </script>
 {% endblock %}

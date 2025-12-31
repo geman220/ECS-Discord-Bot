@@ -655,4 +655,255 @@ EventDelegation.register('export-pass-data', (element, event) => {
     });
 });
 
+// ============================================================================
+// SPONSORS HANDLERS
+// ============================================================================
+
+/**
+ * Delete sponsor confirmation
+ */
+EventDelegation.register('delete-sponsor', (element, event) => {
+    event.preventDefault();
+    const id = element.dataset.id;
+    const name = element.dataset.name || 'this sponsor';
+
+    Swal.fire({
+        title: 'Delete Sponsor?',
+        text: `Are you sure you want to delete "${name}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#d33',
+        confirmButtonText: 'Yes, delete'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/admin/wallet/config/sponsors/' + id + '/delete';
+
+            const csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = 'csrf_token';
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            csrf.value = csrfMeta ? csrfMeta.getAttribute('content') : '';
+            form.appendChild(csrf);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+});
+
+// ============================================================================
+// SUBGROUPS HANDLERS
+// ============================================================================
+
+/**
+ * Delete subgroup confirmation
+ */
+EventDelegation.register('delete-subgroup', (element, event) => {
+    event.preventDefault();
+    const id = element.dataset.id;
+    const name = element.dataset.name || 'this subgroup';
+
+    Swal.fire({
+        title: 'Delete Subgroup?',
+        text: `Are you sure you want to delete "${name}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#d33',
+        confirmButtonText: 'Yes, delete'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/admin/wallet/config/subgroups/' + id + '/delete';
+
+            const csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = 'csrf_token';
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            csrf.value = csrfMeta ? csrfMeta.getAttribute('content') : '';
+            form.appendChild(csrf);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+});
+
+// ============================================================================
+// WOOCOMMERCE WIZARD HANDLERS
+// ============================================================================
+
+/**
+ * Copy text to clipboard
+ */
+EventDelegation.register('copy-to-clipboard', (element, event) => {
+    event.preventDefault();
+    const targetId = element.dataset.targetId;
+    const targetElement = document.getElementById(targetId);
+
+    if (!targetElement) return;
+
+    const text = targetElement.value || targetElement.textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        // Show brief feedback
+        const originalHtml = element.innerHTML;
+        element.innerHTML = '<i class="ti ti-check"></i>';
+        setTimeout(() => { element.innerHTML = originalHtml; }, 1500);
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+    });
+});
+
+/**
+ * Generate webhook secret
+ */
+EventDelegation.register('generate-secret', (element, event) => {
+    event.preventDefault();
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let secret = '';
+    for (let i = 0; i < 32; i++) {
+        secret += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const secretInput = document.getElementById('generatedSecret');
+    if (secretInput) {
+        secretInput.value = secret;
+    }
+});
+
+/**
+ * Save WooCommerce URL
+ */
+EventDelegation.register('save-woocommerce-url', (element, event) => {
+    event.preventDefault();
+    const urlInput = document.getElementById('woocommerceSiteUrl');
+    const statusDiv = document.getElementById('wooUrlStatus');
+    const warningDiv = document.getElementById('wooUrlWarning');
+    const url = urlInput ? urlInput.value.trim() : '';
+
+    if (!url) {
+        if (statusDiv) statusDiv.innerHTML = '<span class="text-danger"><i class="ti ti-x me-1"></i>URL is required</span>';
+        return;
+    }
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        if (statusDiv) statusDiv.innerHTML = '<span class="text-danger"><i class="ti ti-x me-1"></i>URL must start with http:// or https://</span>';
+        return;
+    }
+
+    if (statusDiv) statusDiv.innerHTML = '<span class="text-info"><i class="ti ti-loader ti-spin me-1"></i>Saving...</span>';
+
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+    fetch('/admin/wallet/config/wizard/save-woocommerce-url', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ woocommerce_site_url: url })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (statusDiv) statusDiv.innerHTML = '<span class="text-success"><i class="ti ti-check me-1"></i>Saved successfully!</span>';
+            if (warningDiv) warningDiv.style.display = 'none';
+        } else {
+            if (statusDiv) statusDiv.innerHTML = '<span class="text-danger"><i class="ti ti-x me-1"></i>' + (data.error || 'Failed to save') + '</span>';
+        }
+    })
+    .catch(error => {
+        if (statusDiv) statusDiv.innerHTML = '<span class="text-danger"><i class="ti ti-x me-1"></i>Error: ' + error.message + '</span>';
+    });
+});
+
+/**
+ * Validate plugin connection
+ */
+EventDelegation.register('validate-plugin-connection', (element, event) => {
+    event.preventDefault();
+    const resultDiv = document.getElementById('plugin-validation-result');
+
+    if (!resultDiv) return;
+
+    resultDiv.innerHTML = `
+        <div class="alert alert-info mb-0" data-alert>
+            <i class="ti ti-loader ti-spin me-2"></i>
+            Checking webhook endpoint...
+        </div>
+    `;
+
+    // Get the base URL from the current page
+    const baseUrl = window.location.origin;
+
+    fetch(baseUrl + '/api/v1/wallet/webhook/test')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-success mb-3" data-alert>
+                        <i class="ti ti-circle-check me-2"></i>
+                        <strong>Webhook Endpoint:</strong> Accessible and responding correctly
+                    </div>
+                    <div class="c-card bg-body-tertiary">
+                        <div class="c-card__body">
+                            <h6>Connection Details</h6>
+                            <table class="c-table c-table--compact mb-0" data-table data-mobile-table data-table-type="config">
+                                <tr>
+                                    <td><strong>Status</strong></td>
+                                    <td><span class="badge bg-label-success" data-badge>OK</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Webhook URL</strong></td>
+                                    <td><code>${data.webhook_url || 'N/A'}</code></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Message</strong></td>
+                                    <td>${data.message || 'Endpoint reachable'}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="alert alert-info mt-3 mb-0" data-alert>
+                        <i class="ti ti-info-circle me-2"></i>
+                        <strong>Next Step:</strong> To fully test the integration, create a test order in WooCommerce with a product like "ECS 2026 Membership Card (testing)" - the pass will be created when payment is received (order moves to "processing" status).
+                    </div>
+                `;
+            } else {
+                throw new Error('Unexpected response from webhook endpoint');
+            }
+        })
+        .catch(error => {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger mb-0" data-alert>
+                    <i class="ti ti-alert-circle me-2"></i>
+                    <strong>Error:</strong> Could not reach webhook endpoint
+                    <p class="mb-0 mt-2 small">${error.message}</p>
+                </div>
+            `;
+        });
+});
+
+// ============================================================================
+// HELP PAGE HANDLERS
+// ============================================================================
+
+/**
+ * Smooth scroll to section
+ */
+EventDelegation.register('scroll-to-section', (element, event) => {
+    event.preventDefault();
+    const targetId = element.getAttribute('href')?.substring(1) || element.dataset.target;
+    const targetElement = document.getElementById(targetId);
+
+    if (targetElement) {
+        window.scrollTo({
+            top: targetElement.offsetTop - 80,
+            behavior: 'smooth'
+        });
+    }
+});
+
 console.log('[EventDelegation] Wallet config handlers loaded');

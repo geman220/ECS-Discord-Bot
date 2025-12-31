@@ -217,8 +217,25 @@
 {% block custom_js %}
 {{ super() }}
 <script>
+{# Draft cache stats uses EventDelegation for warm-cache action via admin-cache.js handler #}
 document.addEventListener('DOMContentLoaded', function() {
     loadCacheStats();
+
+    // Refresh button
+    const refreshBtn = document.getElementById('draft-cache-stats-refresh-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            location.reload();
+        });
+    }
+
+    // Warm cache buttons - set up API URLs for EventDelegation handler
+    document.querySelectorAll('[data-action="warm-cache"]').forEach(btn => {
+        const leagueName = btn.dataset.league;
+        if (leagueName) {
+            btn.dataset.apiUrl = '{{ url_for("admin_panel.redis_warm_draft_cache", league_name="LEAGUE_NAME") }}'.replace('LEAGUE_NAME', leagueName);
+        }
+    });
 });
 
 function loadCacheStats() {
@@ -232,10 +249,17 @@ function loadCacheStats() {
 
             // Update TTL settings
             if (data.ttl_settings) {
-                document.getElementById('player-ttl').textContent = formatTTL(data.ttl_settings.player_data);
-                document.getElementById('analytics-ttl').textContent = formatTTL(data.ttl_settings.analytics);
-                document.getElementById('team-ttl').textContent = formatTTL(data.ttl_settings.team_data);
-                document.getElementById('availability-ttl').textContent = formatTTL(data.ttl_settings.availability);
+                const playerTtlEl = document.getElementById('player-ttl');
+                if (playerTtlEl) playerTtlEl.textContent = formatTTL(data.ttl_settings.player_data);
+
+                const analyticsTtlEl = document.getElementById('analytics-ttl');
+                if (analyticsTtlEl) analyticsTtlEl.textContent = formatTTL(data.ttl_settings.analytics);
+
+                const teamTtlEl = document.getElementById('team-ttl');
+                if (teamTtlEl) teamTtlEl.textContent = formatTTL(data.ttl_settings.team_data);
+
+                const availabilityTtlEl = document.getElementById('availability-ttl');
+                if (availabilityTtlEl) availabilityTtlEl.textContent = formatTTL(data.ttl_settings.availability);
             }
         })
         .catch(error => {
@@ -250,40 +274,5 @@ function formatTTL(seconds) {
     if (seconds < 86400) return Math.round(seconds / 3600) + ' hours';
     return Math.round(seconds / 86400) + ' days';
 }
-
-// Event delegation for warm cache button
-document.addEventListener('click', function(e) {
-    if (e.target.closest('.js-warm-cache')) {
-        const btn = e.target.closest('.js-warm-cache');
-        const leagueName = btn.dataset.league;
-        const buttons = document.querySelectorAll('[id^="warm-btn-"]');
-
-        buttons.forEach(b => b.disabled = true);
-
-        fetch(`{{ url_for('admin_panel.redis_warm_draft_cache', league_name='LEAGUE_NAME') }}`.replace('LEAGUE_NAME', leagueName), {
-            method: 'POST'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                AdminPanel.showMobileToast(data.message, 'success');
-                setTimeout(() => location.reload(), 1000);
-            } else {
-                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
-            }
-        })
-        .catch(error => {
-            console.error('Error warming cache:', error);
-            AdminPanel.showMobileToast('Error warming cache', 'danger');
-        })
-        .finally(() => {
-            buttons.forEach(b => b.disabled = false);
-        });
-    }
-});
-
-document.getElementById('refresh-btn').addEventListener('click', function() {
-    location.reload();
-});
 </script>
 {% endblock %}

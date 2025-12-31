@@ -328,28 +328,10 @@
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Auto-refresh stats every 5 minutes
-    if (AdminPanel.isDesktop()) {
-        setInterval(refreshDashboardStats, 300000);
-    }
-});
-
-function refreshDashboardStats() {
-    fetch('{{ url_for("admin_panel.league_management_dashboard_stats") }}')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                console.log('Dashboard stats refreshed');
-                // Could update specific elements here if needed
-            }
-        })
-        .catch(error => {
-            console.error('Error refreshing stats:', error);
-        });
-}
+// Dashboard configuration
+window.LEAGUE_MANAGEMENT_CONFIG = {
+    dashboardStatsUrl: '{{ url_for("admin_panel.league_management_dashboard_stats") }}'
+};
 </script>
-{% endif %}
 {% endblock %}

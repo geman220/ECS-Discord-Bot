@@ -174,29 +174,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-function autoAssignPlayoffs() {
-    if (confirm('This will automatically assign playoff teams based on current standings. Are you sure?')) {
-        fetch('{{ url_for("admin.auto_assign_playoffs", league_id=league.id) }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Playoff teams have been auto-assigned based on standings!');
-                location.reload();
-            } else {
-                alert('Error: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while auto-assigning playoffs');
-        });
-    }
-}
-</script>
+{{ super() }}
+{# Inline JS removed - autoAssignPlayoffs() now handled by data-action="auto-assign-playoffs" #}
+{# Handler implemented in admin-league-management.js event delegation handler #}
 {% endblock %}

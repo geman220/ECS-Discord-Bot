@@ -1469,72 +1469,28 @@
 
 <!-- Match-specific initialization -->
 <script>
-// Global variables for match info
+// Global variables for match info (needed by external modules)
 const matchId = "{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}";
 const isEcsFcMatch = {{ 'true' if is_ecs_fc_match else 'false' }};
 const leagueType = "{% if is_ecs_fc_match %}ECS FC{% else %}Classic{% endif %}";
 
-// Substitute Slots Management
-function updateSubstituteSlots() {
-    const count = parseInt(document.getElementById('substitutes_needed').value);
-    const container = document.getElementById('substitute-slots-container');
-    
-    // Clear existing slots
-    container.innerHTML = '';
-    
-    // Create slots for each substitute needed
-    for (let i = 1; i <= count; i++) {
-        const slotHtml = `
-            <div class="row mb-2 substitute-slot" data-slot="${i}">
-                <div class="col-1">
-                    <span class="badge bg-primary" data-badge>${i}</span>
-                </div>
-                <div class="col-6">
-                    <select class="form-select form-select-sm" name="slot_${i}_position" data-form-select>
-                        <option value="">Any Position</option>
-                        <option value="Goalkeeper">Goalkeeper</option>
-                        <option value="Center Back">Center Back</option>
-                        <option value="Left Back">Left Back</option>
-                        <option value="Right Back">Right Back</option>
-                        <option value="Defensive Midfielder">Defensive Midfielder</option>
-                        <option value="Central Midfielder">Central Midfielder</option>
-                        <option value="Attacking Midfielder">Attacking Midfielder</option>
-                        <option value="Left Midfielder">Left Midfielder</option>
-                        <option value="Right Midfielder">Right Midfielder</option>
-                        <option value="Left Winger">Left Winger</option>
-                        <option value="Right Winger">Right Winger</option>
-                        <option value="Forward">Forward</option>
-                        <option value="Striker">Striker</option>
-                    </select>
-                </div>
-                <div class="col-5">
-                    <select class="form-select form-select-sm" name="slot_${i}_gender" data-form-select>
-                        <option value="">Any Gender</option>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                    </select>
-                </div>
-            </div>
-        `;
-        container.insertAdjacentHTML('beforeend', slotHtml);
-    }
-}
-
 // Initialize match substitute request management when page loads
 $(document).ready(function() {
     // Only initialize substitute slots for ECS FC matches
-    if (isEcsFcMatch) {
-        updateSubstituteSlots();
+    if (isEcsFcMatch && typeof window.updateSubstituteSlots === 'function') {
+        window.updateSubstituteSlots();
     }
-    
+
     // Load substitute requests when the modal is shown (only if modal exists)
     if ($('#requestSubModal').length > 0) {
         $('#requestSubModal').on('shown.bs.modal', function() {
             // Load existing requests when modal opens
-            loadMatchSubstituteRequests(matchId);
+            if (typeof loadMatchSubstituteRequests === 'function') {
+                loadMatchSubstituteRequests(matchId);
+            }
             // Reset and initialize slots for ECS FC matches only
-            if (isEcsFcMatch) {
-                updateSubstituteSlots();
+            if (isEcsFcMatch && typeof window.updateSubstituteSlots === 'function') {
+                window.updateSubstituteSlots();
             }
         });
     }
@@ -1543,63 +1499,19 @@ $(document).ready(function() {
     if ($('#requestSubForm').length > 0) {
         $('#requestSubForm').on('submit', function(e) {
             const form = this;
-            
+
             // Add a small delay to let the form submit, then refresh the requests
             setTimeout(function() {
                 if (!form.checkValidity || form.checkValidity()) {
-                    loadMatchSubstituteRequests(matchId);
+                    if (typeof loadMatchSubstituteRequests === 'function') {
+                        loadMatchSubstituteRequests(matchId);
+                    }
                 }
             }, 2000);
         });
     }
 });
-
-// Legacy function for compatibility - removed to prevent recursion
-// The loadMatchSubstituteRequests function is now handled directly by the external module
-
-// Mobile card expansion functionality
-function toggleCardExpansion(button) {
-    const card = button.closest('.rsvp-mobile-card');
-    const cardBody = card.querySelector('.rsvp-card-body');
-    const isExpanded = cardBody.classList.contains('show');
-    
-    if (isExpanded) {
-        cardBody.classList.remove('show');
-        button.classList.remove('expanded');
-    } else {
-        cardBody.classList.add('show');
-        button.classList.add('expanded');
-    }
-}
-
-// Enhanced mobile contact handling
-$(document).ready(function() {
-    // Handle mobile SMS buttons
-    $('.contact-action-btn.send-sms-btn').on('click', function() {
-        const playerId = $(this).data('player-id');
-        const playerName = $(this).data('player-name');
-        const phone = $(this).data('phone');
-        
-        // Trigger existing SMS modal
-        $('#smsPlayerId').val(playerId);
-        $('#smsPlayerName').text(playerName);
-        $('#smsPlayerPhone').val(phone);
-        $('#smsPlayerPhoneDisplay').text(phone);
-        $('#sendSmsModal').modal('show');
-    });
-    
-    // Handle mobile Discord DM buttons
-    $('.contact-action-btn[data-discord-id]').on('click', function() {
-        const playerId = $(this).data('player-id');
-        const playerName = $(this).data('player-name');
-        const discordId = $(this).data('discord-id');
-        
-        // Trigger existing Discord DM modal
-        $('#discordPlayerId').val(playerId);
-        $('#discordPlayerName').text(playerName);
-        $('#discordId').val(discordId);
-        $('#sendDiscordDmModal').modal('show');
-    });
-});
 </script>
+{# toggleCardExpansion() and updateSubstituteSlots() are now in rsvp-actions.js #}
+{# Mobile contact handlers are now managed by event delegation #}
 {% endblock %}

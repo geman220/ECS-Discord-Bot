@@ -46,10 +46,8 @@ if (InitSystem && InitSystem.register) {
     });
 }
 
-// Fallback - use jQuery ready if available
-if (typeof window.$ !== 'undefined') {
-    window.$(document).ready(init);
-} else if (document.readyState === 'loading') {
+// Fallback for non-module usage
+if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
 } else {
     init();

@@ -461,6 +461,80 @@ EventDelegation.register('retry-task', function(element, e) {
 });
 
 /**
+ * Expire Task
+ * Marks a task as expired
+ */
+EventDelegation.register('expire-task', function(element, e) {
+    e.preventDefault();
+
+    const taskId = element.dataset.taskId;
+
+    if (!taskId) {
+        console.error('[expire-task] Missing task ID');
+        return;
+    }
+
+    if (!confirm('Mark this task as expired?')) return;
+
+    const originalText = element.innerHTML;
+    element.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    element.disabled = true;
+
+    fetch(`/admin-panel/mls/task/${taskId}/expire`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (typeof window.AdminPanel !== 'undefined') {
+                window.AdminPanel.showMobileToast(data.message || 'Task expired', 'success');
+            }
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            throw new Error(data.error || 'Failed to expire task');
+        }
+    })
+    .catch(error => {
+        if (typeof window.AdminPanel !== 'undefined') {
+            window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
+        }
+    })
+    .finally(() => {
+        element.innerHTML = originalText;
+        element.disabled = false;
+    });
+});
+
+/**
+ * Toggle Auto Refresh Status
+ * Toggles auto-refresh for task monitoring page
+ */
+EventDelegation.register('toggle-auto-refresh-status', function(element, e) {
+    // Toggle auto-refresh state stored in a global or element data attribute
+    const currentState = element.dataset.autoRefresh !== 'false';
+    const newState = !currentState;
+    element.dataset.autoRefresh = String(newState);
+    element.textContent = `Auto-refresh: ${newState ? 'ON' : 'OFF'}`;
+    element.classList.toggle('bg-secondary', !newState);
+    element.classList.toggle('bg-success', newState);
+
+    // Store the state for the auto-refresh interval to check
+    window.taskMonitorAutoRefresh = newState;
+});
+
+/**
+ * Manual Refresh
+ * Manually refreshes the task monitoring page
+ */
+EventDelegation.register('manual-refresh', function(element, e) {
+    e.preventDefault();
+    location.reload();
+});
+
+/**
  * View Task Logs
  * Shows logs for a specific task
  */

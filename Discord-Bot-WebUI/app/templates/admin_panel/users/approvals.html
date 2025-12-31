@@ -341,133 +341,17 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+<!-- User Approvals Module (extracted from inline JS) -->
+<script src="{{ url_for('static', filename='custom_js/user-approvals.js') }}"></script>
 <script>
-// Event delegation for all user actions
-document.addEventListener('click', function(e) {
-    const target = e.target.closest('[data-action]');
-    if (!target) return;
-
-    const action = target.dataset.action;
-    const userId = target.dataset.userId;
-    const userName = target.dataset.userName;
-
-    switch(action) {
-        case 'back':
-            window.history.back();
-            break;
-        case 'approve-all':
-            approveAllPending();
-            break;
-        case 'view-user':
-            viewUserDetails(userId, userName);
-            break;
-        case 'approve-user':
-            approveUser(userId, userName);
-            break;
-        case 'reject-user':
-            rejectUser(userId, userName);
-            break;
-    }
+// Initialize UserApprovals with template data
+UserApprovals.init({
+    getUserDetailsUrl: '{{ url_for("admin_panel.get_user_details") }}',
+    processApprovalUrl: '{{ url_for("admin_panel.process_user_approval") }}',
+    csrfToken: '{{ csrf_token() }}',
+    pendingUsersCount: {{ pending_users|length }}
 });
-
-function viewUserDetails(userId, userName) {
-    document.getElementById('user_details_title').textContent = `Details for ${userName}`;
-    document.getElementById('user_details_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status" data-spinner></div></div>';
-
-    ModalManager.show('userDetailsModal');
-    
-    // Load user details via AJAX
-    fetch(`{{ url_for('admin_panel.get_user_details') }}?user_id=${userId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById('user_details_content').innerHTML = data.html;
-            } else {
-                document.getElementById('user_details_content').innerHTML = '<div class="alert alert-danger" data-alert>Error loading user details</div>';
-            }
-        })
-        .catch(error => {
-            document.getElementById('user_details_content').innerHTML = '<div class="alert alert-danger" data-alert>Error loading user details</div>';
-        });
-}
-
-function approveUser(userId, userName) {
-    Swal.fire({
-        title: 'Approve User?',
-        text: `Are you sure you want to approve "${userName}"?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-        confirmButtonText: 'Yes, approve!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            submitUserAction('approve', userId);
-        }
-    });
-}
-
-function rejectUser(userId, userName) {
-    Swal.fire({
-        title: 'Reject User?',
-        text: `Are you sure you want to reject "${userName}"?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-        confirmButtonText: 'Yes, reject!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            submitUserAction('reject', userId);
-        }
-    });
-}
-
-function approveAllPending() {
-    const pendingCount = {{ pending_users|length }};
-    Swal.fire({
-        title: 'Approve All Pending Users?',
-        text: `This will approve ${pendingCount} pending users. This action cannot be undone.`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-        confirmButtonText: 'Yes, approve all!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            submitUserAction('approve_all', null);
-        }
-    });
-}
-
-function submitUserAction(action, userId) {
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = `{{ url_for('admin_panel.process_user_approval') }}`;
-    
-    const _csrfToken = document.createElement('input');
-    csrfToken.type = 'hidden';
-    csrfToken.name = 'csrf_token';
-    csrfToken.value = '{{ csrf_token() }}';
-    
-    const actionInput = document.createElement('input');
-    actionInput.type = 'hidden';
-    actionInput.name = 'action';
-    actionInput.value = action;
-    
-    form.appendChild(csrfToken);
-    form.appendChild(actionInput);
-    
-    if (userId) {
-        const userIdInput = document.createElement('input');
-        userIdInput.type = 'hidden';
-        userIdInput.name = 'user_id';
-        userIdInput.value = userId;
-        form.appendChild(userIdInput);
-    }
-    
-    document.body.appendChild(form);
-    form.submit();
-}
 </script>
+{% endif %}
 {% endblock %}

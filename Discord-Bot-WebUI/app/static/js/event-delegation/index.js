@@ -89,6 +89,27 @@ import './handlers/mobile-features-handlers.js'; // Feature toggles, analytics, 
 // Admin Panel - Wallet Config
 import './handlers/wallet-config-handlers.js';   // Template management, visual editor, diagnostics
 
+// Admin Panel - Reports
+import './handlers/admin-reports-handlers.js';   // Feedback management, RSVP status
+
+// Admin Panel - Statistics & Playoffs
+import './handlers/admin-statistics-handlers.js'; // Statistics management, recalculation, export
+
+// Admin Panel - Quick Actions
+import './handlers/admin-quick-actions-handlers.js'; // Quick action buttons, custom actions
+
+// Admin Panel - Playoff Management
+import './handlers/admin-playoff-handlers.js';   // Playoff creation, bracket management
+
+// Admin Panel - League Management
+import './handlers/admin-league-management.js';  // Seasons, teams, playoff assignment
+
+// Admin Panel - Cache Management
+import './handlers/admin-cache.js';              // Draft cache stats, cache warming
+
+// Admin Panel - Role Management
+import './handlers/admin-roles-handlers.js';     // Role CRUD, assignment, permissions
+
 // EventDelegation is available globally via EventDelegation
 
 console.log('[EventDelegation] Modular system fully loaded');

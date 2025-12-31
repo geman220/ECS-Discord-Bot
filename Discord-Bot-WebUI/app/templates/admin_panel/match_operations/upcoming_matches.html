@@ -189,54 +189,5 @@
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-<script>
-// Event delegation for upcoming match actions
-document.addEventListener('DOMContentLoaded', function() {
-    document.addEventListener('click', function(e) {
-        const target = e.target.closest('[data-action]');
-        if (!target) return;
-
-        const action = target.dataset.action;
-        const matchId = target.dataset.matchId;
-
-        switch(action) {
-            case 'view-match':
-                viewMatch(matchId);
-                break;
-            case 'edit-match':
-                editMatch(matchId);
-                break;
-            case 'schedule-match':
-                scheduleMatch(matchId);
-                break;
-        }
-    });
-});
-
-function viewMatch(matchId) {
-    Swal.fire({
-        title: 'Match Details',
-        text: 'Match details functionality coming soon!',
-        icon: 'info'
-    });
-}
-
-function editMatch(matchId) {
-    Swal.fire({
-        title: 'Edit Match',
-        text: 'Match editing functionality coming soon!',
-        icon: 'info'
-    });
-}
-
-function scheduleMatch(matchId) {
-    Swal.fire({
-        title: 'Schedule Match',
-        text: 'Match scheduling functionality coming soon!',
-        icon: 'info'
-    });
-}
-</script>
-{% endif %}
+{# Upcoming matches page - uses admin-match-operations.js module #}
 {% endblock %}

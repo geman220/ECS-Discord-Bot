@@ -1,5 +1,9 @@
 'use strict';
 
+import { InitSystem } from './init-system.js';
+
+let _initialized = false;
+
 /**
  * ECS Theme Colors Utility
  * Provides easy access to CSS theme variables from JavaScript
@@ -198,12 +202,12 @@ const observer = new MutationObserver((mutations) => {
     });
 });
 
-// Start observing when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        observer.observe(document.documentElement, { attributes: true });
-    });
-} else {
+/**
+ * Initialize theme color observer
+ */
+function init() {
+    if (_initialized) return;
+    _initialized = true;
     observer.observe(document.documentElement, { attributes: true });
 }
 
@@ -217,6 +221,7 @@ export const ECSTheme = {
     getSwalColors,
     getCSSVar,
     invalidateCache,
+    init,
 };
 
 // Backward compatibility
@@ -227,3 +232,19 @@ window.getAllColors = getAllColors;
 window.getChartColors = getChartColors;
 window.getSwalColors = getSwalColors;
 window.invalidateCache = invalidateCache;
+
+// Register with InitSystem
+if (InitSystem && InitSystem.register) {
+    InitSystem.register('theme-colors', init, {
+        priority: 5,
+        reinitializable: false,
+        description: 'Theme color CSS variable observer'
+    });
+}
+
+// Fallback initialization
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
