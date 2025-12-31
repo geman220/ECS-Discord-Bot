@@ -103,12 +103,12 @@ function initializePaginationState(poolsData) {
 function initializeSearch() {
     let searchTimeout;
 
-    $('#playerSearch').on('input', function() {
+    window.$('#playerSearch').on('input', function() {
         clearTimeout(searchTimeout);
-        const query = $(this).val().trim();
+        const query = window.$(this).val().trim();
 
         if (query.length < 2) {
-            $('#searchResults').hide();
+            window.$('#searchResults').hide();
             return;
         }
 
@@ -117,15 +117,15 @@ function initializeSearch() {
         }, 300);
     });
 
-    $(document).on('click', function(e) {
+    window.$(document).on('click', function(e) {
         if (!$(e.target).closest('.search-container').length) {
-            $('#searchResults').hide();
+            window.$('#searchResults').hide();
         }
     });
 }
 
 function performSearch(query) {
-    const leagueFilter = $('#searchLeagueFilter').val();
+    const leagueFilter = window.$('#searchLeagueFilter').val();
 
     window.$.ajax({
         url: '/api/substitute-pools/player-search',
@@ -148,7 +148,7 @@ function performSearch(query) {
 }
 
 function displaySearchResults(players) {
-    const resultsContainer = $('#searchResults');
+    const resultsContainer = window.$('#searchResults');
     resultsContainer.empty();
 
     if (players.length === 0) {
@@ -209,16 +209,16 @@ function subPoolInitializeEventHandlers() {
     // Legacy jQuery handlers kept for reference (commented out):
     /*
     // Approve player
-    $(document).on('click', '.approve-player', function() {
-        const playerId = $(this).data('player-id');
-        const league = $(this).data('league');
+    window.$(document).on('click', '.approve-player', function() {
+        const playerId = window.$(this).data('player-id');
+        const league = window.$(this).data('league');
         approvePlayer(playerId, league);
     });
 
     // Remove player
-    $(document).on('click', '.remove-player', function() {
-        const playerId = $(this).data('player-id');
-        const league = $(this).data('league');
+    window.$(document).on('click', '.remove-player', function() {
+        const playerId = window.$(this).data('player-id');
+        const league = window.$(this).data('league');
 
         if (confirm('Are you sure you want to remove this player from the substitute pool?')) {
             removePlayer(playerId, league);
@@ -226,39 +226,39 @@ function subPoolInitializeEventHandlers() {
     });
 
     // Edit preferences
-    $(document).on('click', '.edit-preferences', function() {
-        const playerId = $(this).data('player-id');
-        const league = $(this).data('league');
+    window.$(document).on('click', '.edit-preferences', function() {
+        const playerId = window.$(this).data('player-id');
+        const league = window.$(this).data('league');
         openEditPreferencesModal(playerId, league);
     });
 
     // Player details
-    $(document).on('click', '.player-details-btn', function() {
-        const playerId = $(this).data('player-id');
+    window.$(document).on('click', '.player-details-btn', function() {
+        const playerId = window.$(this).data('player-id');
         openPlayerDetailsModal(playerId);
     });
 
     // Add to league from search
-    $(document).on('click', '.add-to-league', function() {
-        const playerId = $(this).data('player-id');
-        const league = $(this).data('league');
+    window.$(document).on('click', '.add-to-league', function() {
+        const playerId = window.$(this).data('player-id');
+        const league = window.$(this).data('league');
         approvePlayer(playerId, league);
     });
 
     // Save preferences
-    $('#savePreferences').on('click', function() {
+    window.$('#savePreferences').on('click', function() {
         savePreferences();
     });
 
     // View toggle
-    $(document).on('click', '.view-toggle', function() {
-        const view = $(this).data('view');
-        const league = $(this).data('league');
-        const section = $(this).data('section');
+    window.$(document).on('click', '.view-toggle', function() {
+        const view = window.$(this).data('view');
+        const league = window.$(this).data('league');
+        const section = window.$(this).data('section');
 
         // Update button states
-        $(this).siblings().removeClass('active');
-        $(this).addClass('active');
+        window.$(this).siblings().removeClass('active');
+        window.$(this).addClass('active');
 
         // Show/hide views
         if (view === 'list') {
@@ -271,17 +271,17 @@ function subPoolInitializeEventHandlers() {
     });
 
     // Filter functionality
-    $(document).on('input', '.pool-filter', function() {
-        const filterText = $(this).val().toLowerCase();
-        const league = $(this).data('league');
-        const section = $(this).data('section');
+    window.$(document).on('input', '.pool-filter', function() {
+        const filterText = window.$(this).val().toLowerCase();
+        const league = window.$(this).data('league');
+        const section = window.$(this).data('section');
 
         filterPlayerCards(league, section, filterText);
     });
 
     // Manage league modal
-    $(document).on('click', '.manage-league-btn', function() {
-        const league = $(this).data('league');
+    window.$(document).on('click', '.manage-league-btn', function() {
+        const league = window.$(this).data('league');
         openLeagueManagementModal(league);
     });
     */
@@ -436,11 +436,11 @@ function filterPlayerCards(league, section, filterText) {
     const cards = $(`.player-card[data-league="${league}"][data-status="${section}"], .player-list-item[data-league="${league}"][data-status="${section}"]`);
 
     cards.each(function() {
-        const searchText = $(this).data('search-text') || '';
+        const searchText = window.$(this).data('search-text') || '';
         if (searchText.includes(filterText)) {
-            $(this).show();
+            window.$(this).show();
         } else {
-            $(this).hide();
+            window.$(this).hide();
         }
     });
 }
@@ -544,12 +544,12 @@ function generatePaginationControls(league, section, currentPage, totalPages) {
 // See event-delegation.js - action: pool-pagination
 // Legacy jQuery handler kept for reference (commented out):
 /*
-$(document).on('click', '.pagination .page-link', function(e) {
+window.$(document).on('click', '.pagination .page-link', function(e) {
     e.preventDefault();
 
-    const page = parseInt($(this).data('page'));
-    const league = $(this).data('league');
-    const section = $(this).data('section');
+    const page = parseInt(window.$(this).data('page'));
+    const league = window.$(this).data('league');
+    const section = window.$(this).data('section');
     const key = `${league}-${section}`;
 
     if (page && paginationState[key] && page !== paginationState[key].currentPage) {

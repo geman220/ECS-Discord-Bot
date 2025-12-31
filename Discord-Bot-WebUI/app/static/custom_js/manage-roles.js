@@ -20,7 +20,7 @@
             }
 
             // Initialize Select2 for permissions select
-            $('#permissions').select2({
+            window.$('#permissions').select2({
                 placeholder: 'Select permissions...',
                 width: '100%',
                 theme: 'bootstrap-5',
@@ -76,7 +76,7 @@
                 // Update selected permissions
                 if (typeof window.$ !== 'undefined' && typeof window.$.fn.select2 !== 'undefined') {
                     // Use Select2 method
-                    $('#permissions').val(data.permissions).trigger('change');
+                    window.$('#permissions').val(data.permissions).trigger('change');
                 } else {
                     // Vanilla JS fallback
                     Array.from(permissionsSelect.options).forEach(option => {

@@ -203,7 +203,7 @@ function setupSocketListeners() {
         disableReportingControls();
 
         // Show completion message
-        $('#reportCompleteMessage').removeClass('u-hidden');
+        window.$('#reportCompleteMessage').removeClass('u-hidden');
     });
 
     socket.on('report_submission_error', (data) => {
@@ -217,28 +217,28 @@ function setupSocketListeners() {
  */
 function setupUIListeners() {
     // Score controls
-    $('#increaseHomeScore').on('click', function() {
+    window.$('#increaseHomeScore').on('click', function() {
         if (!matchState) return;
         
         const newScore = matchState.home_score + 1;
         updateScore(newScore, matchState.away_score);
     });
     
-    $('#decreaseHomeScore').on('click', function() {
+    window.$('#decreaseHomeScore').on('click', function() {
         if (!matchState || matchState.home_score <= 0) return;
         
         const newScore = matchState.home_score - 1;
         updateScore(newScore, matchState.away_score);
     });
     
-    $('#increaseAwayScore').on('click', function() {
+    window.$('#increaseAwayScore').on('click', function() {
         if (!matchState) return;
         
         const newScore = matchState.away_score + 1;
         updateScore(matchState.home_score, newScore);
     });
     
-    $('#decreaseAwayScore').on('click', function() {
+    window.$('#decreaseAwayScore').on('click', function() {
         if (!matchState || matchState.away_score <= 0) return;
         
         const newScore = matchState.away_score - 1;
@@ -246,14 +246,14 @@ function setupUIListeners() {
     });
     
     // Timer controls
-    $('#startStopTimer').on('click', function() {
+    window.$('#startStopTimer').on('click', function() {
         if (!matchState) return;
         
         const newTimerState = !isTimerRunning;
         toggleTimer(newTimerState);
     });
     
-    $('#resetTimer').on('click', function() {
+    window.$('#resetTimer').on('click', function() {
         if (!matchState) return;
         
         // Ask for confirmation before resetting
@@ -263,21 +263,21 @@ function setupUIListeners() {
     });
     
     // Period selection
-    $('#periodSelector').on('change', function() {
+    window.$('#periodSelector').on('change', function() {
         if (!matchState) return;
         
-        const newPeriod = $(this).val();
+        const newPeriod = window.$(this).val();
         updatePeriod(newPeriod);
     });
     
     // Event form
-    $('#addEventForm').on('submit', function(e) {
+    window.$('#addEventForm').on('submit', function(e) {
         e.preventDefault();
         
-        const eventType = $('#eventType').val();
-        const eventTeamId = $('#eventTeam').val();
-        const eventPlayerId = $('#eventPlayer').val();
-        const eventMinute = $('#eventMinute').val();
+        const eventType = window.$('#eventType').val();
+        const eventTeamId = window.$('#eventTeam').val();
+        const eventPlayerId = window.$('#eventPlayer').val();
+        const eventMinute = window.$('#eventMinute').val();
         
         addEvent({
             event_type: eventType,
@@ -291,27 +291,27 @@ function setupUIListeners() {
         this.reset();
         
         // Update player dropdown based on team selection
-        const defaultTeam = $('#eventTeam option:first').val();
+        const defaultTeam = window.$('#eventTeam option:first').val();
         updatePlayerDropdown(defaultTeam);
     });
     
     // Team selection changes player dropdown
-    $('#eventTeam').on('change', function() {
-        const selectedTeamId = $(this).val();
+    window.$('#eventTeam').on('change', function() {
+        const selectedTeamId = window.$(this).val();
         updatePlayerDropdown(selectedTeamId);
     });
     
     // Player shift toggles
-    $('#playerShiftsContainer').on('click', '.js-player-shift-toggle', function() {
-        const playerId = $(this).data('player-id');
-        const isActive = $(this).data('active') !== true;
+    window.$('#playerShiftsContainer').on('click', '.js-player-shift-toggle', function() {
+        const playerId = window.$(this).data('player-id');
+        const isActive = window.$(this).data('active') !== true;
 
         // Toggle the active state
         togglePlayerShift(playerId, isActive);
     });
     
     // Submit report button
-    $('#submitReportBtn').on('click', function() {
+    window.$('#submitReportBtn').on('click', function() {
         if (!matchState) return;
         
         // Ask for confirmation
@@ -321,21 +321,21 @@ function setupUIListeners() {
     });
     
     // Event type changes UI elements shown
-    $('#eventType').on('change', function() {
-        const eventType = $(this).val();
+    window.$('#eventType').on('change', function() {
+        const eventType = window.$(this).val();
 
         // Show/hide player selection based on event type
         if (['GOAL', 'YELLOW_CARD', 'RED_CARD', 'SUBSTITUTION'].includes(eventType)) {
-            $('#playerSelectGroup').removeClass('u-hidden');
+            window.$('#playerSelectGroup').removeClass('u-hidden');
         } else {
-            $('#playerSelectGroup').addClass('u-hidden');
+            window.$('#playerSelectGroup').addClass('u-hidden');
         }
 
         // Show additional fields for substitutions
         if (eventType === 'SUBSTITUTION') {
-            $('#substitutionFields').removeClass('u-hidden');
+            window.$('#substitutionFields').removeClass('u-hidden');
         } else {
-            $('#substitutionFields').addClass('u-hidden');
+            window.$('#substitutionFields').addClass('u-hidden');
         }
     });
 }
@@ -414,8 +414,8 @@ function toggleTimer(shouldRun) {
             updateTimer(matchState.elapsed_seconds, true);
             
             // Update UI
-            $('#startStopTimer').text('Pause Timer');
-            $('#startStopTimer').removeClass('timer-stopped').addClass('timer-running');
+            window.$('#startStopTimer').text('Pause Timer');
+            window.$('#startStopTimer').removeClass('timer-stopped').addClass('timer-running');
         } else {
             // Stop the timer locally
             if (timerInterval) {
@@ -427,8 +427,8 @@ function toggleTimer(shouldRun) {
             updateTimer(matchState.elapsed_seconds, false);
 
             // Update UI
-            $('#startStopTimer').text('Start Timer');
-            $('#startStopTimer').removeClass('timer-running').addClass('timer-stopped');
+            window.$('#startStopTimer').text('Start Timer');
+            window.$('#startStopTimer').removeClass('timer-running').addClass('timer-stopped');
         }
     }
 }
@@ -476,7 +476,7 @@ function togglePlayerShift(playerId, isActive) {
  * Submit the final match report
  */
 function submitFinalReport() {
-    const notes = $('#matchNotes').val();
+    const notes = window.$('#matchNotes').val();
     
     socket.emit('submit_report', {
         match_id: matchId,
@@ -503,13 +503,13 @@ function updateMatchUI(state) {
     updateMatchStatusUI(state.status);
     
     // Update team names
-    $('#homeTeamName').text(state.home_team_name);
-    $('#awayTeamName').text(state.away_team_name);
+    window.$('#homeTeamName').text(state.home_team_name);
+    window.$('#awayTeamName').text(state.away_team_name);
     
     // If report is already submitted, disable controls
     if (state.report_submitted) {
         disableReportingControls();
-        $('#reportCompleteMessage').removeClass('u-hidden');
+        window.$('#reportCompleteMessage').removeClass('u-hidden');
     }
 }
 
@@ -517,8 +517,8 @@ function updateMatchUI(state) {
  * Update the score display
  */
 function updateScoreUI(homeScore, awayScore) {
-    $('#homeScore').text(homeScore);
-    $('#awayScore').text(awayScore);
+    window.$('#homeScore').text(homeScore);
+    window.$('#awayScore').text(awayScore);
 }
 
 /**
@@ -526,8 +526,8 @@ function updateScoreUI(homeScore, awayScore) {
  */
 function updateTimerUI(elapsedSeconds, isRunning, period) {
     // Update period selector
-    if (period && $('#periodSelector').val() !== period) {
-        $('#periodSelector').val(period);
+    if (period && window.$('#periodSelector').val() !== period) {
+        window.$('#periodSelector').val(period);
     }
     
     // Update timer display
@@ -546,7 +546,7 @@ function updateTimerDisplay(elapsedSeconds) {
     const minutes = Math.floor(elapsedSeconds / 60);
     const seconds = elapsedSeconds % 60;
     
-    $('#timerDisplay').text(
+    window.$('#timerDisplay').text(
         `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
     );
 }
@@ -555,7 +555,7 @@ function updateTimerDisplay(elapsedSeconds) {
  * Update the events list
  */
 function updateEventsUI(events) {
-    const $eventsList = $('#eventsList');
+    const $eventsList = window.$('#eventsList');
     $eventsList.empty();
 
     if (!events || events.length === 0) {
@@ -599,7 +599,7 @@ function updateEventsUI(events) {
  * Update the match status display
  */
 function updateMatchStatusUI(status) {
-    $('#matchStatus').text(status);
+    window.$('#matchStatus').text(status);
 
     let statusClass = 'badge js-match-status-badge ';
     switch (status) {
@@ -616,14 +616,14 @@ function updateMatchStatusUI(status) {
             statusClass += 'match-status-unknown';
     }
 
-    $('#matchStatusBadge').attr('class', statusClass);
+    window.$('#matchStatusBadge').attr('class', statusClass);
 }
 
 /**
  * Update the active reporters list
  */
 function updateReportersUI(reporters) {
-    const $reportersList = $('#reportersList');
+    const $reportersList = window.$('#reportersList');
     $reportersList.empty();
 
     if (!reporters || reporters.length === 0) {
@@ -667,7 +667,7 @@ function timeSinceLastActive(lastActive) {
  * Update the player shifts display
  */
 function updateShiftsUI(shifts) {
-    const $shiftsContainer = $('#playerShiftsContainer');
+    const $shiftsContainer = window.$('#playerShiftsContainer');
     $shiftsContainer.empty();
     
     if (!shifts || shifts.length === 0) {
@@ -684,7 +684,7 @@ function updateShiftsUI(shifts) {
     if (activeShifts.length === 0) {
         $shiftsContainer.append('<p>No active players</p>');
     } else {
-        const $activeList = $('<div class="row"></div>');
+        const $activeList = window.$('<div class="row"></div>');
 
         activeShifts.forEach(shift => {
             $activeList.append(`
@@ -706,7 +706,7 @@ function updateShiftsUI(shifts) {
     if (inactiveShifts.length === 0) {
         $shiftsContainer.append('<p>No available players</p>');
     } else {
-        const $inactiveList = $('<div class="row"></div>');
+        const $inactiveList = window.$('<div class="row"></div>');
 
         inactiveShifts.forEach(shift => {
             $inactiveList.append(`
@@ -730,7 +730,7 @@ function updateShiftsUI(shifts) {
 function updatePlayerDropdown(teamId) {
     if (!matchState) return;
     
-    const $playerSelect = $('#eventPlayer');
+    const $playerSelect = window.$('#eventPlayer');
     $playerSelect.empty();
     
     // Add empty option
@@ -740,10 +740,10 @@ function updatePlayerDropdown(teamId) {
     let players = [];
     if (parseInt(teamId) === matchState.home_team_id) {
         // Show home team players
-        players = $('#homeTeamPlayers').data('players') || [];
+        players = window.$('#homeTeamPlayers').data('players') || [];
     } else if (parseInt(teamId) === matchState.away_team_id) {
         // Show away team players
-        players = $('#awayTeamPlayers').data('players') || [];
+        players = window.$('#awayTeamPlayers').data('players') || [];
     }
     
     // Add players to dropdown
@@ -757,19 +757,19 @@ function updatePlayerDropdown(teamId) {
  */
 function disableReportingControls() {
     // Disable score controls
-    $('#increaseHomeScore, #decreaseHomeScore, #increaseAwayScore, #decreaseAwayScore').prop('disabled', true);
+    window.$('#increaseHomeScore, #decreaseHomeScore, #increaseAwayScore, #decreaseAwayScore').prop('disabled', true);
     
     // Disable timer controls
-    $('#startStopTimer, #resetTimer, #periodSelector').prop('disabled', true);
+    window.$('#startStopTimer, #resetTimer, #periodSelector').prop('disabled', true);
     
     // Disable event form
-    $('#addEventForm :input').prop('disabled', true);
+    window.$('#addEventForm :input').prop('disabled', true);
     
     // Disable player shifts
-    $('.js-player-shift-toggle').prop('disabled', true);
+    window.$('.js-player-shift-toggle').prop('disabled', true);
     
     // Disable submit report button
-    $('#submitReportBtn').prop('disabled', true);
+    window.$('#submitReportBtn').prop('disabled', true);
     
     // Stop timer if running
     if (timerInterval) {
@@ -783,7 +783,7 @@ function disableReportingControls() {
  * Show a notification message
  */
 function liveReportingShowNotification(message, type = 'info') {
-    const $notifications = $('#notifications');
+    const $notifications = window.$('#notifications');
     
     // Create notification element
     const $notification = $(`

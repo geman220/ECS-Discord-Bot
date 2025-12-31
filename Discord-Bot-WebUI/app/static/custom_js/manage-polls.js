@@ -24,11 +24,11 @@
 
         // Destroy existing DataTable if it exists
         if (window.$.fn.DataTable.isDataTable('#pollsTable')) {
-            $('#pollsTable').DataTable().destroy();
+            window.$('#pollsTable').DataTable().destroy();
         }
 
         // Initialize DataTable
-        $('#pollsTable').DataTable({
+        window.$('#pollsTable').DataTable({
             "order": [[ 3, "desc" ]], // Order by created date, newest first
             "pageLength": 25,
             "responsive": true,
@@ -49,7 +49,7 @@
 
     // Fallback - use jQuery ready if available
     if (typeof window.$ !== 'undefined') {
-        $(document).ready(init);
+        window.$(document).ready(init);
     } else if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {

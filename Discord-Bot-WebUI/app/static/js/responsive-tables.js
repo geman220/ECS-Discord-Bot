@@ -176,7 +176,7 @@
         });
 
         // Process any existing DataTables
-        $('.dataTable.mobile-card-table').each(function() {
+        window.$('.dataTable.mobile-card-table').each(function() {
           window.ResponsiveTables.processTable(this);
         });
       }

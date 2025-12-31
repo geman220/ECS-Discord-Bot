@@ -29,7 +29,7 @@
         bsModal.show();
       } else if (typeof window.$ !== 'undefined') {
         // Fallback to jQuery if Bootstrap JS not available
-        $('#manualReviewModal').modal('show');
+        window.$('#manualReviewModal').modal('show');
       }
     }
   }

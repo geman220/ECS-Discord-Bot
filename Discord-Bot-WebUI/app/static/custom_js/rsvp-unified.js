@@ -164,16 +164,16 @@
           };
           
           // Initialize each table
-          if ($('#rsvpStatusTable').length) {
-            $('#rsvpStatusTable').DataTable(tableOptions);
+          if (window.$('#rsvpStatusTable').length) {
+            window.$('#rsvpStatusTable').DataTable(tableOptions);
           }
           
-          if ($('#homeTeamTable').length) {
-            $('#homeTeamTable').DataTable(tableOptions);
+          if (window.$('#homeTeamTable').length) {
+            window.$('#homeTeamTable').DataTable(tableOptions);
           }
           
-          if ($('#awayTeamTable').length) {
-            $('#awayTeamTable').DataTable(tableOptions);
+          if (window.$('#awayTeamTable').length) {
+            window.$('#awayTeamTable').DataTable(tableOptions);
           }
           
           // FORCE REMOVE DATATABLES ARROWS AFTER INITIALIZATION
@@ -182,8 +182,8 @@
           }, 100);
           
           // Style improvements
-          $('[data-datatable="filter"] input').removeClass('form-control-sm').addClass('rounded-pill');
-          $('[data-datatable="length"] select').removeClass('form-select-sm').addClass('rounded-pill');
+          window.$('[data-datatable="filter"] input').removeClass('form-control-sm').addClass('rounded-pill');
+          window.$('[data-datatable="length"] select').removeClass('form-select-sm').addClass('rounded-pill');
         }
         
         // Fix z-index and overflow issues
@@ -292,28 +292,28 @@ function bindEventHandlers() {
       // SMS Modal handling - REMOVED
       // Now handled by event delegation via data-action="rsvp-request-sms"
       // Event delegation will call the handler registered in event-delegation.js
-      // $('.send-sms-btn').on('click', function() { ... });
+      // window.$('.send-sms-btn').on('click', function() { ... });
       
       // Discord DM Modal handling - REMOVED
       // Now handled by event delegation via data-action="rsvp-request-discord-dm"
       // Event delegation will call the handler registered in event-delegation.js
-      // $('.send-discord-dm-btn').on('click', function() { ... });
+      // window.$('.send-discord-dm-btn').on('click', function() { ... });
       
       // RSVP Update handling - REMOVED
       // Now handled by event delegation via data-action="rsvp-update-status"
       // Event delegation will call the updateRSVPStatus function in event-delegation.js
-      // $('.update-rsvp-btn').on('click', function() { ... });
+      // window.$('.update-rsvp-btn').on('click', function() { ... });
       
       // Character counting for SMS
-      $('#smsMessage').on('input', function() {
+      window.$('#smsMessage').on('input', function() {
         try {
-          var charCount = $(this).val().length;
-          $('#smsCharCount').text(charCount);
+          var charCount = window.$(this).val().length;
+          window.$('#smsCharCount').text(charCount);
           
           if (charCount > 160) {
-            $('#smsCharCount').addClass('text-danger fw-bold');
+            window.$('#smsCharCount').addClass('text-danger fw-bold');
           } else {
-            $('#smsCharCount').removeClass('text-danger fw-bold');
+            window.$('#smsCharCount').removeClass('text-danger fw-bold');
           }
         } catch (e) {
           // console.error("Error counting SMS characters:", e);
@@ -321,15 +321,15 @@ function bindEventHandlers() {
       });
       
       // Character counting for Discord
-      $('#discordMessage').on('input', function() {
+      window.$('#discordMessage').on('input', function() {
         try {
-          var charCount = $(this).val().length;
-          $('#discordCharCount').text(charCount);
+          var charCount = window.$(this).val().length;
+          window.$('#discordCharCount').text(charCount);
           
           if (charCount > 2000) {
-            $('#discordCharCount').addClass('text-danger fw-bold');
+            window.$('#discordCharCount').addClass('text-danger fw-bold');
           } else {
-            $('#discordCharCount').removeClass('text-danger fw-bold');
+            window.$('#discordCharCount').removeClass('text-danger fw-bold');
           }
         } catch (e) {
           // console.error("Error counting Discord characters:", e);
@@ -337,11 +337,11 @@ function bindEventHandlers() {
       });
       
       // Form submission handlers for SMS
-      $('#sendSmsForm').on('submit', function(e) {
+      window.$('#sendSmsForm').on('submit', function(e) {
         e.preventDefault();
         
         try {
-          var charCount = $('#smsMessage').val().length;
+          var charCount = window.$('#smsMessage').val().length;
           if (charCount > 160) {
             if (window.toastr) {
               toastr.warning('Your message exceeds the 160 character limit for SMS. Please shorten your message.');
@@ -350,7 +350,7 @@ function bindEventHandlers() {
           }
           
           var formData = new FormData(this);
-          var submitBtn = $(this).find('button[type="submit"]');
+          var submitBtn = window.$(this).find('button[type="submit"]');
           var originalText = submitBtn.html();
           
           submitBtn.prop('disabled', true).html('<i class="ti ti-loader ti-spin me-1"></i>Sending...');
@@ -395,11 +395,11 @@ function bindEventHandlers() {
       });
       
       // Form submission handlers for Discord DM
-      $('#sendDiscordDmForm').on('submit', function(e) {
+      window.$('#sendDiscordDmForm').on('submit', function(e) {
         e.preventDefault();
         
         try {
-          var charCount = $('#discordMessage').val().length;
+          var charCount = window.$('#discordMessage').val().length;
           if (charCount > 2000) {
             if (window.toastr) {
               toastr.warning('Your message exceeds the 2000 character limit for Discord. Please shorten your message.');
@@ -408,7 +408,7 @@ function bindEventHandlers() {
           }
           
           var formData = new FormData(this);
-          var submitBtn = $(this).find('button[type="submit"]');
+          var submitBtn = window.$(this).find('button[type="submit"]');
           var originalText = submitBtn.html();
           
           submitBtn.prop('disabled', true).html('<i class="ti ti-loader ti-spin me-1"></i>Sending...');
@@ -466,7 +466,7 @@ function bindTabHandlers() {
       var $ = window.jQuery;
       
       // Handle tab switching
-      $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function() {
+      window.$('a[data-bs-toggle="tab"]').on('shown.bs.tab', function() {
         // Fix overflow issues
         fixDropdownsAndOverflow();
         
@@ -490,20 +490,20 @@ function loadAvailableSubs() {
       var $ = window.jQuery;
       
       // Check if the assign sub modal exists
-      if ($('#assignSubModalRSVP').length === 0) {
+      if (window.$('#assignSubModalRSVP').length === 0) {
         return;
       }
       
       // When the modal is shown, fetch substitute responses
-      $('#assignSubModalRSVP').on('shown.bs.modal', function() {
-        var subPlayerSelect = $('#subPlayerRSVP');
+      window.$('#assignSubModalRSVP').on('shown.bs.modal', function() {
+        var subPlayerSelect = window.$('#subPlayerRSVP');
         
         // Clear existing options except the default
         subPlayerSelect.find('option:not(:first)').remove();
         subPlayerSelect.append('<option value="loading" disabled>Loading substitute responses...</option>');
         
         // Determine match type and ID from the form
-        var matchIdValue = $('input[name="match_id"]').val();
+        var matchIdValue = window.$('input[name="match_id"]').val();
         var matchType, matchId;
         
         if (matchIdValue.startsWith('ecs_')) {
@@ -529,7 +529,7 @@ function loadAvailableSubs() {
             if (data.success && data.substitutes && data.substitutes.length > 0) {
               // Update form text to show response status
               if (data.has_responses) {
-                $('.form-text').html('<i class="ti ti-info-circle me-1"></i> <span class="text-success">Green = Available</span>, <span class="text-muted">Gray = No Response</span>, <span class="text-danger">Red = Not Available</span>');
+                window.$('.form-text').html('<i class="ti ti-info-circle me-1"></i> <span class="text-success">Green = Available</span>, <span class="text-muted">Gray = No Response</span>, <span class="text-danger">Red = Not Available</span>');
               }
               
               // Add substitutes to select with color coding
@@ -567,11 +567,11 @@ function loadAvailableSubs() {
       });
       
       // Handle form submission for assigning subs
-      $('#assignSubFormRSVP').on('submit', function(e) {
+      window.$('#assignSubFormRSVP').on('submit', function(e) {
         e.preventDefault();
         
         var formData = new FormData(this);
-        var submitBtn = $(this).find('button[type="submit"]');
+        var submitBtn = window.$(this).find('button[type="submit"]');
         var originalText = submitBtn.html();
         
         // Disable button and show loading

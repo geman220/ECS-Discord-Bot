@@ -255,7 +255,7 @@ def get_available_players(league_name: str):
         )
 
         # Check if this is an ECS FC league
-        is_ecs_fc = is_ecs_fc_league(league.id)
+        is_ecs_fc = is_ecs_fc_league(current_league.id)
 
         query = (
             session.query(Player)

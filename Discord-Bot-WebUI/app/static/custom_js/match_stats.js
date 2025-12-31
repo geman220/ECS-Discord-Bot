@@ -18,14 +18,14 @@
         }
 
         // Event delegation for Edit buttons
-        $(document).on('click', '.edit-match-stat-btn', function () {
-            var statId = $(this).data('stat-id');
+        window.$(document).on('click', '.edit-match-stat-btn', function () {
+            var statId = window.$(this).data('stat-id');
             matchStatsEditMatch(statId);
         });
 
         // Event delegation for Remove buttons
-        $(document).on('click', '.remove-match-stat-btn', function () {
-            var statId = $(this).data('stat-id');
+        window.$(document).on('click', '.remove-match-stat-btn', function () {
+            var statId = window.$(this).data('stat-id');
             removeMatchStat(statId);
         });
 
@@ -33,17 +33,17 @@
         filterMatchStats();
 
         // Bind filter change
-        $('#matchFilter').on('change', function () {
+        window.$('#matchFilter').on('change', function () {
             filterMatchStats();
         });
 
         // Handle form submission for editing match stats with SA2 confirmation
-        $('#editMatchStatForm').submit(function (e) {
+        window.$('#editMatchStatForm').submit(function (e) {
             e.preventDefault();  // Prevent default form submission
 
-            var statId = $('#editStatId').val();  // Get the stat ID
-            var formData = $(this).serialize();  // Serialize the form data
-            var csrfToken = $('input[name="csrf_token"]').val();  // Get CSRF token
+            var statId = window.$('#editStatId').val();  // Get the stat ID
+            var formData = window.$(this).serialize();  // Serialize the form data
+            var csrfToken = window.$('input[name="csrf_token"]').val();  // Get CSRF token
 
             window.Swal.fire({
                 title: 'Confirm Changes',
@@ -80,7 +80,7 @@
                                     'Match stat has been updated successfully.',
                                     'success'
                                 ).then(() => {
-                                    $('#editMatchStatModal').modal('hide');
+                                    window.$('#editMatchStatModal').modal('hide');
                                     location.reload();
                                 });
                             } else {
@@ -106,20 +106,20 @@
 
     // Function to filter match stats based on selected match
     function filterMatchStats() {
-        var selectedMatchId = $('#matchFilter').val();
-        $('#matchStatsContainer .card').each(function () {
-            var matchId = $(this).data('match-id');
+        var selectedMatchId = window.$('#matchFilter').val();
+        window.$('#matchStatsContainer .card').each(function () {
+            var matchId = window.$(this).data('match-id');
             if (selectedMatchId === '' || matchId == selectedMatchId) {
-                $(this).show();
+                window.$(this).show();
             } else {
-                $(this).hide();
+                window.$(this).hide();
             }
         });
     }
 
     // Function to open Edit Match Stat Modal with data populated
     function matchStatsEditMatch(statId) {
-        var csrfToken = $('input[name="csrf_token"]').val();
+        var csrfToken = window.$('input[name="csrf_token"]').val();
 
         window.$.ajax({
             url: '/edit_match_stat/' + statId,
@@ -128,12 +128,12 @@
                 'X-CSRFToken': csrfToken,
             },
             success: function (data) {
-                $('#editGoalsInput').val(data.goals);
-                $('#editAssistsInput').val(data.assists);
-                $('#editYellowCardsInput').val(data.yellow_cards);
-                $('#editRedCardsInput').val(data.red_cards);
-                $('#editStatId').val(statId);
-                $('#editMatchStatModal').modal('show');
+                window.$('#editGoalsInput').val(data.goals);
+                window.$('#editAssistsInput').val(data.assists);
+                window.$('#editYellowCardsInput').val(data.yellow_cards);
+                window.$('#editRedCardsInput').val(data.red_cards);
+                window.$('#editStatId').val(statId);
+                window.$('#editMatchStatModal').modal('show');
             },
             error: function () {
                 window.Swal.fire({
@@ -157,7 +157,7 @@
             confirmButtonText: 'Yes, remove it!'
         }).then((result) => {
             if (result.isConfirmed) {
-                var csrfToken = $('input[name="csrf_token"]').val();
+                var csrfToken = window.$('input[name="csrf_token"]').val();
                 window.$.ajax({
                     url: '/remove_match_stat/' + statId,
                     method: 'POST',

@@ -15,7 +15,7 @@
 
     // Run after AJAX if jQuery exists
     if (typeof window.$ !== 'undefined') {
-      $(document).on('ajaxComplete', addTableLabels);
+      window.$(document).on('ajaxComplete', addTableLabels);
     }
   }
 

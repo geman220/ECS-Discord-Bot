@@ -82,7 +82,7 @@ function initReportMatch() {
     window._reportMatchInitialized = true;
 
     // Set up CSRF token for all AJAX requests
-    var csrftoken = $('input[name="csrf_token"]').val();
+    var csrftoken = window.$('input[name="csrf_token"]').val();
 
     window.$.ajaxSetup({
         beforeSend: function (xhr, settings) {
@@ -112,7 +112,7 @@ if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
 
 // Fallback - use jQuery ready if available, otherwise DOMContentLoaded
 if (typeof window.$ !== 'undefined') {
-    $(document).ready(initReportMatch);
+    window.$(document).ready(initReportMatch);
 } else if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initReportMatch);
 } else {
@@ -199,7 +199,7 @@ function collectRemovedStatIds(matchId, eventType) {
     }
 
     $(`#${containerId}`).find('.player-event-entry.to-be-removed').each(function () {
-        const statId = $(this).find(`input[name="${formBaseName}-stat_id[]"]`).val();
+        const statId = window.$(this).find(`input[name="${formBaseName}-stat_id[]"]`).val();
         if (statId && statId.trim() !== '') {
             removedIds.push(statId);
         }
@@ -596,7 +596,7 @@ function createDynamicModal(matchId, data) {
                 <form id="reportMatchForm-${matchId}" class="report-match-form" data-match-id="${matchId}" action="/teams/report_match/${matchId}" method="POST" novalidate>
                     <div class="modal-body ecs-modal-body">
                         <!-- CSRF Token -->
-                        <input type="hidden" name="csrf_token" value="${$('input[name="csrf_token"]').val()}">
+                        <input type="hidden" name="csrf_token" value="${window.$('input[name="csrf_token"]').val()}">
 
                         <!-- Home and Away Team Scores -->
                         <div class="row mb-4">
@@ -1067,10 +1067,10 @@ function getFinalEvents(matchId, eventType) {
     if (eventType === 'own_goals') {
         $(`#${containerId}`).find('.own-goal-event-entry:not(.to-be-removed)').each(function () {
             // Use 'own_goals' as the field name prefix (not 'ownGoals')
-            let statId = $(this).find(`input[name="own_goals-stat_id[]"]`).val();
-            let teamId = $(this).find(`select[name="own_goals-team_id[]"]`).val();
-            let minute = $(this).find(`input[name="own_goals-minute[]"]`).val();
-            let uniqueId = $(this).attr('data-unique-id');
+            let statId = window.$(this).find(`input[name="own_goals-stat_id[]"]`).val();
+            let teamId = window.$(this).find(`select[name="own_goals-team_id[]"]`).val();
+            let minute = window.$(this).find(`input[name="own_goals-minute[]"]`).val();
+            let uniqueId = window.$(this).attr('data-unique-id');
             
             if (teamId) {
                 events.push({
@@ -1084,10 +1084,10 @@ function getFinalEvents(matchId, eventType) {
     } else {
         // Only get visible entries (exclude ones marked for removal)
         $(`#${containerId}`).find('.player-event-entry:not(.to-be-removed)').each(function () {
-            let statId = $(this).find(`input[name="${formBaseName}-stat_id[]"]`).val();
-            let playerId = $(this).find(`select[name="${formBaseName}-player_id[]"]`).val();
-            let minute = $(this).find(`input[name="${formBaseName}-minute[]"]`).val();
-            let uniqueId = $(this).attr('data-unique-id');
+            let statId = window.$(this).find(`input[name="${formBaseName}-stat_id[]"]`).val();
+            let playerId = window.$(this).find(`select[name="${formBaseName}-player_id[]"]`).val();
+            let minute = window.$(this).find(`input[name="${formBaseName}-minute[]"]`).val();
+            let uniqueId = window.$(this).attr('data-unique-id');
 
         // Skip entries without player_id (which is required)
         if (!playerId) {
@@ -1132,9 +1132,9 @@ function eventExists(event, eventsArray) {
 // Function to send the AJAX request to update stats
 function reportMatchUpdateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsToRemove,
     yellowCardsToAdd, yellowCardsToRemove, redCardsToAdd, redCardsToRemove, ownGoalsToAdd, ownGoalsToRemove) {
-    const homeTeamScore = $('#home_team_score-' + matchId).val();
-    const awayTeamScore = $('#away_team_score-' + matchId).val();
-    const notes = $('#match_notes-' + matchId).val();
+    const homeTeamScore = window.$('#home_team_score-' + matchId).val();
+    const awayTeamScore = window.$('#away_team_score-' + matchId).val();
+    const notes = window.$('#match_notes-' + matchId).val();
     
     // Get the version for optimistic locking
     const version = window.currentMatchData ? window.currentMatchData.version : null;
@@ -1291,11 +1291,11 @@ function reportMatchUpdateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd
 }
 
 // Attach submit handler using event delegation
-$(document).on('submit', '.report-match-form', function (e) {
+window.$(document).on('submit', '.report-match-form', function (e) {
     e.preventDefault();
     e.stopPropagation();
 
-    var matchId = $(this).data('match-id');
+    var matchId = window.$(this).data('match-id');
     // Submitting form for Match ID
 
     // Ensure initialEvents is properly defined
@@ -1602,7 +1602,7 @@ function collectRemovedOwnGoalIds(matchId) {
     let removedIds = [];
 
     $(`#${containerId}`).find('.own-goal-event-entry.to-be-removed').each(function () {
-        const statId = $(this).find('input[name="own_goals-stat_id[]"]').val();
+        const statId = window.$(this).find('input[name="own_goals-stat_id[]"]').val();
         if (statId && statId.trim() !== '') {
             removedIds.push(statId);
         }

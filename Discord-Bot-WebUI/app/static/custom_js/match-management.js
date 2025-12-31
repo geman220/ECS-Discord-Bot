@@ -820,7 +820,7 @@ function removeMatch(matchId) {
 
 // Queue management functions
 function matchMgmtShowQueueStatus() {
-    $('#queueStatusModal').modal('show');
+    window.$('#queueStatusModal').modal('show');
     refreshQueueStatus();
 }
 

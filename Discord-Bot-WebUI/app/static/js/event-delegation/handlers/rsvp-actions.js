@@ -156,19 +156,19 @@ window.EventDelegation.register('rsvp-request-sms', function(element, e) {
 
         try {
             // Populate modal fields
-            $('#smsPlayerName').text(playerName || 'Player');
-            $('#smsPlayerId').val(playerId);
-            $('#smsPlayerPhone').val(phone || '');
+            window.$('#smsPlayerName').text(playerName || 'Player');
+            window.$('#smsPlayerId').val(playerId);
+            window.$('#smsPlayerPhone').val(phone || '');
 
             // Format phone number for display
             if (phone && typeof formatPhoneNumber === 'function') {
-                $('#smsPlayerPhoneDisplay').text(formatPhoneNumber(phone));
+                window.$('#smsPlayerPhoneDisplay').text(formatPhoneNumber(phone));
             } else {
-                $('#smsPlayerPhoneDisplay').text(phone || '');
+                window.$('#smsPlayerPhoneDisplay').text(phone || '');
             }
 
-            $('#smsMessage').val('');
-            $('#smsCharCount').text('0');
+            window.$('#smsMessage').val('');
+            window.$('#smsCharCount').text('0');
 
             // Show modal
             const smsModal = document.querySelector('[data-modal="send-sms"]');
@@ -221,11 +221,11 @@ window.EventDelegation.register('rsvp-request-discord-dm', function(element, e) 
         const $ = window.jQuery;
 
         try {
-            $('#discordPlayerName').text(playerName || 'Player');
-            $('#discordPlayerId').val(playerId);
-            $('#discordId').val(discordId || '');
-            $('#discordMessage').val('');
-            $('#discordCharCount').text('0');
+            window.$('#discordPlayerName').text(playerName || 'Player');
+            window.$('#discordPlayerId').val(playerId);
+            window.$('#discordId').val(discordId || '');
+            window.$('#discordMessage').val('');
+            window.$('#discordCharCount').text('0');
 
             const discordModal = document.querySelector('[data-modal="send-discord-dm"]');
             if (discordModal) {

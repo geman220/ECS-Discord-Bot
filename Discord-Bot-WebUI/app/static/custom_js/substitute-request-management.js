@@ -62,14 +62,14 @@ function openLeagueManagementModal(league) {
     
     const config = leagueConfigs[league] || leagueConfigs['ECS FC'];
     
-    $('#leagueIcon').attr('class', config.icon + ' me-2');
-    $('#leagueTitle').text(config.name);
+    window.$('#leagueIcon').attr('class', config.icon + ' me-2');
+    window.$('#leagueTitle').text(config.name);
     
     // Load league statistics
     loadLeagueStatistics(league);
     
     // Store current league for modal actions
-    $('#leagueManagementModal').data('current-league', league);
+    window.$('#leagueManagementModal').data('current-league', league);
 }
 
 function loadLeagueStatistics(league) {
@@ -77,8 +77,8 @@ function loadLeagueStatistics(league) {
     const activeCount = $(`#active-count-${league}`).text() || '0';
     const pendingCount = $(`#pending-count-${league}`).text() || '0';
     
-    $('#modalTotalActive').text(activeCount);
-    $('#modalPendingApproval').text(pendingCount);
+    window.$('#modalTotalActive').text(activeCount);
+    window.$('#modalPendingApproval').text(pendingCount);
     
     // Load additional statistics via AJAX
     window.$.ajax({
@@ -87,8 +87,8 @@ function loadLeagueStatistics(league) {
         success: function(response) {
             if (response.success) {
                 const stats = response.statistics;
-                $('#modalTotalRequests').text(stats.total_requests_sent || 0);
-                $('#modalMatchesPlayed').text(stats.total_matches_played || 0);
+                window.$('#modalTotalRequests').text(stats.total_requests_sent || 0);
+                window.$('#modalMatchesPlayed').text(stats.total_matches_played || 0);
             }
         },
         error: function() {
@@ -105,7 +105,7 @@ function loadLeagueStatistics(league) {
 
 function loadRecentActivity(league) {
     // Show loading spinner
-    $('#recentActivityTable').html(`
+    window.$('#recentActivityTable').html(`
         <tr>
             <td colspan="4" class="text-center">
                 <div class="spinner-border spinner-border-sm text-primary" role="status">
@@ -144,7 +144,7 @@ function loadRecentActivity(league) {
                 errorMessage = 'Server error loading history';
             }
             
-            $('#recentActivityTable').html(`
+            window.$('#recentActivityTable').html(`
                 <tr>
                     <td colspan="4" class="text-center">
                         <i class="ti ti-alert-circle text-warning me-2"></i>
@@ -163,7 +163,7 @@ function loadRecentActivity(league) {
 }
 
 function displayRecentActivity(activities) {
-    const tbody = $('#recentActivityTable');
+    const tbody = window.$('#recentActivityTable');
     tbody.empty();
     
     if (!activities || activities.length === 0) {
@@ -201,7 +201,7 @@ function displayRecentActivity(activities) {
 
 // Substitute Request Management Functions
 function loadSubstituteRequests(league) {
-    $('#substituteRequestsTable').html(`
+    window.$('#substituteRequestsTable').html(`
         <tr>
             <td colspan="5" class="text-center">
                 <div class="spinner-border spinner-border-sm text-primary" role="status">
@@ -226,7 +226,7 @@ function loadSubstituteRequests(league) {
         },
         error: function(xhr, status, error) {
             console.error('Error loading substitute requests:', error);
-            $('#substituteRequestsTable').html(`
+            window.$('#substituteRequestsTable').html(`
                 <tr>
                     <td colspan="5" class="text-center">
                         <i class="ti ti-alert-circle text-warning me-2"></i>
@@ -243,7 +243,7 @@ function loadSubstituteRequests(league) {
 }
 
 function displaySubstituteRequests(requests) {
-    const tbody = $('#substituteRequestsTable');
+    const tbody = window.$('#substituteRequestsTable');
     tbody.empty();
     
     if (!requests || requests.length === 0) {
@@ -478,7 +478,7 @@ function loadMatchSubstituteRequests(matchId) {
         return;
     }
     
-    $('#matchSubstituteRequestsTable').html(`
+    window.$('#matchSubstituteRequestsTable').html(`
         <tr>
             <td colspan="5" class="text-center">
                 <div class="spinner-border spinner-border-sm text-primary" role="status">
@@ -503,7 +503,7 @@ function loadMatchSubstituteRequests(matchId) {
         },
         error: function(xhr, status, error) {
             console.error('Error loading match substitute requests:', error);
-            $('#matchSubstituteRequestsTable').html(`
+            window.$('#matchSubstituteRequestsTable').html(`
                 <tr>
                     <td colspan="5" class="text-center">
                         <i class="ti ti-alert-circle text-warning me-2"></i>
@@ -520,7 +520,7 @@ function loadMatchSubstituteRequests(matchId) {
 }
 
 function displayMatchSubstituteRequests(requests) {
-    const tbody = $('#matchSubstituteRequestsTable');
+    const tbody = window.$('#matchSubstituteRequestsTable');
     tbody.empty();
     
     if (!requests || requests.length === 0) {
@@ -632,65 +632,65 @@ function displayMatchSubstituteRequests(requests) {
 }
 
 // Event handlers for substitute requests
-$(document).on('click', '[data-action="resend-request"]', function() {
-    const requestId = $(this).data('request-id');
-    const league = $(this).data('league');
-    const teamName = $(this).data('team');
-    const createdAt = $(this).data('created');
+window.$(document).on('click', '[data-action="resend-request"]', function() {
+    const requestId = window.$(this).data('request-id');
+    const league = window.$(this).data('league');
+    const teamName = window.$(this).data('team');
+    const createdAt = window.$(this).data('created');
     resendSubstituteRequest(requestId, league, teamName, createdAt);
 });
 
-$(document).on('click', '[data-action="cancel-request"]', function() {
-    const requestId = $(this).data('request-id');
-    const league = $(this).data('league');
-    const teamName = $(this).data('team');
+window.$(document).on('click', '[data-action="cancel-request"]', function() {
+    const requestId = window.$(this).data('request-id');
+    const league = window.$(this).data('league');
+    const teamName = window.$(this).data('team');
     cancelSubstituteRequest(requestId, league, teamName);
 });
 
-$(document).on('click', '[data-action="refresh-requests"]', function() {
-    const league = $('#leagueManagementModal').data('current-league');
+window.$(document).on('click', '[data-action="refresh-requests"]', function() {
+    const league = window.$('#leagueManagementModal').data('current-league');
     if (league) {
         loadSubstituteRequests(league);
     }
 });
 
-$(document).on('click', '[data-action="view-request-details"]', function() {
-    const requestId = $(this).data('request-id');
-    const league = $('#leagueManagementModal').data('current-league');
+window.$(document).on('click', '[data-action="view-request-details"]', function() {
+    const requestId = window.$(this).data('request-id');
+    const league = window.$('#leagueManagementModal').data('current-league');
     viewRequestDetails(requestId, league);
 });
 
 // Event handlers for match-specific requests
-$(document).on('click', '[data-action="resend-match-request"]', function() {
-    const requestId = $(this).data('request-id');
-    const league = $(this).data('league');
-    const teamName = $(this).data('team');
-    const createdAt = $(this).data('created');
+window.$(document).on('click', '[data-action="resend-match-request"]', function() {
+    const requestId = window.$(this).data('request-id');
+    const league = window.$(this).data('league');
+    const teamName = window.$(this).data('team');
+    const createdAt = window.$(this).data('created');
     resendMatchSubstituteRequest(requestId, league, teamName, createdAt);
 });
 
-$(document).on('click', '[data-action="cancel-match-request"]', function() {
-    const requestId = $(this).data('request-id');
-    const league = $(this).data('league');
-    const teamName = $(this).data('team');
+window.$(document).on('click', '[data-action="cancel-match-request"]', function() {
+    const requestId = window.$(this).data('request-id');
+    const league = window.$(this).data('league');
+    const teamName = window.$(this).data('team');
     cancelMatchSubstituteRequest(requestId, league, teamName);
 });
 
-$(document).on('click', '[data-action="delete-request"]', function() {
-    const requestId = $(this).data('request-id');
-    const league = $(this).data('league');
-    const teamName = $(this).data('team');
+window.$(document).on('click', '[data-action="delete-request"]', function() {
+    const requestId = window.$(this).data('request-id');
+    const league = window.$(this).data('league');
+    const teamName = window.$(this).data('team');
     deleteSubstituteRequest(requestId, league, teamName);
 });
 
-$(document).on('click', '[data-action="refresh-match-requests"]', function() {
+window.$(document).on('click', '[data-action="refresh-match-requests"]', function() {
     if (typeof matchId !== 'undefined') {
         loadMatchSubstituteRequests(matchId);
     }
 });
 
-$(document).on('click', '[data-action="view-match-request-details"]', function() {
-    const requestId = $(this).data('request-id');
+window.$(document).on('click', '[data-action="view-match-request-details"]', function() {
+    const requestId = window.$(this).data('request-id');
     // Determine league type from the current page context
     const league = 'ECS FC'; // Default for match pages, could be made dynamic
     viewRequestDetails(requestId, league);
@@ -848,10 +848,10 @@ function performDeleteRequest(requestId, league) {
 
                 // Immediately remove the row from the UI
                 $(`[data-action="delete-request"][data-request-id="${requestId}"]`).closest('tr').fadeOut(300, function() {
-                    $(this).remove();
+                    window.$(this).remove();
 
                     // Check if table is empty after removal
-                    const tbody = $('#matchSubstituteRequestsTable, #substituteRequestsTable');
+                    const tbody = window.$('#matchSubstituteRequestsTable, #substituteRequestsTable');
                     if (tbody.find('tr').length === 0) {
                         tbody.html(`
                             <tr>
@@ -887,8 +887,8 @@ function performDeleteRequest(requestId, league) {
 }
 
 // Modal action handlers
-$(document).on('click', '#bulkApproveBtn', function() {
-    const league = $('#leagueManagementModal').data('current-league');
+window.$(document).on('click', '#bulkApproveBtn', function() {
+    const league = window.$('#leagueManagementModal').data('current-league');
     const pendingCount = parseInt($(`#pending-count-${league}`).text()) || 0;
 
     if (pendingCount === 0) {
@@ -901,9 +901,9 @@ $(document).on('click', '#bulkApproveBtn', function() {
     }
 });
 
-$(document).on('click', '#exportPoolBtn', function() {
-    const league = $('#leagueManagementModal').data('current-league');
-    const btn = $(this);
+window.$(document).on('click', '#exportPoolBtn', function() {
+    const league = window.$('#leagueManagementModal').data('current-league');
+    const btn = window.$(this);
     
     // Disable button and show loading
     btn.prop('disabled', true);
@@ -918,8 +918,8 @@ $(document).on('click', '#exportPoolBtn', function() {
     }, 1500);
 });
 
-$(document).on('click', '#sendNotificationBtn', function() {
-    const league = $('#leagueManagementModal').data('current-league');
+window.$(document).on('click', '#sendNotificationBtn', function() {
+    const league = window.$('#leagueManagementModal').data('current-league');
     const activeCount = parseInt($(`#active-count-${league}`).text()) || 0;
 
     if (activeCount === 0) {
@@ -931,13 +931,13 @@ $(document).on('click', '#sendNotificationBtn', function() {
 });
 
 // Save pool settings
-$(document).on('click', '#savePoolSettings', function() {
-    const league = $('#leagueManagementModal').data('current-league');
-    const maxMatches = $('#defaultMaxMatches').val();
-    const autoApproval = $('#autoApprovalSwitch').is(':checked');
+window.$(document).on('click', '#savePoolSettings', function() {
+    const league = window.$('#leagueManagementModal').data('current-league');
+    const maxMatches = window.$('#defaultMaxMatches').val();
+    const autoApproval = window.$('#autoApprovalSwitch').is(':checked');
     
     // Show saving state
-    const btn = $(this);
+    const btn = window.$(this);
     btn.prop('disabled', true);
     btn.text('Saving...');
     
@@ -962,7 +962,7 @@ function bulkApproveAllPending(league) {
     const playerIds = [];
     
     pendingCards.each(function() {
-        const playerId = $(this).data('player-id');
+        const playerId = window.$(this).data('player-id');
         if (playerId) {
             playerIds.push(playerId);
         }
@@ -1192,19 +1192,19 @@ function displayRequestDetailsModal(request) {
     `;
     
     // Remove existing modal if any
-    $('#requestDetailsModal').remove();
+    window.$('#requestDetailsModal').remove();
     
     // Add modal to body and show it
-    $('body').append(modalHtml);
-    $('#requestDetailsModal').modal('show');
+    window.$('body').append(modalHtml);
+    window.$('#requestDetailsModal').modal('show');
 }
 
 // Handle assignment from details modal
-$(document).on('click', '[data-action="assign-substitute"]', function() {
-    const requestId = $(this).data('request-id');
-    const playerId = $(this).data('player-id');
-    const playerName = $(this).data('player-name');
-    const league = $(this).data('league');
+window.$(document).on('click', '[data-action="assign-substitute"]', function() {
+    const requestId = window.$(this).data('request-id');
+    const playerId = window.$(this).data('player-id');
+    const playerName = window.$(this).data('player-name');
+    const league = window.$(this).data('league');
     
     if (typeof window.Swal !== 'undefined') {
         window.Swal.fire({
@@ -1243,16 +1243,16 @@ function assignSubstitute(requestId, playerId, league, position) {
         success: function(response) {
             if (response.success) {
                 subRequestShowNotification('success', response.message);
-                $('#requestDetailsModal').modal('hide');
+                window.$('#requestDetailsModal').modal('hide');
                 // Refresh the requests table if visible
-                if ($('#substituteRequestsTable').length) {
-                    const league = $('#leagueManagementModal').data('current-league');
+                if (window.$('#substituteRequestsTable').length) {
+                    const league = window.$('#leagueManagementModal').data('current-league');
                     if (league) {
                         loadSubstituteRequests(league);
                     }
                 }
                 // Refresh match requests table if visible
-                if ($('#matchSubstituteRequestsTable').length && typeof matchId !== 'undefined') {
+                if (window.$('#matchSubstituteRequestsTable').length && typeof matchId !== 'undefined') {
                     loadMatchSubstituteRequests(matchId);
                 }
             } else {
@@ -1266,13 +1266,13 @@ function assignSubstitute(requestId, playerId, league, position) {
 }
 
 // Handle resend from details modal
-$(document).on('click', '[data-action="resend-from-details"]', function() {
-    const requestId = $(this).data('request-id');
-    const league = $(this).data('league');
-    const teamName = $(this).data('team');
-    const createdAt = $(this).data('created');
+window.$(document).on('click', '[data-action="resend-from-details"]', function() {
+    const requestId = window.$(this).data('request-id');
+    const league = window.$(this).data('league');
+    const teamName = window.$(this).data('team');
+    const createdAt = window.$(this).data('created');
 
-    $('#requestDetailsModal').modal('hide');
+    window.$('#requestDetailsModal').modal('hide');
     resendSubstituteRequest(requestId, league, teamName, createdAt);
 });
 

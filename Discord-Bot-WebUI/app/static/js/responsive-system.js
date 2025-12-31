@@ -459,8 +459,8 @@
       if (typeof window.$.fn !== 'undefined' && typeof window.$.fn.select2 !== 'undefined') {
         try {
           setTimeout(() => {
-            $('.select2-container').each(function () {
-              const selectElement = $(this).siblings('select');
+            window.$('.select2-container').each(function () {
+              const selectElement = window.$(this).siblings('select');
               if (selectElement.length) {
                 // Configure Select2 with mobile-friendly options
                 const config = {
@@ -468,7 +468,7 @@
                   width: '100%',
                   // Set dropdown to modal if in modal context
                   dropdownParent: $(selectElement).closest('.modal').length ?
-                    $(selectElement).closest('.modal') : $('body')
+                    $(selectElement).closest('.modal') : window.$('body')
                 };
 
                 // Set appropriate placeholder
