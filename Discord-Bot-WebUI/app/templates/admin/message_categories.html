@@ -132,7 +132,7 @@
                             {{ category.name }}
                         </h5>
                         <button type="button" class="c-btn c-btn--sm c-btn--light js-create-template"
-                                onclick="createTemplate({{ category.id }}, '{{ category.name }}')"
+                                data-action="create-template" data-category-id="{{ category.id }}" data-category-name="{{ category.name }}"
                                 data-bs-toggle="tooltip" title="Create New Template">
                             <i class="ti ti-plus me-1"></i>New Template
                         </button>
@@ -181,7 +181,7 @@
                     <h5 class="mb-0">
                         <i class="ti ti-speakerphone me-2"></i>Website Announcements
                     </h5>
-                    <button type="button" class="c-btn c-btn--sm c-btn--outline-primary js-create-announcement" onclick="createAnnouncement()" aria-label="Add"><i class="ti ti-plus"></i></button>
+                    <button type="button" class="c-btn c-btn--sm c-btn--outline-primary js-create-announcement" data-action="create-announcement" aria-label="Add"><i class="ti ti-plus"></i></button>
                 </div>
                 <div class="c-card__body">
                     {% if announcements %}
@@ -198,12 +198,12 @@
                                     </div>
                                     <div class="d-flex gap-1">
                                         <button type="button" class="c-btn c-btn--sm c-btn--outline-primary js-edit-announcement"
-                                                onclick="editAnnouncement({{ announcement.id }})"
+                                                data-action="edit-announcement" data-announcement-id="{{ announcement.id }}"
                                                 data-bs-toggle="tooltip" title="Edit">
                                             <i class="ti ti-edit"></i>
                                         </button>
                                         <button type="button" class="c-btn c-btn--sm c-btn--outline-danger js-delete-announcement"
-                                                onclick="deleteAnnouncement({{ announcement.id }})"
+                                                data-action="delete-announcement" data-announcement-id="{{ announcement.id }}"
                                                 data-bs-toggle="tooltip" title="Delete">
                                             <i class="ti ti-trash"></i>
                                         </button>
@@ -222,7 +222,7 @@
                             <i class="ti ti-speakerphone mb-3" class="u-icon-xl text-muted"></i>
                             <p class="text-muted mb-3">No announcements yet</p>
                             <button type="button" class="c-btn c-btn--sm c-btn--success js-create-announcement"
-                                onclick="createAnnouncement()">
+                                data-action="create-announcement">
                                 <i class="ti ti-plus me-1"></i>Create Announcement
                             </button>
                         </div>
@@ -245,7 +245,7 @@
                         </a>
                         {% endif %}
                         <button type="button" class="c-btn c-btn--outline-primary c-btn--sm js-create-announcement"
-                                onclick="createAnnouncement()">
+                                data-action="create-announcement">
                             <i class="ti ti-plus me-1"></i>Create Announcement
                         </button>
                     </div>
@@ -375,7 +375,7 @@
                     </div>
                 </div>
                 <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
-                    <button type="button" class="c-btn c-btn--outline-info js-preview-message" onclick="previewMessage()">
+                    <button type="button" class="c-btn c-btn--outline-info js-preview-message" data-action="preview-message">
                         <i class="ti ti-eye me-1"></i>Preview
                     </button>
                     <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
@@ -537,7 +537,7 @@
                     </div>
                 </div>
                 <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
-                    <button type="button" class="c-btn c-btn--outline-info js-preview-new-template" onclick="previewNewTemplate()">
+                    <button type="button" class="c-btn c-btn--outline-info js-preview-new-template" data-action="preview-new-template">
                         <i class="ti ti-eye me-1"></i>Preview
                     </button>
                     <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>

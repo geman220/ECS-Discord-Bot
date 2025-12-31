@@ -1,4 +1,15 @@
-document.addEventListener('DOMContentLoaded', function () {
+/**
+ * Settings Page - Account and notification settings management
+ */
+(function() {
+  'use strict';
+
+  let _initialized = false;
+
+  function init() {
+    if (_initialized) return;
+    _initialized = true;
+
     const accountInfoForm = document.getElementById('accountInfoForm');
     const passwordChangeForm = document.getElementById('passwordChangeForm');
     const notificationForm = document.getElementById('notificationForm');
@@ -196,4 +207,21 @@ document.addEventListener('DOMContentLoaded', function () {
     function getCsrfToken() {
         return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     }
-});
+  }
+
+  // Register with InitSystem (primary)
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('settings', init, {
+      priority: 50,
+      reinitializable: true,
+      description: 'Settings page functionality'
+    });
+  }
+
+  // Fallback
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();

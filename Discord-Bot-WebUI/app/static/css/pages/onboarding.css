@@ -178,15 +178,15 @@
 /* ============================================
    FORM SECTIONS - Organized Content
    ============================================ */
-.c-onboarding-form {
+.c-onboarding-page .c-onboarding-form {
     padding: var(--onboard-space-lg);
 }
 
-.c-onboarding-form__section {
+.c-onboarding-page .c-onboarding-form__section {
     margin-bottom: var(--onboard-space-xl);
 }
 
-.c-onboarding-form__section-header {
+.c-onboarding-page .c-onboarding-form__section-header {
     display: flex;
     align-items: center;
     gap: var(--onboard-space-sm);
@@ -197,7 +197,7 @@
 }
 
 /* Animated underline on section headers */
-.c-onboarding-form__section-header::after {
+.c-onboarding-page .c-onboarding-form__section-header::after {
     content: '';
     position: absolute;
     bottom: -2px;
@@ -208,11 +208,11 @@
     transition: width var(--onboard-duration-slow) var(--onboard-ease-smooth);
 }
 
-.c-onboarding-form__section:hover .c-onboarding-form__section-header::after {
+.c-onboarding-page .c-onboarding-form__section:hover .c-onboarding-form__section-header::after {
     width: 120px;
 }
 
-.c-onboarding-form__section-title {
+.c-onboarding-page .c-onboarding-form__section-title {
     font-size: 1.25rem;
     font-weight: 700;
     color: var(--onboard-text-primary);
@@ -220,7 +220,7 @@
     letter-spacing: -0.015em;
 }
 
-.c-onboarding-form__section-icon {
+.c-onboarding-page .c-onboarding-form__section-icon {
     font-size: 1.5rem;
     color: var(--onboard-primary);
 }
@@ -495,7 +495,7 @@
 /* ============================================
    FORM ACTIONS - Submit Zone
    ============================================ */
-.c-onboarding-form__actions {
+.c-onboarding-page .c-onboarding-form__actions {
     display: flex;
     gap: var(--onboard-space-sm);
     padding-top: var(--onboard-space-lg);
@@ -503,7 +503,7 @@
     margin-top: var(--onboard-space-xl);
 }
 
-.c-onboarding-form__submit {
+.c-onboarding-page .c-onboarding-form__submit {
     display: inline-flex;
     align-items: center;
     gap: var(--onboard-space-xs);
@@ -519,17 +519,17 @@
     box-shadow: var(--onboard-shadow-sm);
 }
 
-.c-onboarding-form__submit:hover {
+.c-onboarding-page .c-onboarding-form__submit:hover {
     background: var(--onboard-primary-dark);
     transform: translateY(-2px);
     box-shadow: var(--onboard-shadow-md);
 }
 
-.c-onboarding-form__submit:active {
+.c-onboarding-page .c-onboarding-form__submit:active {
     transform: translateY(0);
 }
 
-.c-onboarding-form__cancel {
+.c-onboarding-page .c-onboarding-form__cancel {
     padding: 0.875rem 1.5rem;
     background: transparent;
     color: var(--onboard-text-secondary);
@@ -540,7 +540,7 @@
     transition: all var(--onboard-duration-base) var(--onboard-ease-smooth);
 }
 
-.c-onboarding-form__cancel:hover {
+.c-onboarding-page .c-onboarding-form__cancel:hover {
     background: var(--onboard-surface-alt);
     color: var(--onboard-text-primary);
     border-color: var(--onboard-border-strong);
@@ -592,9 +592,9 @@
 /* ============================================
    ACCESSIBILITY ENHANCEMENTS
    ============================================ */
-.c-onboarding-form__input:focus,
-.c-onboarding-form__select:focus,
-.c-onboarding-form__textarea:focus {
+.c-onboarding-page .c-onboarding-form__input:focus,
+.c-onboarding-page .c-onboarding-form__select:focus,
+.c-onboarding-page .c-onboarding-form__textarea:focus {
     outline: 2px solid var(--onboard-primary);
     outline-offset: 2px;
 }

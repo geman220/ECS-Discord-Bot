@@ -2,15 +2,20 @@
  * RSVP Unified Script - v2.1
  * This is a completely rewritten version of the RSVP page JavaScript
  * designed to be extremely stable and avoid any syntax errors.
- * 
+ *
  * Updates in v2.1:
  * - Added fallback solutions for team selection in sub request modal
  * - Fixed issue with Pub League Coaches not being able to request subs
  */
 
-// Wait for DOM content to be fully loaded
-document.addEventListener('DOMContentLoaded', function() {
+(function() {
   'use strict';
+
+  let _initialized = false;
+
+  function init() {
+    if (_initialized) return;
+    _initialized = true;
   
   // Hide page loader
   setTimeout(function() {
@@ -200,7 +205,7 @@ document.addEventListener('DOMContentLoaded', function() {
   setTimeout(function() {
     removeDataTablesArrows();
   }, 1000);
-});
+  } // End of init function
 
 /**
  * Fix dropdown menu z-index and container overflow issues
@@ -852,3 +857,20 @@ function removeDataTablesArrows() {
     // Silent fail
   }
 }
+
+  // Register with InitSystem (primary)
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('rsvp-unified', init, {
+      priority: 50,
+      reinitializable: false,
+      description: 'RSVP unified page functionality'
+    });
+  }
+
+  // Fallback
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();

@@ -31,11 +31,11 @@
    Statistics cards layout for dashboard overview
    ============================================================================ */
 
-.c-admin-stats {
+.c-admin-dashboard-page .c-admin-stats {
   margin-bottom: var(--space-6);
 }
 
-.c-admin-stats__grid {
+.c-admin-dashboard-page .c-admin-stats__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: var(--space-4);
@@ -54,11 +54,11 @@
    Main content grid for admin section cards
    ============================================================================ */
 
-.c-admin-sections {
+.c-admin-dashboard-page .c-admin-sections {
   margin-bottom: var(--space-6);
 }
 
-.c-admin-sections__grid {
+.c-admin-dashboard-page .c-admin-sections__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
   gap: var(--space-4);
@@ -84,7 +84,7 @@
    Vertical navigation list for admin sections
    ============================================================================ */
 
-.c-link-list {
+.c-admin-dashboard-page .c-link-list {
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -93,7 +93,7 @@
   margin: 0;
 }
 
-.c-link-list__item {
+.c-admin-dashboard-page .c-link-list__item {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -110,22 +110,22 @@
   text-align: left;
 }
 
-.c-link-list__item:last-child {
+.c-admin-dashboard-page .c-link-list__item:last-child {
   border-bottom: none;
 }
 
-.c-link-list__item:hover {
+.c-admin-dashboard-page .c-link-list__item:hover {
   background: var(--color-hover-bg);
   color: var(--color-primary);
 }
 
-.c-link-list__item:focus-visible {
+.c-admin-dashboard-page .c-link-list__item:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: -2px;
   z-index: 1;
 }
 
-.c-link-list__content {
+.c-admin-dashboard-page .c-link-list__content {
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -133,18 +133,18 @@
   min-width: 0;
 }
 
-.c-link-list__icon {
+.c-admin-dashboard-page .c-link-list__icon {
   flex-shrink: 0;
   font-size: var(--text-lg);
   color: var(--color-text-secondary);
   transition: var(--transition-base);
 }
 
-.c-link-list__item:hover .c-link-list__icon {
+.c-admin-dashboard-page .c-link-list__item:hover .c-link-list__icon {
   color: var(--color-primary);
 }
 
-.c-link-list__text {
+.c-admin-dashboard-page .c-link-list__text {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -152,20 +152,20 @@
   white-space: nowrap;
 }
 
-.c-link-list__meta {
+.c-admin-dashboard-page .c-link-list__meta {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   flex-shrink: 0;
 }
 
-.c-link-list__arrow {
+.c-admin-dashboard-page .c-link-list__arrow {
   font-size: var(--text-sm);
   color: var(--color-text-muted);
   transition: var(--transition-base);
 }
 
-.c-link-list__item:hover .c-link-list__arrow {
+.c-admin-dashboard-page .c-link-list__item:hover .c-link-list__arrow {
   color: var(--color-primary);
   transform: translateX(2px);
 }
@@ -190,11 +190,11 @@
    Recent activity section with table
    ============================================================================ */
 
-.c-admin-activity {
+.c-admin-dashboard-page .c-admin-activity {
   margin-bottom: var(--space-6);
 }
 
-.c-admin-activity .c-card__header {
+.c-admin-dashboard-page .c-admin-activity .c-card__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -202,14 +202,14 @@
   gap: var(--space-3);
 }
 
-.c-admin-activity .c-card__title {
+.c-admin-dashboard-page .c-admin-activity .c-card__title {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   margin: 0;
 }
 
-.c-admin-activity .c-card__actions {
+.c-admin-dashboard-page .c-admin-activity .c-card__actions {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -231,45 +231,13 @@
   }
 }
 
-/* ============================================================================
-   5. STATUS INDICATORS
-   Small colored dots showing system status
-   ============================================================================ */
-
-.c-status-indicator {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: var(--radius-full);
-  background: var(--color-neutral-400);
-  flex-shrink: 0;
-}
-
-.c-status-indicator--active {
-  background: var(--color-success);
-  box-shadow: 0 0 0 2px rgba(25, 135, 84, 0.2);
-  animation: pulse-indicator 2s ease-in-out infinite;
-}
-
-.c-status-indicator--inactive {
-  background: var(--color-danger);
-}
-
-.c-status-indicator--warning {
-  background: var(--color-warning);
-}
-
-@keyframes pulse-indicator {
-  0%, 100% {
-    box-shadow: 0 0 0 2px rgba(25, 135, 84, 0.2);
-  }
-  50% {
-    box-shadow: 0 0 0 4px rgba(25, 135, 84, 0.1);
-  }
-}
+/*
+ * NOTE: .c-status-indicator moved to components/c-status-indicator.css
+ * Use .c-status-indicator--md for 10px size (this page's requirement)
+ */
 
 /* ============================================================================
-   6. ALERT INLINE
+   5. ALERT INLINE
    Inline alert with action button
    ============================================================================ */
 
@@ -409,10 +377,6 @@
   .c-link-list__item:hover .c-link-list__arrow {
     transform: none;
   }
-
-  .c-status-indicator--active {
-    animation: none;
-  }
 }
 
 /* High contrast mode */
@@ -425,17 +389,13 @@
     outline-width: 3px;
   }
 
-  .c-status-indicator {
-    border: 2px solid currentColor;
-  }
-
   .c-alert-inline {
     border-width: 2px;
   }
 }
 
 /* Focus visible enhancement for keyboard navigation */
-.c-link-list__item:focus-visible {
+.c-admin-dashboard-page .c-link-list__item:focus-visible {
   background: var(--color-hover-bg);
 }
 

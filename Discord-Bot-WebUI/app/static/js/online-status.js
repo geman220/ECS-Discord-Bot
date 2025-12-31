@@ -229,6 +229,16 @@
     window.OnlineStatusManager.init();
   }
 
+  // Register with InitSystem (primary)
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('online-status', initIfNeeded, {
+      priority: 40,
+      reinitializable: true,
+      description: 'Online status indicator manager'
+    });
+  }
+
+  // Fallback: Initialize when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initIfNeeded);
   } else {

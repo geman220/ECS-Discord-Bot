@@ -151,7 +151,7 @@
                                 <button type="submit" class="c-btn c-btn--primary">
                                     <i class="fas fa-save"></i> Assign Playoff Teams
                                 </button>
-                                <button type="button" class="c-btn c-btn--success js-auto-assign-playoffs" onclick="autoAssignPlayoffs()">
+                                <button type="button" class="c-btn c-btn--success js-auto-assign-playoffs" data-action="auto-assign-playoffs" data-league-id="{{ league.id }}">
                                     <i class="fas fa-magic"></i> Auto-Assign by Standings
                                 </button>
                                 <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="c-btn c-btn--secondary">

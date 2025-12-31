@@ -915,9 +915,7 @@
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-<script src="{{ url_for('static', filename='custom_js/report_match.js') }}"></script>
-{% endif %}
+<!-- report_match.js loaded globally in base.html -->
 <script>
     // Make player choices globally available for the report_match.js script
     window.playerChoices = {{ player_choices | tojson | safe }};

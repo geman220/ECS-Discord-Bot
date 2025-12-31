@@ -112,7 +112,25 @@
         }
     };
 
-    // Initialize on DOM ready
+    // Add _initialized guard to init method
+    const originalInit = ManageRoles.init;
+    let _initialized = false;
+    ManageRoles.init = function() {
+        if (_initialized) return;
+        _initialized = true;
+        originalInit.call(this);
+    };
+
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('manage-roles', () => ManageRoles.init(), {
+            priority: 35,
+            reinitializable: true,
+            description: 'Manage roles page functionality'
+        });
+    }
+
+    // Fallback
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => ManageRoles.init());
     } else {

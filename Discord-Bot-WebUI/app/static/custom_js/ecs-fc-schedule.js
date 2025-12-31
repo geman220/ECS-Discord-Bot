@@ -5,10 +5,10 @@
  * including match creation, editing, calendar display, and RSVP handling.
  */
 
-// Global variables
-let currentTeamId = null;
-let calendar = null;
-let currentMatches = [];
+// Global variables (using var to allow safe re-declaration if script loads twice)
+var currentTeamId = null;
+var calendar = null;
+var currentMatches = [];
 
 // Initialize ECS FC schedule management
 document.addEventListener('DOMContentLoaded', function() {

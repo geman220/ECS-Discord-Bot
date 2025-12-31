@@ -13,7 +13,7 @@
 {% endblock %}
 
 {% block main_content %}
-<div class="container-xxl flex-grow-1 container-p-y">
+<div class="container-xxl flex-grow-1 container-p-y c-team-detail-page">
     <!-- Team Header -->
     <div class="c-team-header" data-component="team-header">
         {% if team.background_image_url %}
@@ -504,6 +504,7 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
 <script>
 // Match data for reporting
 window.TEAM_MATCH_DATA = {
@@ -529,8 +530,8 @@ window.TEAM_MATCH_DATA = {
     {% endfor %}
 };
 </script>
-<script src="{{ url_for('static', filename='custom_js/team-detail.js') }}"></script>
 {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-<script src="{{ url_for('static', filename='custom_js/report_match.js') }}"></script>
+<script src="{{ url_for('static', filename='custom_js/team-detail.js') }}"></script>
 {% endif %}
+<!-- report_match.js loaded globally in base.html -->
 {% endblock %}

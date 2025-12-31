@@ -1,8 +1,13 @@
 /**
  * SMS Verification
+ * Handles phone number verification via SMS
  */
+(function() {
+'use strict';
 
-// Create global functions directly
+let _initialized = false;
+
+// Create global functions directly (backward compatibility)
 function toggleSmsConsent(show) {
     // console.log("Toggle SMS consent:", show);
     const smsOptInSection = document.getElementById('smsOptInSection');
@@ -247,8 +252,9 @@ window.adminSetVerificationCode = function() {
 };
 
 // Initialize when page loads - using a light initialization that respects existing inline handlers
-document.addEventListener('DOMContentLoaded', function() {
-    // Silently initialize without console logs
+function initSmsVerification() {
+    if (_initialized) return;
+    _initialized = true;
 
     // Get initial state
     var smsToggle = document.getElementById('smsNotifications');
@@ -265,4 +271,28 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
-});
+}
+
+// Expose global functions (backward compatibility)
+window.toggleSmsConsent = toggleSmsConsent;
+window.toggleSmsVerification = toggleSmsVerification;
+window.sendVerificationCode = sendVerificationCode;
+window.verifyCode = verifyCode;
+
+// Register with InitSystem (primary)
+if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('sms-verification', initSmsVerification, {
+        priority: 45,
+        reinitializable: false,
+        description: 'SMS verification functionality'
+    });
+}
+
+// Fallback
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSmsVerification);
+} else {
+    initSmsVerification();
+}
+
+})();

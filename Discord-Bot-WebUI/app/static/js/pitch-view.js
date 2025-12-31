@@ -862,8 +862,8 @@ class PitchViewSystem {
     }
 }
 
-// Global instance
-let pitchViewInstance = null;
+// Global instance (using var to allow safe re-declaration if script loads twice)
+var pitchViewInstance = null;
 
 // Global initialization function
 function initializePitchView(leagueName, teams, draftedPlayersByTeam) {

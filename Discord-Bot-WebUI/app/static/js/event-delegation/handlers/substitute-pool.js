@@ -330,4 +330,17 @@ EventDelegation.register('add-player', function(element, e) {
 
 // ============================================================================
 
+/**
+ * Refresh Pools Action
+ * Refreshes all substitute pools
+ */
+EventDelegation.register('refresh-pools', function(element, e) {
+    e.preventDefault();
+    if (typeof window.refreshPools === 'function') {
+        window.refreshPools();
+    }
+}, { preventDefault: true });
+
+// ============================================================================
+
 console.log('[EventDelegation] Substitute pool handlers loaded');

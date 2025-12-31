@@ -1705,10 +1705,9 @@ html[data-style="dark"] input[type="radio"]:hover {
 }
 
 /* High specificity sidebar z-index - ensures sidebar is above navbar */
+/* NOTE: .c-sidebar z-index moved to layout/sidebar-modern.css */
 .layout-menu,
-aside.layout-menu,
-aside.c-sidebar,
-.c-sidebar {
+aside.layout-menu {
   z-index: 1035;
 }
 

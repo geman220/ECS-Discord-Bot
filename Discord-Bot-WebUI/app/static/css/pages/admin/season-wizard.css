@@ -17,17 +17,17 @@
  */
 
 /* ============================================================================
-   WIZARD CONTAINER
+   WIZARD CONTAINER - Season Wizard Page Scoped
    ============================================================================ */
 
-.c-wizard {
+.c-season-wizard-page .c-wizard {
   position: relative;
   background: var(--color-bg-card, #fff);
   border-radius: var(--radius-lg, 12px);
   overflow: hidden;
 }
 
-[data-style="dark"] .c-wizard {
+[data-style="dark"] .c-season-wizard-page .c-wizard {
   background: var(--color-bg-card, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
 }
 
@@ -35,7 +35,7 @@
    WIZARD STEPS (Progress Indicator)
    ============================================================================ */
 
-.c-wizard__steps {
+.c-season-wizard-page .c-wizard__steps {
   display: flex;
   justify-content: space-between;
   position: relative;
@@ -45,7 +45,7 @@
 }
 
 /* Progress line */
-.c-wizard__steps::after {
+.c-season-wizard-page .c-wizard__steps::after {
   content: '';
   position: absolute;
   top: calc(var(--space-5, 20px) + 20px);
@@ -56,7 +56,7 @@
   z-index: 1;
 }
 
-[data-style="dark"] .c-wizard__steps::after {
+[data-style="dark"] .c-season-wizard-page .c-wizard__steps::after {
   background: var(--color-border-primary, var(--color-secondary-600, #475569));
 }
 
@@ -64,7 +64,7 @@
    INDIVIDUAL STEP
    ============================================================================ */
 
-.c-wizard__step {
+.c-season-wizard-page .c-wizard__step {
   position: relative;
   z-index: 2;
   flex: 1;
@@ -73,7 +73,7 @@
 }
 
 /* Step circle */
-.c-wizard__step-circle {
+.c-season-wizard-page .c-wizard__step-circle {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -87,14 +87,14 @@
 }
 
 /* Step text */
-.c-wizard__step-text {
+.c-season-wizard-page .c-wizard__step-text {
   font-size: var(--text-sm, 0.875rem);
   color: var(--color-text-secondary, var(--color-secondary-500, #64748b));
   transition: color var(--duration-normal, 200ms) ease;
 }
 
 /* Tooltip */
-.c-wizard__step-tooltip {
+.c-season-wizard-page .c-wizard__step-tooltip {
   position: absolute;
   display: none;
   top: -45px;
@@ -109,7 +109,7 @@
   z-index: 10;
 }
 
-.c-wizard__step-tooltip::after {
+.c-season-wizard-page .c-wizard__step-tooltip::after {
   content: '';
   position: absolute;
   top: 100%;
@@ -120,20 +120,20 @@
   border-color: var(--color-bg-dark, var(--color-secondary-900, var(--color-secondary-900, #1e293b))) transparent transparent transparent;
 }
 
-.c-wizard__step-trigger:hover .c-wizard__step-tooltip {
+.c-season-wizard-page .c-wizard__step-trigger:hover .c-wizard__step-tooltip {
   display: block;
 }
 
-[data-style="dark"] .c-wizard__step-tooltip {
+[data-style="dark"] .c-season-wizard-page .c-wizard__step-tooltip {
   background: var(--color-bg-elevated, var(--color-secondary-600, #475569));
 }
 
-[data-style="dark"] .c-wizard__step-tooltip::after {
+[data-style="dark"] .c-season-wizard-page .c-wizard__step-tooltip::after {
   border-color: var(--color-bg-elevated, var(--color-secondary-600, #475569)) transparent transparent transparent;
 }
 
 /* Step trigger (clickable area) */
-.c-wizard__step-trigger {
+.c-season-wizard-page .c-wizard__step-trigger {
   position: relative;
   cursor: pointer;
 }
@@ -143,32 +143,32 @@
    ============================================================================ */
 
 /* Pending state */
-.c-wizard__step--pending .c-wizard__step-circle {
+.c-season-wizard-page .c-wizard__step--pending .c-wizard__step-circle {
   background: var(--color-text-muted, var(--color-secondary-400, #94a3b8));
   opacity: 0.6;
 }
 
-.c-wizard__step--pending .c-wizard__step-text {
+.c-season-wizard-page .c-wizard__step--pending .c-wizard__step-text {
   opacity: 0.6;
 }
 
 /* Active state */
-.c-wizard__step--active .c-wizard__step-circle {
+.c-season-wizard-page .c-wizard__step--active .c-wizard__step-circle {
   background: var(--color-primary, var(--color-primary-600, #2563eb));
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25);
 }
 
-.c-wizard__step--active .c-wizard__step-text {
+.c-season-wizard-page .c-wizard__step--active .c-wizard__step-text {
   color: var(--color-primary, var(--color-primary-600, #2563eb));
   font-weight: 600;
 }
 
 /* Done state */
-.c-wizard__step--done .c-wizard__step-circle {
+.c-season-wizard-page .c-wizard__step--done .c-wizard__step-circle {
   background: var(--color-success, var(--color-success-500, #10b981));
 }
 
-.c-wizard__step--done .c-wizard__step-text {
+.c-season-wizard-page .c-wizard__step--done .c-wizard__step-text {
   color: var(--color-success, var(--color-success-500, #10b981));
 }
 
@@ -176,22 +176,22 @@
    WIZARD CONTENT
    ============================================================================ */
 
-.c-wizard__content {
+.c-season-wizard-page .c-wizard__content {
   padding: var(--space-5, 20px);
   min-height: 400px;
   border-top: 1px solid var(--color-border-light, var(--color-secondary-200, #e2e8f0));
 }
 
-[data-style="dark"] .c-wizard__content {
+[data-style="dark"] .c-season-wizard-page .c-wizard__content {
   border-top-color: var(--color-border-primary, var(--color-secondary-600, #475569));
 }
 
 /* Step content panels */
-.c-wizard__panel {
+.c-season-wizard-page .c-wizard__panel {
   display: none;
 }
 
-.c-wizard__panel--active {
+.c-season-wizard-page .c-wizard__panel--active {
   display: block;
   animation: wizardFadeIn var(--duration-normal, 200ms) ease;
 }
@@ -211,7 +211,7 @@
    WIZARD NAVIGATION
    ============================================================================ */
 
-.c-wizard__navigation {
+.c-season-wizard-page .c-wizard__navigation {
   display: flex;
   justify-content: space-between;
   padding: var(--space-4, 16px) var(--space-5, 20px);
@@ -219,7 +219,7 @@
   background: var(--color-bg-secondary, var(--color-secondary-50, #f8fafc));
 }
 
-[data-style="dark"] .c-wizard__navigation {
+[data-style="dark"] .c-season-wizard-page .c-wizard__navigation {
   border-top-color: var(--color-border-primary, var(--color-secondary-600, #475569));
   background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
 }
@@ -228,7 +228,7 @@
    WIZARD INFO ALERT (Step description)
    ============================================================================ */
 
-.c-wizard__info {
+.c-season-wizard-page .c-wizard__info {
   display: flex;
   align-items: center;
   gap: var(--space-3, 12px);
@@ -239,32 +239,32 @@
   margin-bottom: var(--space-4, 16px);
 }
 
-[data-style="dark"] .c-wizard__info {
+[data-style="dark"] .c-season-wizard-page .c-wizard__info {
   background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
 }
 
-.c-wizard__info-icon {
+.c-season-wizard-page .c-wizard__info-icon {
   font-size: 2rem;
   color: var(--color-primary, var(--color-primary-600, #2563eb));
   flex-shrink: 0;
 }
 
-.c-wizard__info-content {
+.c-season-wizard-page .c-wizard__info-content {
   flex: 1;
 }
 
-.c-wizard__info-title {
+.c-season-wizard-page .c-wizard__info-title {
   margin: 0 0 var(--space-1, 4px);
   font-size: var(--text-base, 1rem);
   font-weight: 600;
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
 }
 
-[data-style="dark"] .c-wizard__info-title {
+[data-style="dark"] .c-season-wizard-page .c-wizard__info-title {
   color: var(--color-text-primary, var(--color-secondary-50, #f8fafc));
 }
 
-.c-wizard__info-description {
+.c-season-wizard-page .c-wizard__info-description {
   margin: 0;
   font-size: var(--text-sm, 0.875rem);
   color: var(--color-text-muted, var(--color-secondary-500, #64748b));
@@ -400,7 +400,7 @@
    ROLLOVER WARNING
    ============================================================================ */
 
-.c-wizard__warning {
+.c-season-wizard-page .c-wizard__warning {
   padding: var(--space-3, 12px) var(--space-4, 16px);
   background: rgba(245, 158, 11, 0.1);
   border: 1px solid rgba(245, 158, 11, 0.3);
@@ -408,7 +408,7 @@
   margin-top: var(--space-3, 12px);
 }
 
-.c-wizard__warning-title {
+.c-season-wizard-page .c-wizard__warning-title {
   display: flex;
   align-items: center;
   gap: var(--space-2, 8px);
@@ -417,13 +417,13 @@
   margin-bottom: var(--space-2, 8px);
 }
 
-.c-wizard__warning-list {
+.c-season-wizard-page .c-wizard__warning-list {
   margin: 0;
   padding-left: var(--space-5, 20px);
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
 }
 
-[data-style="dark"] .c-wizard__warning-list {
+[data-style="dark"] .c-season-wizard-page .c-wizard__warning-list {
   color: var(--color-text-primary, var(--color-secondary-50, #f8fafc));
 }
 

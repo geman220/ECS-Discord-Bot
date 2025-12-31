@@ -13,9 +13,13 @@
    ============================================================================ */
 
 .c-form-modern {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-4, 16px);
+  background: var(--color-bg-card, var(--color-secondary-900, #1e293b));
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--space-4, 16px);
 }
 
 .c-form-modern__row {
@@ -77,14 +81,7 @@
    FORM MODERN CHECKBOX
    ============================================================================ */
 
-.c-form-modern__checkbox-label {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2, 8px);
-  font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
-  cursor: pointer;
-}
+/* NOTE: .c-form-modern__checkbox-label moved to forms-modern.css */
 
 .c-form-modern__checkbox-label input[type="checkbox"] {
   margin-top: 2px;
@@ -205,13 +202,15 @@
    LIGHT MODE
    ============================================================================ */
 
+[data-style="light"] .c-form-modern {
+  background: var(--color-bg-primary, #fff);
+}
+
 [data-style="light"] .c-form-modern__group--actions {
   border-top-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
 }
 
-[data-style="light"] .c-form-modern__checkbox-label {
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
-}
+/* NOTE: Light mode .c-form-modern__checkbox-label in forms-modern.css */
 
 [data-style="light"] .c-filter-option:hover {
   background: rgba(0, 0, 0, 0.02);

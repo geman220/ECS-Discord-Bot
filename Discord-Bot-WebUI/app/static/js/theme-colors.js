@@ -8,7 +8,8 @@
  *   const colors = ECSTheme.getAllColors();
  */
 
-const ECSTheme = (function() {
+// Assign to window to prevent redeclaration errors if script loads twice
+window.ECSTheme = window.ECSTheme || (function() {
   'use strict';
 
   // Cache for computed colors

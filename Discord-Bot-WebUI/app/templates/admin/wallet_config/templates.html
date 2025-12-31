@@ -155,14 +155,24 @@
                                         <div class="c-card bg-body-tertiary">
                                             <div class="c-card__body">
                                                 <h6 class="c-card__title">Quick Actions</h6>
-                                                <form action="{{ url_for('wallet_config.generate_default_template') }}" method="post" class="mb-3">
-                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                    <input type="hidden" name="pass_type_id" value="{{ ecs_type.id }}">
-                                                    <input type="hidden" name="platform" value="apple">
-                                                    <button type="submit" class="c-btn c-btn--primary">
-                                                        <i class="ti ti-wand me-1"></i> Generate Default Template
-                                                    </button>
-                                                </form>
+                                                <div class="d-flex gap-2 flex-wrap mb-3">
+                                                    <form action="{{ url_for('wallet_config.generate_default_template') }}" method="post">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                        <input type="hidden" name="pass_type_id" value="{{ ecs_type.id }}">
+                                                        <input type="hidden" name="platform" value="apple">
+                                                        <button type="submit" class="c-btn c-btn--dark">
+                                                            <i class="ti ti-brand-apple me-1"></i> Apple Template
+                                                        </button>
+                                                    </form>
+                                                    <form action="{{ url_for('wallet_config.generate_default_template') }}" method="post">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                        <input type="hidden" name="pass_type_id" value="{{ ecs_type.id }}">
+                                                        <input type="hidden" name="platform" value="google">
+                                                        <button type="submit" class="c-btn c-btn--primary">
+                                                            <i class="ti ti-brand-google me-1"></i> Google Template
+                                                        </button>
+                                                    </form>
+                                                </div>
                                                 <a href="{{ url_for('wallet_config.visual_editor', pass_type='ecs') }}" class="c-btn c-btn--outline-primary">
                                                     <i class="ti ti-brush me-1"></i> Visual Editor
                                                 </a>
@@ -282,14 +292,24 @@
                                         <div class="c-card bg-body-tertiary">
                                             <div class="c-card__body">
                                                 <h6 class="c-card__title">Quick Actions</h6>
-                                                <form action="{{ url_for('wallet_config.generate_default_template') }}" method="post" class="mb-3">
-                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                    <input type="hidden" name="pass_type_id" value="{{ pub_type.id }}">
-                                                    <input type="hidden" name="platform" value="apple">
-                                                    <button type="submit" class="c-btn c-btn--primary">
-                                                        <i class="ti ti-wand me-1"></i> Generate Default Template
-                                                    </button>
-                                                </form>
+                                                <div class="d-flex gap-2 flex-wrap mb-3">
+                                                    <form action="{{ url_for('wallet_config.generate_default_template') }}" method="post">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                        <input type="hidden" name="pass_type_id" value="{{ pub_type.id }}">
+                                                        <input type="hidden" name="platform" value="apple">
+                                                        <button type="submit" class="c-btn c-btn--dark">
+                                                            <i class="ti ti-brand-apple me-1"></i> Apple Template
+                                                        </button>
+                                                    </form>
+                                                    <form action="{{ url_for('wallet_config.generate_default_template') }}" method="post">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                        <input type="hidden" name="pass_type_id" value="{{ pub_type.id }}">
+                                                        <input type="hidden" name="platform" value="google">
+                                                        <button type="submit" class="c-btn c-btn--primary">
+                                                            <i class="ti ti-brand-google me-1"></i> Google Template
+                                                        </button>
+                                                    </form>
+                                                </div>
                                                 <a href="{{ url_for('wallet_config.visual_editor', pass_type='pub') }}" class="c-btn c-btn--outline-primary">
                                                     <i class="ti ti-brush me-1"></i> Visual Editor
                                                 </a>
@@ -397,7 +417,7 @@
                             <label for="templatePlatform" class="form-label">Platform</label>
                             <select class="form-select" id="templatePlatform" name="platform" required data-form-select>
                                 <option value="apple" selected>Apple Wallet</option>
-                                <option value="google" disabled>Google Wallet (Coming Soon)</option>
+                                <option value="google">Google Wallet</option>
                             </select>
                         </div>
                         <div class="mb-3">

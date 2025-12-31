@@ -235,10 +235,10 @@
 }
 
 /* ============================================================================
-   MATCH ITEM COMPONENT
+   MATCH ITEM COMPONENT - Schedule Wizard Scoped
    ============================================================================ */
 
-.c-match-item {
+.c-schedule-wizard .c-match-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -247,39 +247,39 @@
     transition: background-color var(--duration-fast) var(--ease-smooth);
 }
 
-.c-match-item:last-child {
+.c-schedule-wizard .c-match-item:last-child {
     border-bottom: none;
 }
 
-.c-match-item:hover {
+.c-schedule-wizard .c-match-item:hover {
     background-color: var(--color-neutral-50);
 }
 
-.c-match-item__info {
+.c-schedule-wizard .c-match-item__info {
     flex: 1;
 }
 
-.c-match-item__teams {
+.c-schedule-wizard .c-match-item__teams {
     font-size: var(--text-base);
     font-weight: var(--font-medium);
     color: var(--color-text-primary);
     margin-bottom: 0;
 }
 
-.c-match-item__meta {
+.c-schedule-wizard .c-match-item__meta {
     font-size: var(--text-sm);
     color: var(--color-text-secondary);
     margin-bottom: 0;
     margin-right: var(--space-2);
 }
 
-.c-match-item__actions {
+.c-schedule-wizard .c-match-item__actions {
     display: flex;
     align-items: center;
     gap: var(--space-2);
 }
 
-.c-match-item__delete-form {
+.c-schedule-wizard .c-match-item__delete-form {
     display: inline-block;
     margin: 0;
 }
@@ -511,7 +511,7 @@
 
 .c-schedule-wizard__step:focus-visible,
 .c-week-card:focus-visible,
-.c-match-item:focus-visible {
+.c-schedule-wizard .c-match-item:focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
 }
@@ -520,7 +520,7 @@
 @media (prefers-reduced-motion: reduce) {
     .c-schedule-wizard__step,
     .c-week-card:hover,
-    .c-match-item {
+    .c-schedule-wizard .c-match-item {
         animation: none;
         transition: none;
     }

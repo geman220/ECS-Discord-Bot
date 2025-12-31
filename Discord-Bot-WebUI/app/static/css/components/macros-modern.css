@@ -1191,69 +1191,9 @@ body[data-style="dark"] .c-onboarding-controls {
 }
 
 
-/* ============================================================================
-   TEAM AVATAR - TEAM KIT OR INITIAL
-   ============================================================================ */
-
-.c-team-avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  overflow: hidden;
-  background: var(--macro-glass-bg);
-  border: 2px solid var(--macro-glass-border);
-  transition: all var(--macro-transition-base);
-}
-
-.c-team-avatar:hover {
-  transform: scale(1.05);
-  border-color: var(--macro-match-primary);
-  box-shadow: 0 4px 12px rgba(105, 108, 255, 0.2);
-}
-
-.c-team-avatar--sm {
-  width: 32px;
-  height: 32px;
-}
-
-.c-team-avatar--md {
-  width: 48px;
-  height: 48px;
-}
-
-.c-team-avatar--lg {
-  width: 64px;
-  height: 64px;
-}
-
-.c-team-avatar--fallback {
-  background: linear-gradient(135deg, var(--macro-match-primary) 0%, #5f63f2 100%);
-}
-
-.c-team-avatar__image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.c-team-avatar__initial {
-  font-size: 1.25rem;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.c-team-avatar--sm .c-team-avatar__initial {
-  font-size: 0.875rem;
-}
-
-.c-team-avatar--md .c-team-avatar__initial {
-  font-size: 1rem;
-}
-
-.c-team-avatar--lg .c-team-avatar__initial {
-  font-size: 1.5rem;
-}
+/*
+ * NOTE: .c-team-avatar component moved to components/c-team-avatar.css
+ */
 
 
 /* ============================================================================
@@ -1521,51 +1461,9 @@ body[data-style="dark"] .c-profile-avatar__badge {
 }
 
 
-/* ============================================================================
-   STAT BOX - PLAYER STATISTICS
-   ============================================================================ */
-
-.c-stat-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--macro-space-lg);
-  background: var(--macro-glass-bg);
-  border: 1px solid var(--macro-glass-border);
-  border-radius: var(--macro-radius-lg);
-  transition: all var(--macro-transition-base);
-}
-
-.c-stat-box:hover {
-  border-color: var(--macro-match-primary);
-  box-shadow: 0 4px 16px rgba(105, 108, 255, 0.15);
-  transform: translateY(-4px);
-}
-
-.c-stat-box__icon {
-  font-size: 2rem;
-  margin-bottom: var(--macro-space-sm);
-  transition: transform var(--macro-transition-base);
-}
-
-.c-stat-box:hover .c-stat-box__icon {
-  transform: scale(1.1);
-}
-
-.c-stat-box__value {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--bs-body-color);
-  line-height: 1;
-  margin-bottom: var(--macro-space-xs);
-}
-
-.c-stat-box__label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--bs-secondary);
-  text-align: center;
-}
+/*
+ * NOTE: .c-stat-box component moved to components/c-stat.css
+ */
 
 
 /* ============================================================================
@@ -1609,84 +1507,8 @@ body[data-style="dark"] .c-profile-avatar__badge {
 
 /* ============================================================================
    CONTACT CHANNEL - CONTACT METHOD SELECTION
+   NOTE: Moved to notification-components.css (canonical location)
    ============================================================================ */
-
-.c-contact-channel {
-  padding: var(--macro-space-md);
-  border: 1px solid var(--macro-glass-border);
-  border-radius: var(--macro-radius-md);
-  margin-bottom: var(--macro-space-sm);
-  transition: all var(--macro-transition-base);
-}
-
-.c-contact-channel:hover {
-  border-color: var(--macro-match-primary);
-  background: rgba(105, 108, 255, 0.03);
-}
-
-.c-contact-channel--disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.c-contact-channel__check {
-  /* Form check wrapper */
-}
-
-.c-contact-channel__input {
-  cursor: pointer;
-  transition: all var(--macro-transition-fast);
-}
-
-.c-contact-channel__input:checked {
-  background-color: var(--macro-match-primary);
-  border-color: var(--macro-match-primary);
-}
-
-.c-contact-channel__label {
-  display: flex;
-  align-items: start;
-  gap: var(--macro-space-md);
-  cursor: pointer;
-  margin: 0;
-}
-
-.c-contact-channel--disabled .c-contact-channel__label {
-  cursor: not-allowed;
-}
-
-.c-contact-channel__icon {
-  font-size: 1.5rem;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--macro-radius-md);
-  background: rgba(105, 108, 255, 0.1);
-  color: var(--macro-match-primary);
-  flex-shrink: 0;
-}
-
-.c-contact-channel__info {
-  flex: 1;
-}
-
-.c-contact-channel__title {
-  font-weight: 600;
-  display: block;
-  margin-bottom: 0.25rem;
-}
-
-.c-contact-channel__description {
-  font-size: 0.875rem;
-  line-height: 1.4;
-}
-
-.c-contact-channel__status {
-  font-size: 0.8125rem;
-  font-weight: 500;
-}
 
 
 /* ============================================================================

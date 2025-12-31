@@ -186,5 +186,114 @@ EventDelegation.register('edit-match', function(element, e) {
 });
 
 // ============================================================================
+// LIVE REPORTING ACTIONS
+// ============================================================================
+
+/**
+ * Force Sync Dashboard
+ */
+EventDelegation.register('force-sync', function(element, e) {
+    e.preventDefault();
+    if (typeof window.forceSync === 'function') {
+        window.forceSync();
+    }
+}, { preventDefault: true });
+
+/**
+ * Refresh Dashboard
+ */
+EventDelegation.register('refresh-dashboard', function(element, e) {
+    e.preventDefault();
+    if (typeof window.refreshDashboard === 'function') {
+        window.refreshDashboard();
+    }
+}, { preventDefault: true });
+
+/**
+ * Stop Session
+ */
+EventDelegation.register('stop-session', function(element, e) {
+    e.preventDefault();
+    const sessionId = element.dataset.sessionId;
+    if (typeof window.stopSession === 'function') {
+        window.stopSession(sessionId);
+    }
+}, { preventDefault: true });
+
+// ============================================================================
+// WALLET MANAGEMENT ACTIONS
+// ============================================================================
+
+/**
+ * Bulk Generate Passes
+ */
+EventDelegation.register('bulk-generate-wallet-passes', function(element, e) {
+    e.preventDefault();
+    if (typeof window.bulkGeneratePasses === 'function') {
+        window.bulkGeneratePasses();
+    }
+}, { preventDefault: true });
+
+/**
+ * Check Player Eligibility
+ */
+EventDelegation.register('check-player-eligibility', function(element, e) {
+    e.preventDefault();
+    const playerId = element.dataset.playerId;
+    if (typeof window.checkPlayerEligibility === 'function') {
+        window.checkPlayerEligibility(playerId);
+    }
+}, { preventDefault: true });
+
+// ============================================================================
+// MLS MATCH ACTIONS
+// ============================================================================
+
+/**
+ * Schedule All Matches
+ * Schedules all MLS matches at once
+ */
+EventDelegation.register('schedule-all-matches', function(element, e) {
+    e.preventDefault();
+    if (typeof window.scheduleAllMatches === 'function') {
+        window.scheduleAllMatches();
+    }
+}, { preventDefault: true });
+
+/**
+ * Auto Assign Playoffs
+ * Automatically assigns teams to playoff matches based on standings
+ */
+EventDelegation.register('auto-assign-playoffs', function(element, e) {
+    e.preventDefault();
+    const leagueId = element.dataset.leagueId;
+    if (typeof window.autoAssignPlayoffs === 'function') {
+        window.autoAssignPlayoffs(leagueId);
+    }
+}, { preventDefault: true });
+
+// ============================================================================
+// GENERIC UTILITY ACTIONS
+// ============================================================================
+
+/**
+ * Reload Page
+ * Simple page refresh action
+ */
+EventDelegation.register('reload-page', function(element, e) {
+    e.preventDefault();
+    location.reload();
+}, { preventDefault: true });
+
+/**
+ * Show Discord Channel Info
+ * Displays info alert about Discord channel
+ */
+EventDelegation.register('show-discord-channel-info', function(element, e) {
+    e.preventDefault();
+    alert('Check Discord #pl-new-players channel for notifications');
+}, { preventDefault: true });
+
+// ============================================================================
 
 console.log('[EventDelegation] Match management handlers loaded');

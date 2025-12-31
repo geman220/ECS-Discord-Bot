@@ -209,17 +209,25 @@
         console.log('Coach Dashboard initialized');
     }
 
-    // Initialize on DOM ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
-
     // Expose API for external use
     window.CoachDashboard = {
         requestSub,
         getCsrfToken
     };
 
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('coach-dashboard', init, {
+            priority: 40,
+            reinitializable: false,
+            description: 'Coach dashboard functionality'
+        });
+    }
+
+    // Fallback
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
 })();

@@ -16,7 +16,7 @@
     function init() {
         initFeatherIcons();
         initMatchHistoryCollapse();
-        registerDropdownActions();
+        // NOTE: Dropdown handling removed - navbar-modern.js handles all navbar dropdowns
     }
 
     /**
@@ -114,69 +114,24 @@
         });
     }
 
-    // Track if dropdown handlers are registered
-    let dropdownHandlersRegistered = false;
+    // ============================================================================
+    // NOTE: Dropdown handling code removed
+    // navbar-modern.js is the single source of truth for navbar dropdowns
+    // The removed code (toggle-dropdown, handleOutsideClick) was:
+    // 1. Dead code - 'toggle-dropdown' action not used in any templates
+    // 2. Conflicting with navbar-modern.js which uses 'toggle-navbar-dropdown'
+    // ============================================================================
 
-    /**
-     * Register dropdown actions
-     * Note: EventDelegation handler is registered at module scope below
-     */
-    function registerDropdownActions() {
-        if (dropdownHandlersRegistered) {
-            return;
-        }
-        dropdownHandlersRegistered = true;
-
-        // EventDelegation handler is registered at module scope for proper timing
-
-        // Close dropdowns when clicking outside
-        document.addEventListener('click', handleOutsideClick);
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('ui-enhancements', init, {
+            priority: 50,
+            reinitializable: true,
+            description: 'UI enhancements and fixes'
+        });
     }
 
-    /**
-     * Handle dropdown toggle action
-     * @param {Element} element - The element that was clicked (from EventDelegation)
-     * @param {Event} e - The click event
-     */
-    function handleToggleDropdown(element, e) {
-        e.stopPropagation();
-
-        const dropdownId = element.getAttribute('data-dropdown');
-        const dropdown = document.querySelector(`[data-dropdown-id="${dropdownId}"]`);
-
-        if (dropdown) {
-            // Close all other dropdowns
-            document.querySelectorAll('.c-navbar-modern__dropdown.is-open').forEach(function(d) {
-                if (d !== dropdown) {
-                    d.classList.remove('is-open');
-                    d.setAttribute('aria-hidden', 'true');
-                }
-            });
-
-            // Toggle this dropdown
-            const isOpen = dropdown.classList.toggle('is-open');
-            dropdown.setAttribute('aria-hidden', !isOpen);
-            element.setAttribute('aria-expanded', isOpen);
-        }
-    }
-
-    /**
-     * Handle clicks outside dropdowns
-     */
-    function handleOutsideClick(e) {
-        if (!e.target.closest('.c-navbar-modern__dropdown') &&
-            !e.target.closest('[data-action="toggle-dropdown"]')) {
-            document.querySelectorAll('.c-navbar-modern__dropdown.is-open').forEach(function(d) {
-                d.classList.remove('is-open');
-                d.setAttribute('aria-hidden', 'true');
-            });
-            document.querySelectorAll('[data-action="toggle-dropdown"]').forEach(function(btn) {
-                btn.setAttribute('aria-expanded', 'false');
-            });
-        }
-    }
-
-    // Initialize on DOM ready
+    // Fallback: Initialize on DOM ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
@@ -190,12 +145,5 @@
         document.addEventListener('turbo:load', init);
         document.addEventListener('turbolinks:load', init);
     }
-
-    // ============================================================================
-    // EVENT DELEGATION - Registered at module scope
-    // ============================================================================
-    // Handler registered when IIFE executes
-
-    EventDelegation.register('toggle-dropdown', handleToggleDropdown, { preventDefault: true });
 
 })();

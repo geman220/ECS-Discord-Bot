@@ -1,63 +1,96 @@
-// static/custom_js/admin_actions.js
+/**
+ * Admin Actions - Role Toggle Functionality
+ * Handles player role updates via AJAX
+ */
+(function() {
+    'use strict';
 
-function toggleRole(role, playerId) {
-    const csrfTokenInput = document.querySelector('input[name="csrf_token"]');
-    const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
-    const roleToggle = document.querySelector(`[data-role-toggle="${role}"]`);
+    /**
+     * Toggle a role for a player
+     * @param {string} role - The role to toggle
+     * @param {number} playerId - The player ID
+     */
+    function toggleRole(role, playerId) {
+        const csrfTokenInput = document.querySelector('input[name="csrf_token"]');
+        const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
+        const roleToggle = document.querySelector(`[data-role-toggle="${role}"]`);
 
-    if (!roleToggle) {
-        console.error('Role toggle element not found for role:', role);
-        return;
-    }
+        if (!roleToggle) {
+            console.error('Role toggle element not found for role:', role);
+            return;
+        }
 
-    const isChecked = roleToggle.checked;
+        const isChecked = roleToggle.checked;
 
-    $.ajax({
-        url: '/players/player_profile/' + playerId,  // Updated to use existing endpoint
-        method: 'POST',
-        data: {
-            role: role,
-            value: isChecked,
-            csrf_token: csrfToken,
-            update_role: 1
-        },
-        beforeSend: function () {
-            Swal.fire({
-                title: 'Updating...',
-                text: 'Please wait while the role is being updated.',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading()
+        // Check if jQuery is available
+        if (typeof $ === 'undefined') {
+            console.error('jQuery is required for toggleRole');
+            return;
+        }
+
+        $.ajax({
+            url: '/players/player_profile/' + playerId,
+            method: 'POST',
+            data: {
+                role: role,
+                value: isChecked,
+                csrf_token: csrfToken,
+                update_role: 1
+            },
+            beforeSend: function () {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'Updating...',
+                        text: 'Please wait while the role is being updated.',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
                 }
-            });
-        },
-        success: function (response) {
-            if (response.success) {
-                Swal.fire(
-                    'Success!',
-                    'Player role updated successfully.',
-                    'success'
-                ).then(() => {
-                    location.reload();
-                });
-            } else {
-                Swal.fire(
-                    'Error!',
-                    response.message || 'Failed to update player role.',
-                    'error'
-                );
-                // Revert the toggle if there's an error
+            },
+            success: function (response) {
+                if (response.success) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire(
+                            'Success!',
+                            'Player role updated successfully.',
+                            'success'
+                        ).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        alert('Player role updated successfully.');
+                        location.reload();
+                    }
+                } else {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire(
+                            'Error!',
+                            response.message || 'Failed to update player role.',
+                            'error'
+                        );
+                    } else {
+                        alert('Error: ' + (response.message || 'Failed to update player role.'));
+                    }
+                    roleToggle.checked = !isChecked;
+                }
+            },
+            error: function () {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire(
+                        'Error!',
+                        'Failed to update player role. Please try again.',
+                        'error'
+                    );
+                } else {
+                    alert('Failed to update player role. Please try again.');
+                }
                 roleToggle.checked = !isChecked;
             }
-        },
-        error: function () {
-            Swal.fire(
-                'Error!',
-                'Failed to update player role. Please try again.',
-                'error'
-            );
-            // Revert the toggle if there's an error
-            roleToggle.checked = !isChecked;
-        }
-    });
-}
+        });
+    }
+
+    // Expose globally for inline onclick handlers (backward compatibility)
+    window.toggleRole = toggleRole;
+})();

@@ -236,31 +236,13 @@
 
 /* ============================================================================
    6. TEAM COMPONENTS
-   Import from manage-teams.css
+   NOTE: .c-team-name moved to manage-teams.css (canonical location)
    ============================================================================ */
 
-.c-team-name {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.c-team-avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-full);
-  background: var(--color-primary);
-  flex-shrink: 0;
-}
-
-.c-team-avatar__initial {
-  color: var(--color-neutral-0);
-  font-weight: var(--font-bold);
-  font-size: var(--text-sm);
-}
+/*
+ * NOTE: .c-team-avatar moved to components/c-team-avatar.css
+ * Use .c-team-avatar--sm for 32px size (this page's requirement)
+ */
 
 /* ============================================================================
    DARK MODE SUPPORT

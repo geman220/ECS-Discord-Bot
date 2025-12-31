@@ -401,7 +401,16 @@
     console.log('✅ Home page initialized');
   }
 
-  // Initialize on DOM ready
+  // Register with InitSystem (primary)
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('home-page', init, {
+      priority: 35,
+      reinitializable: false,
+      description: 'Home/dashboard page functionality'
+    });
+  }
+
+  // Fallback
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

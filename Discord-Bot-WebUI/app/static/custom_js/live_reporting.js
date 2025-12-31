@@ -1,20 +1,25 @@
 /**
  * Live Match Reporting Client
- * 
- * This module provides client-side functionality for the multi-user live match 
- * reporting system. It handles WebSocket communication, UI updates, and 
+ *
+ * This module provides client-side functionality for the multi-user live match
+ * reporting system. It handles WebSocket communication, UI updates, and
  * synchronization of match data between multiple reporters.
  */
 
-// Initialize SocketIO with the live reporting namespace
-let socket;
-let matchId;
-let teamId;
-let matchState;
-let activeReporters = [];
-let playerShifts = [];
-let timerInterval;
-let isTimerRunning = false;
+(function() {
+    'use strict';
+
+    let _initialized = false;
+
+    // Initialize SocketIO with the live reporting namespace
+    let socket;
+    let matchId;
+    let teamId;
+    let matchState;
+    let activeReporters = [];
+    let playerShifts = [];
+    let timerInterval;
+    let isTimerRunning = false;
 
 /**
  * Initialize the live reporting module
@@ -797,9 +802,35 @@ function liveReportingShowNotification(message, type = 'info') {
     }, 5000);
 }
 
-// Export module functions
-window.LiveReporting = {
-    init: initLiveReporting,
-    join: joinMatch,
-    leave: leaveMatch
-};
+    // Export module functions
+    window.LiveReporting = {
+        init: initLiveReporting,
+        join: joinMatch,
+        leave: leaveMatch
+    };
+
+    // Initialize function
+    function init() {
+        if (_initialized) return;
+        _initialized = true;
+
+        // LiveReporting is initialized manually via window.LiveReporting.init(config)
+        // when the page provides the required configuration
+    }
+
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('live-reporting', init, {
+            priority: 45,
+            reinitializable: false,
+            description: 'Live match reporting client'
+        });
+    }
+
+    // Fallback
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();

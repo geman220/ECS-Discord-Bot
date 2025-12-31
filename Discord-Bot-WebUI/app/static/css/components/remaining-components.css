@@ -235,33 +235,8 @@
 
 /* ============================================================================
    REVIEW COMPONENTS
+   NOTE: .c-review-section* moved to pages/admin/season-wizard.css
    ============================================================================ */
-
-.c-review-section {
-  margin-bottom: var(--space-5, 20px);
-  padding-bottom: var(--space-5, 20px);
-  border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
-}
-
-.c-review-section:last-child {
-  margin-bottom: 0;
-  padding-bottom: 0;
-  border-bottom: none;
-}
-
-.c-review-section__title {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2, 8px);
-  margin: 0 0 var(--space-3, 12px);
-  font-size: var(--text-base, 1rem);
-  font-weight: 600;
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
-}
-
-.c-review-section__icon {
-  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
-}
 
 .c-review-item {
   display: flex;
@@ -367,13 +342,8 @@
   display: block;
 }
 
-.c-tab-content-modern {
-  padding: var(--space-4, 16px);
-}
-
-.c-tab-pane-modern--active {
-  display: block;
-}
+/* NOTE: .c-tab-content-modern moved to navigation-modern.css */
+/* NOTE: .c-tab-pane-modern--active moved to navigation-modern.css */
 
 /* ============================================================================
    TABLE EXTENSIONS
@@ -467,15 +437,9 @@
   margin-right: var(--space-2, 8px);
 }
 
-.c-nav-modern__link--active {
-  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
-  font-weight: 600;
-}
+/* NOTE: .c-nav-modern__link--active moved to ui-fixes.css */
 
-/* Modal dialog */
-.c-modal__dialog--lg {
-  max-width: 800px;
-}
+/* NOTE: .c-modal__* moved to components/c-modal.css */
 
 /* Performance metrics */
 .c-perf-metrics {
@@ -491,17 +455,7 @@
 .c-perf-realtime__value--warning { color: var(--color-warning-light, #fbbf24); }
 .c-perf-realtime__value--danger { color: var(--color-danger-light, #f87171); }
 
-/* Icon modern */
-.c-icon-modern {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-}
-
-.c-icon-modern--small {
-  font-size: 0.75rem;
-}
+/* NOTE: .c-icon-modern and .c-icon-modern--small moved to ui-fixes.css */
 
 /* Permission matrix */
 .c-permission-matrix {
@@ -590,15 +544,8 @@
   border-radius: var(--radius-lg, 12px);
 }
 
-/* Status indicator dynamic */
-.c-status-indicator--success { background: var(--color-success, var(--color-success-500, #10b981)); }
-.c-status-indicator--warning { background: var(--color-warning, var(--color-warning-500, #f59e0b)); }
-.c-status-indicator--error { background: var(--color-danger, var(--color-danger-500, #ef4444)); }
-.c-status-indicator--offline { background: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b))); }
-
-.c-status-item__border {
-  border-left: 3px solid var(--color-primary, var(--color-primary-600, #2563EB));
-}
+/* NOTE: .c-status-indicator--* variants moved to c-status-indicator.css */
+/* NOTE: .c-status-item__border moved to features/profile-success-animations.css */
 
 /* Task components */
 .c-task,
@@ -657,18 +604,10 @@
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
 }
 
-/* Avatar variants (dynamic) */
-.c-player-avatar--sm { width: 32px; height: 32px; }
-.c-player-avatar--md { width: 48px; height: 48px; }
-.c-player-avatar--lg { width: 64px; height: 64px; }
+/* NOTE: .c-player-avatar--* moved to components/online-status.css */
+/* NOTE: .c-profile-avatar--* moved to components/macros-modern.css */
 
-.c-profile-avatar--sm { width: 32px; height: 32px; }
-.c-profile-avatar--md { width: 48px; height: 48px; }
-.c-profile-avatar--lg { width: 64px; height: 64px; }
-
-.c-team-avatar--sm { width: 32px; height: 32px; }
-.c-team-avatar--md { width: 48px; height: 48px; }
-.c-team-avatar--lg { width: 64px; height: 64px; }
+/* NOTE: .c-team-avatar--* moved to components/c-team-avatar.css */
 
 .c-avatar-with-status--online::after { background: var(--color-success, var(--color-success-500, #10b981)); }
 .c-avatar-with-status--offline::after { background: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b))); }
@@ -703,11 +642,9 @@
   pointer-events: none;
 }
 
-/* Alert dynamic */
-.c-alert--info { background: rgba(8, 145, 178, 0.1); border-color: rgba(8, 145, 178, 0.2); }
-.c-alert--success { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.2); }
-.c-alert--warning { background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.2); }
-.c-alert--danger { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); }
+/*
+ * NOTE: .c-alert--* variants moved to components.css
+ */
 
 /* Card modern dynamic */
 .c-card-modern--info { border-left-color: var(--color-info, #0891b2); }
@@ -747,7 +684,6 @@
 }
 
 [data-style="light"] .c-markdown-editor-modal__title,
-[data-style="light"] .c-review-section__title,
 [data-style="light"] .c-review-item__value,
 [data-style="light"] .c-season-section__title,
 [data-style="light"] .c-add-stat__title,
@@ -755,7 +691,6 @@
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
 }
 
-[data-style="light"] .c-review-section,
 [data-style="light"] .c-review-item {
   border-color: var(--color-border-light, rgba(0, 0, 0, 0.06));
 }

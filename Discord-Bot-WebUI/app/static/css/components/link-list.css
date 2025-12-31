@@ -136,44 +136,9 @@
   color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
 }
 
-/* ============================================================================
-   STATUS INDICATOR
-   ============================================================================ */
-
-.c-status-indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
-  flex-shrink: 0;
-}
-
-.c-status-indicator--active {
-  background: var(--color-success, var(--color-success-500, #10b981));
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-.c-status-indicator--warning {
-  background: var(--color-warning, var(--color-warning-500, #f59e0b));
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
-}
-
-.c-status-indicator--danger {
-  background: var(--color-danger, var(--color-danger-500, #ef4444));
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
-}
-
-@keyframes pulse-glow {
-  0%, 100% {
-    opacity: 1;
-    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
-  }
-  50% {
-    opacity: 0.7;
-    box-shadow: 0 0 12px rgba(16, 185, 129, 0.7);
-  }
-}
+/*
+ * NOTE: .c-status-indicator component moved to components/c-status-indicator.css
+ */
 
 /* ============================================================================
    LIGHT MODE

@@ -1458,7 +1458,16 @@
     console.log('[ChatWidget] Initialized');
   }
 
-  // Initialize when DOM is ready
+  // Register with InitSystem (primary)
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('chat-widget', init, {
+      priority: 35,
+      reinitializable: true,
+      description: 'Floating chat widget'
+    });
+  }
+
+  // Fallback: Initialize when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

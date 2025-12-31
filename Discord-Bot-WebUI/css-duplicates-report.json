@@ -1,0 +1,475 @@
+{
+  "timestamp": "2025-12-30T08:01:07.984Z",
+  "summary": {
+    "total": 541,
+    "bem": 0,
+    "bootstrap": 146,
+    "other": 395
+  },
+  "bemDuplicates": [],
+  "bootstrapOverrides": [
+    {
+      "selector": ".dropdown-menu",
+      "files": [
+        "components.css",
+        "bootstrap-minimal.css",
+        "utilities/mobile-utils.css",
+        "pages/admin/match-verification.css",
+        "pages/admin/match-management.css",
+        "pages/admin/manage-subs.css",
+        "layout/mobile-navigation.css",
+        "core/component-aliases.css",
+        "core/bootstrap-theming.css",
+        "components/dropdowns.css"
+      ],
+      "count": 10
+    },
+    {
+      "selector": ".modal-footer",
+      "files": [
+        "components.css",
+        "bootstrap-minimal.css",
+        "pages/admin.css",
+        "pages/admin/match-management.css",
+        "layout/mobile.css",
+        "layout/mobile-forms.css",
+        "core/component-aliases.css",
+        "components/modals.css"
+      ],
+      "count": 8
+    },
+    {
+      "selector": ".badge",
+      "files": [
+        "components.css",
+        "pages/seasonal-schedule.css",
+        "pages/match-view.css",
+        "pages/admin.css",
+        "pages/admin/match-management.css",
+        "layout/mobile.css",
+        "core/component-aliases.css",
+        "components/badges.css"
+      ],
+      "count": 8
+    },
+    {
+      "selector": ".modal-content",
+      "files": [
+        "components.css",
+        "bootstrap-minimal.css",
+        "pages/admin.css",
+        "pages/admin/match-management.css",
+        "layout/mobile.css",
+        "layout/mobile-forms.css",
+        "components/modals.css"
+      ],
+      "count": 7
+    },
+    {
+      "selector": ".modal-header",
+      "files": [
+        "components.css",
+        "bootstrap-minimal.css",
+        "pages/admin.css",
+        "pages/admin/match-management.css",
+        "layout/mobile-forms.css",
+        "core/component-aliases.css",
+        "components/modals.css"
+      ],
+      "count": 7
+    },
+    {
+      "selector": ".modal-backdrop",
+      "files": [
+        "components.css",
+        "bootstrap-minimal.css",
+        "pages/team-details.css",
+        "layout/mobile.css",
+        "layout/mobile-navigation.css",
+        "components/modals.css",
+        "components/c-modal.css"
+      ],
+      "count": 7
+    },
+    {
+      "selector": ".btn-primary",
+      "files": [
+        "components.css",
+        "utilities/bootstrap-color-overrides.css",
+        "pages/admin.css",
+        "core/component-aliases.css",
+        "core/bootstrap-theming.css",
+        "components/buttons.css"
+      ],
+      "count": 6
+    },
+    {
+      "selector": ".modal-body",
+      "files": [
+        "components.css",
+        "bootstrap-minimal.css",
+        "layout/mobile.css",
+        "layout/mobile-forms.css",
+        "core/component-aliases.css",
+        "components/modals.css"
+      ],
+      "count": 6
+    },
+    {
+      "selector": ".modal-title",
+      "files": [
+        "components.css",
+        "bootstrap-minimal.css",
+        "layout/mobile.css",
+        "layout/mobile-forms.css",
+        "core/component-aliases.css",
+        "components/modals.css"
+      ],
+      "count": 6
+    },
+    {
+      "selector": ".modal",
+      "files": [
+        "bootstrap-minimal.css",
+        "pages/team-details.css",
+        "layout/mobile.css",
+        "layout/mobile-navigation.css",
+        "components/modals.css",
+        "components/c-modal.css"
+      ],
+      "count": 6
+    },
+    {
+      "selector": ".table-responsive",
+      "files": [
+        "pages/user-management.css",
+        "pages/admin/manage-subs.css",
+        "layout/mobile-tables.css",
+        "core/component-aliases.css",
+        "components/tables.css",
+        "components/dropdown-fixes.css"
+      ],
+      "count": 6
+    },
+    {
+      "selector": ".btn",
+      "files": [
+        "pages/match-view.css",
+        "layout/mobile-navigation.css",
+        "layout/mobile-forms.css",
+        "core/component-aliases.css",
+        "core/bootstrap-theming.css",
+        "components/buttons.css"
+      ],
+      "count": 6
+    },
+    {
+      "selector": ".btn-outline-primary",
+      "files": [
+        "components.css",
+        "utilities/bootstrap-color-overrides.css",
+        "core/component-aliases.css",
+        "core/bootstrap-theming.css",
+        "components/buttons.css"
+      ],
+      "count": 5
+    },
+    {
+      "selector": ".alert-primary",
+      "files": [
+        "components.css",
+        "utilities/bootstrap-color-overrides.css",
+        "core/component-aliases.css",
+        "core/bootstrap-theming.css",
+        "components/alerts.css"
+      ],
+      "count": 5
+    },
+    {
+      "selector": ".alert-danger",
+      "files": [
+        "components.css",
+        "utilities/bootstrap-color-overrides.css",
+        "pages/admin/match-management.css",
+        "core/component-aliases.css",
+        "components/alerts.css"
+      ],
+      "count": 5
+    },
+    {
+      "selector": ".alert-info",
+      "files": [
+        "components.css",
+        "utilities/bootstrap-color-overrides.css",
+        "pages/admin/match-management.css",
+        "core/component-aliases.css",
+        "components/alerts.css"
+      ],
+      "count": 5
+    },
+    {
+      "selector": ".modal-dialog",
+      "files": [
+        "bootstrap-minimal.css",
+        "layout/mobile.css",
+        "layout/mobile-forms.css",
+        "components/modals.css",
+        "components/c-modal.css"
+      ],
+      "count": 5
+    },
+    {
+      "selector": ".toast-container",
+      "files": [
+        "bootstrap-minimal.css",
+        "pages/admin/admin-dashboard.css",
+        "layout/navbar.css",
+        "layout/mobile.css",
+        "components/toasts.css"
+      ],
+      "count": 5
+    },
+    {
+      "selector": ".alert",
+      "files": [
+        "pages/admin/match-management.css",
+        "layout/mobile.css",
+        "layout/mobile-forms.css",
+        "core/component-aliases.css",
+        "components/alerts.css"
+      ],
+      "count": 5
+    },
+    {
+      "selector": ".form-select:focus",
+      "files": [
+        "components.css",
+        "layout/mobile-forms.css",
+        "core/component-aliases.css",
+        "core/bootstrap-theming.css"
+      ],
+      "count": 4
+    }
+  ],
+  "otherDuplicates": [
+    {
+      "selector": ".empty-state-icon",
+      "files": [
+        "pages/teams.css",
+        "pages/standings.css",
+        "pages/feedback.css",
+        "pages/admin.css",
+        "pages/admin/user-approvals.css",
+        "pages/admin/sync-review.css",
+        "pages/admin/substitute-pool.css",
+        "pages/admin/match-verification.css",
+        "pages/admin/manage-polls.css",
+        "core/bootstrap-theming.css"
+      ],
+      "count": 10
+    },
+    {
+      "selector": ".avatar",
+      "files": [
+        "components.css",
+        "pages/match-view.css",
+        "pages/feedback.css",
+        "pages/admin/match-management.css",
+        "layout/mobile.css",
+        "core/component-aliases.css",
+        "core/bootstrap-theming.css"
+      ],
+      "count": 7
+    },
+    {
+      "selector": ".empty-state",
+      "files": [
+        "pages/teams.css",
+        "pages/standings.css",
+        "pages/feedback.css",
+        "pages/admin/substitute-pool.css",
+        "pages/admin/match-verification.css",
+        "pages/admin/match-management.css",
+        "core/bootstrap-theming.css"
+      ],
+      "count": 7
+    },
+    {
+      "selector": ".ui-autocomplete",
+      "files": [
+        "template-styles.css",
+        "components.css",
+        "layout/navbar.css",
+        "layout/mobile-navigation.css",
+        "layout/base-layout.css",
+        "components/navbar-modern.css"
+      ],
+      "count": 6
+    },
+    {
+      "selector": ".u-hidden",
+      "files": [
+        "components.css",
+        "pages/messages-inbox.css",
+        "pages/admin/season-wizard.css",
+        "pages/admin/manage-subs.css",
+        "core/admin-utilities.css",
+        "components/macros-modern.css"
+      ],
+      "count": 6
+    },
+    {
+      "selector": ".layout-navbar",
+      "files": [
+        "components.css",
+        "layout/navbar.css",
+        "layout/mobile-navigation.css",
+        "core/component-aliases.css",
+        "core/bootstrap-theming.css"
+      ],
+      "count": 5
+    },
+    {
+      "selector": ".select2-dropdown",
+      "files": [
+        "components.css",
+        "pages/user-management.css",
+        "layout/mobile-navigation.css",
+        "layout/mobile-forms.css",
+        "components/dropdown-fixes.css"
+      ],
+      "count": 5
+    },
+    {
+      "selector": ".border-primary",
+      "files": [
+        "components.css",
+        "utilities/component-states.css",
+        "utilities/bootstrap-color-overrides.css",
+        "tokens/borders.css",
+        "core/bootstrap-theming.css"
+      ],
+      "count": 5
+    },
+    {
+      "selector": ".icon-empty-state",
+      "files": [
+        "components.css",
+        "utilities/card-utils.css",
+        "pages/admin/live-reporting-dashboard.css",
+        "features/coach-dashboard.css",
+        "core/admin-utilities.css"
+      ],
+      "count": 5
+    },
+    {
+      "selector": ".text-primary",
+      "files": [
+        "components.css",
+        "utilities/bootstrap-color-overrides.css",
+        "core/component-aliases.css",
+        "core/bootstrap-theming.css"
+      ],
+      "count": 4
+    },
+    {
+      "selector": ".content-wrapper",
+      "files": [
+        "components.css",
+        "core/component-aliases.css",
+        "core/bootstrap-theming.css",
+        "components/navbar-modern.css"
+      ],
+      "count": 4
+    },
+    {
+      "selector": ".border-success",
+      "files": [
+        "components.css",
+        "utilities/component-states.css",
+        "utilities/bootstrap-color-overrides.css",
+        "tokens/borders.css"
+      ],
+      "count": 4
+    },
+    {
+      "selector": ".border-warning",
+      "files": [
+        "components.css",
+        "utilities/component-states.css",
+        "utilities/bootstrap-color-overrides.css",
+        "tokens/borders.css"
+      ],
+      "count": 4
+    },
+    {
+      "selector": ".border-danger",
+      "files": [
+        "components.css",
+        "utilities/component-states.css",
+        "utilities/bootstrap-color-overrides.css",
+        "tokens/borders.css"
+      ],
+      "count": 4
+    },
+    {
+      "selector": ".border-info",
+      "files": [
+        "components.css",
+        "utilities/component-states.css",
+        "utilities/bootstrap-color-overrides.css",
+        "tokens/borders.css"
+      ],
+      "count": 4
+    },
+    {
+      "selector": ".position-relative",
+      "files": [
+        "bootstrap-minimal.css",
+        "utilities/responsive-utilities.css",
+        "utilities/layout-utils.css",
+        "components/badges.css"
+      ],
+      "count": 4
+    },
+    {
+      "selector": ".shadow-sm",
+      "files": [
+        "bootstrap-minimal.css",
+        "tokens/shadows.css",
+        "pages/admin.css",
+        "core/bootstrap-theming.css"
+      ],
+      "count": 4
+    },
+    {
+      "selector": ".transition-opacity",
+      "files": [
+        "utilities/transform-utils.css",
+        "utilities/responsive-utilities.css",
+        "utilities/display-utils.css",
+        "tokens/animations.css"
+      ],
+      "count": 4
+    },
+    {
+      "selector": ".empty-state-message",
+      "files": [
+        "pages/teams.css",
+        "pages/standings.css",
+        "pages/feedback.css",
+        "core/bootstrap-theming.css"
+      ],
+      "count": 4
+    },
+    {
+      "selector": ".skip-link:focus",
+      "files": [
+        "template-styles.css",
+        "pages/profile-verify.css",
+        "core/bootstrap-theming.css"
+      ],
+      "count": 3
+    }
+  ]
+}

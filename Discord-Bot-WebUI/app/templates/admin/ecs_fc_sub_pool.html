@@ -70,11 +70,11 @@
                                                 <td>
                                                     <div class="btn-group btn-group-sm">
                                                         <button class="c-btn c-btn--outline-primary js-edit-sub-preferences"
-                                                                onclick="editSubPreferences({{ entry.id }})">
+                                                                data-action="edit-sub-preferences" data-entry-id="{{ entry.id }}">
                                                             Edit
                                                         </button>
                                                         <button class="c-btn c-btn--outline-danger js-remove-from-pool"
-                                                                onclick="removeFromPool({{ entry.id }})">
+                                                                data-action="remove-from-pool" data-entry-id="{{ entry.id }}">
                                                             Remove
                                                         </button>
                                                     </div>
@@ -132,7 +132,7 @@
                                                 </td>
                                                 <td>
                                                     <button class="c-btn c-btn--sm c-btn--success js-add-to-pool"
-                                                            onclick="addToPool({{ player.id }})">
+                                                            data-action="add-to-pool" data-player-id="{{ player.id }}">
                                                         Add to Pool
                                                     </button>
                                                 </td>

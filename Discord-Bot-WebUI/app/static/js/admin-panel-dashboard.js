@@ -589,6 +589,16 @@
   // AUTO-INITIALIZE
   // ============================================================================
 
+  // Register with InitSystem (primary)
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('admin-panel-dashboard', init, {
+      priority: 30,
+      reinitializable: true,
+      description: 'Admin panel dashboard'
+    });
+  }
+
+  // Fallback
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

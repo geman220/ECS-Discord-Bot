@@ -762,45 +762,35 @@
     }
 }
 
-/* ============================================================================
-   SETTINGS TAB PANES - Visibility Control
-   Critical for tabs-controller.js to work
-   ============================================================================ */
-
-/* Base: All tab panes are hidden by default */
-.c-settings-tab {
-    display: none;
-}
-
-/* Active tab pane is visible */
-.c-settings-tab--active {
-    display: block;
-}
+/*
+ * NOTE: .c-settings-tab moved to components/settings-components.css
+ * Supports: --active, .active, .show, .is-active modifiers
+ */
 
 /* ============================================================================
    MODERN TAB NAVIGATION (.c-tabs-modern)
    BEM tab navigation component for settings page
    ============================================================================ */
 
-.c-tabs-modern {
+.c-settings-page .c-tabs-modern {
     margin-bottom: var(--space-4);
 }
 
-.c-tabs-modern__container {
+.c-settings-page .c-tabs-modern__container {
     background: var(--color-bg-card);
     border: var(--border-width-1) solid var(--color-border-primary);
     border-radius: var(--radius-lg);
     overflow: hidden;
 }
 
-.c-tabs-modern__scroll {
+.c-settings-page .c-tabs-modern__scroll {
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
 }
 
-.c-tabs-modern__list {
+.c-settings-page .c-tabs-modern__list {
     display: flex;
     flex-wrap: nowrap;
     list-style: none;
@@ -810,11 +800,11 @@
     min-width: max-content;
 }
 
-.c-tabs-modern__item {
+.c-settings-page .c-tabs-modern__item {
     flex-shrink: 0;
 }
 
-.c-tabs-modern__tab {
+.c-settings-page .c-tabs-modern__tab {
     display: flex;
     align-items: center;
     gap: var(--space-2);
@@ -830,17 +820,17 @@
     white-space: nowrap;
 }
 
-.c-tabs-modern__tab:hover {
+.c-settings-page .c-tabs-modern__tab:hover {
     background: var(--color-hover-bg);
     color: var(--color-text-primary);
 }
 
-.c-tabs-modern__tab.is-active {
+.c-settings-page .c-tabs-modern__tab.is-active {
     background: var(--color-primary);
     color: var(--color-text-on-primary, #fff);
 }
 
-.c-tabs-modern__tab i {
+.c-settings-page .c-tabs-modern__tab i {
     font-size: 1.125rem;
 }
 

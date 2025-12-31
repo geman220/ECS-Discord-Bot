@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block main_content %}
-<div class="container-xxl flex-grow-1 container-p-y">
+<div class="container-xxl flex-grow-1 container-p-y c-players-list-page">
     <!-- Page Header -->
     <div class="c-page-header" data-component="page-header">
         <div class="c-page-header__content">
@@ -313,14 +313,14 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <script src="{{ url_for('static', filename='custom_js/players-list.js') }}"></script>
+{% endif %}
 <script>
     // Initialize Feather icons
     if (typeof feather !== 'undefined') {
         feather.replace();
     }
 </script>
-{{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-{% endif %}
 {% endblock %}

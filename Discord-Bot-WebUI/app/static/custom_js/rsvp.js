@@ -1,12 +1,21 @@
-document.addEventListener('DOMContentLoaded', function () {
+(function() {
+  'use strict';
+
+  let _initialized = false;
+
+  function init() {
+    if (_initialized) return;
+
     // Retrieve the values for playerId, discordId, and csrfToken from the DOM
     const rsvpDataElement = document.getElementById('rsvp-data');
-    
+
     // Check if the element exists before proceeding
     if (!rsvpDataElement) {
         // console.log('RSVP data element not found, RSVP functionality disabled');
         return; // Exit early if RSVP data is not available
     }
+
+    _initialized = true;
     
     const playerId = rsvpDataElement.getAttribute('data-player-id');
     const discordId = rsvpDataElement.getAttribute('data-discord-id');
@@ -230,4 +239,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Call the function to set the initial RSVP statuses
     setInitialRSVPs();
-});
+  }
+
+  // Register with InitSystem (primary)
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('rsvp', init, {
+      priority: 50,
+      reinitializable: true,
+      description: 'RSVP functionality'
+    });
+  }
+
+  // Fallback
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();

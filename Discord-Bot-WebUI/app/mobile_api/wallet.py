@@ -22,6 +22,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.mobile_api import mobile_api_v2
 from app.core.session_manager import managed_session
 from app.models import User, Player, Season
+from app.models.wallet import WalletPass
 
 logger = logging.getLogger(__name__)
 
@@ -273,12 +274,29 @@ def download_membership_pass():
 @jwt_required()
 def get_wallet_pass_info():
     """
-    Get Apple Wallet pass info for iOS apps.
+    Get wallet pass info for mobile apps (both iOS and Android).
 
     Returns:
-        JSON with Apple Wallet download URLs
+        JSON with wallet pass URLs for both platforms:
+        {
+            "passUrl": "...",
+            "downloadUrl": "...",
+            "passTypeIdentifier": "...",
+            "serialNumber": "...",
+            "appleWallet": {
+                "available": true,
+                "downloadUrl": "..."
+            },
+            "googleWallet": {
+                "available": true/false,
+                "saveUrl": "..." or null,
+                "configured": true/false
+            }
+        }
     """
     try:
+        from app.wallet_pass.services.pass_service import pass_service
+
         with managed_session() as session_db:
             current_user_id = int(get_jwt_identity())
 
@@ -292,11 +310,40 @@ def get_wallet_pass_info():
 
             base_url = request.host_url.rstrip('/')
 
+            # Check Google Wallet configuration
+            google_config = pass_service.get_google_config_status()
+            google_available = google_config.get('configured', False)
+
+            # Check if user has a wallet pass for Google URL generation
+            google_save_url = None
+            if google_available:
+                wallet_pass = session_db.query(WalletPass).filter(
+                    WalletPass.user_id == current_user_id,
+                    WalletPass.status == 'active'
+                ).first()
+                if wallet_pass:
+                    try:
+                        google_save_url = pass_service.generate_google_pass_url(wallet_pass)
+                    except Exception as e:
+                        logger.warning(f"Could not generate Google Wallet URL: {e}")
+
             response_data = {
+                # Legacy fields for backwards compatibility
                 "passUrl": f"{base_url}/api/v1/wallet/pass/{current_user_id}",
                 "downloadUrl": f"{base_url}/api/v1/membership/wallet/pass/download",
                 "passTypeIdentifier": "pass.com.weareecs.membership",
-                "serialNumber": str(player.id)
+                "serialNumber": str(player.id),
+                # New platform-specific fields
+                "appleWallet": {
+                    "available": True,
+                    "downloadUrl": f"{base_url}/api/v1/membership/wallet/pass/download"
+                },
+                "googleWallet": {
+                    "available": google_available,
+                    "configured": google_available,
+                    "saveUrl": google_save_url,
+                    "endpointUrl": f"{base_url}/api/v1/membership/wallet/google/pass" if google_available else None
+                }
             }
 
             return jsonify(response_data), 200
@@ -346,6 +393,87 @@ def download_wallet_pass_file():
         return jsonify({"msg": "Internal server error"}), 500
 
 
+@mobile_api_v2.route('/membership/wallet/google/pass', methods=['GET'])
+@jwt_required()
+def get_google_wallet_pass():
+    """
+    Get Google Wallet pass save URL for Android apps.
+
+    Returns:
+        JSON with Google Wallet save URL:
+        {
+            "saveUrl": "https://pay.google.com/gp/v/save/...",
+            "platform": "google",
+            "available": true
+        }
+    """
+    try:
+        from app.wallet_pass.services.pass_service import pass_service
+        from app.wallet_pass.generators import GOOGLE_WALLET_AVAILABLE
+
+        with managed_session() as session_db:
+            current_user_id = int(get_jwt_identity())
+
+            user = session_db.query(User).get(current_user_id)
+            if not user:
+                return jsonify({"msg": "User not found"}), 404
+
+            player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+            if not player or not player.is_current_player:
+                return jsonify({"msg": "No membership pass found"}), 404
+
+            # Check if Google Wallet is configured
+            google_config = pass_service.get_google_config_status()
+            if not google_config.get('configured'):
+                return jsonify({
+                    "available": False,
+                    "platform": "google",
+                    "msg": "Google Wallet is not configured",
+                    "missing": google_config.get('missing', [])
+                }), 503
+
+            # Find or create wallet pass for this user
+            wallet_pass = session_db.query(WalletPass).filter(
+                WalletPass.user_id == current_user_id,
+                WalletPass.status == 'active'
+            ).first()
+
+            if not wallet_pass:
+                # User doesn't have a pass in the new system yet
+                # Return info so app can prompt them to generate one
+                return jsonify({
+                    "available": True,
+                    "platform": "google",
+                    "hasPass": False,
+                    "msg": "No wallet pass found. Please generate a pass first."
+                }), 404
+
+            # Generate Google Wallet save URL
+            try:
+                save_url = pass_service.generate_google_pass_url(wallet_pass)
+
+                return jsonify({
+                    "available": True,
+                    "platform": "google",
+                    "hasPass": True,
+                    "saveUrl": save_url,
+                    "memberName": wallet_pass.member_name,
+                    "passType": wallet_pass.pass_type.name if wallet_pass.pass_type else "Membership"
+                }), 200
+
+            except ImportError as e:
+                logger.error(f"Google Wallet library not installed: {e}")
+                return jsonify({
+                    "available": False,
+                    "platform": "google",
+                    "msg": "Google Wallet library not installed"
+                }), 503
+
+    except Exception as e:
+        logger.error(f"Error getting Google Wallet pass: {str(e)}")
+        return jsonify({"msg": "Internal server error"}), 500
+
+
 @mobile_api_v2.route('/membership/pass/validate', methods=['POST'])
 @jwt_required()
 def validate_membership_pass():
@@ -368,20 +496,41 @@ def validate_membership_pass():
 
             barcode = data['barcode']
 
-            # For now, basic validation (you can enhance this with database lookups)
-            if not barcode.startswith('ECS2025'):
+            # Look up the wallet pass by barcode data
+            wallet_pass = session_db.query(WalletPass).filter(
+                WalletPass.barcode_data == barcode
+            ).first()
+
+            if not wallet_pass:
                 return jsonify({
                     "valid": False,
-                    "msg": "Invalid barcode format"
+                    "msg": "Pass not found"
                 }), 200
 
-            # Mock validation - in real implementation, look up barcode in database
-            # For demo purposes, assume all ECS2025 barcodes are valid
+            # Check if pass is valid (not expired, not voided)
+            if not wallet_pass.is_valid:
+                reason = "Pass is not active"
+                if wallet_pass.status == 'voided':
+                    reason = "Pass has been voided"
+                elif wallet_pass.is_expired:
+                    reason = "Pass has expired"
+
+                return jsonify({
+                    "valid": False,
+                    "msg": reason,
+                    "memberName": wallet_pass.member_name,
+                    "passType": wallet_pass.pass_type.name if wallet_pass.pass_type else None
+                }), 200
+
+            # Return valid pass information
             return jsonify({
                 "valid": True,
-                "playerName": "Player Name",  # Would come from database lookup
-                "teamName": "ECS FC Team",    # Would come from database lookup
-                "division": "Pub League"      # Would come from database lookup
+                "memberName": wallet_pass.member_name,
+                "teamName": wallet_pass.team_name or "N/A",
+                "passType": wallet_pass.pass_type.name if wallet_pass.pass_type else "Membership",
+                "validUntil": wallet_pass.valid_until.isoformat() if wallet_pass.valid_until else None,
+                "status": wallet_pass.status,
+                "serialNumber": wallet_pass.serial_number
             }), 200
 
     except Exception as e:

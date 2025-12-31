@@ -36,16 +36,8 @@ import './unified-mutation-observer.js';
 
 // Event delegation system - modular architecture
 // Core + handlers loaded from event-delegation/index.js
+// NOTE: EventDelegation.init() is called at END of file after all handlers register
 import './event-delegation/index.js';
-
-// Ensure EventDelegation is initialized (Vite bundling can affect auto-init)
-if (typeof EventDelegation !== 'undefined' && typeof EventDelegation.init === 'function') {
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => EventDelegation.init());
-    } else {
-        EventDelegation.init();
-    }
-}
 
 // Core utilities
 import './csrf-fetch.js';
@@ -233,38 +225,34 @@ import './pass-studio-cropper.js';
 import './security-dashboard.js';
 
 // ============================================================================
-// 9. MAIN APP INITIALIZATION
+// 12. MAIN APP INITIALIZATION
 // ============================================================================
 
 // Main.js - initializes Menu, Helpers, and other core functionality
 import '../assets/js/main.js';
 
 // ============================================================================
-// 10. TRIGGER INIT SYSTEM
+// 13. FINAL INITIALIZATION - AFTER ALL IMPORTS
 // ============================================================================
-// All components have been registered via imports above.
-// Now trigger the InitSystem to run all registered initializers in priority order.
-// Use a try-catch to ensure InitSystem.init() runs even if prior code had errors.
-function triggerInitSystem() {
-    try {
-        if (typeof window.InitSystem !== 'undefined' && !window.InitSystem.initialized) {
-            console.log('[Main Entry] Triggering InitSystem.init()');
-            window.InitSystem.init();
-        }
-    } catch (e) {
-        console.error('[Main Entry] Error in InitSystem.init():', e);
+// All modules have been imported and registered their handlers.
+// Now initialize EventDelegation (with all 140+ handlers) and InitSystem.
+
+// Initialize EventDelegation - handlers are now registered via imports above
+if (typeof window.EventDelegation !== 'undefined') {
+    window.EventDelegation.init();
+    console.log(`[Main Entry] EventDelegation initialized with ${window.EventDelegation.handlers.size} handlers`);
+}
+
+// Initialize all InitSystem components in priority order
+function initializeApp() {
+    if (typeof window.InitSystem !== 'undefined' && !window.InitSystem.initialized) {
+        console.log('[Main Entry] Triggering InitSystem.init()');
+        window.InitSystem.init();
     }
 }
 
-// Multiple fallbacks to ensure InitSystem.init() runs
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', triggerInitSystem);
+    document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
-    triggerInitSystem();
+    initializeApp();
 }
-
-// Failsafe: Also try after a short delay in case of race conditions
-setTimeout(triggerInitSystem, 100);
-
-// Ultimate failsafe: Try on window load
-window.addEventListener('load', triggerInitSystem);

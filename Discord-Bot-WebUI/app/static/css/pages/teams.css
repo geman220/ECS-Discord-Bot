@@ -193,10 +193,10 @@
 /**
  * Hidden File Inputs
  * File inputs for team kit and background upload
+ * NOTE: .c-upload-form__input moved to pages/team-detail.css
  */
 .team-kit-input,
-.team-background-input,
-.c-upload-form__input {
+.team-background-input {
     display: none;
 }
 

@@ -18,77 +18,15 @@
  * Architecture: 100% BEM naming, zero inline styles, design tokens only
  */
 
-/* ============================================================================
-   PAGE HEADER COMPONENT
-   ============================================================================ */
-
-.c-page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin-block-end: var(--space-6);
-  flex-wrap: wrap;
-}
-
-.c-page-header__content {
-  flex: 1;
-  min-width: 0;
-}
-
-.c-page-header__title {
-  font-size: var(--text-3xl);
-  font-weight: var(--font-bold);
-  color: var(--color-text-primary);
-  margin: 0;
-  line-height: var(--leading-tight);
-}
-
-.c-page-header__subtitle {
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-  margin-block-start: var(--space-1);
-  margin-block-end: 0;
-}
-
-.c-page-header__actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-}
-
-.c-page-header__action-text {
-  display: inline;
-}
-
-/* Mobile: Hide action text, show icons only */
-@media (max-width: 768px) {
-  .c-page-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .c-page-header__actions {
-    width: 100%;
-    justify-content: stretch;
-  }
-
-  .c-page-header__actions form,
-  .c-page-header__actions button {
-    flex: 1;
-  }
-
-  .c-page-header__action-text {
-    display: none;
-  }
-}
+/*
+ * NOTE: .c-page-header moved to components/c-page-header.css
+ */
 
 /* ============================================================================
    FILTER BAR COMPONENT
    ============================================================================ */
 
-.c-filter-bar {
+.c-players-list-page .c-filter-bar {
   background: var(--color-bg-card);
   border-radius: var(--radius-lg);
   padding: var(--space-4);
@@ -96,33 +34,33 @@
   box-shadow: var(--shadow-sm);
 }
 
-.c-filter-bar__form {
+.c-players-list-page .c-filter-bar__form {
   width: 100%;
 }
 
-.c-filter-bar__search {
+.c-players-list-page .c-filter-bar__search {
   max-width: 600px;
 }
 
-.c-filter-bar__input {
+.c-players-list-page .c-filter-bar__input {
   border-radius: var(--radius-md) 0 0 var(--radius-md);
   border-right: none;
 }
 
-.c-filter-bar__input:focus {
+.c-players-list-page .c-filter-bar__input:focus {
   border-right: none;
   box-shadow: none;
 }
 
-.c-filter-bar__button {
+.c-players-list-page .c-filter-bar__button {
   border-radius: 0;
 }
 
-.c-filter-bar__button:last-child {
+.c-players-list-page .c-filter-bar__button:last-child {
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
 }
 
-.c-filter-bar__button i {
+.c-players-list-page .c-filter-bar__button i {
   width: 18px;
   height: 18px;
 }
@@ -200,107 +138,19 @@
   }
 }
 
+/*
+ * NOTE: .c-player-row moved to components/c-admin-shared.css
+ * NOTE: .c-pagination should be extracted to components/c-pagination.css
+ * Keeping page-specific table enhancements below
+ */
+
 /* ============================================================================
-   PLAYER ROW COMPONENT
+   PLAYERS TABLE ENHANCEMENTS (page-specific)
    ============================================================================ */
 
-.c-player-row {
-  border-bottom: 1px solid var(--border-color-primary);
-  transition: background-color var(--duration-fast) var(--ease-smooth);
-}
-
-.c-player-row:hover {
-  background-color: var(--color-bg-secondary);
-}
-
-.c-player-row:last-child {
-  border-bottom: none;
-}
-
-.c-player-row__cell {
-  padding: var(--space-3) var(--space-4);
-  vertical-align: middle;
-  color: var(--color-text-primary);
-  font-size: var(--text-sm);
-}
-
-.c-player-row__cell--name {
-  font-weight: var(--font-medium);
-}
-
-.c-player-row__cell--actions {
-  text-align: center;
-  white-space: nowrap;
-}
-
-.c-player-row__name-wrapper {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.c-player-row__avatar {
-  position: relative;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-full);
-  overflow: visible;
-  flex-shrink: 0;
-  border: 2px solid var(--border-color-primary);
-}
-
-.c-player-row__avatar-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: var(--radius-full);
-}
-
-/* Online status indicator */
-.c-player-row__avatar .c-online-status {
-  position: absolute;
-  bottom: -2px;
-  right: -2px;
-  z-index: 2;
-}
-
-.c-player-row__name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.c-player-row__leagues {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-}
-
-.c-player-row__actions {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-}
-
-.c-player-row__action-text {
-  display: inline;
-}
-
-/* Dark mode */
-[data-style="dark"] .c-player-row {
-  border-bottom-color: var(--color-neutral-700);
-}
-
-[data-style="dark"] .c-player-row:hover {
-  background-color: var(--color-bg-secondary);
-}
-
-/* Mobile: Convert to card layout */
+/* Mobile: Convert player rows to card layout */
 @media (max-width: 992px) {
-  .c-player-row {
+  .c-players-table .c-player-row {
     display: block;
     margin-block-end: var(--space-4);
     border: 1px solid var(--border-color-primary);
@@ -309,11 +159,11 @@
     box-shadow: var(--shadow-sm);
   }
 
-  .c-player-row:last-child {
+  .c-players-table .c-player-row:last-child {
     margin-block-end: 0;
   }
 
-  .c-player-row__cell {
+  .c-players-table .c-player-row__cell {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -321,23 +171,23 @@
     border-bottom: 1px solid var(--border-color-primary);
   }
 
-  .c-player-row__cell:last-child {
+  .c-players-table .c-player-row__cell:last-child {
     border-bottom: none;
   }
 
-  .c-player-row__cell--name {
+  .c-players-table .c-player-row__cell--name {
     background: var(--color-bg-secondary);
     font-weight: var(--font-semibold);
     padding: var(--space-4);
   }
 
-  .c-player-row__cell--actions {
+  .c-players-table .c-player-row__cell--actions {
     text-align: left;
     background: var(--color-bg-secondary);
     padding: var(--space-3);
   }
 
-  .c-player-row__cell::before {
+  .c-players-table .c-player-row__cell::before {
     content: attr(data-label);
     font-weight: var(--font-semibold);
     color: var(--color-text-muted);
@@ -347,91 +197,16 @@
     margin-right: var(--space-2);
   }
 
-  .c-player-row__cell--name::before,
-  .c-player-row__cell--actions::before {
+  .c-players-table .c-player-row__cell--name::before,
+  .c-players-table .c-player-row__cell--actions::before {
     display: none;
-  }
-
-  .c-player-row__actions {
-    width: 100%;
-    justify-content: flex-start;
-    gap: var(--space-2);
-  }
-
-  .c-player-row__action-text {
-    display: inline;
-  }
-
-  .c-player-row__name-wrapper {
-    width: 100%;
   }
 }
 
 @media (max-width: 576px) {
-  .c-player-row__action-text {
+  .c-players-table .c-player-row__action-text {
     display: none;
   }
-}
-
-/* ============================================================================
-   PAGINATION COMPONENT
-   ============================================================================ */
-
-.c-pagination {
-  display: flex;
-  justify-content: center;
-  margin-block-start: var(--space-6);
-}
-
-.c-pagination__list {
-  margin-bottom: 0;
-}
-
-.c-pagination__item {
-  margin: 0 var(--space-1);
-}
-
-.c-pagination__item--active .c-pagination__link {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-neutral-0);
-  font-weight: var(--font-semibold);
-}
-
-.c-pagination__link {
-  color: var(--color-text-primary);
-  background-color: var(--color-bg-card);
-  border: 1px solid var(--border-color-primary);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  transition: all var(--duration-fast) var(--ease-smooth);
-  font-size: var(--text-sm);
-  min-width: 40px;
-  text-align: center;
-}
-
-.c-pagination__link:hover {
-  background-color: var(--color-primary-subtle);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.c-pagination__link:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-  box-shadow: var(--shadow-focus);
-}
-
-/* Dark mode */
-[data-style="dark"] .c-pagination__link {
-  background-color: var(--color-bg-secondary);
-  border-color: var(--color-neutral-700);
-  color: var(--color-text-primary);
-}
-
-[data-style="dark"] .c-pagination__link:hover {
-  background-color: var(--color-primary-subtle);
-  border-color: var(--color-primary);
 }
 
 /* ============================================================================
@@ -439,14 +214,15 @@
    ============================================================================ */
 
 /* ============================================================================
-   FORM FIELD COMPONENT
+   FORM FIELD - Players Modal Overrides
+   Scoped to modal context for create/edit player forms
    ============================================================================ */
 
-.c-form-field {
+.c-modal .c-form-field {
   margin-block-end: var(--space-4);
 }
 
-.c-form-field__label {
+.c-modal .c-form-field__label {
   display: block;
   margin-block-end: var(--space-2);
   font-weight: var(--font-medium);
@@ -454,8 +230,8 @@
   font-size: var(--text-sm);
 }
 
-.c-form-field__input,
-.c-form-field__select {
+.c-modal .c-form-field__input,
+.c-modal .c-form-field__select {
   width: 100%;
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border-color-input);
@@ -466,16 +242,16 @@
   transition: all var(--duration-fast) var(--ease-smooth);
 }
 
-.c-form-field__input:focus,
-.c-form-field__select:focus {
+.c-modal .c-form-field__input:focus,
+.c-modal .c-form-field__select:focus {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: var(--shadow-focus);
 }
 
 /* Dark mode */
-[data-style="dark"] .c-form-field__input,
-[data-style="dark"] .c-form-field__select {
+[data-style="dark"] .c-modal .c-form-field__input,
+[data-style="dark"] .c-modal .c-form-field__select {
   background-color: var(--color-bg-secondary);
   border-color: var(--color-neutral-700);
   color: var(--color-text-primary);
@@ -491,7 +267,7 @@
 
 /* Focus visible for all interactive elements */
 .c-page-header__actions button:focus-visible,
-.c-filter-bar__button:focus-visible,
+.c-players-list-page .c-filter-bar__button:focus-visible,
 .c-player-row__actions button:focus-visible,
 .c-player-row__actions a:focus-visible {
   outline: 2px solid var(--color-primary);

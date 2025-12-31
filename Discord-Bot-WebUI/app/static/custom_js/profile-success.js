@@ -16,10 +16,15 @@
 (function() {
     'use strict';
 
+    let _initialized = false;
+
     /**
      * Initialize the success page functionality
      */
     function init() {
+        if (_initialized) return;
+        _initialized = true;
+
         initDoneButton();
         initCelebration();
     }
@@ -106,7 +111,16 @@
         }
     }
 
-    // Initialize when DOM is ready
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('profile-success', init, {
+            priority: 50,
+            reinitializable: false,
+            description: 'Profile success page'
+        });
+    }
+
+    // Fallback
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {

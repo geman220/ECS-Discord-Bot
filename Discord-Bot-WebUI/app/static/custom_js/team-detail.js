@@ -51,6 +51,16 @@
     initializeScheduleAccordion();
   }
 
+  // Register with InitSystem (primary)
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('team-detail', init, {
+      priority: 40,
+      reinitializable: false,
+      description: 'Team detail page functionality'
+    });
+  }
+
+  // Fallback
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

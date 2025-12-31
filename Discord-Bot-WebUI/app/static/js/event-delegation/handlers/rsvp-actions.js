@@ -366,5 +366,69 @@ function updateRSVPStatus(playerId, matchId, response) {
 }
 
 // ============================================================================
+// ECS FC RSVP PAGE ACTIONS
+// ============================================================================
+
+/**
+ * Send RSVP Reminder to all players
+ */
+EventDelegation.register('send-rsvp-reminder', function(element, e) {
+    e.preventDefault();
+    if (typeof window.sendReminder === 'function') {
+        window.sendReminder();
+    } else {
+        console.error('[send-rsvp-reminder] sendReminder function not found');
+    }
+}, { preventDefault: true });
+
+/**
+ * Filter RSVP responses by type
+ */
+EventDelegation.register('filter-rsvp-responses', function(element, e) {
+    e.preventDefault();
+    const filterType = element.dataset.filterType || 'all';
+    if (typeof window.filterResponses === 'function') {
+        window.filterResponses(filterType);
+    } else {
+        console.error('[filter-rsvp-responses] filterResponses function not found');
+    }
+}, { preventDefault: true });
+
+/**
+ * Update player RSVP (admin action)
+ */
+EventDelegation.register('update-player-rsvp-admin', function(element, e) {
+    e.preventDefault();
+    const playerId = element.dataset.playerId;
+    const response = element.dataset.response;
+    if (!playerId || !response) {
+        console.error('[update-player-rsvp-admin] Missing player ID or response');
+        return;
+    }
+    if (typeof window.updatePlayerRsvp === 'function') {
+        window.updatePlayerRsvp(playerId, response);
+    } else {
+        console.error('[update-player-rsvp-admin] updatePlayerRsvp function not found');
+    }
+}, { preventDefault: true });
+
+/**
+ * Send individual reminder to specific player
+ */
+EventDelegation.register('send-individual-reminder', function(element, e) {
+    e.preventDefault();
+    const playerId = element.dataset.playerId;
+    if (!playerId) {
+        console.error('[send-individual-reminder] Missing player ID');
+        return;
+    }
+    if (typeof window.sendIndividualReminder === 'function') {
+        window.sendIndividualReminder(playerId);
+    } else {
+        console.error('[send-individual-reminder] sendIndividualReminder function not found');
+    }
+}, { preventDefault: true });
+
+// ============================================================================
 
 console.log('[EventDelegation] RSVP handlers loaded');

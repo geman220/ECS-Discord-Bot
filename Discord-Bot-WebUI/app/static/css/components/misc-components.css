@@ -41,11 +41,11 @@
    BUTTON EXTENSIONS
    ============================================================================ */
 
-.c-button,
-.c-btn--block {
+.c-button {
   width: 100%;
   justify-content: center;
 }
+/* NOTE: .c-btn--block moved to c-btn.css */
 
 .c-button--primary {
   color: var(--color-white, #fff);
@@ -114,31 +114,12 @@
 }
 
 /* ============================================================================
-   STATS COMPONENTS
+   STATS CARD COMPONENT (different from c-stat-box)
    ============================================================================ */
 
-.c-stat {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1, 4px);
-}
-
-.c-stat__value {
-  font-size: var(--text-2xl, 1.5rem);
-  font-weight: 700;
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
-}
-
-.c-stat__label {
-  font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.c-stat__icon {
-  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
-}
+/*
+ * NOTE: .c-stat and variants moved to components/c-stat.css
+ */
 
 .c-stats-card {
   background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
@@ -192,65 +173,8 @@
 
 /* ============================================================================
    INFO ITEM
+   NOTE: Moved to admin-components.css (canonical location)
    ============================================================================ */
-
-.c-info-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3, 12px);
-  padding: var(--space-2, 8px) 0;
-}
-
-.c-info-item__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: var(--radius-md, 8px);
-  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
-  font-size: 0.875rem;
-  flex-shrink: 0;
-}
-
-.c-info-item__icon--primary {
-  background: rgba(59, 130, 246, 0.15);
-  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
-}
-
-.c-info-item__icon--success {
-  background: rgba(16, 185, 129, 0.15);
-  color: var(--color-success-light, #34d399);
-}
-
-.c-info-item__icon--warning {
-  background: rgba(245, 158, 11, 0.15);
-  color: var(--color-warning-light, #fbbf24);
-}
-
-.c-info-item__icon--danger {
-  background: rgba(239, 68, 68, 0.15);
-  color: var(--color-danger-light, #f87171);
-}
-
-.c-info-item__icon--info {
-  background: rgba(8, 145, 178, 0.15);
-  color: var(--color-info-light, #22d3ee);
-}
-
-.c-info-item__value {
-  font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
-}
-
-.c-info-item__value--success {
-  color: var(--color-success-light, #34d399);
-}
-
-.c-info-item__value--warning {
-  color: var(--color-warning-light, #fbbf24);
-}
 
 /* ============================================================================
    INFO CARD EXTENSIONS
@@ -574,7 +498,7 @@
    LIGHT MODE
    ============================================================================ */
 
-[data-style="light"] .c-stat__value,
+/* NOTE: c-stat light mode moved to components/c-stat.css */
 [data-style="light"] .c-stats-card__title,
 [data-style="light"] .c-standings-header__title,
 [data-style="light"] .c-duplicate-profile__name,
@@ -601,13 +525,7 @@
   border-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
 }
 
-[data-style="light"] .c-info-item__icon {
-  background: rgba(0, 0, 0, 0.04);
-}
-
-[data-style="light"] .c-info-item__value {
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
-}
+/* NOTE: Light mode .c-info-item__* moved to admin-components.css */
 
 [data-style="light"] .c-code {
   background: rgba(0, 0, 0, 0.04);

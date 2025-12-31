@@ -31,7 +31,24 @@
 }
 
 .c-card-modern--team {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   border-left: 3px solid var(--color-success, var(--color-success-500, #10b981));
+}
+
+.c-card-modern--team .c-card-modern__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.c-card-modern--team .c-card-modern__meta {
+  flex: 1;
+}
+
+.c-card-modern--team .c-btn-modern {
+  margin-top: auto;
 }
 
 .c-card-modern--full-height {

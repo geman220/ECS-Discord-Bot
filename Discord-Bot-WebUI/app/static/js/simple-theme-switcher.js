@@ -343,8 +343,8 @@ class SimpleThemeSwitcher {
   }
 }
 
-// Initialize theme switcher when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize theme switcher
+function initThemeSwitcher() {
   // Create global instance
   window.themeSwitcher = new SimpleThemeSwitcher();
 
@@ -376,7 +376,23 @@ document.addEventListener('DOMContentLoaded', () => {
   window.themeSwitcher.updateActiveMenuItem(currentTheme);
 
   // No need to call setTheme() - theme is already applied correctly
-});
+}
+
+// Register with InitSystem (primary)
+if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+  window.InitSystem.register('simple-theme-switcher', initThemeSwitcher, {
+    priority: 75,
+    reinitializable: false,
+    description: 'Theme switcher (light/dark mode)'
+  });
+}
+
+// Fallback: Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initThemeSwitcher);
+} else {
+  initThemeSwitcher();
+}
 
 // Expose for debugging
 window.SimpleThemeSwitcher = SimpleThemeSwitcher;

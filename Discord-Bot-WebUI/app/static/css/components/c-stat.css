@@ -1,0 +1,255 @@
+/**
+ * ============================================================================
+ * C-STAT - Consolidated Statistics Components
+ * ============================================================================
+ *
+ * Canonical location for all stat display components.
+ * Consolidated from:
+ *   - components/ui-fixes.css
+ *   - components/settings-components.css
+ *   - components/macros-modern.css
+ *   - pages/settings.css
+ *
+ * Components:
+ *   .c-stat           - Individual stat item
+ *   .c-stat-box       - Stat box container
+ *   .c-stats-grid     - Grid layout for stats
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   STATS GRID - Layout for stat items
+   ============================================================================ */
+
+.c-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3, 12px);
+}
+
+@media (max-width: 768px) {
+  .c-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .c-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-2, 8px);
+  }
+}
+
+/* ============================================================================
+   C-STAT - Individual stat item (compact display)
+   ============================================================================ */
+
+.c-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-3, 12px);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-md, 8px);
+  gap: var(--space-1, 4px);
+}
+
+.c-stat__icon {
+  font-size: 1.25rem;
+  margin-bottom: var(--space-1, 4px);
+}
+
+.c-stat__value {
+  font-size: var(--text-xl, 1.25rem);
+  font-weight: 700;
+  color: var(--color-text-primary, var(--color-secondary-50, #f8fafc));
+  line-height: 1;
+}
+
+.c-stat__label {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-muted, var(--color-secondary-600, #64748b));
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* ============================================================================
+   C-STAT-BOX - Stat box container (featured display)
+   ============================================================================ */
+
+.c-stat-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 4px);
+  padding: var(--space-4, 16px);
+  background: var(--color-bg-secondary, var(--color-secondary-50, #f8fafc));
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--color-border-primary, rgba(0, 0, 0, 0.06));
+  transition: all var(--duration-normal, 200ms) ease;
+}
+
+.c-stat-box:hover {
+  border-color: var(--color-primary, var(--color-primary-600, #2563EB));
+  box-shadow: 0 4px 16px rgba(105, 108, 255, 0.15);
+  transform: translateY(-4px);
+}
+
+.c-stat-box__icon {
+  font-size: 2rem;
+  margin-bottom: var(--space-2, 8px);
+  transition: transform var(--duration-normal, 200ms) ease;
+}
+
+.c-stat-box:hover .c-stat-box__icon {
+  transform: scale(1.1);
+}
+
+.c-stat-box__label {
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: var(--font-medium, 500);
+  color: var(--color-text-tertiary, var(--color-secondary-400, #94a3b8));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+  margin-bottom: var(--space-1, 4px);
+}
+
+.c-stat-box__value {
+  font-family: var(--font-display, 'Archivo Black', sans-serif);
+  font-size: var(--text-xl, 1.25rem);
+  font-weight: var(--font-bold, 700);
+  color: var(--color-text-primary, var(--color-secondary-900, #1e293b));
+  line-height: 1.2;
+}
+
+/* Value color variants */
+.c-stat-box__value--success {
+  color: var(--color-success, #22c55e);
+}
+
+.c-stat-box__value--warning {
+  color: var(--color-warning-500, #f59e0b);
+}
+
+.c-stat-box__value--danger {
+  color: var(--color-danger-500, #ef4444);
+}
+
+.c-stat-box__value--primary {
+  color: var(--color-primary, var(--color-primary-600, #2563EB));
+}
+
+/* ============================================================================
+   SIZE VARIANTS
+   ============================================================================ */
+
+/* Small - compact for settings/sidebars */
+.c-stat-box--sm {
+  padding: var(--space-2, 8px);
+}
+
+.c-stat-box--sm .c-stat-box__value {
+  font-size: var(--text-base, 1rem);
+}
+
+.c-stat-box--sm .c-stat-box__label {
+  font-size: var(--text-2xs, 0.65rem);
+}
+
+/* Large - featured display */
+.c-stat-box--lg {
+  padding: var(--space-6, 24px);
+  align-items: center;
+}
+
+.c-stat-box--lg .c-stat-box__value {
+  font-size: var(--text-3xl, 2rem);
+}
+
+.c-stat-box--lg .c-stat-box__icon {
+  font-size: 2.5rem;
+}
+
+/* ============================================================================
+   DARK MODE
+   ============================================================================ */
+
+[data-style="dark"] .c-stat {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+[data-style="dark"] .c-stat__value {
+  color: var(--color-text-primary, var(--color-secondary-100, #f1f5f9));
+}
+
+[data-style="dark"] .c-stat-box {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-style="dark"] .c-stat-box__value {
+  color: var(--color-text-primary, var(--color-secondary-100, #f1f5f9));
+}
+
+/* ============================================================================
+   LIGHT MODE
+   ============================================================================ */
+
+[data-style="light"] .c-stat {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+[data-style="light"] .c-stat__value {
+  color: var(--color-text-primary, var(--color-secondary-900, #1e293b));
+}
+
+[data-style="light"] .c-stat-box {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+[data-style="light"] .c-stat-box__value {
+  color: var(--color-text-primary, var(--color-secondary-900, #1e293b));
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .c-stat-box {
+    padding: var(--space-3, 12px);
+  }
+
+  .c-stat-box__value {
+    font-size: var(--text-lg, 1.125rem);
+  }
+
+  .c-stat-box--lg {
+    padding: var(--space-4, 16px);
+  }
+
+  .c-stat-box--lg .c-stat-box__value {
+    font-size: var(--text-2xl, 1.5rem);
+  }
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .c-stat-box,
+  .c-stat-box__icon {
+    transition: none;
+  }
+
+  .c-stat-box:hover {
+    transform: none;
+  }
+
+  .c-stat-box:hover .c-stat-box__icon {
+    transform: none;
+  }
+}

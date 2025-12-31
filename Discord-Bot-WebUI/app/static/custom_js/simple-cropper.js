@@ -1,5 +1,12 @@
-// Simple HTML5 Canvas Image Cropper for Modal Use
-// Works without external libraries and handles modal initialization properly
+/**
+ * Simple HTML5 Canvas Image Cropper for Modal Use
+ * Works without external libraries and handles modal initialization properly
+ */
+
+(function() {
+    'use strict';
+
+    let _initialized = false;
 
 class SimpleCropper {
     constructor(canvasId, options = {}) {
@@ -341,8 +348,8 @@ window.getCroppedImage = function() {
     return window.SimpleCropperInstance.getCroppedImageData();
 };
 
-// Function called from the onboarding modal
-window.cropAndSaveProfileImage = async function() {
+    // Function called from the onboarding modal
+    window.cropAndSaveProfileImage = async function() {
     const croppedData = window.getCroppedImage();
     if (!croppedData) {
         if (window.Swal) {
@@ -448,4 +455,33 @@ window.cropAndSaveProfileImage = async function() {
             });
         }
     }
-};
+    };
+
+    // Export to window
+    window.SimpleCropper = SimpleCropper;
+
+    // Initialize function
+    function init() {
+        if (_initialized) return;
+        _initialized = true;
+
+        // SimpleCropper is typically initialized manually when needed
+        // but we export the class for use by templates
+    }
+
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('simple-cropper', init, {
+            priority: 45,
+            reinitializable: false,
+            description: 'Simple image cropper for modals'
+        });
+    }
+
+    // Fallback
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();

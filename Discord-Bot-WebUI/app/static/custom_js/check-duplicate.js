@@ -3,89 +3,61 @@
  * Manages duplicate account detection and claim/create actions
  */
 
-document.addEventListener('DOMContentLoaded', function () {
-    const form = document.getElementById('duplicate-check-form');
-    const playerIdField = document.getElementById('player_id');
-    const actionField = document.getElementById('action');
+(function() {
+    'use strict';
 
-    // Handle claim account buttons
-    // ROOT CAUSE FIX: Uses event delegation instead of per-element listeners
-    document.addEventListener('click', function(e) {
-        const button = e.target.closest('.claim-account-btn');
-        if (!button) return;
+    let _initialized = false;
 
-        const playerId = button.getAttribute('data-player-id');
-        const playerName = button.getAttribute('data-player-name');
-        const playerEmail = button.getAttribute('data-player-email');
+    function init() {
+        if (_initialized) return;
+        _initialized = true;
 
-        // Show confirmation with SweetAlert
-        Swal.fire({
-            title: 'Claim This Account?',
-            html: `
-                <p class="mb-2">You're claiming the account for:</p>
-                <div class="text-start border rounded p-3 bg-light">
-                    <strong>${playerName}</strong><br>
-                    <small class="text-muted">${playerEmail}</small>
-                </div>
-                <p class="mt-3 mb-0 small text-muted">
-                    We'll send a verification email to <strong>${playerEmail}</strong> to confirm this is your account.
-                </p>
-            `,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : 'var(--ecs-primary)',
-            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-            confirmButtonText: '<i class="ti ti-mail me-1"></i>Send Verification Email',
-            cancelButtonText: 'Cancel',
-            customClass: {
-                popup: 'text-start'
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Set form values and submit
-                playerIdField.value = playerId;
-                actionField.value = 'claim';
+        const form = document.getElementById('duplicate-check-form');
+        const playerIdField = document.getElementById('player_id');
+        const actionField = document.getElementById('action');
 
-                // Show loading state
-                Swal.fire({
-                    title: 'Sending Verification Email...',
-                    text: 'Please wait while we process your request.',
-                    icon: 'info',
-                    allowOutsideClick: false,
-                    showConfirmButton: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
+        // Handle claim account buttons
+        // ROOT CAUSE FIX: Uses event delegation instead of per-element listeners
+        document.addEventListener('click', function(e) {
+            const button = e.target.closest('.claim-account-btn');
+            if (!button) return;
 
-                form.submit();
-            }
-        });
-    });
+            const playerId = button.getAttribute('data-player-id');
+            const playerName = button.getAttribute('data-player-name');
+            const playerEmail = button.getAttribute('data-player-email');
 
-    // Handle create new account button
-    const createNewBtn = document.getElementById('create-new-btn');
-    if (createNewBtn) {
-        createNewBtn.addEventListener('click', function () {
+            // Show confirmation with SweetAlert
             Swal.fire({
-                title: 'Create New Account?',
-                text: 'This will create a brand new profile for you. Are you sure none of the existing profiles are yours?',
+                title: 'Claim This Account?',
+                html: `
+                    <p class="mb-2">You're claiming the account for:</p>
+                    <div class="text-start border rounded p-3 bg-light">
+                        <strong>${playerName}</strong><br>
+                        <small class="text-muted">${playerEmail}</small>
+                    </div>
+                    <p class="mt-3 mb-0 small text-muted">
+                        We'll send a verification email to <strong>${playerEmail}</strong> to confirm this is your account.
+                    </p>
+                `,
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : 'var(--ecs-success)',
+                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : 'var(--ecs-primary)',
                 cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-                confirmButtonText: '<i class="ti ti-user-plus me-1"></i>Yes, Create New Account',
-                cancelButtonText: 'Let me check again'
+                confirmButtonText: '<i class="ti ti-mail me-1"></i>Send Verification Email',
+                cancelButtonText: 'Cancel',
+                customClass: {
+                    popup: 'text-start'
+                }
             }).then((result) => {
                 if (result.isConfirmed) {
                     // Set form values and submit
-                    playerIdField.value = '';
-                    actionField.value = 'new';
+                    playerIdField.value = playerId;
+                    actionField.value = 'claim';
 
                     // Show loading state
                     Swal.fire({
-                        title: 'Creating Your Account...',
-                        text: 'Please wait while we set up your new profile.',
+                        title: 'Sending Verification Email...',
+                        text: 'Please wait while we process your request.',
                         icon: 'info',
                         allowOutsideClick: false,
                         showConfirmButton: false,
@@ -98,17 +70,70 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
         });
+
+        // Handle create new account button
+        const createNewBtn = document.getElementById('create-new-btn');
+        if (createNewBtn) {
+            createNewBtn.addEventListener('click', function () {
+                Swal.fire({
+                    title: 'Create New Account?',
+                    text: 'This will create a brand new profile for you. Are you sure none of the existing profiles are yours?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : 'var(--ecs-success)',
+                    cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+                    confirmButtonText: '<i class="ti ti-user-plus me-1"></i>Yes, Create New Account',
+                    cancelButtonText: 'Let me check again'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Set form values and submit
+                        playerIdField.value = '';
+                        actionField.value = 'new';
+
+                        // Show loading state
+                        Swal.fire({
+                            title: 'Creating Your Account...',
+                            text: 'Please wait while we set up your new profile.',
+                            icon: 'info',
+                            allowOutsideClick: false,
+                            showConfirmButton: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+
+                        form.submit();
+                    }
+                });
+            });
+        }
+
+        // Add hover effects to duplicate cards
+        // ROOT CAUSE FIX: Uses event delegation instead of per-element listeners
+        document.addEventListener('mouseenter', function(e) {
+            const card = e.target.closest('.duplicate-option');
+            if (card) card.classList.add('card-hover');
+        }, true); // Use capture phase for mouseenter (doesn't bubble)
+
+        document.addEventListener('mouseleave', function(e) {
+            const card = e.target.closest('.duplicate-option');
+            if (card) card.classList.remove('card-hover');
+        }, true); // Use capture phase for mouseleave (doesn't bubble)
     }
 
-    // Add hover effects to duplicate cards
-    // ROOT CAUSE FIX: Uses event delegation instead of per-element listeners
-    document.addEventListener('mouseenter', function(e) {
-        const card = e.target.closest('.duplicate-option');
-        if (card) card.classList.add('card-hover');
-    }, true); // Use capture phase for mouseenter (doesn't bubble)
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('check-duplicate', init, {
+            priority: 45,
+            reinitializable: false,
+            description: 'Duplicate account detection and claim'
+        });
+    }
 
-    document.addEventListener('mouseleave', function(e) {
-        const card = e.target.closest('.duplicate-option');
-        if (card) card.classList.remove('card-hover');
-    }, true); // Use capture phase for mouseleave (doesn't bubble)
-});
+    // Fallback
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();

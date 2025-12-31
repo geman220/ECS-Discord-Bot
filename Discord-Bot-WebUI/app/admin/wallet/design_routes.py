@@ -146,11 +146,17 @@ def pass_design(pass_type):
     User-friendly pass design page
 
     Provides a simple interface for customizing passes without technical knowledge.
+    Supports both Apple and Google Wallet platforms via ?platform= query param.
     """
     try:
         pass_obj, error_redirect = get_pass_type_or_redirect(pass_type, 'wallet_config.dashboard')
         if error_redirect:
             return error_redirect
+
+        # Get platform from query param, default to apple
+        platform = request.args.get('platform', 'apple')
+        if platform not in ('apple', 'google'):
+            platform = 'apple'
 
         # Get configured fields
         front_fields = WalletPassFieldConfig.query.filter_by(
@@ -176,14 +182,21 @@ def pass_design(pass_type):
         assets = WalletAsset.get_assets_by_pass_type(pass_obj.id)
         assets_dict = {a.asset_type: a for a in assets}
 
-        # Get template
-        template = WalletTemplate.get_default(pass_obj.id, 'apple')
+        # Get template for selected platform
+        template = WalletTemplate.get_default(pass_obj.id, platform)
         template_content = json.loads(template.content) if template else None
+
+        # Get template for other platform to show availability
+        other_platform = 'google' if platform == 'apple' else 'apple'
+        other_template = WalletTemplate.get_default(pass_obj.id, other_platform)
 
         return render_template(
             'admin/wallet_config/pass_design.html',
             pass_type=pass_obj,
             pass_type_code=pass_type,
+            platform=platform,
+            other_platform=other_platform,
+            has_other_template=other_template is not None,
             front_fields=front_fields,
             back_fields=back_fields,
             locations=locations,
@@ -219,7 +232,12 @@ def save_pass_design(pass_type):
         if error_redirect:
             return error_redirect
 
-        # Update appearance settings
+        # Get platform from form, default to apple
+        platform = request.form.get('platform', 'apple')
+        if platform not in ('apple', 'google'):
+            platform = 'apple'
+
+        # Update appearance settings (shared across platforms)
         if request.form.get('background_color'):
             pass_obj.background_color = request.form.get('background_color')
         if request.form.get('foreground_color'):
@@ -231,28 +249,54 @@ def save_pass_design(pass_type):
 
         db.session.commit()
 
-        # Regenerate template with updated settings
-        template = WalletTemplate.get_default(pass_obj.id, 'apple')
+        # Update template for the specified platform
+        template = WalletTemplate.get_default(pass_obj.id, platform)
 
         if template:
             try:
                 content = json.loads(template.content)
-                content['backgroundColor'] = pass_obj.background_color
-                content['foregroundColor'] = pass_obj.foreground_color
-                content['labelColor'] = pass_obj.label_color
-                content['logoText'] = pass_obj.logo_text
 
-                # Update locations in template
-                active_locations = WalletLocation.get_for_pass_type(pass_obj.code, limit=10)
-                if active_locations:
-                    content['locations'] = [loc.to_pass_dict() for loc in active_locations]
-                elif 'locations' in content:
-                    del content['locations']
+                if platform == 'apple':
+                    # Apple-specific template fields
+                    content['backgroundColor'] = pass_obj.background_color
+                    content['foregroundColor'] = pass_obj.foreground_color
+                    content['labelColor'] = pass_obj.label_color
+                    content['logoText'] = pass_obj.logo_text
+
+                    # Update locations in Apple template
+                    active_locations = WalletLocation.get_for_pass_type(pass_obj.code, limit=10)
+                    if active_locations:
+                        content['locations'] = [loc.to_pass_dict() for loc in active_locations]
+                    elif 'locations' in content:
+                        del content['locations']
+
+                elif platform == 'google':
+                    # Google-specific template fields
+                    content['hexBackgroundColor'] = pass_obj.background_color
+                    # Google doesn't have direct equivalents for foreground/label colors
 
                 template.content = json.dumps(content, indent=2)
                 db.session.commit()
             except json.JSONDecodeError:
                 logger.warning("Could not update template JSON")
+
+        # Also update the other platform's template if it exists
+        other_platform = 'google' if platform == 'apple' else 'apple'
+        other_template = WalletTemplate.get_default(pass_obj.id, other_platform)
+        if other_template:
+            try:
+                other_content = json.loads(other_template.content)
+                if other_platform == 'apple':
+                    other_content['backgroundColor'] = pass_obj.background_color
+                    other_content['foregroundColor'] = pass_obj.foreground_color
+                    other_content['labelColor'] = pass_obj.label_color
+                    other_content['logoText'] = pass_obj.logo_text
+                elif other_platform == 'google':
+                    other_content['hexBackgroundColor'] = pass_obj.background_color
+                other_template.content = json.dumps(other_content, indent=2)
+                db.session.commit()
+            except json.JSONDecodeError:
+                logger.warning(f"Could not update {other_platform} template JSON")
 
         flash(f'{pass_obj.name} design updated successfully.', 'success')
 
@@ -266,7 +310,7 @@ def save_pass_design(pass_type):
         except Exception as push_error:
             logger.warning(f"Failed to send push updates: {push_error}")
 
-        return redirect(url_for('wallet_config.pass_design', pass_type=pass_type))
+        return redirect(url_for('wallet_config.pass_design', pass_type=pass_type, platform=platform))
 
     except Exception as e:
         logger.error(f"Error saving pass design: {str(e)}", exc_info=True)

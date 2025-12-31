@@ -1,12 +1,15 @@
 /**
  * Match Management JavaScript
  * Handles match scheduling, status updates, task management, and administrative functions
- * 
+ *
  * Dependencies: jQuery, Bootstrap 5, SweetAlert2
  */
 
-// Global variables
-let csrfToken = '';
+(function() {
+    'use strict';
+
+    let _initialized = false;
+    let csrfToken = '';
 
 // Initialize CSRF token
 function initializeCSRFToken() {
@@ -996,50 +999,53 @@ function forceScheduleMatch(matchId) {
     });
 }
 
-// Initialize match management when DOM is ready
-$(document).ready(function() {
-    // Initialize CSRF token
-    initializeCSRFToken();
-    
-    // Format scheduled times on initial page load
-    formatScheduledTimes();
-    
-    // Load task details for all matches after a short delay
-    setTimeout(loadAllTaskDetails, 1000);
-    
-    // With background cache, we can refresh less frequently
-    // Refresh task details every 60 seconds (cache updates every 3 minutes)
-    setInterval(loadAllTaskDetails, 60000);
-    
-    // Auto-refresh every 60 seconds  
-    setInterval(refreshStatuses, 60000);
-    
-    // Handle historical matches toggle
-    const historicalToggle = document.getElementById('historicalMatches');
-    const historicalToggleIcon = document.getElementById('historicalToggleIcon');
-    
-    if (historicalToggle && historicalToggleIcon) {
-        historicalToggle.addEventListener('show.bs.collapse', function () {
-            historicalToggleIcon.classList.remove('ti-chevron-down');
-            historicalToggleIcon.classList.add('ti-chevron-up');
-            
-            // Load task details for historical matches when expanded
-            setTimeout(() => {
-                document.querySelectorAll('[data-match-type="historical"][data-match-id]').forEach(card => {
-                    const matchId = card.dataset.matchId;
-                    if (matchId) {
-                        loadMatchTaskDetails(matchId);
-                    }
-                });
-            }, 100);
-        });
-        
-        historicalToggle.addEventListener('hide.bs.collapse', function () {
-            historicalToggleIcon.classList.remove('ti-chevron-up');
-            historicalToggleIcon.classList.add('ti-chevron-down');
-        });
+    // Initialize function
+    function init() {
+        if (_initialized) return;
+        _initialized = true;
+
+        // Initialize CSRF token
+        initializeCSRFToken();
+
+        // Format scheduled times on initial page load
+        formatScheduledTimes();
+
+        // Load task details for all matches after a short delay
+        setTimeout(loadAllTaskDetails, 1000);
+
+        // With background cache, we can refresh less frequently
+        // Refresh task details every 60 seconds (cache updates every 3 minutes)
+        setInterval(loadAllTaskDetails, 60000);
+
+        // Auto-refresh every 60 seconds
+        setInterval(refreshStatuses, 60000);
+
+        // Handle historical matches toggle
+        const historicalToggle = document.getElementById('historicalMatches');
+        const historicalToggleIcon = document.getElementById('historicalToggleIcon');
+
+        if (historicalToggle && historicalToggleIcon) {
+            historicalToggle.addEventListener('show.bs.collapse', function () {
+                historicalToggleIcon.classList.remove('ti-chevron-down');
+                historicalToggleIcon.classList.add('ti-chevron-up');
+
+                // Load task details for historical matches when expanded
+                setTimeout(() => {
+                    document.querySelectorAll('[data-match-type="historical"][data-match-id]').forEach(card => {
+                        const matchId = card.dataset.matchId;
+                        if (matchId) {
+                            loadMatchTaskDetails(matchId);
+                        }
+                    });
+                }, 100);
+            });
+
+            historicalToggle.addEventListener('hide.bs.collapse', function () {
+                historicalToggleIcon.classList.remove('ti-chevron-up');
+                historicalToggleIcon.classList.add('ti-chevron-down');
+            });
+        }
     }
-});
 
 // Show cache status
 function showCacheStatus() {
@@ -1147,3 +1153,44 @@ function showCacheStatus() {
             alert('Error loading cache status');
         });
 }
+
+    // Export functions for template compatibility
+    window.refreshStatuses = refreshStatuses;
+    window.loadMatchTaskDetails = loadMatchTaskDetails;
+    window.loadAllTaskDetails = loadAllTaskDetails;
+    window.revokeTask = revokeTask;
+    window.rescheduleTask = rescheduleTask;
+    window.showTaskInfo = showTaskInfo;
+    window.matchMgmtScheduleMatch = matchMgmtScheduleMatch;
+    window.createThreadNow = createThreadNow;
+    window.startLiveReporting = startLiveReporting;
+    window.stopLiveReporting = stopLiveReporting;
+    window.showTaskDetails = showTaskDetails;
+    window.addMatchByDate = addMatchByDate;
+    window.scheduleAllMatches = scheduleAllMatches;
+    window.fetchAllFromESPN = fetchAllFromESPN;
+    window.clearAllMatches = clearAllMatches;
+    window.matchMgmtEditMatch = matchMgmtEditMatch;
+    window.removeMatch = removeMatch;
+    window.matchMgmtShowQueueStatus = matchMgmtShowQueueStatus;
+    window.refreshQueueStatus = refreshQueueStatus;
+    window.debugMatchTasks = debugMatchTasks;
+    window.forceScheduleMatch = forceScheduleMatch;
+    window.showCacheStatus = showCacheStatus;
+
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('match-management', init, {
+            priority: 40,
+            reinitializable: false,
+            description: 'Match management admin page'
+        });
+    }
+
+    // Fallback
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();

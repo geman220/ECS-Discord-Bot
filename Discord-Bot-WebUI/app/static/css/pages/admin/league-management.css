@@ -80,7 +80,7 @@
    QUICK ACTIONS GRID
    ============================================================================ */
 
-.c-quick-actions {
+.c-league-mgmt-page .c-quick-actions {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--space-3, 12px);
@@ -358,21 +358,22 @@
 }
 
 /* ============================================================================
-   MATCH STATS ROW
+   MATCH STATS ROW - League Management Override
+   Base component in components/profile-components.css
    ============================================================================ */
 
-.c-match-stats {
+.c-league-hero .c-match-stats {
   display: flex;
   justify-content: space-around;
   text-align: center;
   margin-bottom: var(--space-3, 12px);
 }
 
-.c-match-stat {
+.c-league-mgmt-page .c-match-stat {
   flex: 1;
 }
 
-.c-match-stat__value {
+.c-league-mgmt-page .c-match-stat__value {
   display: block;
   font-size: var(--text-2xl, 1.5rem);
   font-weight: 700;
@@ -383,15 +384,15 @@
   color: var(--color-text-primary, var(--color-secondary-50, #f8fafc));
 }
 
-.c-match-stat__value--success {
+.c-league-mgmt-page .c-match-stat__value--success {
   color: var(--color-success, var(--color-success-500, #10b981));
 }
 
-.c-match-stat__value--primary {
+.c-league-mgmt-page .c-match-stat__value--primary {
   color: var(--color-primary, var(--color-primary-600, #2563eb));
 }
 
-.c-match-stat__label {
+.c-league-mgmt-page .c-match-stat__label {
   font-size: var(--text-xs, 0.75rem);
   color: var(--color-text-muted, var(--color-secondary-500, #64748b));
 }

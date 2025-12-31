@@ -369,13 +369,13 @@
    Activity timeline component with status markers
    ============================================================================ */
 
-.c-bot-timeline {
+.c-bot-mgmt .c-bot-timeline {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 }
 
-.c-bot-timeline__item {
+.c-bot-mgmt .c-bot-timeline__item {
   display: grid;
   grid-template-columns: 12px 1fr;
   gap: var(--space-3);
@@ -383,7 +383,7 @@
   padding-bottom: var(--space-4);
 }
 
-.c-bot-timeline__item:not(:last-child)::before {
+.c-bot-mgmt .c-bot-timeline__item:not(:last-child)::before {
   content: '';
   position: absolute;
   left: 5px;
@@ -393,7 +393,7 @@
   background: var(--color-border);
 }
 
-.c-bot-timeline__marker {
+.c-bot-mgmt .c-bot-timeline__marker {
   width: 12px;
   height: 12px;
   border-radius: var(--radius-full);
@@ -403,22 +403,22 @@
   animation: pulse 2s infinite;
 }
 
-.c-bot-timeline__marker--danger {
+.c-bot-mgmt .c-bot-timeline__marker--danger {
   background: var(--color-danger);
   box-shadow: 0 0 0 4px rgba(var(--color-danger-rgb), 0.2);
 }
 
-.c-bot-timeline__marker--warning {
+.c-bot-mgmt .c-bot-timeline__marker--warning {
   background: var(--color-warning);
   box-shadow: 0 0 0 4px rgba(var(--color-warning-rgb), 0.2);
 }
 
-.c-bot-timeline__marker--info {
+.c-bot-mgmt .c-bot-timeline__marker--info {
   background: var(--color-info);
   box-shadow: 0 0 0 4px rgba(var(--color-info-rgb), 0.2);
 }
 
-.c-bot-timeline__marker--secondary {
+.c-bot-mgmt .c-bot-timeline__marker--secondary {
   background: var(--color-text-tertiary);
   box-shadow: 0 0 0 4px rgba(var(--color-text-tertiary-rgb), 0.2);
 }
@@ -432,27 +432,27 @@
   }
 }
 
-.c-bot-timeline__content {
+.c-bot-mgmt .c-bot-timeline__content {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
 }
 
-.c-bot-timeline__title {
+.c-bot-mgmt .c-bot-timeline__title {
   margin: 0;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text);
 }
 
-.c-bot-timeline__text {
+.c-bot-mgmt .c-bot-timeline__text {
   margin: 0;
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
   font-family: var(--font-mono);
 }
 
-.c-bot-timeline__timestamp {
+.c-bot-mgmt .c-bot-timeline__timestamp {
   font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
   font-family: var(--font-mono);

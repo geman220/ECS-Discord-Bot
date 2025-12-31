@@ -742,11 +742,28 @@
     // DOM READY
     // ========================================================================
 
-    // Initialize when DOM is ready
+    // Add _initialized guard
+    let _initialized = false;
+    const originalInit = init;
+    init = function() {
+        if (_initialized) return;
+        _initialized = true;
+        originalInit();
+    };
+
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('player-profile', init, {
+            priority: 45,
+            reinitializable: false,
+            description: 'Player profile page functionality'
+        });
+    }
+
+    // Fallback
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
-        // DOM already loaded
         init();
     }
 

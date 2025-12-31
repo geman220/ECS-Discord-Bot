@@ -210,6 +210,9 @@ def pass_status_api():
     if not wallet_pass:
         return jsonify({'found': False}), 404
 
+    # Check Google Wallet configuration status
+    google_config = pass_service.get_google_config_status()
+
     return jsonify({
         'found': True,
         'status': wallet_pass.status,
@@ -219,5 +222,5 @@ def pass_status_api():
         'valid_until': wallet_pass.valid_until.isoformat() if wallet_pass.valid_until else None,
         'download_count': wallet_pass.download_count,
         'apple_available': True,
-        'google_available': False  # Will be true when implemented
+        'google_available': google_config.get('configured', False)
     })

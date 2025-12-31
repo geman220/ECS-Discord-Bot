@@ -156,8 +156,7 @@
     </div>
 </div>
 
-<!-- Discord Membership Check Script -->
-<script src="{{ url_for('static', filename='custom_js/discord-membership-check.js') }}"></script>
+<!-- discord-membership-check.js loaded globally in base.html -->
 <script>
 // Pass Discord membership data to the global scope for the checker
 {% if discord_membership_status %}

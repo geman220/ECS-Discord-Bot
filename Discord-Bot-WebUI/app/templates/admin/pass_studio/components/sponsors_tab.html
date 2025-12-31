@@ -18,7 +18,7 @@
 <!-- Add Sponsor Button -->
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h6 class="mb-0">Sponsors</h6>
-    <button type="button" class="c-btn c-btn--primary c-btn--sm js-add-sponsor" onclick="addSponsor()">
+    <button type="button" class="c-btn c-btn--primary c-btn--sm js-add-sponsor" data-action="add-sponsor">
         <i class="ti ti-plus me-1"></i> Add Sponsor
     </button>
 </div>
@@ -75,9 +75,9 @@
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <button type="button" class="c-btn c-btn--outline-primary js-edit-sponsor" onclick="editSponsor({{ sponsor.id }})" aria-label="Edit"><i class="ti ti-edit"></i></button>
-                                <button type="button" class="c-btn btn-outline-{{ 'warning' if sponsor.is_active else 'success' }} js-toggle-sponsor" onclick="toggleSponsor({{ sponsor.id }}, {{ 'false' if sponsor.is_active else 'true' }})" aria-label="View"><i class="ti ti-{{ 'eye-off' if sponsor.is_active else 'eye' }}"></i></button>
-                                <button type="button" class="c-btn c-btn--outline-danger js-delete-sponsor" onclick="deleteSponsor({{ sponsor.id }}, '{{ sponsor.name }}')" aria-label="Delete"><i class="ti ti-trash"></i></button>
+                                <button type="button" class="c-btn c-btn--outline-primary js-edit-sponsor" data-action="edit-sponsor" data-sponsor-id="{{ sponsor.id }}" aria-label="Edit"><i class="ti ti-edit"></i></button>
+                                <button type="button" class="c-btn btn-outline-{{ 'warning' if sponsor.is_active else 'success' }} js-toggle-sponsor" data-action="toggle-sponsor" data-sponsor-id="{{ sponsor.id }}" data-active="{{ 'false' if sponsor.is_active else 'true' }}" aria-label="View"><i class="ti ti-{{ 'eye-off' if sponsor.is_active else 'eye' }}"></i></button>
+                                <button type="button" class="c-btn c-btn--outline-danger js-delete-sponsor" data-action="delete-sponsor" data-sponsor-id="{{ sponsor.id }}" data-sponsor-name="{{ sponsor.name }}" aria-label="Delete"><i class="ti ti-trash"></i></button>
                             </div>
                         </td>
                     </tr>
@@ -90,7 +90,7 @@
             <i class="ti ti-building-store fs-1 text-muted"></i>
             <p class="mt-3 text-muted">No sponsors configured yet.</p>
             <p class="text-muted small">Add sponsors to display their information on passes.</p>
-            <button type="button" class="c-btn c-btn--primary js-add-sponsor" onclick="addSponsor()">
+            <button type="button" class="c-btn c-btn--primary js-add-sponsor" data-action="add-sponsor">
                 <i class="ti ti-plus me-1"></i> Add First Sponsor
             </button>
         </div>

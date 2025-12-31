@@ -24,9 +24,10 @@
 
 /* =============================================================================
    Design Tokens
+   Scoped to auth pages via the data-component attribute on html element
    ============================================================================ */
 
-.c-auth-layout {
+[data-component="auth-layout"] {
   --auth-bg-page: #0f1419;
   --auth-bg-card: #1a1f26;
   --auth-bg-input: #242b33;
@@ -50,27 +51,18 @@
 }
 
 /* =============================================================================
-   Page Layout
+   Page Layout Extensions
+   NOTE: Base .c-auth-layout styles are in layout/auth-layout.css
+   These extensions add backgrounds and visual enhancements
    ============================================================================ */
 
-.c-auth-layout {
-  min-height: 100vh;
-}
-
-.c-auth-layout__body {
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
+/* Background color (extends base layout) */
+[data-component="auth-body"] {
   background: var(--auth-bg-page);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow-x: hidden;
 }
 
 /* Ambient glow - top right */
-.c-auth-layout__body::before {
+[data-component="auth-body"]::before {
   content: '';
   position: fixed;
   top: -200px;
@@ -83,7 +75,7 @@
 }
 
 /* Ambient glow - bottom left */
-.c-auth-layout__body::after {
+[data-component="auth-body"]::after {
   content: '';
   position: fixed;
   bottom: -200px;
@@ -95,15 +87,10 @@
   z-index: 0;
 }
 
-.c-auth-layout__container {
-  width: 100%;
+/* Container extension - min-height for page content */
+[data-component="auth-container"] {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   padding: var(--auth-space-lg);
-  position: relative;
-  z-index: 1;
 }
 
 /* =============================================================================
@@ -506,9 +493,11 @@
 
 /* =============================================================================
    Help Text
+   NOTE: Base .c-auth-help-text is in auth-components.css
+   These are page-specific style extensions
    ============================================================================ */
 
-.c-auth-help-text {
+[data-component="auth-layout"] .c-auth-help-text {
   padding: var(--auth-space);
   background: rgba(88, 101, 242, 0.06);
   border-radius: var(--auth-radius);
@@ -516,14 +505,14 @@
   text-align: center;
 }
 
-.c-auth-help-text__content {
+[data-component="auth-layout"] .c-auth-help-text__content {
   font-size: 0.875rem;
   color: var(--auth-text-secondary);
   margin: 0 0 0.5rem 0;
   line-height: 1.5;
 }
 
-.c-auth-help-text__links {
+[data-component="auth-layout"] .c-auth-help-text__links {
   font-size: 0.8125rem;
   color: var(--auth-text-muted);
   margin: 0;

@@ -3,69 +3,25 @@
    Wave 9 BEM Migration - Feedback Templates
    ============================================================================ */
 
-/* ==========================================================================
-   PAGE HEADER
-   ========================================================================== */
-
-.c-page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.c-page-header--with-back {
-    flex-wrap: wrap;
-}
-
-.c-page-header__content {
-    flex: 1;
-    min-width: 0;
-}
-
-.c-page-header__title {
-    margin: 0 0 0.25rem 0;
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--ecs-heading, #566a7f);
-}
-
-.c-page-header__description {
-    margin: 0;
-    color: var(--ecs-text-muted, #697a8d);
-    font-size: 0.875rem;
-}
-
-.c-page-header__actions {
-    display: flex;
-    gap: 0.5rem;
-    flex-shrink: 0;
-}
-
-/* Dark mode for page header */
-[data-style="dark"] .c-page-header__title {
-    color: var(--ecs-dark-text-primary, #fafafa);
-}
-
-[data-style="dark"] .c-page-header__description {
-    color: var(--ecs-dark-text-muted, #a1a1aa);
-}
+/*
+ * NOTE: .c-page-header moved to components/c-page-header.css
+ */
 
 /* ==========================================================================
-   INPUT GROUP
+   INPUT GROUP - Feedback Page Overrides
+   Base component in components/forms.css
    ========================================================================== */
 
-.c-input-group {
+.c-feedback-header .c-input-group {
     display: flex;
     align-items: stretch;
 }
 
-.c-input-group--sm {
+.c-feedback-header .c-input-group--sm {
     font-size: 0.875rem;
 }
 
-.c-input-group__input {
+.c-feedback-header .c-input-group__input {
     flex: 1;
     padding: 0.5rem 0.75rem;
     font-size: inherit;
@@ -77,32 +33,32 @@
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.c-input-group__input:focus {
+.c-feedback-header .c-input-group__input:focus {
     outline: none;
     border-color: var(--ecs-primary, #696cff);
     box-shadow: 0 0 0 2px rgba(105, 108, 255, 0.15);
 }
 
-.c-input-group__input::placeholder {
+.c-feedback-header .c-input-group__input::placeholder {
     color: var(--ecs-text-muted, #697a8d);
 }
 
-.c-input-group .c-btn {
+.c-feedback-header .c-input-group .c-btn {
     border-radius: 0 var(--ecs-border-radius, 0.375rem) var(--ecs-border-radius, 0.375rem) 0;
 }
 
 /* Dark mode for input group */
-[data-style="dark"] .c-input-group__input {
+[data-style="dark"] .c-feedback-header .c-input-group__input {
     background-color: var(--ecs-dark-bg-card, #2b2c40);
     border-color: var(--ecs-dark-border, #444564);
     color: var(--ecs-dark-text-primary, #fafafa);
 }
 
-[data-style="dark"] .c-input-group__input::placeholder {
+[data-style="dark"] .c-feedback-header .c-input-group__input::placeholder {
     color: var(--ecs-dark-text-muted, #a1a1aa);
 }
 
-[data-style="dark"] .c-input-group__input:focus {
+[data-style="dark"] .c-feedback-header .c-input-group__input:focus {
     border-color: var(--ecs-primary-light, var(--color-primary-400, #60A5FA));
     box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
 }

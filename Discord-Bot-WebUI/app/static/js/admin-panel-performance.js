@@ -297,7 +297,16 @@
   EventDelegation.register('toggle-auto-refresh', handleToggleAutoRefresh, { preventDefault: true });
   EventDelegation.register('clear-cache', handleClearCache, { preventDefault: true });
 
-  // Run initialization when DOM is ready
+  // Register with InitSystem (primary)
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('admin-panel-performance', init, {
+      priority: 30,
+      reinitializable: true,
+      description: 'Admin panel performance monitoring'
+    });
+  }
+
+  // Fallback
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

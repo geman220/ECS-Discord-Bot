@@ -481,7 +481,6 @@ def init_assets(app):
         'css/components/remaining-components.css',  # Final gap coverage
         'css/components/ui-fixes.css',              # UI bug fixes and compatibility
         'css/components/c-schedule.css',            # Schedule component
-        'css/components/chat-widget.css',           # Chat widget (legacy)
 
         # Utilities
         'css/core/admin-utilities.css',        # Admin-specific utility classes
@@ -634,7 +633,15 @@ def init_assets(app):
         output='gen/production.min.css'
     )
 
-    # Production JS Bundle - All JavaScript in one file
+    # =========================================================================
+    # DEPRECATED: Use Vite production build instead
+    # =========================================================================
+    # This Flask-Assets bundle is deprecated. The Vite build system is now
+    # the primary production asset pipeline. This bundle remains for backward
+    # compatibility but should not be used for new development.
+    #
+    # Vite production: npm run build (outputs to vite-dist/)
+    # =========================================================================
     production_js = Bundle(
         # CSRF protection (must load early to patch fetch before any API calls)
         'js/csrf-fetch.js',
@@ -748,20 +755,25 @@ def init_assets(app):
         'js/components-modern.js',      # Modern component interactions (modals, tooltips, etc.)
         # Event Delegation System (modular - core first, then handlers)
         'js/event-delegation/core.js',
+        'js/event-delegation/handlers/calendar-actions.js',
+        'js/event-delegation/handlers/discord-management.js',
+        'js/event-delegation/handlers/draft-system.js',
+        'js/event-delegation/handlers/ecs-fc-management.js',
         'js/event-delegation/handlers/match-management.js',
         'js/event-delegation/handlers/match-reporting.js',
-        'js/event-delegation/handlers/draft-system.js',
-        'js/event-delegation/handlers/rsvp-actions.js',
-        'js/event-delegation/handlers/profile-verification.js',
-        'js/event-delegation/handlers/discord-management.js',
-        'js/event-delegation/handlers/user-approval.js',
-        'js/event-delegation/handlers/substitute-pool.js',
-        'js/event-delegation/handlers/referee-management.js',
-        'js/event-delegation/handlers/season-wizard.js',
-        'js/event-delegation/handlers/pass-studio.js',
-        'js/event-delegation/handlers/security-actions.js',
-        'js/event-delegation/handlers/calendar-actions.js',
+        'js/event-delegation/handlers/message-templates.js',
         'js/event-delegation/handlers/onboarding-wizard.js',
+        'js/event-delegation/handlers/pass-studio.js',
+        'js/event-delegation/handlers/profile-verification.js',
+        'js/event-delegation/handlers/push-notifications.js',
+        'js/event-delegation/handlers/referee-management.js',
+        'js/event-delegation/handlers/rsvp-actions.js',
+        'js/event-delegation/handlers/season-wizard.js',
+        'js/event-delegation/handlers/security-actions.js',
+        'js/event-delegation/handlers/substitute-pool.js',
+        'js/event-delegation/handlers/user-approval.js',
+        'js/event-delegation/handlers/user-management.js',
+        'js/event-delegation-init.js',  # MUST be last - initializes EventDelegation after all handlers
         'js/ui-enhancements.js',        # Feather icons, collapsible sections, dropdowns
 
         # Admin Panel JS

@@ -165,10 +165,11 @@
 }
 
 /* ============================================================================
-   CARD MODERN COMPONENT
+   CARD MODERN COMPONENT - Page Overrides
+   Base component in components/cards-modern.css
    ============================================================================ */
 
-.c-card-modern {
+.c-team-detail-page .c-card-modern {
   background: var(--color-bg-card);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
@@ -178,7 +179,7 @@
   flex-direction: column;
 }
 
-.c-card-modern__header {
+.c-team-detail-page .c-card-modern__header {
   padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--border-color-primary);
   display: flex;
@@ -189,32 +190,32 @@
   background: var(--color-bg-secondary);
 }
 
-.c-card-modern__title {
+.c-team-detail-page .c-card-modern__title {
   font-size: var(--text-lg);
   font-weight: var(--font-semibold);
   color: var(--color-text-primary);
   margin: 0;
 }
 
-.c-card-modern__actions {
+.c-team-detail-page .c-card-modern__actions {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   flex-wrap: wrap;
 }
 
-.c-card-modern__body {
+.c-team-detail-page .c-card-modern__body {
   padding: var(--space-5);
   flex: 1;
   min-height: 0; /* Allow flex child to shrink below content size for scrolling */
 }
 
-.c-card-modern__body--no-padding {
+.c-team-detail-page .c-card-modern__body--no-padding {
   padding: 0;
 }
 
 /* Schedule card needs to scroll when content exceeds available space */
-.c-card-modern__body--no-padding:has(.c-match-history) {
+.c-team-detail-page .c-card-modern__body--no-padding:has(.c-match-history) {
   overflow-y: auto;
 }
 
@@ -223,28 +224,28 @@
 }
 
 /* Dark mode */
-[data-style="dark"] .c-card-modern {
+[data-style="dark"] .c-team-detail-page .c-card-modern {
   background: var(--color-bg-card);
   box-shadow: var(--shadow-md);
 }
 
-[data-style="dark"] .c-card-modern__header {
+[data-style="dark"] .c-team-detail-page .c-card-modern__header {
   background: var(--color-bg-secondary);
   border-bottom-color: var(--color-neutral-700);
 }
 
 /* Mobile */
 @media (max-width: 768px) {
-  .c-card-modern__header {
+  .c-team-detail-page .c-card-modern__header {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .c-card-modern__actions {
+  .c-team-detail-page .c-card-modern__actions {
     width: 100%;
   }
 
-  .c-btn-text {
+  .c-team-detail-page .c-btn-text {
     display: none;
   }
 }
@@ -835,16 +836,17 @@
 }
 
 /* ============================================================================
-   TEAM STATS COMPONENT
+   TEAM STATS COMPONENT - Page Overrides
+   Base component in features/coach-dashboard.css
    ============================================================================ */
 
-.c-team-stats {
+.c-team-detail-page .c-team-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: var(--space-4);
 }
 
-.c-team-stats__item {
+.c-team-detail-page .c-team-stats__item {
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -854,11 +856,11 @@
   border: 1px solid var(--border-color-primary);
 }
 
-.c-team-stats__item--wide {
+.c-team-detail-page .c-team-stats__item--wide {
   grid-column: 1 / -1;
 }
 
-.c-team-stats__icon {
+.c-team-detail-page .c-team-stats__icon {
   width: 48px;
   height: 48px;
   border-radius: var(--radius-md);
@@ -869,32 +871,32 @@
   font-size: var(--text-xl);
 }
 
-.c-team-stats__icon--primary {
+.c-team-detail-page .c-team-stats__icon--primary {
   background: var(--color-primary-subtle);
   color: var(--color-primary);
 }
 
-.c-team-stats__icon--success {
+.c-team-detail-page .c-team-stats__icon--success {
   background: rgba(76, 175, 80, 0.1);
   color: var(--color-success);
 }
 
-.c-team-stats__icon--info {
+.c-team-detail-page .c-team-stats__icon--info {
   background: rgba(33, 150, 243, 0.1);
   color: var(--color-info);
 }
 
-.c-team-stats__icon--warning {
+.c-team-detail-page .c-team-stats__icon--warning {
   background: rgba(255, 152, 0, 0.1);
   color: var(--color-warning);
 }
 
-.c-team-stats__content {
+.c-team-detail-page .c-team-stats__content {
   flex: 1;
   min-width: 0;
 }
 
-.c-team-stats__label {
+.c-team-detail-page .c-team-stats__label {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
   text-transform: uppercase;
@@ -902,28 +904,28 @@
   margin-block-end: var(--space-1);
 }
 
-.c-team-stats__value {
+.c-team-detail-page .c-team-stats__value {
   font-size: var(--text-lg);
   font-weight: var(--font-semibold);
   color: var(--color-text-primary);
   line-height: var(--leading-tight);
 }
 
-.c-team-stats__value small {
+.c-team-detail-page .c-team-stats__value small {
   font-size: var(--text-xs);
   font-weight: var(--font-normal);
   color: var(--color-text-muted);
 }
 
 /* Dark mode */
-[data-style="dark"] .c-team-stats__item {
+[data-style="dark"] .c-team-detail-page .c-team-stats__item {
   background: var(--color-bg-card);
   border-color: var(--color-neutral-700);
 }
 
 /* Mobile */
 @media (max-width: 768px) {
-  .c-team-stats {
+  .c-team-detail-page .c-team-stats {
     grid-template-columns: 1fr;
   }
 }

@@ -26,6 +26,8 @@
 (function() {
     'use strict';
 
+    let _initialized = false;
+
     // ========================================================================
     // CONFIGURATION
     // ========================================================================
@@ -346,6 +348,9 @@
      * Initialize all form handling
      */
     function init() {
+        if (_initialized) return;
+        _initialized = true;
+
         console.log('[Profile Form] Initializing...');
 
         // Initialize all features
@@ -361,18 +366,6 @@
         console.log('[Profile Form] Initialization complete');
     }
 
-    // ========================================================================
-    // DOM READY
-    // ========================================================================
-
-    // Initialize when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        // DOM already loaded
-        init();
-    }
-
     // Expose public API
     window.ProfileForm = {
         version: '1.0.0',
@@ -381,4 +374,19 @@
         init
     };
 
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('profile-form-handler', init, {
+            priority: 50,
+            reinitializable: false,
+            description: 'Profile form validation and interactions'
+        });
+    }
+
+    // Fallback
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
 })();

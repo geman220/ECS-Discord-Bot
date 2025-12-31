@@ -30,44 +30,44 @@
   gap: var(--space-4);
 }
 
-.c-mobile-status {
+.c-mobile-hub .c-mobile-status {
   margin-bottom: var(--space-4);
 }
 
-.c-mobile-status__grid {
+.c-mobile-hub .c-mobile-status__grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--space-4);
 }
 
-.c-mobile-status__item {
+.c-mobile-hub .c-mobile-status__item {
   text-align: center;
   padding: var(--space-3);
 }
 
-.c-mobile-status__value {
+.c-mobile-hub .c-mobile-status__value {
   font-size: var(--text-2xl);
   font-weight: var(--font-bold);
   margin-bottom: var(--space-1);
 }
 
-.c-mobile-status__value--success {
+.c-mobile-hub .c-mobile-status__value--success {
   color: var(--color-success);
 }
 
-.c-mobile-status__value--danger {
+.c-mobile-hub .c-mobile-status__value--danger {
   color: var(--color-danger);
 }
 
-.c-mobile-status__value--info {
+.c-mobile-hub .c-mobile-status__value--info {
   color: var(--color-info);
 }
 
-.c-mobile-status__value--primary {
+.c-mobile-hub .c-mobile-status__value--primary {
   color: var(--color-primary);
 }
 
-.c-mobile-status__label {
+.c-mobile-hub .c-mobile-status__label {
   color: var(--color-text-muted);
   font-size: var(--text-sm);
 }

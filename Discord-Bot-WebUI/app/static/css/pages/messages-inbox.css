@@ -856,7 +856,7 @@
  * Online Status Indicator
  * ========================================================================== */
 
-.c-online-status {
+.c-messages-inbox-page .c-online-status {
   width: 12px;
   height: 12px;
   border-radius: 50%;
@@ -864,12 +864,12 @@
   border: 2px solid var(--msg-bg-primary);
 }
 
-.c-online-status--sm {
+.c-messages-inbox-page .c-online-status--sm {
   width: 10px;
   height: 10px;
 }
 
-.c-online-status.is-online {
+.c-messages-inbox-page .c-online-status.is-online {
   background-color: var(--msg-success);
   box-shadow: 0 0 0 3px var(--msg-success-glow);
 }
@@ -938,7 +938,7 @@
   box-shadow: 0 0 0 4px var(--msg-accent-glow);
 }
 
-.c-user-search-results {
+.c-messages-inbox-page .c-user-search-results {
   min-height: 200px;
   max-height: 320px;
   overflow-y: auto;
@@ -948,7 +948,7 @@
   border: 1px solid var(--msg-border);
 }
 
-.c-user-search-results__hint {
+.c-messages-inbox-page .c-user-search-results__hint {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -957,14 +957,14 @@
   font-size: 0.875rem;
 }
 
-.c-user-search-results__loading {
+.c-messages-inbox-page .c-user-search-results__loading {
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 3rem;
 }
 
-.c-user-search-results__item {
+.c-messages-inbox-page .c-user-search-results__item {
   display: flex;
   align-items: center;
   gap: 0.875rem;
@@ -974,15 +974,15 @@
   border-bottom: 1px solid var(--msg-border);
 }
 
-.c-user-search-results__item:last-child {
+.c-messages-inbox-page .c-user-search-results__item:last-child {
   border-bottom: none;
 }
 
-.c-user-search-results__item:hover {
+.c-messages-inbox-page .c-user-search-results__item:hover {
   background-color: var(--msg-bg-tertiary);
 }
 
-.c-user-search-results__avatar {
+.c-messages-inbox-page .c-user-search-results__avatar {
   width: 42px;
   height: 42px;
   border-radius: 50%;
@@ -990,12 +990,12 @@
   background-color: var(--msg-border);
 }
 
-.c-user-search-results__name {
+.c-messages-inbox-page .c-user-search-results__name {
   font-weight: 600;
   color: var(--msg-text-primary);
 }
 
-.c-user-search-results__empty {
+.c-messages-inbox-page .c-user-search-results__empty {
   display: flex;
   flex-direction: column;
   align-items: center;

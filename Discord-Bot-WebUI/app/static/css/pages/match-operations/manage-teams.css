@@ -140,31 +140,13 @@
   }
 }
 
-/* ============================================================================
-   3. TEAM AVATAR COMPONENT
-   Team initial badge
-   ============================================================================ */
-
-.c-team-avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-full);
-  background: var(--color-primary);
-  flex-shrink: 0;
-  margin-right: var(--space-2);
-}
-
-.c-team-avatar__initial {
-  color: var(--color-neutral-0);
-  font-weight: var(--font-bold);
-  font-size: var(--text-sm);
-}
+/*
+ * NOTE: .c-team-avatar moved to components/c-team-avatar.css
+ * Use .c-team-avatar--sm for 32px size (this page's requirement)
+ */
 
 /* ============================================================================
-   4. TEAM NAME COMPONENT
+   3. TEAM NAME COMPONENT
    Team name with avatar
    ============================================================================ */
 
@@ -211,10 +193,6 @@
   .c-filter-form__select,
   .c-league-breakdown__item {
     border-width: 2px;
-  }
-
-  .c-team-avatar {
-    border: 2px solid var(--color-neutral-0);
   }
 }
 

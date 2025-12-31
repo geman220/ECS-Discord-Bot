@@ -3,6 +3,11 @@
  * Handles dynamic loading, updating, and interaction with the playoff bracket
  */
 
+(function() {
+    'use strict';
+
+    let _initialized = false;
+
 class PlayoffBracket {
     constructor(leagueId, seasonId, currentTeamId = null) {
         this.leagueId = leagueId;
@@ -477,7 +482,39 @@ class PlayoffBracket {
     }
 }
 
-// Export for use in other scripts
-if (typeof window !== 'undefined') {
+    // Export to window
     window.PlayoffBracket = PlayoffBracket;
-}
+
+    // Initialize function for pages with playoff brackets
+    function init() {
+        if (_initialized) return;
+        _initialized = true;
+
+        // Auto-initialize if container exists and data is available
+        const container = document.querySelector('.playoff-bracket-container');
+        if (container && window.playoffConfig) {
+            window.playoffBracket = new PlayoffBracket(
+                window.playoffConfig.leagueId,
+                window.playoffConfig.seasonId,
+                window.playoffConfig.currentTeamId
+            );
+            window.playoffBracket.initialize();
+        }
+    }
+
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('playoff-bracket', init, {
+            priority: 40,
+            reinitializable: false,
+            description: 'Playoff bracket manager'
+        });
+    }
+
+    // Fallback
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();

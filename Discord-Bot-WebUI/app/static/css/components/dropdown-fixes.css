@@ -92,16 +92,8 @@ td:has(.dropdown),
 
 /* ============================================================================
    SIDEBAR DROPDOWN FIXES
+   NOTE: .c-sidebar z-index moved to layout/sidebar-modern.css
    ============================================================================ */
-
-.c-sidebar {
-  z-index: var(--z-sidebar, 1035);
-}
-
-.c-sidebar__submenu {
-  position: relative;
-  z-index: calc(var(--z-sidebar, 1035) + 1);
-}
 
 /* ============================================================================
    THIRD-PARTY COMPONENT Z-INDEX

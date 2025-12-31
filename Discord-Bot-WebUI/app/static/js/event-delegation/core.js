@@ -291,9 +291,5 @@ const EventDelegation = {
 // Export to window for global access and backward compatibility
 window.EventDelegation = EventDelegation;
 
-// Initialize the system when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => EventDelegation.init());
-} else {
-    EventDelegation.init();
-}
+// NOTE: Initialization is now controlled by main-entry.js
+// DO NOT auto-init here - handlers must register first

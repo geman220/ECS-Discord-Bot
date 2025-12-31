@@ -730,8 +730,74 @@ def generate_default_template():
                 return redirect(url_for('wallet_config.setup_wizard', step='templates'))
 
             return redirect(url_for('wallet_config.templates'))
+
+        elif platform == 'google':
+            # Google Wallet template structure (Generic Pass format)
+            template_content = {
+                "issuerName": "Emerald City Supporters",
+                "header": {
+                    "defaultValue": {
+                        "language": "en-US",
+                        "value": "{{member_name}}"
+                    }
+                },
+                "subheader": {
+                    "defaultValue": {
+                        "language": "en-US",
+                        "value": pass_type.description or pass_type.name
+                    }
+                },
+                "hexBackgroundColor": pass_type.background_color or "#1a472a",
+                "textModulesData": [
+                    {
+                        "header": "Member",
+                        "body": "{{member_name}}"
+                    },
+                    {
+                        "header": "Valid For",
+                        "body": "{{validity}}"
+                    },
+                    {
+                        "header": "Team",
+                        "body": "{{team_name}}"
+                    }
+                ],
+                "linksModuleData": {
+                    "uris": [
+                        {
+                            "uri": "https://www.weareecs.com",
+                            "description": "ECS Website"
+                        },
+                        {
+                            "uri": "https://portal.ecsfc.com",
+                            "description": "Member Portal"
+                        }
+                    ]
+                },
+                "barcode": {
+                    "type": "QR_CODE",
+                    "value": "{{barcode_data}}",
+                    "alternateText": "{{barcode_data}}"
+                }
+            }
+
+            template = asset_service.upload_template(
+                name=f"Default {pass_type.name} Google Template",
+                content=json.dumps(template_content, indent=2),
+                pass_type_id=int(pass_type_id),
+                platform=platform,
+                is_default=True
+            )
+
+            flash(f'Default Google Wallet template generated for {pass_type.name}.', 'success')
+
+            if request.form.get('is_wizard', 'false') == 'true':
+                return redirect(url_for('wallet_config.setup_wizard', step='templates'))
+
+            return redirect(url_for('wallet_config.templates'))
+
         else:
-            flash('Google Wallet templates not yet supported.', 'warning')
+            flash('Invalid platform specified.', 'error')
             return redirect(url_for('wallet_config.templates'))
 
     except Exception as e:

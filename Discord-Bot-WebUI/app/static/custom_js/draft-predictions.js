@@ -1,14 +1,19 @@
 /**
  * Draft Predictions JavaScript Module - Auto-save like Excel
- * 
+ *
  * Handles instant auto-save functionality for draft predictions.
  * Changes are saved immediately when users make selections.
  */
 
+(function() {
+    'use strict';
+
+    let _initialized = false;
+
 class DraftPredictionsManager {
     constructor() {
-        this.pendingSaves = new Map(); // Track pending save operations
-        this.saveTimeouts = new Map(); // Debounce saves
+        this.pendingSaves = new Map();
+        this.saveTimeouts = new Map();
         this.init();
     }
 
@@ -67,7 +72,7 @@ class DraftPredictionsManager {
 
     handleNotesChange(input) {
         const playerId = input.dataset.playerId;
-        
+
         // Clear existing timeout for this player
         if (this.saveTimeouts.has(playerId)) {
             clearTimeout(this.saveTimeouts.get(playerId));
@@ -89,7 +94,7 @@ class DraftPredictionsManager {
         }
 
         const values = this.getPlayerCurrentValues(playerId);
-        
+
         // Only save if there's a predicted round
         if (!values.predicted_round) {
             this.updateRowAppearance(playerId, false);
@@ -102,7 +107,7 @@ class DraftPredictionsManager {
             this.updateRowAppearance(playerId, 'saving');
 
             await this.submitPrediction(playerId, values);
-            
+
             this.updateRowAppearance(playerId, true);
             this.showAutoSaveStatus('saved');
 
@@ -153,7 +158,6 @@ class DraftPredictionsManager {
         } else if (status === 'error') {
             row.classList.add('is-error');
         }
-        // If status === false (no prediction), no special class
     }
 
     showAutoSaveStatus(status) {
@@ -163,7 +167,6 @@ class DraftPredictionsManager {
         const savedSpan = statusElement.querySelector('[data-status="saved"]');
         const savingSpan = statusElement.querySelector('[data-status="saving"]');
 
-        // Remove active state from all status indicators
         if (savedSpan) {
             savedSpan.classList.remove('is-active');
             savedSpan.classList.add('draft-status-saved');
@@ -173,7 +176,6 @@ class DraftPredictionsManager {
             savingSpan.classList.add('draft-status-saving');
         }
 
-        // Add active state to appropriate status indicator
         if (status === 'saved' && savedSpan) {
             savedSpan.classList.add('is-active');
         } else if (status === 'saving' && savingSpan) {
@@ -183,7 +185,6 @@ class DraftPredictionsManager {
 
     async submitPrediction(playerId, values) {
         try {
-            // Get current draft season ID from URL
             const currentUrl = window.location.pathname;
             const seasonId = currentUrl.split('/').pop();
 
@@ -195,14 +196,11 @@ class DraftPredictionsManager {
                 notes: values.notes || ''
             };
 
-            // Must have a predicted round to save
             if (!requestData.predicted_round) {
                 throw new Error('Predicted round is required');
             }
 
             const csrfToken = this.getCSRFToken();
-            console.log('Auto-saving prediction:', requestData);
-            console.log('CSRF token:', csrfToken);
 
             const response = await fetch('/draft-predictions/predict', {
                 method: 'POST',
@@ -218,7 +216,6 @@ class DraftPredictionsManager {
             }
 
             const result = await response.json();
-            console.log('Auto-save response:', result);
 
             if (!result.success) {
                 throw new Error(result.message || 'Failed to save prediction');
@@ -240,11 +237,10 @@ class DraftPredictionsManager {
     }
 
     showToast(type, message) {
-        // Use SweetAlert2 if available, otherwise fall back to browser alert
         if (typeof Swal !== 'undefined') {
             const icon = type === 'success' ? 'success' : 'error';
             const title = type === 'success' ? 'Success!' : 'Error';
-            
+
             Swal.fire({
                 icon: icon,
                 title: title,
@@ -255,7 +251,6 @@ class DraftPredictionsManager {
                 position: 'top-end'
             });
         } else {
-            // Only show errors in console to avoid spamming user
             if (type === 'error') {
                 console.error(message);
             }
@@ -263,7 +258,6 @@ class DraftPredictionsManager {
     }
 
     getCSRFToken() {
-        // Get CSRF token from meta tag first (most reliable)
         const tokenMeta = document.querySelector('meta[name="csrf-token"]');
         if (tokenMeta) {
             const token = tokenMeta.getAttribute('content');
@@ -272,13 +266,11 @@ class DraftPredictionsManager {
             }
         }
 
-        // Fallback: get from form
         const tokenInput = document.querySelector('input[name="csrf_token"]');
         if (tokenInput && tokenInput.value) {
             return tokenInput.value.trim();
         }
 
-        // Last resort: get from cookies
         const cookies = document.cookie.split(';');
         for (let cookie of cookies) {
             const [name, value] = cookie.trim().split('=');
@@ -294,13 +286,12 @@ class DraftPredictionsManager {
     showPlayerImageModal(imgElement) {
         const playerName = imgElement.dataset.playerName;
         const fullImageUrl = imgElement.dataset.fullImage;
-        
+
         if (!fullImageUrl) {
             console.log('No full image URL available for player:', playerName);
             return;
         }
 
-        // Get modal elements
         const modal = document.getElementById('playerImageModal');
         const modalImg = document.getElementById('playerImageModalImg');
         const modalName = document.getElementById('playerImageModalName');
@@ -311,59 +302,77 @@ class DraftPredictionsManager {
             return;
         }
 
-        // Set modal content
         modalImg.src = fullImageUrl;
         modalImg.alt = playerName;
         modalName.textContent = playerName;
         modalLabel.textContent = `${playerName} - Player Photo`;
 
-        // Show modal using Bootstrap 5
         ModalManager.show(modal.id);
 
-        // Handle image load error
         modalImg.onerror = function() {
-            modalImg.src = imgElement.src; // Fallback to thumbnail
+            modalImg.src = imgElement.src;
             console.log('Full image failed to load, using thumbnail');
         };
     }
 }
 
-// Utility functions for quick access
-window.DraftPredictions = {
-    // Quick prediction submission for specific player
-    setPrediction: function(playerId, round, confidence = null, notes = '') {
-        const row = document.querySelector(`tr[data-player-id="${playerId}"]`);
-        if (row) {
-            const roundInput = row.querySelector('.predicted-round-input');
-            const confidenceInput = row.querySelector('.confidence-input');
-            const notesInput = row.querySelector('.notes-input');
+    // Utility functions for quick access
+    window.DraftPredictions = {
+        setPrediction: function(playerId, round, confidence = null, notes = '') {
+            const row = document.querySelector(`tr[data-player-id="${playerId}"]`);
+            if (row) {
+                const roundInput = row.querySelector('.predicted-round-input');
+                const confidenceInput = row.querySelector('.confidence-input');
+                const notesInput = row.querySelector('.notes-input');
 
-            if (roundInput) {
-                roundInput.value = round;
-                roundInput.dispatchEvent(new Event('change'));
+                if (roundInput) {
+                    roundInput.value = round;
+                    roundInput.dispatchEvent(new Event('change'));
+                }
+                if (confidence && confidenceInput) {
+                    confidenceInput.value = confidence;
+                    confidenceInput.dispatchEvent(new Event('change'));
+                }
+                if (notes && notesInput) {
+                    notesInput.value = notes;
+                    notesInput.dispatchEvent(new Event('input'));
+                }
             }
-            if (confidence && confidenceInput) {
-                confidenceInput.value = confidence;
-                confidenceInput.dispatchEvent(new Event('change'));
-            }
-            if (notes && notesInput) {
-                notesInput.value = notes;
-                notesInput.dispatchEvent(new Event('input'));
-            }
+        },
+
+        bulkSetRounds: function(roundMappings) {
+            Object.entries(roundMappings).forEach(([playerId, round]) => {
+                this.setPrediction(playerId, round);
+            });
         }
-    },
+    };
 
-    // Bulk prediction helper
-    bulkSetRounds: function(roundMappings) {
-        Object.entries(roundMappings).forEach(([playerId, round]) => {
-            this.setPrediction(playerId, round);
+    // Export class to window
+    window.DraftPredictionsManager = DraftPredictionsManager;
+
+    // Initialize function
+    function init() {
+        if (_initialized) return;
+        _initialized = true;
+
+        if (document.getElementById('playersTable')) {
+            window.draftPredictionsManager = new DraftPredictionsManager();
+        }
+    }
+
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('draft-predictions', init, {
+            priority: 40,
+            reinitializable: false,
+            description: 'Draft predictions auto-save'
         });
     }
-};
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    if (document.getElementById('playersTable')) {
-        window.draftPredictionsManager = new DraftPredictionsManager();
+    // Fallback
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
     }
-});
+})();

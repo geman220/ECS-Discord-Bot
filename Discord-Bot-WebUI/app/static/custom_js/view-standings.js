@@ -6,8 +6,12 @@
 (function() {
     'use strict';
 
+    let _initialized = false;
+
     const ViewStandings = {
         init() {
+            if (_initialized) return;
+            _initialized = true;
             this.initializeBootstrapComponents();
             this.setupTabPersistence();
             this.optimizeForMobile();
@@ -62,7 +66,16 @@
         }
     };
 
-    // Initialize on DOM ready
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('view-standings', () => ViewStandings.init(), {
+            priority: 35,
+            reinitializable: true,
+            description: 'View standings page functionality'
+        });
+    }
+
+    // Fallback
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => ViewStandings.init());
     } else {

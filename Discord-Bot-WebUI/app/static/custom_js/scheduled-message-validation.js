@@ -4,20 +4,17 @@
  * Handles validation page interactions and real-time updates
  */
 
-let _scheduledMsgValidationInitialized = false;
+(function() {
+    'use strict';
 
-function initScheduledMsgValidation() {
-    if (_scheduledMsgValidationInitialized) return;
-    _scheduledMsgValidationInitialized = true;
+    let _initialized = false;
 
-    initializeValidationPage();
-}
+    function init() {
+        if (_initialized) return;
+        _initialized = true;
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initScheduledMsgValidation);
-} else {
-    initScheduledMsgValidation();
-}
+        initializeValidationPage();
+    }
 
 /**
  * Initialize validation page functionality
@@ -41,14 +38,17 @@ function initializeValidationPage() {
     startCountdownUpdates();
 }
 
-let _autoRefreshSetup = false;
+// Guard against redeclaration
+if (typeof window._scheduledMsgAutoRefreshSetup === 'undefined') {
+    window._scheduledMsgAutoRefreshSetup = false;
+}
 
 /**
  * Set up auto-refresh for pages with critical issues
  */
 function setupAutoRefresh() {
-    if (_autoRefreshSetup) return;
-    _autoRefreshSetup = true;
+    if (window._scheduledMsgAutoRefreshSetup) return;
+    window._scheduledMsgAutoRefreshSetup = true;
 
     // Check if we have overdue messages
     const overdueElement = document.querySelector('[data-overdue-count]');
@@ -105,14 +105,17 @@ function refreshValidation() {
     }
 }
 
-let _refreshButtonSetup = false;
+// Guard against redeclaration
+if (typeof window._scheduledMsgRefreshButtonSetup === 'undefined') {
+    window._scheduledMsgRefreshButtonSetup = false;
+}
 
 /**
  * Set up refresh button functionality
  */
 function setupRefreshButton() {
-    if (_refreshButtonSetup) return;
-    _refreshButtonSetup = true;
+    if (window._scheduledMsgRefreshButtonSetup) return;
+    window._scheduledMsgRefreshButtonSetup = true;
 
     const refreshButtons = document.querySelectorAll('[onclick*="refreshValidation"]');
     refreshButtons.forEach(function(btn) {
@@ -187,3 +190,25 @@ function startCountdownUpdates() {
         setInterval(updateCountdowns, 60000); // Update every minute
     }
 }
+
+    // Export functions for template compatibility
+    window.refreshValidation = refreshValidation;
+    window.scheduledMsgShowQueueStatus = scheduledMsgShowQueueStatus;
+    window.formatCountdown = formatCountdown;
+
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('scheduled-message-validation', init, {
+            priority: 40,
+            reinitializable: false,
+            description: 'Scheduled message validation'
+        });
+    }
+
+    // Fallback
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();

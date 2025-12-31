@@ -102,8 +102,16 @@
 @import './components/misc-components.css';
 @import './components/remaining-components.css';
 @import './components/ui-fixes.css';
+
+/* Consolidated BEM Components (canonical locations) */
+@import './components/c-stat.css';
+@import './components/c-team-avatar.css';
+@import './components/c-status-indicator.css';
+@import './components/c-page-header.css';
+@import './components/c-admin-shared.css';
+
 @import './components/c-schedule.css';
-@import './components/chat-widget.css';
+/* NOTE: chat-widget.css removed - use c-chat-widget.css (canonical) */
 @import './components/progressive-disclosure.css';
 @import './components/mobile-data-cards.css';
 

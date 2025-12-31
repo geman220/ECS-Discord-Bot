@@ -40,9 +40,10 @@
 }
 
 /* ============================================
-   AUTHENTICATION WRAPPER
+   AUTHENTICATION WRAPPER - 2FA Modifier
+   Base component in pages/authentication.css
    ============================================ */
-.c-auth-wrapper {
+.c-auth-wrapper--2fa {
     min-height: 100vh;
     width: 100%;
     display: flex;
@@ -55,7 +56,7 @@
 }
 
 /* Animated background pattern */
-.c-auth-wrapper::before {
+.c-auth-wrapper--2fa::before {
     content: '';
     position: absolute;
     top: -50%;
@@ -186,14 +187,15 @@
 }
 
 /* ============================================
-   MODERN FORM COMPONENTS
+   MODERN FORM COMPONENTS - 2FA Page Overrides
+   Base component in components/forms-modern.css
    ============================================ */
-.c-form-modern__group {
+.c-auth-2fa .c-form-modern__group {
     margin-bottom: 1.5rem;
     text-align: left;
 }
 
-.c-form-modern__label {
+.c-auth-2fa .c-form-modern__label {
     display: block;
     font-size: 0.875rem;
     font-weight: 600;
@@ -215,7 +217,7 @@
 }
 
 /* 2FA Code Input */
-.c-form-modern__input {
+.c-auth-2fa .c-form-modern__input {
     width: 100%;
     padding: 1rem 1.25rem;
     font-size: 1rem;
@@ -226,7 +228,7 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-.c-form-modern__input--2fa {
+.c-auth-2fa .c-form-modern__input--2fa {
     text-align: center;
     font-size: 1.5rem;
     letter-spacing: 0.5em;
@@ -234,20 +236,20 @@
     padding: 1.25rem;
 }
 
-.c-form-modern__input:focus {
+.c-auth-2fa .c-form-modern__input:focus {
     outline: none;
     border-color: var(--auth-primary);
     background: var(--auth-surface);
     box-shadow: var(--auth-shadow-focus);
 }
 
-.c-form-modern__input::placeholder {
+.c-auth-2fa .c-form-modern__input::placeholder {
     color: var(--auth-text-muted);
     opacity: 0.5;
 }
 
 /* Invalid state animation */
-.c-form-modern__input.is-invalid {
+.c-auth-2fa .c-form-modern__input.is-invalid {
     border-color: var(--color-danger, #DC2626);
     animation: shake-input 0.4s var(--auth-ease-bounce);
 }
@@ -259,24 +261,25 @@
 }
 
 /* Feedback messages */
-.c-form-modern__feedback {
+.c-auth-2fa .c-form-modern__feedback {
     display: none;
     margin-top: 0.5rem;
     font-size: 0.875rem;
 }
 
-.c-form-modern__feedback--invalid {
+.c-auth-2fa .c-form-modern__feedback--invalid {
     color: var(--color-danger, #DC2626);
 }
 
-.c-form-modern__input.is-invalid ~ .c-form-modern__feedback--invalid {
+.c-auth-2fa .c-form-modern__input.is-invalid ~ .c-form-modern__feedback--invalid {
     display: block;
 }
 
 /* ============================================
-   MODERN BUTTON
+   MODERN BUTTON - 2FA Page Overrides
+   Base component in components/buttons-modern.css
    ============================================ */
-.c-btn-modern {
+.c-auth-2fa .c-btn-modern {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -292,7 +295,7 @@
     overflow: hidden;
 }
 
-.c-btn-modern::before {
+.c-auth-2fa .c-btn-modern::before {
     content: '';
     position: absolute;
     top: 50%;
@@ -305,31 +308,31 @@
     transition: width 0.6s, height 0.6s;
 }
 
-.c-btn-modern:active::before {
+.c-auth-2fa .c-btn-modern:active::before {
     width: 300px;
     height: 300px;
 }
 
-.c-btn-modern--primary {
+.c-auth-2fa .c-btn-modern--primary {
     background: linear-gradient(135deg, var(--auth-primary) 0%, var(--auth-primary-dark) 100%);
     color: white;
     box-shadow: 0 4px 12px rgba(0, 83, 159, 0.25);
 }
 
-.c-btn-modern--primary:hover {
+.c-auth-2fa .c-btn-modern--primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(0, 83, 159, 0.35);
 }
 
-.c-btn-modern--primary:active {
+.c-auth-2fa .c-btn-modern--primary:active {
     transform: translateY(0);
 }
 
-.c-btn-modern--block {
+.c-auth-2fa .c-btn-modern--block {
     width: 100%;
 }
 
-.c-btn-modern i {
+.c-auth-2fa .c-btn-modern i {
     font-size: 1.25rem;
 }
 
@@ -337,7 +340,7 @@
    RESPONSIVE DESIGN
    ============================================ */
 @media (max-width: 480px) {
-    .c-auth-wrapper {
+    .c-auth-wrapper--2fa {
         padding: 1rem;
     }
 
@@ -358,7 +361,7 @@
         font-size: 1.5rem;
     }
 
-    .c-form-modern__input--2fa {
+    .c-auth-2fa .c-form-modern__input--2fa {
         font-size: 1.25rem;
     }
 }
@@ -377,7 +380,7 @@
 }
 
 @media (prefers-contrast: more) {
-    .c-form-modern__input {
+    .c-auth-2fa .c-form-modern__input {
         border-width: 3px;
     }
 

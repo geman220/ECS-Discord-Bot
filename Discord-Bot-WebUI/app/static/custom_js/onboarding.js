@@ -19,11 +19,18 @@
  * - onboarding-previous: Navigate to previous step
  * - onboarding-toggle-sms: Toggle SMS notification section
  *
- * @version 2.0.0 (Event Delegation)
- * @date 2025-12-16
+ * @version 2.1.0 (InitSystem)
+ * @date 2025-12-29
  */
 
-document.addEventListener('DOMContentLoaded', function () {
+(function() {
+'use strict';
+
+let _initialized = false;
+
+function init() {
+    if (_initialized) return;
+    _initialized = true;
     // Core elements
     const modalElement = document.getElementById('onboardingSlideModal');
 
@@ -360,4 +367,22 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize everything
     updateNavButtons();
     updateProgress();
-});
+}
+
+// Register with InitSystem (primary)
+if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('onboarding', init, {
+        priority: 45,
+        reinitializable: false,
+        description: 'Onboarding wizard carousel'
+    });
+}
+
+// Fallback
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
+
+})();

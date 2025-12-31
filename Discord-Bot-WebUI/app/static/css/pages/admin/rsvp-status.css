@@ -427,7 +427,7 @@
 /* ===================
    Page Loader
    =================== */
-.c-page-loader {
+.c-rsvp-status-page .c-page-loader {
     position: fixed;
     top: 0;
     left: 0;
@@ -441,7 +441,7 @@
     transition: opacity 0.5s ease-out;
 }
 
-.c-page-loader.hidden {
+.c-rsvp-status-page .c-page-loader.hidden {
     opacity: 0;
     pointer-events: none;
 }

@@ -128,7 +128,9 @@ class ModernNavbarController {
     const dropdown = document.querySelector(`[data-dropdown-id="${this.activeDropdown}"]`);
     const toggle = document.querySelector(`[data-dropdown="${this.activeDropdown}"]`);
 
-    if (dropdown && !dropdown.contains(e.target) && toggle && !toggle.contains(e.target)) {
+    const isOutside = dropdown && !dropdown.contains(e.target) && toggle && !toggle.contains(e.target);
+
+    if (isOutside) {
       this.closeDropdown(this.activeDropdown);
     }
   }
@@ -138,7 +140,10 @@ class ModernNavbarController {
    */
   toggleDropdown(dropdownId) {
     const dropdown = document.querySelector(`[data-dropdown-id="${dropdownId}"]`);
-    if (!dropdown) return;
+    if (!dropdown) {
+      console.warn('[Navbar] No dropdown element found for:', dropdownId);
+      return;
+    }
 
     // Close other dropdowns first
     if (this.activeDropdown && this.activeDropdown !== dropdownId) {
@@ -161,7 +166,10 @@ class ModernNavbarController {
     const dropdown = document.querySelector(`[data-dropdown-id="${dropdownId}"]`);
     const toggle = document.querySelector(`[data-dropdown="${dropdownId}"]`);
 
-    if (!dropdown) return;
+    if (!dropdown) {
+      console.warn('[Navbar] No dropdown found for:', dropdownId);
+      return;
+    }
 
     // Add open class for CSS animation
     dropdown.classList.add('is-open');
@@ -1304,12 +1312,14 @@ class ModernNavbarController {
   }
 }
 
-// Initialize function with guard
-let navbarInitialized = false;
+// Initialize function with guard (using window to prevent redeclaration errors if script loads twice)
+if (typeof window._navbarInitialized === 'undefined') {
+  window._navbarInitialized = false;
+}
 
 function initNavbar() {
   // Guard against double initialization
-  if (navbarInitialized) {
+  if (window._navbarInitialized) {
     console.debug('[Navbar] Already initialized, skipping');
     return;
   }
@@ -1318,7 +1328,7 @@ function initNavbar() {
   if (document.querySelector('.c-navbar-modern')) {
     console.log('[Navbar] Initializing ModernNavbarController');
     window.navbarController = new ModernNavbarController();
-    navbarInitialized = true;
+    window._navbarInitialized = true;
   }
 }
 
@@ -1445,10 +1455,5 @@ function registerNavbarEventHandlers() {
   console.log('[Navbar] EventDelegation handlers registered');
 }
 
-// Try to register immediately (works in Vite bundle)
-if (typeof EventDelegation !== 'undefined') {
-  registerNavbarEventHandlers();
-} else {
-  // Fallback: Wait for DOMContentLoaded (for individual script loading)
-  document.addEventListener('DOMContentLoaded', registerNavbarEventHandlers);
-}
+// Register handlers - EventDelegation is guaranteed available (loaded before this module)
+registerNavbarEventHandlers();

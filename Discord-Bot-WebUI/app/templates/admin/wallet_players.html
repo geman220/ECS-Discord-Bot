@@ -176,7 +176,7 @@
                                     </a>
                                     {% endif %}
                                     <button type="button" class="c-btn c-btn--outline-primary js-check-player-eligibility"
-                                            onclick="checkPlayerEligibility({{ player.id }})" title="Check Details">
+                                            data-action="check-player-eligibility" data-player-id="{{ player.id }}" title="Check Details">
                                         <i class="ti ti-info-circle"></i>
                                     </button>
                                 </div>

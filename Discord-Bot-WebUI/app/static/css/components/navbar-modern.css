@@ -619,11 +619,15 @@ body[data-style="dark"] .c-navbar-modern__search-input:focus {
   z-index: var(--z-dropdown);
 }
 
-/* Show state */
-.c-navbar-modern__dropdown.is-open {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
+/* Show state - !important to ensure visibility regardless of other styles */
+.c-navbar-modern__dropdown.is-open,
+.c-navbar-modern__dropdown[aria-hidden="false"] {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateY(0) !important;
+  pointer-events: auto !important;
+  z-index: 9999 !important; /* Ensure above everything */
 }
 
 /* Dark mode - solid opaque background using CSS variables with fallbacks */

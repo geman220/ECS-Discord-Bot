@@ -21,14 +21,19 @@
 (function() {
     'use strict';
 
+    let _initialized = false;
+
     // ========================================================================
     // INITIALIZATION
     // ========================================================================
 
-    document.addEventListener('DOMContentLoaded', function() {
+    function init() {
+        if (_initialized) return;
+        _initialized = true;
+
         initEventDelegation();
         console.log('[Match Detail] Initialized with event delegation');
-    });
+    }
 
     // ========================================================================
     // EVENT DELEGATION SETUP
@@ -350,5 +355,21 @@
         stopSession: handleStopSession,
         forceSync: handleForceSync
     };
+
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('admin-match-detail', init, {
+            priority: 30,
+            reinitializable: true,
+            description: 'Admin match detail page'
+        });
+    }
+
+    // Fallback
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
 
 })();

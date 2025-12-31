@@ -1452,6 +1452,8 @@
 {% endblock modals %}
 
 {% block custom_js %}
+{{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <!-- Include External JavaScript Files -->
 <script src="{{ url_for('static', filename='custom_js/cropper.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/match_stats.js') }}"></script>
@@ -1459,6 +1461,7 @@
 <script src="{{ url_for('static', filename='custom_js/admin_actions.js') }}"></script>
 <!-- Discord membership check script loaded in base.html -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+{% endif %}
 
 <!-- Profile verification data -->
 {% if is_own_profile %}

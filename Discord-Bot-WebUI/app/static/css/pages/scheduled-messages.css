@@ -15,61 +15,11 @@
 
 /* Badge - Uses base c-badge component from components/ */
 
-/* Avatar styling */
-.c-avatar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 38px;
-    width: 38px;
-}
-
-.c-avatar--sm {
-    height: 30px;
-    width: 30px;
-}
-
-.c-avatar--md {
-    height: 42px;
-    width: 42px;
-}
-
-.c-avatar__initial {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-}
-
-.c-avatar--sm .c-avatar__initial {
-    font-size: 0.9rem;
-}
-
-.c-avatar--md .c-avatar__initial {
-    font-size: 1.3rem;
-}
-
-.c-avatar__initial--primary {
-    background-color: var(--ecs-primary-subtle, rgba(105, 108, 255, 0.16));
-    color: var(--ecs-primary, #696cff);
-}
-
-.c-avatar__initial--success {
-    background-color: var(--ecs-success-subtle, rgba(113, 221, 55, 0.16));
-    color: var(--ecs-success, #71dd37);
-}
-
-.c-avatar__initial--warning {
-    background-color: var(--ecs-warning-subtle, rgba(255, 171, 0, 0.16));
-    color: var(--ecs-warning, #ffab00);
-}
-
-.c-avatar__initial--danger {
-    background-color: var(--ecs-danger-subtle, rgba(255, 62, 29, 0.16));
-    color: var(--ecs-danger, #ff3e1d);
-}
+/*
+ * NOTE: Avatar styling moved to components.css
+ * Uses: .c-avatar, .c-avatar--sm, .c-avatar--md, .c-avatar--lg
+ *       .c-avatar__initial, .c-avatar__initial--primary/success/warning/danger
+ */
 
 /* Table styling */
 #scheduledMessagesTable tbody tr {

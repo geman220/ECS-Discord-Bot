@@ -7,8 +7,12 @@
 (function() {
     'use strict';
 
+    let _initialized = false;
+
     const TeamsOverview = {
         init() {
+            if (_initialized) return;
+            _initialized = true;
             this.restoreActiveTab();
             this.setupTabPersistence();
             this.optimizeForMobile();
@@ -42,7 +46,16 @@
         }
     };
 
-    // Initialize on DOM ready
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('teams-overview', () => TeamsOverview.init(), {
+            priority: 35,
+            reinitializable: true,
+            description: 'Teams overview page functionality'
+        });
+    }
+
+    // Fallback
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => TeamsOverview.init());
     } else {

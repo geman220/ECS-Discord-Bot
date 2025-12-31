@@ -18,7 +18,7 @@
 <!-- Add Subgroup Button -->
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h6 class="mb-0">Subgroups</h6>
-    <button type="button" class="c-btn c-btn--primary c-btn--sm js-add-subgroup" onclick="addSubgroup()">
+    <button type="button" class="c-btn c-btn--primary c-btn--sm js-add-subgroup" data-action="add-subgroup">
         <i class="ti ti-plus me-1"></i> Add Subgroup
     </button>
 </div>
@@ -79,10 +79,10 @@
                 <p class="text-muted small mb-3">{{ subgroup.description }}</p>
                 {% endif %}
                 <div class="d-flex justify-content-end gap-2">
-                    <button type="button" class="c-btn c-btn--sm c-btn--outline-primary js-edit-subgroup" onclick="editSubgroup({{ subgroup.id }}, '{{ subgroup.name }}', '{{ subgroup.code }}', '{{ subgroup.description|e if subgroup.description else "" }}')">
+                    <button type="button" class="c-btn c-btn--sm c-btn--outline-primary js-edit-subgroup" data-action="edit-subgroup" data-subgroup-id="{{ subgroup.id }}" data-subgroup-name="{{ subgroup.name }}" data-subgroup-code="{{ subgroup.code }}" data-subgroup-description="{{ subgroup.description|e if subgroup.description else '' }}">
                         <i class="ti ti-edit me-1"></i> Edit
                     </button>
-                    <button type="button" class="c-btn c-btn--sm c-btn--outline-danger js-delete-subgroup" onclick="deleteSubgroup({{ subgroup.id }}, '{{ subgroup.name }}')">
+                    <button type="button" class="c-btn c-btn--sm c-btn--outline-danger js-delete-subgroup" data-action="delete-subgroup" data-subgroup-id="{{ subgroup.id }}" data-subgroup-name="{{ subgroup.name }}">
                         <i class="ti ti-trash me-1"></i> Delete
                     </button>
                 </div>
@@ -97,7 +97,7 @@
         <i class="ti ti-users-group fs-1 text-muted"></i>
         <p class="mt-3 text-muted">No subgroups configured yet.</p>
         <p class="text-muted small">Add supporter subgroups that members can select.</p>
-        <button type="button" class="c-btn c-btn--primary js-add-subgroup" onclick="addSubgroup()">
+        <button type="button" class="c-btn c-btn--primary js-add-subgroup" data-action="add-subgroup">
             <i class="ti ti-plus me-1"></i> Add First Subgroup
         </button>
     </div>

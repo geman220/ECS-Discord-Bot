@@ -539,7 +539,16 @@
   EventDelegation.register('save-bot-config', saveBotConfig, { preventDefault: true });
   EventDelegation.register('reset-bot-config', resetBotConfig, { preventDefault: true });
 
-  // Run initialization when DOM is ready
+  // Register with InitSystem (primary)
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('admin-panel-discord-bot', init, {
+      priority: 30,
+      reinitializable: true,
+      description: 'Admin panel Discord bot management'
+    });
+  }
+
+  // Fallback
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

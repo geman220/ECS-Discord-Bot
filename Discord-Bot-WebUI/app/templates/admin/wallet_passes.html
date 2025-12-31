@@ -203,13 +203,13 @@
                         <span id="selectedCount">0</span> passes selected
                     </div>
                     <div class="d-flex gap-2">
-                        <button type="button" class="c-btn c-btn--sm c-btn--danger js-bulk-void" onclick="bulkVoid()">
+                        <button type="button" class="c-btn c-btn--sm c-btn--danger js-bulk-void" data-action="bulk-void-passes">
                             <i class="ti ti-ban me-1"></i>Void Selected
                         </button>
-                        <button type="button" class="c-btn c-btn--sm c-btn--success js-bulk-reactivate" onclick="bulkReactivate()">
+                        <button type="button" class="c-btn c-btn--sm c-btn--success js-bulk-reactivate" data-action="bulk-reactivate-passes">
                             <i class="ti ti-refresh me-1"></i>Reactivate Selected
                         </button>
-                        <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary js-clear-selection" onclick="clearSelection()">
+                        <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary js-clear-selection" data-action="clear-pass-selection">
                             <i class="ti ti-x me-1"></i>Clear Selection
                         </button>
                     </div>
@@ -324,13 +324,13 @@
                                         <li><hr class="dropdown-divider"></li>
                                         {% if wallet_pass.status == 'active' %}
                                         <li>
-                                            <a class="dropdown-item text-danger js-void-pass" href="javascript:void(0);" onclick="voidPass({{ wallet_pass.id }})">
+                                            <a class="dropdown-item text-danger js-void-pass" href="javascript:void(0);" data-action="void-pass" data-pass-id="{{ wallet_pass.id }}">
                                                 <i class="ti ti-ban me-2"></i>Void Pass
                                             </a>
                                         </li>
                                         {% else %}
                                         <li>
-                                            <a class="dropdown-item text-success js-reactivate-pass" href="javascript:void(0);" onclick="reactivatePass({{ wallet_pass.id }})">
+                                            <a class="dropdown-item text-success js-reactivate-pass" href="javascript:void(0);" data-action="reactivate-pass" data-pass-id="{{ wallet_pass.id }}">
                                                 <i class="ti ti-refresh me-2"></i>Reactivate Pass
                                             </a>
                                         </li>
@@ -456,7 +456,7 @@
             </div>
             <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
                 <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
-                <button type="button" class="c-btn c-btn--primary js-bulk-generate" id="bulkGenerateBtn" onclick="bulkGenerate()">
+                <button type="button" class="c-btn c-btn--primary js-bulk-generate" id="bulkGenerateBtn" data-action="bulk-generate-passes">
                     <i class="ti ti-bolt me-1"></i>Generate Passes
                 </button>
             </div>
@@ -489,7 +489,7 @@
             </div>
             <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
                 <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
-                <button type="button" class="c-btn c-btn--danger js-confirm-bulk-void" onclick="confirmBulkVoid()">
+                <button type="button" class="c-btn c-btn--danger js-confirm-bulk-void" data-action="confirm-bulk-void">
                     <i class="ti ti-ban me-1"></i>Void Passes
                 </button>
             </div>

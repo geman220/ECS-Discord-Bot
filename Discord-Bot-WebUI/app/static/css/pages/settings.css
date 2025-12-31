@@ -25,8 +25,7 @@
    Design Tokens - Scoped to Settings
    ============================================================================ */
 
-.c-settings-page,
-.c-settings-tab {
+.c-settings-page {
   --settings-bg-page: var(--color-bg-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
   --settings-bg-card: var(--color-bg-card, #ffffff);
   --settings-bg-elevated: var(--color-bg-elevated, var(--color-secondary-100, var(--color-secondary-100, #f1f5f9)));
@@ -68,8 +67,7 @@
 }
 
 /* Dark mode token overrides */
-[data-style="dark"] .c-settings-page,
-[data-style="dark"] .c-settings-tab {
+[data-style="dark"] .c-settings-page {
   --settings-bg-page: var(--color-secondary-950, var(--color-secondary-950, #0f172a));
   --settings-bg-card: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
   --settings-bg-elevated: var(--color-secondary-800, var(--color-secondary-800, #334155));
@@ -120,28 +118,29 @@
 }
 
 /* =============================================================================
-   Tab Navigation
+   Tab Navigation - Page Overrides
+   Base component in components/settings-components.css, components/macros-modern.css
    ============================================================================ */
 
-.c-settings-tabs {
+.c-settings-page .c-settings-tabs {
   margin-bottom: var(--settings-space-lg);
 }
 
-.c-settings-tabs__container {
+.c-settings-page .c-settings-tabs__container {
   background: var(--settings-bg-card);
   border: 1px solid var(--settings-border);
   border-radius: var(--settings-radius-lg);
   overflow: hidden;
 }
 
-.c-settings-tabs__scroll {
+.c-settings-page .c-settings-tabs__scroll {
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
 }
 
-.c-settings-tabs__list {
+.c-settings-page .c-settings-tabs__list {
   display: flex;
   flex-wrap: nowrap;
   list-style: none;
@@ -151,11 +150,11 @@
   min-width: max-content;
 }
 
-.c-settings-tabs__item {
+.c-settings-page .c-settings-tabs__item {
   flex-shrink: 0;
 }
 
-.c-settings-tabs__trigger {
+.c-settings-page .c-settings-tabs__trigger {
   display: flex;
   align-items: center;
   gap: var(--settings-space-sm);
@@ -171,50 +170,31 @@
   white-space: nowrap;
 }
 
-.c-settings-tabs__trigger:hover {
+.c-settings-page .c-settings-tabs__trigger:hover {
   background: var(--settings-primary-subtle);
   color: var(--settings-text-primary);
 }
 
-.c-settings-tabs__trigger.is-active {
+.c-settings-page .c-settings-tabs__trigger.is-active {
   background: var(--settings-primary);
   color: white;
 }
 
-.c-settings-tabs__trigger i {
+.c-settings-page .c-settings-tabs__trigger i {
   font-size: 1.125rem;
 }
 
-/* =============================================================================
-   Tab Panes
-   ============================================================================ */
-
-.c-settings-tab {
-  display: none;
-}
-
-.c-settings-tab--active,
-.c-settings-tab.is-active {
-  display: block;
-  animation: settingsFadeIn 0.3s ease;
-}
-
-@keyframes settingsFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+/*
+ * NOTE: .c-settings-tab moved to components/settings-components.css
+ * Animation included in canonical @keyframes settings-tab-enter
+ */
 
 /* =============================================================================
-   Settings Card
+   Settings Card - Page Overrides
+   Base component in components/settings-components.css
    ============================================================================ */
 
-.c-settings-card {
+.c-settings-page .c-settings-card {
   background: var(--settings-bg-card);
   border: 1px solid var(--settings-border);
   border-radius: var(--settings-radius-xl);
@@ -222,11 +202,11 @@
   transition: box-shadow 0.2s ease;
 }
 
-.c-settings-card:hover {
+.c-settings-page .c-settings-card:hover {
   box-shadow: var(--settings-shadow-md);
 }
 
-.c-settings-card__header {
+.c-settings-page .c-settings-card__header {
   display: flex;
   align-items: center;
   gap: var(--settings-space-md);
@@ -234,7 +214,7 @@
   border-bottom: 1px solid var(--settings-border);
 }
 
-.c-settings-card__icon {
+.c-settings-page .c-settings-card__icon {
   width: 42px;
   height: 42px;
   min-width: 42px;
@@ -245,75 +225,76 @@
   font-size: 1.25rem;
 }
 
-.c-settings-card__icon--primary {
+.c-settings-page .c-settings-card__icon--primary {
   background: var(--settings-primary-subtle);
   color: var(--settings-primary);
 }
 
-.c-settings-card__icon--success {
+.c-settings-page .c-settings-card__icon--success {
   background: var(--settings-success-subtle);
   color: var(--settings-success);
 }
 
-.c-settings-card__icon--warning {
+.c-settings-page .c-settings-card__icon--warning {
   background: var(--settings-warning-subtle);
   color: var(--settings-warning);
 }
 
-.c-settings-card__icon--danger {
+.c-settings-page .c-settings-card__icon--danger {
   background: var(--settings-danger-subtle);
   color: var(--settings-danger);
 }
 
-.c-settings-card__icon--info {
+.c-settings-page .c-settings-card__icon--info {
   background: var(--settings-info-subtle);
   color: var(--settings-info);
 }
 
-.c-settings-card__icon--discord {
+.c-settings-page .c-settings-card__icon--discord {
   background: var(--settings-discord-subtle);
   color: var(--settings-discord);
 }
 
-.c-settings-card__icon--dark {
+.c-settings-page .c-settings-card__icon--dark {
   background: rgba(100, 116, 139, 0.1);
   color: var(--settings-text-secondary);
 }
 
-.c-settings-card__header-info {
+.c-settings-page .c-settings-card__header-info {
   flex: 1;
   min-width: 0;
 }
 
-.c-settings-card__title {
+.c-settings-page .c-settings-card__title {
   font-size: 1rem;
   font-weight: 600;
   color: var(--settings-text-primary);
   margin: 0 0 var(--settings-space-xs) 0;
 }
 
-.c-settings-card__subtitle {
+.c-settings-page .c-settings-card__subtitle {
   font-size: 0.8125rem;
   color: var(--settings-text-muted);
 }
 
-.c-settings-card__body {
+.c-settings-page .c-settings-card__body {
   padding: var(--settings-space-lg);
 }
 
-.c-settings-card__body--centered {
+.c-settings-page .c-settings-card__body--centered {
   text-align: center;
 }
 
 /* =============================================================================
-   Form Fields
+   Form Fields - Page Overrides
+   Base component in components/settings-components.css
    ============================================================================ */
 
-.c-settings-field {
+.c-settings-page .c-settings-field {
   margin-bottom: var(--settings-space-md);
 }
 
-.c-settings-field__label {
+.c-settings-page .c-settings-field__label {
   display: block;
   font-size: 0.8125rem;
   font-weight: 500;
@@ -321,8 +302,8 @@
   margin-bottom: var(--settings-space-sm);
 }
 
-.c-settings-field__input,
-.c-settings-field__select {
+.c-settings-page .c-settings-field__input,
+.c-settings-page .c-settings-field__select {
   width: 100%;
   padding: 0.625rem var(--settings-space-md);
   font-size: 0.9375rem;
@@ -333,24 +314,24 @@
   transition: all 0.2s ease;
 }
 
-.c-settings-field__input::placeholder {
+.c-settings-page .c-settings-field__input::placeholder {
   color: var(--settings-text-muted);
 }
 
-.c-settings-field__input:focus,
-.c-settings-field__select:focus {
+.c-settings-page .c-settings-field__input:focus,
+.c-settings-page .c-settings-field__select:focus {
   outline: none;
   border-color: var(--settings-border-focus);
   box-shadow: 0 0 0 3px var(--settings-primary-subtle);
 }
 
-.c-settings-field__help {
+.c-settings-page .c-settings-field__help {
   font-size: 0.75rem;
   color: var(--settings-text-muted);
   margin-top: var(--settings-space-xs);
 }
 
-.c-settings-field__help--inline {
+.c-settings-page .c-settings-field__help--inline {
   margin: 0;
 }
 
@@ -370,10 +351,11 @@
 }
 
 /* =============================================================================
-   Buttons
+   Buttons - Page Overrides
+   Base component in components/settings-components.css
    ============================================================================ */
 
-.c-settings-btn {
+.c-settings-page .c-settings-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -388,107 +370,108 @@
   text-decoration: none;
 }
 
-.c-settings-btn i {
+.c-settings-page .c-settings-btn i {
   font-size: 1rem;
 }
 
-.c-settings-btn--primary {
+.c-settings-page .c-settings-btn--primary {
   background: var(--settings-primary);
   color: white;
 }
 
-.c-settings-btn--primary:hover {
+.c-settings-page .c-settings-btn--primary:hover {
   background: color-mix(in srgb, var(--settings-primary) 85%, black);
   color: white;
 }
 
-.c-settings-btn--secondary {
+.c-settings-page .c-settings-btn--secondary {
   background: var(--settings-bg-elevated);
   color: var(--settings-text-secondary);
   border: 1px solid var(--settings-border);
 }
 
-.c-settings-btn--secondary:hover {
+.c-settings-page .c-settings-btn--secondary:hover {
   background: var(--settings-border);
   color: var(--settings-text-primary);
 }
 
-.c-settings-btn--danger {
+.c-settings-page .c-settings-btn--danger {
   background: var(--settings-danger);
   color: white;
 }
 
-.c-settings-btn--danger:hover {
+.c-settings-page .c-settings-btn--danger:hover {
   background: color-mix(in srgb, var(--settings-danger) 85%, black);
 }
 
-.c-settings-btn--outline {
+.c-settings-page .c-settings-btn--outline {
   background: transparent;
   color: var(--settings-text-secondary);
   border: 1px solid var(--settings-border);
 }
 
-.c-settings-btn--outline:hover {
+.c-settings-page .c-settings-btn--outline:hover {
   background: var(--settings-bg-elevated);
   color: var(--settings-text-primary);
 }
 
-.c-settings-btn--outline-primary {
+.c-settings-page .c-settings-btn--outline-primary {
   background: transparent;
   color: var(--settings-primary);
   border: 1px solid var(--settings-primary);
 }
 
-.c-settings-btn--outline-primary:hover {
+.c-settings-page .c-settings-btn--outline-primary:hover {
   background: var(--settings-primary);
   color: white;
 }
 
-.c-settings-btn--outline-danger {
+.c-settings-page .c-settings-btn--outline-danger {
   background: transparent;
   color: var(--settings-danger);
   border: 1px solid var(--settings-danger);
 }
 
-.c-settings-btn--outline-danger:hover {
+.c-settings-page .c-settings-btn--outline-danger:hover {
   background: var(--settings-danger);
   color: white;
 }
 
-.c-settings-btn--block {
+.c-settings-page .c-settings-btn--block {
   width: 100%;
 }
 
-.c-settings-btn--sm {
+.c-settings-page .c-settings-btn--sm {
   padding: 0.375rem var(--settings-space-md);
   font-size: 0.8125rem;
 }
 
 /* =============================================================================
-   Stat Box
+   Stat Box - Page Overrides
+   Base component in components/c-stat.css
    ============================================================================ */
 
-.c-stat-box {
+.c-settings-page .c-stat-box {
   background: var(--settings-bg-elevated);
   border-radius: var(--settings-radius);
   padding: var(--settings-space-md);
   text-align: center;
 }
 
-.c-stat-box__label {
+.c-settings-page .c-stat-box__label {
   display: block;
   font-size: 0.75rem;
   color: var(--settings-text-muted);
   margin-bottom: var(--settings-space-xs);
 }
 
-.c-stat-box__value {
+.c-settings-page .c-stat-box__value {
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--settings-text-primary);
 }
 
-.c-stat-box__value--muted {
+.c-settings-page .c-stat-box__value--muted {
   color: var(--settings-text-muted);
   font-weight: 400;
 }
@@ -498,22 +481,23 @@
    ============================================================================ */
 
 /* =============================================================================
-   Sidebar
+   Sidebar - Page Overrides
+   Base component in components/remaining-components.css
    ============================================================================ */
 
-.c-settings-sidebar {
+.c-settings-page .c-settings-sidebar {
   position: sticky;
   top: var(--settings-space-lg);
 }
 
-.c-settings-sidebar__content {
+.c-settings-page .c-settings-sidebar__content {
   background: var(--settings-bg-card);
   border: 1px solid var(--settings-border);
   border-radius: var(--settings-radius-lg);
   padding: var(--settings-space-lg);
 }
 
-.c-settings-sidebar__title {
+.c-settings-page .c-settings-sidebar__title {
   display: flex;
   align-items: center;
   gap: var(--settings-space-sm);
@@ -523,42 +507,42 @@
   margin: 0 0 var(--settings-space-md) 0;
 }
 
-.c-settings-sidebar__icon {
+.c-settings-page .c-settings-sidebar__icon {
   color: var(--settings-warning);
 }
 
-.c-settings-sidebar__text {
+.c-settings-page .c-settings-sidebar__text {
   font-size: 0.8125rem;
   color: var(--settings-text-secondary);
   line-height: 1.5;
   margin: 0 0 var(--settings-space-md) 0;
 }
 
-.c-settings-sidebar__section-title {
+.c-settings-page .c-settings-sidebar__section-title {
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--settings-text-primary);
   margin: var(--settings-space-md) 0 var(--settings-space-sm) 0;
 }
 
-.c-settings-sidebar__list {
+.c-settings-page .c-settings-sidebar__list {
   font-size: 0.8125rem;
   color: var(--settings-text-secondary);
   padding-left: var(--settings-space-lg);
   margin: 0;
 }
 
-.c-settings-sidebar__list li {
+.c-settings-page .c-settings-sidebar__list li {
   margin-bottom: var(--settings-space-xs);
 }
 
-.c-settings-sidebar__actions {
+.c-settings-page .c-settings-sidebar__actions {
   display: flex;
   flex-direction: column;
   gap: var(--settings-space-sm);
 }
 
-.c-settings-sidebar__action {
+.c-settings-page .c-settings-sidebar__action {
   display: flex;
   align-items: center;
   gap: var(--settings-space-sm);
@@ -571,32 +555,33 @@
   transition: all 0.2s ease;
 }
 
-.c-settings-sidebar__action:hover {
+.c-settings-page .c-settings-sidebar__action:hover {
   background: var(--settings-primary-subtle);
   color: var(--settings-primary);
 }
 
-.c-settings-sidebar__action.is-disabled {
+.c-settings-page .c-settings-sidebar__action.is-disabled {
   opacity: 0.5;
   pointer-events: none;
 }
 
 /* =============================================================================
-   Teams List
+   Teams List - Page Overrides
+   Base component in components/remaining-components.css
    ============================================================================ */
 
-.c-settings-teams {
+.c-settings-page .c-settings-teams {
   margin-top: var(--settings-space-md);
 }
 
-.c-settings-teams__label {
+.c-settings-page .c-settings-teams__label {
   display: block;
   font-size: 0.75rem;
   color: var(--settings-text-muted);
   margin-bottom: var(--settings-space-sm);
 }
 
-.c-settings-teams__list {
+.c-settings-page .c-settings-teams__list {
   display: flex;
   flex-wrap: wrap;
   gap: var(--settings-space-sm);
@@ -902,10 +887,11 @@
 }
 
 /* =============================================================================
-   Notification Cards (same as _notifications_tab uses)
+   Notification Cards - Settings Page Overrides
+   Base component in components/notification-components.css
    ============================================================================ */
 
-.c-notification-card {
+.c-settings-page .c-notification-card {
   background: var(--settings-bg-card);
   border: 1px solid var(--settings-border);
   border-radius: var(--settings-radius-lg);
@@ -913,17 +899,17 @@
   transition: box-shadow 0.2s ease;
 }
 
-.c-notification-card:hover {
+.c-settings-page .c-notification-card:hover {
   box-shadow: var(--settings-shadow-sm);
 }
 
-.c-notification-card__content {
+.c-settings-page .c-notification-card__content {
   display: flex;
   gap: var(--settings-space-md);
   padding: var(--settings-space-lg);
 }
 
-.c-notification-card__icon {
+.c-settings-page .c-notification-card__icon {
   width: 48px;
   height: 48px;
   min-width: 48px;
@@ -934,71 +920,71 @@
   font-size: 1.5rem;
 }
 
-.c-notification-card__icon--primary {
+.c-settings-page .c-notification-card__icon--primary {
   background: var(--settings-primary-subtle);
   color: var(--settings-primary);
 }
 
-.c-notification-card__icon--success {
+.c-settings-page .c-notification-card__icon--success {
   background: var(--settings-success-subtle);
   color: var(--settings-success);
 }
 
-.c-notification-card__icon--discord {
+.c-settings-page .c-notification-card__icon--discord {
   background: var(--settings-discord-subtle);
   color: var(--settings-discord);
 }
 
-.c-notification-card__body {
+.c-settings-page .c-notification-card__body {
   flex: 1;
   min-width: 0;
 }
 
-.c-notification-card__header {
+.c-settings-page .c-notification-card__header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: var(--settings-space-sm);
 }
 
-.c-notification-card__info {
+.c-settings-page .c-notification-card__info {
   flex: 1;
 }
 
-.c-notification-card__title {
+.c-settings-page .c-notification-card__title {
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--settings-text-primary);
   margin: 0 0 var(--settings-space-xs) 0;
 }
 
-.c-notification-card__subtitle {
+.c-settings-page .c-notification-card__subtitle {
   font-size: 0.75rem;
   color: var(--settings-text-muted);
 }
 
-.c-notification-card__text {
+.c-settings-page .c-notification-card__text {
   font-size: 0.8125rem;
   color: var(--settings-text-secondary);
   margin: 0;
 }
 
-.c-notification-card__text--warning {
+.c-settings-page .c-notification-card__text--warning {
   color: var(--settings-warning);
 }
 
-.c-notification-card__text--warning i {
+.c-settings-page .c-notification-card__text--warning i {
   margin-right: var(--settings-space-xs);
 }
 
-/* Notification Switch */
-.c-notification-switch {
+/* Notification Switch - Settings Page Overrides */
+.c-settings-page .c-notification-switch {
   position: relative;
 }
 
-.c-notification-switch__input,
-.c-notification-switch__input.is-valid,
-.c-notification-switch__input.is-invalid {
+.c-settings-page .c-notification-switch__input,
+.c-settings-page .c-notification-switch__input.is-valid,
+.c-settings-page .c-notification-switch__input.is-invalid {
   width: 44px;
   height: 24px;
   appearance: none !important;
@@ -1016,9 +1002,9 @@
   flex-shrink: 0;
 }
 
-.c-notification-switch__input::before,
-.c-notification-switch__input.is-valid::before,
-.c-notification-switch__input.is-invalid::before {
+.c-settings-page .c-notification-switch__input::before,
+.c-settings-page .c-notification-switch__input.is-valid::before,
+.c-settings-page .c-notification-switch__input.is-invalid::before {
   content: '';
   position: absolute;
   top: 2px;
@@ -1031,23 +1017,23 @@
   box-shadow: var(--settings-shadow-sm);
 }
 
-.c-notification-switch__input:checked,
-.c-notification-switch__input.is-valid:checked {
+.c-settings-page .c-notification-switch__input:checked,
+.c-settings-page .c-notification-switch__input.is-valid:checked {
   background: var(--color-success-500, #10b981); /* emerald-500 - success green */
 }
 
-.c-notification-switch__input:checked::before,
-.c-notification-switch__input.is-valid:checked::before {
+.c-settings-page .c-notification-switch__input:checked::before,
+.c-settings-page .c-notification-switch__input.is-valid:checked::before {
   transform: translateX(20px);
 }
 
 /* Hide the label since switch is self-contained */
-.c-notification-switch__label {
+.c-settings-page .c-notification-switch__label {
   display: none;
 }
 
-/* Notification Button */
-.c-notification-btn {
+/* Notification Button - Settings Page Overrides */
+.c-settings-page .c-notification-btn {
   display: inline-flex;
   align-items: center;
   gap: var(--settings-space-sm);
@@ -1061,35 +1047,32 @@
   margin-top: var(--settings-space-md);
 }
 
-.c-notification-btn--success {
+.c-settings-page .c-notification-btn--success {
   background: var(--settings-success-subtle);
   color: var(--settings-success);
 }
 
-.c-notification-btn--success:hover {
+.c-settings-page .c-notification-btn--success:hover {
   background: var(--settings-success);
   color: white;
 }
 
-.c-notification-btn--danger {
+.c-settings-page .c-notification-btn--danger {
   background: var(--settings-danger-subtle);
   color: var(--settings-danger);
 }
 
-.c-notification-btn--danger:hover {
+.c-settings-page .c-notification-btn--danger:hover {
   background: var(--settings-danger);
   color: white;
 }
 
 /* =============================================================================
-   Input Group (for calendar subscription)
+   Input Group - Settings Page Overrides
+   Base component in components/forms.css
    ============================================================================ */
 
-.c-input-group {
-  display: flex;
-}
-
-.c-input-group__input {
+.c-settings-page .c-input-group__input {
   flex: 1;
   padding: var(--settings-space-sm) var(--settings-space-md);
   font-size: 0.875rem;
@@ -1100,7 +1083,7 @@
   color: var(--settings-text-primary);
 }
 
-.c-input-group__btn {
+.c-settings-page .c-input-group__btn {
   padding: var(--settings-space-sm) var(--settings-space-md);
   background: var(--settings-bg-elevated);
   border: 1px solid var(--settings-border);
@@ -1110,7 +1093,7 @@
   transition: all 0.2s ease;
 }
 
-.c-input-group__btn:hover {
+.c-settings-page .c-input-group__btn:hover {
   background: var(--settings-primary);
   color: white;
 }
@@ -1196,9 +1179,10 @@
 
 /* =============================================================================
    Select Dropdown Fix (remove duplicate arrows)
+   Settings Page Overrides
    ============================================================================ */
 
-.c-settings-field__select {
+.c-settings-page .c-settings-field__select {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -1210,29 +1194,29 @@
   cursor: pointer;
 }
 
-[data-style="dark"] .c-settings-field__select {
+[data-style="dark"] .c-settings-page .c-settings-field__select {
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M4 6l4 4 4-4'/%3e%3c/svg%3e");
 }
 
 /* Remove any native select indicators */
-.c-settings-field__select::-ms-expand {
+.c-settings-page .c-settings-field__select::-ms-expand {
   display: none;
 }
 
 /* =============================================================================
-   2FA Setup Section
+   2FA Setup Section - Settings Page Overrides
    ============================================================================ */
 
-.c-2fa-setup {
+.c-settings-page .c-2fa-setup {
   text-align: center;
 }
 
-.c-2fa-setup__qr {
+.c-settings-page .c-2fa-setup__qr {
   margin-bottom: var(--settings-space-lg);
 }
 
-.c-2fa-setup__qr img,
-.c-2fa-setup__qr canvas {
+.c-settings-page .c-2fa-setup__qr img,
+.c-settings-page .c-2fa-setup__qr canvas {
   max-width: 200px;
   height: auto;
   border-radius: var(--settings-radius);

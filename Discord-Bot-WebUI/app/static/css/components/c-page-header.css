@@ -1,0 +1,238 @@
+/**
+ * ============================================================================
+ * C-PAGE-HEADER - Consolidated Page Header Components
+ * ============================================================================
+ *
+ * Canonical location for page header components.
+ * Consolidated from:
+ *   - pages/store.css
+ *   - pages/players-list.css
+ *   - pages/feedback.css
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   BASE PAGE HEADER
+   ============================================================================ */
+
+.c-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4, 16px);
+  margin-bottom: var(--space-6, 24px);
+  flex-wrap: wrap;
+}
+
+.c-page-header__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-page-header__title {
+  font-size: var(--text-3xl, 1.75rem);
+  font-weight: var(--font-bold, 600);
+  color: var(--color-text-primary, var(--color-primary, #696cff));
+  margin: 0;
+  line-height: var(--leading-tight, 1.25);
+}
+
+.c-page-header__subtitle {
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--color-text-muted, #697a8d);
+  margin-top: var(--space-1, 4px);
+  margin-bottom: 0;
+}
+
+.c-page-header__description {
+  color: var(--color-text-muted, #697a8d);
+  margin-bottom: 0;
+  margin-top: var(--space-1, 4px);
+}
+
+/* ============================================================================
+   ACTIONS AREA
+   ============================================================================ */
+
+.c-page-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  flex-wrap: wrap;
+}
+
+.c-page-header__action-text {
+  display: inline;
+}
+
+/* ============================================================================
+   VARIANTS
+   ============================================================================ */
+
+/* With back button */
+.c-page-header--with-back {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4, 16px);
+}
+
+/* With actions on right */
+.c-page-header--with-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4, 16px);
+}
+
+/* Compact variant */
+.c-page-header--compact {
+  margin-bottom: var(--space-4, 16px);
+}
+
+.c-page-header--compact .c-page-header__title {
+  font-size: var(--text-xl, 1.25rem);
+}
+
+/* Centered variant */
+.c-page-header--centered {
+  text-align: center;
+  flex-direction: column;
+  align-items: center;
+}
+
+.c-page-header--centered .c-page-header__content {
+  text-align: center;
+}
+
+/* ============================================================================
+   BACK BUTTON
+   ============================================================================ */
+
+.c-page-header__back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  color: var(--color-text-secondary, #697a8d);
+  text-decoration: none;
+  font-size: var(--text-sm, 0.875rem);
+  transition: color var(--duration-fast, 150ms) ease;
+}
+
+.c-page-header__back:hover {
+  color: var(--color-primary, var(--color-primary-600, #2563EB));
+}
+
+.c-page-header__back i {
+  font-size: 1rem;
+}
+
+/* ============================================================================
+   BREADCRUMB INTEGRATION
+   ============================================================================ */
+
+.c-page-header__breadcrumb {
+  color: var(--color-text-muted, #697a8d);
+  font-size: var(--text-sm, 0.875rem);
+  margin-bottom: var(--space-2, 8px);
+}
+
+/* ============================================================================
+   DARK MODE
+   ============================================================================ */
+
+[data-style="dark"] .c-page-header__title {
+  color: var(--color-text-primary, var(--color-secondary-100, #f1f5f9));
+}
+
+[data-style="dark"] .c-page-header__subtitle,
+[data-style="dark"] .c-page-header__description {
+  color: var(--color-text-muted, var(--color-secondary-400, #94a3b8));
+}
+
+[data-style="dark"] .c-page-header__back {
+  color: var(--color-text-secondary, var(--color-secondary-400, #94a3b8));
+}
+
+[data-style="dark"] .c-page-header__back:hover {
+  color: var(--color-primary-400, #60a5fa);
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .c-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .c-page-header__actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .c-page-header__actions form,
+  .c-page-header__actions button {
+    flex: 1;
+  }
+
+  .c-page-header__action-text {
+    display: none;
+  }
+
+  .c-page-header--with-back {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .c-page-header--with-actions .c-page-header__actions {
+    width: 100%;
+  }
+}
+
+@media (max-width: 576px) {
+  .c-page-header__title {
+    font-size: var(--text-2xl, 1.5rem);
+  }
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+.c-page-header__actions button:focus-visible,
+.c-page-header__back:focus-visible {
+  outline: 2px solid var(--color-primary, var(--color-primary-600, #2563EB));
+  outline-offset: 2px;
+}
+
+/* Screen reader only */
+.c-page-header .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+@media print {
+  .c-page-header__actions {
+    display: none;
+  }
+
+  .c-page-header__back {
+    display: none;
+  }
+}

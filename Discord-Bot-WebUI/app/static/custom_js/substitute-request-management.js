@@ -11,6 +11,11 @@
  * - 100% reduction in inline style usage (4 instances removed, 0 remaining)
  */
 
+(function() {
+    'use strict';
+
+    let _initialized = false;
+
 // Utility functions
 function getTimeSince(dateString) {
     const now = new Date();
@@ -1266,7 +1271,43 @@ $(document).on('click', '[data-action="resend-from-details"]', function() {
     const league = $(this).data('league');
     const teamName = $(this).data('team');
     const createdAt = $(this).data('created');
-    
+
     $('#requestDetailsModal').modal('hide');
     resendSubstituteRequest(requestId, league, teamName, createdAt);
 });
+
+    // Export functions to window for template compatibility
+    window.openLeagueManagementModal = openLeagueManagementModal;
+    window.loadLeagueStatistics = loadLeagueStatistics;
+    window.loadRecentActivity = loadRecentActivity;
+    window.loadSubstituteRequests = loadSubstituteRequests;
+    window.loadMatchSubstituteRequests = loadMatchSubstituteRequests;
+    window.resendSubstituteRequest = resendSubstituteRequest;
+    window.cancelSubstituteRequest = cancelSubstituteRequest;
+    window.viewRequestDetails = viewRequestDetails;
+
+    // Initialize function
+    function init() {
+        if (_initialized) return;
+        _initialized = true;
+
+        // Substitute request management is event-driven via jQuery delegation
+        // All handlers are set up above at the module level
+    }
+
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('substitute-request-management', init, {
+            priority: 40,
+            reinitializable: false,
+            description: 'Substitute request management'
+        });
+    }
+
+    // Fallback
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();

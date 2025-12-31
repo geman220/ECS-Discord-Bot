@@ -16,26 +16,32 @@
  * ============================================================================
  */
 
+// Guard against duplicate initialization (using window to prevent redeclaration errors if script loads twice)
+if (typeof window._ecsfcInitialized === 'undefined') {
+    window._ecsfcInitialized = false;
+}
+
 class ECSFCScheduleManager {
     constructor() {
+        if (window._ecsfcInitialized) return;
+        window._ecsfcInitialized = true;
+
         this.leagues = [];
         this.csrfToken = '';
         this.init();
     }
 
     init() {
-        document.addEventListener('DOMContentLoaded', () => {
-            // Get leagues data from page
-            this.leagues = window.leagues || [];
-            this.csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ||
-                            document.querySelector('input[name="csrf_token"]')?.value || '';
+        // Get leagues data from page
+        this.leagues = window.leagues || [];
+        this.csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ||
+                        document.querySelector('input[name="csrf_token"]')?.value || '';
 
-            // Setup event delegation
-            this.setupEventDelegation();
+        // Setup event delegation
+        this.setupEventDelegation();
 
-            // Setup modal handlers
-            this.setupModals();
-        });
+        // Setup modal handlers
+        this.setupModals();
     }
 
     setupEventDelegation() {
@@ -298,5 +304,24 @@ class ECSFCScheduleManager {
     }
 }
 
-// Initialize when DOM is ready
-const ecsfcScheduleManager = new ECSFCScheduleManager();
+// Initialize function for InitSystem
+function initEcsfcSchedule() {
+    if (_ecsfcInitialized) return;
+    window.ecsfcScheduleManager = new ECSFCScheduleManager();
+}
+
+// Register with InitSystem (primary)
+if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('ecsfc-schedule', initEcsfcSchedule, {
+        priority: 40,
+        reinitializable: false,
+        description: 'ECS FC schedule management'
+    });
+}
+
+// Fallback
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initEcsfcSchedule);
+} else {
+    initEcsfcSchedule();
+}

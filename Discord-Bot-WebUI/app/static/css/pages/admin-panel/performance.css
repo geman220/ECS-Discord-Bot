@@ -30,44 +30,44 @@
   gap: var(--space-4);
 }
 
-.c-perf-metrics__grid {
+.c-perf-monitor .c-perf-metrics__grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--space-3);
   margin-bottom: var(--space-4);
 }
 
-.c-perf-metric {
+.c-perf-monitor .c-perf-metric {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: var(--space-2) 0;
 }
 
-.c-perf-metric__label {
+.c-perf-monitor .c-perf-metric__label {
   color: var(--color-text-secondary);
   font-size: var(--text-sm);
 }
 
-.c-perf-metric__value {
+.c-perf-monitor .c-perf-metric__value {
   color: var(--color-text-primary);
   font-size: var(--text-base);
   font-weight: var(--font-semibold);
 }
 
-.c-perf-metric__value--success {
+.c-perf-monitor .c-perf-metric__value--success {
   color: var(--color-success);
 }
 
-.c-perf-metric__value--warning {
+.c-perf-monitor .c-perf-metric__value--warning {
   color: var(--color-warning);
 }
 
-.c-perf-metric__value--danger {
+.c-perf-monitor .c-perf-metric__value--danger {
   color: var(--color-danger);
 }
 
-.c-perf-metric__value--muted {
+.c-perf-monitor .c-perf-metric__value--muted {
   color: var(--color-text-muted);
 }
 
@@ -80,96 +80,85 @@
   max-height: 200px;
 }
 
-.c-status-indicator {
-  width: 12px;
-  height: 12px;
-  border-radius: var(--radius-full);
-  display: inline-block;
-}
-
-.c-status-indicator--active {
-  background: var(--color-success);
-  box-shadow: 0 0 0 3px rgba(var(--color-success-rgb), 0.2);
-}
-
-.c-status-indicator--inactive {
-  background: var(--color-danger);
-  box-shadow: 0 0 0 3px rgba(var(--color-danger-rgb), 0.2);
-}
+/*
+ * NOTE: .c-status-indicator moved to components/c-status-indicator.css
+ * Use .c-status-indicator--lg for 12px size (this page's requirement)
+ */
 
 .c-perf-recommendations {
   margin-bottom: var(--space-4);
 }
 
-.c-alert__list {
+/* Alert list - scoped to performance recommendations */
+.c-perf-recommendations .c-alert__list {
   margin: var(--space-2) 0 0;
   padding-left: var(--space-5);
 }
 
-.c-alert__list li {
+.c-perf-recommendations .c-alert__list li {
   margin-bottom: var(--space-1);
 }
 
-.c-perf-realtime {
+.c-perf-monitor .c-perf-realtime {
   margin-bottom: var(--space-4);
 }
 
-.c-perf-realtime__controls {
+.c-perf-monitor .c-perf-realtime__controls {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   flex-wrap: wrap;
 }
 
-.c-perf-realtime__timestamp {
+.c-perf-monitor .c-perf-realtime__timestamp {
   color: var(--color-text-muted);
   font-size: var(--text-xs);
 }
 
-.c-perf-realtime__grid {
+.c-perf-monitor .c-perf-realtime__grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--space-4);
 }
 
-.c-perf-realtime__metric {
+.c-perf-monitor .c-perf-realtime__metric {
   text-align: center;
   padding: var(--space-4);
   background: rgba(var(--color-neutral-500-rgb), 0.05);
   border-radius: var(--radius-md);
 }
 
-.c-perf-realtime__value {
+.c-perf-monitor .c-perf-realtime__value {
   font-size: var(--text-3xl);
   font-weight: var(--font-bold);
   margin: 0 0 var(--space-2) 0;
 }
 
-.c-perf-realtime__value--primary {
+.c-perf-monitor .c-perf-realtime__value--primary {
   color: var(--color-primary);
 }
 
-.c-perf-realtime__value--success {
+.c-perf-monitor .c-perf-realtime__value--success {
   color: var(--color-success);
 }
 
-.c-perf-realtime__value--warning {
+.c-perf-monitor .c-perf-realtime__value--warning {
   color: var(--color-warning);
 }
 
-.c-perf-realtime__value--danger {
+.c-perf-monitor .c-perf-realtime__value--danger {
   color: var(--color-danger);
 }
 
-.c-perf-realtime__value--info {
+.c-perf-monitor .c-perf-realtime__value--info {
   color: var(--color-info);
 }
 
-.c-perf-realtime__value--secondary {
+.c-perf-monitor .c-perf-realtime__value--secondary {
   color: var(--color-text-secondary);
 }
 
-.c-perf-realtime__label {
+.c-perf-monitor .c-perf-realtime__label {
   color: var(--color-text-muted);
   font-size: var(--text-sm);
   margin: 0;

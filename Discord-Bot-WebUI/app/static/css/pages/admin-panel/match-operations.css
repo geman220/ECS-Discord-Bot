@@ -28,10 +28,11 @@
 }
 
 /* ============================================================================
-   MATCH STATS GRID
+   MATCH STATS GRID - Page Override
+   Base component in components/profile-components.css
    ============================================================================ */
 
-.c-match-stats {
+.c-match-ops .c-match-stats {
   margin-bottom: var(--space-4);
 }
 

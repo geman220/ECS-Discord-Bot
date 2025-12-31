@@ -177,7 +177,25 @@
         }
     };
 
-    // Initialize on DOM ready
+    // Add _initialized guard to init method
+    const originalInit = ManageTeams.init;
+    let _initialized = false;
+    ManageTeams.init = function() {
+        if (_initialized) return;
+        _initialized = true;
+        originalInit.call(this);
+    };
+
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('manage-teams', () => ManageTeams.init(), {
+            priority: 35,
+            reinitializable: true,
+            description: 'Manage teams page functionality'
+        });
+    }
+
+    // Fallback
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => ManageTeams.init());
     } else {

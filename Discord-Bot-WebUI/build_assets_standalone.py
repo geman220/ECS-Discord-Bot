@@ -127,7 +127,6 @@ def create_production_css_bundle():
         'css/components/remaining-components.css',
         'css/components/ui-fixes.css',
         'css/components/c-schedule.css',
-        'css/components/chat-widget.css',
 
         # Utilities
         'css/core/admin-utilities.css',

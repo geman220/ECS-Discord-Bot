@@ -157,20 +157,20 @@
    Label-value pairs in detail sections
    ============================================================================ */
 
-.c-info-row {
+.c-match-detail-page .c-info-row {
     margin-bottom: var(--space-4);
 }
 
-.c-info-row:last-child {
+.c-match-detail-page .c-info-row:last-child {
     margin-bottom: 0;
 }
 
-.c-info-row__label {
+.c-match-detail-page .c-info-row__label {
     font-weight: var(--font-semibold);
     color: var(--color-text-secondary);
 }
 
-.c-info-row__value {
+.c-match-detail-page .c-info-row__value {
     color: var(--color-text-primary);
 }
 
@@ -182,41 +182,15 @@
     color: var(--color-text-primary);
 }
 
-/* ============================================================================
-   STATUS INDICATOR COMPONENT
-   Circular indicator for session status
-   ============================================================================ */
+/*
+ * NOTE: .c-status-indicator moved to components/c-status-indicator.css
+ * Use .c-status-indicator--lg for 12px size (this page's requirement)
+ * The --error variant is match-detail specific, adding below:
+ */
 
-.c-status-indicator {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border-radius: var(--radius-full);
-    margin-right: var(--space-2);
-    transition: background-color var(--duration-normal) var(--ease-smooth);
-}
-
-.c-status-indicator--active {
-    background-color: var(--color-success);
-    box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
-}
-
-.c-status-indicator--inactive {
-    background-color: var(--color-text-muted);
-}
-
-.c-status-indicator--error {
+.c-match-detail-page .c-status-indicator--error {
     background-color: var(--color-danger);
     box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
-}
-
-[data-style="dark"] .c-status-indicator--active {
-    background-color: var(--color-success);
-    box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
-}
-
-[data-style="dark"] .c-status-indicator--inactive {
-    background-color: var(--color-text-muted);
 }
 
 [data-style="dark"] .c-status-indicator--error {

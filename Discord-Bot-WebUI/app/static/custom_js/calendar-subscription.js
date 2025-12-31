@@ -7,15 +7,20 @@
 
 'use strict';
 
-const CalendarSubscription = (function() {
+// Assign to window to prevent redeclaration errors if script loads twice
+window.CalendarSubscription = window.CalendarSubscription || (function() {
     // State
     let subscription = null;
     let isLoading = false;
+    let _initialized = false;
 
     /**
      * Initialize the calendar subscription module
      */
     function init() {
+        if (_initialized) return;
+        _initialized = true;
+
         loadSubscription();
         bindEvents();
     }
@@ -340,13 +345,29 @@ const CalendarSubscription = (function() {
     };
 })();
 
-// Auto-initialize when DOM is ready and on settings page
-document.addEventListener('DOMContentLoaded', function() {
+// Auto-initialize function
+function initCalendarSubscription() {
     // Check if we're on the settings page with the subscription card
     if (document.getElementById('calendarSubscriptionCard')) {
         CalendarSubscription.init();
     }
-});
+}
+
+// Register with InitSystem (primary)
+if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('calendar-subscription', initCalendarSubscription, {
+        priority: 35,
+        reinitializable: false,
+        description: 'Calendar subscription management'
+    });
+}
+
+// Fallback
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCalendarSubscription);
+} else {
+    initCalendarSubscription();
+}
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {

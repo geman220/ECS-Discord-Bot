@@ -30,12 +30,12 @@ document.addEventListener('click', function(e) {
             <div class="d-flex align-items-center gap-2">
                 <span class="badge bg-label-primary" data-badge>{{ category.templates|length }} templates</span>
                 <button type="button" class="c-btn c-btn--sm c-btn--outline-success js-create-template"
-                        onclick="createTemplate({{ category.id }}, '{{ category.name }}')"
+                        data-action="create-template" data-category-id="{{ category.id }}" data-category-name="{{ category.name }}"
                         data-bs-toggle="tooltip" title="Create New Template">
                     <i class="ti ti-plus"></i>
                 </button>
                 <button type="button" class="c-btn c-btn--sm c-btn--outline-primary js-edit-category"
-                        onclick="editCategory({{ category.id }}, '{{ category.name }}', '{{ category.description or '' }}')"
+                        data-action="edit-category" data-category-id="{{ category.id }}" data-category-name="{{ category.name }}" data-category-description="{{ category.description or '' }}"
                         data-bs-toggle="tooltip" title="Edit Category">
                     <i class="ti ti-edit"></i>
                 </button>
@@ -117,17 +117,17 @@ document.addEventListener('click', function(e) {
                         <td>
                             <div class="d-flex gap-1">
                                 <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-primary js-edit-template"
-                                        onclick="editTemplate({{ template.id }})"
+                                        data-action="edit-template" data-template-id="{{ template.id }}"
                                         data-bs-toggle="tooltip" title="Edit">
                                     <i class="ti ti-edit"></i>
                                 </button>
                                 <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-info js-preview-template"
-                                        onclick="previewTemplate({{ template.id }})"
+                                        data-action="preview-template" data-template-id="{{ template.id }}"
                                         data-bs-toggle="tooltip" title="Preview">
                                     <i class="ti ti-eye"></i>
                                 </button>
                                 <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary js-copy-template"
-                                        onclick="copyTemplate({{ template.id }})"
+                                        data-action="copy-template" data-template-id="{{ template.id }}"
                                         data-bs-toggle="tooltip" title="Copy">
                                     <i class="ti ti-copy"></i>
                                 </button>
@@ -143,7 +143,7 @@ document.addEventListener('click', function(e) {
             <i class="ti ti-message-plus text-muted" class="u-icon-xl"></i>
             <p class="text-muted mb-2 mt-2">No templates in this category</p>
             <button type="button" class="c-btn c-btn--sm c-btn--outline-success js-create-template"
-                onclick="createTemplate({{ category.id }}, '{{ category.name }}')">
+                data-action="create-template" data-category-id="{{ category.id }}" data-category-name="{{ category.name }}">
                 <i class="ti ti-plus me-1"></i>Create First Template
             </button>
         </div>

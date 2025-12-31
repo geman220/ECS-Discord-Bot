@@ -4,7 +4,7 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block main_content %}
-<div class="container-xxl flex-grow-1 container-p-y">
+<div class="container-xxl flex-grow-1 container-p-y c-home-page">
     {% if player %}
     <div id="rsvp-data"
          data-player-id="{{ player.id }}"
@@ -500,7 +500,7 @@
 {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <!-- Page-specific JS (only in development - bundled in production) -->
 <script src="{{ url_for('static', filename='custom_js/tour.js') }}"></script>
-<script src="{{ url_for('static', filename='custom_js/report_match.js') }}"></script>
+<!-- report_match.js loaded globally in base.html -->
 {% endif %}
 {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <script src="{{ url_for('static', filename='custom_js/home.js') }}"></script>
@@ -527,7 +527,7 @@
     });
 </script>
 {% endif %}
-{% if player and not config.get('ASSETS_PRODUCTION_MODE') %}
+{% if player and not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <script src="{{ url_for('static', filename='custom_js/rsvp.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/simple-cropper.js') }}"></script>
 {% endif %}

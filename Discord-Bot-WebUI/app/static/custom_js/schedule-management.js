@@ -1,4 +1,13 @@
-// schedule-management.js
+/**
+ * Schedule Management
+ * Handles match scheduling, editing, and deletion
+ */
+
+(function() {
+    'use strict';
+
+    let _initialized = false;
+
 class ScheduleManager {
     constructor() {
         // We'll store references to the "Add/Edit Match" modal and the "Add Single Week" form
@@ -346,5 +355,31 @@ class ScheduleManager {
     }
 }
 
-// Instantiate once DOM is loaded
-new ScheduleManager();
+    // Export to window
+    window.ScheduleManager = ScheduleManager;
+
+    // Initialize function
+    function init() {
+        if (_initialized) return;
+        _initialized = true;
+
+        window.scheduleManager = new ScheduleManager();
+    }
+
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('schedule-management', init, {
+            priority: 40,
+            reinitializable: false,
+            description: 'Schedule management'
+        });
+    }
+
+    // Fallback - ScheduleManager has its own DOMContentLoaded in constructor
+    // So we just register it, the constructor handles the DOM wait
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();

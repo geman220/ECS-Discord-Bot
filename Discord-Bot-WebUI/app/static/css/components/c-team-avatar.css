@@ -1,0 +1,170 @@
+/**
+ * ============================================================================
+ * C-TEAM-AVATAR - Consolidated Team Avatar Components
+ * ============================================================================
+ *
+ * Canonical location for team avatar display.
+ * Consolidated from:
+ *   - components/ui-fixes.css
+ *   - components/macros-modern.css
+ *   - pages/match-operations/match-reports.css
+ *   - pages/match-operations/manage-teams.css
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   BASE TEAM AVATAR
+   ============================================================================ */
+
+.c-team-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.03));
+  border: 2px solid var(--color-border-primary, rgba(0, 0, 0, 0.08));
+  flex-shrink: 0;
+  transition: all var(--duration-normal, 200ms) ease;
+}
+
+.c-team-avatar:hover {
+  transform: scale(1.05);
+  border-color: var(--color-primary, var(--color-primary-600, #2563EB));
+  box-shadow: 0 4px 12px rgba(105, 108, 255, 0.2);
+}
+
+/* ============================================================================
+   SIZE VARIANTS
+   ============================================================================ */
+
+.c-team-avatar--sm {
+  width: 32px;
+  height: 32px;
+}
+
+.c-team-avatar--md {
+  width: 48px;
+  height: 48px;
+}
+
+.c-team-avatar--lg {
+  width: 64px;
+  height: 64px;
+}
+
+.c-team-avatar--xl {
+  width: 96px;
+  height: 96px;
+}
+
+/* ============================================================================
+   SHAPE VARIANTS
+   ============================================================================ */
+
+.c-team-avatar--square {
+  border-radius: var(--radius-md, 8px);
+}
+
+.c-team-avatar--circular {
+  border-radius: 50%;
+}
+
+/* ============================================================================
+   ELEMENTS
+   ============================================================================ */
+
+.c-team-avatar__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.c-team-avatar__initial {
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-white, #fff);
+}
+
+/* Initial size based on avatar size */
+.c-team-avatar--sm .c-team-avatar__initial {
+  font-size: 0.875rem;
+}
+
+.c-team-avatar--md .c-team-avatar__initial {
+  font-size: 1rem;
+}
+
+.c-team-avatar--lg .c-team-avatar__initial {
+  font-size: 1.5rem;
+}
+
+.c-team-avatar--xl .c-team-avatar__initial {
+  font-size: 2rem;
+}
+
+.c-team-avatar__fallback {
+  font-size: var(--text-lg, 1.125rem);
+  font-weight: 700;
+}
+
+/* ============================================================================
+   STATE VARIANTS
+   ============================================================================ */
+
+/* Fallback with gradient background */
+.c-team-avatar--fallback {
+  background: linear-gradient(135deg, var(--color-primary, #696cff) 0%, #5f63f2 100%);
+}
+
+/* With kit/jersey image */
+.c-team-avatar--kit {
+  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.03));
+  padding: 2px;
+}
+
+.c-team-avatar--kit .c-team-avatar__image {
+  border-radius: inherit;
+}
+
+/* ============================================================================
+   DARK MODE
+   ============================================================================ */
+
+[data-style="dark"] .c-team-avatar {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-style="dark"] .c-team-avatar:hover {
+  border-color: var(--color-primary-400, #60a5fa);
+  box-shadow: 0 4px 12px rgba(105, 108, 255, 0.3);
+}
+
+/* ============================================================================
+   LIGHT MODE
+   ============================================================================ */
+
+[data-style="light"] .c-team-avatar {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-style="light"] .c-team-avatar:hover {
+  border-color: var(--color-primary, var(--color-primary-600, #2563EB));
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .c-team-avatar {
+    transition: none;
+  }
+
+  .c-team-avatar:hover {
+    transform: none;
+  }
+}

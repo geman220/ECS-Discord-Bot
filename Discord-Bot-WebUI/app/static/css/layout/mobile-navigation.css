@@ -52,15 +52,14 @@
 
 /*
  * Sidebar/Menu z-index - uses --z-sidebar (1035) from core/z-index.css
- * Sidebar is ALWAYS above navbar for proper overlay behavior
+ * NOTE: .c-sidebar z-index is in layout/sidebar-modern.css
+ * .layout-menu kept here for legacy compatibility
  */
-.c-sidebar,
 .layout-menu {
   z-index: var(--z-sidebar, 1035);
 }
 
 @media (max-width: 991.98px) {
-  .c-sidebar,
   .layout-menu {
     z-index: var(--z-sidebar, 1035);
   }
@@ -211,29 +210,32 @@
 
 
 /* ============================================================================
-   DROPDOWN COMPONENTS
+   DROPDOWN COMPONENTS - Mobile Overrides
    Touch-optimized dropdown menus with improved spacing
+   Base component in components/c-dropdown.css
    ============================================================================ */
 
-/* BEM: Dropdown menu */
-.c-dropdown__menu,
-.dropdown-menu {
-  padding: 8px;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
+@media (max-width: 991.98px) {
+  /* BEM: Dropdown menu - mobile touch targets */
+  .c-dropdown__menu,
+  .dropdown-menu {
+    padding: 8px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
 
-.c-dropdown__item,
-.dropdown-item {
-  padding: 10px 12px;
-  font-size: 14px;
-  border-radius: 4px;
-  margin-bottom: 2px;
-}
+  .c-dropdown__item,
+  .dropdown-item {
+    padding: 10px 12px;
+    font-size: 14px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+  }
 
-.c-dropdown__divider,
-.dropdown-divider {
-  margin: 4px 0;
+  .c-dropdown__divider,
+  .dropdown-divider {
+    margin: 4px 0;
+  }
 }
 
 

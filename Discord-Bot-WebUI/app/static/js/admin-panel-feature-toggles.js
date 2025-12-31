@@ -22,12 +22,28 @@
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
   /**
-   * Initialize feature toggles on DOM load
+   * Initialize feature toggles
    */
-  document.addEventListener('DOMContentLoaded', function() {
+  function init() {
     initializeToggleHandlers();
     initializeFormHandlers();
-  });
+  }
+
+  // Register with InitSystem (primary)
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('admin-panel-feature-toggles', init, {
+      priority: 30,
+      reinitializable: true,
+      description: 'Admin panel feature toggles'
+    });
+  }
+
+  // Fallback
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 
   /**
    * Initialize toggle switch handlers

@@ -314,6 +314,9 @@
 
 /* Checkbox label text (alternative structure) */
 .c-form-modern__checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2, 8px);
   flex: 1;
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
@@ -449,6 +452,83 @@
 
 .c-form-modern__search .c-form-modern__input {
   padding-left: var(--space-10);
+}
+
+/* ============================================================================
+   FORM ACTIONS - Button container for form submission
+   ============================================================================ */
+
+.c-form-actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  padding-top: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.c-form-actions--bordered {
+  border-top: 1px solid var(--color-border-primary);
+}
+
+.c-form-actions--between {
+  justify-content: space-between;
+}
+
+.c-form-actions--start {
+  justify-content: flex-start;
+}
+
+.c-form-actions--center {
+  justify-content: center;
+}
+
+.c-form-actions__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: var(--transition-all);
+}
+
+.c-form-actions__button--primary {
+  background: var(--color-primary);
+  color: var(--color-neutral-0);
+}
+
+.c-form-actions__button--primary:hover:not(:disabled) {
+  background: var(--color-primary-600);
+  transform: translateY(-1px);
+}
+
+.c-form-actions__button--secondary {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-primary);
+  color: var(--color-text-primary);
+}
+
+.c-form-actions__button--secondary:hover:not(:disabled) {
+  background: var(--color-hover-bg);
+}
+
+.c-form-actions__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.c-form-actions__button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Dark mode */
+[data-style="dark"] .c-form-actions--bordered {
+  border-color: var(--color-border-primary);
 }
 
 /* ============================================================================

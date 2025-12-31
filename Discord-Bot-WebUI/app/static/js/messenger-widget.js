@@ -774,6 +774,16 @@
   // Initialize
   window.MessengerWidget = new MessengerWidget();
 
+  // Register with InitSystem (primary)
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('messenger-widget', () => window.MessengerWidget.init(), {
+      priority: 35,
+      reinitializable: true,
+      description: 'Messenger sidebar widget'
+    });
+  }
+
+  // Fallback: Initialize when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       window.MessengerWidget.init();

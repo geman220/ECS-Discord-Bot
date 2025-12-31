@@ -314,7 +314,7 @@
                         <a href="{{ url_for('admin.view_scheduled_messages') }}" class="c-btn c-btn--primary">
                             <i class="ti ti-calendar me-1"></i> View All Messages
                         </a>
-                        <button class="c-btn c-btn--outline-info js-refresh-validation" onclick="location.reload()">
+                        <button class="c-btn c-btn--outline-info js-refresh-validation" data-action="reload-page">
                             <i class="ti ti-refresh me-1"></i> Refresh Status
                         </button>
                         {% if validation.database_status.ready_to_send > 0 or validation.database_status.overdue > 0 %}

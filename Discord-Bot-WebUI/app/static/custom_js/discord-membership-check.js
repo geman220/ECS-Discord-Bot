@@ -260,34 +260,63 @@ class DiscordMembershipChecker {
 }
 
 // Add CSS for SweetAlert styling (animation moved to interaction-utils.css)
-const discordStyles = document.createElement('style');
-discordStyles.textContent = `
-    .swal2-discord-popup .swal2-html-container {
-        text-align: left !important;
-    }
+// Guard against duplicate style injection
+if (!window._discordStylesInjected) {
+    window._discordStylesInjected = true;
+    var discordStyles = document.createElement('style');
+    discordStyles.textContent = `
+        .swal2-discord-popup .swal2-html-container {
+            text-align: left !important;
+        }
 
-    .btn-discord-join {
-        background-color: #5865F2 !important; /* Discord brand color - intentional */
-        border-color: #5865F2 !important;
-    }
+        .btn-discord-join {
+            background-color: #5865F2 !important; /* Discord brand color - intentional */
+            border-color: #5865F2 !important;
+        }
 
-    .swal2-discord-popup code {
-        background-color: var(--ecs-neutral-5, #f8f9fa);
-        padding: 2px 4px;
-        border-radius: 3px;
-        font-family: monospace;
-        font-size: 0.9em;
-        color: var(--ecs-neutral-60, #495057);
-    }
-`;
-document.head.appendChild(discordStyles);
+        .swal2-discord-popup code {
+            background-color: var(--ecs-neutral-5, #f8f9fa);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.9em;
+            color: var(--ecs-neutral-60, #495057);
+        }
+    `;
+    document.head.appendChild(discordStyles);
+}
 
 // Export for use in other scripts
 window.DiscordMembershipChecker = DiscordMembershipChecker;
 
-// Auto-initialize if on specific pages
-if (window.location.pathname.includes('waitlist_confirmation') || 
-    window.location.pathname.includes('auth') ||
-    document.querySelector('[data-discord-check="auto"]')) {
-    window.discordChecker = new DiscordMembershipChecker();
+// Auto-initialize function
+if (typeof window._discordCheckerInitialized === 'undefined') {
+    window._discordCheckerInitialized = false;
+}
+function initDiscordChecker() {
+    if (window._discordCheckerInitialized) return;
+
+    // Only auto-initialize on specific pages
+    if (window.location.pathname.includes('waitlist_confirmation') ||
+        window.location.pathname.includes('auth') ||
+        document.querySelector('[data-discord-check="auto"]')) {
+        window._discordCheckerInitialized = true;
+        window.discordChecker = new DiscordMembershipChecker();
+    }
+}
+
+// Register with InitSystem (primary)
+if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('discord-membership-check', initDiscordChecker, {
+        priority: 45,
+        reinitializable: false,
+        description: 'Discord membership checker and join prompts'
+    });
+}
+
+// Fallback
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDiscordChecker);
+} else {
+    initDiscordChecker();
 }

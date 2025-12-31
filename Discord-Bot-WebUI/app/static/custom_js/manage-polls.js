@@ -1,14 +1,58 @@
-$(document).ready(function() {
-    if ($.fn.DataTable.isDataTable('#pollsTable')) {
-        $('#pollsTable').DataTable().destroy();
+/**
+ * Manage Polls Page
+ * Initializes DataTable for polls listing
+ */
+(function() {
+    'use strict';
+
+    let _initialized = false;
+
+    function init() {
+        if (_initialized) return;
+
+        // Page guard - only run if polls table exists
+        const pollsTable = document.getElementById('pollsTable');
+        if (!pollsTable) return;
+
+        // Check jQuery and DataTables are available
+        if (typeof $ === 'undefined' || typeof $.fn.DataTable === 'undefined') {
+            console.warn('[Manage Polls] jQuery or DataTables not available');
+            return;
+        }
+
+        _initialized = true;
+
+        // Destroy existing DataTable if it exists
+        if ($.fn.DataTable.isDataTable('#pollsTable')) {
+            $('#pollsTable').DataTable().destroy();
+        }
+
+        // Initialize DataTable
+        $('#pollsTable').DataTable({
+            "order": [[ 3, "desc" ]], // Order by created date, newest first
+            "pageLength": 25,
+            "responsive": true,
+            "columnDefs": [
+                { "orderable": false, "targets": [5] } // Disable sorting on actions column
+            ]
+        });
     }
 
-    $('#pollsTable').DataTable({
-        "order": [[ 3, "desc" ]], // Order by created date, newest first
-        "pageLength": 25,
-        "responsive": true,
-        "columnDefs": [
-            { "orderable": false, "targets": [5] } // Disable sorting on actions column
-        ]
-    });
-});
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('manage-polls', init, {
+            priority: 35,
+            reinitializable: true,
+            description: 'Manage polls DataTable'
+        });
+    }
+
+    // Fallback - use jQuery ready if available
+    if (typeof $ !== 'undefined') {
+        $(document).ready(init);
+    } else if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();

@@ -3,77 +3,10 @@
    Wave 9 BEM Migration - Store Templates
    ============================================================================ */
 
-/* ==========================================================================
-   PAGE HEADER COMPONENTS
-   ========================================================================== */
-
-.c-page-header {
-    margin-bottom: 2rem;
-}
-
-.c-page-header__content {
-    flex: 1;
-}
-
-.c-page-header__title {
-    font-size: 1.75rem;
-    font-weight: 600;
-    color: var(--ecs-primary, #696cff);
-    margin-bottom: 0.5rem;
-}
-
-.c-page-header__description {
-    color: var(--ecs-text-muted, #697a8d);
-    margin-bottom: 0;
-}
-
-.c-page-header--with-back {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
-.c-page-header__actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-/* ==========================================================================
-   ADMIN HEADER
-   ========================================================================== */
-
-.c-admin-header {
-    margin-bottom: 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
-.c-admin-header__content {
-    flex: 1;
-}
-
-.c-admin-header__title {
-    font-size: 1.75rem;
-    font-weight: 600;
-    color: var(--ecs-heading, #566a7f);
-    margin-bottom: 0.5rem;
-}
-
-.c-admin-header__description {
-    color: var(--ecs-text-muted, #697a8d);
-    margin-bottom: 0;
-}
-
-.c-admin-header__actions {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
+/*
+ * NOTE: .c-page-header moved to components/c-page-header.css
+ * NOTE: .c-admin-header moved to components/c-admin-shared.css
+ */
 
 /* ==========================================================================
    ACTION BAR
@@ -266,16 +199,9 @@
     width: 100%;
 }
 
-/* ==========================================================================
-   FORM COMPONENTS
-   ========================================================================== */
-
-.c-form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-    margin-top: 1.5rem;
-}
+/*
+ * NOTE: .c-form-actions moved to components/forms-modern.css
+ */
 
 /* ==========================================================================
    EMPTY STATE - Uses base c-empty-state from components/
@@ -285,25 +211,9 @@
    RESPONSIVE ADJUSTMENTS
    ========================================================================== */
 
+/* NOTE: c-admin-header and c-page-header responsive styles in their respective component files */
+
 @media (max-width: 767.98px) {
-    .c-admin-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .c-admin-header__actions {
-        width: 100%;
-    }
-
-    .c-page-header--with-back {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .c-page-header__actions {
-        width: 100%;
-    }
-
     .c-orders-header {
         flex-direction: column;
         align-items: flex-start;
@@ -347,10 +257,7 @@
 }
 
 @media (max-width: 575.98px) {
-    .c-page-header__title,
-    .c-admin-header__title {
-        font-size: 1.5rem;
-    }
+    /* NOTE: Header title responsive styles in component files */
 
     .c-order__actions {
         flex-direction: column;

@@ -76,7 +76,7 @@
 /* ============================================
    PROFILE HEADER
    ============================================ */
-.c-profile-header {
+.mobile-container .c-profile-header {
     background: var(--profile-surface);
     border-radius: 16px;
     box-shadow: var(--profile-shadow-lg);
@@ -84,47 +84,47 @@
     margin-bottom: var(--profile-space-md);
 }
 
-.c-profile-header--mobile {
+.mobile-container .c-profile-header--mobile {
     text-align: center;
 }
 
-.c-profile-header--desktop .c-profile-header__layout {
+.mobile-container .c-profile-header--desktop .c-profile-header__layout {
     display: flex;
     align-items: center;
     gap: var(--profile-space-md);
 }
 
-.c-profile-header__body {
+.mobile-container .c-profile-header__body {
     padding: var(--profile-space-lg);
 }
 
-.c-profile-header__avatar-wrapper {
+.mobile-container .c-profile-header__avatar-wrapper {
     margin-bottom: var(--profile-space-sm);
 }
 
-.c-profile-header__avatar {
+.mobile-container .c-profile-header__avatar {
     border-radius: 50%;
     border: 4px solid var(--profile-primary);
     object-fit: cover;
     box-shadow: var(--profile-shadow-md);
 }
 
-.c-profile-header__avatar--sm {
+.mobile-container .c-profile-header__avatar--sm {
     width: 60px;
     height: 60px;
 }
 
-.c-profile-header__avatar--md {
+.mobile-container .c-profile-header__avatar--md {
     width: 80px;
     height: 80px;
 }
 
-.c-profile-header__avatar--lg {
+.mobile-container .c-profile-header__avatar--lg {
     width: 100px;
     height: 100px;
 }
 
-.c-profile-header__name {
+.mobile-container .c-profile-header__name {
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--profile-text-primary);
@@ -223,17 +223,21 @@
 }
 
 /* ============================================
-   FORM FIELDS
+   FORM FIELDS - Profile Page Overrides
+   Base component in components/profile-components.css
    ============================================ */
-.c-form-field {
+[data-component="profile-mobile"] .c-form-field,
+[data-component="profile-desktop"] .c-form-field {
     margin-bottom: var(--profile-space-md);
 }
 
-.c-form-field:last-child {
+[data-component="profile-mobile"] .c-form-field:last-child,
+[data-component="profile-desktop"] .c-form-field:last-child {
     margin-bottom: 0;
 }
 
-.c-form-field__label {
+[data-component="profile-mobile"] .c-form-field__label,
+[data-component="profile-desktop"] .c-form-field__label {
     display: block;
     font-size: 0.875rem;
     font-weight: 600;
@@ -243,7 +247,8 @@
     letter-spacing: 0.025em;
 }
 
-.c-form-field__help {
+[data-component="profile-mobile"] .c-form-field__help,
+[data-component="profile-desktop"] .c-form-field__help {
     display: block;
     font-size: 0.75rem;
     color: var(--profile-text-muted);
@@ -251,8 +256,10 @@
 }
 
 /* Form Controls */
-.c-form-field .form-control,
-.c-form-field .form-select {
+[data-component="profile-mobile"] .c-form-field .form-control,
+[data-component="profile-mobile"] .c-form-field .form-select,
+[data-component="profile-desktop"] .c-form-field .form-control,
+[data-component="profile-desktop"] .c-form-field .form-select {
     width: 100%;
     padding: 0.875rem 1rem;
     font-size: 1rem;
@@ -263,30 +270,37 @@
     transition: all var(--profile-duration-fast) var(--profile-ease-smooth);
 }
 
-.c-form-field .form-control:focus,
-.c-form-field .form-select:focus {
+[data-component="profile-mobile"] .c-form-field .form-control:focus,
+[data-component="profile-mobile"] .c-form-field .form-select:focus,
+[data-component="profile-desktop"] .c-form-field .form-control:focus,
+[data-component="profile-desktop"] .c-form-field .form-select:focus {
     border-color: var(--profile-primary);
     box-shadow: var(--profile-shadow-focus);
     outline: none;
 }
 
-.c-form-field .form-control::placeholder {
+[data-component="profile-mobile"] .c-form-field .form-control::placeholder,
+[data-component="profile-desktop"] .c-form-field .form-control::placeholder {
     color: var(--profile-text-muted);
 }
 
 /* Multi-select height adjustment */
-.c-form-field .select-height-100 {
+[data-component="profile-mobile"] .c-form-field .select-height-100,
+[data-component="profile-desktop"] .c-form-field .select-height-100 {
     min-height: 100px;
 }
 
-.c-form-field .select-height-120 {
+[data-component="profile-mobile"] .c-form-field .select-height-120,
+[data-component="profile-desktop"] .c-form-field .select-height-120 {
     min-height: 120px;
 }
 
-/* ============================================
-   FORM ACTIONS
-   ============================================ */
-.c-form-actions {
+/*
+ * NOTE: .c-form-actions base is in components/forms-modern.css
+ * Page-specific padding override:
+ */
+[data-component="profile-mobile"] .c-form-actions,
+[data-component="profile-desktop"] .c-form-actions {
     padding: var(--profile-space-md) 0;
 }
 
@@ -338,14 +352,14 @@
 
 /* Profile page button theming - scoped overrides */
 .c-profile-page .c-btn--primary,
-.c-profile-header .c-btn--primary,
+.mobile-container .c-profile-header .c-btn--primary,
 .c-welcome-card .c-btn--primary {
     background: var(--profile-primary);
     color: var(--profile-text-inverse);
 }
 
 .c-profile-page .c-btn--primary:hover,
-.c-profile-header .c-btn--primary:hover,
+.mobile-container .c-profile-header .c-btn--primary:hover,
 .c-welcome-card .c-btn--primary:hover {
     background: var(--profile-primary-dark);
 }
@@ -368,7 +382,7 @@
    ============================================ */
 
 /* Profile-specific badge modifier */
-.c-badge--team {
+.mobile-container .c-badge--team {
     background: var(--profile-primary);
     color: var(--profile-text-inverse);
 }

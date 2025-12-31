@@ -84,23 +84,30 @@
  * - This is a necessary exception for dynamic theming support
  */
 
-// Global wizard state
-let currentStep = 1;
-const maxSteps = 6;
+// Global wizard state (using window to prevent redeclaration errors if script loads twice)
+if (typeof window._autoScheduleWizardState === 'undefined') {
+    window._autoScheduleWizardState = {
+        currentStep: 1,
+        maxSteps: 6,
+        calendarState: {
+            weeks: [],
+            startDate: null,
+            regularWeeks: 7,
+            includeTST: false,
+            includeFUN: false,
+            byeWeeks: 0
+        },
+        calendarDraggedElement: null,
+        draggedIndex: null
+    };
+}
 
-// Global state for calendar
-let calendarState = {
-    weeks: [],
-    startDate: null,
-    regularWeeks: 7,
-    includeTST: false,
-    includeFUN: false,
-    byeWeeks: 0
-};
-
-// Calendar drag and drop state
-let calendarDraggedElement = null;
-let draggedIndex = null;
+// Aliases for backwards compatibility
+const currentStep = window._autoScheduleWizardState.currentStep;
+const maxSteps = window._autoScheduleWizardState.maxSteps;
+const calendarState = window._autoScheduleWizardState.calendarState;
+let calendarDraggedElement = window._autoScheduleWizardState.calendarDraggedElement;
+let draggedIndex = window._autoScheduleWizardState.draggedIndex;
 
 // ========================================
 // Utility Functions for Style Management

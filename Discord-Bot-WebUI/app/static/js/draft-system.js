@@ -1657,8 +1657,8 @@ class DraftSystemV2 {
     }
 }
 
-// Global instance
-let draftSystemInstance = null;
+// Global instance (using var to allow safe re-declaration if script loads twice)
+var draftSystemInstance = null;
 
 // Initialize function
 function initializeDraftSystem(leagueName) {

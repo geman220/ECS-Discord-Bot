@@ -211,18 +211,18 @@
    4. MATCH ACTIONS
    ============================================================================ */
 
-.c-match-actions {
+.c-matches-list-page .c-match-actions {
   display: flex;
   gap: var(--space-2);
   align-items: center;
   justify-content: flex-end;
 }
 
-.c-match-actions__dropdown {
+.c-matches-list-page .c-match-actions__dropdown {
   position: relative;
 }
 
-.c-match-actions__button {
+.c-matches-list-page .c-match-actions__button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -237,29 +237,29 @@
   white-space: nowrap;
 }
 
-.c-match-actions__button--primary {
+.c-matches-list-page .c-match-actions__button--primary {
   background: var(--color-primary);
   color: var(--color-neutral-0);
 }
 
-.c-match-actions__button--primary:hover:not(:disabled) {
+.c-matches-list-page .c-match-actions__button--primary:hover:not(:disabled) {
   background: var(--color-primary-dark, var(--color-primary));
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
 
-.c-match-actions__button--danger {
+.c-matches-list-page .c-match-actions__button--danger {
   background: var(--color-danger);
   color: var(--color-neutral-0);
 }
 
-.c-match-actions__button--danger:hover:not(:disabled) {
+.c-matches-list-page .c-match-actions__button--danger:hover:not(:disabled) {
   background: var(--color-danger-dark, var(--color-danger));
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
 
-.c-match-actions__button:disabled {
+.c-matches-list-page .c-match-actions__button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }

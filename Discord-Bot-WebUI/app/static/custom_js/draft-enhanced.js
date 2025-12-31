@@ -10,20 +10,20 @@
  * ============================================================================
  */
 
-// JavaScript version of format_position function
-function formatPosition(position) {
-    if (!position) return position;
-    return position.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-}
+(function() {
+    'use strict';
 
-// Track if already initialized to prevent duplicate listeners
-let _draftEnhancedInitialized = false;
+    let _initialized = false;
 
-// Initialize the draft system when the page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Only initialize once
-    if (_draftEnhancedInitialized) return;
-    _draftEnhancedInitialized = true;
+    // JavaScript version of format_position function
+    function formatPosition(position) {
+        if (!position) return position;
+        return position.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    function init() {
+        if (_initialized) return;
+        _initialized = true;
 
     // Add performance optimizations - using event delegation for lazy-load images
     // Note: Image load events don't bubble, so we use capture phase
@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Listen for socket events to update team counts
     setupDraftEnhancedSocket();
-});
+    }
 
 /**
  * Setup socket connection for draft enhanced page
@@ -159,15 +159,18 @@ function handleDraftError(data) {
     }
 }
 
-let _eventDelegationSetup = false;
+// Guard against redeclaration (using window to prevent errors if script loads twice)
+if (typeof window._draftEnhancedEventDelegationSetup === 'undefined') {
+    window._draftEnhancedEventDelegationSetup = false;
+}
 
 /**
  * Setup event delegation for all button clicks
  */
 function setupEventDelegation() {
     // Guard against duplicate setup
-    if (_eventDelegationSetup) return;
-    _eventDelegationSetup = true;
+    if (window._draftEnhancedEventDelegationSetup) return;
+    window._draftEnhancedEventDelegationSetup = true;
 
     // Event delegation for draft player buttons
     document.addEventListener('click', function(e) {
@@ -205,15 +208,18 @@ function setupEventDelegation() {
     setupDragAndDrop();
 }
 
-let _dragDropSetup = false;
+// Guard against redeclaration
+if (typeof window._draftEnhancedDragDropSetup === 'undefined') {
+    window._draftEnhancedDragDropSetup = false;
+}
 
 /**
  * Setup drag and drop functionality for player cards and drop zones
  */
 function setupDragAndDrop() {
     // Guard against duplicate setup
-    if (_dragDropSetup) return;
-    _dragDropSetup = true;
+    if (window._draftEnhancedDragDropSetup) return;
+    window._draftEnhancedDragDropSetup = true;
 
     // Drag start on draggable player cards
     document.addEventListener('dragstart', function(e) {
@@ -470,11 +476,13 @@ function handleDropToAvailable(playerId) {
  * Setup image error handlers for fallback images
  * ROOT CAUSE FIX: Uses event delegation with capture phase (image events don't bubble)
  */
-let _imageHandlersSetup = false;
+if (typeof window._draftEnhancedImageHandlersSetup === 'undefined') {
+    window._draftEnhancedImageHandlersSetup = false;
+}
 function setupImageErrorHandlers() {
     // Only set up listeners once - they handle all current and future images
-    if (_imageHandlersSetup) return;
-    _imageHandlersSetup = true;
+    if (window._draftEnhancedImageHandlersSetup) return;
+    window._draftEnhancedImageHandlersSetup = true;
 
     // Single delegated error listener for ALL player images (capture phase required)
     document.addEventListener('error', function(e) {
@@ -933,3 +941,36 @@ function displayPlayerProfile(data, playerId) {
         confirmDraftPlayer(playerId, data.name);
     };
 }
+
+    // Export functions for template compatibility
+    window.formatPosition = formatPosition;
+    window.setupDraftEnhancedSocket = setupDraftEnhancedSocket;
+    window.setupEventDelegation = setupEventDelegation;
+    window.setupDragAndDrop = setupDragAndDrop;
+    window.setupImageErrorHandlers = setupImageErrorHandlers;
+    window.setupLiveSearch = setupLiveSearch;
+    window.filterPlayers = filterPlayers;
+    window.updateAvailablePlayerCount = updateAvailablePlayerCount;
+    window.updateTeamCount = updateTeamCount;
+    window.updateAllTeamCounts = updateAllTeamCounts;
+    window.confirmDraftPlayer = confirmDraftPlayer;
+    window.confirmRemovePlayer = confirmRemovePlayer;
+    window.openPlayerModal = openPlayerModal;
+    window.displayPlayerProfile = displayPlayerProfile;
+
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('draft-enhanced', init, {
+            priority: 40,
+            reinitializable: false,
+            description: 'Draft enhanced page functionality'
+        });
+    }
+
+    // Fallback
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();

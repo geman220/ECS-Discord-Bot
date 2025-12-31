@@ -116,6 +116,10 @@
         flex-shrink: 0 !important;
     }
     </style>
+    {# ========================================================================
+       DEPRECATED: Flask-Assets CSS Production Mode
+       Disabled 2024-12-29 - Now using Vite for all production builds
+       ========================================================================
     {% elif config.get('ASSETS_PRODUCTION_MODE') %}
     <!-- FLASK-ASSETS PRODUCTION MODE: Single Bundle -->
     {% assets "production_css" %}
@@ -140,6 +144,7 @@
         flex-shrink: 0 !important;
     }
     </style>
+    #}
     {% else %}
     <!-- DEVELOPMENT MODE: Modular Bundles -->
 
@@ -510,23 +515,51 @@
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     {{ vite_asset('js/main-entry.js') }}
+    {# ========================================================================
+       DEPRECATED: Flask-Assets Production Mode
+       Disabled 2024-12-29 - Now using Vite for all production builds
+       To re-enable if needed, uncomment the block below and remove this comment
+       ========================================================================
     {% elif config.get('ASSETS_PRODUCTION_MODE') %}
     <!-- FLASK-ASSETS PRODUCTION MODE: Single minified bundle -->
     {% assets "production_js" %}
         <script src="{{ ASSET_URL }}"></script>
     {% endassets %}
+    #}
     {% else %}
     <!-- DEVELOPMENT MODE: Individual files -->
     <!-- CSRF Token Auto-Injection for Fetch Requests -->
     <script src="{{ url_for('static', filename='js/csrf-fetch.js') }}"></script>
     <!-- Core JS -->
     <script src="{{ url_for('static', filename='vendor/libs/jquery/jquery.js') }}"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="{{ url_for('static', filename='vendor/libs/popper/popper.js') }}"></script>
     <!-- Bootstrap UMD version (fixes "_element is not defined" error) -->
     <script src="{{ url_for('static', filename='vendor/js/bootstrap.bundle.js') }}"></script>
 
     <!-- Event Delegation System - MUST load early (many scripts depend on it) -->
     <script src="{{ url_for('static', filename='js/event-delegation/core.js') }}"></script>
+
+    <!-- Event Delegation Handlers - MUST load after core, before init() -->
+    <script src="{{ url_for('static', filename='js/event-delegation/handlers/calendar-actions.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/event-delegation/handlers/discord-management.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/event-delegation/handlers/draft-system.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/event-delegation/handlers/ecs-fc-management.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/event-delegation/handlers/match-management.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/event-delegation/handlers/match-reporting.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/event-delegation/handlers/onboarding-wizard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/event-delegation/handlers/pass-studio.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/event-delegation/handlers/profile-verification.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/event-delegation/handlers/referee-management.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/event-delegation/handlers/rsvp-actions.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/event-delegation/handlers/season-wizard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/event-delegation/handlers/security-actions.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/event-delegation/handlers/substitute-pool.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/event-delegation/handlers/user-approval.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/event-delegation/handlers/user-management.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/event-delegation/handlers/push-notifications.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/event-delegation/handlers/message-templates.js') }}"></script>
 
     <!-- ModalManager - Centralized modal management (Best Practice 2025) -->
     <!-- MUST load after Bootstrap and EventDelegation, before any code that uses modals -->
@@ -665,8 +698,16 @@
 
     <!-- SMS Verification functionality -->
     <script src="{{ url_for('static', filename='custom_js/sms-verification.js') }}"></script>
+
+    <!-- Initialize EventDelegation after all handlers are loaded (DEV MODE) -->
+    <script>
+        if (typeof EventDelegation !== 'undefined' && typeof EventDelegation.init === 'function') {
+            EventDelegation.init();
+            console.log('[DEV MODE] EventDelegation initialized with ' + EventDelegation.handlers.size + ' handlers');
+        }
+    </script>
     {% endif %}
-    
+
     <!-- Load modals via AJAX (after jQuery is loaded) -->
     <script>
         // Wait for jQuery to be available (handles both bundled and separate loading)

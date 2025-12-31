@@ -287,15 +287,17 @@
 
 /* ============================================================================
    FORM ACTIONS - View Profile Button (FIXED)
+   NOTE: Base .c-form-actions is in components/forms-modern.css
+   These are profile-success specific animations/overrides
    ============================================================================ */
 
-.c-form-actions {
+.c-profile-success .c-form-actions {
   margin-bottom: 24px;
   animation: fade-in-up 0.5s ease-out 0.7s both;
 }
 
-.c-form-actions .c-btn--primary,
-.c-form-actions .c-btn--lg {
+.c-profile-success .c-form-actions .c-btn--primary,
+.c-profile-success .c-form-actions .c-btn--lg {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -313,15 +315,15 @@
   transition: all 0.2s ease;
 }
 
-.c-form-actions .c-btn--primary:hover,
-.c-form-actions .c-btn--lg:hover {
+.c-profile-success .c-form-actions .c-btn--primary:hover,
+.c-profile-success .c-form-actions .c-btn--lg:hover {
   background: linear-gradient(135deg, var(--color-primary-700, #1d4ed8) 0%, var(--color-primary-800, #1e40af) 100%);
   transform: translateY(-2px);
   box-shadow: 0 6px 24px rgba(37, 99, 235, 0.5);
 }
 
-.c-form-actions .c-btn--primary:active,
-.c-form-actions .c-btn--lg:active {
+.c-profile-success .c-form-actions .c-btn--primary:active,
+.c-profile-success .c-form-actions .c-btn--lg:active {
   transform: translateY(0);
 }
 
@@ -360,10 +362,11 @@
 }
 
 /* ============================================================================
-   BADGE COMPONENT
+   BADGE OVERRIDE - Success card context
+   Base component in components.css
    ============================================================================ */
 
-.c-badge--success {
+.c-success-card .c-badge--success {
   display: inline-block;
   padding: 4px 10px;
   font-size: 12px;

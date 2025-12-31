@@ -479,7 +479,16 @@
     }
   }
 
-  // Initialize when DOM is ready
+  // Register with InitSystem (primary)
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('socket-manager', init, {
+      priority: 85,
+      reinitializable: false,
+      description: 'WebSocket connection manager'
+    });
+  }
+
+  // Fallback: Initialize when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

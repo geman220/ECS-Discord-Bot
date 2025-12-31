@@ -16,14 +16,19 @@
 (function() {
   'use strict';
 
+  let _initialized = false;
+
   /**
    * Initialize on DOM ready
    */
-  document.addEventListener('DOMContentLoaded', function() {
+  function init() {
+    if (_initialized) return;
+    _initialized = true;
+
     initializeEventDelegation();
     initializeSyncHandler();
     initializeFeatherIcons();
-  });
+  }
 
   /**
    * Set up event delegation for all player list interactions
@@ -404,5 +409,21 @@
 
   // Uncomment to enable live search
   // initializeLiveSearch();
+
+  // Register with InitSystem (primary)
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('players-list', init, {
+      priority: 35,
+      reinitializable: true,
+      description: 'Players list page functionality'
+    });
+  }
+
+  // Fallback
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 
 })();

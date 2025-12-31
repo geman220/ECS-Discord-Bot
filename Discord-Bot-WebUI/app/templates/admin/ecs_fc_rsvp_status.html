@@ -39,7 +39,7 @@
                         </div>
                         <div class="col-md-4 text-md-end">
                             <div class="btn-group" role="group">
-                                <button type="button" class="c-btn c-btn--primary c-btn--sm js-send-reminder" onclick="sendReminder()">
+                                <button type="button" class="c-btn c-btn--primary c-btn--sm" data-action="send-rsvp-reminder">
                                     <i class="ti ti-bell me-1"></i>Send Reminder
                                 </button>
                                 <a href="{{ url_for('ecs_fc.match_details', match_id=match.id) }}" class="c-btn c-btn--outline-secondary c-btn--sm">
@@ -159,11 +159,11 @@
         <div class="c-card__header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Player RSVP Management</h5>
             <div class="btn-group btn-group-sm" role="group">
-                <button type="button" class="c-btn c-btn--outline-primary js-filter-responses" id="filter-all" onclick="filterResponses('all')">All</button>
-                <button type="button" class="c-btn c-btn--outline-success js-filter-responses" id="filter-yes" onclick="filterResponses('yes')">Available</button>
-                <button type="button" class="c-btn c-btn--outline-danger js-filter-responses" id="filter-no" onclick="filterResponses('no')">Unavailable</button>
-                <button type="button" class="c-btn c-btn--outline-warning js-filter-responses" id="filter-maybe" onclick="filterResponses('maybe')">Maybe</button>
-                <button type="button" class="c-btn c-btn--outline-secondary js-filter-responses" id="filter-no_response" onclick="filterResponses('no_response')">No Response</button>
+                <button type="button" class="c-btn c-btn--outline-primary" id="filter-all" data-action="filter-rsvp-responses" data-filter-type="all">All</button>
+                <button type="button" class="c-btn c-btn--outline-success" id="filter-yes" data-action="filter-rsvp-responses" data-filter-type="yes">Available</button>
+                <button type="button" class="c-btn c-btn--outline-danger" id="filter-no" data-action="filter-rsvp-responses" data-filter-type="no">Unavailable</button>
+                <button type="button" class="c-btn c-btn--outline-warning" id="filter-maybe" data-action="filter-rsvp-responses" data-filter-type="maybe">Maybe</button>
+                <button type="button" class="c-btn c-btn--outline-secondary" id="filter-no_response" data-action="filter-rsvp-responses" data-filter-type="no_response">No Response</button>
             </div>
         </div>
         <div class="c-card__body">
@@ -244,17 +244,17 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm" role="group">
-                                    <button type="button" class="c-btn c-btn--outline-success c-btn--sm js-update-player-rsvp" data-id="{{ player.id }}" onclick="updatePlayerRsvp({{ player.id }}, 'yes')" title="Mark Available">
+                                    <button type="button" class="c-btn c-btn--outline-success c-btn--sm" data-action="update-player-rsvp-admin" data-player-id="{{ player.id }}" data-response="yes" title="Mark Available">
                                         <i class="ti ti-check"></i>
                                     </button>
-                                    <button type="button" class="c-btn c-btn--outline-danger c-btn--sm js-update-player-rsvp" data-id="{{ player.id }}" onclick="updatePlayerRsvp({{ player.id }}, 'no')" title="Mark Unavailable">
+                                    <button type="button" class="c-btn c-btn--outline-danger c-btn--sm" data-action="update-player-rsvp-admin" data-player-id="{{ player.id }}" data-response="no" title="Mark Unavailable">
                                         <i class="ti ti-x"></i>
                                     </button>
-                                    <button type="button" class="c-btn c-btn--outline-warning c-btn--sm js-update-player-rsvp" data-id="{{ player.id }}" onclick="updatePlayerRsvp({{ player.id }}, 'maybe')" title="Mark Maybe">
+                                    <button type="button" class="c-btn c-btn--outline-warning c-btn--sm" data-action="update-player-rsvp-admin" data-player-id="{{ player.id }}" data-response="maybe" title="Mark Maybe">
                                         <i class="ti ti-help"></i>
                                     </button>
                                     {% if player.discord_id %}
-                                    <button type="button" class="c-btn c-btn--outline-primary c-btn--sm js-send-individual-reminder" data-id="{{ player.id }}" onclick="sendIndividualReminder({{ player.id }})" title="Send Individual Reminder">
+                                    <button type="button" class="c-btn c-btn--outline-primary c-btn--sm" data-action="send-individual-reminder" data-player-id="{{ player.id }}" title="Send Individual Reminder">
                                         <i class="ti ti-bell"></i>
                                     </button>
                                     {% endif %}

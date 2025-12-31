@@ -6,6 +6,10 @@
  * This ensures JS and CSS stay in sync with the admin color customization
  */
 
+// Guard against double initialization (file loaded via both bundle and script tag)
+if (typeof window._ecsConfigInitialized === 'undefined') {
+  window._ecsConfigInitialized = true;
+
 // Utility function to get CSS variable value
 function getCSSVariable(name, fallback) {
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -14,7 +18,7 @@ function getCSSVariable(name, fallback) {
 
 // Initialize colors from CSS variables (called after DOM ready)
 function initConfigColors() {
-  config.colors = {
+  window.config.colors = {
     primary: getCSSVariable('--ecs-primary', '#7C3AED'),
     success: getCSSVariable('--ecs-success', '#10B981'),
     danger: getCSSVariable('--ecs-danger', '#EF4444'),
@@ -25,9 +29,9 @@ function initConfigColors() {
     dark: getCSSVariable('--ecs-neutral-90', '#18181B'),
   };
 
-  config.colors_label = { ...config.colors };
+  window.config.colors_label = { ...window.config.colors };
 
-  config.colors_dark = {
+  window.config.colors_dark = {
     cardBg: getCSSVariable('--ecs-dark-bg-card', '#18181B'),
     bodyBg: getCSSVariable('--ecs-dark-bg-body', '#09090B'),
     headerBg: getCSSVariable('--ecs-dark-bg-elevated', '#27272A'),
@@ -35,7 +39,7 @@ function initConfigColors() {
 }
 
 // JS global variables - initial values (will be updated by initConfigColors)
-let config = {
+window.config = {
   colors: {
     primary: '#7C3AED',
     success: '#10B981',
@@ -91,14 +95,17 @@ window.assetsPath = document.documentElement.getAttribute('data-assets-path');
 window.templateName = document.documentElement.getAttribute('data-template');
 window.rtlSupport = true; // set to true for RTL support, false otherwise.
 
-// Also expose as local variables for backwards compatibility
-const assetsPath = window.assetsPath;
-const templateName = window.templateName;
-const rtlSupport = window.rtlSupport;
-
 // Set the default content layout to 'wide' and initialize colors from CSS variables
 document.addEventListener('DOMContentLoaded', function() {
   document.documentElement.setAttribute('data-content', 'wide');
   // Initialize colors from CSS variables after DOM is ready
   initConfigColors();
 });
+
+} // End of initialization guard
+
+// Expose local aliases for backwards compatibility (safe to redeclare)
+var config = window.config;
+var assetsPath = window.assetsPath;
+var templateName = window.templateName;
+var rtlSupport = window.rtlSupport;

@@ -142,4 +142,75 @@ EventDelegation.register('delete-user', function(element, e) {
     }
 }, { preventDefault: true });
 
+// ============================================================================
+// BULK APPROVE ACTION
+// ============================================================================
+
+EventDelegation.register('bulk-approve-users', function(element, e) {
+    e.preventDefault();
+    if (typeof window.bulkApprove === 'function') {
+        window.bulkApprove();
+    } else {
+        console.error('[bulk-approve-users] bulkApprove function not found');
+    }
+}, { preventDefault: true });
+
+// ============================================================================
+// EXPORT USERS ACTION
+// ============================================================================
+
+EventDelegation.register('export-users', function(element, e) {
+    e.preventDefault();
+    const exportType = element.dataset.exportType || 'all';
+    if (typeof window.exportUsers === 'function') {
+        window.exportUsers(exportType);
+    } else {
+        console.error('[export-users] exportUsers function not found');
+    }
+}, { preventDefault: true });
+
+// ============================================================================
+// SYNC USERS ACTION
+// ============================================================================
+
+EventDelegation.register('sync-users', function(element, e) {
+    e.preventDefault();
+    if (typeof window.syncUsers === 'function') {
+        window.syncUsers();
+    } else {
+        console.error('[sync-users] syncUsers function not found');
+    }
+}, { preventDefault: true });
+
+// ============================================================================
+// CREATE USER ACTION
+// ============================================================================
+
+EventDelegation.register('create-user', function(element, e) {
+    e.preventDefault();
+    if (typeof window.createUser === 'function') {
+        window.createUser();
+    } else {
+        console.error('[create-user] createUser function not found');
+    }
+}, { preventDefault: true });
+
+// ============================================================================
+// BULK ACTION (approve, activate, deactivate, delete)
+// ============================================================================
+
+EventDelegation.register('bulk-action', function(element, e) {
+    e.preventDefault();
+    const action = element.dataset.bulkAction;
+    if (!action) {
+        console.error('[bulk-action] Missing bulk action type');
+        return;
+    }
+    if (typeof window.bulkAction === 'function') {
+        window.bulkAction(action);
+    } else {
+        console.error('[bulk-action] bulkAction function not found');
+    }
+}, { preventDefault: true });
+
 console.log('[EventDelegation] User management handlers loaded');

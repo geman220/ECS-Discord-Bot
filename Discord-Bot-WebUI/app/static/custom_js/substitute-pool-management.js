@@ -5,8 +5,13 @@
  * Dependencies: jQuery, Bootstrap 5, subPoolShowAlert function
  */
 
-// Global pagination state
-let paginationState = {};
+(function() {
+    'use strict';
+
+    let _initialized = false;
+
+    // Global pagination state
+    let paginationState = {};
 
 // Notification function
 function subPoolShowAlert(type, message) {
@@ -554,12 +559,43 @@ $(document).on('click', '.pagination .page-link', function(e) {
 });
 */
 
-// Initialize everything when document is ready
-$(document).ready(function() {
-    initializeSearch();
-    subPoolInitializeEventHandlers();
-});
+    // Export to window for template compatibility
+    window.paginationState = paginationState;
+    window.subPoolShowAlert = subPoolShowAlert;
+    window.subPoolHandleDragStart = subPoolHandleDragStart;
+    window.subPoolHandleDragEnd = subPoolHandleDragEnd;
+    window.subPoolHandleDragOver = subPoolHandleDragOver;
+    window.subPoolHandleDragLeave = subPoolHandleDragLeave;
+    window.subPoolHandleDrop = subPoolHandleDrop;
+    window.initializePaginationState = initializePaginationState;
+    window.updatePagination = updatePagination;
+    window.approvePlayer = approvePlayer;
+    window.removePlayer = removePlayer;
+    window.openPlayerDetailsModal = openPlayerDetailsModal;
+    window.filterPlayerCards = filterPlayerCards;
 
-// Export to window for template compatibility
-window.initializePaginationState = initializePaginationState;
-window.updatePagination = updatePagination;
+    // Initialize function
+    function init() {
+        if (_initialized) return;
+        _initialized = true;
+
+        initializeSearch();
+        subPoolInitializeEventHandlers();
+    }
+
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('substitute-pool-management', init, {
+            priority: 40,
+            reinitializable: false,
+            description: 'Substitute pool management'
+        });
+    }
+
+    // Fallback
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();

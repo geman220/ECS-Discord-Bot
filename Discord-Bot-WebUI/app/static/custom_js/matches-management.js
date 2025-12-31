@@ -493,7 +493,16 @@
     return dateObj.toLocaleString('en-US', options).replace(',', '');
   }
 
-  // Initialize on DOM ready
+  // Register with InitSystem (primary)
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('matches-management', init, {
+      priority: 40,
+      reinitializable: false,
+      description: 'Matches management (deprecated page)'
+    });
+  }
+
+  // Fallback
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

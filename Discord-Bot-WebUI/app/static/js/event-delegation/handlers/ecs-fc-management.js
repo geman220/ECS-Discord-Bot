@@ -219,58 +219,6 @@ EventDelegation.register('preview-csv-import', function(element, e) {
 });
 
 /**
- * Send RSVP Reminder
- * Sends a reminder to players who haven't responded
- */
-EventDelegation.register('send-rsvp-reminder', function(element, e) {
-    e.preventDefault();
-
-    const matchId = element.dataset.matchId;
-    const playerId = element.dataset.playerId;
-
-    if (!matchId) {
-        console.error('[send-rsvp-reminder] Missing match ID');
-        return;
-    }
-
-    Swal.fire({
-        title: 'Send Reminder?',
-        text: playerId ? 'Send a reminder to this player?' : 'Send reminders to all players who haven\'t responded?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Send',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const csrfToken = document.querySelector('input[name="csrf_token"]')?.value ||
-                              document.querySelector('meta[name="csrf-token"]')?.content;
-
-            fetch(`/admin-panel/ecs-fc/match/${matchId}/send-reminder`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({ player_id: playerId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Sent!', data.message || 'Reminder sent.', 'success');
-                } else {
-                    Swal.fire('Error', data.message || 'Failed to send reminder.', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('[send-rsvp-reminder] Error:', error);
-                Swal.fire('Error', 'An error occurred.', 'error');
-            });
-        }
-    });
-});
-
-/**
  * Filter ECS FC Matches by Team
  * Handles team filter dropdown changes
  */
@@ -303,6 +251,34 @@ EventDelegation.register('toggle-ecs-fc-status', function(element, e) {
 
     window.location.href = url.toString();
 });
+
+// ============================================================================
+// ECS FC SUB POOL ACTIONS
+// ============================================================================
+
+/**
+ * Edit Sub Preferences
+ */
+EventDelegation.register('edit-sub-preferences', function(element, e) {
+    e.preventDefault();
+    const entryId = element.dataset.entryId;
+    if (typeof window.editSubPreferences === 'function') {
+        window.editSubPreferences(entryId);
+    }
+}, { preventDefault: true });
+
+/**
+ * Remove From Pool
+ */
+EventDelegation.register('remove-from-pool', function(element, e) {
+    e.preventDefault();
+    const entryId = element.dataset.entryId;
+    if (typeof window.removeFromPool === 'function') {
+        window.removeFromPool(entryId);
+    }
+}, { preventDefault: true });
+
+// NOTE: add-to-pool handler is in substitute-pool.js (shared by ECS FC and general sub pools)
 
 // ============================================================================
 

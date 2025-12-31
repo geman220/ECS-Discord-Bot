@@ -270,7 +270,18 @@
   }
 
   /**
-   * Initialize on DOM ready
+   * Register with InitSystem (primary)
+   */
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('admin-navigation', initAdminNavigation, {
+      priority: 70,
+      reinitializable: true,
+      description: 'Admin panel navigation controller'
+    });
+  }
+
+  /**
+   * Fallback: Initialize on DOM ready
    */
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initAdminNavigation);

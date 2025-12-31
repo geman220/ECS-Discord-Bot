@@ -176,7 +176,7 @@
    Individual match display with RSVP controls
    ============================================================================ */
 
-.c-match-card {
+.c-home-page .c-match-card {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-primary);
   border-radius: var(--radius-lg);
@@ -185,12 +185,12 @@
   overflow: hidden;
 }
 
-.c-match-card:hover {
+.c-home-page .c-match-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }
 
-.c-match-card__header {
+.c-home-page .c-match-card__header {
   padding: var(--space-3) var(--space-4);
   background: var(--color-bg-subtle);
   border-bottom: 1px solid var(--color-border-primary);
@@ -199,7 +199,7 @@
   align-items: center;
 }
 
-.c-match-card__header-title {
+.c-home-page .c-match-card__header-title {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -209,15 +209,15 @@
   margin: 0;
 }
 
-.c-match-card__header-icon {
+.c-home-page .c-match-card__header-icon {
   color: var(--color-primary);
 }
 
-.c-match-card__body {
+.c-home-page .c-match-card__body {
   padding: 0;
 }
 
-.c-match-card__item {
+.c-home-page .c-match-card__item {
   padding: var(--space-4);
   border-bottom: 1px solid var(--color-border-primary);
   display: flex;
@@ -227,27 +227,27 @@
   transition: var(--transition-all);
 }
 
-.c-match-card__item:last-child {
+.c-home-page .c-match-card__item:last-child {
   border-bottom: none;
 }
 
-.c-match-card__item:hover {
+.c-home-page .c-match-card__item:hover {
   background: var(--color-hover-bg);
 }
 
-.c-match-card__info {
+.c-home-page .c-match-card__info {
   flex: 1;
   min-width: 0;
 }
 
-.c-match-card__matchup {
+.c-home-page .c-match-card__matchup {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   margin-bottom: var(--space-1);
 }
 
-.c-match-card__matchup-text {
+.c-home-page .c-match-card__matchup-text {
   color: var(--color-text-primary);
   font-size: var(--text-base);
   font-weight: var(--font-medium);
@@ -255,7 +255,7 @@
   line-height: var(--leading-tight);
 }
 
-.c-match-card__details {
+.c-home-page .c-match-card__details {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -264,13 +264,13 @@
   font-size: var(--text-sm);
 }
 
-.c-match-card__detail {
+.c-home-page .c-match-card__detail {
   display: flex;
   align-items: center;
   gap: var(--space-1);
 }
 
-.c-match-card__actions {
+.c-home-page .c-match-card__actions {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -278,7 +278,7 @@
 }
 
 /* Match badge - Home/Away indicator */
-.c-match-badge {
+.c-home-page .c-match-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -291,11 +291,11 @@
   flex-shrink: 0;
 }
 
-.c-match-badge--home {
+.c-home-page .c-match-badge--home {
   background: var(--color-success);
 }
 
-.c-match-badge--away {
+.c-home-page .c-match-badge--away {
   background: var(--color-info);
 }
 
@@ -608,12 +608,12 @@
    Semantic text styling within match card context
    ============================================================================ */
 
-.c-match-card__team--highlight {
+.c-home-page .c-match-card__team--highlight {
   color: var(--color-success);
   font-weight: var(--font-bold);
 }
 
-.c-match-card__text--muted {
+.c-home-page .c-match-card__text--muted {
   color: var(--color-text-muted);
 }
 

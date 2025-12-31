@@ -166,7 +166,25 @@
         }
     };
 
-    // Initialize on DOM ready
+    // Add _initialized guard to init method
+    const originalInit = SettingsTabs.init;
+    let _initialized = false;
+    SettingsTabs.init = function() {
+        if (_initialized) return;
+        _initialized = true;
+        originalInit.call(this);
+    };
+
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('settings-tabs', () => SettingsTabs.init(), {
+            priority: 50,
+            reinitializable: true,
+            description: 'Settings page tab controller'
+        });
+    }
+
+    // Fallback
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => SettingsTabs.init());
     } else {

@@ -3,17 +3,25 @@
  * Handles user approval and denial functionality for league placement
  */
 
-// Global variables
+(function() {
+'use strict';
+
+let _initialized = false;
+
+// Module-level variables
 let currentUserId = null;
 let approvalModal = null;
 let denialModal = null;
 let playerDetailsModal = null;
 
-// Initialize when document is ready
-document.addEventListener('DOMContentLoaded', function() {
+// Initialize function
+function init() {
+    if (_initialized) return;
+    _initialized = true;
+
     initializeModals();
     initializeFormSubmitListeners();
-});
+}
 
 /**
  * Initialize Bootstrap modals
@@ -603,3 +611,21 @@ window.submitApproval = submitApproval;
 window.submitDenial = submitDenial;
 window.refreshStats = refreshStats;
 window.showPlayerDetails = showPlayerDetails;
+
+// Register with InitSystem (primary)
+if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('user-approval-management', init, {
+        priority: 30,
+        reinitializable: true,
+        description: 'User approval management page'
+    });
+}
+
+// Fallback
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
+
+})();

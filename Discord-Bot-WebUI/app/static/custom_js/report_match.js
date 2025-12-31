@@ -72,13 +72,14 @@
  *    - This would eliminate duplication and ensure consistency
  */
 
-// Guard against duplicate initialization
-let _reportMatchInitialized = false;
+// Guard against duplicate initialization (using window to prevent redeclaration errors if script loads twice)
+if (typeof window._reportMatchInitialized === 'undefined') {
+    window._reportMatchInitialized = false;
+}
 
-// This ensures that all AJAX requests include the CSRF token
-$(document).ready(function () {
-    if (_reportMatchInitialized) return;
-    _reportMatchInitialized = true;
+function initReportMatch() {
+    if (window._reportMatchInitialized) return;
+    window._reportMatchInitialized = true;
 
     // Set up CSRF token for all AJAX requests
     var csrftoken = $('input[name="csrf_token"]').val();
@@ -98,7 +99,25 @@ $(document).ready(function () {
 
     // Setup edit match buttons when available
     setupEditMatchButtons();
-});
+}
+
+// Register with InitSystem (primary)
+if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('report-match', initReportMatch, {
+        priority: 45,
+        reinitializable: true,
+        description: 'Match reporting functionality'
+    });
+}
+
+// Fallback - use jQuery ready if available, otherwise DOMContentLoaded
+if (typeof $ !== 'undefined') {
+    $(document).ready(initReportMatch);
+} else if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initReportMatch);
+} else {
+    initReportMatch();
+}
 
 // Ensure the playerChoices object is available globally
 window.playerChoices = window.playerChoices || {};
@@ -406,12 +425,15 @@ window.removeEvent = function(button) {
 // Define initialEvents as an object to store initial events per matchId
 window.initialEvents = window.initialEvents || {};
 
-let _editMatchButtonsSetup = false;
+// Guard against redeclaration (using window to prevent errors if script loads twice)
+if (typeof window._editMatchButtonsSetup === 'undefined') {
+    window._editMatchButtonsSetup = false;
+}
 
 // Function to set up edit match buttons
 function setupEditMatchButtons() {
-    if (_editMatchButtonsSetup) return;
-    _editMatchButtonsSetup = true;
+    if (window._editMatchButtonsSetup) return;
+    window._editMatchButtonsSetup = true;
 
     // Select all edit match buttons on the page
     const editButtons = document.querySelectorAll('.edit-match-btn');

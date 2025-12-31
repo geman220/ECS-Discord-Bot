@@ -18,15 +18,20 @@
 (function() {
     'use strict';
 
+    let _initialized = false;
+
     // ========================================================================
     // INITIALIZATION
     // ========================================================================
 
-    document.addEventListener('DOMContentLoaded', function() {
+    function init() {
+        if (_initialized) return;
+        _initialized = true;
+
         initPageLoader();
         initDataTable();
         initEventDelegation();
-    });
+    }
 
     // ========================================================================
     // PAGE LOADER
@@ -396,6 +401,22 @@
         } else {
             console.log(`[${type.toUpperCase()}]: ${message}`);
         }
+    }
+
+    // Register with InitSystem (primary)
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('admin-manage-subs', init, {
+            priority: 30,
+            reinitializable: true,
+            description: 'Admin manage substitutes page'
+        });
+    }
+
+    // Fallback
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
     }
 
 })();

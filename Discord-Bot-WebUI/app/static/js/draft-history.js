@@ -410,8 +410,8 @@ class DraftHistoryManager {
     }
 }
 
-// Global functions for template compatibility
-let draftHistoryManager;
+// Global functions for template compatibility (using var to allow safe re-declaration if script loads twice)
+var draftHistoryManager;
 
 function clearFilters() {
     draftHistoryManager.clearFilters();
