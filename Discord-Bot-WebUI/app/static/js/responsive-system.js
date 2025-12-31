@@ -826,7 +826,7 @@
   // Register with InitSystem if available
   if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
     window.InitSystem.register('responsive-system', function() {
-      ResponsiveSystem.init();
+      window.ResponsiveSystem.init();
     }, {
       priority: 85,
       description: 'Responsive system (mobile detection, touch feedback, form/table/modal enhancements)',
@@ -835,7 +835,7 @@
   } else {
     // Fallback: Initialize when DOM is ready
     document.addEventListener('DOMContentLoaded', function () {
-      ResponsiveSystem.init();
+      window.ResponsiveSystem.init();
     });
   }
 })();

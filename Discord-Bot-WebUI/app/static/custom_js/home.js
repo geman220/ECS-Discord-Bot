@@ -279,8 +279,8 @@
       if (rsvpButtons.length === 0) return;
 
       // Use global DiscordMembershipChecker if available
-      if (typeof DiscordMembershipChecker !== 'undefined') {
-        DiscordMembershipChecker.showJoinPrompt({
+      if (typeof window.DiscordMembershipChecker !== 'undefined') {
+        window.DiscordMembershipChecker.showJoinPrompt({
           title: '💡 Stay Connected on Discord',
           urgency: 'info',
           showUrgentPopup: true

@@ -34,7 +34,7 @@ function initLiveReporting(config) {
     
     // Connect to SocketIO server
     const socketUrl = config.socketUrl || window.location.origin;
-    socket = io(socketUrl + '/live');
+    socket = window.io(socketUrl + '/live');
     
     // Setup event listeners
     setupSocketListeners();

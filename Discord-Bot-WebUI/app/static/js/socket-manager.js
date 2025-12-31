@@ -113,7 +113,7 @@
     }
 
     // Check if Socket.IO is available
-    if (typeof io === 'undefined') {
+    if (typeof window.io === 'undefined') {
       warn('Socket.IO library not loaded');
       return null;
     }
@@ -136,7 +136,7 @@
     // Create new socket connection
     log('Creating new socket connection');
     try {
-      socket = io('/', CONFIG.connection);
+      socket = window.io('/', CONFIG.connection);
 
       // Store globally for other components
       window.socket = socket;
@@ -471,7 +471,7 @@
   // Auto-initialize socket when DOM is ready
   function init() {
     // Only initialize if Socket.IO is available
-    if (typeof io !== 'undefined') {
+    if (typeof window.io !== 'undefined') {
       getSocket();
       log('Socket manager initialized');
     } else {

@@ -198,7 +198,7 @@ class DraftSystemV2 {
             }
 
             console.log('🔌 [Draft] Creating new socket connection (fallback)');
-            this.socket = io('/', {
+            this.socket = window.io('/', {
                 transports: ['polling', 'websocket'],
                 upgrade: true,
                 timeout: 10000,
@@ -384,7 +384,7 @@ class DraftSystemV2 {
             }
 
             // Try with minimal configuration on default namespace
-            this.socket = io('/', {
+            this.socket = window.io('/', {
                 transports: ['polling'], // Only polling
                 upgrade: false,
                 timeout: 10000,

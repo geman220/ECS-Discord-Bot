@@ -74,10 +74,10 @@ class PitchViewSystem {
             }
 
             // Fallback: Direct socket if SocketManager not available
-            if (typeof io === 'undefined') return;
+            if (typeof window.io === 'undefined') return;
 
             console.log('🏟️ [PitchView] SocketManager not available, using direct socket');
-            this.socket = window.socket || io('/', {
+            this.socket = window.socket || window.io('/', {
                 transports: ['polling', 'websocket'],
                 upgrade: true,
                 timeout: 10000,

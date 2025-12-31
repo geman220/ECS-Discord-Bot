@@ -40,8 +40,8 @@ window.EventDelegation.register('refresh-all-discord-status', function(element, 
         showCancelButton: true,
         confirmButtonText: 'Yes, refresh all',
         cancelButtonText: 'Cancel',
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success') : '#28c76f',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#ea5455'
+        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success') : '#28c76f',
+        cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#ea5455'
     }).then((result) => {
         if (result.isConfirmed) {
             // Show loading state
@@ -79,7 +79,7 @@ window.EventDelegation.register('refresh-all-discord-status', function(element, 
                     icon: 'error',
                     title: 'Error',
                     text: 'Failed to refresh status: ' + error.message,
-                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#ea5455'
+                    confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#ea5455'
                 });
             }).finally(() => {
                 btn.innerHTML = originalText;
@@ -110,8 +110,8 @@ window.EventDelegation.register('refresh-unknown-discord-status', function(eleme
         showCancelButton: true,
         confirmButtonText: 'Yes, check unknown',
         cancelButtonText: 'Cancel',
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? window.ECSTheme.getColor('warning') : '#ffab00',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#ea5455'
+        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('warning') : '#ffab00',
+        cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#ea5455'
     }).then((result) => {
         if (result.isConfirmed) {
             // Show loading state
@@ -149,7 +149,7 @@ window.EventDelegation.register('refresh-unknown-discord-status', function(eleme
                     icon: 'error',
                     title: 'Error',
                     text: 'Failed to check unknown status: ' + error.message,
-                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#ea5455'
+                    confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#ea5455'
                 });
             }).finally(() => {
                 btn.innerHTML = originalText;
@@ -213,7 +213,7 @@ window.EventDelegation.register('refresh-player-status', function(element, e) {
                 icon: 'error',
                 title: 'Error',
                 text: 'Failed to refresh status: ' + error.message,
-                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#ea5455'
+                confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#ea5455'
             });
         } else {
             console.error('[refresh-player-status] Error:', error);
@@ -286,7 +286,7 @@ window.EventDelegation.register('submit-discord-dm', function(element, e) {
                 icon: 'warning',
                 title: 'Message Required',
                 text: 'Please enter a message before sending',
-                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? window.ECSTheme.getColor('warning') : '#ffab00'
+                confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('warning') : '#ffab00'
             });
         }
         return;
@@ -336,7 +336,7 @@ window.EventDelegation.register('submit-discord-dm', function(element, e) {
                 icon: 'error',
                 title: 'Error',
                 text: 'Failed to send Discord message: ' + error.message,
-                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#ea5455'
+                confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#ea5455'
             });
         } else {
             console.error('[submit-discord-dm] Error:', error);

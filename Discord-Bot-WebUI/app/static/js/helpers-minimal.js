@@ -332,7 +332,7 @@
         // *******************************************************************************
 
         initNavbarDropdownScrollbar: function() {
-            if (typeof PerfectScrollbar === 'undefined') return;
+            if (typeof window.PerfectScrollbar === 'undefined') return;
 
             document.querySelectorAll('.navbar-dropdown .scrollable-container').forEach(el => {
                 new PerfectScrollbar(el, { wheelPropagation: false, suppressScrollX: true });

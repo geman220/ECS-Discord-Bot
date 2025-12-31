@@ -42,7 +42,7 @@
 
     // Show profile verification modal
     function showProfileModal() {
-        if (typeof ModalManager !== 'undefined') {
+        if (typeof window.ModalManager !== 'undefined') {
             window.ModalManager.show('profileModal');
         }
     }

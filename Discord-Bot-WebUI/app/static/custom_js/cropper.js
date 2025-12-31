@@ -43,12 +43,12 @@
             }
 
             // Check if Cropper is available
-            if (typeof Cropper === 'undefined') {
+            if (typeof window.Cropper === 'undefined') {
                 console.error('Cropper.js library not loaded');
                 return;
             }
 
-            cropper = new Cropper(imageElement, {
+            cropper = new window.Cropper(imageElement, {
                 viewMode: 1,
                 aspectRatio: ratio,
                 dragMode: 'move',

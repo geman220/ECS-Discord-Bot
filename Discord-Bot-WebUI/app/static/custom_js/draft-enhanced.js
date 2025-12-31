@@ -96,10 +96,10 @@ function setupDraftEnhancedSocket() {
     }
 
     // Fallback: Direct socket if SocketManager not available
-    if (typeof io === 'undefined') return;
+    if (typeof window.io === 'undefined') return;
 
     console.log('[DraftEnhanced] SocketManager not available, using direct socket');
-    const socket = window.socket || io('/', {
+    const socket = window.socket || window.io('/', {
         transports: ['polling', 'websocket'],
         upgrade: true,
         withCredentials: true

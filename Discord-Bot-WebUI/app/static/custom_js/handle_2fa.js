@@ -30,7 +30,7 @@
                             modal.setAttribute('data-secret', data.secret);
                         }
                         // Use ModalManager for safe modal handling
-                        if (typeof ModalManager !== 'undefined') {
+                        if (typeof window.ModalManager !== 'undefined') {
                             window.ModalManager.show('enable2FAModal');
                         }
                     });

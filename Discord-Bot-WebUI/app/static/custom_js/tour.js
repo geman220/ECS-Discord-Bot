@@ -11,14 +11,14 @@
     if (_initialized) return;
 
     // Guard: Check if Shepherd is loaded before using it
-    if (typeof Shepherd === 'undefined') {
+    if (typeof window.Shepherd === 'undefined') {
       console.warn('[Tour] Shepherd library not loaded, skipping tour initialization');
       return;
     }
 
     _initialized = true;
 
-    const tourVar = new Shepherd.Tour({
+    const tourVar = new window.Shepherd.Tour({
       defaultStepOptions: {
         scrollTo: true,
         cancelIcon: {

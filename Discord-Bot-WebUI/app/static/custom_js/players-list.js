@@ -369,8 +369,8 @@
    * Initialize Feather icons
    */
   function initializeFeatherIcons() {
-    if (typeof feather !== 'undefined') {
-      feather.replace();
+    if (typeof window.feather !== 'undefined') {
+      window.feather.replace();
     }
   }
 

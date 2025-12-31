@@ -78,8 +78,8 @@ function ecsFcInitializeEventHandlers() {
     });
 
     // Real-time updates via WebSocket
-    if (typeof io !== 'undefined') {
-        const socket = io();
+    if (typeof window.io !== 'undefined') {
+        const socket = window.io();
         socket.on('rsvp_update', handleRsvpUpdate);
         socket.on('match_update', handleMatchUpdate);
     }

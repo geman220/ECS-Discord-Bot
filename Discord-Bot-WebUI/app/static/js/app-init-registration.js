@@ -348,7 +348,7 @@
             }
 
             setTimeout(() => {
-                DiscordMembershipChecker.showJoinPrompt({
+                window.DiscordMembershipChecker.showJoinPrompt({
                     title: '💡 Pro Tip: Join Discord First!',
                     urgency: 'info',
                     showUrgentPopup: true

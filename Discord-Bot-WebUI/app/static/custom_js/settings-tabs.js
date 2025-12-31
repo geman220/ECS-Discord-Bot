@@ -177,23 +177,23 @@
 
     // Register with InitSystem (primary)
     if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('settings-tabs', () => SettingsTabs.init(), {
+        window.InitSystem.register('settings-tabs', () => window.SettingsTabs.init(), {
             priority: 50,
             reinitializable: true,
             description: 'Settings page tab controller'
         });
     }
 
+    // Expose globally (MUST be before any callbacks)
+    window.SettingsTabs = SettingsTabs;
+
     // Fallback
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => SettingsTabs.init());
+        document.addEventListener('DOMContentLoaded', () => window.SettingsTabs.init());
     } else {
-        SettingsTabs.init();
+        window.SettingsTabs.init();
     }
 
     // Handle hash changes
-    window.addEventListener('hashchange', () => SettingsTabs.handleHash());
-
-    // Expose globally
-    window.SettingsTabs = SettingsTabs;
+    window.addEventListener('hashchange', () => window.SettingsTabs.handleHash());
 })();

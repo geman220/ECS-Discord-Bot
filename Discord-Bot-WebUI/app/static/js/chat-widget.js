@@ -952,7 +952,7 @@
     }
 
     // Fallback: Check if Socket.IO is available
-    if (typeof io === 'undefined') {
+    if (typeof window.io === 'undefined') {
       console.warn('[ChatWidget] Socket.IO not available, using polling');
       if (CONFIG.polling.enabled) {
         setInterval(loadUnreadCount, CONFIG.polling.interval);

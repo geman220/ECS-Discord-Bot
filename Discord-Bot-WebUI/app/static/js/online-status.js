@@ -149,7 +149,7 @@
      */
     setupWebSocketListeners() {
       // Check if Socket.IO is available
-      if (typeof io === 'undefined') return;
+      if (typeof window.io === 'undefined') return;
 
       // Try to get existing socket or wait for it
       const checkSocket = () => {

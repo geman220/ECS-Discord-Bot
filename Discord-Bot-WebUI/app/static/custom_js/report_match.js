@@ -284,9 +284,9 @@ window.addEvent = function(matchId, containerId, statId = null, playerId = null,
     }
 
     // Re-initialize Feather icons if necessary
-    if (typeof feather !== 'undefined' && feather) {
-        if (typeof feather !== 'undefined') {
-            feather.replace();
+    if (typeof window.feather !== 'undefined' && feather) {
+        if (typeof window.feather !== 'undefined') {
+            window.feather.replace();
         }
     }
 };
@@ -706,9 +706,9 @@ function createDynamicModal(matchId, data) {
     const modal = document.getElementById(`reportMatchModal-${matchId}`);
     if (modal) {
         // Initialize feather icons if available
-        if (typeof feather !== 'undefined') {
-            if (typeof feather !== 'undefined') {
-            feather.replace();
+        if (typeof window.feather !== 'undefined') {
+            if (typeof window.feather !== 'undefined') {
+            window.feather.replace();
         }
         }
         
@@ -789,9 +789,9 @@ function populateModal(modal, data) {
         modalTitle.innerHTML = `<i data-feather="edit" class="me-2"></i>${reportType} Match: ${homeTeamName} vs ${awayTeamName}`;
         
         // Re-initialize Feather icons if available
-        if (typeof feather !== 'undefined') {
-            if (typeof feather !== 'undefined') {
-            feather.replace();
+        if (typeof window.feather !== 'undefined') {
+            if (typeof window.feather !== 'undefined') {
+            window.feather.replace();
         }
         }
     }
@@ -1529,9 +1529,9 @@ window.addOwnGoalEvent = function(matchId, containerId, statId = null, teamId = 
     $(containerSelector).append(newInputGroup);
 
     // Re-initialize Feather icons if necessary
-    if (typeof feather !== 'undefined' && feather) {
-        if (typeof feather !== 'undefined') {
-            feather.replace();
+    if (typeof window.feather !== 'undefined' && feather) {
+        if (typeof window.feather !== 'undefined') {
+            window.feather.replace();
         }
     }
 };

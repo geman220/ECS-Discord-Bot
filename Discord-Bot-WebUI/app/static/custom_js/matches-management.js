@@ -97,7 +97,7 @@
    * Initialize Flatpickr date pickers
    */
   function initializeDatePickers() {
-    if (typeof flatpickr !== 'undefined') {
+    if (typeof window.flatpickr !== 'undefined') {
       flatpickr('.flatpickr', {
         enableTime: true,
         dateFormat: "Y-m-d H:i",
@@ -128,7 +128,7 @@
     dateCell.innerHTML = `<input type="text" id="edit-date-${matchId}" class="form-control flatpickr" value="${dateCell.textContent.trim()}" data-form-control>`;
 
     // Re-initialize Flatpickr for the new input
-    if (typeof flatpickr !== 'undefined') {
+    if (typeof window.flatpickr !== 'undefined') {
       flatpickr(`#edit-date-${matchId}`, {
         enableTime: true,
         dateFormat: "Y-m-d H:i",

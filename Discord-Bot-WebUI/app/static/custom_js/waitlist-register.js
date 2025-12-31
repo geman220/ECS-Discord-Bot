@@ -28,9 +28,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize Discord membership checker for registration page
     // Show a more gentle prompt since they're already on the waitlist registration page
-    if (typeof DiscordMembershipChecker !== 'undefined') {
+    if (typeof window.DiscordMembershipChecker !== 'undefined') {
         setTimeout(() => {
-            DiscordMembershipChecker.showJoinPrompt({
+            window.DiscordMembershipChecker.showJoinPrompt({
                 title: '💡 Pro Tip: Join Discord First!',
                 urgency: 'info',
                 showUrgentPopup: true

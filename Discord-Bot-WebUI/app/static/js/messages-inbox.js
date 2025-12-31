@@ -173,10 +173,10 @@
     }
 
     // Fallback: Direct socket if SocketManager not available
-    if (typeof io === 'undefined') return;
+    if (typeof window.io === 'undefined') return;
 
     console.log('[MessagesInbox] SocketManager not available, using direct socket');
-    socket = window.socket || io({
+    socket = window.socket || window.io({
       transports: ['polling', 'websocket'],
       upgrade: true,
       withCredentials: true

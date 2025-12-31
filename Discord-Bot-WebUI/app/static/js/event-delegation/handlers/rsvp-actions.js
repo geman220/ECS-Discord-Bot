@@ -293,7 +293,7 @@ function updateRSVPStatus(playerId, matchId, response) {
         showCancelButton: true,
         confirmButtonText: 'Yes, update it',
         cancelButtonText: 'Cancel',
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? window.ECSTheme.getColor('primary') : '#0d6efd',
+        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('primary') : '#0d6efd',
         customClass: {
             confirmButton: 'swal-btn-confirm',
             cancelButton: 'swal-btn-cancel'

@@ -151,7 +151,7 @@
      * Setup WebSocket connection
      */
     setupWebSocket() {
-      if (typeof io === 'undefined') return;
+      if (typeof window.io === 'undefined') return;
 
       const checkSocket = () => {
         if (window.socket && window.socket.connected) {

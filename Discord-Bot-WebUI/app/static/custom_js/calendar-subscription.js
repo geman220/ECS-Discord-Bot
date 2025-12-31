@@ -349,7 +349,7 @@ window.CalendarSubscription = window.CalendarSubscription || (function() {
 function initCalendarSubscription() {
     // Check if we're on the settings page with the subscription card
     if (document.getElementById('calendarSubscriptionCard')) {
-        CalendarSubscription.init();
+        window.CalendarSubscription.init();
     }
 }
 
@@ -371,8 +371,5 @@ if (document.readyState === 'loading') {
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = CalendarSubscription;
+    module.exports = window.CalendarSubscription;
 }
-
-// Export to window for ES module compatibility
-window.CalendarSubscription = CalendarSubscription;

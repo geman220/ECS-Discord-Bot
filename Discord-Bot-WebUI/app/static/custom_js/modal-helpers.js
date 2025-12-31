@@ -139,7 +139,7 @@
             }
 
             // Use ModalManager if available
-            if (typeof ModalManager !== 'undefined') {
+            if (typeof window.ModalManager !== 'undefined') {
                 return window.ModalManager.getInstance(modalElement.id);
             }
 
@@ -167,7 +167,7 @@
                         console.log('[Modal Helpers] Modals loaded dynamically');
 
                         // Reinitialize ModalManager if available
-                        if (typeof ModalManager !== 'undefined') {
+                        if (typeof window.ModalManager !== 'undefined') {
                             window.ModalManager.reinit();
                         }
 

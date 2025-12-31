@@ -13,8 +13,8 @@
         _initialized = true;
 
         // Initialize Feather Icons for dynamically added elements
-        if (typeof feather !== 'undefined') {
-            feather.replace();
+        if (typeof window.feather !== 'undefined') {
+            window.feather.replace();
         }
 
         // Event delegation for Edit buttons

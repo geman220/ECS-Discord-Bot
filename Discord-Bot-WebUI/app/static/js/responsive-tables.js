@@ -170,14 +170,14 @@
           drawCallback: function() {
             // Ensure mobile card processing on DataTables
             if (this.hasClass('mobile-card-table')) {
-              ResponsiveTables.processTable(this[0]);
+              window.ResponsiveTables.processTable(this[0]);
             }
           }
         });
-        
+
         // Process any existing DataTables
         $('.dataTable.mobile-card-table').each(function() {
-          ResponsiveTables.processTable(this);
+          window.ResponsiveTables.processTable(this);
         });
       }
     },
@@ -230,7 +230,7 @@
   // Register with InitSystem if available
   if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
     window.InitSystem.register('responsive-tables', function() {
-      ResponsiveTables.init();
+      window.ResponsiveTables.init();
     }, {
       priority: 60,
       description: 'Responsive table system (card view on mobile, data-labels)',
@@ -239,7 +239,7 @@
   } else {
     // Fallback: Initialize when document is ready
     document.addEventListener('DOMContentLoaded', function() {
-      ResponsiveTables.init();
+      window.ResponsiveTables.init();
     });
   }
 })();

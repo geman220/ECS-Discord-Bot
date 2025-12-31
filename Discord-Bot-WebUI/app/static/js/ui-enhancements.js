@@ -21,14 +21,14 @@
 
     /**
      * Initialize Feather Icons
-     * Re-runs feather.replace() to ensure all icons are rendered
+     * Re-runs window.feather.replace() to ensure all icons are rendered
      * REFACTORED: Uses UnifiedMutationObserver instead of separate observer
      */
     function initFeatherIcons() {
-        if (typeof feather === 'undefined') return;
+        if (typeof window.feather === 'undefined') return;
 
         // Initial replace
-        feather.replace();
+        window.feather.replace();
 
         // Only register handler once
         if (featherHandlerRegistered) return;
@@ -46,8 +46,8 @@
                             hasNewIcons = true;
                         }
                     });
-                    if (hasNewIcons && typeof feather !== 'undefined') {
-                        feather.replace();
+                    if (hasNewIcons && typeof window.feather !== 'undefined') {
+                        window.feather.replace();
                     }
                 },
                 filter: function(node) {

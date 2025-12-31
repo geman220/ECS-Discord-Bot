@@ -1122,7 +1122,7 @@ class ModernNavbarController {
    */
   initPresence() {
     // Initialize WebSocket connection for presence if socket.io is available
-    if (typeof io !== 'undefined') {
+    if (typeof window.io !== 'undefined') {
       this.initPresenceSocket();
     } else {
       // Fall back to API-only presence checking
@@ -1205,7 +1205,7 @@ class ModernNavbarController {
     // Fallback: Create new socket connection for presence
     try {
       console.log('[Navbar] Creating new socket connection (fallback)');
-      this.presenceSocket = io('/', {
+      this.presenceSocket = window.io('/', {
         transports: ['polling', 'websocket'],
         upgrade: true,
         reconnection: true,
