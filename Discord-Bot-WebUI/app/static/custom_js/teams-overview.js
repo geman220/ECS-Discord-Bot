@@ -6,6 +6,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 
     const TeamsOverview = {
@@ -46,8 +47,8 @@ let _initialized = false;
     };
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('teams-overview', () => TeamsOverview.init(), {
+    if (true && InitSystem.register) {
+        InitSystem.register('teams-overview', () => TeamsOverview.init(), {
             priority: 35,
             reinitializable: true,
             description: 'Teams overview page functionality'

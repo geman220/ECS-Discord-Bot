@@ -1,8 +1,10 @@
+import { EventDelegation } from '../../event-delegation/core.js';
+
 /**
  * Substitute Pool Action Handlers
  * Handles substitute pool management and player assignments
  */
-// Uses global window.EventDelegation from core.js
+// Uses global EventDelegation from core.js
 
 // SUBSTITUTE POOL MANAGEMENT ACTIONS
 // ============================================================================
@@ -11,7 +13,7 @@
  * Approve Pool Player Action
  * Adds a pending player to the active substitute pool
  */
-window.EventDelegation.register('approve-pool-player', function(element, e) {
+EventDelegation.register('approve-pool-player', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -34,7 +36,7 @@ window.EventDelegation.register('approve-pool-player', function(element, e) {
  * Removes a player from the active substitute pool
  * Supports both pool management (with league) and pool detail (with playerName) contexts
  */
-window.EventDelegation.register('remove-pool-player', function(element, e) {
+EventDelegation.register('remove-pool-player', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -63,7 +65,7 @@ window.EventDelegation.register('remove-pool-player', function(element, e) {
  * Edit Pool Preferences Action
  * Opens modal to edit player's substitute pool preferences
  */
-window.EventDelegation.register('edit-pool-preferences', function(element, e) {
+EventDelegation.register('edit-pool-preferences', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -85,7 +87,7 @@ window.EventDelegation.register('edit-pool-preferences', function(element, e) {
  * View Pool Player Details Action
  * Opens modal with detailed player information
  */
-window.EventDelegation.register('view-pool-player-details', function(element, e) {
+EventDelegation.register('view-pool-player-details', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -106,7 +108,7 @@ window.EventDelegation.register('view-pool-player-details', function(element, e)
  * Add Player to League Action
  * Adds a player to a specific league's substitute pool (from search results)
  */
-window.EventDelegation.register('add-player-to-league', function(element, e) {
+EventDelegation.register('add-player-to-league', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -128,7 +130,7 @@ window.EventDelegation.register('add-player-to-league', function(element, e) {
  * Toggle Pool View Action
  * Switches between grid and list view for substitute pool
  */
-window.EventDelegation.register('toggle-pool-view', function(element, e) {
+EventDelegation.register('toggle-pool-view', function(element, e) {
     e.preventDefault();
 
     const view = element.dataset.view;
@@ -162,7 +164,7 @@ window.EventDelegation.register('toggle-pool-view', function(element, e) {
  * Filter Pool Action (triggered by input event)
  * Filters player cards by search text
  */
-window.EventDelegation.register('filter-pool', function(element, e) {
+EventDelegation.register('filter-pool', function(element, e) {
     const filterText = element.value.toLowerCase().trim();
     const league = element.dataset.league;
     const section = element.dataset.section;
@@ -193,7 +195,7 @@ window.EventDelegation.register('filter-pool', function(element, e) {
  * Manage League Pool Action
  * Opens modal for league-specific pool management
  */
-window.EventDelegation.register('manage-league-pool', function(element, e) {
+EventDelegation.register('manage-league-pool', function(element, e) {
     e.preventDefault();
 
     const league = element.dataset.league;
@@ -214,7 +216,7 @@ window.EventDelegation.register('manage-league-pool', function(element, e) {
  * Save Pool Preferences Action
  * Saves edited preferences for a substitute pool player
  */
-window.EventDelegation.register('save-pool-preferences', function(element, e) {
+EventDelegation.register('save-pool-preferences', function(element, e) {
     e.preventDefault();
 
     if (typeof savePreferences === 'function') {
@@ -228,7 +230,7 @@ window.EventDelegation.register('save-pool-preferences', function(element, e) {
  * Pagination Click Handler for Pool Pages
  * Handles page navigation for substitute pool pagination
  */
-window.EventDelegation.register('pool-pagination', function(element, e) {
+EventDelegation.register('pool-pagination', function(element, e) {
     e.preventDefault();
 
     const page = parseInt(element.dataset.page);
@@ -256,7 +258,7 @@ window.EventDelegation.register('pool-pagination', function(element, e) {
  * Add to Pool Action (Admin Panel variant)
  * Adds a player to substitute pool (admin panel version)
  */
-window.EventDelegation.register('add-to-pool', async function(element, e) {
+EventDelegation.register('add-to-pool', async function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -278,7 +280,7 @@ window.EventDelegation.register('add-to-pool', async function(element, e) {
  * Reject Player Action (Admin Panel)
  * Rejects a player from being added to substitute pool
  */
-window.EventDelegation.register('reject-player', async function(element, e) {
+EventDelegation.register('reject-player', async function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -304,7 +306,7 @@ window.EventDelegation.register('reject-player', async function(element, e) {
  * Load Stats Action (Admin Panel)
  * Opens statistics modal for substitute pool
  */
-window.EventDelegation.register('load-stats', async function(element, e) {
+EventDelegation.register('load-stats', async function(element, e) {
     e.preventDefault();
 
     if (typeof loadStatistics === 'function') {
@@ -318,7 +320,7 @@ window.EventDelegation.register('load-stats', async function(element, e) {
  * Add Player Action (Admin Panel)
  * Opens modal to add player to substitute pool
  */
-window.EventDelegation.register('add-player', function(element, e) {
+EventDelegation.register('add-player', function(element, e) {
     e.preventDefault();
 
     if (typeof showAddPlayerModal === 'function') {
@@ -334,7 +336,7 @@ window.EventDelegation.register('add-player', function(element, e) {
  * Refresh Pools Action
  * Refreshes all substitute pools
  */
-window.EventDelegation.register('refresh-pools', function(element, e) {
+EventDelegation.register('refresh-pools', function(element, e) {
     e.preventDefault();
     if (typeof window.refreshPools === 'function') {
         window.refreshPools();

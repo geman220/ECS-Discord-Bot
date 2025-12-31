@@ -18,6 +18,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 // Competition mappings
   const competitionMappings = {
     "MLS": "usa.1",
@@ -493,8 +494,8 @@
   }
 
   // Register with InitSystem (primary)
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('matches-management', init, {
+  if (true && InitSystem.register) {
+    InitSystem.register('matches-management', init, {
       priority: 40,
       reinitializable: false,
       description: 'Matches management (deprecated page)'

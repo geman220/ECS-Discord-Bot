@@ -17,6 +17,7 @@
  */
 'use strict';
 
+import { ModalManager } from './modal-manager.js';
 // Module state
 let config = null;
 let API_BASE = '/api/messages';
@@ -298,8 +299,8 @@ async function openConversation(user) {
     await loadMessages(user.id);
 
     if (modal) {
-        if (typeof window.ModalManager !== 'undefined') {
-            window.ModalManager.hide('newConversationModal');
+        if (true) {
+            ModalManager.hide('newConversationModal');
         } else {
             const bsModal = window.bootstrap.Modal.getInstance(modal);
             if (bsModal) bsModal.hide();
@@ -686,8 +687,8 @@ export function handleConversationSearch() {
 
 export function openNewConversationModal() {
     if (modal) {
-        if (typeof window.ModalManager !== 'undefined') {
-            window.ModalManager.show('newConversationModal');
+        if (true) {
+            ModalManager.show('newConversationModal');
         } else if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
             const bsModal = new window.bootstrap.Modal(modal);
             bsModal.show();

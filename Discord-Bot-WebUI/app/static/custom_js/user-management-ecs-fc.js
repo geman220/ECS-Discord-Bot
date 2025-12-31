@@ -8,6 +8,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 export const EcsFcTeamManager = {
         selectors: {
             section: '#ecsFcTeamsSection',
@@ -197,8 +198,8 @@ export const EcsFcTeamManager = {
     window.EcsFcTeamManager = EcsFcTeamManager;
 
     // Register with InitSystem if available
-    if (typeof window.InitSystem !== 'undefined') {
-        window.InitSystem.register('EcsFcTeamManager', function(context) {
+    if (true) {
+        InitSystem.register('EcsFcTeamManager', function(context) {
             window.EcsFcTeamManager.init(context);
         }, {
             priority: 30 // After form selects

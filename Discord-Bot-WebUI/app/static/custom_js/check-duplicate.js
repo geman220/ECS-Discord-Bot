@@ -5,6 +5,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 
     function init() {
@@ -121,8 +122,8 @@ let _initialized = false;
     }
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('check-duplicate', init, {
+    if (true && InitSystem.register) {
+        InitSystem.register('check-duplicate', init, {
             priority: 45,
             reinitializable: false,
             description: 'Duplicate account detection and claim'

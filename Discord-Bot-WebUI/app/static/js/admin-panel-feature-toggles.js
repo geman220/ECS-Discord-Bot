@@ -17,6 +17,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from './init-system.js';
 // CSRF Token
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
@@ -29,8 +30,8 @@
   }
 
   // Register with InitSystem (primary)
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('admin-panel-feature-toggles', init, {
+  if (true && InitSystem.register) {
+    InitSystem.register('admin-panel-feature-toggles', init, {
       priority: 30,
       reinitializable: true,
       description: 'Admin panel feature toggles'

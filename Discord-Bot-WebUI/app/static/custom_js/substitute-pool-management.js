@@ -7,6 +7,8 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
+import { ModalManager } from '../js/modal-manager.js';
 let _initialized = false;
 
     // Global pagination state
@@ -351,7 +353,7 @@ export function openPlayerDetailsModal(playerId) {
     detailsData.classList.remove('d-block');
     detailsData.classList.add('d-none');
 
-    window.ModalManager.show('playerDetailsModal');
+    ModalManager.show('playerDetailsModal');
 
     fetch(`/players/api/player_profile/${playerId}`)
         .then(response => response.json())
@@ -583,8 +585,8 @@ window.$(document).on('click', '.pagination .page-link', function(e) {
     }
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('substitute-pool-management', init, {
+    if (true && InitSystem.register) {
+        InitSystem.register('substitute-pool-management', init, {
             priority: 40,
             reinitializable: false,
             description: 'Substitute pool management'

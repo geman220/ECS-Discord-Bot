@@ -25,6 +25,8 @@
 // ES Module
 'use strict';
 
+import { EventDelegation } from '../event-delegation/core.js';
+import { ModalManager } from '../modal-manager.js';
 // ========================================================================
     // VIEW TEMPLATE
     // ========================================================================
@@ -45,7 +47,7 @@
         // Show modal
         const modalEl = document.getElementById('viewTemplateModal');
         if (modalEl) {
-            window.ModalManager.show('viewTemplateModal');
+            ModalManager.show('viewTemplateModal');
         }
     }
 
@@ -84,7 +86,7 @@
         // Show edit modal
         const modalEl = document.getElementById('editTemplateModal');
         if (modalEl) {
-            window.ModalManager.show('editTemplateModal');
+            ModalManager.show('editTemplateModal');
         }
     }
 
@@ -335,11 +337,11 @@
     // ========================================================================
     // Handlers registered when IIFE executes, ensuring EventDelegation is available
 
-    window.EventDelegation.register('go-back-templates', handleGoBack, { preventDefault: true });
-    window.EventDelegation.register('view-template', handleViewTemplate, { preventDefault: true });
-    window.EventDelegation.register('edit-template', handleEditTemplate, { preventDefault: true });
-    window.EventDelegation.register('toggle-template', handleToggleTemplate, { preventDefault: true });
-    window.EventDelegation.register('delete-template', handleDeleteTemplate, { preventDefault: true });
+    EventDelegation.register('go-back-templates', handleGoBack, { preventDefault: true });
+    EventDelegation.register('view-template', handleViewTemplate, { preventDefault: true });
+    EventDelegation.register('edit-template', handleEditTemplate, { preventDefault: true });
+    EventDelegation.register('toggle-template', handleToggleTemplate, { preventDefault: true });
+    EventDelegation.register('delete-template', handleDeleteTemplate, { preventDefault: true });
 
     // ========================================================================
     // DOM READY

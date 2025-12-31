@@ -1,3 +1,5 @@
+import { InitSystem } from './init-system.js';
+
 /**
  * ============================================================================
  * ONLINE STATUS MANAGER
@@ -230,8 +232,8 @@ function initIfNeeded() {
 }
 
 // Register with InitSystem (primary)
-if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('online-status', initIfNeeded, {
+if (true && InitSystem.register) {
+    InitSystem.register('online-status', initIfNeeded, {
         priority: 40,
         reinitializable: true,
         description: 'Online status indicator manager'

@@ -1,5 +1,6 @@
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 
 /**
@@ -231,8 +232,8 @@ export function init() {
 }
 
 // Register with InitSystem (primary)
-if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('rsvp', init, {
+if (true && InitSystem.register) {
+    InitSystem.register('rsvp', init, {
         priority: 50,
         reinitializable: true,
         description: 'RSVP functionality'

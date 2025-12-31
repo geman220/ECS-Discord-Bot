@@ -10,6 +10,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 export const SettingsTabs = {
         SELECTORS: {
             CONTAINER: '[data-tabs]',
@@ -175,8 +176,8 @@ export const SettingsTabs = {
     };
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('settings-tabs', () => window.SettingsTabs.init(), {
+    if (true && InitSystem.register) {
+        InitSystem.register('settings-tabs', () => window.SettingsTabs.init(), {
             priority: 50,
             reinitializable: true,
             description: 'Settings page tab controller'

@@ -1,3 +1,5 @@
+import { InitSystem } from '../js/init-system.js';
+
 /**
  * Discord Membership Detection and Prompt System
  * 
@@ -306,8 +308,8 @@ export function initDiscordChecker() {
 }
 
 // Register with InitSystem (primary)
-if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('discord-membership-check', initDiscordChecker, {
+if (true && InitSystem.register) {
+    InitSystem.register('discord-membership-check', initDiscordChecker, {
         priority: 45,
         reinitializable: false,
         description: 'Discord membership checker and join prompts'

@@ -1,3 +1,6 @@
+import { InitSystem } from './init-system.js';
+import { EventDelegation } from './event-delegation/core.js';
+
 /**
  * ============================================================================
  * ADMIN NAVIGATION CONTROLLER
@@ -270,8 +273,8 @@ export class AdminNavigationController {
   /**
    * Register with InitSystem (primary)
    */
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('admin-navigation', initAdminNavigation, {
+  if (true && InitSystem.register) {
+    InitSystem.register('admin-navigation', initAdminNavigation, {
       priority: 70,
       reinitializable: true,
       description: 'Admin panel navigation controller'
@@ -314,22 +317,22 @@ export class AdminNavigationController {
     return nav ? nav.adminNavController : null;
   }
 
-  // MUST use window.EventDelegation to avoid TDZ errors in bundled code
-  window.EventDelegation.register('toggle-admin-dropdown', (element, e) => {
+  // MUST use EventDelegation to avoid TDZ errors in bundled code
+  EventDelegation.register('toggle-admin-dropdown', (element, e) => {
     const controller = getController(element);
     if (controller) {
       controller.toggleDropdown(element);
     }
   }, { preventDefault: true });
 
-  window.EventDelegation.register('admin-navigate', (element, e) => {
+  EventDelegation.register('admin-navigate', (element, e) => {
     const controller = getController(element);
     if (controller) {
       controller.handleNavigation(element, e);
     }
   }, { preventDefault: false });
 
-  window.EventDelegation.register('close-admin-dropdown', (element, e) => {
+  EventDelegation.register('close-admin-dropdown', (element, e) => {
     const controller = getController(element);
     if (controller) {
       controller.closeDropdown(element);

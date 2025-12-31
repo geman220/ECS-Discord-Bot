@@ -5,6 +5,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 
     function init() {
@@ -208,8 +209,8 @@ let _initialized = false;
     window.removeMatchStat = removeMatchStat;
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('match-stats', init, {
+    if (true && InitSystem.register) {
+        InitSystem.register('match-stats', init, {
             priority: 40,
             reinitializable: false,
             description: 'Match stats management'

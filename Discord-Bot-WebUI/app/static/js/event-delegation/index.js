@@ -1,3 +1,5 @@
+import { EventDelegation } from '../event-delegation/core.js';
+
 /**
  * ============================================================================
  * EVENT DELEGATION SYSTEM - MAIN ENTRY
@@ -12,12 +14,12 @@
  * Usage:
  *   import './event-delegation/index.js';
  *
- * The EventDelegation object is available globally via window.EventDelegation
+ * The EventDelegation object is available globally via EventDelegation
  *
  * ============================================================================
  */
 
-// Import core system (sets up window.EventDelegation)
+// Import core system (sets up EventDelegation)
 import './core.js';
 
 // ============================================================================
@@ -52,6 +54,6 @@ import './handlers/message-templates.js';    // Message templates and announceme
 // Onboarding
 import './handlers/onboarding-wizard.js';    // New user onboarding
 
-// EventDelegation is available globally via window.EventDelegation
+// EventDelegation is available globally via EventDelegation
 
 console.log('[EventDelegation] Modular system fully loaded');

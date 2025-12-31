@@ -27,6 +27,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 // ========================================================================
     // CONFIGURATION
     // ========================================================================
@@ -751,8 +752,8 @@
     };
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('player-profile', init, {
+    if (true && InitSystem.register) {
+        InitSystem.register('player-profile', init, {
             priority: 45,
             reinitializable: false,
             description: 'Player profile page functionality'

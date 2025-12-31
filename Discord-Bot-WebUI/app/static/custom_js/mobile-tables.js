@@ -5,6 +5,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 
   function init() {
@@ -40,8 +41,8 @@ let _initialized = false;
   }
 
   // Register with InitSystem (primary)
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('mobile-tables', init, {
+  if (true && InitSystem.register) {
+    InitSystem.register('mobile-tables', init, {
       priority: 40,
       reinitializable: true,
       description: 'Mobile table label injection'

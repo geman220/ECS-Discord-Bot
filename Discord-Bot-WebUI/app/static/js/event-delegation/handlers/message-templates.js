@@ -1,8 +1,10 @@
+import { EventDelegation } from '../../event-delegation/core.js';
+
 /**
  * Message Templates & Categories Action Handlers
  * Handles message template and announcement management
  */
-// Uses global window.EventDelegation from core.js
+// Uses global EventDelegation from core.js
 
 // MESSAGE TEMPLATES ACTIONS
 // ============================================================================
@@ -10,7 +12,7 @@
 /**
  * Create Template
  */
-window.EventDelegation.register('create-template', function(element, e) {
+EventDelegation.register('create-template', function(element, e) {
     e.preventDefault();
     const categoryId = element.dataset.categoryId;
     const categoryName = element.dataset.categoryName;
@@ -28,7 +30,7 @@ window.EventDelegation.register('create-template', function(element, e) {
 /**
  * Create Announcement
  */
-window.EventDelegation.register('create-announcement', function(element, e) {
+EventDelegation.register('create-announcement', function(element, e) {
     e.preventDefault();
     if (typeof window.createAnnouncement === 'function') {
         window.createAnnouncement();
@@ -40,7 +42,7 @@ window.EventDelegation.register('create-announcement', function(element, e) {
 /**
  * Edit Announcement
  */
-window.EventDelegation.register('edit-announcement', function(element, e) {
+EventDelegation.register('edit-announcement', function(element, e) {
     e.preventDefault();
     const announcementId = element.dataset.announcementId;
     if (!announcementId) {
@@ -57,7 +59,7 @@ window.EventDelegation.register('edit-announcement', function(element, e) {
 /**
  * Delete Announcement
  */
-window.EventDelegation.register('delete-announcement', function(element, e) {
+EventDelegation.register('delete-announcement', function(element, e) {
     e.preventDefault();
     const announcementId = element.dataset.announcementId;
     if (!announcementId) {
@@ -74,7 +76,7 @@ window.EventDelegation.register('delete-announcement', function(element, e) {
 /**
  * Preview Message
  */
-window.EventDelegation.register('preview-message', function(element, e) {
+EventDelegation.register('preview-message', function(element, e) {
     e.preventDefault();
     if (typeof window.previewMessage === 'function') {
         window.previewMessage();
@@ -86,7 +88,7 @@ window.EventDelegation.register('preview-message', function(element, e) {
 /**
  * Preview New Template
  */
-window.EventDelegation.register('preview-new-template', function(element, e) {
+EventDelegation.register('preview-new-template', function(element, e) {
     e.preventDefault();
     if (typeof window.previewNewTemplate === 'function') {
         window.previewNewTemplate();

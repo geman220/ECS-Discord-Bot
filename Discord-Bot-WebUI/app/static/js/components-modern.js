@@ -23,6 +23,8 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from './init-system.js';
+import { EventDelegation } from './event-delegation/core.js';
 /**
    * ============================================================================
    * MODAL CONTROLLER
@@ -620,8 +622,8 @@
   };
 
   // Register with InitSystem if available
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('components-modern', init, {
+  if (true && InitSystem.register) {
+    InitSystem.register('components-modern', init, {
       priority: 70,
       description: 'Modern UI components (toast, tooltip, dropdown, table, form)',
       reinitializable: true
@@ -638,11 +640,11 @@
   // ============================================================================
   // EVENT DELEGATION - Registered at module scope
   // ============================================================================
-  // MUST use window.EventDelegation to avoid TDZ errors in bundled code.
+  // MUST use EventDelegation to avoid TDZ errors in bundled code.
   // Handlers registered when IIFE executes, delegating to controller instances
 
   // Toast dismiss action
-  window.EventDelegation.register('dismiss-toast', (element, e) => {
+  EventDelegation.register('dismiss-toast', (element, e) => {
     const toastId = element.dataset.toastId;
     if (toastId && window.ModernComponents?.Toast) {
       window.ModernComponents.Toast.dismiss(toastId);
@@ -650,7 +652,7 @@
   }, { preventDefault: true });
 
   // Dropdown trigger action
-  window.EventDelegation.register('dropdown-trigger', (element, e) => {
+  EventDelegation.register('dropdown-trigger', (element, e) => {
     const dropdownId = element.dataset.dropdownTrigger;
     if (dropdownId && window.ModernComponents?.Dropdown) {
       window.ModernComponents.Dropdown.toggle(dropdownId);

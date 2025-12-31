@@ -1,3 +1,6 @@
+import { InitSystem } from './init-system.js';
+import { EventDelegation } from './event-delegation/core.js';
+
 /**
  * ============================================================================
  * MODERN NAVBAR CONTROLLER - BEM ARCHITECTURE
@@ -1333,8 +1336,8 @@ function initNavbar() {
 }
 
 // Register with InitSystem if available
-if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-  window.InitSystem.register('navbar-modern', initNavbar, {
+if (true && InitSystem.register) {
+  InitSystem.register('navbar-modern', initNavbar, {
     priority: 80,
     description: 'Modern navbar controller (search, dropdowns, mobile menu)',
     reinitializable: false
@@ -1363,10 +1366,10 @@ if (typeof module !== 'undefined' && module.exports) {
 // In individual loading, we wait for DOMContentLoaded when EventDelegation should be ready.
 
 function registerNavbarEventHandlers() {
-  // Safety check - MUST use window.EventDelegation to avoid TDZ errors in bundled code
+  // Safety check - MUST use EventDelegation to avoid TDZ errors in bundled code
   // In Vite/Rollup bundles, bare `EventDelegation` reference can throw ReferenceError
   // if the variable is hoisted but not yet initialized (Temporal Dead Zone)
-  if (typeof window.EventDelegation === 'undefined' || typeof window.EventDelegation.register !== 'function') {
+  if (typeof EventDelegation === 'undefined' || typeof EventDelegation.register !== 'function') {
     console.warn('[Navbar] EventDelegation not available, handlers not registered');
     return;
   }
@@ -1378,14 +1381,14 @@ function registerNavbarEventHandlers() {
   window._navbarHandlersRegistered = true;
 
   // Mobile menu toggle
-  window.EventDelegation.register('toggle-menu', (element, e) => {
+  EventDelegation.register('toggle-menu', (element, e) => {
     if (window.navbarController) {
       window.navbarController.toggleMobileMenu();
     }
   }, { preventDefault: true });
 
   // Dropdown toggles (scoped name to avoid collision with admin nav)
-  window.EventDelegation.register('toggle-navbar-dropdown', (element, e) => {
+  EventDelegation.register('toggle-navbar-dropdown', (element, e) => {
     const dropdownId = element.dataset.dropdown;
     if (dropdownId && window.navbarController) {
       window.navbarController.toggleDropdown(dropdownId);
@@ -1393,7 +1396,7 @@ function registerNavbarEventHandlers() {
   }, { preventDefault: true });
 
   // Theme switcher
-  window.EventDelegation.register('switch-theme', (element, e) => {
+  EventDelegation.register('switch-theme', (element, e) => {
     const theme = element.dataset.theme;
     if (theme && window.navbarController) {
       window.navbarController.switchTheme(theme);
@@ -1401,46 +1404,46 @@ function registerNavbarEventHandlers() {
   }, { preventDefault: true });
 
   // Role impersonation
-  window.EventDelegation.register('start-impersonation', (element, e) => {
+  EventDelegation.register('start-impersonation', (element, e) => {
     if (window.navbarController) {
       window.navbarController.startRoleImpersonation();
     }
   }, { preventDefault: true });
 
-  window.EventDelegation.register('stop-impersonation', (element, e) => {
+  EventDelegation.register('stop-impersonation', (element, e) => {
     if (window.navbarController) {
       window.navbarController.stopRoleImpersonation();
     }
   }, { preventDefault: true });
 
   // Notification actions
-  window.EventDelegation.register('mark-read', (element, e) => {
+  EventDelegation.register('mark-read', (element, e) => {
     const notificationId = element.dataset.notificationId;
     if (notificationId && window.navbarController) {
       window.navbarController.markNotificationRead(notificationId);
     }
   }, { preventDefault: true });
 
-  window.EventDelegation.register('mark-all-read', (element, e) => {
+  EventDelegation.register('mark-all-read', (element, e) => {
     if (window.navbarController) {
       window.navbarController.markAllNotificationsRead();
     }
   }, { preventDefault: true });
 
-  window.EventDelegation.register('clear-all-notifications', (element, e) => {
+  EventDelegation.register('clear-all-notifications', (element, e) => {
     if (window.navbarController) {
       window.navbarController.clearAllNotifications();
     }
   }, { preventDefault: true });
 
-  window.EventDelegation.register('dismiss-notification', (element, e) => {
+  EventDelegation.register('dismiss-notification', (element, e) => {
     const notificationId = element.dataset.notificationId;
     if (notificationId && window.navbarController) {
       window.navbarController.dismissNotification(notificationId);
     }
   }, { preventDefault: true, stopPropagation: true });
 
-  window.EventDelegation.register('expand-notification', (element, e) => {
+  EventDelegation.register('expand-notification', (element, e) => {
     const notificationId = element.dataset.notificationId;
     if (notificationId && window.navbarController) {
       window.navbarController.toggleNotificationExpand(notificationId);
@@ -1448,7 +1451,7 @@ function registerNavbarEventHandlers() {
   }, { preventDefault: true });
 
   // Logout
-  window.EventDelegation.register('logout', (element, e) => {
+  EventDelegation.register('logout', (element, e) => {
     if (window.navbarController) {
       window.navbarController.handleLogout();
     }

@@ -1,8 +1,11 @@
+import { EventDelegation } from '../../event-delegation/core.js';
+import { ModalManager } from '../../modal-manager.js';
+
 /**
  * Discord Management Action Handlers
  * Handles Discord integration and player management
  */
-// Uses global window.EventDelegation from core.js
+// Uses global EventDelegation from core.js
 
 // DISCORD MANAGEMENT ACTIONS
 // ============================================================================
@@ -11,7 +14,7 @@
  * Change Per Page Action (triggered by change event)
  * Updates the number of items displayed per page
  */
-window.EventDelegation.register('change-per-page', function(element, e) {
+EventDelegation.register('change-per-page', function(element, e) {
     const perPage = element.value;
     const url = new URL(window.location);
     url.searchParams.set('per_page', perPage);
@@ -23,7 +26,7 @@ window.EventDelegation.register('change-per-page', function(element, e) {
  * Refresh All Discord Status Action
  * Refreshes Discord status for all players
  */
-window.EventDelegation.register('refresh-all-discord-status', function(element, e) {
+EventDelegation.register('refresh-all-discord-status', function(element, e) {
     e.preventDefault();
 
     const btn = element;
@@ -93,7 +96,7 @@ window.EventDelegation.register('refresh-all-discord-status', function(element, 
  * Refresh Unknown Discord Status Action
  * Checks Discord status for all players with unknown status
  */
-window.EventDelegation.register('refresh-unknown-discord-status', function(element, e) {
+EventDelegation.register('refresh-unknown-discord-status', function(element, e) {
     e.preventDefault();
 
     const btn = element;
@@ -163,7 +166,7 @@ window.EventDelegation.register('refresh-unknown-discord-status', function(eleme
  * Refresh Player Status Action
  * Refreshes Discord status for individual player
  */
-window.EventDelegation.register('refresh-player-status', function(element, e) {
+EventDelegation.register('refresh-player-status', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -228,7 +231,7 @@ window.EventDelegation.register('refresh-player-status', function(element, e) {
  * Send Discord DM Action
  * Opens modal to send Discord direct message
  */
-window.EventDelegation.register('send-discord-dm', function(element, e) {
+EventDelegation.register('send-discord-dm', function(element, e) {
     e.preventDefault();
 
     const discordId = element.dataset.discordId;
@@ -266,7 +269,7 @@ See you there!
     // Show modal
     const modalElement = document.getElementById('discordDMModal');
     if (modalElement) {
-        window.ModalManager.show('discordDMModal');
+        ModalManager.show('discordDMModal');
     }
 });
 
@@ -274,7 +277,7 @@ See you there!
  * Submit Discord DM Action
  * Sends the Discord direct message
  */
-window.EventDelegation.register('submit-discord-dm', function(element, e) {
+EventDelegation.register('submit-discord-dm', function(element, e) {
     e.preventDefault();
 
     const discordId = document.getElementById('dmDiscordId')?.value;

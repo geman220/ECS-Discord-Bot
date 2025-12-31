@@ -5,6 +5,8 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
+import { ModalManager } from '../js/modal-manager.js';
 let _initialized = false;
 
 // Module-level variables
@@ -31,15 +33,15 @@ export function initializeModals() {
     const playerDetailsModalElement = document.getElementById('playerDetailsModal');
 
     if (approvalModalElement) {
-        approvalModal = window.ModalManager.getInstance('approvalModal');
+        approvalModal = ModalManager.getInstance('approvalModal');
     }
 
     if (denialModalElement) {
-        denialModal = window.ModalManager.getInstance('denialModal');
+        denialModal = ModalManager.getInstance('denialModal');
     }
 
     if (playerDetailsModalElement) {
-        playerDetailsModal = window.ModalManager.getInstance('playerDetailsModal');
+        playerDetailsModal = ModalManager.getInstance('playerDetailsModal');
     }
 }
 
@@ -612,8 +614,8 @@ window.refreshStats = refreshStats;
 window.showPlayerDetails = showPlayerDetails;
 
 // Register with InitSystem (primary)
-if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('user-approval-management', init, {
+if (true && InitSystem.register) {
+    InitSystem.register('user-approval-management', init, {
         priority: 30,
         reinitializable: true,
         description: 'User approval management page'

@@ -1,8 +1,10 @@
+import { EventDelegation } from '../../event-delegation/core.js';
+
 /**
  * ECS FC Management Action Handlers
  * Handles match CRUD, opponent selection, CSV import for ECS FC teams
  */
-// Uses global window.EventDelegation from core.js
+// Uses global EventDelegation from core.js
 
 // ECS FC MANAGEMENT ACTIONS
 // ============================================================================
@@ -11,7 +13,7 @@
  * Toggle Opponent Source (Library vs Custom)
  * Shows/hides the appropriate input based on selection
  */
-window.EventDelegation.register('toggle-opponent-source', function(element, e) {
+EventDelegation.register('toggle-opponent-source', function(element, e) {
     const source = element.value || element.dataset.source;
     const librarySelect = document.getElementById('librarySelect');
     const customInput = document.getElementById('customInput');
@@ -35,7 +37,7 @@ window.EventDelegation.register('toggle-opponent-source', function(element, e) {
  * Delete ECS FC Match
  * Confirms and deletes a match
  */
-window.EventDelegation.register('delete-ecs-fc-match', function(element, e) {
+EventDelegation.register('delete-ecs-fc-match', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -87,7 +89,7 @@ window.EventDelegation.register('delete-ecs-fc-match', function(element, e) {
  * Deactivate Opponent
  * Soft-deletes an opponent from the library
  */
-window.EventDelegation.register('deactivate-opponent', function(element, e) {
+EventDelegation.register('deactivate-opponent', function(element, e) {
     e.preventDefault();
 
     const opponentId = element.dataset.opponentId;
@@ -143,7 +145,7 @@ window.EventDelegation.register('deactivate-opponent', function(element, e) {
  * Add Quick Opponent
  * Opens modal to quickly add new opponent from match form
  */
-window.EventDelegation.register('add-quick-opponent', function(element, e) {
+EventDelegation.register('add-quick-opponent', function(element, e) {
     e.preventDefault();
 
     const modal = document.getElementById('addOpponentModal');
@@ -157,7 +159,7 @@ window.EventDelegation.register('add-quick-opponent', function(element, e) {
  * Preview CSV Import
  * Parses and displays CSV content for review
  */
-window.EventDelegation.register('preview-csv-import', function(element, e) {
+EventDelegation.register('preview-csv-import', function(element, e) {
     e.preventDefault();
 
     const fileInput = document.getElementById('csv_file');
@@ -222,7 +224,7 @@ window.EventDelegation.register('preview-csv-import', function(element, e) {
  * Filter ECS FC Matches by Team
  * Handles team filter dropdown changes
  */
-window.EventDelegation.register('filter-ecs-fc-team', function(element, e) {
+EventDelegation.register('filter-ecs-fc-team', function(element, e) {
     const teamId = element.value;
     const url = new URL(window.location.href);
 
@@ -239,7 +241,7 @@ window.EventDelegation.register('filter-ecs-fc-team', function(element, e) {
  * Toggle Match Status Filter
  * Shows/hides past or upcoming matches
  */
-window.EventDelegation.register('toggle-ecs-fc-status', function(element, e) {
+EventDelegation.register('toggle-ecs-fc-status', function(element, e) {
     const status = element.value || element.dataset.status;
     const url = new URL(window.location.href);
 
@@ -259,7 +261,7 @@ window.EventDelegation.register('toggle-ecs-fc-status', function(element, e) {
 /**
  * Edit Sub Preferences
  */
-window.EventDelegation.register('edit-sub-preferences', function(element, e) {
+EventDelegation.register('edit-sub-preferences', function(element, e) {
     e.preventDefault();
     const entryId = element.dataset.entryId;
     if (typeof window.editSubPreferences === 'function') {
@@ -270,7 +272,7 @@ window.EventDelegation.register('edit-sub-preferences', function(element, e) {
 /**
  * Remove From Pool
  */
-window.EventDelegation.register('remove-from-pool', function(element, e) {
+EventDelegation.register('remove-from-pool', function(element, e) {
     e.preventDefault();
     const entryId = element.dataset.entryId;
     if (typeof window.removeFromPool === 'function') {

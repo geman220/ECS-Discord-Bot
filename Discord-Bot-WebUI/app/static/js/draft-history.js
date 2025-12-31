@@ -1,3 +1,5 @@
+import { ModalManager } from './modal-manager.js';
+
 /**
  * Draft History Admin Interface
  * JavaScript functionality for managing draft order history
@@ -181,7 +183,7 @@ export class DraftHistoryManager {
         document.getElementById('editDraftPosition').value = position;
         document.getElementById('editNotes').value = notes || '';
 
-        window.ModalManager.show('editDraftPickModal');
+        ModalManager.show('editDraftPickModal');
     }
 
     // Handle edit form submission

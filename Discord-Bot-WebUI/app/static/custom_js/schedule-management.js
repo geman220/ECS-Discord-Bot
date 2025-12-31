@@ -5,6 +5,8 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
+import { ModalManager } from '../js/modal-manager.js';
 let _initialized = false;
 
 export class ScheduleManager {
@@ -25,7 +27,7 @@ export class ScheduleManager {
             // Hook up the Edit/Match modal
             const modalEl = document.getElementById('editMatchModal');
             if (modalEl) {
-                this.editMatchModal = window.ModalManager.getInstance('editMatchModal');
+                this.editMatchModal = ModalManager.getInstance('editMatchModal');
 
                 // The form inside the modal
                 const editForm = document.getElementById('editMatchForm');
@@ -366,8 +368,8 @@ export class ScheduleManager {
     }
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('schedule-management', init, {
+    if (true && InitSystem.register) {
+        InitSystem.register('schedule-management', init, {
             priority: 40,
             reinitializable: false,
             description: 'Schedule management'

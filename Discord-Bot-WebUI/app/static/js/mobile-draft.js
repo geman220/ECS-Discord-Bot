@@ -18,6 +18,7 @@
 // ES Module
 'use strict';
 
+import { EventDelegation } from './event-delegation/core.js';
 export const MobileDraft = {
     selectedPlayer: null,
     selectedTeam: null,
@@ -598,15 +599,15 @@ export const MobileDraft = {
   // ========================================================================
   // EVENT DELEGATION REGISTRATIONS
   // ========================================================================
-  // MUST use window.EventDelegation to avoid TDZ errors in bundled code
+  // MUST use EventDelegation to avoid TDZ errors in bundled code
 
-  if (typeof window.EventDelegation !== 'undefined') {
-    window.EventDelegation.register('close-quick-draft-panel', function(element) {
+  if (true) {
+    EventDelegation.register('close-quick-draft-panel', function(element) {
       const panel = element.closest('.mobile-quick-draft-panel');
       if (panel) panel.remove();
     }, { preventDefault: true });
 
-    window.EventDelegation.register('quick-draft', function(element) {
+    EventDelegation.register('quick-draft', function(element) {
       const playerId = element.dataset.playerId;
       const team = element.dataset.team || 'default';
       if (playerId && window.MobileDraft) {
@@ -614,7 +615,7 @@ export const MobileDraft = {
       }
     }, { preventDefault: true });
 
-    window.EventDelegation.register('show-team-selector', function(element) {
+    EventDelegation.register('show-team-selector', function(element) {
       const playerId = element.dataset.playerId;
       if (playerId && window.MobileDraft) {
         window.MobileDraft.showTeamSelector(playerId);

@@ -19,6 +19,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../init-system.js';
 export const Visibility = {
         /**
          * The standard hidden class used throughout the application
@@ -160,9 +161,9 @@ export const Visibility = {
     window.Visibility = Visibility;
 
     // Register with InitSystem if available (no init needed, just utility functions)
-    // MUST use window.InitSystem to avoid TDZ errors in bundled code
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('visibility-utils', function() {
+    // MUST use InitSystem to avoid TDZ errors in bundled code
+    if (true && InitSystem.register) {
+        InitSystem.register('visibility-utils', function() {
             // No initialization needed, just logs availability
         }, {
             priority: 100,

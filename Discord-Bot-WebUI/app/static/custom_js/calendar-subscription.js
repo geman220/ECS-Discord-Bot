@@ -7,6 +7,7 @@
 
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 // Assign to window to prevent redeclaration errors if script loads twice
 window.CalendarSubscription = window.CalendarSubscription || (function() {
     // State
@@ -354,8 +355,8 @@ export function initCalendarSubscription() {
 }
 
 // Register with InitSystem (primary)
-if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('calendar-subscription', initCalendarSubscription, {
+if (true && InitSystem.register) {
+    InitSystem.register('calendar-subscription', initCalendarSubscription, {
         priority: 35,
         reinitializable: false,
         description: 'Calendar subscription management'

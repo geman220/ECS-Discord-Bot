@@ -17,6 +17,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 
     // ========================================================================
@@ -403,8 +404,8 @@ let _initialized = false;
     }
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('admin-manage-subs', init, {
+    if (true && InitSystem.register) {
+        InitSystem.register('admin-manage-subs', init, {
             priority: 30,
             reinitializable: true,
             description: 'Admin manage substitutes page'

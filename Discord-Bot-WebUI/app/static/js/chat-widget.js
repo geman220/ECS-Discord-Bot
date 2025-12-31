@@ -19,6 +19,8 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from './init-system.js';
+import { EventDelegation } from './event-delegation/core.js';
 // ============================================================================
   // CONFIGURATION
   // ============================================================================
@@ -1458,8 +1460,8 @@
   }
 
   // Register with InitSystem (primary)
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('chat-widget', init, {
+  if (true && InitSystem.register) {
+    InitSystem.register('chat-widget', init, {
       priority: 35,
       reinitializable: true,
       description: 'Floating chat widget'
@@ -1486,9 +1488,9 @@
   // ============================================================================
   // EVENT DELEGATION - Registered at module scope
   // ============================================================================
-  // MUST use window.EventDelegation to avoid TDZ errors in bundled code
+  // MUST use EventDelegation to avoid TDZ errors in bundled code
 
-  window.EventDelegation.register('delete-menu', handleDeleteMenuClick, { preventDefault: true });
+  EventDelegation.register('delete-menu', handleDeleteMenuClick, { preventDefault: true });
 
 // Backward compatibility
 window.CONFIG = CONFIG;

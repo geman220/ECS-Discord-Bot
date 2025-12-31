@@ -19,6 +19,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 /**
      * Get CSRF token from meta tag
      * @returns {string} CSRF token value
@@ -215,8 +216,8 @@
     };
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('coach-dashboard', init, {
+    if (true && InitSystem.register) {
+        InitSystem.register('coach-dashboard', init, {
             priority: 40,
             reinitializable: false,
             description: 'Coach dashboard functionality'

@@ -27,6 +27,8 @@
 // ES Module
 'use strict';
 
+import { EventDelegation } from '../event-delegation/core.js';
+import { ModalManager } from '../modal-manager.js';
 // ========================================================================
     // CONFIGURATION
     // ========================================================================
@@ -73,7 +75,7 @@
         // Show modal
         const modalEl = document.getElementById('messagePreviewModal');
         if (modalEl) {
-            window.ModalManager.show('messagePreviewModal');
+            ModalManager.show('messagePreviewModal');
         }
     }
 
@@ -101,7 +103,7 @@
         // Show modal
         const modalEl = document.getElementById('messageDetailsModal');
         if (modalEl) {
-            window.ModalManager.show('messageDetailsModal');
+            ModalManager.show('messageDetailsModal');
         }
 
         // Load message details via AJAX
@@ -484,12 +486,12 @@
     // ========================================================================
     // Handlers registered when IIFE executes, ensuring EventDelegation is available
 
-    window.EventDelegation.register('go-back-scheduled', handleGoBack, { preventDefault: true });
-    window.EventDelegation.register('preview-message', handlePreviewMessage, { preventDefault: true });
-    window.EventDelegation.register('view-scheduled-message', handleViewScheduledMessage, { preventDefault: true });
-    window.EventDelegation.register('edit-scheduled-message', handleEditScheduledMessage, { preventDefault: true });
-    window.EventDelegation.register('cancel-scheduled-message', handleCancelScheduledMessage, { preventDefault: true });
-    window.EventDelegation.register('retry-scheduled-message', handleRetryScheduledMessage, { preventDefault: true });
+    EventDelegation.register('go-back-scheduled', handleGoBack, { preventDefault: true });
+    EventDelegation.register('preview-message', handlePreviewMessage, { preventDefault: true });
+    EventDelegation.register('view-scheduled-message', handleViewScheduledMessage, { preventDefault: true });
+    EventDelegation.register('edit-scheduled-message', handleEditScheduledMessage, { preventDefault: true });
+    EventDelegation.register('cancel-scheduled-message', handleCancelScheduledMessage, { preventDefault: true });
+    EventDelegation.register('retry-scheduled-message', handleRetryScheduledMessage, { preventDefault: true });
 
     // ========================================================================
     // DOM READY

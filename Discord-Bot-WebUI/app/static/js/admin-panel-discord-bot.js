@@ -18,6 +18,8 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from './init-system.js';
+import { EventDelegation } from './event-delegation/core.js';
 // Configuration
   const CONFIG = {
     botApiUrl: 'http://localhost:5001/api/bot',
@@ -515,32 +517,32 @@
   // ============================================================================
   // EVENT DELEGATION - Registered at module scope
   // ============================================================================
-  // MUST use window.EventDelegation to avoid TDZ errors in bundled code
+  // MUST use EventDelegation to avoid TDZ errors in bundled code
 
   // Bot Control
-  window.EventDelegation.register('restart-bot', restartBot, { preventDefault: true });
-  window.EventDelegation.register('check-bot-health', checkBotHealth, { preventDefault: true });
-  window.EventDelegation.register('view-bot-logs', viewBotLogs, { preventDefault: true });
-  window.EventDelegation.register('sync-commands', syncCommands, { preventDefault: true });
+  EventDelegation.register('restart-bot', restartBot, { preventDefault: true });
+  EventDelegation.register('check-bot-health', checkBotHealth, { preventDefault: true });
+  EventDelegation.register('view-bot-logs', viewBotLogs, { preventDefault: true });
+  EventDelegation.register('sync-commands', syncCommands, { preventDefault: true });
 
   // Command Management
-  window.EventDelegation.register('view-commands', viewCommands, { preventDefault: true });
-  window.EventDelegation.register('command-permissions', commandPermissions, { preventDefault: true });
-  window.EventDelegation.register('command-usage', commandUsage, { preventDefault: true });
-  window.EventDelegation.register('custom-commands', customCommands, { preventDefault: true });
+  EventDelegation.register('view-commands', viewCommands, { preventDefault: true });
+  EventDelegation.register('command-permissions', commandPermissions, { preventDefault: true });
+  EventDelegation.register('command-usage', commandUsage, { preventDefault: true });
+  EventDelegation.register('custom-commands', customCommands, { preventDefault: true });
 
   // Guild Management
-  window.EventDelegation.register('manage-guild', manageGuild, { preventDefault: true });
-  window.EventDelegation.register('guild-stats', guildStats, { preventDefault: true });
-  window.EventDelegation.register('add-guild', addGuild, { preventDefault: true });
+  EventDelegation.register('manage-guild', manageGuild, { preventDefault: true });
+  EventDelegation.register('guild-stats', guildStats, { preventDefault: true });
+  EventDelegation.register('add-guild', addGuild, { preventDefault: true });
 
   // Configuration
-  window.EventDelegation.register('save-bot-config', saveBotConfig, { preventDefault: true });
-  window.EventDelegation.register('reset-bot-config', resetBotConfig, { preventDefault: true });
+  EventDelegation.register('save-bot-config', saveBotConfig, { preventDefault: true });
+  EventDelegation.register('reset-bot-config', resetBotConfig, { preventDefault: true });
 
   // Register with InitSystem (primary)
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('admin-panel-discord-bot', init, {
+  if (true && InitSystem.register) {
+    InitSystem.register('admin-panel-discord-bot', init, {
       priority: 30,
       reinitializable: true,
       description: 'Admin panel Discord bot management'

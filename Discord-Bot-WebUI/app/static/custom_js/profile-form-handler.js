@@ -25,6 +25,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 
     // ========================================================================
@@ -374,8 +375,8 @@ let _initialized = false;
     };
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('profile-form-handler', init, {
+    if (true && InitSystem.register) {
+        InitSystem.register('profile-form-handler', init, {
             priority: 50,
             reinitializable: false,
             description: 'Profile form validation and interactions'

@@ -1,3 +1,6 @@
+import { InitSystem } from './init-system.js';
+import { EventDelegation } from './event-delegation/core.js';
+
 /**
  * Simple Theme Switcher - Replaces TemplateCustomizer
  * Handles light/dark/system theme switching without vendor dependencies
@@ -379,8 +382,8 @@ function initThemeSwitcher() {
 }
 
 // Register with InitSystem (primary)
-if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-  window.InitSystem.register('simple-theme-switcher', initThemeSwitcher, {
+if (true && InitSystem.register) {
+  InitSystem.register('simple-theme-switcher', initThemeSwitcher, {
     priority: 75,
     reinitializable: false,
     description: 'Theme switcher (light/dark mode)'
@@ -400,13 +403,13 @@ window.SimpleThemeSwitcher = SimpleThemeSwitcher;
 // ============================================================================
 // EVENT DELEGATION - Registered at module scope
 // ============================================================================
-// MUST use window.EventDelegation to avoid TDZ errors in bundled code.
+// MUST use EventDelegation to avoid TDZ errors in bundled code.
 // In Vite/Rollup bundles, bare `EventDelegation` reference can throw ReferenceError
 // if the variable is hoisted but not yet initialized (Temporal Dead Zone).
 // Handlers delegate to window.themeSwitcher which is set on DOMContentLoaded.
 
 // Handle settings page theme buttons (data-action="set-theme")
-window.EventDelegation.register('set-theme', (element, e) => {
+EventDelegation.register('set-theme', (element, e) => {
   if (!window.themeSwitcher) return;
 
   const theme = element.getAttribute('data-theme');
@@ -425,7 +428,7 @@ window.EventDelegation.register('set-theme', (element, e) => {
 }, { preventDefault: true });
 
 // Handle navbar dropdown theme options (data-action="select-theme")
-window.EventDelegation.register('select-theme', (element, e) => {
+EventDelegation.register('select-theme', (element, e) => {
   if (!window.themeSwitcher) return;
 
   const theme = element.getAttribute('data-theme');

@@ -1,3 +1,5 @@
+import { ModalManager } from './modal-manager.js';
+
 /**
  * Auto Schedule Wizard JavaScript
  *
@@ -163,7 +165,7 @@ export function startSeasonWizard() {
     cleanupCalendarState();
 
     document.getElementById('seasonWizardModal').classList.add('wizard-modal--visible');
-    window.ModalManager.show('seasonWizardModal');
+    ModalManager.show('seasonWizardModal');
     
     // Set default start date to next Sunday (you can change this to any day)
     const today = new Date();
@@ -1931,7 +1933,7 @@ export function showModal(id, title, message, type = 'info', callback = null) {
     document.getElementById(id)?.remove();
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-    window.ModalManager.show(id);
+    ModalManager.show(id);
     
     if (cfg.autoClose) {
         setTimeout(() => {

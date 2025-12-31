@@ -18,6 +18,8 @@
  */
 'use strict';
 
+import { InitSystem } from '../init-system.js';
+import { EventDelegation } from '../event-delegation/core.js';
 /**
  * Show create season modal
  */
@@ -342,18 +344,18 @@ export function init() {
     if (!isSeasonsPage) return;
 
     // Register event handlers if EventDelegation is available
-    if (typeof window.EventDelegation !== 'undefined') {
-        window.EventDelegation.register('view-season', function(element, e) {
+    if (true) {
+        EventDelegation.register('view-season', function(element, e) {
             const seasonId = element.dataset.seasonId;
             viewSeason(seasonId);
         }, { preventDefault: true });
 
-        window.EventDelegation.register('edit-season', function(element, e) {
+        EventDelegation.register('edit-season', function(element, e) {
             const seasonId = element.dataset.seasonId;
             editSeason(seasonId);
         }, { preventDefault: true });
 
-        window.EventDelegation.register('set-current-season', function(element, e) {
+        EventDelegation.register('set-current-season', function(element, e) {
             const seasonId = element.dataset.seasonId;
             setCurrentSeason(seasonId);
         }, { preventDefault: true });
@@ -361,8 +363,8 @@ export function init() {
 }
 
 // Register with InitSystem
-if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('seasons', init, {
+if (true && InitSystem.register) {
+    InitSystem.register('seasons', init, {
         priority: 50,
         reinitializable: true,
         description: 'Seasons management'

@@ -1,8 +1,11 @@
+import { EventDelegation } from '../../event-delegation/core.js';
+import { ModalManager } from '../../modal-manager.js';
+
 /**
  * RSVP Action Handlers
  * Handles match RSVP responses and notifications
  */
-// Uses global window.EventDelegation from core.js
+// Uses global EventDelegation from core.js
 
 // RSVP ACTIONS
 // ============================================================================
@@ -11,7 +14,7 @@
  * RSVP Yes Action
  * Player confirms attendance (admin can set for players)
  */
-window.EventDelegation.register('rsvp-yes', function(element, e) {
+EventDelegation.register('rsvp-yes', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -46,7 +49,7 @@ window.EventDelegation.register('rsvp-yes', function(element, e) {
  * RSVP No Action
  * Player confirms they cannot attend
  */
-window.EventDelegation.register('rsvp-no', function(element, e) {
+EventDelegation.register('rsvp-no', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -76,7 +79,7 @@ window.EventDelegation.register('rsvp-no', function(element, e) {
  * RSVP Maybe Action
  * Player is unsure about attendance
  */
-window.EventDelegation.register('rsvp-maybe', function(element, e) {
+EventDelegation.register('rsvp-maybe', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -106,7 +109,7 @@ window.EventDelegation.register('rsvp-maybe', function(element, e) {
  * Withdraw RSVP Action
  * Player cancels their RSVP
  */
-window.EventDelegation.register('rsvp-withdraw', function(element, e) {
+EventDelegation.register('rsvp-withdraw', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -138,7 +141,7 @@ window.EventDelegation.register('rsvp-withdraw', function(element, e) {
  * Send SMS Action
  * Opens modal to send SMS to player
  */
-window.EventDelegation.register('rsvp-request-sms', function(element, e) {
+EventDelegation.register('rsvp-request-sms', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -173,7 +176,7 @@ window.EventDelegation.register('rsvp-request-sms', function(element, e) {
             // Show modal
             const smsModal = document.querySelector('[data-modal="send-sms"]');
             if (smsModal) {
-                window.ModalManager.showByElement(smsModal);
+                ModalManager.showByElement(smsModal);
             }
         } catch (err) {
             console.error('[rsvp-request-sms] Error opening modal:', err);
@@ -195,7 +198,7 @@ window.EventDelegation.register('rsvp-request-sms', function(element, e) {
             if (messageEl) messageEl.value = '';
             if (charCountEl) charCountEl.textContent = '0';
 
-            window.ModalManager.showByElement(smsModal);
+            ModalManager.showByElement(smsModal);
         }
     }
 });
@@ -204,7 +207,7 @@ window.EventDelegation.register('rsvp-request-sms', function(element, e) {
  * Send Discord DM Action
  * Opens modal to send Discord direct message
  */
-window.EventDelegation.register('rsvp-request-discord-dm', function(element, e) {
+EventDelegation.register('rsvp-request-discord-dm', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -229,7 +232,7 @@ window.EventDelegation.register('rsvp-request-discord-dm', function(element, e) 
 
             const discordModal = document.querySelector('[data-modal="send-discord-dm"]');
             if (discordModal) {
-                window.ModalManager.showByElement(discordModal);
+                ModalManager.showByElement(discordModal);
             }
         } catch (err) {
             console.error('[rsvp-request-discord-dm] Error opening modal:', err);
@@ -250,7 +253,7 @@ window.EventDelegation.register('rsvp-request-discord-dm', function(element, e) 
             if (messageEl) messageEl.value = '';
             if (charCountEl) charCountEl.textContent = '0';
 
-            window.ModalManager.showByElement(discordModal);
+            ModalManager.showByElement(discordModal);
         }
     }
 });
@@ -260,7 +263,7 @@ window.EventDelegation.register('rsvp-request-discord-dm', function(element, e) 
  * Admin manually updates player RSVP status
  * This is the main handler that triggers the update via AJAX
  */
-window.EventDelegation.register('rsvp-update-status', function(element, e) {
+EventDelegation.register('rsvp-update-status', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -372,7 +375,7 @@ export function updateRSVPStatus(playerId, matchId, response) {
 /**
  * Send RSVP Reminder to all players
  */
-window.EventDelegation.register('send-rsvp-reminder', function(element, e) {
+EventDelegation.register('send-rsvp-reminder', function(element, e) {
     e.preventDefault();
     if (typeof window.sendReminder === 'function') {
         window.sendReminder();
@@ -384,7 +387,7 @@ window.EventDelegation.register('send-rsvp-reminder', function(element, e) {
 /**
  * Filter RSVP responses by type
  */
-window.EventDelegation.register('filter-rsvp-responses', function(element, e) {
+EventDelegation.register('filter-rsvp-responses', function(element, e) {
     e.preventDefault();
     const filterType = element.dataset.filterType || 'all';
     if (typeof window.filterResponses === 'function') {
@@ -397,7 +400,7 @@ window.EventDelegation.register('filter-rsvp-responses', function(element, e) {
 /**
  * Update player RSVP (admin action)
  */
-window.EventDelegation.register('update-player-rsvp-admin', function(element, e) {
+EventDelegation.register('update-player-rsvp-admin', function(element, e) {
     e.preventDefault();
     const playerId = element.dataset.playerId;
     const response = element.dataset.response;
@@ -415,7 +418,7 @@ window.EventDelegation.register('update-player-rsvp-admin', function(element, e)
 /**
  * Send individual reminder to specific player
  */
-window.EventDelegation.register('send-individual-reminder', function(element, e) {
+EventDelegation.register('send-individual-reminder', function(element, e) {
     e.preventDefault();
     const playerId = element.dataset.playerId;
     if (!playerId) {

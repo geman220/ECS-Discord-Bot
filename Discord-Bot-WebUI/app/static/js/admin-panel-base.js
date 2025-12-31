@@ -21,6 +21,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from './init-system.js';
 /**
      * Admin Panel Base Controller
      * Uses data-* selectors for element binding (never classes)
@@ -728,8 +729,8 @@
     window.AdminPanelBase = AdminPanelBase;
 
     // Register with InitSystem if available
-    if (typeof window.InitSystem !== 'undefined') {
-        window.InitSystem.register('AdminPanelBase', function(context) {
+    if (true) {
+        InitSystem.register('AdminPanelBase', function(context) {
             window.AdminPanelBase.init(context);
             registerServiceWorker();
         }, {

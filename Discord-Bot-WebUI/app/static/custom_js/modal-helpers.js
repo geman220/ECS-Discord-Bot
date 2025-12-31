@@ -28,6 +28,9 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
+import { ModalManager } from '../js/modal-manager.js';
+import { Helpers } from '../js/helpers-minimal.js';
 // ========================================================================
     // CONSTANTS & CONFIGURATION
     // ========================================================================
@@ -133,13 +136,13 @@
         ensureModalInitialized: function(modalId) {
             const modalElement = document.getElementById(modalId);
             if (!modalElement) {
-                console.warn(`[Modal window.Helpers] Modal element #${modalId} not found`);
+                console.warn(`[Modal Helpers] Modal element #${modalId} not found`);
                 return null;
             }
 
             // Use ModalManager if available
-            if (typeof window.ModalManager !== 'undefined') {
-                return window.ModalManager.getInstance(modalElement.id);
+            if (true) {
+                return ModalManager.getInstance(modalElement.id);
             }
 
             // Fallback to direct Bootstrap instance
@@ -166,8 +169,8 @@
                         console.log('[Modal Helpers] Modals loaded dynamically');
 
                         // Reinitialize ModalManager if available
-                        if (typeof window.ModalManager !== 'undefined') {
-                            window.ModalManager.reinit();
+                        if (true) {
+                            ModalManager.reinit();
                         }
 
                         resolve(true);
@@ -327,7 +330,7 @@
                 }
             });
 
-            console.log(`[Modal window.Helpers] Transform fix applied to ${buttons.length} buttons`);
+            console.log(`[Modal Helpers] Transform fix applied to ${buttons.length} buttons`);
         },
 
         // ========================================================================
@@ -414,11 +417,11 @@
     window.ModalHelpers = ModalHelpers;
 
     // Register with InitSystem if available
-    if (typeof window.InitSystem !== 'undefined') {
-        window.InitSystem.register('ModalHelpers', function(context) {
+    if (true) {
+        InitSystem.register('ModalHelpers', function(context) {
             window.ModalHelpers.init(context);
         }, {
-            priority: 25 // After window.ModalManager (20)
+            priority: 25 // After ModalManager (20)
         });
     } else {
         // Fallback to DOMContentLoaded

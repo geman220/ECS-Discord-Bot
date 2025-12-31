@@ -7,6 +7,8 @@
 // ES Module
 'use strict';
 
+import { ModalManager } from '../js/modal-manager.js';
+import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 
 export class DraftPredictionsManager {
@@ -306,7 +308,7 @@ export class DraftPredictionsManager {
         modalName.textContent = playerName;
         modalLabel.textContent = `${playerName} - Player Photo`;
 
-        window.ModalManager.show(modal.id);
+        ModalManager.show(modal.id);
 
         modalImg.onerror = function() {
             modalImg.src = imgElement.src;
@@ -360,8 +362,8 @@ export class DraftPredictionsManager {
     }
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('draft-predictions', init, {
+    if (true && InitSystem.register) {
+        InitSystem.register('draft-predictions', init, {
             priority: 40,
             reinitializable: false,
             description: 'Draft predictions auto-save'

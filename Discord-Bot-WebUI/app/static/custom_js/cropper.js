@@ -5,6 +5,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
     let cropper;
 
@@ -96,8 +97,8 @@ let _initialized = false;
     window.onClickUpload = onClickUpload;
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('cropper', init, {
+    if (true && InitSystem.register) {
+        InitSystem.register('cropper', init, {
             priority: 45,
             reinitializable: false,
             description: 'Image cropper for profile photos'

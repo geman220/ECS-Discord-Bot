@@ -26,6 +26,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from './init-system.js';
 /**
    * Configuration
    */
@@ -579,8 +580,8 @@
    */
 
   // Register with InitSystem if available
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('sidebar-interactions', init, {
+  if (true && InitSystem.register) {
+    InitSystem.register('sidebar-interactions', init, {
       priority: 80,
       description: 'Sidebar toggle, collapse, and mobile drawer interactions',
       reinitializable: false

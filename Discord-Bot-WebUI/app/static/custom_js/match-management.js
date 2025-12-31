@@ -7,6 +7,8 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
+import { ModalManager } from '../js/modal-manager.js';
 let _initialized = false;
     let csrfToken = '';
 
@@ -1136,7 +1138,7 @@ export function showCacheStatus() {
                 document.body.insertAdjacentHTML('beforeend', modalHtml);
                 
                 // Show modal
-                window.ModalManager.show('cacheStatusModal');
+                ModalManager.show('cacheStatusModal');
                 
                 // Clean up when modal is hidden
                 document.getElementById('cacheStatusModal').addEventListener('hidden.bs.modal', function () {
@@ -1178,8 +1180,8 @@ export function showCacheStatus() {
     window.showCacheStatus = showCacheStatus;
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('match-management', init, {
+    if (true && InitSystem.register) {
+        InitSystem.register('match-management', init, {
             priority: 40,
             reinitializable: false,
             description: 'Match management admin page'

@@ -4,6 +4,7 @@
  */
 'use strict';
 
+import { EventDelegation } from '../event-delegation/core.js';
 /**
  * Initialize Chart.js charts
  */
@@ -161,73 +162,73 @@ export function init() {
  * Register event delegation handlers
  */
 export function registerEventHandlers() {
-    if (typeof window.EventDelegation === 'undefined') return;
+    if (typeof EventDelegation === 'undefined') return;
 
     // Report Generation Actions
-    window.EventDelegation.register('generate-match-report', function(element, e) {
+    EventDelegation.register('generate-match-report', function(element, e) {
         const matchId = element.dataset.matchId;
         generateMatchReport(matchId);
     }, { preventDefault: true });
 
-    window.EventDelegation.register('generate-league-report', function(element, e) {
+    EventDelegation.register('generate-league-report', function(element, e) {
         generateLeagueReport();
     }, { preventDefault: true });
 
-    window.EventDelegation.register('generate-team-report', function(element, e) {
+    EventDelegation.register('generate-team-report', function(element, e) {
         const teamId = element.dataset.teamId;
         generateTeamReport(teamId);
     }, { preventDefault: true });
 
-    window.EventDelegation.register('generate-custom-report', function(element, e) {
+    EventDelegation.register('generate-custom-report', function(element, e) {
         generateCustomReport();
     }, { preventDefault: true });
 
     // Quick View Actions
-    window.EventDelegation.register('view-recent-matches', function(element, e) {
+    EventDelegation.register('view-recent-matches', function(element, e) {
         viewRecentMatches();
     }, { preventDefault: true });
 
-    window.EventDelegation.register('view-upcoming-matches', function(element, e) {
+    EventDelegation.register('view-upcoming-matches', function(element, e) {
         viewUpcomingMatches();
     }, { preventDefault: true });
 
-    window.EventDelegation.register('view-top-scorers', function(element, e) {
+    EventDelegation.register('view-top-scorers', function(element, e) {
         viewTopScorers();
     }, { preventDefault: true });
 
-    window.EventDelegation.register('view-league-standings', function(element, e) {
+    EventDelegation.register('view-league-standings', function(element, e) {
         viewLeagueStandings();
     }, { preventDefault: true });
 
     // Export Actions
-    window.EventDelegation.register('export-pdf', function(element, e) {
+    EventDelegation.register('export-pdf', function(element, e) {
         exportPDF();
     }, { preventDefault: true });
 
-    window.EventDelegation.register('export-excel', function(element, e) {
+    EventDelegation.register('export-excel', function(element, e) {
         exportExcel();
     }, { preventDefault: true });
 
-    window.EventDelegation.register('export-csv', function(element, e) {
+    EventDelegation.register('export-csv', function(element, e) {
         exportCSV();
     }, { preventDefault: true });
 
-    window.EventDelegation.register('schedule-report', function(element, e) {
+    EventDelegation.register('schedule-report', function(element, e) {
         scheduleReport();
     }, { preventDefault: true });
 
     // Individual Report View Actions
-    window.EventDelegation.register('view-match-report', function(element, e) {
+    EventDelegation.register('view-match-report', function(element, e) {
         const matchId = element.dataset.matchId;
         viewMatchReport(matchId);
     }, { preventDefault: true });
 
-    window.EventDelegation.register('view-team-report', function(element, e) {
+    EventDelegation.register('view-team-report', function(element, e) {
         const teamId = element.dataset.teamId;
         viewTeamReport(teamId);
     }, { preventDefault: true });
 
-    window.EventDelegation.register('view-all-matches', function(element, e) {
+    EventDelegation.register('view-all-matches', function(element, e) {
         viewAllMatches();
     }, { preventDefault: true });
 }

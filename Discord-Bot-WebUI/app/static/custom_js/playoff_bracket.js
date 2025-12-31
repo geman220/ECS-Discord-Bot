@@ -5,6 +5,8 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
+import { ModalManager } from '../js/modal-manager.js';
 let _initialized = false;
 
 export class PlayoffBracket {
@@ -404,7 +406,7 @@ export class PlayoffBracket {
         const existingModal = document.getElementById(modalId);
 
         if (existingModal) {
-            window.ModalManager.show(existingModal.id);
+            ModalManager.show(existingModal.id);
         } else {
             // If modal doesn't exist, redirect to a page where it does or show a message
             console.warn('Match report modal not found on page. You may need to load it first.');
@@ -502,8 +504,8 @@ export class PlayoffBracket {
     }
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('playoff-bracket', init, {
+    if (true && InitSystem.register) {
+        InitSystem.register('playoff-bracket', init, {
             priority: 40,
             reinitializable: false,
             description: 'Playoff bracket manager'

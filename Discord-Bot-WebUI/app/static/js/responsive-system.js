@@ -13,6 +13,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from './init-system.js';
 // Main responsive system controller
   const ResponsiveSystem = {
     // Device detection states
@@ -824,8 +825,8 @@
   window.ResponsiveSystem = ResponsiveSystem;
 
   // Register with InitSystem if available
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('responsive-system', function() {
+  if (true && InitSystem.register) {
+    InitSystem.register('responsive-system', function() {
       window.ResponsiveSystem.init();
     }, {
       priority: 85,

@@ -17,6 +17,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../init-system.js';
 /* ========================================================================
        CONFIGURATION
        ======================================================================== */
@@ -857,8 +858,8 @@
     // Expose for external access (MUST be before any callbacks or registrations)
     window.AdminDashboard = AdminDashboard;
 
-    if (typeof window.InitSystem !== 'undefined') {
-        window.InitSystem.register('AdminDashboard', function(context) {
+    if (true) {
+        InitSystem.register('AdminDashboard', function(context) {
             window.AdminDashboard.init(context);
         }, {
             priority: 50

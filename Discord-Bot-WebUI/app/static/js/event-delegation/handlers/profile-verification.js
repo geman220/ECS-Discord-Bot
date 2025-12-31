@@ -1,8 +1,10 @@
+import { EventDelegation } from '../../event-delegation/core.js';
+
 /**
  * Profile Verification Action Handlers
  * Handles profile verification workflow
  */
-// Uses global window.EventDelegation from core.js
+// Uses global EventDelegation from core.js
 
 // PROFILE VERIFICATION ACTIONS
 // ============================================================================
@@ -12,7 +14,7 @@
  * Handles when user checks/unchecks a profile section as reviewed
  * Updates progress indicator and confirm button state
  */
-window.EventDelegation.register('verify-section-reviewed', function(element, e) {
+EventDelegation.register('verify-section-reviewed', function(element, e) {
     // This handler is triggered by the change event via data-on-change
     // The ProfileVerification module will handle the actual logic
     if (window.ProfileVerification && typeof window.ProfileVerification.handleCheckboxChange === 'function') {
@@ -28,7 +30,7 @@ window.EventDelegation.register('verify-section-reviewed', function(element, e) 
  * Used on the main profile page to start the verification flow.
  * The /verify route auto-detects mobile vs desktop and redirects appropriately.
  */
-window.EventDelegation.register('verify-profile', function(element, e) {
+EventDelegation.register('verify-profile', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -52,7 +54,7 @@ window.EventDelegation.register('verify-profile', function(element, e) {
  * Submits the profile verification form
  * Validates that all sections have been reviewed before allowing submission
  */
-window.EventDelegation.register('verify-profile-submit', function(element, e) {
+EventDelegation.register('verify-profile-submit', function(element, e) {
     // Check if all sections are reviewed before allowing submission
     if (window.ProfileVerification && typeof window.ProfileVerification.areAllSectionsReviewed === 'function') {
         const allReviewed = window.ProfileVerification.areAllSectionsReviewed();

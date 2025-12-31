@@ -18,12 +18,14 @@
  */
 'use strict';
 
+import { InitSystem } from './init-system.js';
+import { EventDelegation } from './event-delegation/core.js';
 /**
  * Initialize all app components
  */
 export function init() {
     // Ensure InitSystem is loaded
-    if (typeof window.InitSystem === 'undefined') {
+    if (typeof InitSystem === 'undefined') {
         console.error('[App Init] InitSystem not loaded! Please include init-system.js before this file.');
         return;
     }
@@ -33,7 +35,7 @@ export function init() {
     // ============================================================================
     // PRIORITY 85: PAGE LOADER
     // ============================================================================
-    window.InitSystem.register('page-loader', function() {
+    InitSystem.register('page-loader', function() {
         setTimeout(function() {
             const loader = document.getElementById('page-loader');
             if (loader) {
@@ -54,7 +56,7 @@ export function init() {
     // ============================================================================
     // PRIORITY 70: ADMIN UTILITIES
     // ============================================================================
-    window.InitSystem.register('admin-utilities', function(context) {
+    InitSystem.register('admin-utilities', function(context) {
         const root = context || document;
 
         const progressBars = root.querySelectorAll('[data-width]');
@@ -83,7 +85,7 @@ export function init() {
     // ============================================================================
 
     // Design System Fixes
-    window.InitSystem.register('design-system-fixes', function() {
+    InitSystem.register('design-system-fixes', function() {
         if (!window.ECSDesignSystem) {
             return;
         }
@@ -138,7 +140,7 @@ export function init() {
     });
 
     // Dropdown Menu Fix
-    window.InitSystem.register('dropdown-menu-fix', function(context) {
+    InitSystem.register('dropdown-menu-fix', function(context) {
         const root = context || document;
 
         const userManagementTables = root.querySelectorAll('.table');
@@ -156,7 +158,7 @@ export function init() {
     });
 
     // Mobile Menu Fix
-    window.InitSystem.register('mobile-menu-fix', function() {
+    InitSystem.register('mobile-menu-fix', function() {
         const layoutMenu = document.getElementById('layout-menu');
         const closeIcon = document.getElementById('close-icon');
         let layoutOverlay = document.querySelector('.layout-overlay');
@@ -224,7 +226,7 @@ export function init() {
     });
 
     // Waitlist Registration Focus
-    window.InitSystem.register('waitlist-register-focus', function() {
+    InitSystem.register('waitlist-register-focus', function() {
         const discordBtn = document.querySelector('a[href*="waitlist_discord_register"]');
         if (!discordBtn) {
             return;
@@ -260,11 +262,11 @@ export function init() {
  * Register event delegation handlers
  */
 export function registerEventHandlers() {
-    if (typeof window.EventDelegation === 'undefined') {
+    if (typeof EventDelegation === 'undefined') {
         return;
     }
 
-    window.EventDelegation.register('toggle-mobile-menu', function(element, e) {
+    EventDelegation.register('toggle-mobile-menu', function(element, e) {
         e.preventDefault();
         if (document.documentElement.classList.contains('layout-menu-expanded')) {
             document.documentElement.classList.remove('layout-menu-expanded');
@@ -275,7 +277,7 @@ export function registerEventHandlers() {
         }
     }, { preventDefault: true });
 
-    window.EventDelegation.register('close-mobile-menu', function(element, e) {
+    EventDelegation.register('close-mobile-menu', function(element, e) {
         e.preventDefault();
         document.documentElement.classList.remove('layout-menu-expanded');
         document.body.classList.remove('sidebar-open');
@@ -283,13 +285,13 @@ export function registerEventHandlers() {
 }
 
 // Auto-initialize
-if (typeof window.InitSystem !== 'undefined') {
+if (true) {
     init();
     registerEventHandlers();
 } else {
     // Wait for InitSystem to be available
     document.addEventListener('DOMContentLoaded', function() {
-        if (typeof window.InitSystem !== 'undefined') {
+        if (true) {
             init();
             registerEventHandlers();
         }

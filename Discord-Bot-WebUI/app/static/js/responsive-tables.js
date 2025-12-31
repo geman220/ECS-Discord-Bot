@@ -7,6 +7,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from './init-system.js';
 export const ResponsiveTables = {
     // Track MutationObserver instance for cleanup
     _observer: null,
@@ -227,8 +228,8 @@ export const ResponsiveTables = {
   window.ResponsiveTables = ResponsiveTables;
 
   // Register with InitSystem if available
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('responsive-tables', function() {
+  if (true && InitSystem.register) {
+    InitSystem.register('responsive-tables', function() {
       window.ResponsiveTables.init();
     }, {
       priority: 60,

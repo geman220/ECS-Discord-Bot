@@ -1,8 +1,10 @@
+import { EventDelegation } from '../../event-delegation/core.js';
+
 /**
  * Calendar Subscription Action Handlers
  * Handles calendar subscriptions and preferences
  */
-// Uses global window.EventDelegation from core.js
+// Uses global EventDelegation from core.js
 
 // CALENDAR SUBSCRIPTION ACTIONS
 // ============================================================================
@@ -11,7 +13,7 @@
  * Copy Subscription URL Action
  * Copies the calendar subscription URL to clipboard
  */
-window.EventDelegation.register('copy-subscription-url', async function(element, e) {
+EventDelegation.register('copy-subscription-url', async function(element, e) {
     e.preventDefault();
 
     const urlInput = document.getElementById('subscriptionUrl');
@@ -42,7 +44,7 @@ window.EventDelegation.register('copy-subscription-url', async function(element,
  * Regenerate Subscription Token Action
  * Regenerates the calendar subscription URL/token
  */
-window.EventDelegation.register('regenerate-subscription-token', async function(element, e) {
+EventDelegation.register('regenerate-subscription-token', async function(element, e) {
     e.preventDefault();
 
     if (!confirm('Are you sure you want to regenerate your subscription URL?\n\nYour existing calendar subscriptions will stop working and you will need to re-subscribe with the new URL.')) {
@@ -85,7 +87,7 @@ window.EventDelegation.register('regenerate-subscription-token', async function(
  * Subscribe via Webcal Action
  * Opens subscription in iOS/macOS Calendar app via webcal:// protocol
  */
-window.EventDelegation.register('subscribe-webcal', function(element, e) {
+EventDelegation.register('subscribe-webcal', function(element, e) {
     e.preventDefault();
 
     const webcalUrl = element.dataset.webcalUrl;
@@ -101,7 +103,7 @@ window.EventDelegation.register('subscribe-webcal', function(element, e) {
  * Subscribe via Google Calendar Action
  * Opens Google Calendar subscription page in new tab
  */
-window.EventDelegation.register('subscribe-google', function(element, e) {
+EventDelegation.register('subscribe-google', function(element, e) {
     e.preventDefault();
 
     const feedUrl = element.dataset.feedUrl;
@@ -121,7 +123,7 @@ window.EventDelegation.register('subscribe-google', function(element, e) {
  * Updates subscription preferences (which events to include)
  * Triggered by change events on preference checkboxes
  */
-window.EventDelegation.register('update-calendar-preferences', async function(element, e) {
+EventDelegation.register('update-calendar-preferences', async function(element, e) {
     const preferences = {
         include_team_matches: document.getElementById('subIncludeMatches')?.checked ?? true,
         include_league_events: document.getElementById('subIncludeLeagueEvents')?.checked ?? true,

@@ -27,6 +27,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 // Global configuration
   const CONFIG = {
     MOBILE_BREAKPOINT: 768,
@@ -401,8 +402,8 @@
   }
 
   // Register with InitSystem (primary)
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('home-page', init, {
+  if (true && InitSystem.register) {
+    InitSystem.register('home-page', init, {
       priority: 35,
       reinitializable: false,
       description: 'Home/dashboard page functionality'

@@ -23,6 +23,8 @@
 // ES Module
 'use strict';
 
+import { EventDelegation } from '../event-delegation/core.js';
+import { ModalManager } from '../modal-manager.js';
 // ========================================================================
     // EDIT CATEGORY
     // ========================================================================
@@ -46,7 +48,7 @@
         // Show edit modal
         const modalEl = document.getElementById('editCategoryModal');
         if (modalEl) {
-            window.ModalManager.show('editCategoryModal');
+            ModalManager.show('editCategoryModal');
         }
     }
 
@@ -146,8 +148,8 @@
     // ========================================================================
     // Handlers registered when IIFE executes, ensuring EventDelegation is available
 
-    window.EventDelegation.register('edit-category', handleEditCategory, { preventDefault: true });
-    window.EventDelegation.register('delete-category', handleDeleteCategory, { preventDefault: true });
+    EventDelegation.register('edit-category', handleEditCategory, { preventDefault: true });
+    EventDelegation.register('delete-category', handleDeleteCategory, { preventDefault: true });
 
     // ========================================================================
     // DOM READY

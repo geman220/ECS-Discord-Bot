@@ -5,6 +5,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 
   function init() {
@@ -144,8 +145,8 @@ let _initialized = false;
   }
 
   // Register with InitSystem (primary)
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('tour', init, {
+  if (true && InitSystem.register) {
+    InitSystem.register('tour', init, {
       priority: 25,
       reinitializable: false,
       description: 'Shepherd.js onboarding tour'

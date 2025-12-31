@@ -1,8 +1,10 @@
+import { EventDelegation } from '../../event-delegation/core.js';
+
 /**
  * User Approval Action Handlers
  * Handles user approval/denial workflow
  */
-// Uses global window.EventDelegation from core.js
+// Uses global EventDelegation from core.js
 
 // USER APPROVAL MANAGEMENT ACTIONS
 // ============================================================================
@@ -11,7 +13,7 @@
  * Refresh Approval Stats Action
  * Manually refreshes user approval statistics display
  */
-window.EventDelegation.register('refresh-approval-stats', function(element, e) {
+EventDelegation.register('refresh-approval-stats', function(element, e) {
     e.preventDefault();
 
     if (typeof window.refreshStats === 'function') {
@@ -25,7 +27,7 @@ window.EventDelegation.register('refresh-approval-stats', function(element, e) {
  * Show Player Details Action
  * Opens modal showing detailed player information
  */
-window.EventDelegation.register('show-player-details', function(element, e) {
+EventDelegation.register('show-player-details', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -46,7 +48,7 @@ window.EventDelegation.register('show-player-details', function(element, e) {
  * Show Approval Modal Action
  * Opens modal to approve a user and assign them to a league
  */
-window.EventDelegation.register('show-approval-modal', function(element, e) {
+EventDelegation.register('show-approval-modal', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -67,7 +69,7 @@ window.EventDelegation.register('show-approval-modal', function(element, e) {
  * Show Denial Modal Action
  * Opens modal to deny a user application
  */
-window.EventDelegation.register('show-denial-modal', function(element, e) {
+EventDelegation.register('show-denial-modal', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -88,7 +90,7 @@ window.EventDelegation.register('show-denial-modal', function(element, e) {
  * Approve User Action
  * Submits user approval form
  */
-window.EventDelegation.register('approve-user', function(element, e) {
+EventDelegation.register('approve-user', function(element, e) {
     e.preventDefault();
 
     if (typeof window.submitApproval === 'function') {
@@ -102,7 +104,7 @@ window.EventDelegation.register('approve-user', function(element, e) {
  * Deny User Action
  * Submits user denial form
  */
-window.EventDelegation.register('deny-user', function(element, e) {
+EventDelegation.register('deny-user', function(element, e) {
     e.preventDefault();
 
     if (typeof window.submitDenial === 'function') {
@@ -113,6 +115,6 @@ window.EventDelegation.register('deny-user', function(element, e) {
 });
 
 // EventDelegation is already exposed globally by core.js
-// No need to re-assign window.EventDelegation here
+// No need to re-assign EventDelegation here
 
 console.log('[EventDelegation] User approval handlers loaded');

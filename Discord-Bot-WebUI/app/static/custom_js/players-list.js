@@ -15,6 +15,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 
   /**
@@ -410,8 +411,8 @@ let _initialized = false;
   // initializeLiveSearch();
 
   // Register with InitSystem (primary)
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('players-list', init, {
+  if (true && InitSystem.register) {
+    InitSystem.register('players-list', init, {
       priority: 35,
       reinitializable: true,
       description: 'Players list page functionality'

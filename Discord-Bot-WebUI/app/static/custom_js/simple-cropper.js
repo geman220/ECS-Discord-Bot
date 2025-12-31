@@ -5,6 +5,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 
 export class SimpleCropper {
@@ -469,8 +470,8 @@ window.getCroppedImage = function() {
     }
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('simple-cropper', init, {
+    if (true && InitSystem.register) {
+        InitSystem.register('simple-cropper', init, {
             priority: 45,
             reinitializable: false,
             description: 'Simple image cropper for modals'

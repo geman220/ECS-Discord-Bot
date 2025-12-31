@@ -6,6 +6,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 
   function init() {
@@ -366,8 +367,8 @@ let _initialized = false;
   }
 
   // Register with InitSystem (primary)
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('admin-panel-match-list', init, {
+  if (true && InitSystem.register) {
+    InitSystem.register('admin-panel-match-list', init, {
       priority: 30,
       reinitializable: true,
       description: 'Admin panel match list management'

@@ -5,6 +5,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 export const ManageRoles = {
         init() {
             this.initializeSelect2();
@@ -121,8 +122,8 @@ export const ManageRoles = {
     };
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('manage-roles', () => ManageRoles.init(), {
+    if (true && InitSystem.register) {
+        InitSystem.register('manage-roles', () => ManageRoles.init(), {
             priority: 35,
             reinitializable: true,
             description: 'Manage roles page functionality'

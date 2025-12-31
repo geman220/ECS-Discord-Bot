@@ -17,6 +17,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from './init-system.js';
 export const MobileForms = {
     /**
      * Check if device is mobile
@@ -593,8 +594,8 @@ export const MobileForms = {
   window.MobileForms = MobileForms;
 
   // Register with InitSystem if available
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('mobile-forms', function() {
+  if (true && InitSystem.register) {
+    InitSystem.register('mobile-forms', function() {
       window.MobileForms.init();
     }, {
       priority: 60,

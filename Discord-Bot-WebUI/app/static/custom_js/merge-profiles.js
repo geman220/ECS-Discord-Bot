@@ -5,6 +5,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 
     function init() {
@@ -72,8 +73,8 @@ let _initialized = false;
     window.updateMergePreview = updateMergePreview;
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('merge-profiles', init, {
+    if (true && InitSystem.register) {
+        InitSystem.register('merge-profiles', init, {
             priority: 45,
             reinitializable: false,
             description: 'Profile merge management'

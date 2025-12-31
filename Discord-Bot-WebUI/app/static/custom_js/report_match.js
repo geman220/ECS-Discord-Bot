@@ -1,3 +1,7 @@
+import { InitSystem } from '../js/init-system.js';
+
+import { ModalManager } from '../js/modal-manager.js';
+
 // report_match.js - Consolidated match reporting functionality
 
 /**
@@ -102,8 +106,8 @@ export function initReportMatch() {
 }
 
 // Register with InitSystem (primary)
-if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('report-match', initReportMatch, {
+if (true && InitSystem.register) {
+    InitSystem.register('report-match', initReportMatch, {
         priority: 45,
         reinitializable: true,
         description: 'Match reporting functionality'
@@ -886,7 +890,7 @@ export function populateModal(modal, data) {
             }
             
             // Create new modal instance with safety options
-            const bsModal = window.ModalManager.getInstance(modal.id, {
+            const bsModal = ModalManager.getInstance(modal.id, {
                 backdrop: 'static',
                 keyboard: false
             });

@@ -1,8 +1,10 @@
+import { EventDelegation } from '../../event-delegation/core.js';
+
 /**
  * Push Notification Action Handlers
  * Handles push notification management actions
  */
-// Uses global window.EventDelegation from core.js
+// Uses global EventDelegation from core.js
 
 // PUSH NOTIFICATION ACTIONS
 // ============================================================================
@@ -10,7 +12,7 @@
 /**
  * Refresh Notification Status
  */
-window.EventDelegation.register('refresh-notification-status', function(element, e) {
+EventDelegation.register('refresh-notification-status', function(element, e) {
     e.preventDefault();
     if (typeof window.refreshNotificationStatus === 'function') {
         window.refreshNotificationStatus();
@@ -22,7 +24,7 @@ window.EventDelegation.register('refresh-notification-status', function(element,
 /**
  * Send Test Notification
  */
-window.EventDelegation.register('send-test-notification', function(element, e) {
+EventDelegation.register('send-test-notification', function(element, e) {
     e.preventDefault();
     if (typeof window.sendTestNotification === 'function') {
         window.sendTestNotification();
@@ -34,7 +36,7 @@ window.EventDelegation.register('send-test-notification', function(element, e) {
 /**
  * Send Match Reminder
  */
-window.EventDelegation.register('send-match-reminder', function(element, e) {
+EventDelegation.register('send-match-reminder', function(element, e) {
     e.preventDefault();
     if (typeof window.sendMatchReminder === 'function') {
         window.sendMatchReminder();
@@ -46,7 +48,7 @@ window.EventDelegation.register('send-match-reminder', function(element, e) {
 /**
  * Send RSVP Reminder
  */
-window.EventDelegation.register('send-rsvp-reminder-notification', function(element, e) {
+EventDelegation.register('send-rsvp-reminder-notification', function(element, e) {
     e.preventDefault();
     if (typeof window.sendRSVPReminder === 'function') {
         window.sendRSVPReminder();
@@ -58,7 +60,7 @@ window.EventDelegation.register('send-rsvp-reminder-notification', function(elem
 /**
  * View Notification Logs
  */
-window.EventDelegation.register('view-notification-logs', function(element, e) {
+EventDelegation.register('view-notification-logs', function(element, e) {
     e.preventDefault();
     if (typeof window.viewNotificationLogs === 'function') {
         window.viewNotificationLogs();
@@ -70,7 +72,7 @@ window.EventDelegation.register('view-notification-logs', function(element, e) {
 /**
  * Manage Tokens
  */
-window.EventDelegation.register('manage-push-tokens', function(element, e) {
+EventDelegation.register('manage-push-tokens', function(element, e) {
     e.preventDefault();
     if (typeof window.manageTokens === 'function') {
         window.manageTokens();
@@ -82,7 +84,7 @@ window.EventDelegation.register('manage-push-tokens', function(element, e) {
 /**
  * Cleanup Invalid Tokens
  */
-window.EventDelegation.register('cleanup-invalid-tokens', function(element, e) {
+EventDelegation.register('cleanup-invalid-tokens', function(element, e) {
     e.preventDefault();
     if (typeof window.cleanupInvalidTokens === 'function') {
         window.cleanupInvalidTokens();
@@ -94,7 +96,7 @@ window.EventDelegation.register('cleanup-invalid-tokens', function(element, e) {
 /**
  * Send Broadcast
  */
-window.EventDelegation.register('send-broadcast', function(element, e) {
+EventDelegation.register('send-broadcast', function(element, e) {
     e.preventDefault();
     if (typeof window.sendBroadcast === 'function') {
         window.sendBroadcast();
@@ -106,7 +108,7 @@ window.EventDelegation.register('send-broadcast', function(element, e) {
 /**
  * Confirm Send Test
  */
-window.EventDelegation.register('confirm-send-test', function(element, e) {
+EventDelegation.register('confirm-send-test', function(element, e) {
     e.preventDefault();
     if (typeof window.confirmSendTest === 'function') {
         window.confirmSendTest();

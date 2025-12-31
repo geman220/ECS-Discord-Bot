@@ -6,6 +6,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 
     function init() {
@@ -196,8 +197,8 @@ export function startCountdownUpdates() {
     window.formatCountdown = formatCountdown;
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('scheduled-message-validation', init, {
+    if (true && InitSystem.register) {
+        InitSystem.register('scheduled-message-validation', init, {
             priority: 40,
             reinitializable: false,
             description: 'Scheduled message validation'

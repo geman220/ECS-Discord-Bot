@@ -1,3 +1,5 @@
+import { EventDelegation } from '../../event-delegation/core.js';
+
 /**
  * User Management Action Handlers
  * ================================
@@ -11,7 +13,7 @@
  * @created 2025-12-27
  */
 
-// Uses global window.EventDelegation from core.js
+// Uses global EventDelegation from core.js
 
 // ============================================================================
 // EDIT USER ACTION
@@ -21,7 +23,7 @@
  * Handle Edit User button click
  * Opens the edit user modal with user data
  */
-window.EventDelegation.register('edit-user', function(element, e) {
+EventDelegation.register('edit-user', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -46,7 +48,7 @@ window.EventDelegation.register('edit-user', function(element, e) {
  * Handle Reset Password button click
  * Opens the reset password modal for a user
  */
-window.EventDelegation.register('reset-user-password', function(element, e) {
+EventDelegation.register('reset-user-password', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -73,7 +75,7 @@ window.EventDelegation.register('reset-user-password', function(element, e) {
  * Handle Approve User button click
  * Approves a pending user
  */
-window.EventDelegation.register('approve-user-status', function(element, e) {
+EventDelegation.register('approve-user-status', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -98,7 +100,7 @@ window.EventDelegation.register('approve-user-status', function(element, e) {
  * Handle Remove User button click
  * Removes a user from the system
  */
-window.EventDelegation.register('remove-user', function(element, e) {
+EventDelegation.register('remove-user', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -123,7 +125,7 @@ window.EventDelegation.register('remove-user', function(element, e) {
  * Handle Delete User button click
  * Permanently deletes a user
  */
-window.EventDelegation.register('delete-user', function(element, e) {
+EventDelegation.register('delete-user', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -146,7 +148,7 @@ window.EventDelegation.register('delete-user', function(element, e) {
 // BULK APPROVE ACTION
 // ============================================================================
 
-window.EventDelegation.register('bulk-approve-users', function(element, e) {
+EventDelegation.register('bulk-approve-users', function(element, e) {
     e.preventDefault();
     if (typeof window.bulkApprove === 'function') {
         window.bulkApprove();
@@ -159,7 +161,7 @@ window.EventDelegation.register('bulk-approve-users', function(element, e) {
 // EXPORT USERS ACTION
 // ============================================================================
 
-window.EventDelegation.register('export-users', function(element, e) {
+EventDelegation.register('export-users', function(element, e) {
     e.preventDefault();
     const exportType = element.dataset.exportType || 'all';
     if (typeof window.exportUsers === 'function') {
@@ -173,7 +175,7 @@ window.EventDelegation.register('export-users', function(element, e) {
 // SYNC USERS ACTION
 // ============================================================================
 
-window.EventDelegation.register('sync-users', function(element, e) {
+EventDelegation.register('sync-users', function(element, e) {
     e.preventDefault();
     if (typeof window.syncUsers === 'function') {
         window.syncUsers();
@@ -186,7 +188,7 @@ window.EventDelegation.register('sync-users', function(element, e) {
 // CREATE USER ACTION
 // ============================================================================
 
-window.EventDelegation.register('create-user', function(element, e) {
+EventDelegation.register('create-user', function(element, e) {
     e.preventDefault();
     if (typeof window.createUser === 'function') {
         window.createUser();
@@ -199,7 +201,7 @@ window.EventDelegation.register('create-user', function(element, e) {
 // BULK ACTION (approve, activate, deactivate, delete)
 // ============================================================================
 
-window.EventDelegation.register('bulk-action', function(element, e) {
+EventDelegation.register('bulk-action', function(element, e) {
     e.preventDefault();
     const action = element.dataset.bulkAction;
     if (!action) {

@@ -5,6 +5,8 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
+import { ModalManager } from '../js/modal-manager.js';
 let _initialized = false;
 
     function init() {
@@ -29,8 +31,8 @@ let _initialized = false;
                             modal.setAttribute('data-secret', data.secret);
                         }
                         // Use ModalManager for safe modal handling
-                        if (typeof window.ModalManager !== 'undefined') {
-                            window.ModalManager.show('enable2FAModal');
+                        if (true) {
+                            ModalManager.show('enable2FAModal');
                         }
                     });
             });
@@ -76,8 +78,8 @@ let _initialized = false;
     }
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('handle-2fa', init, {
+    if (true && InitSystem.register) {
+        InitSystem.register('handle-2fa', init, {
             priority: 45,
             reinitializable: false,
             description: '2FA enable/disable handler'

@@ -1,8 +1,10 @@
+import { EventDelegation } from '../../event-delegation/core.js';
+
 /**
  * Match Management Action Handlers
  * Handles task scheduling, match verification, and match editing
  */
-// Uses global window.EventDelegation from core.js
+// Uses global EventDelegation from core.js
 
 // MATCH MANAGEMENT ACTIONS
 // ============================================================================
@@ -11,7 +13,7 @@
  * Show Task Info Action
  * Displays detailed information about a scheduled task
  */
-window.EventDelegation.register('show-task-info', function(element, e) {
+EventDelegation.register('show-task-info', function(element, e) {
     e.preventDefault();
 
     const taskId = element.dataset.taskId;
@@ -42,7 +44,7 @@ window.EventDelegation.register('show-task-info', function(element, e) {
  * Revoke Task Action
  * Cancels a scheduled task (thread creation, reporting, etc.)
  */
-window.EventDelegation.register('revoke-task', function(element, e) {
+EventDelegation.register('revoke-task', function(element, e) {
     e.preventDefault();
 
     const taskId = element.dataset.taskId;
@@ -65,7 +67,7 @@ window.EventDelegation.register('revoke-task', function(element, e) {
  * Reschedule Task Action
  * Re-schedules a task to run at a different time
  */
-window.EventDelegation.register('reschedule-task', function(element, e) {
+EventDelegation.register('reschedule-task', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -87,7 +89,7 @@ window.EventDelegation.register('reschedule-task', function(element, e) {
  * Refresh Tasks Action
  * Manually refreshes task status for all matches
  */
-window.EventDelegation.register('refresh-tasks', function(element, e) {
+EventDelegation.register('refresh-tasks', function(element, e) {
     e.preventDefault();
 
     if (typeof loadAllTaskDetails === 'function') {
@@ -103,7 +105,7 @@ window.EventDelegation.register('refresh-tasks', function(element, e) {
  * Toggle Historical Matches Action
  * Shows/hides historical matches section
  */
-window.EventDelegation.register('toggle-historical', function(element, e) {
+EventDelegation.register('toggle-historical', function(element, e) {
     e.preventDefault();
 
     const targetId = element.dataset.target;
@@ -123,7 +125,7 @@ window.EventDelegation.register('toggle-historical', function(element, e) {
  * Schedule Match Action
  * Schedules all tasks for a match (thread + reporting)
  */
-window.EventDelegation.register('schedule-match', function(element, e) {
+EventDelegation.register('schedule-match', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -144,7 +146,7 @@ window.EventDelegation.register('schedule-match', function(element, e) {
  * Verify Match Action
  * Opens match verification modal/page
  */
-window.EventDelegation.register('verify-match', function(element, e) {
+EventDelegation.register('verify-match', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -168,7 +170,7 @@ window.EventDelegation.register('verify-match', function(element, e) {
  * Edit Match Action
  * Opens match editing modal/page
  */
-window.EventDelegation.register('edit-match', function(element, e) {
+EventDelegation.register('edit-match', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -192,7 +194,7 @@ window.EventDelegation.register('edit-match', function(element, e) {
 /**
  * Force Sync Dashboard
  */
-window.EventDelegation.register('force-sync', function(element, e) {
+EventDelegation.register('force-sync', function(element, e) {
     e.preventDefault();
     if (typeof window.forceSync === 'function') {
         window.forceSync();
@@ -202,7 +204,7 @@ window.EventDelegation.register('force-sync', function(element, e) {
 /**
  * Refresh Dashboard
  */
-window.EventDelegation.register('refresh-dashboard', function(element, e) {
+EventDelegation.register('refresh-dashboard', function(element, e) {
     e.preventDefault();
     if (typeof window.refreshDashboard === 'function') {
         window.refreshDashboard();
@@ -212,7 +214,7 @@ window.EventDelegation.register('refresh-dashboard', function(element, e) {
 /**
  * Stop Session
  */
-window.EventDelegation.register('stop-session', function(element, e) {
+EventDelegation.register('stop-session', function(element, e) {
     e.preventDefault();
     const sessionId = element.dataset.sessionId;
     if (typeof window.stopSession === 'function') {
@@ -227,7 +229,7 @@ window.EventDelegation.register('stop-session', function(element, e) {
 /**
  * Bulk Generate Passes
  */
-window.EventDelegation.register('bulk-generate-wallet-passes', function(element, e) {
+EventDelegation.register('bulk-generate-wallet-passes', function(element, e) {
     e.preventDefault();
     if (typeof window.bulkGeneratePasses === 'function') {
         window.bulkGeneratePasses();
@@ -237,7 +239,7 @@ window.EventDelegation.register('bulk-generate-wallet-passes', function(element,
 /**
  * Check Player Eligibility
  */
-window.EventDelegation.register('check-player-eligibility', function(element, e) {
+EventDelegation.register('check-player-eligibility', function(element, e) {
     e.preventDefault();
     const playerId = element.dataset.playerId;
     if (typeof window.checkPlayerEligibility === 'function') {
@@ -253,7 +255,7 @@ window.EventDelegation.register('check-player-eligibility', function(element, e)
  * Schedule All Matches
  * Schedules all MLS matches at once
  */
-window.EventDelegation.register('schedule-all-matches', function(element, e) {
+EventDelegation.register('schedule-all-matches', function(element, e) {
     e.preventDefault();
     if (typeof window.scheduleAllMatches === 'function') {
         window.scheduleAllMatches();
@@ -264,7 +266,7 @@ window.EventDelegation.register('schedule-all-matches', function(element, e) {
  * Auto Assign Playoffs
  * Automatically assigns teams to playoff matches based on standings
  */
-window.EventDelegation.register('auto-assign-playoffs', function(element, e) {
+EventDelegation.register('auto-assign-playoffs', function(element, e) {
     e.preventDefault();
     const leagueId = element.dataset.leagueId;
     if (typeof window.autoAssignPlayoffs === 'function') {
@@ -280,7 +282,7 @@ window.EventDelegation.register('auto-assign-playoffs', function(element, e) {
  * Reload Page
  * Simple page refresh action
  */
-window.EventDelegation.register('reload-page', function(element, e) {
+EventDelegation.register('reload-page', function(element, e) {
     e.preventDefault();
     location.reload();
 }, { preventDefault: true });
@@ -289,7 +291,7 @@ window.EventDelegation.register('reload-page', function(element, e) {
  * Show Discord Channel Info
  * Displays info alert about Discord channel
  */
-window.EventDelegation.register('show-discord-channel-info', function(element, e) {
+EventDelegation.register('show-discord-channel-info', function(element, e) {
     e.preventDefault();
     alert('Check Discord #pl-new-players channel for notifications');
 }, { preventDefault: true });

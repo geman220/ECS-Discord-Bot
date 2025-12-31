@@ -5,6 +5,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 
 // Create global functions directly (backward compatibility)
@@ -280,8 +281,8 @@ window.sendVerificationCode = sendVerificationCode;
 window.verifyCode = verifyCode;
 
 // Register with InitSystem (primary)
-if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('sms-verification', initSmsVerification, {
+if (true && InitSystem.register) {
+    InitSystem.register('sms-verification', initSmsVerification, {
         priority: 45,
         reinitializable: false,
         description: 'SMS verification functionality'

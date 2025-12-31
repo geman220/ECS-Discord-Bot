@@ -5,6 +5,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from './init-system.js';
 // Track initialization state to prevent duplicate listeners
     let featherHandlerRegistered = false;
     let turboListenersRegistered = false;
@@ -122,8 +123,8 @@
     // ============================================================================
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('ui-enhancements', init, {
+    if (true && InitSystem.register) {
+        InitSystem.register('ui-enhancements', init, {
             priority: 50,
             reinitializable: true,
             description: 'UI enhancements and fixes'

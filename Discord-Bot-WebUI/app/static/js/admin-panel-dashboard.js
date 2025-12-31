@@ -23,6 +23,8 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from './init-system.js';
+import { EventDelegation } from './event-delegation/core.js';
 let _initialized = false;
 
   // ============================================================================
@@ -574,23 +576,23 @@ let _initialized = false;
   // ============================================================================
   // EVENT DELEGATION - Registered at module scope
   // ============================================================================
-  // MUST use window.EventDelegation to avoid TDZ errors in bundled code
+  // MUST use EventDelegation to avoid TDZ errors in bundled code
 
-  window.EventDelegation.register('navigate', handleNavigate);
-  window.EventDelegation.register('open-navigation-settings', openNavigationSettings, { preventDefault: true });
-  window.EventDelegation.register('open-registration-settings', openRegistrationSettings, { preventDefault: true });
-  window.EventDelegation.register('open-task-monitor', openTaskMonitor, { preventDefault: true });
-  window.EventDelegation.register('open-database-monitor', openDatabaseMonitor, { preventDefault: true });
-  window.EventDelegation.register('open-match-reports', openMatchReports, { preventDefault: true });
-  window.EventDelegation.register('generate-report', generateReport, { preventDefault: true });
+  EventDelegation.register('navigate', handleNavigate);
+  EventDelegation.register('open-navigation-settings', openNavigationSettings, { preventDefault: true });
+  EventDelegation.register('open-registration-settings', openRegistrationSettings, { preventDefault: true });
+  EventDelegation.register('open-task-monitor', openTaskMonitor, { preventDefault: true });
+  EventDelegation.register('open-database-monitor', openDatabaseMonitor, { preventDefault: true });
+  EventDelegation.register('open-match-reports', openMatchReports, { preventDefault: true });
+  EventDelegation.register('generate-report', generateReport, { preventDefault: true });
 
   // ============================================================================
   // AUTO-INITIALIZE
   // ============================================================================
 
   // Register with InitSystem (primary)
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('admin-panel-dashboard', init, {
+  if (true && InitSystem.register) {
+    InitSystem.register('admin-panel-dashboard', init, {
       priority: 30,
       reinitializable: true,
       description: 'Admin panel dashboard'

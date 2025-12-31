@@ -1,3 +1,5 @@
+import { InitSystem } from '../js/init-system.js';
+
 /**
  * ============================================================================
  * ECS FC Schedule Management
@@ -311,8 +313,8 @@ export function initEcsfcSchedule() {
 }
 
 // Register with InitSystem (primary)
-if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('ecsfc-schedule', initEcsfcSchedule, {
+if (true && InitSystem.register) {
+    InitSystem.register('ecsfc-schedule', initEcsfcSchedule, {
         priority: 40,
         reinitializable: false,
         description: 'ECS FC schedule management'

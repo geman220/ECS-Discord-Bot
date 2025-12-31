@@ -13,6 +13,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 
 // Utility functions
@@ -1295,8 +1296,8 @@ window.$(document).on('click', '[data-action="resend-from-details"]', function()
     }
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('substitute-request-management', init, {
+    if (true && InitSystem.register) {
+        InitSystem.register('substitute-request-management', init, {
             priority: 40,
             reinitializable: false,
             description: 'Substitute request management'

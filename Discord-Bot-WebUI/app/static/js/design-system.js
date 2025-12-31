@@ -10,6 +10,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from './init-system.js';
 // Main design system helper
   const ECSDesignSystem = {
     // Module-level initialization guard - prevents multiple init calls
@@ -611,8 +612,8 @@
   window.ECSDesignSystem = ECSDesignSystem;
 
   // Register with InitSystem if available
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('design-system', function() {
+  if (true && InitSystem.register) {
+    InitSystem.register('design-system', function() {
       window.ECSDesignSystem.init();
     }, {
       priority: 90,

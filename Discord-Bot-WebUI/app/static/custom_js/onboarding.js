@@ -25,6 +25,8 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
+import { ModalManager } from '../js/modal-manager.js';
 let _initialized = false;
 
 export function init() {
@@ -61,7 +63,7 @@ export function init() {
     if (modalElement) {
         // console.log("Initializing onboarding modal");
         try {
-            const onboardingModal = window.ModalManager.getInstance(modalElement.id, {
+            const onboardingModal = ModalManager.getInstance(modalElement.id, {
                 backdrop: 'static',
                 keyboard: false
             });
@@ -369,8 +371,8 @@ export function init() {
 }
 
 // Register with InitSystem (primary)
-if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('onboarding', init, {
+if (true && InitSystem.register) {
+    InitSystem.register('onboarding', init, {
         priority: 45,
         reinitializable: false,
         description: 'Onboarding wizard carousel'

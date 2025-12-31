@@ -1,8 +1,10 @@
+import { EventDelegation } from '../../event-delegation/core.js';
+
 /**
  * Pass Studio Action Handlers
  * Handles wallet pass design and configuration
  */
-// Uses global window.EventDelegation from core.js
+// Uses global EventDelegation from core.js
 
 // PASS STUDIO ACTIONS
 // ============================================================================
@@ -11,7 +13,7 @@
  * Platform Toggle Action
  * Switches between Apple and Google wallet preview
  */
-window.EventDelegation.register('toggle-platform', function(element, e) {
+EventDelegation.register('toggle-platform', function(element, e) {
     e.preventDefault();
 
     const platform = element.dataset.platform;
@@ -33,7 +35,7 @@ window.EventDelegation.register('toggle-platform', function(element, e) {
  * Changes pass layout style (generic, storeCard, eventTicket)
  * Triggered by change event on radio buttons
  */
-window.EventDelegation.register('update-pass-style', function(element, e) {
+EventDelegation.register('update-pass-style', function(element, e) {
     if (window.PassStudio && typeof window.PassStudio.updatePassStylePreview === 'function') {
         window.PassStudio.updatePassStylePreview();
     } else {
@@ -45,7 +47,7 @@ window.EventDelegation.register('update-pass-style', function(element, e) {
  * Apply Color Preset Action
  * Applies predefined color schemes to the pass
  */
-window.EventDelegation.register('apply-color-preset', function(element, e) {
+EventDelegation.register('apply-color-preset', function(element, e) {
     e.preventDefault();
 
     const bg = element.dataset.bg;
@@ -90,7 +92,7 @@ window.EventDelegation.register('apply-color-preset', function(element, e) {
  * Sync Color Input Action
  * Syncs color picker with text input and vice versa
  */
-window.EventDelegation.register('sync-color-input', function(element, e) {
+EventDelegation.register('sync-color-input', function(element, e) {
     const targetId = element.dataset.target;
     if (!targetId) return;
 
@@ -117,7 +119,7 @@ window.EventDelegation.register('sync-color-input', function(element, e) {
  * Update Preview Field Action
  * Updates specific field in preview (e.g., logo text)
  */
-window.EventDelegation.register('update-preview-field', function(element, e) {
+EventDelegation.register('update-preview-field', function(element, e) {
     if (window.PassStudio && typeof window.PassStudio.updatePreviewFromForm === 'function') {
         window.PassStudio.updatePreviewFromForm();
     }
@@ -127,7 +129,7 @@ window.EventDelegation.register('update-preview-field', function(element, e) {
  * Toggle Logo Visibility Action
  * Shows/hides logo in preview
  */
-window.EventDelegation.register('toggle-logo-visibility', function(element, e) {
+EventDelegation.register('toggle-logo-visibility', function(element, e) {
     if (window.PassStudio && typeof window.PassStudio.toggleLogoVisibility === 'function') {
         window.PassStudio.toggleLogoVisibility();
     }
@@ -137,7 +139,7 @@ window.EventDelegation.register('toggle-logo-visibility', function(element, e) {
  * Open Asset Cropper Action
  * Opens modal to upload/crop pass assets
  */
-window.EventDelegation.register('open-asset-cropper', function(element, e) {
+EventDelegation.register('open-asset-cropper', function(element, e) {
     e.preventDefault();
 
     const assetType = element.dataset.assetType;
@@ -158,7 +160,7 @@ window.EventDelegation.register('open-asset-cropper', function(element, e) {
  * Update Google Preview Action
  * Updates Google Wallet preview with URL changes
  */
-window.EventDelegation.register('update-google-preview', function(element, e) {
+EventDelegation.register('update-google-preview', function(element, e) {
     if (window.PassStudio && typeof window.PassStudio.updateGooglePreview === 'function') {
         window.PassStudio.updateGooglePreview();
     }
@@ -168,7 +170,7 @@ window.EventDelegation.register('update-google-preview', function(element, e) {
  * Update Barcode Preview Action
  * Shows/hides barcode in preview
  */
-window.EventDelegation.register('update-barcode-preview', function(element, e) {
+EventDelegation.register('update-barcode-preview', function(element, e) {
     if (window.PassStudio && typeof window.PassStudio.updateBarcodePreview === 'function') {
         window.PassStudio.updateBarcodePreview();
     }
@@ -178,7 +180,7 @@ window.EventDelegation.register('update-barcode-preview', function(element, e) {
  * Save Appearance Action
  * Saves appearance settings to server
  */
-window.EventDelegation.register('save-appearance', function(element, e) {
+EventDelegation.register('save-appearance', function(element, e) {
     e.preventDefault();
 
     if (window.PassStudio && typeof window.PassStudio.saveAppearance === 'function') {
@@ -192,7 +194,7 @@ window.EventDelegation.register('save-appearance', function(element, e) {
  * Initialize Defaults Action
  * Loads default field configuration for pass
  */
-window.EventDelegation.register('initialize-defaults', function(element, e) {
+EventDelegation.register('initialize-defaults', function(element, e) {
     e.preventDefault();
 
     if (window.FieldsManager && typeof window.FieldsManager.initializeDefaults === 'function') {
@@ -206,7 +208,7 @@ window.EventDelegation.register('initialize-defaults', function(element, e) {
  * Add Pass Field Action
  * Opens modal to add new pass field (Pass Studio)
  */
-window.EventDelegation.register('add-pass-field', function(element, e) {
+EventDelegation.register('add-pass-field', function(element, e) {
     e.preventDefault();
 
     const fieldType = element.dataset.fieldType;
@@ -227,7 +229,7 @@ window.EventDelegation.register('add-pass-field', function(element, e) {
  * Create Field Action
  * Creates new field from modal data
  */
-window.EventDelegation.register('create-field', function(element, e) {
+EventDelegation.register('create-field', function(element, e) {
     e.preventDefault();
 
     if (window.FieldsManager && typeof window.FieldsManager.createField === 'function') {
@@ -241,7 +243,7 @@ window.EventDelegation.register('create-field', function(element, e) {
  * Save Fields Action
  * Saves all field configurations to server
  */
-window.EventDelegation.register('save-fields', function(element, e) {
+EventDelegation.register('save-fields', function(element, e) {
     e.preventDefault();
 
     if (window.FieldsManager && typeof window.FieldsManager.saveFields === 'function') {
@@ -255,7 +257,7 @@ window.EventDelegation.register('save-fields', function(element, e) {
  * Reset Fields Action
  * Resets fields to last saved state
  */
-window.EventDelegation.register('reset-fields', function(element, e) {
+EventDelegation.register('reset-fields', function(element, e) {
     e.preventDefault();
 
     if (window.FieldsManager && typeof window.FieldsManager.resetFields === 'function') {
@@ -269,7 +271,7 @@ window.EventDelegation.register('reset-fields', function(element, e) {
  * Insert Variable Action
  * Inserts template variable at cursor position
  */
-window.EventDelegation.register('insert-variable', function(element, e) {
+EventDelegation.register('insert-variable', function(element, e) {
     e.preventDefault();
 
     const variableName = element.dataset.variableName;
@@ -293,7 +295,7 @@ window.EventDelegation.register('insert-variable', function(element, e) {
 /**
  * Print Page Action
  */
-window.EventDelegation.register('print-page', function(element, e) {
+EventDelegation.register('print-page', function(element, e) {
     e.preventDefault();
     window.print();
 }, { preventDefault: true });
@@ -301,7 +303,7 @@ window.EventDelegation.register('print-page', function(element, e) {
 /**
  * Toggle Detail Section
  */
-window.EventDelegation.register('toggle-detail', function(element, e) {
+EventDelegation.register('toggle-detail', function(element, e) {
     e.preventDefault();
     const detailId = element.dataset.detailId;
     if (!detailId) {
@@ -323,7 +325,7 @@ window.EventDelegation.register('toggle-detail', function(element, e) {
 /**
  * Run Admin Command
  */
-window.EventDelegation.register('run-admin-command', function(element, e) {
+EventDelegation.register('run-admin-command', function(element, e) {
     e.preventDefault();
     const command = element.dataset.command;
     if (!command) {
@@ -344,7 +346,7 @@ window.EventDelegation.register('run-admin-command', function(element, e) {
 /**
  * Bulk Void Passes
  */
-window.EventDelegation.register('bulk-void-passes', function(element, e) {
+EventDelegation.register('bulk-void-passes', function(element, e) {
     e.preventDefault();
     if (typeof window.bulkVoid === 'function') {
         window.bulkVoid();
@@ -356,7 +358,7 @@ window.EventDelegation.register('bulk-void-passes', function(element, e) {
 /**
  * Bulk Reactivate Passes
  */
-window.EventDelegation.register('bulk-reactivate-passes', function(element, e) {
+EventDelegation.register('bulk-reactivate-passes', function(element, e) {
     e.preventDefault();
     if (typeof window.bulkReactivate === 'function') {
         window.bulkReactivate();
@@ -368,7 +370,7 @@ window.EventDelegation.register('bulk-reactivate-passes', function(element, e) {
 /**
  * Clear Selection
  */
-window.EventDelegation.register('clear-pass-selection', function(element, e) {
+EventDelegation.register('clear-pass-selection', function(element, e) {
     e.preventDefault();
     if (typeof window.clearSelection === 'function') {
         window.clearSelection();
@@ -380,7 +382,7 @@ window.EventDelegation.register('clear-pass-selection', function(element, e) {
 /**
  * Void Pass
  */
-window.EventDelegation.register('void-pass', function(element, e) {
+EventDelegation.register('void-pass', function(element, e) {
     e.preventDefault();
     const passId = element.dataset.passId;
     if (!passId) {
@@ -397,7 +399,7 @@ window.EventDelegation.register('void-pass', function(element, e) {
 /**
  * Reactivate Pass
  */
-window.EventDelegation.register('reactivate-pass', function(element, e) {
+EventDelegation.register('reactivate-pass', function(element, e) {
     e.preventDefault();
     const passId = element.dataset.passId;
     if (!passId) {
@@ -414,7 +416,7 @@ window.EventDelegation.register('reactivate-pass', function(element, e) {
 /**
  * Bulk Generate Passes
  */
-window.EventDelegation.register('bulk-generate-passes', function(element, e) {
+EventDelegation.register('bulk-generate-passes', function(element, e) {
     e.preventDefault();
     if (typeof window.bulkGenerate === 'function') {
         window.bulkGenerate();
@@ -426,7 +428,7 @@ window.EventDelegation.register('bulk-generate-passes', function(element, e) {
 /**
  * Confirm Bulk Void
  */
-window.EventDelegation.register('confirm-bulk-void', function(element, e) {
+EventDelegation.register('confirm-bulk-void', function(element, e) {
     e.preventDefault();
     if (typeof window.confirmBulkVoid === 'function') {
         window.confirmBulkVoid();
@@ -442,7 +444,7 @@ window.EventDelegation.register('confirm-bulk-void', function(element, e) {
 /**
  * Copy To Clipboard
  */
-window.EventDelegation.register('copy-to-clipboard', function(element, e) {
+EventDelegation.register('copy-to-clipboard', function(element, e) {
     e.preventDefault();
     const targetId = element.dataset.targetId;
     if (!targetId) {
@@ -459,7 +461,7 @@ window.EventDelegation.register('copy-to-clipboard', function(element, e) {
 /**
  * Save WooCommerce URL
  */
-window.EventDelegation.register('save-woocommerce-url', function(element, e) {
+EventDelegation.register('save-woocommerce-url', function(element, e) {
     e.preventDefault();
     if (typeof window.saveWooCommerceUrl === 'function') {
         window.saveWooCommerceUrl();
@@ -471,7 +473,7 @@ window.EventDelegation.register('save-woocommerce-url', function(element, e) {
 /**
  * Generate Secret
  */
-window.EventDelegation.register('generate-secret', function(element, e) {
+EventDelegation.register('generate-secret', function(element, e) {
     e.preventDefault();
     if (typeof window.generateSecret === 'function') {
         window.generateSecret();
@@ -483,7 +485,7 @@ window.EventDelegation.register('generate-secret', function(element, e) {
 /**
  * Validate Plugin Connection
  */
-window.EventDelegation.register('validate-plugin-connection', function(element, e) {
+EventDelegation.register('validate-plugin-connection', function(element, e) {
     e.preventDefault();
     if (typeof window.validatePluginConnection === 'function') {
         window.validatePluginConnection();
@@ -499,7 +501,7 @@ window.EventDelegation.register('validate-plugin-connection', function(element, 
 /**
  * Add/Edit/Toggle/Delete Sponsor
  */
-window.EventDelegation.register('add-sponsor', function(element, e) {
+EventDelegation.register('add-sponsor', function(element, e) {
     e.preventDefault();
     if (typeof window.addSponsor === 'function') {
         window.addSponsor();
@@ -508,7 +510,7 @@ window.EventDelegation.register('add-sponsor', function(element, e) {
     }
 }, { preventDefault: true });
 
-window.EventDelegation.register('edit-sponsor', function(element, e) {
+EventDelegation.register('edit-sponsor', function(element, e) {
     e.preventDefault();
     const sponsorId = element.dataset.sponsorId;
     if (typeof window.editSponsor === 'function') {
@@ -516,7 +518,7 @@ window.EventDelegation.register('edit-sponsor', function(element, e) {
     }
 }, { preventDefault: true });
 
-window.EventDelegation.register('toggle-sponsor', function(element, e) {
+EventDelegation.register('toggle-sponsor', function(element, e) {
     e.preventDefault();
     const sponsorId = element.dataset.sponsorId;
     const active = element.dataset.active;
@@ -525,7 +527,7 @@ window.EventDelegation.register('toggle-sponsor', function(element, e) {
     }
 }, { preventDefault: true });
 
-window.EventDelegation.register('delete-sponsor', function(element, e) {
+EventDelegation.register('delete-sponsor', function(element, e) {
     e.preventDefault();
     const sponsorId = element.dataset.sponsorId;
     const sponsorName = element.dataset.sponsorName;
@@ -537,7 +539,7 @@ window.EventDelegation.register('delete-sponsor', function(element, e) {
 /**
  * Add/Edit/Toggle/Delete Location
  */
-window.EventDelegation.register('add-location', function(element, e) {
+EventDelegation.register('add-location', function(element, e) {
     e.preventDefault();
     if (typeof window.addLocation === 'function') {
         window.addLocation();
@@ -546,7 +548,7 @@ window.EventDelegation.register('add-location', function(element, e) {
     }
 }, { preventDefault: true });
 
-window.EventDelegation.register('edit-location', function(element, e) {
+EventDelegation.register('edit-location', function(element, e) {
     e.preventDefault();
     const locationId = element.dataset.locationId;
     if (typeof window.editLocation === 'function') {
@@ -554,7 +556,7 @@ window.EventDelegation.register('edit-location', function(element, e) {
     }
 }, { preventDefault: true });
 
-window.EventDelegation.register('toggle-location', function(element, e) {
+EventDelegation.register('toggle-location', function(element, e) {
     e.preventDefault();
     const locationId = element.dataset.locationId;
     const active = element.dataset.active;
@@ -563,7 +565,7 @@ window.EventDelegation.register('toggle-location', function(element, e) {
     }
 }, { preventDefault: true });
 
-window.EventDelegation.register('delete-location', function(element, e) {
+EventDelegation.register('delete-location', function(element, e) {
     e.preventDefault();
     const locationId = element.dataset.locationId;
     const locationName = element.dataset.locationName;
@@ -575,7 +577,7 @@ window.EventDelegation.register('delete-location', function(element, e) {
 /**
  * Add/Edit/Delete Subgroup
  */
-window.EventDelegation.register('add-subgroup', function(element, e) {
+EventDelegation.register('add-subgroup', function(element, e) {
     e.preventDefault();
     if (typeof window.addSubgroup === 'function') {
         window.addSubgroup();
@@ -584,7 +586,7 @@ window.EventDelegation.register('add-subgroup', function(element, e) {
     }
 }, { preventDefault: true });
 
-window.EventDelegation.register('edit-subgroup', function(element, e) {
+EventDelegation.register('edit-subgroup', function(element, e) {
     e.preventDefault();
     const subgroupId = element.dataset.subgroupId;
     const subgroupName = element.dataset.subgroupName;
@@ -595,7 +597,7 @@ window.EventDelegation.register('edit-subgroup', function(element, e) {
     }
 }, { preventDefault: true });
 
-window.EventDelegation.register('delete-subgroup', function(element, e) {
+EventDelegation.register('delete-subgroup', function(element, e) {
     e.preventDefault();
     const subgroupId = element.dataset.subgroupId;
     const subgroupName = element.dataset.subgroupName;
@@ -611,7 +613,7 @@ window.EventDelegation.register('delete-subgroup', function(element, e) {
 /**
  * Edit Category
  */
-window.EventDelegation.register('edit-category', function(element, e) {
+EventDelegation.register('edit-category', function(element, e) {
     e.preventDefault();
     const categoryId = element.dataset.categoryId;
     const categoryName = element.dataset.categoryName;
@@ -624,7 +626,7 @@ window.EventDelegation.register('edit-category', function(element, e) {
 /**
  * Edit Template
  */
-window.EventDelegation.register('edit-template', function(element, e) {
+EventDelegation.register('edit-template', function(element, e) {
     e.preventDefault();
     const templateId = element.dataset.templateId;
     if (typeof window.editTemplate === 'function') {
@@ -635,7 +637,7 @@ window.EventDelegation.register('edit-template', function(element, e) {
 /**
  * Preview Template
  */
-window.EventDelegation.register('preview-template', function(element, e) {
+EventDelegation.register('preview-template', function(element, e) {
     e.preventDefault();
     const templateId = element.dataset.templateId;
     if (typeof window.previewTemplate === 'function') {
@@ -646,7 +648,7 @@ window.EventDelegation.register('preview-template', function(element, e) {
 /**
  * Copy Template
  */
-window.EventDelegation.register('copy-template', function(element, e) {
+EventDelegation.register('copy-template', function(element, e) {
     e.preventDefault();
     const templateId = element.dataset.templateId;
     if (typeof window.copyTemplate === 'function') {
@@ -662,7 +664,7 @@ window.EventDelegation.register('copy-template', function(element, e) {
  * Reset Form
  * Resets form to original values
  */
-window.EventDelegation.register('reset-form', function(element, e) {
+EventDelegation.register('reset-form', function(element, e) {
     e.preventDefault();
     if (typeof window.resetForm === 'function') {
         window.resetForm();
@@ -675,7 +677,7 @@ window.EventDelegation.register('reset-form', function(element, e) {
  * Clear Selection
  * Clears the current selection (used in direct messaging)
  */
-window.EventDelegation.register('clear-selection', function(element, e) {
+EventDelegation.register('clear-selection', function(element, e) {
     e.preventDefault();
     if (typeof window.clearSelection === 'function') {
         window.clearSelection();

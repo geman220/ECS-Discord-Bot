@@ -5,6 +5,7 @@
 // ES Module
 'use strict';
 
+import { ModalManager } from './modal-manager.js';
 // Initialize when DOM is ready
     document.addEventListener('DOMContentLoaded', function() {
         console.log('Message Management JS loaded');
@@ -18,7 +19,7 @@
 
     // Preview message template
     window.previewTemplate = function(templateId) {
-        window.ModalManager.show('previewModal');
+        ModalManager.show('previewModal');
         
         // Set loading state
         const previewContent = document.getElementById('previewContent');
@@ -106,7 +107,7 @@
             return;
         }
 
-        window.ModalManager.show('previewModal');
+        ModalManager.show('previewModal');
         
         // Create a preview with sample data
         const sampleData = {

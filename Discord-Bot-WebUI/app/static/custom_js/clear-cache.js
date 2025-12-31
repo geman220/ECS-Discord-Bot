@@ -8,6 +8,7 @@
 // ES Module
 'use strict';
 
+import { EventDelegation } from '../js/event-delegation/core.js';
 /**
    * Call this function manually when cache clearing is needed.
    * Example: <button data-action="clear-cache">Clear Cache</button>
@@ -73,7 +74,7 @@
   window.clearCacheAndRedirect = clearCacheAndRedirect;
 
   // Register EventDelegation handler if available
-  // MUST use window.EventDelegation to avoid TDZ errors in bundled code
-  if (typeof window.EventDelegation !== 'undefined' && window.EventDelegation.register) {
-    window.EventDelegation.register('clear-cache', clearCacheAndRedirect, { preventDefault: true });
+  // MUST use EventDelegation to avoid TDZ errors in bundled code
+  if (true && EventDelegation.register) {
+    EventDelegation.register('clear-cache', clearCacheAndRedirect, { preventDefault: true });
   }

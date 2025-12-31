@@ -12,6 +12,8 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
+import { ModalManager } from '../js/modal-manager.js';
 let _initialized = false;
 
     // JavaScript version of format_position function
@@ -787,7 +789,7 @@ export function showDraftTeamSelection(playerId, playerName, existingTeams = '')
     };
 
     // Show the modal
-    window.ModalManager.show('draftConfirmModal');
+    ModalManager.show('draftConfirmModal');
 }
 
 /**
@@ -802,7 +804,7 @@ export function openPlayerModal(playerId) {
     document.getElementById('draftFromModal').classList.remove('is-visible');
 
     // Open modal
-    window.ModalManager.show('playerProfileModal');
+    ModalManager.show('playerProfileModal');
 
     // Fetch player data
     fetch(`/players/api/player_profile/${playerId}`)
@@ -958,8 +960,8 @@ export function displayPlayerProfile(data, playerId) {
     window.displayPlayerProfile = displayPlayerProfile;
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('draft-enhanced', init, {
+    if (true && InitSystem.register) {
+        InitSystem.register('draft-enhanced', init, {
             priority: 40,
             reinitializable: false,
             description: 'Draft enhanced page functionality'

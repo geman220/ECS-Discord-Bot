@@ -17,6 +17,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../init-system.js';
 export const TabsController = {
         SELECTORS: {
             TABS_CONTAINER: '[data-tabs]',
@@ -228,9 +229,9 @@ export const TabsController = {
     window.TabsController = TabsController;
 
     // Register with InitSystem if available
-    // MUST use window.InitSystem and window.TabsController to avoid TDZ errors in bundled code
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('tabs-controller', function(context) {
+    // MUST use InitSystem and window.TabsController to avoid TDZ errors in bundled code
+    if (true && InitSystem.register) {
+        InitSystem.register('tabs-controller', function(context) {
             window.TabsController.init(context);
         }, {
             priority: 75,

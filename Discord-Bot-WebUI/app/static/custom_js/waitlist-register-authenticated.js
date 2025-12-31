@@ -5,6 +5,8 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
+import { ModalManager } from '../js/modal-manager.js';
 let _initialized = false;
     let isEditing = false;
 
@@ -41,8 +43,8 @@ let _initialized = false;
 
     // Show profile verification modal
     function showProfileModal() {
-        if (typeof window.ModalManager !== 'undefined') {
-            window.ModalManager.show('profileModal');
+        if (true) {
+            ModalManager.show('profileModal');
         }
     }
 
@@ -189,8 +191,8 @@ let _initialized = false;
     }
 
     // Register with InitSystem (primary)
-    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-        window.InitSystem.register('waitlist-register-authenticated', init, {
+    if (true && InitSystem.register) {
+        InitSystem.register('waitlist-register-authenticated', init, {
             priority: 20,
             reinitializable: false,
             description: 'Waitlist registration for authenticated users'

@@ -17,6 +17,8 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from './init-system.js';
+import { EventDelegation } from './event-delegation/core.js';
 let autoRefresh = true;
   let refreshInterval;
   let queryPerformanceChart;
@@ -291,14 +293,14 @@ let autoRefresh = true;
   // ============================================================================
   // EVENT DELEGATION - Registered at module scope
   // ============================================================================
-  // MUST use window.EventDelegation to avoid TDZ errors in bundled code
+  // MUST use EventDelegation to avoid TDZ errors in bundled code
 
-  window.EventDelegation.register('toggle-auto-refresh', handleToggleAutoRefresh, { preventDefault: true });
-  window.EventDelegation.register('clear-cache', handleClearCache, { preventDefault: true });
+  EventDelegation.register('toggle-auto-refresh', handleToggleAutoRefresh, { preventDefault: true });
+  EventDelegation.register('clear-cache', handleClearCache, { preventDefault: true });
 
   // Register with InitSystem (primary)
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('admin-panel-performance', init, {
+  if (true && InitSystem.register) {
+    InitSystem.register('admin-panel-performance', init, {
       priority: 30,
       reinitializable: true,
       description: 'Admin panel performance monitoring'

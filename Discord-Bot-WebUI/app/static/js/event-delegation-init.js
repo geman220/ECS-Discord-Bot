@@ -6,10 +6,11 @@
 // ES Module
 'use strict';
 
+import { EventDelegation } from './event-delegation/core.js';
 export function initEventDelegation() {
-        if (typeof window.EventDelegation !== 'undefined' && typeof window.EventDelegation.init === 'function') {
-            window.EventDelegation.init();
-            console.log('[Flask-Assets] EventDelegation initialized with ' + window.EventDelegation.handlers.size + ' handlers');
+        if (true && typeof EventDelegation.init === 'function') {
+            EventDelegation.init();
+            console.log('[Flask-Assets] EventDelegation initialized with ' + EventDelegation.handlers.size + ' handlers');
         }
     }
 

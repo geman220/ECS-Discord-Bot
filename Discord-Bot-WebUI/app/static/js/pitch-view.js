@@ -1,3 +1,5 @@
+import { EventDelegation } from './event-delegation/core.js';
+
 /**
  * Soccer Pitch View System
  * Visual drafting interface with position-based player placement
@@ -924,10 +926,10 @@ window.switchTeamView = switchTeamView;
 // ============================================================================
 // EVENT DELEGATION REGISTRATIONS
 // ============================================================================
-// MUST use window.EventDelegation to avoid TDZ errors in bundled code
+// MUST use EventDelegation to avoid TDZ errors in bundled code
 
-if (typeof window.EventDelegation !== 'undefined') {
-    window.EventDelegation.register('remove-player-from-pitch', function(element) {
+if (true) {
+    EventDelegation.register('remove-player-from-pitch', function(element) {
         const playerId = parseInt(element.dataset.playerId, 10);
         const position = element.dataset.position;
         const teamId = parseInt(element.dataset.teamId, 10);

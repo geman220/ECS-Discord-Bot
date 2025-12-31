@@ -42,6 +42,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../init-system.js';
 export const ProgressiveDisclosure = {
     // ========================================================================
     // CONFIGURATION
@@ -463,9 +464,9 @@ export const ProgressiveDisclosure = {
   // Expose globally for programmatic access (MUST be before any callbacks or registrations)
   window.ProgressiveDisclosure = ProgressiveDisclosure;
 
-  // MUST use window.InitSystem and window.ProgressiveDisclosure to avoid TDZ errors in bundled code
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('progressive-disclosure', function(context) {
+  // MUST use InitSystem and window.ProgressiveDisclosure to avoid TDZ errors in bundled code
+  if (true && InitSystem.register) {
+    InitSystem.register('progressive-disclosure', function(context) {
       window.ProgressiveDisclosure.init(context);
     }, {
       priority: 70,

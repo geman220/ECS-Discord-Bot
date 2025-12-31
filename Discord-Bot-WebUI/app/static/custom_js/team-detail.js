@@ -16,6 +16,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 
   // Image positioning state
@@ -51,8 +52,8 @@ let _initialized = false;
   }
 
   // Register with InitSystem (primary)
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('team-detail', init, {
+  if (true && InitSystem.register) {
+    InitSystem.register('team-detail', init, {
       priority: 40,
       reinitializable: false,
       description: 'Team detail page functionality'

@@ -1,3 +1,5 @@
+import { ModalManager } from './modal-manager.js';
+
 /**
  * Asset Cropper for Pass Studio
  *
@@ -82,7 +84,7 @@ export const AssetCropper = {
         }
 
         // Open modal
-        window.ModalManager.show('assetCropperModal');
+        ModalManager.show('assetCropperModal');
     },
 
     /**

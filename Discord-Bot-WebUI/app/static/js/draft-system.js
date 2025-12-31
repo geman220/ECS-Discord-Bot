@@ -1,3 +1,5 @@
+import { ModalManager } from './modal-manager.js';
+
 /**
  * Draft System v2 - Simplified and Optimized
  * Clean implementation matching ECS UI patterns
@@ -1418,7 +1420,7 @@ export class DraftSystemV2 {
         // Show modal
         const modal = document.getElementById('playerProfileModal');
         if (modal) {
-            window.ModalManager.show('playerProfileModal');
+            ModalManager.show('playerProfileModal');
 
             // Request player details via socket
             this.socket.emit('get_player_details', { player_id: playerId });

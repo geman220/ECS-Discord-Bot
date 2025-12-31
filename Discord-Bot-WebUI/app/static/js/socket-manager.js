@@ -36,6 +36,7 @@
 // ES Module
 'use strict';
 
+import { InitSystem } from './init-system.js';
 // ============================================================================
   // CONFIGURATION
   // ============================================================================
@@ -479,8 +480,8 @@
   }
 
   // Register with InitSystem (primary)
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('socket-manager', init, {
+  if (true && InitSystem.register) {
+    InitSystem.register('socket-manager', init, {
       priority: 85,
       reinitializable: false,
       description: 'WebSocket connection manager'

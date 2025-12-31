@@ -1,3 +1,5 @@
+import { ModalManager } from '../js/modal-manager.js';
+
 /**
  * ECS FC Schedule Management JavaScript
  * 
@@ -337,7 +339,7 @@ export function showCreateMatchModal(selectedDate = null) {
     }
 
     // Show modal
-    window.ModalManager.show(modal.id);
+    ModalManager.show(modal.id);
 }
 
 /**
@@ -418,7 +420,7 @@ export function ecsFcEditMatch(matchId) {
     }
 
     // Show modal
-    window.ModalManager.show('createMatchModal');
+    ModalManager.show('createMatchModal');
 }
 
 /**
@@ -505,7 +507,7 @@ export function showImportMatchesModal() {
     const modal = document.getElementById('importMatchesModal');
     if (!modal) return;
 
-    window.ModalManager.show(modal.id);
+    ModalManager.show(modal.id);
 }
 
 /**
