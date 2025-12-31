@@ -144,6 +144,10 @@ firebase-service-account.json
 *.p8
 *.pem
 
+# Google Service Account Credentials (NEVER commit these!)
+google-service-account.json
+*-service-account*.json
+
 # Webassets generated files
 /app/static/.webassets-cache/
 /app/static/gen/
